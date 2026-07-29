@@ -14,6 +14,7 @@ from sift.data_imports.v2.data_imports_pb2 import (
     DATA_TYPE_KEY_PARQUET_FLATDATASET,
     DATA_TYPE_KEY_PARQUET_SINGLE_CHANNEL_PER_ROW,
     DATA_TYPE_KEY_TDMS,
+    DATA_TYPE_KEY_ULOG,
     PARQUET_COMPLEX_TYPES_IMPORT_MODE_BOTH,
     PARQUET_COMPLEX_TYPES_IMPORT_MODE_BYTES,
     PARQUET_COMPLEX_TYPES_IMPORT_MODE_IGNORE,
@@ -24,6 +25,8 @@ from sift.data_imports.v2.data_imports_pb2 import (
     TDMS_FALLBACK_METHOD_FAIL_ON_ERROR,
     TDMS_FALLBACK_METHOD_IGNORE_ERROR,
     TDMS_FALLBACK_METHOD_UNSPECIFIED,
+    ULOG_PARSE_ERROR_POLICY_FAIL_ON_ERROR,
+    ULOG_PARSE_ERROR_POLICY_IGNORE_ERROR,
 )
 from sift.data_imports.v2.data_imports_pb2 import CsvConfig as CsvConfigProto
 from sift.data_imports.v2.data_imports_pb2 import CsvTimeColumn as CsvTimeColumnProto
@@ -47,6 +50,8 @@ from sift.data_imports.v2.data_imports_pb2 import ParquetTimeColumn as ParquetTi
 from sift.data_imports.v2.data_imports_pb2 import TDMSConfig as TDMSConfigProto
 from sift.data_imports.v2.data_imports_pb2 import TdmsDataConfig as TdmsDataConfigProto
 from sift.data_imports.v2.data_imports_pb2 import TimeFormat as TimeFormatProto
+from sift.data_imports.v2.data_imports_pb2 import UlogConfig as UlogConfigProto
+from sift.data_imports.v2.data_imports_pb2 import UlogDataConfig as UlogDataConfigProto
 
 from sift_client._internal.util.timestamp import to_pb_timestamp
 from sift_client.sift_types.channel import ChannelDataType
@@ -79,6 +84,7 @@ class DataTypeKey(Enum):
     HDF5_ONE_D = "hdf5_one_d"
     HDF5_TWO_D = "hdf5_two_d"
     HDF5_COMPOUND = "hdf5_compound"
+    ULOG = "ulog"
 
 
 DATA_TYPE_KEY_TO_PROTO = {
@@ -89,12 +95,14 @@ DATA_TYPE_KEY_TO_PROTO = {
     DataTypeKey.HDF5_ONE_D: DATA_TYPE_KEY_HDF5,
     DataTypeKey.HDF5_TWO_D: DATA_TYPE_KEY_HDF5,
     DataTypeKey.HDF5_COMPOUND: DATA_TYPE_KEY_HDF5,
+    DataTypeKey.ULOG: DATA_TYPE_KEY_ULOG,
 }
 
 
 EXTENSION_TO_DATA_TYPE_KEY: dict[str, DataTypeKey] = {
     ".csv": DataTypeKey.CSV,
     ".tdms": DataTypeKey.TDMS,
+    ".ulg": DataTypeKey.ULOG,
 }
 
 
@@ -841,10 +849,170 @@ class Hdf5ImportConfig(ImportConfigBase):
         return proto
 
 
+class UlogParseErrorPolicy(Enum):
+    """Controls how ULog import handles recoverable parse errors.
+
+    Recoverable errors include a truncated final record or bytes skipped while
+    resynchronizing the log. The policy applies when the file is imported, not
+    during ``detect_config``.
+    """
+
+    FAIL_ON_ERROR = ULOG_PARSE_ERROR_POLICY_FAIL_ON_ERROR
+    """Fail the import on the first recoverable parse error."""
+
+    IGNORE_ERROR = ULOG_PARSE_ERROR_POLICY_IGNORE_ERROR
+    """Skip bad records and import the rest of the file."""
+
+
+class UlogDataColumn(DataColumnBase):
+    """A single ULog channel selection.
+
+    Channels are selected by message name, instance, and field, as returned
+    by ``detect_config``. Log-message channels (``"log_messages"``,
+    ``"log_messages_<tag>"``) set ``message_name`` to the channel name, with
+    ``instance`` 0 and an empty ``field_name``.
+
+    Attributes:
+        message_name: The ULog message name (e.g. ``"sensor_accel"``).
+        instance: The message instance for multi-instance topics. Defaults to 0.
+        field_name: The flattened ULog field name (e.g. ``"x"``, ``"esc[0].v"``).
+            Empty for log-message channels.
+        name: Sift channel name to create. Defaults to ``default_channel_name``,
+            e.g. ``"sensor_accel_0.x"``.
+    """
+
+    message_name: str
+    instance: int = 0
+    field_name: str = ""
+    name: str = ""
+
+    @property
+    def default_channel_name(self) -> str:
+        """The default Sift channel name for this selection,
+        ``<message_name>_<instance>.<field_name>`` (e.g. ``"sensor_accel_0.x"``),
+        or just ``message_name`` for log-message channels.
+        """
+        if not self.field_name:
+            return self.message_name
+        return f"{self.message_name}_{self.instance}.{self.field_name}"
+
+    @model_validator(mode="after")
+    def _apply_default_name(self) -> UlogDataColumn:
+        if not self.name:
+            self.name = self.default_channel_name
+        return self
+
+
+class UlogImportConfig(ImportConfigBase):
+    """Configuration for importing a PX4 ULog (``.ulg``) file.
+
+    ULog files describe their own channels. Leave ``data`` empty to import every
+    detected channel, or call ``detect_config`` and edit the returned ``data``
+    list to skip, rename, retype, or annotate channels before importing.
+
+    Attributes:
+        data: Channel selections. If empty, imports all detected channels with
+            default names and data types. If non-empty, imports only these
+            channels.
+        relative_start_time: Absolute UTC time of log start. ULog timestamps
+            are relative to boot time. When set, this anchors the timeline and
+            takes precedence over the log's GPS fix; otherwise the GPS fix
+            anchors the timeline. The import fails if neither is available.
+        info_keys: Info (``I``/``M``) message keys to import as run metadata,
+            stored as ``info.<key>``. Requires ``run_name`` or ``run_id``.
+        param_keys: Parameter (``P``) names to import as run metadata, stored
+            as ``param.<name>``. Requires ``run_name`` or ``run_id``.
+        parse_error_policy: How to handle recoverable parse errors. Defaults to
+            failing the import.
+    """
+
+    data: list[UlogDataColumn] = []
+    relative_start_time: datetime | None = None
+    info_keys: list[str] = []
+    param_keys: list[str] = []
+    parse_error_policy: UlogParseErrorPolicy = UlogParseErrorPolicy.FAIL_ON_ERROR
+
+    def __getitem__(self, name: str) -> UlogDataColumn:
+        """Look up a configured ULog channel by Sift channel name.
+
+        Example::
+
+            config["sensor_accel_0.x"].data_type = ChannelDataType.DOUBLE
+        """
+        for dc in self.data:
+            if dc.name == name:
+                return dc
+        raise KeyError(f"No data column named '{name}'")
+
+    def _to_proto(self) -> UlogConfigProto:
+        proto = UlogConfigProto(
+            asset_name=self.asset_name,
+            run_name=self.run_name or "",
+            run_id=self.run_id or "",
+            info_keys=self.info_keys,
+            param_keys=self.param_keys,
+            parse_error_policy=self.parse_error_policy.value,
+        )
+        if self.relative_start_time is not None:
+            proto.relative_start_time.CopyFrom(to_pb_timestamp(self.relative_start_time))
+        for dc in self.data:
+            proto.data.append(
+                UlogDataConfigProto(
+                    message_name=dc.message_name,
+                    instance=dc.instance,
+                    field_name=dc.field_name,
+                    channel_config=ChannelConfigProto(
+                        name=dc.name,
+                        data_type=dc.data_type.value,
+                        units=dc.units,
+                        description=dc.description,
+                    ),
+                )
+            )
+        return proto
+
+    @classmethod
+    def _from_proto(cls, proto: UlogConfigProto) -> UlogImportConfig:
+        """Create from a proto UlogConfig (e.g. from a GetDataImport response)."""
+        relative_start_time = None
+        if proto.HasField("relative_start_time"):
+            from datetime import timezone
+
+            relative_start_time = proto.relative_start_time.ToDatetime(tzinfo=timezone.utc)
+
+        parse_error_policy = UlogParseErrorPolicy.FAIL_ON_ERROR
+        if proto.parse_error_policy == ULOG_PARSE_ERROR_POLICY_IGNORE_ERROR:
+            parse_error_policy = UlogParseErrorPolicy.IGNORE_ERROR
+
+        data = [
+            UlogDataColumn(
+                message_name=d.message_name,
+                instance=d.instance,
+                field_name=d.field_name,
+                name=d.channel_config.name,
+                data_type=ChannelDataType(d.channel_config.data_type),
+                units=d.channel_config.units,
+                description=d.channel_config.description,
+            )
+            for d in proto.data
+        ]
+        return cls(
+            asset_name=proto.asset_name,
+            run_name=proto.run_name or None,
+            run_id=proto.run_id or None,
+            data=data,
+            relative_start_time=relative_start_time,
+            info_keys=list(proto.info_keys),
+            param_keys=list(proto.param_keys),
+            parse_error_policy=parse_error_policy,
+        )
+
+
 ImportConfig = Union[
     CsvImportConfig,
     ParquetFlatDatasetImportConfig,
     ParquetSingleChannelPerRowImportConfig,
     TdmsImportConfig,
     Hdf5ImportConfig,
+    UlogImportConfig,
 ]

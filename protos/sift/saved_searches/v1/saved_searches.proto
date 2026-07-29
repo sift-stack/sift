@@ -151,6 +151,13 @@ message ListSavedSearchesRequest {
 
   // This field is only required if your user belongs to multiple organizations.
   string organization_id = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved saved searches. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `name`, `created_date`, and `modified_date`.
+  // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc,modified_date"
+  string order_by = 5 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // The response of a call to `SavedSearchService_ListSavedSearchesResponse`.

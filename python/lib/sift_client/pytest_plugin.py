@@ -613,24 +613,29 @@ def pytest_keyboard_interrupt(excinfo: pytest.ExceptionInfo[BaseException]) -> N
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int):
-    """Close any report-tree parents still open at session end (innermost first).
+    """Close any report-tree parents still open at session end, then finalize the report.
 
-    Normally a no-op: ``report_context_impl`` finalizes the parents inside the
-    ``ReportContext`` block so their updates reach the log before the import
-    worker drains, and most parents already closed early as their subtrees
-    finished. This is the idempotent backstop for anything still open.
+    Parent closing is normally a no-op: ``report_context_impl`` finalizes the
+    parents inside the ``ReportContext`` block, and most already closed early as
+    their subtrees finished. This is the idempotent backstop for anything still
+    open.
 
-    Runs as a hookwrapper so the drain happens *after* pytest's own
+    Runs as a hookwrapper so both steps happen *after* pytest's own
     ``pytest_sessionfinish`` (``SetupState.teardown_exact``), which finalizes the
     still-open leaf step and the session-scoped ``report_context`` fixture. On a
     session abort (``pytest.exit``) the leaf's fixture teardown is deferred to
     that point; finalizing parents before it would close them while their
     descendant is still unresolved, so the abort/failure would not roll up. The
-    ``yield`` lets that teardown run first, leaving this call the no-op backstop
-    it is meant to be.
+    ``yield`` lets that teardown run first.
+
+    ``ReportContext.finalize`` runs here rather than in the context's ``__exit__``
+    (see ``defer_finalize``) because this is the earliest point guaranteed to
+    follow the last item's teardown report. Both calls are idempotent.
     """
     yield
     finalize_parents()
+    if REPORT_CONTEXT is not None:
+        REPORT_CONTEXT.finalize()
 
 
 def _verbosity(config: pytest.Config) -> int:

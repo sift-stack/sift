@@ -474,6 +474,11 @@ def report_context_impl(
         replay_log_file=not (disabled or offline),
         metadata=report_metadata,
         audit_log=audit_log,
+        # pytest tears this session-scoped fixture down during the LAST item's
+        # teardown phase but reports that phase's outcome afterwards, so a
+        # teardown failure on the final test is unknown here. The plugin's
+        # ``pytest_sessionfinish`` calls ``finalize`` once it can't be.
+        defer_finalize=True,
     ) as context:
         report = context.report
         meta_kv = ",".join(f"{k}={v}" for k, v in (report.metadata or {}).items()) or "-"

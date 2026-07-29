@@ -10,6 +10,7 @@ import google.protobuf.internal.containers
 import google.protobuf.internal.enum_type_wrapper
 import google.protobuf.message
 import google.protobuf.timestamp_pb2
+import sift.common.v1.filter_field_pb2
 import sys
 import typing
 
@@ -58,10 +59,16 @@ class MetadataKey(google.protobuf.message.Message):
     TYPE_FIELD_NUMBER: builtins.int
     ARCHIVED_DATE_FIELD_NUMBER: builtins.int
     IS_ARCHIVED_FIELD_NUMBER: builtins.int
+    FILTER_FIELD_TYPE_FIELD_NUMBER: builtins.int
     name: builtins.str
     type: global___MetadataKeyType.ValueType
     is_archived: builtins.bool
     """Whether the metadata key is archived. This is inferred from whether archived_date is set."""
+    filter_field_type: sift.common.v1.filter_field_pb2.FilterFieldType.ValueType
+    """The filter field type this key maps to, so a client can build a CEL filter
+    against it (`metadata["<name>"]`) and resolve its operators and functions
+    from FilterGrammarService. Derived from `type`.
+    """
     @property
     def archived_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     def __init__(
@@ -71,9 +78,10 @@ class MetadataKey(google.protobuf.message.Message):
         type: global___MetadataKeyType.ValueType = ...,
         archived_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         is_archived: builtins.bool = ...,
+        filter_field_type: sift.common.v1.filter_field_pb2.FilterFieldType.ValueType = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["archived_date", b"archived_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["archived_date", b"archived_date", "is_archived", b"is_archived", "name", b"name", "type", b"type"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["archived_date", b"archived_date", "filter_field_type", b"filter_field_type", "is_archived", b"is_archived", "name", b"name", "type", b"type"]) -> None: ...
 
 global___MetadataKey = MetadataKey
 

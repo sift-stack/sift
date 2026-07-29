@@ -41,10 +41,13 @@ if TYPE_CHECKING:
         JobType,
     )
     from sift_client.sift_types.principal_attribute import (
+        PrincipalAttributeAssignment,
         PrincipalAttributeEnumValue,
         PrincipalAttributeKey,
-        PrincipalAttributeValue,
+        PrincipalAttributeKeyUpdate,
+        PrincipalAttributeValueLike,
         PrincipalAttributeValueType,
+        PrincipalRef,
         PrincipalType,
     )
     from sift_client.sift_types.report import Report, ReportUpdate
@@ -54,11 +57,13 @@ if TYPE_CHECKING:
         ReportTemplateUpdate,
     )
     from sift_client.sift_types.resource_attribute import (
-        ResourceAttribute,
+        ResourceAttributeAssignment,
         ResourceAttributeEntity,
         ResourceAttributeEnumValue,
         ResourceAttributeKey,
-        ResourceAttributeKeyType,
+        ResourceAttributeKeyUpdate,
+        ResourceAttributeValueLike,
+        ResourceAttributeValueType,
     )
     from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate, RuleVersion
     from sift_client.sift_types.run import Run, RunCreate, RunUpdate
@@ -77,6 +82,7 @@ if TYPE_CHECKING:
         TestStepType,
         TestStepUpdate,
     )
+    from sift_client.sift_types.user import User
 
 class AssetsAPI:
     """Sync counterpart to `AssetsAPIAsync`.
@@ -488,7 +494,9 @@ class ChannelsAPI:
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
         ignore_cache: bool = False,
+        show_progress: bool | None = None,
     ) -> dict[str, pd.DataFrame]:
         """Get data for one or more channels.
 
@@ -498,7 +506,13 @@ class ChannelsAPI:
             start_time: The start time to get data for.
             end_time: The end time to get data for.
             limit: The maximum number of data points to return. Will be in increments of page_size or default page size defined by the call if no page_size is provided.
+            page_size: Number of data points to fetch per request. Defaults to 10,000.
+                The server caps this at 1,000,000; values above that are coerced down.
+                Increase toward 1,000,000 to reduce round-trips on large datasets.
             ignore_cache: Whether to ignore cached data and fetch fresh data from the server.
+            show_progress: If True, display a progress bar naming each channel as
+                its data is fetched. Defaults to True for sync, False for async.
+                Use ``sift_client.config.show_progress = False`` to disable globally.
 
         Returns:
             A dictionary mapping channel names to pandas DataFrames containing the channel data.
@@ -513,7 +527,9 @@ class ChannelsAPI:
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         limit: int | None = None,
+        page_size: int | None = None,
         ignore_cache: bool = False,
+        show_progress: bool | None = None,
     ) -> dict[str, pa.Table]:
         """Get data for one or more channels as pyarrow tables."""
         ...
@@ -696,12 +712,12 @@ class DataImportAPI:
     ) -> ImportConfig:
         """Auto-detect import configuration from a file.
 
-        Reads a sample of the file, sends it to the server's DetectConfig
-        endpoint, and returns the detected configuration. The file format
-        is inferred from the file extension when ``data_type`` is not
-        provided.
+        Returns the detected configuration, inferring the file format from the
+        extension when ``data_type`` is not provided. CSV and Parquet are
+        detected by sending a sample of the file to the server's DetectConfig
+        endpoint; TDMS, HDF5, and ULog are detected locally on the client.
 
-        CSV, Parquet, HDF5, and TDMS files are supported for
+        CSV, Parquet, HDF5, TDMS, and ULog files are supported for
         auto-detection.
 
         For CSV files, the server scans the first two rows for an optional
@@ -723,6 +739,11 @@ class DataImportAPI:
         in the metadata row; they are applied server-side during import
         but are not included in the returned config.
 
+        For ULog files, ``data`` lists the channels pyulog decodes from the
+        file. When imported, a non-empty ``data`` list restricts the import
+        to exactly those channels; the import fails if a listed channel is
+        not in the file. Clear ``data`` to import every channel.
+
         For file types with multiple supported layouts (Parquet, HDF5),
         ``data_type`` must be specified explicitly.
 
@@ -731,11 +752,11 @@ class DataImportAPI:
             data_type: Explicit data type key. Required for formats with
                 multiple supported layouts (Parquet, HDF5) where the file
                 extension alone is ambiguous.
-            time_format: Time format override. When provided, takes
-                precedence over the format returned by detection. When
-                omitted, the returned config uses the detected format if
-                available, falling back to
-                ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``.
+            time_format: Time format override for CSV, Parquet, HDF5, and TDMS.
+                Ignored for ULog. When omitted, CSV, Parquet, and HDF5 use the
+                detected format if available, otherwise
+                ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``. TDMS keeps its
+                detected/default time handling.
 
         Returns:
             The detected import config.
@@ -788,7 +809,7 @@ class DataImportAPI:
         completion before proceeding.
 
         When ``config`` is omitted the file format is auto-detected via
-        ``detect_config`` (CSV, Parquet, HDF5, and TDMS).
+        ``detect_config`` (CSV, Parquet, HDF5, TDMS, and ULog).
         When ``asset`` is provided it overrides the config value;
         otherwise the config's ``asset_name`` is used.
         If neither ``run`` nor ``run_name`` is provided (and none is
@@ -826,19 +847,20 @@ class DataImportAPI:
                 when ``config`` already has ``asset_name`` set.
             config: Import configuration describing the file format and column
                 mapping. When provided, ``data_type`` is ignored. If omitted,
-                the config is auto-detected via ``detect_config``. You can
-                call ``detect_config`` yourself to inspect and modify the
-                config before passing it here.
+                the config is auto-detected via ``detect_config`` (for ULog
+                the detected channel list is dropped so every channel in the
+                file is imported). You can call ``detect_config`` yourself to
+                inspect and modify the config before passing it here.
             data_type: Explicit data type key. Required for formats with
                 multiple supported layouts (Parquet, HDF5) where the file
                 extension alone is ambiguous. Only used when ``config`` is
                 not provided.
-            time_format: Time format override. When provided, takes
-                precedence over the format returned by detection. When
-                omitted, the returned config uses the detected format if
-                available, falling back to
-                ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``. Only used when
-                ``config`` is not provided.
+            time_format: Time format override for CSV, Parquet, HDF5, and TDMS.
+                Ignored for ULog. When omitted, CSV, Parquet, and HDF5 use the
+                detected format if available, otherwise
+                ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``. TDMS keeps its
+                detected/default time handling. Only used when ``config`` is
+                not provided.
             run: ``Run`` object or run ID string to import into an existing
                 run. Mutually exclusive with ``run_name``.
             run_name: Name for a new run. Defaults to the filename if
@@ -1180,18 +1202,17 @@ class PingAPI:
         """
         ...
 
-class PrincipalAttributesAPI:
-    """Sync counterpart to `PrincipalAttributesAPIAsync`.
+class PrincipalAttributeAssignmentsAPI:
+    """Sync counterpart to `PrincipalAttributeAssignmentsAPIAsync`.
 
-    High-level API for principal attributes (ABAC).
+    High-level API for principal attribute assignments.
 
-    Principal attributes assign attribute keys to principals (users or user groups). The
-    attribute key is the entry point: enum values and assignments are managed through
-    methods on a key, or through the corresponding methods here.
+    Accessed as a nested resource via
+    ``client.access_control.principal_attributes.assignments``.
     """
 
     def __init__(self, sift_client: SiftClient):
-        """Initialize the PrincipalAttributesAPI.
+        """Initialize the PrincipalAttributeAssignmentsAPI.
 
         Args:
             sift_client: The Sift client to use.
@@ -1199,16 +1220,135 @@ class PrincipalAttributesAPI:
         ...
 
     def _run(self, coro): ...
-    def archive_assignments(
+    def archive(
         self,
-        assignments: list[str | PrincipalAttributeValue],
+        assignments: list[str | PrincipalAttributeAssignment],
         *,
-        principal_type: PrincipalType = PrincipalType.USER,
+        principal_type: PrincipalType,
     ) -> None:
-        """Batch archive assignments."""
+        """Batch archive assignments of the given principal type.
+
+        Args:
+            assignments: The assignments or assignment IDs to archive.
+            principal_type: The kind of principal the assignments apply to.
+        """
         ...
 
-    def archive_enum_value(
+    def create(
+        self,
+        key: str | PrincipalAttributeKey,
+        principals: list[PrincipalRef | User | str],
+        *,
+        value: PrincipalAttributeValueLike,
+    ) -> list[PrincipalAttributeAssignment]:
+        """Assign a key's value to principals.
+
+        Args:
+            key: The key or key ID to assign. Its ``value_type`` determines how ``value`` is interpreted.
+            principals: Principals to assign to. Pass ``PrincipalRef.user(...)`` /
+                ``PrincipalRef.user_group(...)`` references, ``User`` objects, or user
+                email addresses (resolved to user IDs automatically). Bare IDs are
+                rejected because they do not say which kind of principal they refer to.
+            value: For ``SET_OF_ENUM``, a list of enum values (or their IDs) that becomes the
+                full set on each principal; for ``ENUM``, a single enum value; for ``BOOLEAN``,
+                a bool; for ``NUMBER``, an int.
+
+        Returns:
+            The created assignments, one per enum value per principal for
+            ``SET_OF_ENUM`` keys. Order is not guaranteed to match the input order.
+        """
+        ...
+
+    def get(
+        self, *, assignment_id: str, principal_type: PrincipalType
+    ) -> PrincipalAttributeAssignment:
+        """Get a single assignment by ID and principal type.
+
+        Args:
+            assignment_id: The ID of the assignment.
+            principal_type: The kind of principal the assignment applies to.
+
+        Returns:
+            The assignment.
+        """
+        ...
+
+    def list_(
+        self,
+        *,
+        key: str | PrincipalAttributeKey | None = None,
+        principal: PrincipalRef | User | str | None = None,
+        principal_type: PrincipalType | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        created_by: str | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[PrincipalAttributeAssignment]:
+        """List principal attribute assignments.
+
+        For ``SET_OF_ENUM`` keys, each enum value is returned as its own assignment.
+
+        Args:
+            key: Filter to assignments of this key.
+            principal: Filter to assignments for this principal. Pass a ``PrincipalRef``,
+                a ``User`` object, or a user email address.
+            principal_type: The kind of principal to list assignments for when
+                ``principal`` is not given. Defaults to ``USER``. When ``principal`` is
+                given, its own type is used and this must match it if set.
+            created_after: Filter to assignments created after this datetime.
+            created_before: Filter to assignments created before this datetime.
+            created_by: Filter to assignments created by this user ID.
+            include_archived: If True, include archived assignments.
+            filter_query: Explicit CEL query.
+            order_by: Field and direction to order by.
+            limit: Maximum number of assignments to return.
+            page_size: Results to fetch per request.
+
+        Returns:
+            The matching assignments.
+
+        Raises:
+            ValueError: If ``principal_type`` conflicts with the type of ``principal``.
+        """
+        ...
+
+    def unarchive(
+        self,
+        assignments: list[str | PrincipalAttributeAssignment],
+        *,
+        principal_type: PrincipalType,
+    ) -> None:
+        """Batch unarchive assignments of the given principal type.
+
+        Args:
+            assignments: The assignments or assignment IDs to unarchive.
+            principal_type: The kind of principal the assignments apply to.
+        """
+        ...
+
+class PrincipalAttributeEnumValuesAPI:
+    """Sync counterpart to `PrincipalAttributeEnumValuesAPIAsync`.
+
+    High-level API for the enum values defined on principal attribute keys.
+
+    Accessed as a nested resource via
+    ``client.access_control.principal_attributes.enum_values``.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the PrincipalAttributeEnumValuesAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def archive(
         self,
         enum_value: str | PrincipalAttributeEnumValue,
         *,
@@ -1216,118 +1356,46 @@ class PrincipalAttributesAPI:
     ) -> int:
         """Archive an enum value, migrating existing assignments to a replacement.
 
-        Returns the number of assignments migrated.
-        """
-        ...
-
-    def archive_key(self, key: str | PrincipalAttributeKey) -> PrincipalAttributeKey:
-        """Archive a key. Cascades to its enum values and assignments."""
-        ...
-
-    def assign(
-        self,
-        key: PrincipalAttributeKey,
-        principals: list[str],
-        *,
-        value: Any,
-        principal_type: PrincipalType = PrincipalType.USER,
-    ) -> list[PrincipalAttributeValue]:
-        """Assign a value to principals for a key.
-
         Args:
-            key: The key to assign. Its ``value_type`` determines how ``value`` is interpreted.
-            principals: Principal IDs. For ``USER`` principals, an entry containing ``@`` is
-                treated as an email and resolved to a user ID.
-            value: For ``SET_OF_ENUM``, a list of enum values (or their IDs) that becomes the
-                full set on each principal; for ``ENUM``, a single enum value; for ``BOOLEAN``,
-                a bool; for ``NUMBER``, an int.
-            principal_type: The kind of principal being assigned to. Defaults to ``USER``.
+            enum_value: The enum value or enum value ID to archive.
+            replacement: Optional enum value or enum value ID that existing
+                assignments are migrated to.
 
         Returns:
-            The created assignments.
+            The number of assignments migrated.
         """
         ...
 
-    def check_key_archive_impact(self, key: str | PrincipalAttributeKey) -> int:
-        """Return the number of active assignments archiving this key would affect.
-
-        Counts both user and user-group assignments.
-        """
-        ...
-
-    def create_enum_value(
+    def create(
         self, key: str | PrincipalAttributeKey, display_name: str, *, description: str = ""
     ) -> PrincipalAttributeEnumValue:
-        """Create a single enum value for a key."""
+        """Create a single enum value for a key.
+
+        Args:
+            key: The key or key ID the enum value belongs to.
+            display_name: The human-readable name of the enum value.
+            description: Optional description.
+
+        Returns:
+            The created enum value.
+        """
         ...
 
-    def create_key(
-        self, display_name: str, value_type: PrincipalAttributeValueType, *, description: str = ""
-    ) -> PrincipalAttributeKey:
-        """Create a principal attribute key."""
-        ...
-
-    def find_key(self, **kwargs) -> PrincipalAttributeKey | None:
-        """Find a single key matching the query. Raises if more than one matches."""
-        ...
-
-    def get_assignment(
-        self, *, assignment_id: str, principal_type: PrincipalType = PrincipalType.USER
-    ) -> PrincipalAttributeValue:
-        """Get a single assignment by ID."""
-        ...
-
-    def get_key(self, *, key_id: str) -> PrincipalAttributeKey:
-        """Get a principal attribute key by ID."""
-        ...
-
-    def get_or_create_enum_values(
+    def get_or_create(
         self, key: str | PrincipalAttributeKey, names: list[str]
     ) -> list[PrincipalAttributeEnumValue]:
         """Get enum values for a key by name, creating any that don't exist.
 
-        Returns the values in the same order as ``names``.
-        """
-        ...
-
-    def get_or_create_key(
-        self, display_name: str, value_type: PrincipalAttributeValueType, *, description: str = ""
-    ) -> PrincipalAttributeKey:
-        """Get a key by display name, creating it if it does not exist.
-
-        Note:
-            Display names are not guaranteed unique. If multiple keys share the display
-            name, the first active match is returned.
-        """
-        ...
-
-    def list_assignments(
-        self,
-        *,
-        key: str | PrincipalAttributeKey | None = None,
-        principal: str | None = None,
-        principal_type: PrincipalType = PrincipalType.USER,
-        include_archived: bool = False,
-        filter_query: str | None = None,
-        order_by: str | None = None,
-        limit: int | None = None,
-        page_size: int | None = None,
-    ) -> list[PrincipalAttributeValue]:
-        """List principal attribute assignments.
-
         Args:
-            key: Filter to assignments of this key.
-            principal: Filter to assignments for this principal (user ID, or email for users).
-            principal_type: The kind of principal to list assignments for. Defaults to ``USER``.
-            include_archived: If True, include archived assignments.
-            filter_query: Explicit CEL query.
-            order_by: Field and direction to order by.
-            limit: Maximum number of assignments to return.
-            page_size: Results to fetch per request.
+            key: The key or key ID the enum values belong to.
+            names: Display names of the enum values to get or create.
+
+        Returns:
+            The enum values, in the same order as ``names``.
         """
         ...
 
-    def list_enum_values(
+    def list_(
         self,
         key: str | PrincipalAttributeKey,
         *,
@@ -1335,16 +1403,159 @@ class PrincipalAttributesAPI:
         names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        created_by: str | None = None,
+        modified_by: str | None = None,
+        description_contains: str | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
         page_size: int | None = None,
     ) -> list[PrincipalAttributeEnumValue]:
-        """List the enum values defined for a key."""
+        """List the enum values defined for a key.
+
+        Args:
+            key: The key or key ID to list enum values for.
+            name: Exact display name of the enum value.
+            names: Display names to filter by.
+            name_contains: Substring match on the display name.
+            name_regex: Regex match on the display name.
+            created_after: Filter to enum values created after this datetime.
+            created_before: Filter to enum values created before this datetime.
+            modified_after: Filter to enum values modified after this datetime.
+            modified_before: Filter to enum values modified before this datetime.
+            created_by: Filter to enum values created by this user ID.
+            modified_by: Filter to enum values last modified by this user ID.
+            description_contains: Substring match on the description.
+            include_archived: If True, include archived enum values.
+            filter_query: Explicit CEL query.
+            order_by: Field and direction to order by.
+            limit: Maximum number of enum values to return.
+            page_size: Results to fetch per request.
+
+        Returns:
+            The matching enum values.
+        """
         ...
 
-    def list_keys(
+    def unarchive(
+        self, enum_value: str | PrincipalAttributeEnumValue
+    ) -> PrincipalAttributeEnumValue:
+        """Unarchive an enum value.
+
+        Args:
+            enum_value: The enum value or enum value ID to unarchive.
+
+        Returns:
+            The unarchived enum value.
+        """
+        ...
+
+class PrincipalAttributeKeysAPI:
+    """Sync counterpart to `PrincipalAttributeKeysAPIAsync`.
+
+    High-level API for principal attribute keys.
+
+    Accessed as a nested resource via ``client.access_control.principal_attributes.keys``.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the PrincipalAttributeKeysAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def archive(self, key: str | PrincipalAttributeKey) -> PrincipalAttributeKey:
+        """Archive a key. Cascades to its enum values and assignments.
+
+        Args:
+            key: The key or key ID to archive.
+
+        Returns:
+            The archived key.
+        """
+        ...
+
+    def check_archive_impact(self, key: str | PrincipalAttributeKey) -> int:
+        """Check how many assignments archiving a key would affect.
+
+        Counts both user and user-group assignments.
+
+        Args:
+            key: The key or key ID to check.
+
+        Returns:
+            The number of active assignments archiving this key would affect.
+        """
+        ...
+
+    def create(
+        self, display_name: str, value_type: PrincipalAttributeValueType, *, description: str = ""
+    ) -> PrincipalAttributeKey:
+        """Create a principal attribute key.
+
+        Args:
+            display_name: The human-readable name of the key.
+            value_type: The value type of the key.
+            description: Optional description.
+
+        Returns:
+            The created key.
+        """
+        ...
+
+    def find(self, **kwargs) -> PrincipalAttributeKey | None:
+        """Find a single key matching the query. Takes the same arguments as `list_`.
+
+        Args:
+            **kwargs: Keyword arguments to pass to `list_`.
+
+        Returns:
+            The key found, or None if no key matches.
+
+        Raises:
+            ValueError: If more than one key matches.
+        """
+        ...
+
+    def get(self, *, key_id: str) -> PrincipalAttributeKey:
+        """Get a principal attribute key by ID.
+
+        Args:
+            key_id: The ID of the key.
+
+        Returns:
+            The key.
+        """
+        ...
+
+    def get_or_create(
+        self, display_name: str, value_type: PrincipalAttributeValueType, *, description: str = ""
+    ) -> PrincipalAttributeKey:
+        """Get a key by display name, creating it if it does not exist.
+
+        Args:
+            display_name: The human-readable name of the key.
+            value_type: The value type used if the key is created.
+            description: Optional description used if the key is created.
+
+        Returns:
+            The existing or newly created key.
+
+        Note:
+            Display names are not guaranteed unique. If multiple keys share the display
+            name, the first active match is returned.
+        """
+        ...
+
+    def list_(
         self,
         *,
         name: str | None = None,
@@ -1352,6 +1563,13 @@ class PrincipalAttributesAPI:
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         value_type: PrincipalAttributeValueType | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        created_by: str | None = None,
+        modified_by: str | None = None,
+        description_contains: str | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
@@ -1366,57 +1584,83 @@ class PrincipalAttributesAPI:
             name_contains: Substring match on the display name.
             name_regex: Regex match on the display name.
             value_type: Filter to keys of this value type.
+            created_after: Filter to keys created after this datetime.
+            created_before: Filter to keys created before this datetime.
+            modified_after: Filter to keys modified after this datetime.
+            modified_before: Filter to keys modified before this datetime.
+            created_by: Filter to keys created by this user ID.
+            modified_by: Filter to keys last modified by this user ID.
+            description_contains: Substring match on the description.
             include_archived: If True, include archived keys.
             filter_query: Explicit CEL query.
             order_by: Field and direction to order by.
             limit: Maximum number of keys to return.
             page_size: Results to fetch per request.
+
+        Returns:
+            The matching keys.
         """
         ...
 
-    def resolve_user_id(self, email: str) -> str:
-        """Resolve a user's email (its user name) to a user ID.
+    def unarchive(self, key: str | PrincipalAttributeKey) -> PrincipalAttributeKey:
+        """Unarchive a key. Does not restore its cascaded enum values or assignments.
 
-        Raises:
-            ValueError: If no user with that email is found.
+        Args:
+            key: The key or key ID to unarchive.
+
+        Returns:
+            The unarchived key.
         """
         ...
 
-    def resolve_user_ids(self, emails: list[str]) -> dict[str, str]:
-        """Resolve user emails (their user names) to user IDs.
-
-        Returns a mapping of email to user ID for the emails that were found. Emails with
-        no matching user are omitted.
-        """
-        ...
-
-    def unarchive_assignments(
-        self,
-        assignments: list[str | PrincipalAttributeValue],
-        *,
-        principal_type: PrincipalType = PrincipalType.USER,
-    ) -> None:
-        """Batch unarchive assignments."""
-        ...
-
-    def unarchive_enum_value(
-        self, enum_value: str | PrincipalAttributeEnumValue
-    ) -> PrincipalAttributeEnumValue:
-        """Unarchive an enum value."""
-        ...
-
-    def unarchive_key(self, key: str | PrincipalAttributeKey) -> PrincipalAttributeKey:
-        """Unarchive a key. Does not restore its cascaded enum values or assignments."""
-        ...
-
-    def update_key(
-        self,
-        key: str | PrincipalAttributeKey,
-        *,
-        display_name: str | None = None,
-        description: str | None = None,
+    def update(
+        self, key: str | PrincipalAttributeKey, update: PrincipalAttributeKeyUpdate | dict
     ) -> PrincipalAttributeKey:
-        """Update a key's display name or description."""
+        """Update a key.
+
+        Args:
+            key: The key or key ID to update.
+            update: Updates to apply to the key.
+
+        Returns:
+            The updated key.
+        """
+        ...
+
+class PrincipalAttributesAPI:
+    """Sync counterpart to `PrincipalAttributesAPIAsync`.
+
+    High-level API for principal attributes.
+
+    Principal attributes describe the users or groups an access decision applies to.
+    A principal is the "who" in an access decision, such as a user or user group.
+
+    Create or fetch an attribute key via `keys`, define enum values via `enum_values`
+    when the key uses them, then assign a value to principals via `assignments`. Pass
+    ``User`` objects, ``PrincipalRef`` references, or user email addresses; use
+    ``PrincipalRef.user_group(...)`` for user groups.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the PrincipalAttributesAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    @property
+    def assignments(self) -> PrincipalAttributeAssignmentsAPI:
+        """Nested PrincipalAttributeAssignmentsAPI for making synchronous requests."""
+        ...
+    @property
+    def enum_values(self) -> PrincipalAttributeEnumValuesAPI:
+        """Nested PrincipalAttributeEnumValuesAPI for making synchronous requests."""
+        ...
+    @property
+    def keys(self) -> PrincipalAttributeKeysAPI:
+        """Nested PrincipalAttributeKeysAPI for making synchronous requests."""
         ...
 
 class ReportTemplatesAPI:
@@ -1809,18 +2053,17 @@ class ReportsAPI:
         """Nested ReportTemplatesAPI for making synchronous requests."""
         ...
 
-class ResourceAttributesAPI:
-    """Sync counterpart to `ResourceAttributesAPIAsync`.
+class ResourceAttributeAssignmentsAPI:
+    """Sync counterpart to `ResourceAttributeAssignmentsAPIAsync`.
 
-    High-level API for resource attributes (ABAC).
+    High-level API for resource attribute assignments.
 
-    Resource attributes assign attribute keys to Sift entities (assets, channels, runs).
-    The attribute key is the entry point: enum values and assignments are managed through
-    methods on a key, or through the corresponding methods here.
+    Accessed as a nested resource via
+    ``client.access_control.resource_attributes.assignments``.
     """
 
     def __init__(self, sift_client: SiftClient):
-        """Initialize the ResourceAttributesAPI.
+        """Initialize the ResourceAttributeAssignmentsAPI.
 
         Args:
             sift_client: The Sift client to use.
@@ -1828,11 +2071,117 @@ class ResourceAttributesAPI:
         ...
 
     def _run(self, coro): ...
-    def archive_assignments(self, assignments: list[str | ResourceAttribute]) -> None:
-        """Batch archive assignments."""
+    def archive(self, assignments: list[str | ResourceAttributeAssignment]) -> None:
+        """Batch archive assignments.
+
+        Args:
+            assignments: The assignments or assignment IDs to archive.
+        """
         ...
 
-    def archive_enum_value(
+    def create(
+        self,
+        key: str | ResourceAttributeKey,
+        resources: list[ResourceAttributeEntity | Asset | Channel | Run],
+        *,
+        value: ResourceAttributeValueLike,
+    ) -> list[ResourceAttributeAssignment]:
+        """Assign a key's value to resources.
+
+        Args:
+            key: The key or key ID to assign. Its ``value_type`` determines how ``value`` is interpreted.
+            resources: Resources to assign to. Pass ``Asset``, ``Channel``, or ``Run``
+                objects, or ``ResourceAttributeEntity`` (via ``for_asset`` /
+                ``for_channel`` / ``for_run``) when you only have a resource ID.
+            value: For ``SET_OF_ENUM``, a list of enum values (or their IDs) that becomes the
+                full set on each resource; for ``ENUM``, a single enum value; for ``BOOLEAN``, a
+                bool; for ``NUMBER``, an int.
+
+        Returns:
+            The created assignments, one per enum value per resource for
+            ``SET_OF_ENUM`` keys.
+        """
+        ...
+
+    def get(self, *, assignment_id: str) -> ResourceAttributeAssignment:
+        """Get a single assignment by ID.
+
+        Args:
+            assignment_id: The ID of the assignment.
+
+        Returns:
+            The assignment.
+        """
+        ...
+
+    def list_(
+        self,
+        *,
+        key: str | ResourceAttributeKey | None = None,
+        resource: ResourceAttributeEntity | Asset | Channel | Run | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        created_by: str | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[ResourceAttributeAssignment]:
+        """List resource attribute assignments.
+
+        For ``SET_OF_ENUM`` keys, each enum value is returned as its own assignment.
+
+        Args:
+            key: Filter to assignments of this key.
+            resource: Filter to assignments on this resource. Cannot be combined with
+                the other filter arguments. Pass a resource object or
+                ``ResourceAttributeEntity``.
+            created_after: Filter to assignments created after this datetime.
+            created_before: Filter to assignments created before this datetime.
+            created_by: Filter to assignments created by this user ID.
+            include_archived: If True, include archived assignments.
+            filter_query: Explicit CEL query.
+            order_by: Field and direction to order by.
+            limit: Maximum number of assignments to return.
+            page_size: Results to fetch per request.
+
+        Returns:
+            The matching assignments.
+
+        Raises:
+            ValueError: If ``resource`` is combined with other filter arguments, which
+                the by-resource listing does not support.
+        """
+        ...
+
+    def unarchive(self, assignments: list[str | ResourceAttributeAssignment]) -> None:
+        """Batch unarchive assignments.
+
+        Args:
+            assignments: The assignments or assignment IDs to unarchive.
+        """
+        ...
+
+class ResourceAttributeEnumValuesAPI:
+    """Sync counterpart to `ResourceAttributeEnumValuesAPIAsync`.
+
+    High-level API for the enum values defined on resource attribute keys.
+
+    Accessed as a nested resource via
+    ``client.access_control.resource_attributes.enum_values``.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the ResourceAttributeEnumValuesAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def archive(
         self,
         enum_value: str | ResourceAttributeEnumValue,
         *,
@@ -1840,117 +2189,46 @@ class ResourceAttributesAPI:
     ) -> int:
         """Archive an enum value, migrating existing assignments to a replacement.
 
-        Returns the number of assignments migrated.
-        """
-        ...
-
-    def archive_key(self, key: str | ResourceAttributeKey) -> ResourceAttributeKey:
-        """Archive a key. Cascades to its enum values and assignments."""
-        ...
-
-    def assign(
-        self,
-        key: ResourceAttributeKey,
-        entities: list[ResourceAttributeEntity | Asset | Channel | Run],
-        *,
-        value: Any,
-    ) -> list[ResourceAttribute]:
-        """Assign a value to entities for a key.
-
         Args:
-            key: The key to assign. Its ``key_type`` determines how ``value`` is interpreted.
-            entities: Entities to assign to (ResourceAttributeEntity, Asset, Channel, or Run).
-            value: For ``SET_OF_ENUM``, a list of enum values (or their IDs) that becomes the
-                full set on each entity; for ``ENUM``, a single enum value; for ``BOOLEAN``, a
-                bool; for ``NUMBER``, an int.
+            enum_value: The enum value or enum value ID to archive.
+            replacement: Optional enum value or enum value ID that existing
+                assignments are migrated to.
 
         Returns:
-            The created assignments.
+            The number of assignments migrated.
         """
         ...
 
-    def check_key_archive_impact(self, key: str | ResourceAttributeKey) -> int:
-        """Return the number of active assignments archiving this key would affect."""
-        ...
-
-    def create_enum_value(
+    def create(
         self, key: str | ResourceAttributeKey, display_name: str, *, description: str = ""
     ) -> ResourceAttributeEnumValue:
-        """Create a single enum value for a key."""
-        ...
-
-    def create_key(
-        self, display_name: str, key_type: ResourceAttributeKeyType, *, description: str = ""
-    ) -> ResourceAttributeKey:
-        """Create a resource attribute key.
+        """Create a single enum value for a key.
 
         Args:
-            display_name: The human-readable name of the key.
-            key_type: The value type of the key.
+            key: The key or key ID the enum value belongs to.
+            display_name: The human-readable name of the enum value.
             description: Optional description.
 
         Returns:
-            The created key.
+            The created enum value.
         """
         ...
 
-    def find_key(self, **kwargs) -> ResourceAttributeKey | None:
-        """Find a single key matching the query. Raises if more than one matches."""
-        ...
-
-    def get_assignment(self, *, assignment_id: str) -> ResourceAttribute:
-        """Get a single assignment by ID."""
-        ...
-
-    def get_key(self, *, key_id: str) -> ResourceAttributeKey:
-        """Get a resource attribute key by ID."""
-        ...
-
-    def get_or_create_enum_values(
+    def get_or_create(
         self, key: str | ResourceAttributeKey, names: list[str]
     ) -> list[ResourceAttributeEnumValue]:
         """Get enum values for a key by name, creating any that don't exist.
 
-        Returns the values in the same order as ``names``.
-        """
-        ...
-
-    def get_or_create_key(
-        self, display_name: str, key_type: ResourceAttributeKeyType, *, description: str = ""
-    ) -> ResourceAttributeKey:
-        """Get a key by display name, creating it if it does not exist.
-
-        Note:
-            Display names are not guaranteed unique. If multiple keys share the display
-            name, the first active match is returned.
-        """
-        ...
-
-    def list_assignments(
-        self,
-        *,
-        key: str | ResourceAttributeKey | None = None,
-        entity: ResourceAttributeEntity | Asset | Channel | Run | None = None,
-        include_archived: bool = False,
-        filter_query: str | None = None,
-        order_by: str | None = None,
-        limit: int | None = None,
-        page_size: int | None = None,
-    ) -> list[ResourceAttribute]:
-        """List resource attribute assignments.
-
         Args:
-            key: Filter to assignments of this key.
-            entity: Filter to assignments on this entity. When set, other filters are ignored.
-            include_archived: If True, include archived assignments.
-            filter_query: Explicit CEL query.
-            order_by: Field and direction to order by.
-            limit: Maximum number of assignments to return.
-            page_size: Results to fetch per request.
+            key: The key or key ID the enum values belong to.
+            names: Display names of the enum values to get or create.
+
+        Returns:
+            The enum values, in the same order as ``names``.
         """
         ...
 
-    def list_enum_values(
+    def list_(
         self,
         key: str | ResourceAttributeKey,
         *,
@@ -1958,23 +2236,158 @@ class ResourceAttributesAPI:
         names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
         page_size: int | None = None,
     ) -> list[ResourceAttributeEnumValue]:
-        """List the enum values defined for a key."""
+        """List the enum values defined for a key.
+
+        The service does not yet support filtering enum values by description,
+        modified date, or user.
+
+        Args:
+            key: The key or key ID to list enum values for.
+            name: Exact display name of the enum value.
+            names: Display names to filter by.
+            name_contains: Substring match on the display name.
+            name_regex: Regex match on the display name.
+            created_after: Filter to enum values created after this datetime.
+            created_before: Filter to enum values created before this datetime.
+            include_archived: If True, include archived enum values.
+            filter_query: Explicit CEL query.
+            order_by: Field and direction to order by.
+            limit: Maximum number of enum values to return.
+            page_size: Results to fetch per request.
+
+        Returns:
+            The matching enum values.
+        """
         ...
 
-    def list_keys(
+    def unarchive(self, enum_value: str | ResourceAttributeEnumValue) -> ResourceAttributeEnumValue:
+        """Unarchive an enum value.
+
+        Args:
+            enum_value: The enum value or enum value ID to unarchive.
+
+        Returns:
+            The unarchived enum value.
+        """
+        ...
+
+class ResourceAttributeKeysAPI:
+    """Sync counterpart to `ResourceAttributeKeysAPIAsync`.
+
+    High-level API for resource attribute keys.
+
+    Accessed as a nested resource via ``client.access_control.resource_attributes.keys``.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the ResourceAttributeKeysAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def archive(self, key: str | ResourceAttributeKey) -> ResourceAttributeKey:
+        """Archive a key. Cascades to its enum values and assignments.
+
+        Args:
+            key: The key or key ID to archive.
+
+        Returns:
+            The archived key.
+        """
+        ...
+
+    def check_archive_impact(self, key: str | ResourceAttributeKey) -> int:
+        """Check how many assignments archiving a key would affect.
+
+        Args:
+            key: The key or key ID to check.
+
+        Returns:
+            The number of active assignments archiving this key would affect.
+        """
+        ...
+
+    def create(
+        self, display_name: str, value_type: ResourceAttributeValueType, *, description: str = ""
+    ) -> ResourceAttributeKey:
+        """Create a resource attribute key.
+
+        Args:
+            display_name: The human-readable name of the key.
+            value_type: The value type of the key.
+            description: Optional description.
+
+        Returns:
+            The created key.
+        """
+        ...
+
+    def find(self, **kwargs) -> ResourceAttributeKey | None:
+        """Find a single key matching the query. Takes the same arguments as `list_`.
+
+        Args:
+            **kwargs: Keyword arguments to pass to `list_`.
+
+        Returns:
+            The key found, or None if no key matches.
+
+        Raises:
+            ValueError: If more than one key matches.
+        """
+        ...
+
+    def get(self, *, key_id: str) -> ResourceAttributeKey:
+        """Get a resource attribute key by ID.
+
+        Args:
+            key_id: The ID of the key.
+
+        Returns:
+            The key.
+        """
+        ...
+
+    def get_or_create(
+        self, display_name: str, value_type: ResourceAttributeValueType, *, description: str = ""
+    ) -> ResourceAttributeKey:
+        """Get a key by display name, creating it if it does not exist.
+
+        Args:
+            display_name: The human-readable name of the key.
+            value_type: The value type used if the key is created.
+            description: Optional description used if the key is created.
+
+        Returns:
+            The existing or newly created key.
+
+        Note:
+            Display names are not guaranteed unique. If multiple keys share the display
+            name, the first active match is returned.
+        """
+        ...
+
+    def list_(
         self,
         *,
         name: str | None = None,
         names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
-        key_type: ResourceAttributeKeyType | None = None,
+        value_type: ResourceAttributeValueType | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        description_contains: str | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
@@ -1983,12 +2396,17 @@ class ResourceAttributesAPI:
     ) -> list[ResourceAttributeKey]:
         """List resource attribute keys with optional filtering.
 
+        The service does not yet support filtering keys by modified date or user.
+
         Args:
             name: Exact display name of the key.
             names: Display names to filter by.
             name_contains: Substring match on the display name.
             name_regex: Regex match on the display name.
-            key_type: Filter to keys of this value type.
+            value_type: Filter to keys of this value type.
+            created_after: Filter to keys created after this datetime.
+            created_before: Filter to keys created before this datetime.
+            description_contains: Substring match on the description.
             include_archived: If True, include archived keys.
             filter_query: Explicit CEL query.
             order_by: Field and direction to order by.
@@ -2000,28 +2418,65 @@ class ResourceAttributesAPI:
         """
         ...
 
-    def unarchive_assignments(self, assignments: list[str | ResourceAttribute]) -> None:
-        """Batch unarchive assignments."""
+    def unarchive(self, key: str | ResourceAttributeKey) -> ResourceAttributeKey:
+        """Unarchive a key. Does not restore its cascaded enum values or assignments.
+
+        Args:
+            key: The key or key ID to unarchive.
+
+        Returns:
+            The unarchived key.
+        """
         ...
 
-    def unarchive_enum_value(
-        self, enum_value: str | ResourceAttributeEnumValue
-    ) -> ResourceAttributeEnumValue:
-        """Unarchive an enum value."""
-        ...
-
-    def unarchive_key(self, key: str | ResourceAttributeKey) -> ResourceAttributeKey:
-        """Unarchive a key. Does not restore its cascaded enum values or assignments."""
-        ...
-
-    def update_key(
-        self,
-        key: str | ResourceAttributeKey,
-        *,
-        display_name: str | None = None,
-        description: str | None = None,
+    def update(
+        self, key: str | ResourceAttributeKey, update: ResourceAttributeKeyUpdate | dict
     ) -> ResourceAttributeKey:
-        """Update a key's display name or description."""
+        """Update a key.
+
+        Args:
+            key: The key or key ID to update.
+            update: Updates to apply to the key.
+
+        Returns:
+            The updated key.
+        """
+        ...
+
+class ResourceAttributesAPI:
+    """Sync counterpart to `ResourceAttributesAPIAsync`.
+
+    High-level API for resource attributes.
+
+    Resource attributes describe the Sift objects an access decision applies to. A
+    resource is the "what" in an access decision.
+
+    Create or fetch an attribute key via `keys`, define enum values via `enum_values`
+    when the key uses them, then assign a value to resources via `assignments`. Pass
+    existing ``Asset``, ``Channel``, and ``Run`` objects directly, or build a
+    ``ResourceAttributeEntity`` from a resource ID.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the ResourceAttributesAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    @property
+    def assignments(self) -> ResourceAttributeAssignmentsAPI:
+        """Nested ResourceAttributeAssignmentsAPI for making synchronous requests."""
+        ...
+    @property
+    def enum_values(self) -> ResourceAttributeEnumValuesAPI:
+        """Nested ResourceAttributeEnumValuesAPI for making synchronous requests."""
+        ...
+    @property
+    def keys(self) -> ResourceAttributeKeysAPI:
+        """Nested ResourceAttributeKeysAPI for making synchronous requests."""
         ...
 
 class RulesAPI:
@@ -2903,5 +3358,93 @@ class TestResultsAPI:
 
         Returns:
             The updated TestStep.
+        """
+        ...
+
+class UsersAPI:
+    """Sync counterpart to `UsersAPIAsync`.
+
+    High-level API for users.
+
+    A user's ``name`` is their login name, typically their email address.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the UsersAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def find(self, **kwargs) -> User | None:
+        """Find a single user matching the query. Raises if more than one matches.
+
+        Takes the same arguments as ``list_``.
+        """
+        ...
+
+    def get(self, *, user_id: str) -> User:
+        """Get a user by ID.
+
+        Args:
+            user_id: The ID of the user to retrieve.
+
+        Returns:
+            The User.
+        """
+        ...
+
+    def list_(
+        self,
+        *,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        include_inactive: bool = False,
+        organization_id: str | None = None,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[User]:
+        """List users with optional filtering.
+
+        Args:
+            name: Exact login name (typically the email address).
+            names: Login names to filter by.
+            name_contains: Substring match on the login name.
+            name_regex: Regex match on the login name.
+            include_inactive: If True, include inactive users.
+            organization_id: Scope the search to this organization. Only supported when
+                listing active users.
+            filter_query: Explicit CEL query.
+            order_by: Field and direction to order by.
+            limit: Maximum number of users to return.
+            page_size: Results to fetch per request.
+
+        Returns:
+            The matching users.
+        """
+        ...
+
+    def resolve_ids(self, emails: list[str]) -> dict[str, str]:
+        """Resolve user login emails (their user names) to user IDs.
+
+        Matching is case-insensitive. Login names are stored and compared
+        case-sensitively, so emails that miss on exact casing fall back to a
+        case-insensitive match against the full user list. Inactive users are
+        resolved too.
+
+        Returns a mapping of email (as passed) to user ID for the emails that were
+        found. Emails with no matching user are omitted.
+
+        Args:
+            emails: The login emails to resolve.
+
+        Raises:
+            ValueError: If an email matches multiple users case-insensitively.
         """
         ...

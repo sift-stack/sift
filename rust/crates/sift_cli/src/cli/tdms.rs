@@ -5,8 +5,10 @@ use sift_rs::data_imports::v2::TdmsFallbackMethod as ProtoTdmsFallbackMethod;
 
 #[derive(Debug, Copy, Clone, ValueEnum, Default)]
 pub enum TdmsFallbackMethod {
+    /// Fail the import if a channel has missing timing information
     #[default]
     FailOnError,
+    /// Skip channels with missing timing information and continue importing
     IgnoreError,
 }
 

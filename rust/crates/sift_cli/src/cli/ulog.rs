@@ -5,8 +5,10 @@ use sift_rs::data_imports::v2::UlogParseErrorPolicy as ProtoUlogParseErrorPolicy
 
 #[derive(Debug, Copy, Clone, ValueEnum, Default)]
 pub enum UlogParseErrorPolicy {
+    /// Fail the import on any recoverable parse error
     #[default]
     FailOnError,
+    /// Skip records that fail to parse and continue importing
     IgnoreError,
 }
 

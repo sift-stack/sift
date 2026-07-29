@@ -145,6 +145,7 @@ enum EntityType {
   ENTITY_TYPE_ANNOTATION_LOG = 4;
   ENTITY_TYPE_TEST_REPORT = 5;
   ENTITY_TYPE_TEST_STEP = 6;
+  ENTITY_TYPE_CANVAS_VERSION = 7;
 }
 
 // The request for a call to `RemoteFileService_GetRemoteFile` to retrieve a remote file;

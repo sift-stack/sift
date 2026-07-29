@@ -620,6 +620,9 @@ impl serde::Serialize for ExportOptions {
         if self.split_export_by_run {
             len += 1;
         }
+        if self.embed_channel_configs {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.exports.v1.ExportOptions", len)?;
         if self.use_legacy_format {
             struct_ser.serialize_field("useLegacyFormat", &self.use_legacy_format)?;
@@ -635,6 +638,9 @@ impl serde::Serialize for ExportOptions {
         }
         if self.split_export_by_run {
             struct_ser.serialize_field("splitExportByRun", &self.split_export_by_run)?;
+        }
+        if self.embed_channel_configs {
+            struct_ser.serialize_field("embedChannelConfigs", &self.embed_channel_configs)?;
         }
         struct_ser.end()
     }
@@ -656,6 +662,8 @@ impl<'de> serde::Deserialize<'de> for ExportOptions {
             "splitExportByAsset",
             "split_export_by_run",
             "splitExportByRun",
+            "embed_channel_configs",
+            "embedChannelConfigs",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -665,6 +673,7 @@ impl<'de> serde::Deserialize<'de> for ExportOptions {
             CombineRuns,
             SplitExportByAsset,
             SplitExportByRun,
+            EmbedChannelConfigs,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -691,6 +700,7 @@ impl<'de> serde::Deserialize<'de> for ExportOptions {
                             "combineRuns" | "combine_runs" => Ok(GeneratedField::CombineRuns),
                             "splitExportByAsset" | "split_export_by_asset" => Ok(GeneratedField::SplitExportByAsset),
                             "splitExportByRun" | "split_export_by_run" => Ok(GeneratedField::SplitExportByRun),
+                            "embedChannelConfigs" | "embed_channel_configs" => Ok(GeneratedField::EmbedChannelConfigs),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -715,6 +725,7 @@ impl<'de> serde::Deserialize<'de> for ExportOptions {
                 let mut combine_runs__ = None;
                 let mut split_export_by_asset__ = None;
                 let mut split_export_by_run__ = None;
+                let mut embed_channel_configs__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::UseLegacyFormat => {
@@ -747,6 +758,12 @@ impl<'de> serde::Deserialize<'de> for ExportOptions {
                             }
                             split_export_by_run__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::EmbedChannelConfigs => {
+                            if embed_channel_configs__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("embedChannelConfigs"));
+                            }
+                            embed_channel_configs__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(ExportOptions {
@@ -755,6 +772,7 @@ impl<'de> serde::Deserialize<'de> for ExportOptions {
                     combine_runs: combine_runs__.unwrap_or_default(),
                     split_export_by_asset: split_export_by_asset__.unwrap_or_default(),
                     split_export_by_run: split_export_by_run__.unwrap_or_default(),
+                    embed_channel_configs: embed_channel_configs__.unwrap_or_default(),
                 })
             }
         }

@@ -38,17 +38,18 @@ from sift.resource_attribute.v1.resource_attribute_pb2 import (
     UnarchiveResourceAttributeKeyRequest,
     UpdateResourceAttributeEnumValueRequest,
     UpdateResourceAttributeEnumValueResponse,
-    UpdateResourceAttributeKeyRequest,
     UpdateResourceAttributeKeyResponse,
 )
 from sift.resource_attribute.v1.resource_attribute_pb2_grpc import ResourceAttributeServiceStub
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
+from sift_client._internal.util.util import chunked
 from sift_client.sift_types.resource_attribute import (
-    ResourceAttribute,
+    ResourceAttributeAssignment,
     ResourceAttributeEntity,
     ResourceAttributeEnumValue,
     ResourceAttributeKey,
+    ResourceAttributeKeyUpdate,
 )
 from sift_client.transport import WithGrpcClient
 
@@ -56,6 +57,10 @@ if TYPE_CHECKING:
     from sift_client.transport.grpc_transport import GrpcClient
 
 logger = logging.getLogger(__name__)
+
+# Max entities/IDs per batch RPC; keeps request bodies well under gRPC message
+# size limits when operating on large resource sets.
+_BATCH_SIZE = 1000
 
 
 class ResourceAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
@@ -129,11 +134,11 @@ class ResourceAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         self,
         *,
         display_name: str,
-        key_type: ResourceAttributeKeyType.ValueType,
+        value_type: ResourceAttributeKeyType.ValueType,
         description: str = "",
     ) -> ResourceAttributeKey:
         request = CreateResourceAttributeKeyRequest(
-            display_name=display_name, description=description, type=key_type
+            display_name=display_name, description=description, type=value_type
         )
         response = cast(
             "CreateResourceAttributeKeyResponse",
@@ -141,24 +146,9 @@ class ResourceAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         )
         return ResourceAttributeKey._from_proto(response.resource_attribute_key)
 
-    async def update_key(
-        self,
-        resource_attribute_key_id: str,
-        *,
-        display_name: str | None = None,
-        description: str | None = None,
-    ) -> ResourceAttributeKey:
-        paths: list[str] = []
-        request_kwargs: dict[str, Any] = {"resource_attribute_key_id": resource_attribute_key_id}
-        if display_name is not None:
-            request_kwargs["display_name"] = display_name
-            paths.append("display_name")
-        if description is not None:
-            request_kwargs["description"] = description
-            paths.append("description")
-        request = UpdateResourceAttributeKeyRequest(
-            update_mask=field_mask_pb2.FieldMask(paths=paths), **request_kwargs
-        )
+    async def update_key(self, *, update: ResourceAttributeKeyUpdate) -> ResourceAttributeKey:
+        request, mask = update.to_proto_with_mask()
+        request.update_mask.CopyFrom(mask)
         response = cast(
             "UpdateResourceAttributeKeyResponse",
             await self._stub.UpdateResourceAttributeKey(request),
@@ -331,11 +321,8 @@ class ResourceAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         enum_value_ids: list[str] | None = None,
         boolean_value: bool | None = None,
         number_value: int | None = None,
-    ) -> list[ResourceAttribute]:
-        request_kwargs: dict[str, Any] = {
-            "resource_attribute_key_id": key_id,
-            "entities": [e._to_proto() for e in entities],
-        }
+    ) -> list[ResourceAttributeAssignment]:
+        request_kwargs: dict[str, Any] = {"resource_attribute_key_id": key_id}
         if enum_value_ids is not None:
             request_kwargs["resource_attribute_enum_value_ids"] = ResourceAttributeEnumValueIdList(
                 ids=enum_value_ids
@@ -347,22 +334,31 @@ class ResourceAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         elif number_value is not None:
             request_kwargs["number_value"] = number_value
 
-        response = cast(
-            "BatchCreateResourceAttributesResponse",
-            await self._stub.BatchCreateResourceAttributes(
-                BatchCreateResourceAttributesRequest(**request_kwargs)
-            ),
-        )
-        return [ResourceAttribute._from_proto(a) for a in response.resource_attributes]
+        attrs: list[ResourceAttributeAssignment] = []
+        for batch in chunked(entities, _BATCH_SIZE):
+            response = cast(
+                "BatchCreateResourceAttributesResponse",
+                await self._stub.BatchCreateResourceAttributes(
+                    BatchCreateResourceAttributesRequest(
+                        entities=[e._to_proto() for e in batch], **request_kwargs
+                    )
+                ),
+            )
+            attrs.extend(
+                ResourceAttributeAssignment._from_proto(a) for a in response.resource_attributes
+            )
+        return attrs
 
-    async def get_resource_attribute(self, resource_attribute_id: str) -> ResourceAttribute:
+    async def get_resource_attribute(
+        self, resource_attribute_id: str
+    ) -> ResourceAttributeAssignment:
         response = cast(
             "GetResourceAttributeResponse",
             await self._stub.GetResourceAttribute(
                 GetResourceAttributeRequest(resource_attribute_id=resource_attribute_id)
             ),
         )
-        return ResourceAttribute._from_proto(response.resource_attribute)
+        return ResourceAttributeAssignment._from_proto(response.resource_attribute)
 
     async def list_resource_attributes(
         self,
@@ -372,7 +368,7 @@ class ResourceAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         query_filter: str | None = None,
         order_by: str | None = None,
         include_archived: bool = False,
-    ) -> tuple[list[ResourceAttribute], str]:
+    ) -> tuple[list[ResourceAttributeAssignment], str]:
         request_kwargs: dict[str, Any] = {"include_archived": include_archived}
         if page_size:
             request_kwargs["page_size"] = page_size
@@ -389,7 +385,7 @@ class ResourceAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 ListResourceAttributesRequest(**request_kwargs)
             ),
         )
-        attrs = [ResourceAttribute._from_proto(a) for a in response.resource_attributes]
+        attrs = [ResourceAttributeAssignment._from_proto(a) for a in response.resource_attributes]
         return attrs, response.next_page_token
 
     async def list_all_resource_attributes(
@@ -400,7 +396,7 @@ class ResourceAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         include_archived: bool = False,
         page_size: int | None = None,
         max_results: int | None = None,
-    ) -> list[ResourceAttribute]:
+    ) -> list[ResourceAttributeAssignment]:
         return await self._handle_pagination(
             self.list_resource_attributes,
             kwargs={"query_filter": query_filter, "include_archived": include_archived},
@@ -417,7 +413,7 @@ class ResourceAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         page_token: str | None = None,
         order_by: str | None = None,  # unsupported by this RPC; accepted for pagination helper
         include_archived: bool = False,
-    ) -> tuple[list[ResourceAttribute], str]:
+    ) -> tuple[list[ResourceAttributeAssignment], str]:
         request_kwargs: dict[str, Any] = {
             "entity": entity._to_proto(),
             "include_archived": include_archived,
@@ -433,7 +429,7 @@ class ResourceAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 ListResourceAttributesByEntityRequest(**request_kwargs)
             ),
         )
-        attrs = [ResourceAttribute._from_proto(a) for a in response.resource_attributes]
+        attrs = [ResourceAttributeAssignment._from_proto(a) for a in response.resource_attributes]
         return attrs, response.next_page_token
 
     async def list_all_resource_attributes_by_entity(
@@ -443,7 +439,7 @@ class ResourceAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         include_archived: bool = False,
         page_size: int | None = None,
         max_results: int | None = None,
-    ) -> list[ResourceAttribute]:
+    ) -> list[ResourceAttributeAssignment]:
         return await self._handle_pagination(
             self.list_resource_attributes_by_entity,
             kwargs={"entity": entity, "include_archived": include_archived},
@@ -452,11 +448,13 @@ class ResourceAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         )
 
     async def batch_archive_resource_attributes(self, resource_attribute_ids: list[str]) -> None:
-        await self._stub.BatchArchiveResourceAttributes(
-            BatchArchiveResourceAttributesRequest(resource_attribute_ids=resource_attribute_ids)
-        )
+        for batch in chunked(resource_attribute_ids, _BATCH_SIZE):
+            await self._stub.BatchArchiveResourceAttributes(
+                BatchArchiveResourceAttributesRequest(resource_attribute_ids=batch)
+            )
 
     async def batch_unarchive_resource_attributes(self, resource_attribute_ids: list[str]) -> None:
-        await self._stub.BatchUnarchiveResourceAttributes(
-            BatchUnarchiveResourceAttributesRequest(resource_attribute_ids=resource_attribute_ids)
-        )
+        for batch in chunked(resource_attribute_ids, _BATCH_SIZE):
+            await self._stub.BatchUnarchiveResourceAttributes(
+                BatchUnarchiveResourceAttributesRequest(resource_attribute_ids=batch)
+            )

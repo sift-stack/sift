@@ -59,6 +59,10 @@ to combine them when working with Sift.
    - `create_annotation`, `update_annotation`: manage annotations (writes —
      collections use replace semantics, so confirm the change first).
    - `create_report`, `update_report`: manage reports (writes — confirm first).
+   - Destructive tools (`update_*`, `archive_*`, `unarchive_*`) are gated on
+     `--allow-destructive`. If one errors with a message about the flag, tell
+     the user to relaunch the server with `sift-cli mcp --allow-destructive`
+     (and update their MCP client config) before retrying.
    - `explore_url`: build a Sift Explore deep-link for an asset/run/channel
      selection, with an optional panel/chart pre-defined. Surface the URL to
      the user as plain text, in full, so the user can open the view. Do not
@@ -68,7 +72,7 @@ to combine them when working with Sift.
    - `search_docs`: search Sift's product documentation by keyword (`query`),
      then read a matching page by `path`. One tool, two modes.
 2. **`sift-cli`** — the command-line tool. Key subcommands:
-   - `import`: `csv`, `parquet flat-dataset`, `tdms`, `hdf5`, `ulog`, `backups`.
+   - `import`: `csv`, `parquet flat-dataset`, `parquet cpr`, `tdms`, `hdf5`, `ulog`, `backups`.
    - `export`: `run`, `asset` (to CSV and other formats).
    - `mcp`: start the MCP server.
    - `ping`: verify credentials and connectivity.
@@ -136,8 +140,9 @@ apply per subcommand invocation:
      types or the time column.
    - Per-format layout flags surfaced by `--help` (e.g. CSV's
      `--header-row`, `--time-column`, `--time-format`; HDF5's schema
-     selection). Ask only when the source's layout differs from the
-     defaults shown in `--help`.
+     subcommand `one-d`/`two-d`/`compound`; Parquet's `cpr single`
+     vs `cpr multi`). Ask only when the source's layout differs from
+     the defaults shown in `--help`.
 
    Do not enumerate every flag — pick the ones likely to matter for
    the user's task. When in doubt, ask one focused question rather than
@@ -222,8 +227,8 @@ There are two ways to get data into Sift: importing a file, or streaming.
 ### Import a file
 
 `sift-cli` and the Python library import several file types directly. The CLI
-supports CSV, Parquet (flat dataset), TDMS, HDF5, ULog, and `sift_stream`
-backups.
+supports CSV, Parquet (flat-dataset and channel-per-row), TDMS, HDF5, ULog,
+and `sift_stream` backups.
 
 If the user's file type is not supported by the CLI or MCP server, you have
 three options:

@@ -133,6 +133,8 @@ impl SiftMcpServer {
         )
     )]
     pub async fn update_run(&self, params: Parameters<UpdateRunParams>) -> error::McpResult {
+        self.require_destructive()?;
+
         let Parameters(UpdateRunParams {
             run_id,
             name,

@@ -94,6 +94,7 @@ def download_file(
     *,
     rest_client: RestClient,
     show_progress: bool = False,
+    extra_headers: dict[str, str] | None = None,
 ) -> Path:
     """Download a file from a URL in streaming 4 MiB chunks.
 
@@ -103,6 +104,13 @@ def download_file(
         rest_client: The SDK rest client to use for the download.
         show_progress: If True, display a progress bar during download.
             Defaults to False.
+        extra_headers: Optional additional headers to include on the request.
+            Merged on top of the internal ``Authorization: None`` strip, so a
+            caller-supplied ``Authorization`` (if any) wins. Useful for
+            presigned URLs whose signature covers a specific ``Host`` header
+            that differs from the URL's netloc (e.g. an S3 endpoint accessed
+            through a container-internal alias while the URL was signed
+            against the browser-facing loopback authority).
 
     Returns:
         The path to the downloaded file.
@@ -111,8 +119,13 @@ def download_file(
         requests.HTTPError: If the download request fails.
     """
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    # Strip the session's default Authorization header, presigned URLs carry their own auth
-    with rest_client.get(signed_url, stream=True, headers={"Authorization": None}) as response:
+    # Strip the session's default Authorization header (presigned URLs carry
+    # their own auth). Any ``extra_headers`` merge on top so callers can
+    # override the Host header, add a range, etc.
+    headers: dict[str, str | None] = {"Authorization": None}
+    if extra_headers:
+        headers.update(extra_headers)
+    with rest_client.get(signed_url, stream=True, headers=headers) as response:
         response.raise_for_status()
         total_bytes = int(response.headers.get("Content-Length", 0)) or None
         with alive_bar(
@@ -132,13 +145,21 @@ def download_file(
     return output_path
 
 
-def extract_zip(zip_path: Path, output_dir: Path, *, delete_zip: bool = True) -> list[Path]:
+def extract_zip(
+    zip_path: Path,
+    output_dir: Path,
+    *,
+    delete_zip: bool = True,
+    show_progress: bool = False,
+) -> list[Path]:
     """Extract a zip file to a directory.
 
     Args:
         zip_path: Path to the zip file.
         output_dir: Directory to extract contents into. Created if it doesn't exist.
         delete_zip: If True (default), delete the zip file after extraction.
+        show_progress: If True, display a progress bar naming each file as it is
+            extracted. Defaults to False.
 
     Returns:
         List of paths to the extracted files (excludes directories).
@@ -149,7 +170,11 @@ def extract_zip(zip_path: Path, output_dir: Path, *, delete_zip: bool = True) ->
     output_dir.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(zip_path, "r") as zip_file:
         names = zip_file.namelist()
-        zip_file.extractall(output_dir)
+        with alive_bar(len(names), title="Extracting", disable=not show_progress) as bar:
+            for name in names:
+                bar.text(name)
+                zip_file.extract(name, output_dir)
+                bar()
     if delete_zip:
         try:
             zip_path.unlink()

@@ -324,6 +324,8 @@ impl SiftMcpServer {
         &self,
         params: Parameters<UpdateAnnotationParams>,
     ) -> error::McpResult {
+        self.require_destructive()?;
+
         let Parameters(UpdateAnnotationParams {
             annotation_id,
             name,

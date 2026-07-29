@@ -9,7 +9,7 @@ named window of activity, such as a single test).
 | Type    | Command                          | Chapter                          |
 | ------- | -------------------------------- | -------------------------------- |
 | CSV     | `import csv`                     | [CSV](./import-csv.md)           |
-| Parquet | `import parquet flat-dataset`    | [Parquet](./import-parquet.md)   |
+| Parquet | `import parquet flat-dataset`, `import parquet cpr` | [Parquet](./import-parquet.md)   |
 | TDMS    | `import tdms`                    | [TDMS](./import-tdms.md)         |
 | HDF5    | `import hdf5`                    | [HDF5](./import-hdf5.md)         |
 | ULog    | `import ulog`                    | [ULog](./import-ulog.md)         |

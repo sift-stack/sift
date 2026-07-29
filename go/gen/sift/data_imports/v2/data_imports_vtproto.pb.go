@@ -153,6 +153,7 @@ func (m *CsvConfig) CloneVT() *CsvConfig {
 	r.RunId = m.RunId
 	r.FirstDataRow = m.FirstDataRow
 	r.TimeColumn = m.TimeColumn.CloneVT()
+	r.UseEmbeddedConfig = m.UseEmbeddedConfig
 	if rhs := m.DataColumns; rhs != nil {
 		tmpContainer := make(map[uint32]*v1.ChannelConfig, len(rhs))
 		for k, v := range rhs {
@@ -407,6 +408,7 @@ func (m *ParquetFlatDatasetConfig) CloneVT() *ParquetFlatDatasetConfig {
 	}
 	r := new(ParquetFlatDatasetConfig)
 	r.TimeColumn = m.TimeColumn.CloneVT()
+	r.UseEmbeddedConfig = m.UseEmbeddedConfig
 	if rhs := m.DataColumns; rhs != nil {
 		tmpContainer := make([]*ParquetDataColumn, len(rhs))
 		for k, v := range rhs {
@@ -625,7 +627,9 @@ func (m *UlogDataConfig) CloneVT() *UlogDataConfig {
 		return (*UlogDataConfig)(nil)
 	}
 	r := new(UlogDataConfig)
-	r.Channel = m.Channel
+	r.MessageName = m.MessageName
+	r.Instance = m.Instance
+	r.FieldName = m.FieldName
 	if rhs := m.ChannelConfig; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *v1.ChannelConfig }); ok {
 			r.ChannelConfig = vtpb.CloneVT()
@@ -1104,6 +1108,9 @@ func (this *CsvConfig) EqualVT(that *CsvConfig) bool {
 	if p, q := this.NumRows, that.NumRows; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
 	}
+	if this.UseEmbeddedConfig != that.UseEmbeddedConfig {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1414,6 +1421,9 @@ func (this *ParquetFlatDatasetConfig) EqualVT(that *ParquetFlatDatasetConfig) bo
 				return false
 			}
 		}
+	}
+	if this.UseEmbeddedConfig != that.UseEmbeddedConfig {
+		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -1762,7 +1772,13 @@ func (this *UlogDataConfig) EqualVT(that *UlogDataConfig) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if this.Channel != that.Channel {
+	if this.MessageName != that.MessageName {
+		return false
+	}
+	if this.Instance != that.Instance {
+		return false
+	}
+	if this.FieldName != that.FieldName {
 		return false
 	}
 	if equal, ok := interface{}(this.ChannelConfig).(interface{ EqualVT(*v1.ChannelConfig) bool }); ok {
@@ -2918,6 +2934,16 @@ func (m *CsvConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.UseEmbeddedConfig {
+		i--
+		if m.UseEmbeddedConfig {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x50
+	}
 	if m.NumRows != nil {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(*m.NumRows))
 		i--
@@ -3633,6 +3659,16 @@ func (m *ParquetFlatDatasetConfig) MarshalToSizedBufferVT(dAtA []byte) (int, err
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.UseEmbeddedConfig {
+		i--
+		if m.UseEmbeddedConfig {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
+	}
 	if len(m.DataColumns) > 0 {
 		for iNdEx := len(m.DataColumns) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.DataColumns[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -4209,12 +4245,24 @@ func (m *UlogDataConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(encoded)))
 		}
 		i--
-		dAtA[i] = 0x12
+		dAtA[i] = 0x22
 	}
-	if len(m.Channel) > 0 {
-		i -= len(m.Channel)
-		copy(dAtA[i:], m.Channel)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Channel)))
+	if len(m.FieldName) > 0 {
+		i -= len(m.FieldName)
+		copy(dAtA[i:], m.FieldName)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.FieldName)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Instance != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Instance))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.MessageName) > 0 {
+		i -= len(m.MessageName)
+		copy(dAtA[i:], m.MessageName)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.MessageName)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -5383,6 +5431,16 @@ func (m *CsvConfig) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.UseEmbeddedConfig {
+		i--
+		if m.UseEmbeddedConfig {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x50
+	}
 	if m.NumRows != nil {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(*m.NumRows))
 		i--
@@ -6098,6 +6156,16 @@ func (m *ParquetFlatDatasetConfig) MarshalToSizedBufferVTStrict(dAtA []byte) (in
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.UseEmbeddedConfig {
+		i--
+		if m.UseEmbeddedConfig {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
+	}
 	if len(m.DataColumns) > 0 {
 		for iNdEx := len(m.DataColumns) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.DataColumns[iNdEx].MarshalToSizedBufferVTStrict(dAtA[:i])
@@ -6684,12 +6752,24 @@ func (m *UlogDataConfig) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) 
 			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(encoded)))
 		}
 		i--
-		dAtA[i] = 0x12
+		dAtA[i] = 0x22
 	}
-	if len(m.Channel) > 0 {
-		i -= len(m.Channel)
-		copy(dAtA[i:], m.Channel)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Channel)))
+	if len(m.FieldName) > 0 {
+		i -= len(m.FieldName)
+		copy(dAtA[i:], m.FieldName)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.FieldName)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Instance != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Instance))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.MessageName) > 0 {
+		i -= len(m.MessageName)
+		copy(dAtA[i:], m.MessageName)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.MessageName)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -7658,6 +7738,9 @@ func (m *CsvConfig) SizeVT() (n int) {
 	if m.NumRows != nil {
 		n += 1 + protohelpers.SizeOfVarint(uint64(*m.NumRows))
 	}
+	if m.UseEmbeddedConfig {
+		n += 2
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -7917,6 +8000,9 @@ func (m *ParquetFlatDatasetConfig) SizeVT() (n int) {
 			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
 	}
+	if m.UseEmbeddedConfig {
+		n += 2
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -8151,7 +8237,14 @@ func (m *UlogDataConfig) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	l = len(m.Channel)
+	l = len(m.MessageName)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.Instance != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Instance))
+	}
+	l = len(m.FieldName)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -9826,6 +9919,26 @@ func (m *CsvConfig) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.NumRows = &v
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UseEmbeddedConfig", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.UseEmbeddedConfig = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -11463,6 +11576,26 @@ func (m *ParquetFlatDatasetConfig) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UseEmbeddedConfig", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.UseEmbeddedConfig = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -12746,7 +12879,7 @@ func (m *UlogDataConfig) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Channel", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field MessageName", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -12774,9 +12907,60 @@ func (m *UlogDataConfig) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Channel = string(dAtA[iNdEx:postIndex])
+			m.MessageName = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Instance", wireType)
+			}
+			m.Instance = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Instance |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FieldName", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FieldName = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ChannelConfig", wireType)
 			}
@@ -16312,6 +16496,26 @@ func (m *CsvConfig) UnmarshalVTUnsafe(dAtA []byte) error {
 				}
 			}
 			m.NumRows = &v
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UseEmbeddedConfig", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.UseEmbeddedConfig = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -17990,6 +18194,26 @@ func (m *ParquetFlatDatasetConfig) UnmarshalVTUnsafe(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UseEmbeddedConfig", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.UseEmbeddedConfig = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -19325,7 +19549,7 @@ func (m *UlogDataConfig) UnmarshalVTUnsafe(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Channel", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field MessageName", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -19357,9 +19581,64 @@ func (m *UlogDataConfig) UnmarshalVTUnsafe(dAtA []byte) error {
 			if intStringLen > 0 {
 				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
 			}
-			m.Channel = stringValue
+			m.MessageName = stringValue
 			iNdEx = postIndex
 		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Instance", wireType)
+			}
+			m.Instance = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Instance |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FieldName", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.FieldName = stringValue
+			iNdEx = postIndex
+		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ChannelConfig", wireType)
 			}

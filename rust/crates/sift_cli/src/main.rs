@@ -87,8 +87,9 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
     let ctx = Context::new(clargs.profile.clone(), clargs.disable_tls)?;
 
     // Mcp Server
-    if let Cmd::Mcp = cmd {
-        return run_future_mt(cmd::mcp::run(ctx));
+    #[cfg(feature = "mcp")]
+    if let Cmd::Mcp(args) = cmd {
+        return run_future_mt(cmd::mcp::run(ctx, args));
     }
 
     let profile = clargs
@@ -108,14 +109,29 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
                 cli::ImportParquetCmd::FlatDataset(args) => {
                     run_future(cmd::import::parquet::flat_dataset::run(ctx, args))
                 }
-                cli::ImportParquetCmd::ChannelPerRow(args) => run_future(
-                    cmd::import::parquet::channel_per_row_dataset::run(ctx, args),
-                ),
+                cli::ImportParquetCmd::ChannelPerRow(cmd) => match cmd {
+                    cli::ImportParquetCprCmd::Single(args) => run_future(
+                        cmd::import::parquet::channel_per_row_dataset::run(ctx, args.into()),
+                    ),
+                    cli::ImportParquetCprCmd::Multi(args) => run_future(
+                        cmd::import::parquet::channel_per_row_dataset::run(ctx, args.into()),
+                    ),
+                },
             },
             cli::ImportCmd::Tdms(args) => {
                 run_future(cmd::import::tdms::detect_tdms_config::run(ctx, args))
             }
-            cli::ImportCmd::Hdf5(args) => run_future(cmd::import::hdf5::import::run(ctx, args)),
+            cli::ImportCmd::Hdf5(cmd) => match cmd {
+                cli::ImportHdf5Cmd::OneD(args) => {
+                    run_future(cmd::import::hdf5::import::run(ctx, args.into()))
+                }
+                cli::ImportHdf5Cmd::TwoD(args) => {
+                    run_future(cmd::import::hdf5::import::run(ctx, args.into()))
+                }
+                cli::ImportHdf5Cmd::Compound(args) => {
+                    run_future(cmd::import::hdf5::import::run(ctx, args.into()))
+                }
+            },
             cli::ImportCmd::Ulog(args) => run_future(cmd::import::ulog::import::run(ctx, args)),
             cli::ImportCmd::Backup(args) => match args.cmd {
                 Some(cli::BackupCmd::Ls(ls_args)) => {

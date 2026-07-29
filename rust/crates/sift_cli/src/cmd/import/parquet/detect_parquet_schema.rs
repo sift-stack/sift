@@ -98,6 +98,7 @@ pub fn detect_flat_dataset_config<R: ChunkReader>(
         ParquetFlatDatasetConfig {
             time_column,
             data_columns,
+            use_embedded_config: false,
         },
         format_source,
     ))

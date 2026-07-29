@@ -299,4 +299,4 @@ class JobsAPIAsync(ResourceBase):
 
         if not extract or not zipfile.is_zipfile(download_path):
             return [download_path]
-        return extract_zip(download_path, output_dir)
+        return extract_zip(download_path, output_dir, show_progress=show_progress)

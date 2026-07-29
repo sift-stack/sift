@@ -198,6 +198,7 @@ func (m *ExportOptions) CloneVT() *ExportOptions {
 	r.CombineRuns = m.CombineRuns
 	r.SplitExportByAsset = m.SplitExportByAsset
 	r.SplitExportByRun = m.SplitExportByRun
+	r.EmbedChannelConfigs = m.EmbedChannelConfigs
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -549,6 +550,9 @@ func (this *ExportOptions) EqualVT(that *ExportOptions) bool {
 		return false
 	}
 	if this.SplitExportByRun != that.SplitExportByRun {
+		return false
+	}
+	if this.EmbedChannelConfigs != that.EmbedChannelConfigs {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1174,6 +1178,16 @@ func (m *ExportOptions) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.EmbedChannelConfigs {
+		i--
+		if m.EmbedChannelConfigs {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x30
 	}
 	if m.SplitExportByRun {
 		i--
@@ -1801,6 +1815,16 @@ func (m *ExportOptions) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.EmbedChannelConfigs {
+		i--
+		if m.EmbedChannelConfigs {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x30
+	}
 	if m.SplitExportByRun {
 		i--
 		if m.SplitExportByRun {
@@ -2182,6 +2206,9 @@ func (m *ExportOptions) SizeVT() (n int) {
 		n += 2
 	}
 	if m.SplitExportByRun {
+		n += 2
+	}
+	if m.EmbedChannelConfigs {
 		n += 2
 	}
 	n += len(m.unknownFields)
@@ -3289,6 +3316,26 @@ func (m *ExportOptions) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.SplitExportByRun = bool(v != 0)
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EmbedChannelConfigs", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.EmbedChannelConfigs = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -4727,6 +4774,26 @@ func (m *ExportOptions) UnmarshalVTUnsafe(dAtA []byte) error {
 				}
 			}
 			m.SplitExportByRun = bool(v != 0)
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EmbedChannelConfigs", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.EmbedChannelConfigs = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

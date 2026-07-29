@@ -11,7 +11,7 @@ from collections import Counter
 from contextlib import AbstractContextManager, contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -149,6 +149,18 @@ def _is_session_exit(exc_value: BaseException | None) -> bool:
     return cls.__name__ == "Exit" and cls.__module__ == "_pytest.outcomes"
 
 
+def _ancestor_paths(step_path: str) -> list[str]:
+    """Ancestor ``step_path``s of ``step_path``, innermost first.
+
+    ``"1.2.3"`` gives ``["1.2", "1"]``. A root path gives ``[]``.
+    """
+    paths = []
+    while "." in step_path:
+        step_path = step_path.rsplit(".", 1)[0]
+        paths.append(step_path)
+    return paths
+
+
 class ReportContext(AbstractContextManager):
     """Context manager for a new TestReport. See usage example in __init__.py."""
 
@@ -192,6 +204,18 @@ class ReportContext(AbstractContextManager):
     # When set, the path of the DEBUG audit log. The replay worker is spawned
     # with ``--audit-log <sibling>`` so its activity is traced too.
     audit_log: Path | None = None
+    # When True, ``__exit__`` finalizes nothing and the owner must call
+    # ``finalize`` itself. Set by the pytest plugin, because pytest reports a
+    # test's teardown-phase outcome AFTER tearing down the session-scoped fixture
+    # that owns this context. For the last item in a session a teardown failure
+    # is therefore only known once ``__exit__`` has already returned, so
+    # finalizing there would miss it and drain the import worker before its log
+    # entry is written.
+    defer_finalize: bool = False
+    _finalized: bool = False
+    # Whether the ``with`` block exited with an exception; folded into the
+    # report's status by ``finalize``.
+    _exit_failed: bool = False
     _import_proc: subprocess.Popen | None = None
     # Seconds to wait for the import worker subprocess to finish uploading
     # the JSONL backlog at session end before killing it. Tests substitute
@@ -213,6 +237,7 @@ class ReportContext(AbstractContextManager):
         replay_log_file: bool = True,
         metadata: dict[str, str | float | bool] | None = None,
         audit_log: str | Path | None = None,
+        defer_finalize: bool = False,
     ):
         """Initialize a new report context.
 
@@ -240,6 +265,9 @@ class ReportContext(AbstractContextManager):
             audit_log: When set, the path of a DEBUG audit log. The replay worker
                 is spawned with ``--audit-log <sibling>`` so its activity is
                 traced to ``<path>.replay.log``.
+            defer_finalize: When True, ``__exit__`` finalizes nothing and the
+                caller must call ``finalize`` once no further status changes can
+                arrive. See the attribute of the same name.
         """
         self.client = client
         self.replay_log_file = replay_log_file
@@ -254,6 +282,9 @@ class ReportContext(AbstractContextManager):
         self.created_steps = []
         self.created_measurements = []
         self.replay_incomplete = False
+        self.defer_finalize = defer_finalize
+        self._finalized = False
+        self._exit_failed = False
 
         if log_file is True:
             session_dir = _make_session_dir()
@@ -343,12 +374,31 @@ class ReportContext(AbstractContextManager):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        update = {
+        self._exit_failed = exc_type is not None
+        if self.defer_finalize:
+            return True
+        return self.finalize()
+
+    def finalize(self) -> bool:
+        """Roll the final status onto the report, then drain the import worker.
+
+        Split out of ``__exit__`` so an owner expecting late failures can defer
+        both halves (see ``defer_finalize``). They must happen in this order,
+        since the status update is itself a log entry and draining first would
+        strand it.
+
+        Idempotent, so a deferring owner can call it without tracking whether
+        ``__exit__`` already ran.
+        """
+        if self._finalized:
+            return True
+        self._finalized = True
+        update: dict[str, Any] = {
             "end_time": datetime.now(timezone.utc),
         }
         if self.session_aborted:
             update["status"] = TestStatus.ABORTED
-        elif self.any_failures or exc_type:
+        elif self.any_failures or self._exit_failed:
             update["status"] = TestStatus.FAILED
         else:
             update["status"] = TestStatus.PASSED
@@ -580,29 +630,48 @@ class ReportContext(AbstractContextManager):
         self.created_measurements.append(measurement)
 
     def mark_step_failed_after_close(self, step: TestStep):
-        """Mark a step's parent as failed after the step has already been popped from the stack.
+        """Roll a failure up the ancestor chain after the step was already closed.
 
         Used by the pytest plugin when a teardown-phase report fires after the
         fixture's ``__exit__`` has already resolved and exited the step.
+
+        Every ancestor is walked, not just the immediate parent. A teardown
+        failure can surface after ``finalize_parents`` has closed the whole chain
+        (for the last item in a session it always does), and those ancestors have
+        already been written out as PASSED. Marking ``open_step_results`` alone
+        would change nothing server-side, so each closed ancestor is re-updated
+        to FAILED. Ancestors still open are left to ``propagate_step_result``,
+        which picks up the ``open_step_results`` flag when they close.
+
+        The report's own status is not touched here; it is derived from
+        ``any_failures`` in ``finalize``.
         """
         self.any_failures = True
-        path_parts = step.step_path.split(".")
-        if len(path_parts) > 1:
-            parent_path = ".".join(path_parts[:-1])
-            self.open_step_results[parent_path] = False
-            # Diagnostic: a teardown-phase failure fires after the step's own
-            # __exit__ has resolved, so it never runs through
-            # propagate_step_result. Log the parent roll-up here so it is traced
-            # like every other failure that reaches a parent.
-            log_event(
-                logger,
-                logging.DEBUG,
-                "step.propagate",
-                step_path=step.step_path,
-                status=step.status.name,
-                signal="teardown_fail",
-                parent=parent_path,
-            )
+        ancestors = _ancestor_paths(step.step_path)
+        if not ancestors:
+            return
+        by_path = {s.step_path: s for s in self.created_steps}
+        for ancestor_path in ancestors:
+            self.open_step_results[ancestor_path] = False
+            ancestor = by_path.get(ancestor_path)
+            # Only a cleanly-closed ancestor needs the correction. One still open
+            # resolves through the normal path, and one already FAILED/ABORTED
+            # must not be downgraded.
+            if ancestor is not None and ancestor.status == TestStatus.PASSED:
+                ancestor.update({"status": TestStatus.FAILED})
+        # Diagnostic: a teardown-phase failure fires after the step's own
+        # __exit__ has resolved, so it never runs through propagate_step_result.
+        # One line for the whole chain, so a deep hierarchy does not bury the
+        # single signal it represents.
+        log_event(
+            logger,
+            logging.DEBUG,
+            "step.propagate",
+            step_path=step.step_path,
+            status=step.status.name,
+            signal="teardown_fail",
+            parents=",".join(ancestors),
+        )
 
     def propagate_step_result(self, step: TestStep, status: TestStatus) -> bool:
         """Propagate this step's final status to the parent step.

@@ -37,7 +37,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
-from typing import Any, Iterator, cast
+from typing import Any, Iterator, Mapping, Sequence, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -134,8 +134,9 @@ def _client_with_cache(tmp_path, subdir: str = "cache") -> DataLowLevelClient:
 def _patch_deserializer(sentinel_to_frames: dict[str, dict[str, pd.DataFrame]]) -> Any:
     """Patch ``try_deserialize_channel_data`` to translate string sentinels.
 
-    Lets tests pass strings in lieu of protos. Returned object is a context
-    manager; callers use ``with _patch_deserializer(...):``.
+    Lets ``_fake_grpc`` pass strings in lieu of protos; the paginator
+    deserializes each page through this patched reader. Returned object is
+    a context manager; callers use ``with _patch_deserializer(...):``.
     """
     return patch.object(
         DataLowLevelClient,
@@ -147,7 +148,7 @@ def _patch_deserializer(sentinel_to_frames: dict[str, dict[str, pd.DataFrame]]) 
 @contextmanager
 def _fake_grpc(
     client: DataLowLevelClient,
-    channel_to_pages: dict[str, list[pd.DataFrame | dict[str, pd.DataFrame]]],
+    channel_to_pages: Mapping[str, Sequence[pd.DataFrame | dict[str, pd.DataFrame]]],
 ) -> Iterator[list[dict[str, Any]]]:
     """Mock the gRPC boundary so each "page" is a sentinel string.
 
@@ -957,16 +958,14 @@ class TestMergePages:
         """No fresh pages → initial dict passes through by identity."""
         client = DataLowLevelClient(MagicMock())
         initial_df = _frame("chan", rows=5)
-        with _patch_deserializer({}):
-            result = client._merge_pages(pages=pages, initial={"chan": initial_df})
+        result = client._merge_pages(pages=pages, initial={"chan": initial_df})
         assert result["chan"] is initial_df
 
     def test_single_frame_skips_concat(self) -> None:
         """One frame for a channel → returned by identity, no concat call."""
         only_df = _frame("chan", rows=5)
         client = DataLowLevelClient(MagicMock())
-        with _patch_deserializer({"p1": {"chan": only_df}}):
-            result = client._merge_pages(pages=[["p1"]], initial={})
+        result = client._merge_pages(pages=[[{"chan": only_df}]], initial={})
         assert result["chan"] is only_df
 
     def test_disjoint_pages_concat_in_order(self) -> None:
@@ -975,9 +974,9 @@ class TestMergePages:
         df2 = _frame("chan", rows=10, start=_NOW + timedelta(minutes=1), offset=10, freq="s")
         df3 = _frame("chan", rows=10, start=_NOW + timedelta(minutes=2), offset=20, freq="s")
         client = DataLowLevelClient(MagicMock())
-        sentinels = {"p1": {"chan": df1}, "p2": {"chan": df2}, "p3": {"chan": df3}}
-        with _patch_deserializer(sentinels):
-            result = client._merge_pages(pages=[["p1", "p2"], ["p3"]], initial={})
+        result = client._merge_pages(
+            pages=[[{"chan": df1}, {"chan": df2}], [{"chan": df3}]], initial={}
+        )
         expected = pd.concat([df1, df2, df3]).groupby(level=0).last()
         pd.testing.assert_frame_equal(result["chan"].sort_index(), expected.sort_index())
         assert len(result["chan"]) == 30
@@ -992,8 +991,7 @@ class TestMergePages:
         df_first = pd.DataFrame({"chan": [0] * 5}, index=index)
         df_second = pd.DataFrame({"chan": [99] * 5}, index=index)
         client = DataLowLevelClient(MagicMock())
-        with _patch_deserializer({"p1": {"chan": df_first}, "p2": {"chan": df_second}}):
-            result = client._merge_pages(pages=[["p1", "p2"]], initial={})
+        result = client._merge_pages(pages=[[{"chan": df_first}, {"chan": df_second}]], initial={})
         assert (result["chan"]["chan"] == 99).all()
 
     def test_cached_slice_folded_in_first_and_loses_on_overlap(self) -> None:
@@ -1006,8 +1004,7 @@ class TestMergePages:
         cached = pd.DataFrame({"chan": [-1] * 5}, index=index)
         fresh = pd.DataFrame({"chan": [42] * 5}, index=index)
         client = DataLowLevelClient(MagicMock())
-        with _patch_deserializer({"p1": {"chan": fresh}}):
-            result = client._merge_pages(pages=[["p1"]], initial={"chan": cached})
+        result = client._merge_pages(pages=[[{"chan": fresh}]], initial={"chan": cached})
         assert (result["chan"]["chan"] == 42).all()
 
     def test_multiple_channels_independent(self) -> None:
@@ -1016,9 +1013,7 @@ class TestMergePages:
         a2 = _frame("a", rows=5, start=_NOW + timedelta(minutes=1), offset=5, freq="s")
         b1 = _frame("b", rows=5, start=_NOW, offset=100, freq="s")
         client = DataLowLevelClient(MagicMock())
-        sentinels = {"p_a1": {"a": a1}, "p_a2": {"a": a2}, "p_b1": {"b": b1}}
-        with _patch_deserializer(sentinels):
-            result = client._merge_pages(pages=[["p_a1", "p_b1"], ["p_a2"]], initial={})
+        result = client._merge_pages(pages=[[{"a": a1}, {"b": b1}], [{"a": a2}]], initial={})
         assert len(result["a"]) == 10
         assert len(result["b"]) == 5
         assert (result["b"]["b"] >= 100).all()
@@ -1029,8 +1024,7 @@ class TestMergePages:
         initial = {"chan": cached}
         fresh = _frame("chan", rows=5, start=_NOW + timedelta(seconds=1), offset=10)
         client = DataLowLevelClient(MagicMock())
-        with _patch_deserializer({"p1": {"chan": fresh}}):
-            client._merge_pages(pages=[["p1"]], initial=initial)
+        client._merge_pages(pages=[[{"chan": fresh}]], initial=initial)
         assert initial["chan"] is cached
 
 
@@ -1129,6 +1123,89 @@ class TestGetChannelData:
         assert len(result["c1"]) == 30
         expected = pd.concat([p1, p2, p3]).groupby(level=0).last()
         pd.testing.assert_frame_equal(result["c1"].sort_index(), expected.sort_index())
+
+    @pytest.mark.asyncio
+    async def test_limit_bounds_round_trips_to_one_page(self) -> None:
+        """A point budget met by a single page stops after one wire call.
+
+        Guards the pagination fix: ``limit`` is a data-point budget that
+        sizes ``page_size`` and the page count, not a proto count. With
+        the pre-fix proto-counting loop this paged until the token
+        emptied (3 calls here) even though one page covers the budget.
+        """
+        client = DataLowLevelClient(MagicMock())
+        pages = [_frame("c1", rows=10, start=_NOW + timedelta(seconds=i)) for i in range(3)]
+        with _fake_grpc(client, {"c1": pages}) as call_log:
+            await client.get_channel_data(
+                channels=[_channel("c1")],
+                start_time=_NOW,
+                end_time=_WINDOW_END,
+                max_results=100,
+                page_size=100,
+                ignore_cache=True,
+            )
+        assert len(call_log) == 1, "budget covered by one page must not keep paging"
+
+    @pytest.mark.asyncio
+    async def test_limit_pages_ceil_of_budget_over_page_size(self) -> None:
+        """Round-trips equal ceil(limit / page_size) when the page is smaller."""
+        client = DataLowLevelClient(MagicMock())
+        pages = [_frame("c1", rows=25, start=_NOW + timedelta(seconds=i)) for i in range(6)]
+        with _fake_grpc(client, {"c1": pages}) as call_log:
+            await client.get_channel_data(
+                channels=[_channel("c1")],
+                start_time=_NOW,
+                end_time=_WINDOW_END,
+                max_results=100,
+                page_size=25,  # ceil(100 / 25) == 4 pages
+                ignore_cache=True,
+            )
+        assert len(call_log) == 4
+
+    @pytest.mark.asyncio
+    async def test_no_limit_exhausts_all_pages(self) -> None:
+        """Without a limit, paging follows the token to exhaustion."""
+        client = DataLowLevelClient(MagicMock())
+        pages = [_frame("c1", rows=10, start=_NOW + timedelta(seconds=i)) for i in range(3)]
+        with _fake_grpc(client, {"c1": pages}) as call_log:
+            await client.get_channel_data(
+                channels=[_channel("c1")],
+                start_time=_NOW,
+                end_time=_WINDOW_END,
+                ignore_cache=True,
+            )
+        assert len(call_log) == 3
+
+    @pytest.mark.asyncio
+    async def test_limit_above_available_terminates_on_token(self) -> None:
+        """A budget larger than the data stops when the token empties, not before."""
+        client = DataLowLevelClient(MagicMock())
+        pages = [_frame("c1", rows=500, start=_NOW + timedelta(seconds=i)) for i in range(2)]
+        with _fake_grpc(client, {"c1": pages}) as call_log:
+            await client.get_channel_data(
+                channels=[_channel("c1")],
+                start_time=_NOW,
+                end_time=_WINDOW_END,
+                max_results=100_000,  # ceil would ask for more pages than exist
+                page_size=500,
+                ignore_cache=True,
+            )
+        assert len(call_log) == 2
+
+    @pytest.mark.asyncio
+    async def test_limit_zero_returns_empty_without_wire_calls(self) -> None:
+        """A zero budget short-circuits before touching the wire."""
+        client = DataLowLevelClient(MagicMock())
+        with _fake_grpc(client, {"c1": [_frame("c1")]}) as call_log:
+            result = await client.get_channel_data(
+                channels=[_channel("c1")],
+                start_time=_NOW,
+                end_time=_WINDOW_END,
+                max_results=0,
+                ignore_cache=True,
+            )
+        assert call_log == []
+        assert result == {}
 
     @pytest.mark.asyncio
     async def test_cache_hit_short_circuits_grpc(self, tmp_path) -> None:
@@ -1615,5 +1692,169 @@ class TestBitFieldChannels:
             pd.testing.assert_frame_equal(
                 cached["ch1.hi"].sort_index(), df_hi.sort_index(), check_freq=False
             )
+        finally:
+            client.channel_cache.store.close()
+
+
+@contextmanager
+def _capture_bar_total() -> Iterator[list[int | None]]:
+    """Patch ``alive_bar`` in the data module and capture each ``total`` arg.
+
+    ``get_channel_data`` opens exactly one bar per call whose ``total`` is
+    the number of dispatched wire-fetch tasks, so the captured value is the
+    task count.
+    """
+    totals: list[int | None] = []
+
+    @contextmanager
+    def _fake_alive_bar(total: int | None = None, *_args: Any, **_kwargs: Any) -> Iterator[Any]:
+        totals.append(total)
+        yield MagicMock()
+
+    with patch(
+        "sift_client._internal.low_level_wrappers.data.alive_bar",
+        _fake_alive_bar,
+    ):
+        yield totals
+
+
+@contextmanager
+def _capture_bar_text() -> Iterator[list[str]]:
+    """Patch ``alive_bar`` and capture every ``bar.text(...)`` string.
+
+    The bar's fill tracks channels; points loaded and throughput are
+    rendered into the situational text, one update per page.
+    """
+    texts: list[str] = []
+
+    @contextmanager
+    def _fake_alive_bar(total: int | None = None, *_args: Any, **_kwargs: Any) -> Iterator[Any]:
+        bar = MagicMock()
+        bar.text.side_effect = lambda s="": texts.append(s)
+        yield bar
+
+    with patch(
+        "sift_client._internal.low_level_wrappers.data.alive_bar",
+        _fake_alive_bar,
+    ):
+        yield texts
+
+
+class TestGetChannelDataProgress:
+    """The progress bar's ``total`` reflects the number of dispatched fetches."""
+
+    @pytest.mark.asyncio
+    async def test_bar_total_equals_dispatched_task_count(self) -> None:
+        """One task per uncached channel → bar total matches the channel count."""
+        client = DataLowLevelClient(MagicMock())
+        with _capture_bar_total() as totals:
+            with _fake_grpc(client, {"c1": [_frame("c1")], "c2": [_frame("c2", offset=100)]}):
+                await client.get_channel_data(
+                    channels=[_channel("c1"), _channel("c2")],
+                    start_time=_NOW,
+                    end_time=_WINDOW_END,
+                    ignore_cache=True,
+                    show_progress=True,
+                )
+        assert totals == [2]
+
+    @pytest.mark.asyncio
+    async def test_fully_cached_call_dispatches_no_tasks(self, tmp_path) -> None:
+        """A cache hit fetches nothing, so the bar total is zero."""
+        client = _client_with_cache(tmp_path)
+        try:
+            with _fake_grpc(client, {"c1": [_frame("c1")]}):
+                await client.get_channel_data(
+                    channels=[_channel("c1")],
+                    start_time=_NOW,
+                    end_time=_WINDOW_END,
+                )
+            with _capture_bar_total() as totals:
+                with _fake_grpc(client, {"c1": []}):
+                    await client.get_channel_data(
+                        channels=[_channel("c1")],
+                        start_time=_NOW,
+                        end_time=_WINDOW_END,
+                        show_progress=True,
+                    )
+            assert totals == [0]
+        finally:
+            client.channel_cache.store.close()
+
+    @pytest.mark.asyncio
+    async def test_progress_text_reports_points_loaded(self) -> None:
+        """The situational text accumulates the point count across pages."""
+        client = DataLowLevelClient(MagicMock())
+        pages = [
+            _frame("c1", rows=10, start=_NOW),
+            _frame("c1", rows=10, start=_NOW + timedelta(seconds=1)),
+        ]
+        with _capture_bar_text() as texts:
+            with _fake_grpc(client, {"c1": pages}):
+                await client.get_channel_data(
+                    channels=[_channel("c1")],
+                    start_time=_NOW,
+                    end_time=_WINDOW_END,
+                    ignore_cache=True,
+                    show_progress=True,
+                )
+        assert any("10 pts" in t for t in texts), texts  # live line after the first page
+        assert any("20 pts" in t for t in texts), texts  # live line after both pages
+        # Final receipt is a past-tense summary with an average rate.
+        assert texts[-1].startswith("Loaded 20 points"), texts
+        assert "/s" in texts[-1], texts
+
+    @pytest.mark.asyncio
+    async def test_progress_text_splits_fetched_and_cached(self, tmp_path) -> None:
+        """A mixed call reports the fetched/cached split and a fetched-only rate."""
+        client = _client_with_cache(tmp_path)
+        try:
+            # Warm the cache for c1 (outside the capture block).
+            with _fake_grpc(client, {"c1": [_frame("c1", rows=5)]}):
+                await client.get_channel_data(
+                    channels=[_channel("c1")],
+                    start_time=_NOW,
+                    end_time=_WINDOW_END,
+                )
+            # c1 is now cached; c2 is fresh, so the call mixes both.
+            with _capture_bar_text() as texts:
+                with _fake_grpc(client, {"c1": [], "c2": [_frame("c2", rows=5, offset=100)]}):
+                    await client.get_channel_data(
+                        channels=[_channel("c1"), _channel("c2")],
+                        start_time=_NOW,
+                        end_time=_WINDOW_END,
+                        show_progress=True,
+                    )
+            final = texts[-1]
+            assert final.startswith("Loaded 10 points"), texts  # total spans both sources
+            assert "5 fetched" in final, texts
+            assert "5 cached" in final, texts
+            assert "/s" in final, texts  # a fetch happened, so an average rate shows
+        finally:
+            client.channel_cache.store.close()
+
+    @pytest.mark.asyncio
+    async def test_progress_text_all_cached_shows_no_rate(self, tmp_path) -> None:
+        """A fully-cached call labels the total 'all cached' and omits the rate."""
+        client = _client_with_cache(tmp_path)
+        try:
+            with _fake_grpc(client, {"c1": [_frame("c1", rows=5)]}):
+                await client.get_channel_data(
+                    channels=[_channel("c1")],
+                    start_time=_NOW,
+                    end_time=_WINDOW_END,
+                )
+            with _capture_bar_text() as texts:
+                with _fake_grpc(client, {"c1": []}):
+                    await client.get_channel_data(
+                        channels=[_channel("c1")],
+                        start_time=_NOW,
+                        end_time=_WINDOW_END,
+                        show_progress=True,
+                    )
+            assert texts, "fully-cached call should still render a summary line"
+            final = texts[-1]
+            assert final == "Loaded 5 points from cache", texts
+            assert "/s" not in final, texts  # nothing fetched, so no rate
         finally:
             client.channel_cache.store.close()

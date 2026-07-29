@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package sift.common.v1;
 
-
 // ResourceType represents the type of resource being accessed.
 enum ResourceType {
   RESOURCE_TYPE_UNSPECIFIED = 0;

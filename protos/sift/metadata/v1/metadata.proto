@@ -6,6 +6,7 @@ import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
+import "sift/common/v1/filter_field.proto";
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Metadata service"}
@@ -151,6 +152,10 @@ message MetadataKey {
   google.protobuf.Timestamp archived_date = 3 [(google.api.field_behavior) = OPTIONAL];
   // Whether the metadata key is archived. This is inferred from whether archived_date is set.
   bool is_archived = 4 [(google.api.field_behavior) = OPTIONAL];
+  // The filter field type this key maps to, so a client can build a CEL filter
+  // against it (`metadata["<name>"]`) and resolve its operators and functions
+  // from FilterGrammarService. Derived from `type`.
+  sift.common.v1.FilterFieldType filter_field_type = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 message MetadataRelationValue {

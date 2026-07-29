@@ -163,13 +163,24 @@ from sift_client.resources.ingestion import (
 )
 from sift_client.resources.jobs import JobsAPIAsync
 from sift_client.resources.ping import PingAPIAsync
-from sift_client.resources.principal_attributes import PrincipalAttributesAPIAsync
+from sift_client.resources.access_control.principal_attributes import (
+    PrincipalAttributeAssignmentsAPIAsync,
+    PrincipalAttributeEnumValuesAPIAsync,
+    PrincipalAttributeKeysAPIAsync,
+    PrincipalAttributesAPIAsync,
+)
+from sift_client.resources.access_control.resource_attributes import (
+    ResourceAttributeAssignmentsAPIAsync,
+    ResourceAttributeEnumValuesAPIAsync,
+    ResourceAttributeKeysAPIAsync,
+    ResourceAttributesAPIAsync,
+)
 from sift_client.resources.reports import ReportsAPIAsync, ReportTemplatesAPIAsync
-from sift_client.resources.resource_attributes import ResourceAttributesAPIAsync
 from sift_client.resources.rules import RulesAPIAsync
 from sift_client.resources.runs import RunsAPIAsync
 from sift_client.resources.tags import TagsAPIAsync
 from sift_client.resources.test_results import TestResultsAPIAsync
+from sift_client.resources.users import UsersAPIAsync
 from sift_client.resources.data_imports import DataImportAPIAsync
 from sift_client.resources.exports import DataExportAPIAsync
 
@@ -180,14 +191,21 @@ from sift_client.resources.sync_stubs import (
     ChannelsAPI,
     JobsAPI,
     PingAPI,
+    PrincipalAttributeAssignmentsAPI,
+    PrincipalAttributeEnumValuesAPI,
+    PrincipalAttributeKeysAPI,
     PrincipalAttributesAPI,
     ReportsAPI,
     ReportTemplatesAPI,
+    ResourceAttributeAssignmentsAPI,
+    ResourceAttributeEnumValuesAPI,
+    ResourceAttributeKeysAPI,
     ResourceAttributesAPI,
     RulesAPI,
     RunsAPI,
     TagsAPI,
     TestResultsAPI,
+    UsersAPI,
     FileAttachmentsAPI,
     DataExportAPI,
     DataImportAPI,
@@ -218,12 +236,24 @@ __all__ = [
     "JobsAPIAsync",
     "PingAPI",
     "PingAPIAsync",
+    "PrincipalAttributeAssignmentsAPI",
+    "PrincipalAttributeAssignmentsAPIAsync",
+    "PrincipalAttributeEnumValuesAPI",
+    "PrincipalAttributeEnumValuesAPIAsync",
+    "PrincipalAttributeKeysAPI",
+    "PrincipalAttributeKeysAPIAsync",
     "PrincipalAttributesAPI",
     "PrincipalAttributesAPIAsync",
     "ReportTemplatesAPI",
     "ReportTemplatesAPIAsync",
     "ReportsAPI",
     "ReportsAPIAsync",
+    "ResourceAttributeAssignmentsAPI",
+    "ResourceAttributeAssignmentsAPIAsync",
+    "ResourceAttributeEnumValuesAPI",
+    "ResourceAttributeEnumValuesAPIAsync",
+    "ResourceAttributeKeysAPI",
+    "ResourceAttributeKeysAPIAsync",
     "ResourceAttributesAPI",
     "ResourceAttributesAPIAsync",
     "RulesAPI",
@@ -235,6 +265,8 @@ __all__ = [
     "TestResultsAPI",
     "TestResultsAPIAsync",
     "TracingConfig",
+    "UsersAPI",
+    "UsersAPIAsync",
     "DataExportAPI",
     "DataExportAPIAsync",
     "DataImportAPI",

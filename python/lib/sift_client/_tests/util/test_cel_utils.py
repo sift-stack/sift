@@ -177,3 +177,20 @@ class TestCelUtils:
         duration = timedelta(hours=1, minutes=15, seconds=30)
         expected_seconds = duration.total_seconds()
         assert less_than("field", duration) == f"field < duration('{expected_seconds}s')"
+
+
+class TestStringQuoteEscaping:
+    def test_equals_escapes_single_quote(self):
+        assert equals("name", "o'brien@x.com") == "name == 'o\\'brien@x.com'"
+
+    def test_in_escapes_single_quote(self):
+        assert in_("name", ["o'brien@x.com"]) == "name in ['o\\'brien@x.com']"
+
+    def test_contains_escapes_single_quote(self):
+        assert contains("name", "o'brien") == "name.contains('o\\'brien')"
+
+    def test_equals_escapes_backslash(self):
+        assert equals("name", "a\\b") == "name == 'a\\\\b'"
+
+    def test_match_still_double_escapes_backslashes(self):
+        assert match("name", r"sensor_\d+") == "name.matches('sensor_\\\\d+')"

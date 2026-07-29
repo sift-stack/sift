@@ -10,6 +10,7 @@ import google.protobuf.internal.containers
 import google.protobuf.message
 import google.protobuf.timestamp_pb2
 import sift.common.type.v1.resource_identifier_pb2
+import sift.families.v1.families_pb2
 import sift.rules.v1.rules_pb2
 import typing
 
@@ -29,6 +30,7 @@ class EvaluateRulesRequest(google.protobuf.message.Message):
     ANNOTATION_OPTIONS_FIELD_NUMBER: builtins.int
     ORGANIZATION_ID_FIELD_NUMBER: builtins.int
     REPORT_NAME_FIELD_NUMBER: builtins.int
+    RUN_FAMILY_ALIGNMENT_CONFIGS_FIELD_NUMBER: builtins.int
     all_applicable_rules: builtins.bool
     organization_id: builtins.str
     """Only required if your user belongs to multiple organizations"""
@@ -48,6 +50,10 @@ class EvaluateRulesRequest(google.protobuf.message.Message):
     def report_template(self) -> global___EvaluateRulesFromReportTemplate: ...
     @property
     def annotation_options(self) -> global___EvaluateRulesAnnotationOptions: ...
+    @property
+    def run_family_alignment_configs(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___RunFamilyAlignmentConfig]:
+        """If evaluating a run against a family stat, this field will be used to provide alignment configuration for the run under test"""
+
     def __init__(
         self,
         *,
@@ -61,9 +67,10 @@ class EvaluateRulesRequest(google.protobuf.message.Message):
         annotation_options: global___EvaluateRulesAnnotationOptions | None = ...,
         organization_id: builtins.str = ...,
         report_name: builtins.str | None = ...,
+        run_family_alignment_configs: collections.abc.Iterable[global___RunFamilyAlignmentConfig] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_report_name", b"_report_name", "all_applicable_rules", b"all_applicable_rules", "annotation_options", b"annotation_options", "assets", b"assets", "mode", b"mode", "report_name", b"report_name", "report_template", b"report_template", "rule_versions", b"rule_versions", "rules", b"rules", "run", b"run", "run_time_range", b"run_time_range", "time", b"time"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_report_name", b"_report_name", "all_applicable_rules", b"all_applicable_rules", "annotation_options", b"annotation_options", "assets", b"assets", "mode", b"mode", "organization_id", b"organization_id", "report_name", b"report_name", "report_template", b"report_template", "rule_versions", b"rule_versions", "rules", b"rules", "run", b"run", "run_time_range", b"run_time_range", "time", b"time"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_report_name", b"_report_name", "all_applicable_rules", b"all_applicable_rules", "annotation_options", b"annotation_options", "assets", b"assets", "mode", b"mode", "organization_id", b"organization_id", "report_name", b"report_name", "report_template", b"report_template", "rule_versions", b"rule_versions", "rules", b"rules", "run", b"run", "run_family_alignment_configs", b"run_family_alignment_configs", "run_time_range", b"run_time_range", "time", b"time"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_report_name", b"_report_name"]) -> typing.Literal["report_name"] | None: ...
     @typing.overload
@@ -233,6 +240,7 @@ class EvaluateRulesPreviewRequest(google.protobuf.message.Message):
     REPORT_TEMPLATE_FIELD_NUMBER: builtins.int
     RULE_CONFIGS_FIELD_NUMBER: builtins.int
     ORGANIZATION_ID_FIELD_NUMBER: builtins.int
+    RUN_FAMILY_ALIGNMENT_CONFIGS_FIELD_NUMBER: builtins.int
     organization_id: builtins.str
     """Only required if your user belongs to multiple organizations"""
     @property
@@ -247,6 +255,10 @@ class EvaluateRulesPreviewRequest(google.protobuf.message.Message):
     def report_template(self) -> global___EvaluateRulesFromReportTemplate: ...
     @property
     def rule_configs(self) -> global___EvaluateRulesFromRuleConfigs: ...
+    @property
+    def run_family_alignment_configs(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___RunFamilyAlignmentConfig]:
+        """If evaluating a run against a family stat, this field will be used to provide alignment configuration for the run under test"""
+
     def __init__(
         self,
         *,
@@ -257,15 +269,45 @@ class EvaluateRulesPreviewRequest(google.protobuf.message.Message):
         report_template: global___EvaluateRulesFromReportTemplate | None = ...,
         rule_configs: global___EvaluateRulesFromRuleConfigs | None = ...,
         organization_id: builtins.str = ...,
+        run_family_alignment_configs: collections.abc.Iterable[global___RunFamilyAlignmentConfig] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["mode", b"mode", "report_template", b"report_template", "rule_configs", b"rule_configs", "rule_versions", b"rule_versions", "rules", b"rules", "run", b"run", "run_time_range", b"run_time_range", "time", b"time"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["mode", b"mode", "organization_id", b"organization_id", "report_template", b"report_template", "rule_configs", b"rule_configs", "rule_versions", b"rule_versions", "rules", b"rules", "run", b"run", "run_time_range", b"run_time_range", "time", b"time"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["mode", b"mode", "organization_id", b"organization_id", "report_template", b"report_template", "rule_configs", b"rule_configs", "rule_versions", b"rule_versions", "rules", b"rules", "run", b"run", "run_family_alignment_configs", b"run_family_alignment_configs", "run_time_range", b"run_time_range", "time", b"time"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["mode", b"mode"]) -> typing.Literal["rules", "rule_versions", "report_template", "rule_configs"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["time", b"time"]) -> typing.Literal["run", "run_time_range"] | None: ...
 
 global___EvaluateRulesPreviewRequest = EvaluateRulesPreviewRequest
+
+@typing.final
+class RunFamilyAlignmentConfig(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    FAMILY_ALIGNMENT_NAME_FIELD_NUMBER: builtins.int
+    RUN_FIELD_NUMBER: builtins.int
+    ANNOTATION_FIELD_NUMBER: builtins.int
+    TIMESTAMP_FIELD_NUMBER: builtins.int
+    family_alignment_name: builtins.str
+    @property
+    def run(self) -> sift.families.v1.families_pb2.RunAlignment: ...
+    @property
+    def annotation(self) -> sift.families.v1.families_pb2.AnnotationAlignment: ...
+    @property
+    def timestamp(self) -> sift.families.v1.families_pb2.TimestampAlignment: ...
+    def __init__(
+        self,
+        *,
+        family_alignment_name: builtins.str = ...,
+        run: sift.families.v1.families_pb2.RunAlignment | None = ...,
+        annotation: sift.families.v1.families_pb2.AnnotationAlignment | None = ...,
+        timestamp: sift.families.v1.families_pb2.TimestampAlignment | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["alignment_config", b"alignment_config", "annotation", b"annotation", "run", b"run", "timestamp", b"timestamp"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["alignment_config", b"alignment_config", "annotation", b"annotation", "family_alignment_name", b"family_alignment_name", "run", b"run", "timestamp", b"timestamp"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["alignment_config", b"alignment_config"]) -> typing.Literal["run", "annotation", "timestamp"] | None: ...
+
+global___RunFamilyAlignmentConfig = RunFamilyAlignmentConfig
 
 @typing.final
 class EvaluateRulesFromRuleConfigs(google.protobuf.message.Message):

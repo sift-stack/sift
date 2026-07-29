@@ -852,6 +852,7 @@ impl serde::Serialize for EntityType {
             Self::AnnotationLog => "ENTITY_TYPE_ANNOTATION_LOG",
             Self::TestReport => "ENTITY_TYPE_TEST_REPORT",
             Self::TestStep => "ENTITY_TYPE_TEST_STEP",
+            Self::CanvasVersion => "ENTITY_TYPE_CANVAS_VERSION",
         };
         serializer.serialize_str(variant)
     }
@@ -870,6 +871,7 @@ impl<'de> serde::Deserialize<'de> for EntityType {
             "ENTITY_TYPE_ANNOTATION_LOG",
             "ENTITY_TYPE_TEST_REPORT",
             "ENTITY_TYPE_TEST_STEP",
+            "ENTITY_TYPE_CANVAS_VERSION",
         ];
 
         struct GeneratedVisitor;
@@ -917,6 +919,7 @@ impl<'de> serde::Deserialize<'de> for EntityType {
                     "ENTITY_TYPE_ANNOTATION_LOG" => Ok(EntityType::AnnotationLog),
                     "ENTITY_TYPE_TEST_REPORT" => Ok(EntityType::TestReport),
                     "ENTITY_TYPE_TEST_STEP" => Ok(EntityType::TestStep),
+                    "ENTITY_TYPE_CANVAS_VERSION" => Ok(EntityType::CanvasVersion),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }

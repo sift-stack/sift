@@ -149,7 +149,6 @@ message TestMeasurement {
   }
   bool passed = 12 [(google.api.field_behavior) = REQUIRED];
   google.protobuf.Timestamp timestamp = 13 [(google.api.field_behavior) = REQUIRED];
-
   // Description or note about the measurement
   string description = 14 [(google.api.field_behavior) = OPTIONAL];
 

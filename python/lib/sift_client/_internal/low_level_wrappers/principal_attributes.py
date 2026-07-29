@@ -39,16 +39,17 @@ from sift.principal_attributes.v1.principal_attributes_pb2 import (
     UnarchivePrincipalAttributeValuesRequest,
     UpdatePrincipalAttributeEnumValueRequest,
     UpdatePrincipalAttributeEnumValueResponse,
-    UpdatePrincipalAttributeKeyRequest,
     UpdatePrincipalAttributeKeyResponse,
 )
 from sift.principal_attributes.v1.principal_attributes_pb2_grpc import PrincipalAttributeServiceStub
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
+from sift_client._internal.util.util import chunked
 from sift_client.sift_types.principal_attribute import (
+    PrincipalAttributeAssignment,
     PrincipalAttributeEnumValue,
     PrincipalAttributeKey,
-    PrincipalAttributeValue,
+    PrincipalAttributeKeyUpdate,
 )
 from sift_client.transport import WithGrpcClient
 
@@ -56,6 +57,10 @@ if TYPE_CHECKING:
     from sift_client.transport.grpc_transport import GrpcClient
 
 logger = logging.getLogger(__name__)
+
+# Max principal/value IDs per batch RPC; keeps request bodies well under gRPC
+# message size limits when operating on large principal sets.
+_BATCH_SIZE = 1000
 
 
 class PrincipalAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
@@ -146,28 +151,12 @@ class PrincipalAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         )
         return PrincipalAttributeKey._from_proto(response.principal_attribute_key)
 
-    async def update_key(
-        self,
-        principal_attribute_key_id: str,
-        *,
-        display_name: str | None = None,
-        description: str | None = None,
-    ) -> PrincipalAttributeKey:
-        paths: list[str] = []
-        request_kwargs: dict[str, Any] = {"principal_attribute_key_id": principal_attribute_key_id}
-        if display_name is not None:
-            request_kwargs["display_name"] = display_name
-            paths.append("display_name")
-        if description is not None:
-            request_kwargs["description"] = description
-            paths.append("description")
+    async def update_key(self, *, update: PrincipalAttributeKeyUpdate) -> PrincipalAttributeKey:
+        request, mask = update.to_proto_with_mask()
+        request.update_mask.CopyFrom(mask)
         response = cast(
             "UpdatePrincipalAttributeKeyResponse",
-            await self._stub.UpdatePrincipalAttributeKey(
-                UpdatePrincipalAttributeKeyRequest(
-                    update_mask=field_mask_pb2.FieldMask(paths=paths), **request_kwargs
-                )
-            ),
+            await self._stub.UpdatePrincipalAttributeKey(request),
         )
         return PrincipalAttributeKey._from_proto(response.principal_attribute_key)
 
@@ -346,10 +335,9 @@ class PrincipalAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         enum_value_ids: list[str] | None = None,
         boolean_value: bool | None = None,
         number_value: int | None = None,
-    ) -> list[PrincipalAttributeValue]:
+    ) -> list[PrincipalAttributeAssignment]:
         request_kwargs: dict[str, Any] = {
             "principal_attribute_key_id": key_id,
-            "principal_ids": principal_ids,
             "principal_type": principal_type,
         }
         if enum_value_ids is not None:
@@ -363,20 +351,26 @@ class PrincipalAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         elif number_value is not None:
             request_kwargs["number_value"] = number_value
 
-        response = cast(
-            "BatchCreatePrincipalAttributeValueResponse",
-            await self._stub.BatchCreatePrincipalAttributeValue(
-                BatchCreatePrincipalAttributeValueRequest(**request_kwargs)
-            ),
-        )
-        return [PrincipalAttributeValue._from_proto(v) for v in response.principal_attribute_values]
+        values: list[PrincipalAttributeAssignment] = []
+        for batch in chunked(principal_ids, _BATCH_SIZE):
+            response = cast(
+                "BatchCreatePrincipalAttributeValueResponse",
+                await self._stub.BatchCreatePrincipalAttributeValue(
+                    BatchCreatePrincipalAttributeValueRequest(principal_ids=batch, **request_kwargs)
+                ),
+            )
+            values.extend(
+                PrincipalAttributeAssignment._from_proto(v)
+                for v in response.principal_attribute_values
+            )
+        return values
 
     async def get_value(
         self,
         principal_attribute_value_id: str,
         *,
         principal_type: PrincipalAttributePrincipalType.ValueType,
-    ) -> PrincipalAttributeValue:
+    ) -> PrincipalAttributeAssignment:
         response = cast(
             "GetPrincipalAttributeValueResponse",
             await self._stub.GetPrincipalAttributeValue(
@@ -386,7 +380,7 @@ class PrincipalAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 )
             ),
         )
-        return PrincipalAttributeValue._from_proto(response.principal_attribute_value)
+        return PrincipalAttributeAssignment._from_proto(response.principal_attribute_value)
 
     async def list_key_values(
         self,
@@ -398,7 +392,7 @@ class PrincipalAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         query_filter: str | None = None,
         order_by: str | None = None,
         include_archived: bool = False,
-    ) -> tuple[list[PrincipalAttributeValue], str]:
+    ) -> tuple[list[PrincipalAttributeAssignment], str]:
         request_kwargs: dict[str, Any] = {
             "principal_attribute_key_id": key_id,
             "principal_type": principal_type,
@@ -420,7 +414,7 @@ class PrincipalAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             ),
         )
         values = [
-            PrincipalAttributeValue._from_proto(v) for v in response.principal_attribute_values
+            PrincipalAttributeAssignment._from_proto(v) for v in response.principal_attribute_values
         ]
         return values, response.next_page_token
 
@@ -434,7 +428,7 @@ class PrincipalAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         include_archived: bool = False,
         page_size: int | None = None,
         max_results: int | None = None,
-    ) -> list[PrincipalAttributeValue]:
+    ) -> list[PrincipalAttributeAssignment]:
         return await self._handle_pagination(
             self.list_key_values,
             kwargs={
@@ -457,7 +451,7 @@ class PrincipalAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         query_filter: str | None = None,
         order_by: str | None = None,
         include_archived: bool = False,
-    ) -> tuple[list[PrincipalAttributeValue], str]:
+    ) -> tuple[list[PrincipalAttributeAssignment], str]:
         request_kwargs: dict[str, Any] = {
             "principal_type": principal_type,
             "include_archived": include_archived,
@@ -478,7 +472,7 @@ class PrincipalAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             ),
         )
         values = [
-            PrincipalAttributeValue._from_proto(v) for v in response.principal_attribute_values
+            PrincipalAttributeAssignment._from_proto(v) for v in response.principal_attribute_values
         ]
         return values, response.next_page_token
 
@@ -491,7 +485,7 @@ class PrincipalAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         include_archived: bool = False,
         page_size: int | None = None,
         max_results: int | None = None,
-    ) -> list[PrincipalAttributeValue]:
+    ) -> list[PrincipalAttributeAssignment]:
         return await self._handle_pagination(
             self.list_values,
             kwargs={
@@ -510,12 +504,13 @@ class PrincipalAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         *,
         principal_type: PrincipalAttributePrincipalType.ValueType,
     ) -> None:
-        await self._stub.ArchivePrincipalAttributeValues(
-            ArchivePrincipalAttributeValuesRequest(
-                principal_attribute_value_ids=principal_attribute_value_ids,
-                principal_type=principal_type,
+        for batch in chunked(principal_attribute_value_ids, _BATCH_SIZE):
+            await self._stub.ArchivePrincipalAttributeValues(
+                ArchivePrincipalAttributeValuesRequest(
+                    principal_attribute_value_ids=batch,
+                    principal_type=principal_type,
+                )
             )
-        )
 
     async def unarchive_values(
         self,
@@ -523,9 +518,10 @@ class PrincipalAttributesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         *,
         principal_type: PrincipalAttributePrincipalType.ValueType,
     ) -> None:
-        await self._stub.UnarchivePrincipalAttributeValues(
-            UnarchivePrincipalAttributeValuesRequest(
-                principal_attribute_value_ids=principal_attribute_value_ids,
-                principal_type=principal_type,
+        for batch in chunked(principal_attribute_value_ids, _BATCH_SIZE):
+            await self._stub.UnarchivePrincipalAttributeValues(
+                UnarchivePrincipalAttributeValuesRequest(
+                    principal_attribute_value_ids=batch,
+                    principal_type=principal_type,
+                )
             )
-        )

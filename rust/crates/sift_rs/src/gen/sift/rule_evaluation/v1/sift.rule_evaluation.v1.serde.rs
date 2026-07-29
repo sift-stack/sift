@@ -594,6 +594,9 @@ impl serde::Serialize for EvaluateRulesPreviewRequest {
         if !self.organization_id.is_empty() {
             len += 1;
         }
+        if !self.run_family_alignment_configs.is_empty() {
+            len += 1;
+        }
         if self.time.is_some() {
             len += 1;
         }
@@ -603,6 +606,9 @@ impl serde::Serialize for EvaluateRulesPreviewRequest {
         let mut struct_ser = serializer.serialize_struct("sift.rule_evaluation.v1.EvaluateRulesPreviewRequest", len)?;
         if !self.organization_id.is_empty() {
             struct_ser.serialize_field("organizationId", &self.organization_id)?;
+        }
+        if !self.run_family_alignment_configs.is_empty() {
+            struct_ser.serialize_field("runFamilyAlignmentConfigs", &self.run_family_alignment_configs)?;
         }
         if let Some(v) = self.time.as_ref() {
             match v {
@@ -642,6 +648,8 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesPreviewRequest {
         const FIELDS: &[&str] = &[
             "organization_id",
             "organizationId",
+            "run_family_alignment_configs",
+            "runFamilyAlignmentConfigs",
             "run",
             "run_time_range",
             "runTimeRange",
@@ -657,6 +665,7 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesPreviewRequest {
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             OrganizationId,
+            RunFamilyAlignmentConfigs,
             Run,
             RunTimeRange,
             Rules,
@@ -685,6 +694,7 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesPreviewRequest {
                     {
                         match value {
                             "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
+                            "runFamilyAlignmentConfigs" | "run_family_alignment_configs" => Ok(GeneratedField::RunFamilyAlignmentConfigs),
                             "run" => Ok(GeneratedField::Run),
                             "runTimeRange" | "run_time_range" => Ok(GeneratedField::RunTimeRange),
                             "rules" => Ok(GeneratedField::Rules),
@@ -711,6 +721,7 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesPreviewRequest {
                     V: serde::de::MapAccess<'de>,
             {
                 let mut organization_id__ = None;
+                let mut run_family_alignment_configs__ = None;
                 let mut time__ = None;
                 let mut mode__ = None;
                 while let Some(k) = map_.next_key()? {
@@ -720,6 +731,12 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesPreviewRequest {
                                 return Err(serde::de::Error::duplicate_field("organizationId"));
                             }
                             organization_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::RunFamilyAlignmentConfigs => {
+                            if run_family_alignment_configs__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("runFamilyAlignmentConfigs"));
+                            }
+                            run_family_alignment_configs__ = Some(map_.next_value()?);
                         }
                         GeneratedField::Run => {
                             if time__.is_some() {
@@ -767,6 +784,7 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesPreviewRequest {
                 }
                 Ok(EvaluateRulesPreviewRequest {
                     organization_id: organization_id__.unwrap_or_default(),
+                    run_family_alignment_configs: run_family_alignment_configs__.unwrap_or_default(),
                     time: time__,
                     mode: mode__,
                 })
@@ -904,6 +922,9 @@ impl serde::Serialize for EvaluateRulesRequest {
         if self.report_name.is_some() {
             len += 1;
         }
+        if !self.run_family_alignment_configs.is_empty() {
+            len += 1;
+        }
         if self.time.is_some() {
             len += 1;
         }
@@ -919,6 +940,9 @@ impl serde::Serialize for EvaluateRulesRequest {
         }
         if let Some(v) = self.report_name.as_ref() {
             struct_ser.serialize_field("reportName", v)?;
+        }
+        if !self.run_family_alignment_configs.is_empty() {
+            struct_ser.serialize_field("runFamilyAlignmentConfigs", &self.run_family_alignment_configs)?;
         }
         if let Some(v) = self.time.as_ref() {
             match v {
@@ -965,6 +989,8 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesRequest {
             "organizationId",
             "report_name",
             "reportName",
+            "run_family_alignment_configs",
+            "runFamilyAlignmentConfigs",
             "run",
             "assets",
             "run_time_range",
@@ -983,6 +1009,7 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesRequest {
             AnnotationOptions,
             OrganizationId,
             ReportName,
+            RunFamilyAlignmentConfigs,
             Run,
             Assets,
             RunTimeRange,
@@ -1014,6 +1041,7 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesRequest {
                             "annotationOptions" | "annotation_options" => Ok(GeneratedField::AnnotationOptions),
                             "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
                             "reportName" | "report_name" => Ok(GeneratedField::ReportName),
+                            "runFamilyAlignmentConfigs" | "run_family_alignment_configs" => Ok(GeneratedField::RunFamilyAlignmentConfigs),
                             "run" => Ok(GeneratedField::Run),
                             "assets" => Ok(GeneratedField::Assets),
                             "runTimeRange" | "run_time_range" => Ok(GeneratedField::RunTimeRange),
@@ -1043,6 +1071,7 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesRequest {
                 let mut annotation_options__ = None;
                 let mut organization_id__ = None;
                 let mut report_name__ = None;
+                let mut run_family_alignment_configs__ = None;
                 let mut time__ = None;
                 let mut mode__ = None;
                 while let Some(k) = map_.next_key()? {
@@ -1064,6 +1093,12 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesRequest {
                                 return Err(serde::de::Error::duplicate_field("reportName"));
                             }
                             report_name__ = map_.next_value()?;
+                        }
+                        GeneratedField::RunFamilyAlignmentConfigs => {
+                            if run_family_alignment_configs__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("runFamilyAlignmentConfigs"));
+                            }
+                            run_family_alignment_configs__ = Some(map_.next_value()?);
                         }
                         GeneratedField::Run => {
                             if time__.is_some() {
@@ -1119,6 +1154,7 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesRequest {
                     annotation_options: annotation_options__,
                     organization_id: organization_id__.unwrap_or_default(),
                     report_name: report_name__,
+                    run_family_alignment_configs: run_family_alignment_configs__.unwrap_or_default(),
                     time: time__,
                     mode: mode__,
                 })
@@ -1255,6 +1291,146 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesResponse {
             }
         }
         deserializer.deserialize_struct("sift.rule_evaluation.v1.EvaluateRulesResponse", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for RunFamilyAlignmentConfig {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.family_alignment_name.is_empty() {
+            len += 1;
+        }
+        if self.alignment_config.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.rule_evaluation.v1.RunFamilyAlignmentConfig", len)?;
+        if !self.family_alignment_name.is_empty() {
+            struct_ser.serialize_field("familyAlignmentName", &self.family_alignment_name)?;
+        }
+        if let Some(v) = self.alignment_config.as_ref() {
+            match v {
+                run_family_alignment_config::AlignmentConfig::Run(v) => {
+                    struct_ser.serialize_field("run", v)?;
+                }
+                run_family_alignment_config::AlignmentConfig::Annotation(v) => {
+                    struct_ser.serialize_field("annotation", v)?;
+                }
+                run_family_alignment_config::AlignmentConfig::Timestamp(v) => {
+                    struct_ser.serialize_field("timestamp", v)?;
+                }
+            }
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for RunFamilyAlignmentConfig {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "family_alignment_name",
+            "familyAlignmentName",
+            "run",
+            "annotation",
+            "timestamp",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            FamilyAlignmentName,
+            Run,
+            Annotation,
+            Timestamp,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "familyAlignmentName" | "family_alignment_name" => Ok(GeneratedField::FamilyAlignmentName),
+                            "run" => Ok(GeneratedField::Run),
+                            "annotation" => Ok(GeneratedField::Annotation),
+                            "timestamp" => Ok(GeneratedField::Timestamp),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = RunFamilyAlignmentConfig;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.rule_evaluation.v1.RunFamilyAlignmentConfig")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<RunFamilyAlignmentConfig, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut family_alignment_name__ = None;
+                let mut alignment_config__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::FamilyAlignmentName => {
+                            if family_alignment_name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("familyAlignmentName"));
+                            }
+                            family_alignment_name__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Run => {
+                            if alignment_config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("run"));
+                            }
+                            alignment_config__ = map_.next_value::<::std::option::Option<_>>()?.map(run_family_alignment_config::AlignmentConfig::Run)
+;
+                        }
+                        GeneratedField::Annotation => {
+                            if alignment_config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("annotation"));
+                            }
+                            alignment_config__ = map_.next_value::<::std::option::Option<_>>()?.map(run_family_alignment_config::AlignmentConfig::Annotation)
+;
+                        }
+                        GeneratedField::Timestamp => {
+                            if alignment_config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("timestamp"));
+                            }
+                            alignment_config__ = map_.next_value::<::std::option::Option<_>>()?.map(run_family_alignment_config::AlignmentConfig::Timestamp)
+;
+                        }
+                    }
+                }
+                Ok(RunFamilyAlignmentConfig {
+                    family_alignment_name: family_alignment_name__.unwrap_or_default(),
+                    alignment_config: alignment_config__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.rule_evaluation.v1.RunFamilyAlignmentConfig", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for RunTimeRange {

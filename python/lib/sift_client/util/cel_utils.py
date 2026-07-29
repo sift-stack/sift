@@ -10,6 +10,12 @@ from datetime import datetime, timedelta
 from typing import Any
 
 
+def _quote(value: str) -> str:
+    """Quote a string as a CEL single-quoted literal, escaping backslashes and quotes."""
+    escaped = value.replace("\\", "\\\\").replace("'", "\\'")
+    return f"'{escaped}'"
+
+
 def in_(field: str, vals: list[str]) -> str:
     """Generates a CEL expression that checks for `field` membership in `vals`.
 
@@ -23,7 +29,7 @@ def in_(field: str, vals: list[str]) -> str:
     if not vals:
         return ""
 
-    quoted_vals = [f"'{val}'" for val in vals]
+    quoted_vals = [_quote(val) for val in vals]
     return f"{field} in [{','.join(quoted_vals)}]"
 
 
@@ -52,7 +58,7 @@ def equals(key: str, value: Any) -> str:
     if value is None:
         return equals_null(key)
     elif isinstance(value, str):
-        return f"{key} == '{value}'"
+        return f"{key} == {_quote(value)}"
     elif isinstance(value, bool):
         return f"{key} == {str(value).lower()}"
     else:
@@ -166,7 +172,7 @@ def contains(field: str, value: str) -> str:
     Returns:
         A CEL expression string
     """
-    return f"{field}.contains('{value}')"
+    return f"{field}.contains({_quote(value)})"
 
 
 def match(field: str, query: str | re.Pattern) -> str:
@@ -181,9 +187,9 @@ def match(field: str, query: str | re.Pattern) -> str:
     """
     if isinstance(query, re.Pattern):
         query = str(query.pattern)
-    # Double-escape any backslashes that already exist in the regex
-    escaped_regex = query.replace("\\", "\\\\")
-    return f"{field}.matches('{escaped_regex}')"
+    # _quote double-escapes backslashes so the CEL string parser hands the regex
+    # engine the original pattern, and escapes quotes so the literal stays intact.
+    return f"{field}.matches({_quote(query)})"
 
 
 def greater_than(field: str, value: int | float | datetime | timedelta) -> str:

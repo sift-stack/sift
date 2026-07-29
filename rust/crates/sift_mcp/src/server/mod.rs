@@ -37,6 +37,8 @@ pub struct SiftMcpServer {
     pub rule_service: RuleService,
     pub test_report_service: TestReportService,
     pub docs_service: DocsService,
+
+    pub allow_destructive: bool,
 }
 
 #[tool_handler(
@@ -75,7 +77,7 @@ impl ServerHandler for SiftMcpServer {
 }
 
 impl SiftMcpServer {
-    pub fn new(channel: SiftChannel, rest_uri: String) -> Self {
+    pub fn new(channel: SiftChannel, rest_uri: String, allow_destructive: bool) -> Self {
         // Add more routers here as new tool groups are introduced, e.g.
         //   tool_router.merge(Self::ingestion_router())
         let mut tool_router = Self::assets_router();
@@ -122,6 +124,27 @@ impl SiftMcpServer {
             docs_service,
             tool_router,
             prompt_router,
+            allow_destructive,
         }
+    }
+
+    /// Gate for destructive tool handlers. Returns an error the calling agent
+    /// can relay to the user when the server was launched without
+    /// `--allow-destructive`.
+    pub(crate) fn require_destructive(&self) -> Result<(), ErrorData> {
+        if self.allow_destructive {
+            return Ok(());
+        }
+        Err(ErrorData::invalid_request(
+            "This tool is destructive and is disabled. Ask the user to relaunch \
+             the Sift MCP server with the `--allow-destructive` flag (e.g. \
+             `sift-cli mcp --allow-destructive`) and update their MCP client \
+             config accordingly. Do not retry until they confirm the server has \
+             been restarted.",
+            Some(serde_json::json!({
+                "status": "stopped",
+                "reason": "DestructiveToolsDisabled",
+            })),
+        ))
     }
 }

@@ -1,3 +1,4 @@
+use crate::common::v1::FilterFieldType;
 use crate::metadata::v1::{MetadataKey, MetadataKeyType};
 
 pub use crate::metadata::v1::MetadataValue;
@@ -48,6 +49,7 @@ impl<T: Into<MetadataEnumValue>> From<(&str, T)> for MetadataValue {
             r#type: key_type.into(),
             archived_date: None,
             is_archived: false,
+            filter_field_type: FilterFieldType::Unspecified as i32,
         };
 
         MetadataValue {
