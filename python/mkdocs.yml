@@ -1,7 +1,7 @@
 site_name: Sift | Python Client Library
 site_url: https://sift-stack.github.io/sift/python/
 repo_url: https://github.com/sift-stack/sift/tree/main/python
-copyright: "Copyright 2025 Sift Stack, Inc."
+copyright: "Copyright 2026 Sift Stack, Inc."
 theme:
   name: material
   custom_dir: docs/overrides
