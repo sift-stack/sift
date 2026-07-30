@@ -14,7 +14,7 @@ use crate::service::{
     annotations::AnnotationService, assets::AssetService, channels::ChannelService,
     data::DataService, docs::DocsService, ingest::IngestService, ping::PingService,
     reports::ReportService, rules::RuleService, runs::RunService, test_reports::TestReportService,
-    url::UrlService,
+    url::UrlService, users::UserService,
 };
 
 #[derive(Clone)]
@@ -34,6 +34,7 @@ pub struct SiftMcpServer {
     pub rule_service: RuleService,
     pub test_report_service: TestReportService,
     pub docs_service: DocsService,
+    pub user_service: UserService,
 
     pub allow_destructive: bool,
 }
@@ -84,6 +85,7 @@ impl SiftMcpServer {
         tool_router.merge(Self::annotations_router());
         tool_router.merge(Self::test_reports_router());
         tool_router.merge(Self::docs_router());
+        tool_router.merge(Self::users_router());
 
         let prompt_router = Self::prompt_router();
 
@@ -100,7 +102,8 @@ impl SiftMcpServer {
         let report_service = ReportService::new(channel.clone(), retry_policy.clone());
         let rule_service = RuleService::new(channel.clone(), retry_policy.clone());
         let test_report_service = TestReportService::new(channel.clone(), retry_policy.clone());
-        let docs_service = DocsService::new(channel.clone(), retry_policy);
+        let docs_service = DocsService::new(channel.clone(), retry_policy.clone());
+        let user_service = UserService::new(channel.clone(), retry_policy);
 
         Self {
             annotation_service,
@@ -115,6 +118,7 @@ impl SiftMcpServer {
             rule_service,
             test_report_service,
             docs_service,
+            user_service,
             tool_router,
             prompt_router,
             allow_destructive,
