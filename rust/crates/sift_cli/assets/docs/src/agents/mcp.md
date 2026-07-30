@@ -32,25 +32,17 @@ not run interactively.
 
 Tools that modify existing state (`update_asset`, `update_run`, `update_report`,
 `update_annotation`, `update_rule`, `archive_rule`, `unarchive_rule`) are
-disabled by default. For an integration managed by `sift-cli agent`, enable
-them across every detected MCP client together:
+disabled by default. Calling one returns an error telling the agent that the
+server must be relaunched with `--allow-destructive`:
 
 ```sh
-sift-cli agent update --allow-destructive
-```
-
-Then reload or restart each MCP client. A normal `agent update` preserves the
-current access mode. Return all detected clients to safe mode with:
-
-```sh
-sift-cli agent update --read-only
+sift-cli mcp --allow-destructive
 ```
 
 Additive writes (`create_annotation`, `create_report`, `create_rule`,
 `create_test_report`, `append_test_measurements`, `upload_dataset`) remain
-available without the flag. The MCP error and installed skill tell agents to
-ask for explicit approval before enabling destructive access. For an unmanaged
-client, add `--allow-destructive` after `mcp` in its server command manually.
+available without the flag. Update your MCP client config to include the flag
+if you want the agent to be able to modify or archive existing resources.
 
 ## Available tools
 
@@ -95,40 +87,9 @@ The server also ships [built-in prompts](./prompts.md): ready-made workflows
 that chain these tools to explore an asset, analyze a run, or derive and upload
 a new dataset.
 
-## Configuring clients
+## Configuring a client
 
-Configure the MCP sidecar and the matching Sift skill for every detected client
-in one step:
-
-```sh
-sift-cli agent install
-```
-
-This installs read-only registrations by default. To opt in to destructive
-tools during initial setup, use `sift-cli agent install --allow-destructive`.
-To make every detected client use a named Sift profile, include it in the same
-installation:
-
-```sh
-sift-cli agent install --profile mission
-```
-
-An ordinary `agent update` preserves that profile. Use
-`sift-cli agent update --profile <name>` to switch all clients to another named
-profile, or `sift-cli agent update --default-profile` to return all clients to
-the default.
-
-Verify the result without making changes:
-
-```sh
-sift-cli agent doctor
-```
-
-The lifecycle and supported-client matrix are documented under
-[Agent Integration](./skills.md).
-
-For clients not managed by that command, point the MCP client at the CLI
-manually:
+Most MCP clients take a command and arguments. Point yours at the CLI:
 
 ```json
 {
@@ -141,11 +102,11 @@ manually:
 }
 ```
 
-For Claude Code specifically:
+For Claude Code specifically, you can also register it from the terminal:
 
 ```sh
 claude mcp add sift -- sift-cli mcp
 ```
 
-The managed install uses user scope and the exact `sift-cli` executable that ran
-the command, which also makes local debug builds deterministic.
+To give your assistant guidance on *when* to use these tools alongside the CLI,
+REST API, and client libraries, install the [agent skills](./skills.md).

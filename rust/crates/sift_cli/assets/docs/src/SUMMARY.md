@@ -24,7 +24,7 @@
 
 - [MCP Server](./agents/mcp.md)
   - [Built-in Prompts](./agents/prompts.md)
-- [Agent Integration](./agents/skills.md)
+- [Agent Skills](./agents/skills.md)
 
 # Reference
 

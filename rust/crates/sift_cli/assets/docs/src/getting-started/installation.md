@@ -40,8 +40,8 @@ Then build and install the CLI:
 
 ```sh
 git clone https://github.com/sift-stack/sift.git
-cd sift
-cargo install --path rust/crates/sift_cli
+cd sift/rust
+cargo install --path crates/sift_cli
 ```
 
 ### Cargo features
@@ -56,36 +56,10 @@ If you are exploring or contributing to the MCP server, you can opt in by
 building from source with the feature enabled:
 
 ```sh
-cargo install --path rust/crates/sift_cli --features mcp
+cargo install --path crates/sift_cli --features mcp
 ```
 
 This is intended for development and evaluation only.
-
-For a faster local edit/test loop, build from the repository root and invoke
-the workspace binary directly:
-
-```sh
-cargo build -p sift_cli --features mcp
-./target/debug/sift-cli agent doctor
-```
-
-When you intentionally want to exercise installation, run:
-
-```sh
-./target/debug/sift-cli agent install
-```
-
-That command changes your real user-level AI client configuration and points
-each detected MCP client at the exact debug binary above. Subsequent
-`cargo build` calls replace that binary in place. The install disables
-destructive MCP tools by default; pass `--allow-destructive` only when you
-intentionally want to test them. `agent doctor` is read-only.
-Pass `--profile <name>` after `agent install` when the local build should use a
-named Sift profile:
-
-```sh
-./target/debug/sift-cli agent install --profile localdev
-```
 
 ## Verify the install
 

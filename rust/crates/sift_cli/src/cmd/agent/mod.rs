@@ -12,7 +12,7 @@ use std::{
     process::ExitCode,
 };
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
 use semver::Version;
 
 use crate::{
@@ -533,8 +533,58 @@ fn install_environment(
         return Ok(ExitCode::FAILURE);
     }
 
+    let config_snapshots = environment
+        .harnesses
+        .iter()
+        .map(|harness| config::snapshot(*harness, environment))
+        .collect::<Result<Vec<_>>>()?;
+    let mut replacements = Vec::new();
+    let mut installed_configs = 0;
+    let apply_result = (|| -> Result<()> {
+        for target in &targets {
+            replacements.push(skill::begin_install(&target.path)?);
+        }
+        for harness in &environment.harnesses {
+            config::install(*harness, environment, registration)?;
+            installed_configs += 1;
+        }
+        Ok(())
+    })();
+    if let Err(error) = apply_result {
+        let mut rollback_errors = Vec::new();
+        for snapshot in config_snapshots[..installed_configs].iter().rev() {
+            if let Err(rollback_error) = config::restore(snapshot, environment) {
+                rollback_errors.push(rollback_error.to_string());
+            }
+        }
+        for replacement in replacements.into_iter().rev() {
+            if let Err(rollback_error) = replacement.rollback() {
+                rollback_errors.push(rollback_error.to_string());
+            }
+        }
+        if rollback_errors.is_empty() {
+            return Err(error.context("all earlier agent integration changes were rolled back"));
+        }
+        return Err(anyhow!(
+            "{error:#}; rollback also failed: {}",
+            rollback_errors.join("; ")
+        ));
+    }
+
+    let mut cleanup_errors = Vec::new();
+    for replacement in replacements {
+        if let Err(error) = replacement.commit() {
+            cleanup_errors.push(error.to_string());
+        }
+    }
+    if !cleanup_errors.is_empty() {
+        return Err(anyhow!(
+            "installed the agent bundle but failed to remove temporary backups: {}",
+            cleanup_errors.join("; ")
+        ));
+    }
+
     for target in &targets {
-        skill::install(&target.path)?;
         println!(
             "[ok] {verb} {} skill: {}",
             harness_labels(&target.harnesses),
@@ -542,7 +592,6 @@ fn install_environment(
         );
     }
     for harness in &environment.harnesses {
-        config::install(*harness, environment, registration)?;
         println!(
             "[ok] {verb} {} MCP registration ({})",
             harness.label(),

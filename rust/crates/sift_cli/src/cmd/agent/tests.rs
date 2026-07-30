@@ -52,21 +52,21 @@ fn one_shared_skill_covers_agent_skills_clients() {
     assert_eq!(targets[0].harnesses.len(), 3);
     assert_eq!(
         targets[0].path,
-        directory.path().join(".agents/skills/sift/SKILL.md")
+        directory.path().join(".agents/skills/sift")
     );
 }
 
 #[test]
 fn skill_install_is_fresh_and_stateless() {
     let directory = TempDir::new("sift-cli-agent-skill").unwrap();
-    let path = directory.path().join(".agents/skills/sift/SKILL.md");
+    let path = directory.path().join(".agents/skills/sift");
 
     assert_eq!(skill::inspect(&path).unwrap(), skill::State::Missing);
     skill::install(&path).unwrap();
     assert_eq!(skill::inspect(&path).unwrap(), skill::State::Current);
 
     fs::write(
-        &path,
+        path.join("SKILL.md"),
         skill::CONTENT.replace("# Sift toolbox", "# Sift toolbox\n\nOld release."),
     )
     .unwrap();
@@ -79,11 +79,39 @@ fn skill_install_is_fresh_and_stateless() {
 }
 
 #[test]
+fn skill_install_removes_every_stale_managed_file() {
+    let directory = TempDir::new("sift-cli-agent-skill-mirror").unwrap();
+    let path = directory.path().join(".agents/skills/sift");
+    skill::install(&path).unwrap();
+    fs::write(path.join("removed.md"), "stale top-level content").unwrap();
+    fs::create_dir_all(path.join("old/nested")).unwrap();
+    fs::write(path.join("old/nested/removed.md"), "stale nested content").unwrap();
+
+    assert_eq!(
+        skill::inspect(&path).unwrap(),
+        skill::State::ManagedOutdated
+    );
+    skill::install(&path).unwrap();
+
+    assert_eq!(skill::inspect(&path).unwrap(), skill::State::Current);
+    assert!(!path.join("removed.md").exists());
+    assert!(!path.join("old").exists());
+    assert_eq!(
+        fs::read_to_string(path.join("SKILL.md")).unwrap(),
+        skill::CONTENT
+    );
+}
+
+#[test]
 fn unmanaged_skill_is_never_removed() {
     let directory = TempDir::new("sift-cli-agent-skill-conflict").unwrap();
-    let path = directory.path().join(".agents/skills/sift/SKILL.md");
-    fs::create_dir_all(path.parent().unwrap()).unwrap();
-    fs::write(&path, "---\nname: sift\n---\nCustom instructions.\n").unwrap();
+    let path = directory.path().join(".agents/skills/sift");
+    fs::create_dir_all(&path).unwrap();
+    fs::write(
+        path.join("SKILL.md"),
+        "---\nname: sift\n---\nCustom instructions.\n",
+    )
+    .unwrap();
 
     assert_eq!(skill::inspect(&path).unwrap(), skill::State::Conflict);
     assert!(!skill::uninstall(&path).unwrap());
@@ -254,12 +282,7 @@ fn malformed_config_container_is_caught_during_preflight() {
     )
     .unwrap();
 
-    assert!(
-        !directory
-            .path()
-            .join(".agents/skills/sift/SKILL.md")
-            .exists()
-    );
+    assert!(!directory.path().join(".agents/skills/sift").exists());
     assert_eq!(
         fs::read_to_string(config_path).unwrap(),
         r#"{"mcpServers":[]}"#
@@ -272,9 +295,10 @@ fn symlinked_skill_is_never_replaced() {
     use std::os::unix::fs::symlink;
 
     let directory = TempDir::new("sift-cli-agent-symlink").unwrap();
-    let source = directory.path().join("source.md");
-    let path = directory.path().join(".agents/skills/sift/SKILL.md");
-    fs::write(&source, skill::CONTENT).unwrap();
+    let source = directory.path().join("source");
+    let path = directory.path().join(".agents/skills/sift");
+    fs::create_dir_all(&source).unwrap();
+    fs::write(source.join("SKILL.md"), skill::CONTENT).unwrap();
     fs::create_dir_all(path.parent().unwrap()).unwrap();
     symlink(&source, &path).unwrap();
 
@@ -466,12 +490,44 @@ fn install_preflight_keeps_every_target_unchanged_on_conflict() {
     )
     .unwrap();
 
-    assert!(
-        !directory
-            .path()
-            .join(".agents/skills/sift/SKILL.md")
-            .exists()
+    assert!(!directory.path().join(".agents/skills/sift").exists());
+}
+
+#[cfg(unix)]
+#[test]
+fn failed_later_client_install_rolls_back_earlier_clients_and_skills() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let directory = TempDir::new("sift-cli-agent-install-rollback").unwrap();
+    let environment = Environment::for_test(
+        directory.path().to_path_buf(),
+        directory.path().join("bin/sift-cli"),
+        vec![Harness::Cursor, Harness::OpenCode],
     );
+    let cursor_path = directory.path().join(".cursor/mcp.json");
+    fs::create_dir_all(cursor_path.parent().unwrap()).unwrap();
+    let original_cursor = br#"{"mcpServers":{"other":{"command":"other"}}}"#;
+    fs::write(&cursor_path, original_cursor).unwrap();
+
+    let opencode_dir = directory.path().join(".config/opencode");
+    fs::create_dir_all(&opencode_dir).unwrap();
+    fs::set_permissions(&opencode_dir, fs::Permissions::from_mode(0o555)).unwrap();
+
+    let result = super::install_environment(
+        &environment,
+        "Installed",
+        &default_registration(AccessMode::ReadOnly),
+    );
+
+    fs::set_permissions(&opencode_dir, fs::Permissions::from_mode(0o755)).unwrap();
+    let error = result.unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("all earlier agent integration changes were rolled back")
+    );
+    assert_eq!(fs::read(&cursor_path).unwrap(), original_cursor);
+    assert!(!directory.path().join(".agents/skills/sift").exists());
 }
 
 #[test]
@@ -482,7 +538,7 @@ fn uninstall_preflight_keeps_every_target_unchanged_on_conflict() {
         directory.path().join("bin/sift-cli"),
         vec![Harness::Cursor],
     );
-    let skill_path = directory.path().join(".agents/skills/sift/SKILL.md");
+    let skill_path = directory.path().join(".agents/skills/sift");
     skill::install(&skill_path).unwrap();
     let config_path = directory.path().join(".cursor/mcp.json");
     fs::create_dir_all(config_path.parent().unwrap()).unwrap();

@@ -1,6 +1,6 @@
 use std::{
     fs::{self, OpenOptions},
-    io::{ErrorKind, Write},
+    io::Write,
     path::Path,
 };
 
@@ -38,21 +38,14 @@ pub(super) fn write_atomic(path: &Path, contents: &[u8]) -> Result<()> {
     }
 
     if let Err(error) = fs::rename(&temporary, path) {
-        if error.kind() == ErrorKind::AlreadyExists || (cfg!(windows) && path.exists()) {
-            fs::remove_file(path)
-                .with_context(|| format!("failed to replace {}", path.display()))?;
-            fs::rename(&temporary, path)
-                .with_context(|| format!("failed to replace {}", path.display()))?;
-        } else {
-            let _ = fs::remove_file(&temporary);
-            return Err(error).with_context(|| {
-                format!(
-                    "failed to move {} into place at {}",
-                    temporary.display(),
-                    path.display()
-                )
-            });
-        }
+        let _ = fs::remove_file(&temporary);
+        return Err(error).with_context(|| {
+            format!(
+                "failed to move {} into place at {}",
+                temporary.display(),
+                path.display()
+            )
+        });
     }
 
     Ok(())
