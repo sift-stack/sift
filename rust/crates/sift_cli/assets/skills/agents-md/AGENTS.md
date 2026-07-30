@@ -18,8 +18,8 @@ to combine them when working with Sift.
    agents. Exposes structured, authenticated tools:
    - `list_assets`, `list_runs`, `list_channels`, `list_reports`, `list_rules`,
      `list_rule_versions`, `list_annotations`: discover what exists. Pass `limit`
-     (start at 200, max 1000). Omitting it defaults to 200 and values above 1000
-     clamp to 1000, so raise `limit` when a result comes back capped.
+     (start at 50, max 200). Omitting it defaults to 50 and values above 200
+     clamp to 200, so raise `limit` when a result comes back capped.
    - `list_report_rule_summaries`: per-rule pass/fail/open breakdown for a report.
    - `list_users`: resolve a person to a `user_id` by name, email, or id, then
      filter another list on `created_by_user_id` — that is how you answer "runs

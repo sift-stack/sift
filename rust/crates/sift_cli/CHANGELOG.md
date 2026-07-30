@@ -7,6 +7,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- Reduced MCP list defaults from 200 records to 50 and the maximum from 1000 to
+  200 to protect agent context windows.
 - Removed the MCP server, built-in prompt, and agent skill pages from the
   bundled `sift-cli` documentation. The agent-facing tool surface is documented
   in the installed skill instead.
