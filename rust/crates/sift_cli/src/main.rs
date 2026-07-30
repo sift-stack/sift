@@ -84,9 +84,11 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
         },
         #[cfg(feature = "mcp")]
         Cmd::Agent(cmd) => match cmd {
-            AgentCmd::Install(args) => return cmd::agent::install(args),
-            AgentCmd::Update(args) => return run_future(cmd::agent::update(args)),
-            AgentCmd::Doctor => return run_future(cmd::agent::doctor()),
+            AgentCmd::Install(args) => return cmd::agent::install(clargs.profile, args),
+            AgentCmd::Update(args) => {
+                return run_future(cmd::agent::update(clargs.profile, args));
+            }
+            AgentCmd::Doctor => return run_future(cmd::agent::doctor(clargs.profile)),
             AgentCmd::Uninstall => return cmd::agent::uninstall(),
         },
         _ => (),

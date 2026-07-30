@@ -57,3 +57,23 @@ sift-cli --profile mission import csv ./telemetry.csv --asset rover-1
 ```
 
 Omit `--profile` to use the default profile.
+
+## Agent integration profile
+
+Install the Sift MCP integration for every detected AI coding client with the
+same named profile:
+
+```sh
+sift-cli agent install --profile mission
+```
+
+An ordinary `sift-cli agent update` preserves the installed profile. Switch
+every client together with `sift-cli agent update --profile <name>`, or return
+all clients to the default profile with:
+
+```sh
+sift-cli agent update --default-profile
+```
+
+`sift-cli agent doctor` reports the profile in each registration and treats
+mixed profiles as an error.

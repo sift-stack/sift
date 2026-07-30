@@ -106,6 +106,17 @@ sift-cli agent install
 
 This installs read-only registrations by default. To opt in to destructive
 tools during initial setup, use `sift-cli agent install --allow-destructive`.
+To make every detected client use a named Sift profile, include it in the same
+installation:
+
+```sh
+sift-cli agent install --profile mission
+```
+
+An ordinary `agent update` preserves that profile. Use
+`sift-cli agent update --profile <name>` to switch all clients to another named
+profile, or `sift-cli agent update --default-profile` to return all clients to
+the default.
 
 Verify the result without making changes:
 

@@ -80,6 +80,12 @@ each detected MCP client at the exact debug binary above. Subsequent
 `cargo build` calls replace that binary in place. The install disables
 destructive MCP tools by default; pass `--allow-destructive` only when you
 intentionally want to test them. `agent doctor` is read-only.
+Pass `--profile <name>` after `agent install` when the local build should use a
+named Sift profile:
+
+```sh
+./target/debug/sift-cli agent install --profile localdev
+```
 
 ## Verify the install
 

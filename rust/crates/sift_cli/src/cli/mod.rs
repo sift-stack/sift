@@ -33,7 +33,8 @@ pub struct Args {
     #[arg(short = 'V', long)]
     pub version: bool,
 
-    #[arg(long, global = true, hide = true)]
+    /// Use a named profile from the config file
+    #[arg(long, global = true)]
     pub profile: Option<String>,
 
     #[arg(long, global = true, hide = true)]
@@ -103,13 +104,13 @@ pub enum InstallCmd {
 #[cfg(feature = "mcp")]
 #[derive(Subcommand)]
 pub enum AgentCmd {
-    /// Install the current CLI's bundle for every detected client (safe mode by default)
+    /// Install every detected client in safe mode using the default profile unless selected
     Install(AgentInstallArgs),
 
-    /// Refresh every detected client while preserving its access mode
+    /// Refresh every detected client while preserving its profile and access mode
     Update(AgentUpdateArgs),
 
-    /// Check the CLI version, skill files, and MCP registrations
+    /// Check the CLI version, skill files, MCP profiles, and access modes
     Doctor,
 
     /// Remove Sift-owned agent files and registrations
@@ -134,6 +135,10 @@ pub struct AgentUpdateArgs {
     /// Disable destructive tools for every detected MCP client
     #[arg(long, conflicts_with = "allow_destructive")]
     pub read_only: bool,
+
+    /// Switch every detected MCP client back to the default profile
+    #[arg(long, conflicts_with = "profile")]
+    pub default_profile: bool,
 }
 
 #[derive(Subcommand)]

@@ -9,13 +9,13 @@ use std::{
 use anyhow::{Context, Result, anyhow};
 use serde_json::{Map, Value, json};
 
-use super::{AccessMode, Environment, Harness, files};
+use super::{AccessMode, Environment, Harness, Profile, Registration, files};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub(super) enum State {
     Missing,
-    Current(AccessMode),
-    ManagedDrift(AccessMode),
+    Current(Registration),
+    ManagedDrift(Registration),
     Conflict(String),
     Unavailable(String),
 }
@@ -32,12 +32,12 @@ pub(super) fn inspect(harness: Harness, environment: &Environment) -> Result<Sta
 pub(super) fn install(
     harness: Harness,
     environment: &Environment,
-    access: AccessMode,
+    registration: &Registration,
 ) -> Result<()> {
     match harness {
-        Harness::Claude => install_claude(environment, access),
-        Harness::Codex => install_codex(environment, access),
-        Harness::Cursor | Harness::OpenCode => install_json(harness, environment, access),
+        Harness::Claude => install_claude(environment, registration),
+        Harness::Codex => install_codex(environment, registration),
+        Harness::Cursor | Harness::OpenCode => install_json(harness, environment, registration),
     }
 }
 
@@ -160,7 +160,7 @@ fn inspect_codex(environment: &Environment) -> Result<State> {
     Ok(classify_command(command, &args, environment))
 }
 
-fn install_claude(environment: &Environment, access: AccessMode) -> Result<()> {
+fn install_claude(environment: &Environment, registration: &Registration) -> Result<()> {
     let _ = Command::new("claude")
         .args(["mcp", "remove", "sift", "--scope", "user"])
         .output();
@@ -168,15 +168,14 @@ fn install_claude(environment: &Environment, access: AccessMode) -> Result<()> {
     command
         .args(["mcp", "add", "--scope", "user", "sift", "--"])
         .arg(&environment.current_exe)
-        .arg("mcp");
-    append_access_arg(&mut command, access);
+        .args(mcp_args(registration));
     run_checked(
         &mut command,
         "register the Sift MCP server with Claude Code",
     )
 }
 
-fn install_codex(environment: &Environment, access: AccessMode) -> Result<()> {
+fn install_codex(environment: &Environment, registration: &Registration) -> Result<()> {
     let _ = Command::new("codex")
         .args(["mcp", "remove", "sift"])
         .output();
@@ -184,15 +183,20 @@ fn install_codex(environment: &Environment, access: AccessMode) -> Result<()> {
     command
         .args(["mcp", "add", "sift", "--"])
         .arg(&environment.current_exe)
-        .arg("mcp");
-    append_access_arg(&mut command, access);
+        .args(mcp_args(registration));
     run_checked(&mut command, "register the Sift MCP server with Codex")
 }
 
-fn append_access_arg(command: &mut Command, access: AccessMode) {
-    if access == AccessMode::Destructive {
-        command.arg("--allow-destructive");
+fn mcp_args(registration: &Registration) -> Vec<String> {
+    let mut args = vec!["mcp".to_string()];
+    if let Profile::Named(profile) = &registration.profile {
+        args.push("--profile".to_string());
+        args.push(profile.clone());
     }
+    if registration.access == AccessMode::Destructive {
+        args.push("--allow-destructive".to_string());
+    }
+    args
 }
 
 fn inspect_json(harness: Harness, environment: &Environment) -> Result<State> {
@@ -228,15 +232,16 @@ fn inspect_json(harness: Harness, environment: &Environment) -> Result<State> {
     Ok(classify_json_entry(harness, entry, environment))
 }
 
-fn install_json(harness: Harness, environment: &Environment, access: AccessMode) -> Result<()> {
+fn install_json(
+    harness: Harness,
+    environment: &Environment,
+    registration: &Registration,
+) -> Result<()> {
     let path = json_path(harness, environment);
     let mut root = load_json(&path)?.unwrap_or_default();
     let container_key = container_key(harness);
     let servers = object_entry(&mut root, container_key)?;
-    let mut args = vec!["mcp"];
-    if access == AccessMode::Destructive {
-        args.push("--allow-destructive");
-    }
+    let args = mcp_args(registration);
     servers.insert(
         "sift".to_string(),
         match harness {
@@ -247,7 +252,7 @@ fn install_json(harness: Harness, environment: &Environment, access: AccessMode)
             Harness::OpenCode => json!({
                 "type": "local",
                 "command": std::iter::once(environment.current_exe.to_string_lossy().to_string())
-                    .chain(args.iter().map(ToString::to_string))
+                    .chain(args.iter().cloned())
                     .collect::<Vec<_>>(),
                 "enabled": true
             }),
@@ -333,24 +338,53 @@ fn classify_json_entry(harness: Harness, entry: &Value, environment: &Environmen
 fn classify_command(command: &str, args: &[String], environment: &Environment) -> State {
     let current = environment.current_exe.to_string_lossy();
     let current_command = command == "sift-cli" || command == current;
-    if current_command && args == ["mcp"] {
-        return State::Current(AccessMode::ReadOnly);
+    let registration = registration_from_args(args);
+    if current_command && args == mcp_args(&registration) {
+        return State::Current(registration);
     }
-    if current_command && args == ["mcp", "--allow-destructive"] {
-        return State::Current(AccessMode::Destructive);
-    }
-    if is_sift_cli(command) && args.iter().any(|arg| arg == "mcp") {
-        let access = if args.iter().any(|arg| arg == "--allow-destructive") {
-            AccessMode::Destructive
-        } else {
-            AccessMode::ReadOnly
-        };
-        return State::ManagedDrift(access);
+    if is_sift_cli(command) && has_mcp_command(args) {
+        return State::ManagedDrift(registration);
     }
     State::Conflict(format!(
         "the existing `sift` MCP entry runs a custom command: `{command} {}`",
         args.join(" ")
     ))
+}
+
+fn registration_from_args(args: &[String]) -> Registration {
+    let access = if args.iter().any(|arg| arg == "--allow-destructive") {
+        AccessMode::Destructive
+    } else {
+        AccessMode::ReadOnly
+    };
+    let profile = args
+        .iter()
+        .enumerate()
+        .find_map(|(index, arg)| {
+            if arg == "--profile" {
+                args.get(index + 1).cloned()
+            } else {
+                arg.strip_prefix("--profile=").map(str::to_string)
+            }
+        })
+        .map_or(Profile::Default, Profile::Named);
+    Registration::new(access, profile)
+}
+
+fn has_mcp_command(args: &[String]) -> bool {
+    let mut skip_profile_value = false;
+    for arg in args {
+        if skip_profile_value {
+            skip_profile_value = false;
+            continue;
+        }
+        if arg == "--profile" {
+            skip_profile_value = true;
+        } else if arg == "mcp" {
+            return true;
+        }
+    }
+    false
 }
 
 fn is_sift_cli(command: &str) -> bool {

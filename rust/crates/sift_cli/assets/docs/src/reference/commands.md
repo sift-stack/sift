@@ -59,15 +59,18 @@ with `--features mcp`.
 Manage the release-matched skill and MCP sidecar for all detected AI coding
 clients. This command is available in builds made with `--features mcp`.
 
-| Command                              | Description                                                               |
-| ------------------------------------ | ------------------------------------------------------------------------- |
-| `agent install`                      | Install the bundle for every detected client in read-only mode.           |
-| `agent install --allow-destructive`  | Install the bundle and enable destructive tools for every detected client. |
-| `agent update`                       | Check CLI freshness, refresh all clients, and preserve their access mode. |
-| `agent update --allow-destructive`   | Refresh all clients with destructive tools enabled.                       |
-| `agent update --read-only`           | Refresh all clients with destructive tools disabled.                      |
-| `agent doctor`                       | Diagnose CLI, skill, MCP config, and access mode without changing them.   |
-| `agent uninstall`                    | Remove only Sift-managed artifacts from every detected client.            |
+| Command                              | Description                                                                 |
+| ------------------------------------ | --------------------------------------------------------------------------- |
+| `agent install`                      | Install every client in read-only mode using the default profile.           |
+| `agent install --profile <name>`     | Install every client using one named profile.                               |
+| `agent install --allow-destructive`  | Install every client with destructive tools enabled.                        |
+| `agent update`                       | Check CLI freshness and preserve the installed profile and access mode.     |
+| `agent update --profile <name>`      | Refresh every client and switch them to one named profile.                  |
+| `agent update --default-profile`     | Refresh every client and return them to the default profile.                |
+| `agent update --allow-destructive`   | Refresh every client with destructive tools enabled.                        |
+| `agent update --read-only`           | Refresh every client with destructive tools disabled.                       |
+| `agent doctor`                       | Diagnose CLI, skill, MCP registration, profile, and access without changes. |
+| `agent uninstall`                    | Remove only Sift-managed artifacts from every detected client.              |
 
 ## `ping`
 

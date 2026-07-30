@@ -14,3 +14,7 @@ Install defaults to read-only MCP registrations. Use
 preserve the current mode, while `agent update --allow-destructive` and
 `agent update --read-only` switch every detected client together. OpenCode
 consumes the shared Agent Skills directory plus a user-level local MCP entry.
+Install uses the default Sift profile unless `--profile <name>` is provided.
+Ordinary updates preserve the installed profile. Use
+`agent update --profile <name>` or `agent update --default-profile` to switch
+every detected client together without a separate state file.

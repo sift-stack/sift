@@ -35,6 +35,44 @@ impl AccessMode {
     }
 }
 
+#[derive(Debug, Clone, Eq, Hash, PartialEq)]
+pub(super) enum Profile {
+    Default,
+    Named(String),
+}
+
+impl Profile {
+    fn from_option(profile: Option<String>) -> Self {
+        match profile {
+            Some(profile) => Self::Named(profile),
+            None => Self::Default,
+        }
+    }
+
+    fn label(&self) -> String {
+        match self {
+            Self::Default => "default profile".to_string(),
+            Self::Named(profile) => format!("profile '{profile}'"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub(super) struct Registration {
+    access: AccessMode,
+    profile: Profile,
+}
+
+impl Registration {
+    fn new(access: AccessMode, profile: Profile) -> Self {
+        Self { access, profile }
+    }
+
+    fn label(&self) -> String {
+        format!("{}, {}", self.access.label(), self.profile.label())
+    }
+}
+
 #[derive(Debug, Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub(super) enum Harness {
     Claude,
@@ -132,16 +170,17 @@ impl Environment {
     }
 }
 
-pub fn install(args: AgentInstallArgs) -> Result<ExitCode> {
+pub fn install(profile: Option<String>, args: AgentInstallArgs) -> Result<ExitCode> {
     let access = if args.allow_destructive {
         AccessMode::Destructive
     } else {
         AccessMode::ReadOnly
     };
-    install_environment(&Environment::discover()?, "Installed", access)
+    let registration = Registration::new(access, Profile::from_option(profile));
+    install_environment(&Environment::discover()?, "Installed", &registration)
 }
 
-pub async fn update(args: AgentUpdateArgs) -> Result<ExitCode> {
+pub async fn update(profile: Option<String>, args: AgentUpdateArgs) -> Result<ExitCode> {
     let current = Version::parse(env!("CARGO_PKG_VERSION"))?;
     match version::fetch_latest().await {
         Ok(Some(latest)) if latest > current => {
@@ -161,30 +200,49 @@ pub async fn update(args: AgentUpdateArgs) -> Result<ExitCode> {
     }
 
     let environment = Environment::discover()?;
-    let access = if args.allow_destructive {
-        AccessMode::Destructive
+    let inference = infer_registration(&environment)?;
+    let requested_access = if args.allow_destructive {
+        Some(AccessMode::Destructive)
     } else if args.read_only {
-        AccessMode::ReadOnly
+        Some(AccessMode::ReadOnly)
     } else {
-        match infer_access_mode(&environment)? {
-            AccessInference::Resolved(access) => access,
-            AccessInference::Mixed => {
-                println!(
-                    "No changes were made because detected MCP clients use mixed access modes."
-                );
-                println!(
-                    "Choose one explicitly with `sift-cli agent update --allow-destructive` or \
-                     `sift-cli agent update --read-only`."
-                );
-                return Ok(ExitCode::FAILURE);
-            }
-        }
+        None
+    };
+    let requested_profile = if args.default_profile {
+        Some(Profile::Default)
+    } else {
+        profile.map(Profile::Named)
     };
 
-    install_environment(&environment, "Updated", access)
+    let unresolved_access =
+        requested_access.is_none() && matches!(&inference.access, AccessInference::Mixed);
+    let unresolved_profile =
+        requested_profile.is_none() && matches!(&inference.profile, ProfileInference::Mixed);
+    if unresolved_access || unresolved_profile {
+        println!("No changes were made because detected MCP clients are not configured uniformly.");
+        if unresolved_access {
+            println!("- Access modes are mixed. Choose `--allow-destructive` or `--read-only`.");
+        }
+        if unresolved_profile {
+            println!("- Profiles are mixed. Choose `--profile <name>` or `--default-profile`.");
+        }
+        return Ok(ExitCode::FAILURE);
+    }
+
+    let access = requested_access.unwrap_or_else(|| match inference.access {
+        AccessInference::Resolved(access) => access,
+        AccessInference::Mixed => unreachable!("mixed access was handled above"),
+    });
+    let profile = requested_profile.unwrap_or_else(|| match inference.profile {
+        ProfileInference::Resolved(profile) => profile,
+        ProfileInference::Mixed => unreachable!("mixed profiles were handled above"),
+    });
+    let registration = Registration::new(access, profile);
+
+    install_environment(&environment, "Updated", &registration)
 }
 
-pub async fn doctor() -> Result<ExitCode> {
+pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
     let environment = Environment::discover()?;
     println!("Sift agent bundle {}", env!("CARGO_PKG_VERSION"));
 
@@ -236,28 +294,28 @@ pub async fn doctor() -> Result<ExitCode> {
         }
     }
 
-    let mut access_modes = Vec::new();
+    let mut registrations = Vec::new();
     for harness in &environment.harnesses {
         match config::inspect(*harness, &environment)? {
-            config::State::Current(access) => {
+            config::State::Current(registration) => {
                 println!(
                     "[ok] {} MCP registration ({})",
                     harness.label(),
-                    access.label()
+                    registration.label()
                 );
-                access_modes.push(access);
+                registrations.push(registration);
             }
             config::State::Missing => {
                 println!("[error] {} MCP registration is missing", harness.label());
                 unhealthy = true;
             }
-            config::State::ManagedDrift(access) => {
+            config::State::ManagedDrift(registration) => {
                 println!(
                     "[error] {} MCP registration differs from the current bundle ({})",
                     harness.label(),
-                    access.label()
+                    registration.label()
                 );
-                access_modes.push(access);
+                registrations.push(registration);
                 unhealthy = true;
             }
             config::State::Conflict(detail) => {
@@ -272,32 +330,81 @@ pub async fn doctor() -> Result<ExitCode> {
             }
         }
     }
+    let access_modes = registrations
+        .iter()
+        .map(|registration| registration.access)
+        .collect::<Vec<_>>();
+    let profiles = registrations
+        .iter()
+        .map(|registration| registration.profile.clone())
+        .collect::<Vec<_>>();
     let mixed_access = has_mixed_access_modes(&access_modes);
     if mixed_access {
         println!("[error] Detected MCP clients use mixed access modes.");
         unhealthy = true;
     }
+    let mixed_profiles = has_mixed_profiles(&profiles);
+    if mixed_profiles {
+        println!("[error] Detected MCP clients use mixed profiles.");
+        unhealthy = true;
+    }
+    let expected_profile = expected_profile.map(Profile::Named);
+    let unexpected_profile = expected_profile.as_ref().is_some_and(|expected| {
+        profiles.len() != environment.harnesses.len()
+            || profiles.iter().any(|installed| installed != expected)
+    });
+    if unexpected_profile {
+        println!(
+            "[error] Detected MCP clients do not all use the requested {}.",
+            expected_profile.as_ref().expect("checked above").label()
+        );
+        unhealthy = true;
+    }
 
     if unhealthy {
         if blocked {
-            if mixed_access {
-                println!(
-                    "Resolve the reported conflicts, then choose \
-                     `sift-cli agent update --allow-destructive` or \
-                     `sift-cli agent update --read-only` to repair all integrations together."
-                );
-            } else {
-                println!(
-                    "Resolve the reported conflicts, then run `sift-cli agent update` to repair \
-                     all detected integrations together."
-                );
-            }
-        } else if mixed_access {
+            println!(
+                "Resolve the reported conflicts before repairing all detected integrations \
+                 together."
+            );
+        }
+        if mixed_access {
             println!(
                 "Choose one explicitly with `sift-cli agent update --allow-destructive` or \
                  `sift-cli agent update --read-only`."
             );
-        } else {
+        }
+        if mixed_profiles {
+            match expected_profile.as_ref() {
+                Some(Profile::Named(profile)) => {
+                    println!(
+                        "Run `sift-cli agent update --profile {profile}` to switch every detected \
+                         integration."
+                    );
+                }
+                _ => {
+                    println!(
+                        "Choose one explicitly with `sift-cli agent update --profile <name>` or \
+                         `sift-cli agent update --default-profile`."
+                    );
+                }
+            }
+        }
+        if unexpected_profile && !mixed_profiles {
+            println!(
+                "Run `sift-cli agent update --profile {}` to switch every detected integration.",
+                match expected_profile.as_ref().expect("checked above") {
+                    Profile::Named(profile) => profile,
+                    Profile::Default => unreachable!("doctor only accepts named profiles"),
+                }
+            );
+        }
+        if blocked && !mixed_access && !mixed_profiles && !unexpected_profile {
+            println!(
+                "Then run `sift-cli agent update` to repair all detected integrations together."
+            );
+        }
+        if !blocked && !mixed_access && !mixed_profiles && !unexpected_profile {
             println!("Run `sift-cli agent update` to repair the detected integrations.");
         }
         Ok(ExitCode::FAILURE)
@@ -387,7 +494,7 @@ fn uninstall_environment(environment: &Environment) -> Result<ExitCode> {
 fn install_environment(
     environment: &Environment,
     verb: &str,
-    access: AccessMode,
+    registration: &Registration,
 ) -> Result<ExitCode> {
     if environment.harnesses.is_empty() {
         println!(
@@ -435,18 +542,18 @@ fn install_environment(
         );
     }
     for harness in &environment.harnesses {
-        config::install(*harness, environment, access)?;
+        config::install(*harness, environment, registration)?;
         println!(
             "[ok] {verb} {} MCP registration ({})",
             harness.label(),
-            access.label()
+            registration.label()
         );
     }
 
     println!(
         "{verb} the Sift agent bundle for: {} ({}).",
         harness_labels(&environment.harnesses),
-        access.label()
+        registration.label()
     );
     Ok(ExitCode::SUCCESS)
 }
@@ -457,17 +564,39 @@ enum AccessInference {
     Mixed,
 }
 
-fn infer_access_mode(environment: &Environment) -> Result<AccessInference> {
-    let mut access_modes = Vec::new();
+#[derive(Debug, Eq, PartialEq)]
+enum ProfileInference {
+    Resolved(Profile),
+    Mixed,
+}
+
+struct RegistrationInference {
+    access: AccessInference,
+    profile: ProfileInference,
+}
+
+fn infer_registration(environment: &Environment) -> Result<RegistrationInference> {
+    let mut registrations = Vec::new();
     for harness in &environment.harnesses {
         match config::inspect(*harness, environment)? {
-            config::State::Current(access) | config::State::ManagedDrift(access) => {
-                access_modes.push(access);
+            config::State::Current(registration) | config::State::ManagedDrift(registration) => {
+                registrations.push(registration);
             }
             _ => {}
         }
     }
-    Ok(infer_access_modes(&access_modes))
+    let access_modes = registrations
+        .iter()
+        .map(|registration| registration.access)
+        .collect::<Vec<_>>();
+    let profiles = registrations
+        .into_iter()
+        .map(|registration| registration.profile)
+        .collect::<Vec<_>>();
+    Ok(RegistrationInference {
+        access: infer_access_modes(&access_modes),
+        profile: infer_profiles(&profiles),
+    })
 }
 
 fn infer_access_modes(access_modes: &[AccessMode]) -> AccessInference {
@@ -487,6 +616,20 @@ fn has_mixed_access_modes(access_modes: &[AccessMode]) -> bool {
     access_modes
         .first()
         .is_some_and(|first| access_modes.iter().any(|access| access != first))
+}
+
+fn infer_profiles(profiles: &[Profile]) -> ProfileInference {
+    if has_mixed_profiles(profiles) {
+        ProfileInference::Mixed
+    } else {
+        ProfileInference::Resolved(profiles.first().cloned().unwrap_or(Profile::Default))
+    }
+}
+
+fn has_mixed_profiles(profiles: &[Profile]) -> bool {
+    profiles
+        .first()
+        .is_some_and(|first| profiles.iter().any(|profile| profile != first))
 }
 
 async fn check_release() -> bool {

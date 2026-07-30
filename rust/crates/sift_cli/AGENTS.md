@@ -36,11 +36,14 @@ Uninstall removes only content identifiable as Sift-managed. Do not add a state
 file or per-client version tracking.
 
 Install defaults every MCP registration to read-only. Install accepts
-`--allow-destructive` as an explicit opt-in. An ordinary update preserves the
-single access mode discovered from the managed client configs; update accepts
-`--allow-destructive` or `--read-only` to switch every detected client
-together. Doctor reports the access mode, and mixed modes are an error rather
-than something the CLI silently resolves.
+`--allow-destructive` as an explicit opt-in. Install uses the default Sift
+profile unless `--profile <name>` selects a named profile. An ordinary update
+preserves the single access mode and profile discovered from the managed client
+configs. Update accepts `--allow-destructive` or `--read-only` to switch access,
+`--profile <name>` to switch to a named profile, and `--default-profile` to
+switch back to the default; each change applies to every detected client.
+Doctor reports both settings. Mixed modes or profiles are errors rather than
+values the CLI silently resolves.
 
 The `agent` command and `mcp` sidecar remain behind the `mcp` Cargo feature until
 the open-beta release explicitly changes that policy.

@@ -36,14 +36,15 @@ sift-cli agent uninstall
 
 - `install` writes the current CLI's embedded bundle to every detected client.
   MCP registrations are read-only by default; pass `--allow-destructive` to
-  opt every detected MCP client in during initial setup.
+  opt every detected MCP client in during initial setup. It uses the default
+  Sift profile unless `--profile <name>` selects a named profile.
 - `update` first checks for a newer stable `sift-cli` release. If the CLI is
   outdated, it prints the exact version-pinned curl or PowerShell installer and
   asks you to rerun the command. Otherwise it refreshes every detected client
-  and preserves the current access mode.
+  and preserves the current access mode and profile.
 - `doctor` checks the CLI release, installed skill contents, and MCP
-  registrations, including their read-only or destructive access mode. It
-  prints the same version-pinned installer when the CLI is outdated.
+  registrations, including their profile and read-only or destructive access
+  mode. It prints the same version-pinned installer when the CLI is outdated.
 - `uninstall` removes Sift-managed skill files and MCP registrations from every
   detected client.
 
@@ -59,6 +60,18 @@ that modify or archive existing Sift resources. Reload or restart the clients
 after changing access. If clients have mixed modes, ordinary `update` and
 `doctor` report the inconsistency and ask you to choose one of these commands
 instead of silently choosing a mode.
+
+Switch profiles for all detected MCP clients in lockstep:
+
+```sh
+sift-cli agent update --profile mission
+sift-cli agent update --default-profile
+```
+
+The first command selects a named profile. The second removes `--profile` from
+every registration so the CLI's default profile is used. An ordinary update
+preserves the uniformly installed profile. If clients have mixed profiles,
+`update` and `doctor` require one of these explicit choices.
 
 These commands do not maintain a Sift state file. Status comes from the actual
 skill contents and deterministic MCP config keys. Install and update preflight
