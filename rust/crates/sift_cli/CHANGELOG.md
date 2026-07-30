@@ -5,6 +5,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### What's New
+
+- Removed the MCP server, built-in prompt, and agent skill pages from the
+  bundled `sift-cli` documentation. The agent-facing tool surface is documented
+  in the installed skill instead.
+
 ## [v0.3.0] - July 13, 2026
 
 ### What's New
