@@ -4,7 +4,10 @@ use clap::Parser;
 use serde_json::Value;
 use tempdir::TempDir;
 
-use super::{AccessInference, AccessMode, Environment, Harness, config, skill};
+use super::{
+    AccessInference, AccessMode, Environment, Harness, Profile, ProfileInference, Registration,
+    config, skill,
+};
 
 fn environment(harnesses: Vec<Harness>) -> (TempDir, Environment) {
     let directory = TempDir::new("sift-cli-agent-tests").unwrap();
@@ -13,6 +16,14 @@ fn environment(harnesses: Vec<Harness>) -> (TempDir, Environment) {
         directory,
         Environment::for_test(PathBuf::new(), current_exe, harnesses),
     )
+}
+
+fn default_registration(access: AccessMode) -> Registration {
+    Registration::new(access, Profile::Default)
+}
+
+fn named_registration(access: AccessMode, profile: &str) -> Registration {
+    Registration::new(access, Profile::Named(profile.to_string()))
 }
 
 #[test]
@@ -141,7 +152,12 @@ fn cursor_config_merge_preserves_other_servers() {
     )
     .unwrap();
 
-    config::install(Harness::Cursor, &environment, AccessMode::ReadOnly).unwrap();
+    config::install(
+        Harness::Cursor,
+        &environment,
+        &default_registration(AccessMode::ReadOnly),
+    )
+    .unwrap();
 
     let value: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
     assert_eq!(value["setting"], true);
@@ -152,7 +168,7 @@ fn cursor_config_merge_preserves_other_servers() {
     );
     assert_eq!(
         config::inspect(Harness::Cursor, &environment).unwrap(),
-        config::State::Current(AccessMode::ReadOnly)
+        config::State::Current(default_registration(AccessMode::ReadOnly))
     );
 }
 
@@ -166,7 +182,12 @@ fn opencode_config_uses_local_command_array() {
         vec![Harness::OpenCode],
     );
 
-    config::install(Harness::OpenCode, &environment, AccessMode::ReadOnly).unwrap();
+    config::install(
+        Harness::OpenCode,
+        &environment,
+        &default_registration(AccessMode::ReadOnly),
+    )
+    .unwrap();
 
     let path = directory.path().join(".config/opencode/opencode.json");
     let value: Value = serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
@@ -177,6 +198,64 @@ fn opencode_config_uses_local_command_array() {
         current_exe.to_string_lossy().as_ref()
     );
     assert_eq!(value["mcp"]["sift"]["command"][1], "mcp");
+}
+
+#[test]
+fn named_profile_is_installed_for_every_json_backed_client() {
+    let directory = TempDir::new("sift-cli-agent-profile-install").unwrap();
+    let current_exe = directory.path().join("bin/sift-cli");
+    let environment = Environment::for_test(
+        directory.path().to_path_buf(),
+        current_exe,
+        vec![Harness::Cursor, Harness::OpenCode],
+    );
+    let registration = named_registration(AccessMode::ReadOnly, "localdev");
+
+    config::install(Harness::Cursor, &environment, &registration).unwrap();
+    config::install(Harness::OpenCode, &environment, &registration).unwrap();
+
+    let cursor: Value =
+        serde_json::from_slice(&fs::read(directory.path().join(".cursor/mcp.json")).unwrap())
+            .unwrap();
+    assert_eq!(
+        cursor["mcpServers"]["sift"]["args"],
+        serde_json::json!(["mcp", "--profile", "localdev"])
+    );
+
+    let opencode: Value = serde_json::from_slice(
+        &fs::read(directory.path().join(".config/opencode/opencode.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        opencode["mcp"]["sift"]["command"],
+        serde_json::json!([
+            directory
+                .path()
+                .join("bin/sift-cli")
+                .to_string_lossy()
+                .as_ref(),
+            "mcp",
+            "--profile",
+            "localdev"
+        ])
+    );
+    assert_eq!(
+        config::inspect(Harness::Cursor, &environment).unwrap(),
+        config::State::Current(registration.clone())
+    );
+    assert_eq!(
+        config::inspect(Harness::OpenCode, &environment).unwrap(),
+        config::State::Current(registration)
+    );
+}
+
+#[test]
+fn profile_global_flag_is_accepted_after_agent_install() {
+    let args =
+        crate::cli::Args::try_parse_from(["sift-cli", "agent", "install", "--profile", "localdev"])
+            .unwrap();
+
+    assert_eq!(args.profile.as_deref(), Some("localdev"));
 }
 
 #[test]
@@ -213,7 +292,12 @@ fn malformed_config_container_is_caught_during_preflight() {
     fs::create_dir_all(config_path.parent().unwrap()).unwrap();
     fs::write(&config_path, r#"{"mcpServers":[]}"#).unwrap();
 
-    super::install_environment(&environment, "Installed", AccessMode::ReadOnly).unwrap();
+    super::install_environment(
+        &environment,
+        "Installed",
+        &default_registration(AccessMode::ReadOnly),
+    )
+    .unwrap();
 
     assert!(!directory.path().join(".agents/skills/sift").exists());
     assert_eq!(
@@ -258,7 +342,7 @@ fn destructive_access_is_a_current_managed_registration() {
 
     assert_eq!(
         config::inspect(Harness::Cursor, &environment).unwrap(),
-        config::State::Current(AccessMode::Destructive)
+        config::State::Current(default_registration(AccessMode::Destructive))
     );
 }
 
@@ -272,16 +356,17 @@ fn destructive_install_updates_every_json_backed_client() {
         vec![Harness::Cursor, Harness::OpenCode],
     );
 
-    config::install(Harness::Cursor, &environment, AccessMode::Destructive).unwrap();
-    config::install(Harness::OpenCode, &environment, AccessMode::Destructive).unwrap();
+    let registration = default_registration(AccessMode::Destructive);
+    config::install(Harness::Cursor, &environment, &registration).unwrap();
+    config::install(Harness::OpenCode, &environment, &registration).unwrap();
 
     assert_eq!(
         config::inspect(Harness::Cursor, &environment).unwrap(),
-        config::State::Current(AccessMode::Destructive)
+        config::State::Current(registration.clone())
     );
     assert_eq!(
         config::inspect(Harness::OpenCode, &environment).unwrap(),
-        config::State::Current(AccessMode::Destructive)
+        config::State::Current(registration)
     );
 }
 
@@ -302,6 +387,25 @@ fn update_access_inference_preserves_one_mode_and_rejects_mixed_modes() {
 }
 
 #[test]
+fn update_profile_inference_preserves_one_profile_and_rejects_mixed_profiles() {
+    assert_eq!(
+        super::infer_profiles(&[]),
+        ProfileInference::Resolved(Profile::Default)
+    );
+    assert_eq!(
+        super::infer_profiles(&[
+            Profile::Named("localdev".to_string()),
+            Profile::Named("localdev".to_string()),
+        ]),
+        ProfileInference::Resolved(Profile::Named("localdev".to_string()))
+    );
+    assert_eq!(
+        super::infer_profiles(&[Profile::Default, Profile::Named("localdev".to_string()),]),
+        ProfileInference::Mixed
+    );
+}
+
+#[test]
 fn update_access_flags_are_mutually_exclusive() {
     assert!(
         crate::cli::Args::try_parse_from([
@@ -310,6 +414,21 @@ fn update_access_flags_are_mutually_exclusive() {
             "update",
             "--allow-destructive",
             "--read-only",
+        ])
+        .is_err()
+    );
+}
+
+#[test]
+fn update_named_and_default_profile_flags_are_mutually_exclusive() {
+    assert!(
+        crate::cli::Args::try_parse_from([
+            "sift-cli",
+            "agent",
+            "update",
+            "--profile",
+            "localdev",
+            "--default-profile",
         ])
         .is_err()
     );
@@ -354,7 +473,12 @@ fn install_preflight_keeps_every_target_unchanged_on_conflict() {
     )
     .unwrap();
 
-    super::install_environment(&environment, "Installed", AccessMode::ReadOnly).unwrap();
+    super::install_environment(
+        &environment,
+        "Installed",
+        &default_registration(AccessMode::ReadOnly),
+    )
+    .unwrap();
 
     assert!(!directory.path().join(".agents/skills/sift").exists());
 }
@@ -379,7 +503,11 @@ fn failed_later_client_install_rolls_back_earlier_clients_and_skills() {
     fs::create_dir_all(&opencode_dir).unwrap();
     fs::set_permissions(&opencode_dir, fs::Permissions::from_mode(0o555)).unwrap();
 
-    let result = super::install_environment(&environment, "Installed", AccessMode::ReadOnly);
+    let result = super::install_environment(
+        &environment,
+        "Installed",
+        &default_registration(AccessMode::ReadOnly),
+    );
 
     fs::set_permissions(&opencode_dir, fs::Permissions::from_mode(0o755)).unwrap();
     let error = result.unwrap_err();

@@ -9,7 +9,7 @@ use std::{
 use anyhow::{Context, Result, anyhow};
 use serde_json::{Map, Value, json};
 
-use super::{AccessMode, Environment, Harness, files};
+use super::{AccessMode, Environment, Harness, Profile, Registration, files};
 
 #[derive(Debug)]
 struct CommandOutput {
@@ -67,8 +67,8 @@ enum SnapshotContents {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub(super) enum State {
     Missing,
-    Current(AccessMode),
-    ManagedDrift(AccessMode),
+    Current(Registration),
+    ManagedDrift(Registration),
     Conflict(String),
     Unavailable(String),
 }
@@ -160,20 +160,22 @@ fn inspect_with(harness: Harness, environment: &Environment, runner: &dyn Runner
 pub(super) fn install(
     harness: Harness,
     environment: &Environment,
-    access: AccessMode,
+    registration: &Registration,
 ) -> Result<()> {
-    install_with(harness, environment, access, &SystemRunner)
+    install_with(harness, environment, registration, &SystemRunner)
 }
 
 fn install_with(
     harness: Harness,
     environment: &Environment,
-    access: AccessMode,
+    registration: &Registration,
     runner: &dyn Runner,
 ) -> Result<()> {
     match harness {
-        Harness::Claude | Harness::Codex => install_native(harness, environment, access, runner),
-        Harness::Cursor | Harness::OpenCode => install_json(harness, environment, access),
+        Harness::Claude | Harness::Codex => {
+            install_native(harness, environment, registration, runner)
+        }
+        Harness::Cursor | Harness::OpenCode => install_json(harness, environment, registration),
     }
 }
 
@@ -336,7 +338,7 @@ fn inspect_codex(environment: &Environment, runner: &dyn Runner) -> Result<Nativ
 fn install_native(
     harness: Harness,
     environment: &Environment,
-    access: AccessMode,
+    registration: &Registration,
     runner: &dyn Runner,
 ) -> Result<()> {
     let inspection = inspect_native(harness, environment, runner)?;
@@ -352,7 +354,7 @@ fn install_native(
     };
     let desired = NativeEntry {
         command: environment.current_exe.to_string_lossy().to_string(),
-        args: mcp_args(access),
+        args: mcp_args(registration),
     };
 
     if previous.is_some() {
@@ -410,9 +412,13 @@ fn restore_native(
     Ok(())
 }
 
-fn mcp_args(access: AccessMode) -> Vec<String> {
+fn mcp_args(registration: &Registration) -> Vec<String> {
     let mut args = vec!["mcp".to_string()];
-    if access == AccessMode::Destructive {
+    if let Profile::Named(profile) = &registration.profile {
+        args.push("--profile".to_string());
+        args.push(profile.clone());
+    }
+    if registration.access == AccessMode::Destructive {
         args.push("--allow-destructive".to_string());
     }
     args
@@ -451,12 +457,16 @@ fn inspect_json(harness: Harness, environment: &Environment) -> Result<State> {
     Ok(classify_json_entry(harness, entry, environment))
 }
 
-fn install_json(harness: Harness, environment: &Environment, access: AccessMode) -> Result<()> {
+fn install_json(
+    harness: Harness,
+    environment: &Environment,
+    registration: &Registration,
+) -> Result<()> {
     let path = json_path(harness, environment);
     let mut root = load_json(&path)?.unwrap_or_default();
     let container_key = container_key(harness);
     let servers = object_entry(&mut root, container_key)?;
-    let args = mcp_args(access);
+    let args = mcp_args(registration);
     servers.insert(
         "sift".to_string(),
         match harness {
@@ -551,17 +561,17 @@ fn classify_json_entry(harness: Harness, entry: &Value, environment: &Environmen
 fn classify_command(command: &str, args: &[String], environment: &Environment) -> State {
     let current = environment.current_exe.to_string_lossy();
     let current_command = command == "sift-cli" || command == current;
-    let Some(access) = access_from_args(args) else {
+    let Some(registration) = registration_from_args(args) else {
         return State::Conflict(format!(
             "the existing `sift` MCP entry runs a custom command: `{command} {}`",
             args.join(" ")
         ));
     };
     if current_command {
-        return State::Current(access);
+        return State::Current(registration);
     }
     if is_sift_cli(command) {
-        return State::ManagedDrift(access);
+        return State::ManagedDrift(registration);
     }
     State::Conflict(format!(
         "the existing `sift` MCP entry runs a custom command: `{command} {}`",
@@ -569,14 +579,37 @@ fn classify_command(command: &str, args: &[String], environment: &Environment) -
     ))
 }
 
-fn access_from_args(args: &[String]) -> Option<AccessMode> {
+fn registration_from_args(args: &[String]) -> Option<Registration> {
     match args {
-        [mcp] if mcp == "mcp" => Some(AccessMode::ReadOnly),
+        [mcp] if mcp == "mcp" => Some(Registration::new(AccessMode::ReadOnly, Profile::Default)),
         [mcp, destructive] if mcp == "mcp" && destructive == "--allow-destructive" => {
-            Some(AccessMode::Destructive)
+            Some(Registration::new(AccessMode::Destructive, Profile::Default))
+        }
+        [mcp, profile_flag, profile]
+            if mcp == "mcp" && profile_flag == "--profile" && valid_profile(profile) =>
+        {
+            Some(Registration::new(
+                AccessMode::ReadOnly,
+                Profile::Named(profile.clone()),
+            ))
+        }
+        [mcp, profile_flag, profile, destructive]
+            if mcp == "mcp"
+                && profile_flag == "--profile"
+                && valid_profile(profile)
+                && destructive == "--allow-destructive" =>
+        {
+            Some(Registration::new(
+                AccessMode::Destructive,
+                Profile::Named(profile.clone()),
+            ))
         }
         _ => None,
     }
+}
+
+fn valid_profile(profile: &str) -> bool {
+    !profile.is_empty() && !profile.starts_with('-')
 }
 
 fn is_sift_cli(command: &str) -> bool {
@@ -906,23 +939,27 @@ mod tests {
 
     #[test]
     fn only_exact_sift_mcp_argument_shapes_are_managed() {
-        assert_eq!(
-            access_from_args(&args(&["mcp"])),
-            Some(AccessMode::ReadOnly)
-        );
-        assert_eq!(
-            access_from_args(&args(&["mcp", "--allow-destructive"])),
-            Some(AccessMode::Destructive)
+        assert!(registration_from_args(&args(&["mcp"])).is_some());
+        assert!(registration_from_args(&args(&["mcp", "--allow-destructive"])).is_some());
+        assert!(registration_from_args(&args(&["mcp", "--profile", "localdev"])).is_some());
+        assert!(
+            registration_from_args(&args(&[
+                "mcp",
+                "--profile",
+                "localdev",
+                "--allow-destructive",
+            ]))
+            .is_some()
         );
 
         for custom in [
             args(&["mcp", "--custom"]),
-            args(&["mcp", "--allow-destructive", "--extra"]),
-            args(&["--allow-destructive"]),
-            args(&["mcp", "mcp"]),
-            args(&[]),
+            args(&["mcp", "--profile"]),
+            args(&["mcp", "--profile", "--allow-destructive"]),
+            args(&["mcp", "--allow-destructive", "--profile", "localdev"]),
+            args(&["mcp", "--profile", "localdev", "--extra"]),
         ] {
-            assert_eq!(access_from_args(&custom), None);
+            assert_eq!(registration_from_args(&custom), None);
         }
     }
 
@@ -1014,8 +1051,13 @@ mod tests {
             output(true, Vec::new(), Vec::new()),
         ]);
 
-        let error =
-            install_with(Harness::Codex, &environment, AccessMode::ReadOnly, &runner).unwrap_err();
+        let error = install_with(
+            Harness::Codex,
+            &environment,
+            &Registration::new(AccessMode::ReadOnly, Profile::Default),
+            &runner,
+        )
+        .unwrap_err();
 
         assert!(
             error
