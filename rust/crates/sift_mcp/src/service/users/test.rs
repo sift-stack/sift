@@ -32,8 +32,8 @@ async fn service_with_me_mock(mock: MockMeServiceImpl) -> (UserService, JoinHand
     service_with_mocks(MockUserServiceImpl::new(), mock).await
 }
 
-/// Both proto services are registered on one in-memory server, matching how
-/// `UserService` spans them in production.
+/// Both mocks are registered on one in-memory server, matching how
+/// `UserService` uses them together.
 async fn service_with_mocks(
     user_mock: MockUserServiceImpl,
     me_mock: MockMeServiceImpl,
@@ -86,15 +86,15 @@ async fn list_users_returns_single_page() {
 async fn list_users_defaults_to_active_users_rpc() {
     let mut mock = MockUserServiceImpl::new();
     mock.expect_list_active_users().times(1).returning(|req| {
-        // `organization_id` is not exposed as a tool parameter; the caller's
-        // API key already scopes the listing.
+        // `organization_id` is not exposed as a tool parameter, so it must go
+        // out empty.
         assert!(req.get_ref().organization_id.is_empty());
         Ok(Response::new(ListActiveUsersResponse {
             users: vec![user("u1", "jane@siftstack.com")],
             next_page_token: String::new(),
         }))
     });
-    // No expectation on `list_users`: it must not be reached.
+    // The inactive-inclusive path gets no expectation: it must not be reached.
 
     let (service, _h) = service_with_mock(mock).await;
 
@@ -118,7 +118,7 @@ async fn list_users_include_inactive_uses_all_users_rpc() {
             next_page_token: String::new(),
         }))
     });
-    // No expectation on `list_active_users`: it must not be reached.
+    // The active-only path gets no expectation: it must not be reached.
 
     let (service, _h) = service_with_mock(mock).await;
 
@@ -259,8 +259,7 @@ async fn get_me_maps_email_onto_user_name() {
 
 #[tokio::test]
 async fn get_me_sends_an_empty_request() {
-    // Identity comes from the API key on the channel, so the request carries
-    // nothing.
+    // The call takes no arguments, so nothing is assembled to send.
     let mut mock = MockMeServiceImpl::new();
     mock.expect_get_me().times(1).returning(|req| {
         let _: sift_rs::me::v2::GetMeRequest = req.into_inner();

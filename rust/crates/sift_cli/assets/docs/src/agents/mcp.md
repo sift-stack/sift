@@ -83,6 +83,11 @@ A typical agent flow is `list_assets` → `list_channels` → `get_data` → `sq
 and `upload_dataset` to write results back. To attribute records to a person,
 resolve them with `list_users` first, then filter on `created_by_user_id`.
 
+Every `list_*` tool takes a CEL `filter`. String fields support `contains`,
+`startsWith`, and `endsWith` (case-sensitive) plus `matches` for RE2 regex, so
+prefer `name.matches("(?i)jane")` over an exact `==` when you only have part of
+a name. Prefix a regex with `(?i)` to ignore casing.
+
 ## Identifying yourself
 
 `list_users` accepts `me: true` to return the user whose credentials the server

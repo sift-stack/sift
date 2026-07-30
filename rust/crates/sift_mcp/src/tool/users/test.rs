@@ -95,6 +95,97 @@ async fn list_users_returns_single_page() {
     assert_eq!(users[0]["userName"], "jane@siftstack.com");
 }
 
+/// The description steers callers toward `contains` and `matches` over `==`,
+/// which is the shape a partial name arrives in. Each expression must go out
+/// untouched — rewriting one would silently change what the caller asked for.
+#[tokio::test]
+async fn list_users_forwards_substring_filter_verbatim() {
+    let mut user_mock = MockUserServiceImpl::new();
+    user_mock
+        .expect_list_active_users()
+        .times(1)
+        .withf(|req| req.get_ref().filter == "name.contains(\"jane\")")
+        .returning(|_| {
+            Ok(Response::new(ListActiveUsersResponse {
+                users: vec![user("u1", "jane@siftstack.com")],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let (server, _h) = server_with_mocks(user_mock, MockMeServiceImpl::new()).await;
+
+    let resp = server
+        .list_users(params("name.contains(\"jane\")"))
+        .await
+        .expect("list_users failed");
+
+    let users = structured_field(resp, "users");
+    assert_eq!(users.as_array().unwrap().len(), 1);
+    assert_eq!(users[0]["userName"], "jane@siftstack.com");
+}
+
+/// A case-insensitive regex spanning two people, backslashes and all. This is
+/// the recommended default filter shape, so it stays covered end to end.
+#[tokio::test]
+async fn list_users_forwards_regex_filter_verbatim() {
+    let filter = "name.matches(\"(?i)^(jane|john)@siftstack\\\\.com$\")";
+
+    let mut user_mock = MockUserServiceImpl::new();
+    user_mock
+        .expect_list_active_users()
+        .times(1)
+        .withf(move |req| req.get_ref().filter == filter)
+        .returning(|_| {
+            Ok(Response::new(ListActiveUsersResponse {
+                users: vec![
+                    user("u1", "jane@siftstack.com"),
+                    user("u2", "john@siftstack.com"),
+                ],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let (server, _h) = server_with_mocks(user_mock, MockMeServiceImpl::new()).await;
+
+    let resp = server
+        .list_users(params(filter))
+        .await
+        .expect("list_users failed");
+
+    let users = structured_field(resp, "users");
+    assert_eq!(users.as_array().unwrap().len(), 2);
+    assert_eq!(users[0]["userName"], "jane@siftstack.com");
+    assert_eq!(users[1]["userName"], "john@siftstack.com");
+}
+
+/// `contains` is case-sensitive, which is why the description points at
+/// `matches("(?i)...")` when the casing is unknown. A mismatched-casing
+/// substring filter is a legitimate empty result, not an error.
+#[tokio::test]
+async fn list_users_returns_empty_for_case_mismatched_substring() {
+    let mut user_mock = MockUserServiceImpl::new();
+    user_mock
+        .expect_list_active_users()
+        .times(1)
+        .withf(|req| req.get_ref().filter == "name.contains(\"JANE\")")
+        .returning(|_| {
+            Ok(Response::new(ListActiveUsersResponse {
+                users: vec![],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let (server, _h) = server_with_mocks(user_mock, MockMeServiceImpl::new()).await;
+
+    let resp = server
+        .list_users(params("name.contains(\"JANE\")"))
+        .await
+        .expect("list_users failed");
+
+    let users = structured_field(resp, "users");
+    assert!(users.as_array().unwrap().is_empty());
+}
+
 #[tokio::test]
 async fn list_users_include_inactive_uses_all_users_rpc() {
     let mut user_mock = MockUserServiceImpl::new();

@@ -35,21 +35,28 @@ impl SiftMcpServer {
 
             Output:
               - `{ \"users\": [User, ...] }`. Each item is the full Sift `User` shape: `user_id`, `user_name`, and
-                the `organizations` the user belongs to. `user_name` is the identifier the user signs in with and is
-                typically their email address; Sift does not currently store a separate display name, first name, or
-                last name.
+                the `organizations` the user belongs to. `user_name` is the sign-in identifier, typically an email
+                address; Sift does not currently store a separate display, first, or last name.
 
             Parameters:
-              - `filter`: CEL expression. Pass an empty string to list everyone. Filterable fields: `user_id` and
-                `name`. `name` filters on the user's `user_name`, e.g. `name == \"jane@siftstack.com\"`.
+              - `filter`: CEL expression over `user_id` and `name` (`name` is the user's `user_name`). Pass an empty
+                string to list everyone. Prefer pattern matching over `==`: a caller knows a fragment of someone's
+                name far more often than their exact sign-in address.
+                  - `name.matches(\"(?i)liam\")` — RE2 regex, case-insensitive via the `(?i)` prefix. Best default.
+                  - `name.matches(\"(?i)^(liam|evan)@\")` — resolve several people in one call.
+                  - `name.contains(\"liam\")`, `name.startsWith(\"liam\")`, `name.endsWith(\"@siftstack.com\")` —
+                    substring, prefix, and suffix; all case-SENSITIVE, so `Liam@...` slips past them. There is no
+                    `includes(...)` function; `contains` is the substring one.
+                  - `name == \"liam@siftstack.com\"` — only when the full address is already known.
+                  - `user_id == \"<uuid>\"`, or `user_id in [\"<uuid>\", \"<uuid>\"]` — map ids back to names.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `name`,
                 `created_date`, `modified_date`; with `include_inactive` set, only `created_date` and
                 `modified_date`. Default sort is `name` ascending (A-Z). Example: `\"created_date desc,name\"`.
               - `limit`: max items to return. Start at 200 and only raise it if the result is capped and you still
                 need more. Values are clamped to `1..=1000`; omitting it defaults to 200.
-              - `include_inactive`: optional; defaults to false. False lists only users active in the organization.
-                Set true to also return deactivated accounts — needed when attributing older records to someone who
-                has since left.
+              - `include_inactive`: optional; defaults to false, listing only users active in the organization. Set
+                true to also return deactivated accounts — needed when attributing older records to someone who has
+                since left.
               - `me`: optional; defaults to false. Set true to return the user whose credentials the server is
                 running under, resolved from the API key itself. Needs no configuration. Mutually exclusive with a
                 non-empty `filter`; `order_by`, `limit`, and `include_inactive` are ignored when it is set.
@@ -60,10 +67,11 @@ impl SiftMcpServer {
               - `INTERNAL_ERROR` for upstream gRPC failures.
 
             Guidance:
+              - An empty result usually means the pattern was too narrow or the casing was wrong, not that the
+                person is absent. Retry with `name.matches(\"(?i)<shorter fragment>\")` before listing everyone.
               - Resolve a person here first, then filter on `created_by_user_id == \"<user_id>\"` in whichever
                 `list_*` tool the question is about. Runs, assets, channels, rules, reports, annotations, and test
-                reports all expose that field, so the pattern is identical across them. All but annotations also
-                expose `modified_by_user_id`.
+                reports all expose that field; all but annotations also expose `modified_by_user_id`.
               - When the question is about the caller rather than a named person (\"my runs\", \"reports I filed\"),
                 use `me: true` and take the `user_id` from the result. Never guess which listed user is the caller.
         ",

@@ -14,9 +14,9 @@ use sift_rs::{
 #[cfg(test)]
 mod test;
 
-/// Spans two proto packages: `sift.users.v2` for listing users and
-/// `sift.me.v2` for resolving the caller. Both answer questions about users,
-/// and `list_users` serves them from one tool.
+/// Backs the `list_users` tool: listing users in the organization and
+/// resolving the caller. Both answer questions about users, so one tool serves
+/// them.
 #[derive(Clone)]
 pub struct UserService {
     channel: SiftChannel,
@@ -28,8 +28,13 @@ impl UserService {
         Self { channel, policy }
     }
 
-    /// `include_inactive` selects the RPC: `ListActiveUsers` by default,
-    /// `ListUsers` when set, which also returns deactivated accounts.
+    /// `include_inactive` is false unless the caller sets it, which lists only
+    /// users active in the organization; true also returns deactivated
+    /// accounts.
+    ///
+    /// `filter` is a CEL expression and is passed through untouched. `name`
+    /// (the user's `user_name`) supports `contains`, `matches`, `startsWith`,
+    /// and `endsWith` alongside `==`.
     pub async fn list_users(
         &self,
         filter: String,
@@ -112,13 +117,13 @@ impl UserService {
         Ok(results)
     }
 
-    /// Resolve the caller via `sift.me.v2 GetMe`, which takes no arguments —
-    /// the backend derives the user from the API key on the channel.
+    /// Resolve the user behind the credentials this server runs under. Takes no
+    /// arguments: the caller's identity comes from the configured credentials,
+    /// not from anything passed in here.
     ///
     /// Returned as a [`User`] so `list_users` emits one row shape either way.
-    /// `user_email` maps onto `user_name`, the sign-in identifier on the list
-    /// side; `is_admin`, `permissions`, and `created_date` are dropped as
-    /// authorization details no tool acts on.
+    /// The caller's email maps onto `user_name`, the sign-in identifier used
+    /// when listing; fields no tool acts on are dropped.
     pub async fn get_me(&self) -> Result<User> {
         let channel = self.channel.clone();
 
