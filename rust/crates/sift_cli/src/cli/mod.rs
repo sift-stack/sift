@@ -62,6 +62,11 @@ pub enum Cmd {
     #[command(subcommand)]
     Install(InstallCmd),
 
+    /// Manage the Sift integration for detected AI coding clients
+    #[cfg(feature = "mcp")]
+    #[command(subcommand)]
+    Agent(AgentCmd),
+
     /// Start the Sift MCP server
     #[cfg(feature = "mcp")]
     #[command(hide = true)]
@@ -92,6 +97,43 @@ pub enum InstallCmd {
     /// Install or print shell completions for sift-cli
     #[command(subcommand)]
     Completions(CompletionsCmd),
+}
+
+/// Manage Sift's release-matched skill and MCP sidecar as one bundle.
+#[cfg(feature = "mcp")]
+#[derive(Subcommand)]
+pub enum AgentCmd {
+    /// Install every detected client in safe mode
+    Install(AgentInstallArgs),
+
+    /// Refresh every detected client while preserving its access mode
+    Update(AgentUpdateArgs),
+
+    /// Check the CLI version, skill files, and access modes
+    Doctor,
+
+    /// Remove Sift-owned agent files and registrations
+    Uninstall,
+}
+
+#[cfg(feature = "mcp")]
+#[derive(clap::Args)]
+pub struct AgentInstallArgs {
+    /// Enable tools that modify or archive resources for every detected MCP client
+    #[arg(long)]
+    pub allow_destructive: bool,
+}
+
+#[cfg(feature = "mcp")]
+#[derive(clap::Args)]
+pub struct AgentUpdateArgs {
+    /// Enable tools that modify or archive resources for every detected MCP client
+    #[arg(long, conflicts_with = "read_only")]
+    pub allow_destructive: bool,
+
+    /// Disable destructive tools for every detected MCP client
+    #[arg(long, conflicts_with = "allow_destructive")]
+    pub read_only: bool,
 }
 
 #[derive(Subcommand)]
