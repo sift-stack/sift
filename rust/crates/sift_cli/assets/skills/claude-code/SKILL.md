@@ -2,14 +2,15 @@
 name: sift
 description: >-
   Use when working with Sift: ingesting or importing time-series data,
-  querying assets/runs/channels, exporting data, decimating or running SQL
+  querying assets/runs/channels/users, exporting data, decimating or running SQL
   over data, opening a view in the Sift Explore web app, writing code
   that integrates with Sift, or looking up how Sift works in its product and
   API documentation. Covers the Sift MCP server (started by
   `sift-cli mcp`), the `sift-cli` itself, the Sift REST API over cURL, the
   Sift Python library (`sift_client`), and the Sift Rust streaming library
   (`sift_stream`). Triggers include phrases like "import this file into
-  Sift", "stream data to Sift", "list assets/runs/channels", "export a
+  Sift", "stream data to Sift", "list assets/runs/channels", "runs I created",
+  "runs a teammate created", "export a
   run", "query Sift", "graph", "plot", "visualize", "open in Explore",
   "write code to integrate with Sift", "how does X work in Sift", "what does
   this endpoint do", or "look up the Sift API reference".
@@ -37,6 +38,13 @@ to combine them when working with Sift.
      (start at 200, max 1000). Omitting it defaults to 200 and values above 1000
      clamp to 1000, so raise `limit` when a result comes back capped.
    - `list_report_rule_summaries`: per-rule pass/fail/open breakdown for a report.
+   - `list_users`: resolve a person to a `user_id` by name, email, or id, then
+     filter another list on `created_by_user_id` — that is how you answer "runs
+     Jane created". Match names with `name.matches("(?i)jane")` rather than an
+     exact `==` on an address you are guessing at; `contains`, `startsWith`, and
+     `endsWith` also work but are case-sensitive. For "runs I created", pass
+     `me: true`, which resolves the caller from their API key; never guess which
+     listed user is the caller.
    - `list_test_reports`, `list_test_steps`, `list_test_measurements`: inspect
      test-results data (reports own steps own measurements); `count_test_steps`,
      `count_test_measurements`: totals matching a filter without fetching rows.

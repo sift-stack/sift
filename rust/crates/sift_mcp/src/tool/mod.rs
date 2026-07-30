@@ -10,3 +10,4 @@ pub mod reports;
 pub mod rules;
 pub mod runs;
 pub mod test_reports;
+pub mod users;

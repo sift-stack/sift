@@ -76,10 +76,24 @@ if you want the agent to be able to modify or archive existing resources.
 | `update_rule`    | Update specific fields of a rule; unspecified fields are preserved.          |
 | `archive_rule`   | Archive a rule so it stops evaluating.                                        |
 | `unarchive_rule` | Restore an archived rule.                                                     |
+| `list_users`     | List users, with filtering and ordering; resolves a person to a `user_id`.    |
 | `search_docs`    | Search and read the Sift documentation and REST/gRPC API reference.           |
 
 A typical agent flow is `list_assets` → `list_channels` → `get_data` → `sql`,
-and `upload_dataset` to write results back.
+and `upload_dataset` to write results back. To attribute records to a person,
+resolve them with `list_users` first, then filter on `created_by_user_id`.
+
+Every `list_*` tool takes a CEL `filter`. String fields support `contains`,
+`startsWith`, and `endsWith` (case-sensitive) plus `matches` for RE2 regex, so
+prefer `name.matches("(?i)jane")` over an exact `==` when you only have part of
+a name. Prefix a regex with `(?i)` to ignore casing.
+
+## Identifying yourself
+
+`list_users` accepts `me: true` to return the user whose credentials the server
+is running under, which is what lets an agent answer "list the runs I created".
+It resolves from the API key in your profile, so it needs no configuration and
+cannot disagree with the account you are actually querying as.
 
 ## Built-in prompts
 
