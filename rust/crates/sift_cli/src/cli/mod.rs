@@ -12,7 +12,6 @@ use ulog::UlogParseErrorPolicy;
 pub mod channel;
 use channel::DataType;
 
-pub mod agent;
 pub mod export;
 pub mod parquet;
 
@@ -87,30 +86,12 @@ pub struct DocArgs {
     pub addr: SocketAddr,
 }
 
-/// Install optional Sift tooling such as autocompletions or Agent skills
+/// Install optional Sift tooling
 #[derive(Subcommand)]
 pub enum InstallCmd {
     /// Install or print shell completions for sift-cli
     #[command(subcommand)]
     Completions(CompletionsCmd),
-
-    /// Install Sift-specific skills for agentic tooling
-    AgentSkills(AgentSkillsArgs),
-}
-
-#[derive(clap::Args)]
-pub struct AgentSkillsArgs {
-    /// The agentic coding assistant to install the skill for.
-    pub agent: agent::Agent,
-
-    /// Path to write the skill file to. When omitted, defaults to the
-    /// standard skill location for the selected agent.
-    #[arg(long)]
-    pub output: Option<String>,
-
-    /// Print the skill content to stdout instead of writing it to --output.
-    #[arg(long)]
-    pub print: bool,
 }
 
 #[derive(Subcommand)]

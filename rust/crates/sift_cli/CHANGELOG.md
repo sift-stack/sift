@@ -7,6 +7,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- Consolidated the duplicated agent instructions into one canonical skill at
+  `assets/skills/sift/SKILL.md`.
+- Removed the project-scoped `install agent-skills` workflow. Existing Sift
+  blocks in project `AGENTS.md` files must be removed manually because the new
+  lifecycle is user-scoped.
 - Reduced MCP list defaults from 200 records to 50 and the maximum from 1000 to
   200 to protect agent context windows.
 - Removed the MCP server, built-in prompt, and agent skill pages from the

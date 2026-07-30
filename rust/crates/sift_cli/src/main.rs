@@ -79,7 +79,6 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
                 cli::CompletionsCmd::Print(args) => return cmd::install::completions::print(args),
                 cli::CompletionsCmd::Update => return cmd::install::completions::update(),
             },
-            InstallCmd::AgentSkills(args) => return cmd::install::agent::skills(args),
         },
         _ => (),
     }
