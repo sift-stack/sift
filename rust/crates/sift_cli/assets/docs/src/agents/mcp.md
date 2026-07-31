@@ -83,10 +83,23 @@ A typical agent flow is `list_assets` → `list_channels` → `get_data` → `sq
 and `upload_dataset` to write results back. To attribute records to a person,
 resolve them with `list_users` first, then filter on `created_by_user_id`.
 
-Every `list_*` tool takes a CEL `filter`. String fields support `contains`,
-`startsWith`, and `endsWith` (case-sensitive) plus `matches` for RE2 regex, so
-prefer `name.matches("(?i)jane")` over an exact `==` when you only have part of
-a name. Prefix a regex with `(?i)` to ignore casing.
+Every `list_*` and `count_*` tool takes a CEL `filter`, and one shared engine
+evaluates all of them, so the syntax is identical across resources and only the
+field names differ. String fields support `contains`, `startsWith`, and
+`endsWith` (all case-sensitive) plus `matches` for RE2 regex, so prefer
+`name.matches("(?i)jane")` over an exact `==` when you only have part of a name.
+Prefix a regex with `(?i)` to ignore casing. There is no `includes()`.
+
+`list_assets` also exposes `name_lower`, a lowercased copy of `name`, and
+`name_lower.contains("rover")` is the preferred case-insensitive search there.
+No other resource has a `*_lower` field.
+
+Regex metacharacters (`.` `+` `(` `)` `[` `]` `*` `?`) are common in email
+addresses and in channel names such as `motor_d.current`, and they change a
+pattern's meaning silently rather than erroring. Use `contains` when you need a
+literal match. An empty result usually means the pattern was too narrow or the
+casing was wrong, so retry with a shorter fragment before concluding the record
+does not exist.
 
 ## Identifying yourself
 

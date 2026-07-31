@@ -40,15 +40,11 @@ impl SiftMcpServer {
 
             Parameters:
               - `filter`: CEL expression over `user_id` and `name` (`name` is the user's `user_name`). Pass an empty
-                string to list everyone. Prefer pattern matching over `==`: a caller knows a fragment of someone's
-                name far more often than their exact sign-in address.
-                  - `name.matches(\"(?i)liam\")` — RE2 regex, case-insensitive via the `(?i)` prefix. Best default.
-                  - `name.matches(\"(?i)^(liam|evan)@\")` — resolve several people in one call.
-                  - `name.contains(\"liam\")`, `name.startsWith(\"liam\")`, `name.endsWith(\"@siftstack.com\")` —
-                    substring, prefix, and suffix; all case-SENSITIVE, so `Liam@...` slips past them. There is no
-                    `includes(...)` function; `contains` is the substring one.
-                  - `name == \"liam@siftstack.com\"` — only when the full address is already known.
-                  - `user_id == \"<uuid>\"`, or `user_id in [\"<uuid>\", \"<uuid>\"]` — map ids back to names.
+                string to list everyone. Callers rarely know an exact sign-in address, so patterns are the norm
+                here. `name.matches(\"(?i)jane\")` is RE2, case-insensitive; `contains`/`startsWith`/`endsWith`
+                are case-SENSITIVE. Empty result: retry a shorter fragment. `name.matches(\"(?i)^(jane|john)@\")`
+                resolves several people at once; `user_id in [\"<uuid>\"]` maps ids back to names. Addresses
+                contain `.` and `+`, both regex metacharacters, so use `contains` to match one literally.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `name`,
                 `created_date`, `modified_date`; with `include_inactive` set, only `created_date` and
                 `modified_date`. Default sort is `name` ascending (A-Z). Example: `\"created_date desc,name\"`.
@@ -67,8 +63,6 @@ impl SiftMcpServer {
               - `INTERNAL_ERROR` for upstream gRPC failures.
 
             Guidance:
-              - An empty result usually means the pattern was too narrow or the casing was wrong, not that the
-                person is absent. Retry with `name.matches(\"(?i)<shorter fragment>\")` before listing everyone.
               - Resolve a person here first, then filter on `created_by_user_id == \"<user_id>\"` in whichever
                 `list_*` tool the question is about. Runs, assets, channels, rules, reports, annotations, and test
                 reports all expose that field; all but annotations also expose `modified_by_user_id`.

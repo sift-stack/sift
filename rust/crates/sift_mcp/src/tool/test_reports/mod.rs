@@ -66,6 +66,9 @@ impl SiftMcpServer {
                 `TEST_STATUS_PASSED`, `TEST_STATUS_FAILED`, `TEST_STATUS_ABORTED`, `TEST_STATUS_ERROR`,
                 `TEST_STATUS_IN_PROGRESS`, `TEST_STATUS_SKIPPED`. Filtering `test_report_id == \"...\"` fetches one
                 report (there is no separate get tool).
+                Prefer a pattern over `==` on the text fields (`name`, `test_case`, `serial_number`):
+                `name.matches(\"(?i)vibe\")` is RE2, case-insensitive. `contains`/`startsWith`/`endsWith` are
+                case-SENSITIVE. Empty result: retry a shorter fragment.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `test_report_id`,
                 `name`, `test_system_name`, `test_case`, `start_time`, `end_time`, `created_date`, `modified_date`.
                 Default sort is `start_time desc` (newest first). Example: `\"start_time desc,name\"`.
@@ -120,6 +123,9 @@ impl SiftMcpServer {
                 `error_message`, `created_date`, `modified_date`, `metadata`. `step_type` matches the
                 `TestStepType` enum: `TEST_STEP_TYPE_SEQUENCE`, `TEST_STEP_TYPE_GROUP`, `TEST_STEP_TYPE_ACTION`,
                 `TEST_STEP_TYPE_FLOW_CONTROL`. `status` matches `TestStatus` (see `list_test_reports`).
+                Prefer a pattern over `==` on `name`, `description`, and `error_message`:
+                `name.matches(\"(?i)power\")` is RE2, case-insensitive. `contains`/`startsWith`/`endsWith` are
+                case-SENSITIVE. Empty result: retry a shorter fragment.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `test_step_id`,
                 `name`, `step_type`, `step_path`, `status`, `start_time`, `end_time`, `created_date`,
                 `modified_date`. Default sort is `step_path` ascending (tree order). Example:
@@ -133,7 +139,7 @@ impl SiftMcpServer {
               - `INTERNAL_ERROR` for upstream gRPC failures.
 
             Guidance:
-              - To find failures, filter `test_report_id == \"...\" && status == TEST_STATUS_FAILED`.
+              - To find failures, filter `test_report_id == \"...\" && status == \"TEST_STATUS_FAILED\"`.
               - Order by `step_path` to reconstruct the execution tree; use `parent_step_id` to attach children.
         ",
         annotations(title = "test_reports/list_test_steps", read_only_hint = true)
@@ -177,6 +183,8 @@ impl SiftMcpServer {
                 `passed`, `timestamp`, `created_date`, `modified_date`, `metadata`. `measurement_type` matches the
                 `TestMeasurementType` enum: `TEST_MEASUREMENT_TYPE_DOUBLE`, `TEST_MEASUREMENT_TYPE_STRING`,
                 `TEST_MEASUREMENT_TYPE_BOOLEAN`, `TEST_MEASUREMENT_TYPE_LIMIT`.
+                Prefer a pattern over `==` on `name`: `name.matches(\"(?i)voltage\")` is RE2, case-insensitive.
+                `contains`/`startsWith`/`endsWith` are case-SENSITIVE. Empty result: retry a shorter fragment.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `measurement_id`,
                 `name`, `measurement_type`, `test_step_id`, `test_report_id`, `passed`, `timestamp`,
                 `created_date`, `modified_date`. Default sort is `timestamp` ascending. Example:
@@ -226,7 +234,9 @@ impl SiftMcpServer {
               - `filter`: CEL expression. Pass an empty string to count all steps. Filterable fields are identical
                 to `list_test_steps`: `test_step_id`, `test_report_id`, `parent_step_id`, `name`, `description`,
                 `step_type`, `step_path`, `status`, `start_time`, `end_time`, `error_code`, `error_message`,
-                `created_date`, `modified_date`, `metadata`.
+                `created_date`, `modified_date`, `metadata`. On text fields prefer a pattern over `==`:
+                `name.matches(\"(?i)power\")` is RE2, case-insensitive; `contains`/`startsWith`/`endsWith` are
+                case-SENSITIVE.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression.
@@ -261,7 +271,9 @@ impl SiftMcpServer {
               - `filter`: CEL expression. Pass an empty string to count all measurements. Filterable fields are
                 identical to `list_test_measurements`: `measurement_id`, `measurement_type`, `name`,
                 `test_step_id`, `test_report_id`, `numeric_value`, `string_value`, `boolean_value`, `passed`,
-                `timestamp`, `created_date`, `modified_date`, `metadata`.
+                `timestamp`, `created_date`, `modified_date`, `metadata`. On `name` prefer a pattern over `==`:
+                `name.matches(\"(?i)voltage\")` is RE2, case-insensitive; `contains`/`startsWith`/`endsWith`
+                are case-SENSITIVE.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression.

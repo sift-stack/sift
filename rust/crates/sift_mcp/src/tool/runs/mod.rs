@@ -52,6 +52,8 @@ impl SiftMcpServer {
                 Reference metadata entries as `metadata.{key}`.
                 `duration` is elapsed seconds (numeric). `duration_string` accepts `h`/`m`/`s`/`ms` suffixes via the
                 `duration(...)` helper, e.g. `duration_string > duration('10h')`.
+                Prefer a pattern over `==`: `name.matches(\"(?i)rover\")` is RE2, case-insensitive.
+                `contains`/`startsWith`/`endsWith` are case-SENSITIVE. Empty result: retry a shorter fragment.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `name`,
                 `description`, `created_date`, `modified_date`, `start_time`, `stop_time`. Default sort is
                 `created_date desc` (newest first). Example: `\"created_date desc,modified_date\"`.

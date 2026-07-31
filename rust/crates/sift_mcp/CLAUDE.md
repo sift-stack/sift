@@ -499,6 +499,37 @@ When you add or update a list tool:
 If the proto comments are themselves wrong or incomplete, fix the proto first and regenerate.
 The tool description is downstream of it.
 
+### Search guidance on the `filter` bullet
+
+A field list does not tell an agent *how* to search it, and the default failure is an exact `==`
+against a value the caller only half knows. Every tool that takes a `filter` therefore closes its
+`filter` bullet with two lines naming that resource's own text fields:
+
+```
+                Prefer a pattern over `==`: `name.matches(\"(?i)rover\")` is RE2, case-insensitive.
+                `contains`/`startsWith`/`endsWith` are case-SENSITIVE. Empty result: retry a shorter fragment.
+```
+
+Adapt it per resource; they are not uniform:
+
+- **`list_assets`** recommends `name_lower.contains(...)`. `name_lower` is an indexed lowercased
+  copy of `name` and exists only on assets, so the same filter elsewhere fails with
+  `undeclared reference to 'name_lower'`.
+- **`list_rule_versions`** has no `name`; `user_notes` and `change_message` are its text fields.
+- **`list_report_rule_summaries`** filters only on ids and an enum, so it states there is no
+  free-text field instead of carrying the block.
+- **`list_channels`** points at `contains`, because channel names embed `.` (`motor_d.current`),
+  which is a regex wildcard.
+
+This guidance is not proto-sourced, so Step 5's "fix the proto first" rule does not apply. The
+string functions are behavior of the shared CEL filter engine, not of any one proto.
+
+Keep it in the description, and keep it to two lines. The description is what the agent reads at
+the moment it composes a filter, so guidance placed there acts on the decision it is meant to
+change. Do not move it to the server-level `instructions` in `src/server/mod.rs`: that text sits
+far from the call site, clients truncate it, and a second location invites the two copies to
+drift. Repetition across tools is the cheaper failure here.
+
 ---
 
 ## Step 6 — Test the service (required)
@@ -620,6 +651,8 @@ Run through this before declaring the tool done:
       services follow their own proto shape.
 - [ ] Description follows the five-section structure and the style rules. `list_*` descriptions
       match the current proto comments.
+- [ ] Any tool taking a `filter` closes its `filter` bullet with the two-line search block from
+      Step 5, adapted to that resource's own text fields.
 - [ ] `read_only_hint` is correct, and write tools set `destructive_hint` / `idempotent_hint`
       per the Step 4 mapping. Write tools confirm the destination via `next_step`.
 - [ ] Every handler with `destructive_hint = true` calls `self.require_destructive()?` as its

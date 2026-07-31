@@ -21,13 +21,17 @@ to combine them when working with Sift.
      (start at 200, max 1000). Omitting it defaults to 200 and values above 1000
      clamp to 1000, so raise `limit` when a result comes back capped.
    - `list_report_rule_summaries`: per-rule pass/fail/open breakdown for a report.
+   - Searching any of those lists: prefer a pattern over an exact `==`.
+     `name.matches("(?i)rover")` is RE2 and case-insensitive; `contains`,
+     `startsWith`, and `endsWith` are case-sensitive. An empty result usually
+     means the pattern was too narrow, so retry a shorter fragment before you
+     tell the user that nothing exists. Each tool's description lists its own
+     filterable fields. When a request is too vague to filter on, sample with a
+     small `limit` and ask the user to narrow it rather than guessing.
    - `list_users`: resolve a person to a `user_id` by name, email, or id, then
      filter another list on `created_by_user_id` — that is how you answer "runs
-     Jane created". Match names with `name.matches("(?i)jane")` rather than an
-     exact `==` on an address you are guessing at; `contains`, `startsWith`, and
-     `endsWith` also work but are case-sensitive. For "runs I created", pass
-     `me: true`, which resolves the caller from their API key; never guess which
-     listed user is the caller.
+     Jane created". For "runs I created", pass `me: true`, which resolves the
+     caller from their API key; never guess which listed user is the caller.
    - `list_test_reports`, `list_test_steps`, `list_test_measurements`: inspect
      test-results data (reports own steps own measurements); `count_test_steps`,
      `count_test_measurements`: totals matching a filter without fetching rows.

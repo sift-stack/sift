@@ -42,6 +42,8 @@ impl SiftMcpServer {
                 `asset_id`, `name`, `name_lower`, `tag_id`, `tag_name`, `created_date`, `modified_date`,
                 `archived_date`, `is_archived`, `created_by_user_id`, `modified_by_user_id`, `metadata`.
                 Reference metadata entries as `metadata.{key}` (e.g. `metadata.vehicle_type == \"rover\"`).
+                Searching by name: prefer `name_lower.contains(\"rover\")`. `name_lower` is `name` lowercased,
+                is indexed, and is unique to assets. Other string fields: `name.matches(\"(?i)rover\")`.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `name`,
                 `created_date`, `modified_date`, `archived_date`. Default sort is `created_date desc` (newest first).
                 Example: `\"created_date desc,modified_date\"`.

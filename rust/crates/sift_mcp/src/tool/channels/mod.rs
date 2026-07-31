@@ -25,6 +25,9 @@ impl SiftMcpServer {
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
                 `channel_id`, `asset_id`, `name`, `description`, `run_id`, `run_name`, `run_client_key`,
                 `created_date`, `modified_date`, `created_by_user_id`, `modified_by_user_id`.
+                Prefer a pattern over `==`: `name.matches(\"(?i)motor\")` is RE2, case-insensitive.
+                `contains`/`startsWith`/`endsWith` are case-SENSITIVE. Empty result: retry a shorter fragment.
+                Channel names contain `.`, a regex wildcard, so `contains` is often the safer choice here.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `name`,
                 `created_date`, `modified_date`, `active`. Default sort is `created_date` ascending (oldest first) —
                 note this differs from `list_assets` and `list_runs`. Example: `\"name,created_date desc\"`.

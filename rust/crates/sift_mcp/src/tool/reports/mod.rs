@@ -73,6 +73,8 @@ impl SiftMcpServer {
                 `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, `is_archived`, `archived_date`,
                 `created_date`, `created_by_user_id`, `metadata`, `modified_date`, `modified_by_user_id`.
                 Reference metadata entries as `metadata.{key}` (e.g. `metadata.batch == \"nightly\"`).
+                Prefer a pattern over `==`: `name.matches(\"(?i)nightly\")` is RE2, case-insensitive.
+                `contains`/`startsWith`/`endsWith` are case-SENSITIVE. Empty result: retry a shorter fragment.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `name`,
                 `created_date`, `modified_date`. Default sort is `created_date desc` (newest first).
                 Example: `\"created_date desc,modified_date\"`.
@@ -130,7 +132,8 @@ impl SiftMcpServer {
             Parameters:
               - `report_id`: required; the report whose rule summaries to list.
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields include
-                `rule_id`, `rule_version_id`, `asset_id`, and `status`.
+                `rule_id`, `rule_version_id`, `asset_id`, and `status`. All are ids or an enum, so there is no
+                free-text field to pattern-match here; narrow by `rule_id` or `status`.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `display_order`,
                 `created_date`, `modified_date`. Default sort is `display_order` ascending.
               - `limit`: max items to return. Start at 200 and only raise it if the result is capped

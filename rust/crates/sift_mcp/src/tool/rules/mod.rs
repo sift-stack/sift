@@ -70,6 +70,8 @@ impl SiftMcpServer {
                 `created_date`, `created_by_user_id`, `metadata`, `modified_date`, `modified_by_user_id`,
                 `deleted_date`, `is_archived`, `archived_date`, `is_live_evaluation_enabled`.
                 Reference metadata entries as `metadata.{key}` (e.g. `metadata.severity == \"high\"`).
+                Prefer a pattern over `==`: `name.matches(\"(?i)avionics\")` is RE2, case-insensitive.
+                `contains`/`startsWith`/`endsWith` are case-SENSITIVE. Empty result: retry a shorter fragment.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields:
                 `created_date`, `modified_date`. Default sort is `created_date desc` (newest first).
                 Example: `\"created_date desc,modified_date\"`.
@@ -123,7 +125,9 @@ impl SiftMcpServer {
             Parameters:
               - `rule_id`: required. The rule whose versions to list.
               - `filter`: optional CEL expression. Filterable fields: `rule_version_id`, `user_notes`, and
-                `change_message`. Omit or pass an empty string to list all versions.
+                `change_message`. Omit or pass an empty string to list all versions. There is no `name` here;
+                `user_notes` and `change_message` are the searchable text fields, e.g.
+                `change_message.matches(\"(?i)asset\")`.
               - `limit`: max items to return. Start at 200 and only raise it if the result is capped
                 and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200.
 
