@@ -13,11 +13,13 @@ use std::{
 };
 
 use anyhow::{Context, Result, anyhow};
+use crossterm::style::Stylize;
 use semver::Version;
 
 use crate::{
     cli::{AgentInstallArgs, AgentUpdateArgs},
     cmd::version,
+    util::progress::Spinner,
 };
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -504,6 +506,11 @@ fn install_environment(
         return Ok(ExitCode::FAILURE);
     }
 
+    // Each detected Claude/Codex client costs several `mcp` subprocess round-trips, so
+    // hold a spinner across the whole silent stretch that precedes the result lines.
+    let spinner = Spinner::new();
+    spinner.set_message(format!("{} Sift MCP and skills...", "Installing".green()));
+
     let targets = skill::targets(environment);
     let mut blockers = Vec::new();
     for target in &targets {
@@ -526,6 +533,7 @@ fn install_environment(
     }
 
     if !blockers.is_empty() {
+        spinner.finish_and_clear();
         println!("No changes were made because the existing setup needs attention:");
         for blocker in blockers {
             println!("  - {blocker}");
@@ -583,6 +591,8 @@ fn install_environment(
             cleanup_errors.join("; ")
         ));
     }
+
+    spinner.finish_and_clear();
 
     for target in &targets {
         println!(
