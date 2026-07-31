@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, ClassVar
 
-from pydantic import model_validator
+from pydantic import field_validator, model_validator
 from sift.runs.v2.runs_pb2 import CreateRunRequest as CreateRunRequestProto
 from sift.runs.v2.runs_pb2 import Run as RunProto
 
@@ -16,7 +16,12 @@ from sift_client.sift_types._base import (
 )
 from sift_client.sift_types._mixins.file_attachments import FileAttachmentsMixin
 from sift_client.sift_types.tag import Tag
-from sift_client.util.metadata import Metadata, metadata_dict_to_proto, metadata_proto_to_dict
+from sift_client.util.metadata import (
+    Metadata,
+    expand_metadata_for_write,
+    metadata_dict_to_proto,
+    metadata_proto_to_dict,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -178,7 +183,19 @@ class RunBase(ModelCreateUpdateBase):
     start_time: datetime | None = None
     stop_time: datetime | None = None
     tags: list[str] | list[Tag] | None = None
-    metadata: dict[str, str | float | bool] | None = None
+    # A list[str] value writes every element under the same key (multi-value
+    # metadata, string keys only); writes REPLACE the full metadata map.
+    metadata: dict[str, str | float | bool | list[str]] | None = None
+
+    @field_validator("metadata", mode="before")
+    @classmethod
+    def _expand_metadata(cls, value):
+        # A Metadata mapping hides values beyond the first behind getall();
+        # expand it before validation so pydantic's dict rebuild (and the
+        # model_dump that feeds proto conversion) can't drop them.
+        if isinstance(value, Metadata):
+            return expand_metadata_for_write(value)
+        return value
 
     _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
         "metadata": MappingHelper(
@@ -233,6 +250,11 @@ class RunCreate(RunBase, ModelCreate[CreateRunRequestProto]):
         if self.metadata:
             metadata = []
             for key, value in self.metadata.items():
+                if isinstance(value, list):
+                    raise ValueError(
+                        f"Metadata key '{key}': multi-value metadata is not supported "
+                        "on the streaming ingestion path yet; use a scalar value"
+                    )
                 metadata.append(MetadataPy(key=key, value=MetadataValuePy(value)))
         else:
             metadata = None

@@ -8,6 +8,7 @@ These tests demonstrate and validate the usage of the Runs API including:
 """
 
 from datetime import datetime, timedelta, timezone
+from typing import NoReturn
 
 import pytest
 from google.protobuf.field_mask_pb2 import FieldMask
@@ -401,15 +402,23 @@ class TestRunsAPIAsync:
                 await runs_api_async.archive(new_run.id_)
 
     class TestMultiValueMetadata:
-        """Read-side tests for multi-value metadata.
+        """Multi-value metadata tests: raw-proto seeding, public list writes,
+        and read-side getall.
 
-        The public write path is scalar-only (list values land in ENG-13281
-        Phase 3), so these tests seed duplicate-key metadata through the raw
-        `UpdateRun` proto. Storing multiple values per key requires the
-        backend's org-scoped `multi-value-metadata` flag; against a backend
-        without it the seed either fails or collapses to one value, and the
-        test skips instead of failing.
+        Storing multiple values per key requires the backend's org-scoped
+        `multi-value-metadata` flag; against a backend without it the seed
+        either fails or collapses to one value, and the tests skip instead
+        of failing.
         """
+
+        @staticmethod
+        def _skip_if_flag_disabled(exc: AioRpcError) -> NoReturn:
+            if exc.code() == StatusCode.INVALID_ARGUMENT:
+                pytest.skip(
+                    "backend rejected duplicate metadata keys; "
+                    "multi-value-metadata flag not enabled"
+                )
+            raise exc
 
         @pytest.mark.asyncio
         async def test_get_run_exposes_all_values_via_getall(
@@ -436,12 +445,7 @@ class TestRunsAPIAsync:
                         request
                     )
                 except AioRpcError as exc:
-                    if exc.code() == StatusCode.INVALID_ARGUMENT:
-                        pytest.skip(
-                            "backend rejected duplicate metadata keys; "
-                            "multi-value-metadata flag not enabled"
-                        )
-                    raise
+                    self._skip_if_flag_disabled(exc)
                 stored = [
                     entry.string_value
                     for entry in response.run.metadata
@@ -460,6 +464,47 @@ class TestRunsAPIAsync:
                 assert metadata.getall("part_number") == values
                 assert metadata["part_number"] == metadata.getall("part_number")[0]
                 assert metadata.getall("missing") == []
+            finally:
+                await runs_api_async.archive(new_run.id_)
+
+        @pytest.mark.asyncio
+        async def test_update_run_with_list_metadata(self, runs_api_async, new_run):
+            """A list[str] value in RunUpdate writes every element under the key."""
+            values = ["flux_capacitor", "lightsaber"]
+            try:
+                update = RunUpdate(metadata={"part_number": values, "env": "prod"})
+                try:
+                    updated_run = await runs_api_async.update(new_run, update)
+                except AioRpcError as exc:
+                    self._skip_if_flag_disabled(exc)
+
+                assert updated_run.metadata["part_number"] == values[0]
+                assert updated_run.metadata.getall("part_number") == values
+                assert updated_run.metadata["env"] == "prod"
+
+                fetched = await runs_api_async.get(run_id=new_run.id_)
+                assert fetched.metadata.getall("part_number") == values
+            finally:
+                await runs_api_async.archive(new_run.id_)
+
+        @pytest.mark.asyncio
+        async def test_metadata_round_trip_preserves_all_values(self, runs_api_async, new_run):
+            """update(metadata=run.metadata) must not drop multi-value entries."""
+            values = ["flux_capacitor", "lightsaber"]
+            try:
+                try:
+                    await runs_api_async.update(
+                        new_run, RunUpdate(metadata={"part_number": values})
+                    )
+                except AioRpcError as exc:
+                    self._skip_if_flag_disabled(exc)
+
+                fetched = await runs_api_async.get(run_id=new_run.id_)
+                # Write the fetched Metadata mapping back unchanged.
+                round_tripped = await runs_api_async.update(
+                    new_run, RunUpdate(metadata=fetched.metadata)
+                )
+                assert round_tripped.metadata.getall("part_number") == values
             finally:
                 await runs_api_async.archive(new_run.id_)
 

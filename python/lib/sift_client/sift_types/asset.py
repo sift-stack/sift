@@ -3,12 +3,18 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, ClassVar
 
+from pydantic import field_validator
 from sift.assets.v1.assets_pb2 import Asset as AssetProto
 
 from sift_client.sift_types._base import BaseType, MappingHelper, ModelUpdate
 from sift_client.sift_types._mixins.file_attachments import FileAttachmentsMixin
 from sift_client.sift_types.tag import Tag
-from sift_client.util.metadata import Metadata, metadata_dict_to_proto, metadata_proto_to_dict
+from sift_client.util.metadata import (
+    Metadata,
+    expand_metadata_for_write,
+    metadata_dict_to_proto,
+    metadata_proto_to_dict,
+)
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -114,8 +120,20 @@ class AssetUpdate(ModelUpdate[AssetProto]):
     """Model of the Asset Fields that can be updated."""
 
     tags: list[str | Tag] | None = None
-    metadata: dict[str, str | float | bool] | None = None
+    # A list[str] value writes every element under the same key (multi-value
+    # metadata, string keys only); writes REPLACE the full metadata map.
+    metadata: dict[str, str | float | bool | list[str]] | None = None
     is_archived: bool | None = None
+
+    @field_validator("metadata", mode="before")
+    @classmethod
+    def _expand_metadata(cls, value):
+        # A Metadata mapping hides values beyond the first behind getall();
+        # expand it before validation so pydantic's dict rebuild (and the
+        # model_dump that feeds proto conversion) can't drop them.
+        if isinstance(value, Metadata):
+            return expand_metadata_for_write(value)
+        return value
 
     _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
         "metadata": MappingHelper(

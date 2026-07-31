@@ -8,7 +8,12 @@ from sift.metadata.v1.metadata_pb2 import (
     MetadataValue,
 )
 
-from sift_client.util.metadata import Metadata, metadata_dict_to_proto, metadata_proto_to_dict
+from sift_client.util.metadata import (
+    Metadata,
+    expand_metadata_for_write,
+    metadata_dict_to_proto,
+    metadata_proto_to_dict,
+)
 
 
 def _string_value(name: str, value: str) -> MetadataValue:
@@ -68,6 +73,60 @@ class TestMetadataProtoToDict:
     def test_round_trip_from_dict(self):
         original = {"env": "prod", "build": 1.5, "armed": True}
         assert metadata_proto_to_dict(metadata_dict_to_proto(original)) == original
+
+
+class TestMetadataDictToProto:
+    def test_list_value_writes_one_proto_per_element_in_order(self):
+        protos = metadata_dict_to_proto({"parts": ["ABC", "XYZ"], "env": "prod"})
+        parts = [p.string_value for p in protos if p.key.name == "parts"]
+        assert parts == ["ABC", "XYZ"]
+        assert all(
+            p.key.type == MetadataKeyType.METADATA_KEY_TYPE_STRING
+            for p in protos
+            if p.key.name == "parts"
+        )
+        assert [p.string_value for p in protos if p.key.name == "env"] == ["prod"]
+
+    def test_list_round_trips_through_proto(self):
+        protos = metadata_dict_to_proto({"parts": ["ABC", "XYZ"], "build": 1.5})
+        result = metadata_proto_to_dict(protos)
+        assert result == {"parts": "ABC", "build": 1.5}
+        assert result.getall("parts") == ["ABC", "XYZ"]
+
+    def test_metadata_instance_keeps_all_values(self):
+        md = Metadata({"parts": "ABC", "env": "prod"}, {"parts": ["ABC", "XYZ"]})
+        protos = metadata_dict_to_proto(md)
+        assert [p.string_value for p in protos if p.key.name == "parts"] == ["ABC", "XYZ"]
+        assert [p.string_value for p in protos if p.key.name == "env"] == ["prod"]
+
+    def test_empty_list_rejected(self):
+        with pytest.raises(ValueError, match="empty value list"):
+            metadata_dict_to_proto({"parts": []})
+
+    def test_non_string_list_element_rejected(self):
+        with pytest.raises(ValueError, match="only string values may be multi-value"):
+            metadata_dict_to_proto({"parts": ["ABC", 2]})  # type: ignore[list-item]
+
+    def test_unsupported_scalar_rejected(self):
+        with pytest.raises(ValueError, match="Unsupported metadata value type"):
+            metadata_dict_to_proto({"parts": None})  # type: ignore[dict-item]
+
+
+class TestExpandMetadataForWrite:
+    def test_multi_value_keys_become_lists_single_stay_scalar(self):
+        md = Metadata(
+            {"parts": "ABC", "env": "prod", "build": 1.5},
+            {"parts": ["ABC", "XYZ"], "env": ["prod"]},
+        )
+        assert expand_metadata_for_write(md) == {
+            "parts": ["ABC", "XYZ"],
+            "env": "prod",
+            "build": 1.5,
+        }
+
+    def test_plain_dict_returned_unchanged(self):
+        plain = {"parts": ["ABC", "XYZ"], "env": "prod"}
+        assert expand_metadata_for_write(plain) is plain
 
 
 class TestMetadataMapping:

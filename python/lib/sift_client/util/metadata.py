@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, Union
+from typing import TYPE_CHECKING, Any, Dict, Mapping, Union
 
 from pydantic_core import core_schema
 from sift.metadata.v1.metadata_pb2 import (
@@ -70,8 +70,74 @@ class Metadata(Dict[str, Union[str, float, bool]]):
         )
 
 
-def metadata_dict_to_proto(_metadata: dict[str, str | float | bool]) -> list[MetadataProto]:
+def expand_metadata_for_write(
+    metadata: Mapping[str, str | float | bool | list[str]],
+) -> Mapping[str, str | float | bool | list[str]]:
+    """Expand a ``Metadata`` mapping into a plain write dict, keeping every value.
+
+    ``Metadata`` hides values beyond the first behind ``getall()``; pydantic
+    write models serialize fields with ``model_dump``, which would flatten the
+    mapping to its first-value dict view and silently drop the rest. Calling
+    this in a before-validator keeps round-trips (``update.metadata =
+    entity.metadata``) lossless: single-value keys stay scalars, multi-value
+    keys become lists.
+
+    Any other mapping is returned unchanged.
+    """
+    if not isinstance(metadata, Metadata):
+        return metadata
+    expanded: dict[str, str | float | bool | list[str]] = {}
+    for key in metadata:
+        values = metadata.getall(key)
+        if len(values) == 1:
+            expanded[key] = values[0]
+        else:
+            # Multi-value keys are string-typed (backend enforces this), so
+            # the cast to list[str] holds for any server-produced mapping.
+            expanded[key] = [str(value) for value in values]
+    return expanded
+
+
+def _scalar_metadata_proto(key: str, value: str | float | bool) -> MetadataProto:
+    """Wrap one scalar metadata value in a MetadataValue proto."""
+    metadata_key_type = MetadataKeyType.METADATA_KEY_TYPE_UNSPECIFIED
+    string_value = None
+    boolean_value = None
+    number_value = None
+
+    if isinstance(value, str):
+        string_value = value
+        metadata_key_type = MetadataKeyType.METADATA_KEY_TYPE_STRING
+    elif isinstance(value, bool):
+        # Need to check bool before int since python thinks "True" is an int
+        boolean_value = value
+        metadata_key_type = MetadataKeyType.METADATA_KEY_TYPE_BOOLEAN
+    elif isinstance(value, (int, float)):
+        number_value = value
+        metadata_key_type = MetadataKeyType.METADATA_KEY_TYPE_NUMBER
+    else:
+        raise ValueError(f"Unsupported metadata value type for key '{key}': {value}")
+
+    wrapped_key = MetadataKey(name=key, type=metadata_key_type)
+    return MetadataProto(
+        key=wrapped_key,
+        string_value=string_value,  # type: ignore
+        boolean_value=boolean_value,  # type: ignore
+        number_value=number_value,  # type: ignore
+    )
+
+
+def metadata_dict_to_proto(
+    _metadata: Mapping[str, str | float | bool | list[str]],
+) -> list[MetadataProto]:
     """Converts metadata dictionary into a list of MetadataValue objects.
+
+    A value may be a scalar (``str | float | bool``) or a ``list[str]``. A
+    list produces one MetadataValue per element under the same key, in list
+    order -- the canonical order for multi-value metadata. Only string values
+    may repeat (mirroring the backend rule), so list elements must be
+    strings, and a list must not be empty: replace semantics mean a key is
+    removed by omitting it, not by writing an empty list.
 
     Args:
         _metadata: Dictionary of metadata key-value pairs.
@@ -79,35 +145,23 @@ def metadata_dict_to_proto(_metadata: dict[str, str | float | bool]) -> list[Met
     Returns:
         List of MetadataValue objects.
     """
+    _metadata = expand_metadata_for_write(_metadata)
     metadata = []
 
     for key, value in _metadata.items():
-        metadata_key_type = MetadataKeyType.METADATA_KEY_TYPE_UNSPECIFIED
-        string_value = None
-        boolean_value = None
-        number_value = None
-
-        if isinstance(value, str):
-            string_value = value
-            metadata_key_type = MetadataKeyType.METADATA_KEY_TYPE_STRING
-        elif isinstance(value, bool):
-            # Need to check bool before int since python thinks "True" is an int
-            boolean_value = value
-            metadata_key_type = MetadataKeyType.METADATA_KEY_TYPE_BOOLEAN
-        elif isinstance(value, (int, float)):
-            number_value = value
-            metadata_key_type = MetadataKeyType.METADATA_KEY_TYPE_NUMBER
+        if isinstance(value, list):
+            if not value:
+                raise ValueError(
+                    f"Metadata key '{key}' has an empty value list; omit the key to remove it"
+                )
+            for item in value:
+                if not isinstance(item, str):
+                    raise ValueError(
+                        f"Metadata key '{key}': only string values may be multi-value, got {item!r}"
+                    )
+                metadata.append(_scalar_metadata_proto(key, item))
         else:
-            raise ValueError(f"Unsupported metadata value type for key '{key}': {value}")
-
-        wrapped_key = MetadataKey(name=key, type=metadata_key_type)
-        wrapped_value = MetadataProto(
-            key=wrapped_key,
-            string_value=string_value,  # type: ignore
-            boolean_value=boolean_value,  # type: ignore
-            number_value=number_value,  # type: ignore
-        )
-        metadata.append(wrapped_value)
+            metadata.append(_scalar_metadata_proto(key, value))
 
     return metadata
 
