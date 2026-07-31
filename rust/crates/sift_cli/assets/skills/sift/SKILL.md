@@ -1,9 +1,23 @@
+---
+name: sift
+description: >-
+  Use when working with Sift: ingesting or importing time-series data,
+  querying assets/runs/channels/users, exporting data, decimating or running SQL
+  over data, opening a view in the Sift Explore web app, writing code
+  that integrates with Sift, or looking up how Sift works in its product and
+  API documentation. Covers the Sift MCP server (started by
+  `sift-cli mcp`), the `sift-cli` itself, the Sift REST API over cURL, the
+  Sift Python library (`sift_client`), and the Sift Rust streaming library
+  (`sift_stream`). Triggers include phrases like "import this file into
+  Sift", "stream data to Sift", "list assets/runs/channels", "runs I created",
+  "runs a teammate created", "export a
+  run", "query Sift", "graph", "plot", "visualize", "open in Explore",
+  "write code to integrate with Sift", "how does X work in Sift", "what does
+  this endpoint do", or "look up the Sift API reference".
+---
+
 <!--
-  LOCKSTEP: This file shares its body with assets/skills/claude-code/SKILL.md.
-  Everything from the "# Sift toolbox" heading down must stay identical to the
-  body of SKILL.md (which carries the same content under YAML frontmatter).
-  When you change one, change the other in the same commit.
-  See rust/crates/sift_cli/CLAUDE.md for the rules.
+  Managed by sift-cli. Do not edit an installed copy.
 -->
 
 # Sift toolbox

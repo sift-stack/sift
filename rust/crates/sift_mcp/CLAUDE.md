@@ -554,12 +554,11 @@ including the order of calls and a failure injected partway through.
 ## Step 7 — Update the agent skill
 
 The `sift-cli` mdBook deliberately does not document the MCP server or its prompts. Do not add
-a page for them. The agent skill files (`SKILL.md` / `AGENTS.md`) are the only user-facing
-record of the tool surface, so a tool missing from them does not exist as far as agents are
-concerned.
+a page for them. The installed Sift skill is the only user-facing record of the tool surface, so
+a tool missing from it does not exist as far as agents are concerned.
 
-The skill files are governed by `rust/crates/sift_cli/CLAUDE.md`; follow its lockstep rules and
-update them in the same change when you add or remove a tool.
+The skill is governed by `rust/crates/sift_cli/AGENTS.md`; follow its rules and update it in the
+same change when you add or remove a tool.
 
 ---
 
@@ -618,6 +617,5 @@ Run through this before declaring the tool done:
 - [ ] Service registered in `server/mod.rs` and the router merged.
 - [ ] Service tests added, covering single page, pagination, `limit`, and an error path. A mock
       was added to `sift_test_util` if one did not exist.
-- [ ] Skill files (`SKILL.md` / `AGENTS.md`) updated per `sift_cli/CLAUDE.md` if the tool list
-      changed.
+- [ ] Installed skill updated per `sift_cli/AGENTS.md` if the tool list changed.
 - [ ] `cargo build -p sift_mcp` and `cargo test -p sift_mcp` both pass.
