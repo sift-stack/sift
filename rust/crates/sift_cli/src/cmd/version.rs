@@ -15,6 +15,10 @@ const USER_AGENT: &str = concat!("sift-cli/", env!("CARGO_PKG_VERSION"));
 #[derive(Deserialize)]
 struct GithubRelease {
     tag_name: String,
+    #[serde(default)]
+    draft: bool,
+    #[serde(default)]
+    prerelease: bool,
 }
 
 pub async fn run() -> Result<ExitCode> {
@@ -60,13 +64,13 @@ pub async fn run() -> Result<ExitCode> {
     Ok(ExitCode::SUCCESS)
 }
 
-async fn fetch_latest() -> Result<Option<Version>> {
+pub(crate) async fn fetch_latest() -> Result<Option<Version>> {
     let client = ClientBuilder::new()
         .user_agent(USER_AGENT)
         .timeout(Duration::from_secs(5))
         .build()?;
 
-    let mut releases: Vec<GithubRelease> = client
+    let releases: Vec<GithubRelease> = client
         .get(RELEASES_URL)
         .send()
         .await?
@@ -74,23 +78,20 @@ async fn fetch_latest() -> Result<Option<Version>> {
         .json()
         .await?;
 
-    let mut i = 0;
-    while i < releases.len() {
-        if releases[i].tag_name.contains("alpha") {
-            releases.remove(i);
-        } else {
-            i += 1;
-        }
-    }
-
-    Ok(releases
-        .into_iter()
-        .filter_map(|r| r.tag_name.strip_prefix(TAG_PREFIX).map(str::to_string))
-        .filter_map(|v| Version::parse(&v).ok())
-        .max())
+    Ok(latest_stable(releases))
 }
 
-fn install_command(latest: &Version) -> String {
+fn latest_stable(releases: Vec<GithubRelease>) -> Option<Version> {
+    releases
+        .into_iter()
+        .filter(|release| !release.draft && !release.prerelease)
+        .filter_map(|r| r.tag_name.strip_prefix(TAG_PREFIX).map(str::to_string))
+        .filter_map(|v| Version::parse(&v).ok())
+        .filter(|version| version.pre.is_empty())
+        .max()
+}
+
+pub(crate) fn install_command(latest: &Version) -> String {
     let (asset, cmd_tmpl) = if cfg!(windows) {
         (
             "sift_cli-installer.ps1",
@@ -107,4 +108,36 @@ fn install_command(latest: &Version) -> String {
         "https://github.com/sift-stack/sift/releases/download/{TAG_PREFIX}{latest}/{asset}"
     );
     cmd_tmpl.replace("{url}", &url)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{GithubRelease, latest_stable};
+    use semver::Version;
+
+    #[test]
+    fn latest_release_excludes_drafts_and_prereleases() {
+        let releases = vec![
+            GithubRelease {
+                tag_name: "sift_cli-v0.4.0-alpha.1".to_string(),
+                draft: false,
+                prerelease: true,
+            },
+            GithubRelease {
+                tag_name: "sift_cli-v0.3.1".to_string(),
+                draft: true,
+                prerelease: false,
+            },
+            GithubRelease {
+                tag_name: "sift_cli-v0.3.0".to_string(),
+                draft: false,
+                prerelease: false,
+            },
+        ];
+
+        assert_eq!(
+            latest_stable(releases),
+            Some(Version::parse("0.3.0").unwrap())
+        );
+    }
 }

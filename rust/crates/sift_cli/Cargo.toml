@@ -53,3 +53,4 @@ include_dir.workspace = true
 [dev-dependencies]
 indoc = { workspace = true }
 bytes = { workspace = true }
+tempdir = { workspace = true }
