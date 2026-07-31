@@ -296,9 +296,19 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
         }
     }
 
-    let mut registrations = Vec::new();
+    // Skill inspection is local file IO, but each Claude/Codex registration costs an `mcp`
+    // subprocess round-trip, so inspect every client under a spinner before reporting.
+    let spinner = Spinner::new();
+    spinner.set_message(format!("{} Sift MCP registrations...", "Checking".green()));
+    let mut inspected = Vec::new();
     for harness in &environment.harnesses {
-        match config::inspect(*harness, &environment)? {
+        inspected.push((*harness, config::inspect(*harness, &environment)?));
+    }
+    spinner.finish_and_clear();
+
+    let mut registrations = Vec::new();
+    for (harness, state) in inspected {
+        match state {
             config::State::Current(registration) => {
                 println!(
                     "[ok] {} MCP registration ({})",
@@ -699,7 +709,15 @@ async fn check_release() -> bool {
             return false;
         }
     };
-    match version::fetch_latest().await {
+    let latest = {
+        let spinner = Spinner::new();
+        spinner.set_message(format!(
+            "{} for a newer sift-cli release...",
+            "Checking".green()
+        ));
+        version::fetch_latest().await
+    };
+    match latest {
         Ok(Some(latest)) if latest > current => {
             println!("[error] sift-cli {current} is outdated; latest is {latest}");
             println!("Update with:\n\n  {}\n", version::install_command(&latest));
