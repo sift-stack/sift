@@ -13,11 +13,13 @@ use std::{
 };
 
 use anyhow::{Context, Result, anyhow};
+use crossterm::style::Stylize;
 use semver::Version;
 
 use crate::{
     cli::{AgentInstallArgs, AgentUpdateArgs},
     cmd::version,
+    util::progress::Spinner,
 };
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -294,9 +296,19 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
         }
     }
 
-    let mut registrations = Vec::new();
+    // Skill inspection is local file IO, but each Claude/Codex registration costs an `mcp`
+    // subprocess round-trip, so inspect every client under a spinner before reporting.
+    let spinner = Spinner::new();
+    spinner.set_message(format!("{} Sift MCP registrations...", "Checking".green()));
+    let mut inspected = Vec::new();
     for harness in &environment.harnesses {
-        match config::inspect(*harness, &environment)? {
+        inspected.push((*harness, config::inspect(*harness, &environment)?));
+    }
+    spinner.finish_and_clear();
+
+    let mut registrations = Vec::new();
+    for (harness, state) in inspected {
+        match state {
             config::State::Current(registration) => {
                 println!(
                     "[ok] {} MCP registration ({})",
@@ -504,6 +516,11 @@ fn install_environment(
         return Ok(ExitCode::FAILURE);
     }
 
+    // Each detected Claude/Codex client costs several `mcp` subprocess round-trips, so
+    // hold a spinner across the whole silent stretch that precedes the result lines.
+    let spinner = Spinner::new();
+    spinner.set_message(format!("{} Sift MCP and skills...", "Installing".green()));
+
     let targets = skill::targets(environment);
     let mut blockers = Vec::new();
     for target in &targets {
@@ -526,6 +543,7 @@ fn install_environment(
     }
 
     if !blockers.is_empty() {
+        spinner.finish_and_clear();
         println!("No changes were made because the existing setup needs attention:");
         for blocker in blockers {
             println!("  - {blocker}");
@@ -583,6 +601,8 @@ fn install_environment(
             cleanup_errors.join("; ")
         ));
     }
+
+    spinner.finish_and_clear();
 
     for target in &targets {
         println!(
@@ -689,7 +709,15 @@ async fn check_release() -> bool {
             return false;
         }
     };
-    match version::fetch_latest().await {
+    let latest = {
+        let spinner = Spinner::new();
+        spinner.set_message(format!(
+            "{} for a newer sift-cli release...",
+            "Checking".green()
+        ));
+        version::fetch_latest().await
+    };
+    match latest {
         Ok(Some(latest)) if latest > current => {
             println!("[error] sift-cli {current} is outdated; latest is {latest}");
             println!("Update with:\n\n  {}\n", version::install_command(&latest));
