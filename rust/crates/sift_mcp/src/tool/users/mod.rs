@@ -48,8 +48,8 @@ impl SiftMcpServer {
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `name`,
                 `created_date`, `modified_date`; with `include_inactive` set, only `created_date` and
                 `modified_date`. Default sort is `name` ascending (A-Z). Example: `\"created_date desc,name\"`.
-              - `limit`: max items to return. Start at 200 and only raise it if the result is capped and you still
-                need more. Values are clamped to `1..=1000`; omitting it defaults to 200.
+              - `limit`: max items to return. Start at 50 and only raise it if the result is capped and you still
+                need more. Values are clamped to `1..=200`; omitting it defaults to 50.
               - `include_inactive`: optional; defaults to false, listing only users active in the organization. Set
                 true to also return deactivated accounts — needed when attributing older records to someone who has
                 since left.

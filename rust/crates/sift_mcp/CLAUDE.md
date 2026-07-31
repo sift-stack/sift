@@ -489,8 +489,8 @@ When you add or update a list tool:
    - Order-by: list every orderable field, the default sort when the field is empty (assets and
      runs default to `created_date desc`; channels defaults to `created_date` ascending — these
      differ, do not assume), and the `\"FIELD_NAME[ desc],...\"` format.
-   - Limit: describe the clamp in `service::common::paging`. Any value is bounded to `1..=1000`,
-     and omitting `limit` falls back to `DEFAULT_LIMIT` (200), so no call is ever unbounded. This
+   - Limit: describe the clamp in `service::common::paging`. Any value is bounded to `1..=200`,
+     and omitting `limit` falls back to `DEFAULT_LIMIT` (50), so no call is ever unbounded. This
      differs from the proto's raw `page_size` (it caps higher for some services).
 4. **Re-read the proto whenever the resource changes.** If a filterable or orderable field is
    added to the proto, update the tool description in the same change. A stale description is
@@ -582,26 +582,14 @@ including the order of calls and a failure injected partway through.
 
 ---
 
-## Step 7 — Update the onboarding docs
+## Step 7 — Update the agent skill
 
-The MCP server ships as part of `sift-cli`, and its onboarding docs live in
-`rust/crates/sift_cli/assets/docs/src/`. A new tool or prompt that is not documented does not
-exist as far as users are concerned. Update the docs in the same change.
+The `sift-cli` mdBook deliberately does not document the MCP server or its prompts. Do not add
+a page for them. The installed Sift skill is the only user-facing record of the tool surface, so
+a tool missing from it does not exist as far as agents are concerned.
 
-- **New or changed tool** → `agents/mcp.md`. Add a row to the "Available tools" table with the
-  tool name and a one-line purpose drawn from your tool description. If the tool changes the
-  typical agent flow, update the flow line beneath the table.
-- **New or changed prompt** → `agents/prompts.md`. Add a `## <prompt>` section with a one-line
-  summary, an argument table (`Argument` / `Required` / `Description`), and at least one
-  invocation example using the `/mcp__sift__<prompt>` slash-command form. Match the format of
-  the existing `explore_asset` / `analyze_run` / `derive_and_upload` sections.
-
-These docs are mdBook source. Keep prose in direct voice, concise, and consistent with the
-surrounding pages.
-
-Parallel obligation: the agent skill files (`SKILL.md` / `AGENTS.md`) also carry the MCP tool
-list. They are governed by `rust/crates/sift_cli/CLAUDE.md`; follow its lockstep rules and
-update them in the same change when you add or remove a tool.
+The skill is governed by `rust/crates/sift_cli/AGENTS.md`; follow its rules and update it in the
+same change when you add or remove a tool.
 
 ---
 
@@ -662,6 +650,5 @@ Run through this before declaring the tool done:
 - [ ] Service registered in `server/mod.rs` and the router merged.
 - [ ] Service tests added, covering single page, pagination, `limit`, and an error path. A mock
       was added to `sift_test_util` if one did not exist.
-- [ ] Onboarding docs updated: `agents/mcp.md` for a tool, `agents/prompts.md` for a prompt. Skill
-      files (`SKILL.md` / `AGENTS.md`) updated per `sift_cli/CLAUDE.md` if the tool list changed.
+- [ ] Installed skill updated per `sift_cli/AGENTS.md` if the tool list changed.
 - [ ] `cargo build -p sift_mcp` and `cargo test -p sift_mcp` both pass.

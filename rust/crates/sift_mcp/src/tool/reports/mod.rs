@@ -78,8 +78,8 @@ impl SiftMcpServer {
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `name`,
                 `created_date`, `modified_date`. Default sort is `created_date desc` (newest first).
                 Example: `\"created_date desc,modified_date\"`.
-              - `limit`: max items to return. Start at 200 and only raise it if the result is capped
-                and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200.
+              - `limit`: max items to return. Start at 50 and only raise it if the result is capped
+                and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
               - `organization_id`: optional. Required only when the caller belongs to multiple organizations; it
                 scopes the listing to that org. Omit it for single-organization users.
 
@@ -136,8 +136,8 @@ impl SiftMcpServer {
                 free-text field to pattern-match here; narrow by `rule_id` or `status`.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `display_order`,
                 `created_date`, `modified_date`. Default sort is `display_order` ascending.
-              - `limit`: max items to return. Start at 200 and only raise it if the result is capped
-                and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200.
+              - `limit`: max items to return. Start at 50 and only raise it if the result is capped
+                and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
 
             Errors:
               - `INVALID_PARAMS` if `report_id` is empty or `filter`/`order_by` is invalid.

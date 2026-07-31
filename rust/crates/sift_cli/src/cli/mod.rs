@@ -12,7 +12,6 @@ use ulog::UlogParseErrorPolicy;
 pub mod channel;
 use channel::DataType;
 
-pub mod agent;
 pub mod export;
 pub mod parquet;
 
@@ -34,7 +33,8 @@ pub struct Args {
     #[arg(short = 'V', long)]
     pub version: bool,
 
-    #[arg(long, global = true, hide = true)]
+    /// Use a named profile from the config file
+    #[arg(long, global = true)]
     pub profile: Option<String>,
 
     #[arg(long, global = true, hide = true)]
@@ -63,6 +63,11 @@ pub enum Cmd {
     #[command(subcommand)]
     Install(InstallCmd),
 
+    /// Manage the Sift integration for detected AI coding clients
+    #[cfg(feature = "mcp")]
+    #[command(subcommand)]
+    Agent(AgentCmd),
+
     /// Start the Sift MCP server
     #[cfg(feature = "mcp")]
     #[command(hide = true)]
@@ -87,30 +92,53 @@ pub struct DocArgs {
     pub addr: SocketAddr,
 }
 
-/// Install optional Sift tooling such as autocompletions or Agent skills
+/// Install optional Sift tooling
 #[derive(Subcommand)]
 pub enum InstallCmd {
     /// Install or print shell completions for sift-cli
     #[command(subcommand)]
     Completions(CompletionsCmd),
-
-    /// Install Sift-specific skills for agentic tooling
-    AgentSkills(AgentSkillsArgs),
 }
 
+/// Manage Sift's release-matched skill and MCP sidecar as one bundle.
+#[cfg(feature = "mcp")]
+#[derive(Subcommand)]
+pub enum AgentCmd {
+    /// Install every detected client in safe mode using the default profile unless selected
+    Install(AgentInstallArgs),
+
+    /// Refresh every detected client while preserving its profile and access mode
+    Update(AgentUpdateArgs),
+
+    /// Check the CLI version, skill files, MCP profiles, and access modes
+    Doctor,
+
+    /// Remove Sift-owned agent files and registrations
+    Uninstall,
+}
+
+#[cfg(feature = "mcp")]
 #[derive(clap::Args)]
-pub struct AgentSkillsArgs {
-    /// The agentic coding assistant to install the skill for.
-    pub agent: agent::Agent,
-
-    /// Path to write the skill file to. When omitted, defaults to the
-    /// standard skill location for the selected agent.
+pub struct AgentInstallArgs {
+    /// Enable tools that modify or archive resources for every detected MCP client
     #[arg(long)]
-    pub output: Option<String>,
+    pub allow_destructive: bool,
+}
 
-    /// Print the skill content to stdout instead of writing it to --output.
-    #[arg(long)]
-    pub print: bool,
+#[cfg(feature = "mcp")]
+#[derive(clap::Args)]
+pub struct AgentUpdateArgs {
+    /// Enable tools that modify or archive resources for every detected MCP client
+    #[arg(long, conflicts_with = "read_only")]
+    pub allow_destructive: bool,
+
+    /// Disable destructive tools for every detected MCP client
+    #[arg(long, conflicts_with = "allow_destructive")]
+    pub read_only: bool,
+
+    /// Switch every detected MCP client back to the default profile
+    #[arg(long, conflicts_with = "profile")]
+    pub default_profile: bool,
 }
 
 #[derive(Subcommand)]

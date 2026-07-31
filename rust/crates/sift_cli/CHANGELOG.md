@@ -5,6 +5,26 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### What's New
+
+- Added `sift-cli agent install`, `update`, `doctor`, and `uninstall` for
+  stateless, lockstep management of the release-matched Sift skill and MCP
+  sidecar across detected Claude Code, Codex, Cursor, and OpenCode clients.
+- Added safe-by-default, lockstep MCP access controls: install defaults to
+  read-only, update preserves the existing mode, explicit flags enable or
+  disable destructive tools for all detected clients, and doctor reports mixed
+  modes.
+- Consolidated the duplicated agent instructions into one canonical skill at
+  `assets/skills/sift/SKILL.md`.
+- Removed the project-scoped `install agent-skills` workflow. Existing Sift
+  blocks in project `AGENTS.md` files must be removed manually because the new
+  lifecycle is user-scoped.
+- Reduced MCP list defaults from 200 records to 50 and the maximum from 1000 to
+  200 to protect agent context windows.
+- Removed the MCP server, built-in prompt, and agent skill pages from the
+  bundled `sift-cli` documentation. The agent-facing tool surface is documented
+  in the installed skill instead.
+
 ## [v0.3.0] - July 13, 2026
 
 ### What's New

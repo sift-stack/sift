@@ -4,6 +4,8 @@ use crossterm::style::Stylize;
 use std::{fs::read_to_string, io::ErrorKind};
 use toml::{Table, Value};
 
+#[cfg(feature = "mcp")]
+pub mod agent;
 pub mod config;
 pub mod doc;
 pub mod export;
