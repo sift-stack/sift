@@ -7,6 +7,7 @@ import pytest
 
 from sift_client.sift_types import Asset
 from sift_client.sift_types.asset import AssetUpdate
+from sift_client.util.metadata import Metadata
 
 
 class TestAssetUpdate:
@@ -30,6 +31,33 @@ class TestAssetUpdate:
         assert metadata_dict["key2"].number_value == 42.5
         assert metadata_dict["key3"].boolean_value is True
         assert "metadata" in mask.paths
+
+    def test_metadata_list_value_writes_every_element(self):
+        """A list[str] value produces one MetadataValue per element, in order."""
+        update = AssetUpdate(metadata={"parts": ["ABC", "XYZ"], "env": "prod"})
+        update.resource_id = "test_asset_id"
+
+        proto, mask = update.to_proto_with_mask()
+
+        assert [md.string_value for md in proto.metadata if md.key.name == "parts"] == [
+            "ABC",
+            "XYZ",
+        ]
+        assert [md.string_value for md in proto.metadata if md.key.name == "env"] == ["prod"]
+        assert "metadata" in mask.paths
+
+    def test_metadata_mapping_round_trips_all_values(self):
+        """Passing an entity's Metadata mapping must not drop multi-value entries."""
+        metadata = Metadata({"parts": "ABC"}, {"parts": ["ABC", "XYZ"]})
+        update = AssetUpdate(metadata=metadata)
+        update.resource_id = "test_asset_id"
+
+        proto, _ = update.to_proto_with_mask()
+
+        assert [md.string_value for md in proto.metadata if md.key.name == "parts"] == [
+            "ABC",
+            "XYZ",
+        ]
 
 
 @pytest.fixture

@@ -186,7 +186,7 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         start_time: datetime | None = None,
         stop_time: datetime | None = None,
         tag_names: list[str] | None = None,
-        metadata: dict[str, str | float | bool] | None = None,
+        metadata: dict[str, str | float | bool | list[str]] | None = None,
         client_key: str | None = None,
     ) -> Run:
         """Create an adhoc run.

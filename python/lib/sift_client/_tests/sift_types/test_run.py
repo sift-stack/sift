@@ -7,6 +7,7 @@ import pytest
 
 from sift_client.sift_types import Run
 from sift_client.sift_types.run import RunCreate, RunUpdate
+from sift_client.util.metadata import Metadata
 
 
 class TestRunCreate:
@@ -25,6 +26,24 @@ class TestRunCreate:
         assert metadata_dict["string_key"].string_value == "value"
         assert metadata_dict["number_key"].number_value == 3.14
         assert metadata_dict["bool_key"].boolean_value is True
+
+    def test_metadata_list_value_writes_every_element(self):
+        """A list[str] value produces one MetadataValue per element, in order."""
+        create = RunCreate(name="test_run", metadata={"parts": ["ABC", "XYZ"], "env": "prod"})
+        proto = create.to_proto()
+
+        assert [md.string_value for md in proto.metadata if md.key.name == "parts"] == [
+            "ABC",
+            "XYZ",
+        ]
+        assert [md.string_value for md in proto.metadata if md.key.name == "env"] == ["prod"]
+
+    def test_rust_form_rejects_list_metadata(self):
+        """The streaming ingestion path does not support multi-value metadata yet."""
+        pytest.importorskip("sift_stream_bindings")
+        create = RunCreate(name="test_run", metadata={"parts": ["ABC", "XYZ"]})
+        with pytest.raises(ValueError, match="streaming ingestion path"):
+            create._to_rust_form()
 
     def test_time_validator_start_before_stop(self):
         """Test time validator accepts start_time before stop_time."""
@@ -73,6 +92,34 @@ class TestRunUpdate:
         assert metadata_dict["key2"].number_value == 42.5
         assert metadata_dict["key3"].boolean_value is False
         assert "metadata" in mask.paths
+
+    def test_metadata_list_value_writes_every_element(self):
+        """A list[str] value produces one MetadataValue per element, in order."""
+        update = RunUpdate(metadata={"parts": ["ABC", "XYZ"], "env": "prod"})
+        update.resource_id = "test_run_id"
+
+        proto, mask = update.to_proto_with_mask()
+
+        assert [md.string_value for md in proto.metadata if md.key.name == "parts"] == [
+            "ABC",
+            "XYZ",
+        ]
+        assert [md.string_value for md in proto.metadata if md.key.name == "env"] == ["prod"]
+        assert "metadata" in mask.paths
+
+    def test_metadata_mapping_round_trips_all_values(self):
+        """Passing an entity's Metadata mapping must not drop multi-value entries."""
+        metadata = Metadata({"parts": "ABC", "env": "prod"}, {"parts": ["ABC", "XYZ"]})
+        update = RunUpdate(metadata=metadata)
+        update.resource_id = "test_run_id"
+
+        proto, _ = update.to_proto_with_mask()
+
+        assert [md.string_value for md in proto.metadata if md.key.name == "parts"] == [
+            "ABC",
+            "XYZ",
+        ]
+        assert [md.string_value for md in proto.metadata if md.key.name == "env"] == ["prod"]
 
     def test_time_validator_start_before_stop(self):
         """Test time validator accepts start_time before stop_time."""
