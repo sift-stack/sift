@@ -1,14 +1,15 @@
 use std::{
     ffi::{OsStr, OsString},
-    io,
-    path::Path,
+    fs,
+    io::{self, ErrorKind},
+    path::{Path, PathBuf},
     process::Command,
 };
 
 use anyhow::{Context, Result, anyhow};
-use serde_json::Value;
+use serde_json::{Map, Value, json};
 
-use super::{AccessMode, Environment, Harness};
+use super::{AccessMode, Environment, Harness, files};
 
 #[derive(Debug)]
 struct CommandOutput {
@@ -51,7 +52,16 @@ struct NativeInspection {
 #[derive(Debug)]
 pub(super) struct Snapshot {
     harness: Harness,
-    previous: Option<NativeEntry>,
+    contents: SnapshotContents,
+}
+
+#[derive(Debug)]
+enum SnapshotContents {
+    Native(Option<NativeEntry>),
+    Json {
+        path: PathBuf,
+        contents: Option<Vec<u8>>,
+    },
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -68,31 +78,83 @@ pub(super) fn inspect(harness: Harness, environment: &Environment) -> Result<Sta
 }
 
 pub(super) fn snapshot(harness: Harness, environment: &Environment) -> Result<Snapshot> {
-    let inspection = inspect_native(harness, environment, &SystemRunner)?;
-    let previous = match inspection.state {
-        State::Missing => None,
-        State::Current(_) | State::ManagedDrift(_) => inspection.entry,
-        State::Conflict(detail) | State::Unavailable(detail) => {
-            return Err(anyhow!(
-                "{} MCP registration cannot be snapshotted: {detail}",
-                harness.label()
-            ));
+    let contents = match harness {
+        Harness::Claude | Harness::Codex => {
+            let inspection = inspect_native(harness, environment, &SystemRunner)?;
+            match inspection.state {
+                State::Missing => SnapshotContents::Native(None),
+                State::Current(_) | State::ManagedDrift(_) => {
+                    SnapshotContents::Native(inspection.entry)
+                }
+                State::Conflict(detail) | State::Unavailable(detail) => {
+                    return Err(anyhow!(
+                        "{} MCP registration cannot be snapshotted: {detail}",
+                        harness.label()
+                    ));
+                }
+            }
+        }
+        Harness::Cursor | Harness::OpenCode => {
+            let path = json_path(harness, environment);
+            let contents = match fs::symlink_metadata(&path) {
+                Ok(metadata) if metadata.file_type().is_symlink() => {
+                    return Err(anyhow!(
+                        "{} is a symbolic link; refusing to snapshot it",
+                        path.display()
+                    ));
+                }
+                Ok(_) => Some(
+                    fs::read(&path)
+                        .with_context(|| format!("failed to read {}", path.display()))?,
+                ),
+                Err(error) if error.kind() == ErrorKind::NotFound => None,
+                Err(error) => {
+                    return Err(error)
+                        .with_context(|| format!("failed to inspect {}", path.display()));
+                }
+            };
+            SnapshotContents::Json { path, contents }
         }
     };
-    Ok(Snapshot { harness, previous })
+    Ok(Snapshot { harness, contents })
 }
 
 pub(super) fn restore(snapshot: &Snapshot, environment: &Environment) -> Result<()> {
-    restore_native(
-        snapshot.harness,
-        snapshot.previous.as_ref(),
-        environment,
-        &SystemRunner,
-    )
+    match &snapshot.contents {
+        SnapshotContents::Native(previous) => restore_native(
+            snapshot.harness,
+            previous.as_ref(),
+            environment,
+            &SystemRunner,
+        ),
+        SnapshotContents::Json { path, contents } => match contents {
+            Some(contents) => files::write_atomic(path, contents),
+            None => match fs::symlink_metadata(path) {
+                Ok(metadata) if metadata.file_type().is_symlink() => Err(anyhow!(
+                    "{} became a symbolic link; refusing to remove it",
+                    path.display()
+                )),
+                Ok(_) => {
+                    fs::remove_file(path)
+                        .with_context(|| format!("failed to remove {}", path.display()))?;
+                    files::remove_empty_parent(path);
+                    Ok(())
+                }
+                Err(error) if error.kind() == ErrorKind::NotFound => Ok(()),
+                Err(error) => {
+                    Err(error).with_context(|| format!("failed to inspect {}", path.display()))
+                }
+            },
+        },
+    }
 }
 
 fn inspect_with(harness: Harness, environment: &Environment, runner: &dyn Runner) -> Result<State> {
-    Ok(inspect_native(harness, environment, runner)?.state)
+    match harness {
+        Harness::Claude | Harness::Codex => Ok(inspect_native(harness, environment, runner)?.state),
+        Harness::Cursor => inspect_json(harness, environment),
+        Harness::OpenCode => inspect_json(harness, environment),
+    }
 }
 
 pub(super) fn install(
@@ -109,7 +171,10 @@ fn install_with(
     access: AccessMode,
     runner: &dyn Runner,
 ) -> Result<()> {
-    install_native(harness, environment, access, runner)
+    match harness {
+        Harness::Claude | Harness::Codex => install_native(harness, environment, access, runner),
+        Harness::Cursor | Harness::OpenCode => install_json(harness, environment, access),
+    }
 }
 
 pub(super) fn uninstall(harness: Harness, environment: &Environment) -> Result<bool> {
@@ -124,10 +189,16 @@ fn uninstall_with(
     match inspect_with(harness, environment, runner)? {
         State::Missing => Ok(false),
         State::Conflict(_) | State::Unavailable(_) => Ok(false),
-        State::Current(_) | State::ManagedDrift(_) => {
-            remove_native(harness, runner)?;
-            Ok(true)
-        }
+        State::Current(_) | State::ManagedDrift(_) => match harness {
+            Harness::Claude | Harness::Codex => {
+                remove_native(harness, runner)?;
+                Ok(true)
+            }
+            Harness::Cursor | Harness::OpenCode => {
+                remove_json(harness, environment)?;
+                Ok(true)
+            }
+        },
     }
 }
 
@@ -139,6 +210,9 @@ fn inspect_native(
     match harness {
         Harness::Claude => inspect_claude(environment, runner),
         Harness::Codex => inspect_codex(environment, runner),
+        Harness::Cursor | Harness::OpenCode => {
+            unreachable!("JSON-backed harnesses do not have native registrations")
+        }
     }
 }
 
@@ -344,6 +418,136 @@ fn mcp_args(access: AccessMode) -> Vec<String> {
     args
 }
 
+fn inspect_json(harness: Harness, environment: &Environment) -> Result<State> {
+    let path = json_path(harness, environment);
+    if harness == Harness::OpenCode && !path.exists() {
+        let jsonc = path.with_extension("jsonc");
+        if jsonc.exists() {
+            return Ok(State::Unavailable(format!(
+                "{} uses JSON with comments; add Sift to it manually or rename it to opencode.json",
+                jsonc.display()
+            )));
+        }
+    }
+
+    let root = match load_json(&path) {
+        Ok(Some(root)) => root,
+        Ok(None) => return Ok(State::Missing),
+        Err(error) => return Ok(State::Unavailable(error.to_string())),
+    };
+    let container_key = container_key(harness);
+    let Some(servers) = root.get(container_key) else {
+        return Ok(State::Missing);
+    };
+    let Some(servers) = servers.as_object() else {
+        return Ok(State::Conflict(format!(
+            "`{container_key}` in {} is not a JSON object",
+            path.display()
+        )));
+    };
+    let Some(entry) = servers.get("sift") else {
+        return Ok(State::Missing);
+    };
+    Ok(classify_json_entry(harness, entry, environment))
+}
+
+fn install_json(harness: Harness, environment: &Environment, access: AccessMode) -> Result<()> {
+    let path = json_path(harness, environment);
+    let mut root = load_json(&path)?.unwrap_or_default();
+    let container_key = container_key(harness);
+    let servers = object_entry(&mut root, container_key)?;
+    let args = mcp_args(access);
+    servers.insert(
+        "sift".to_string(),
+        match harness {
+            Harness::Cursor => json!({
+                "command": environment.current_exe,
+                "args": args
+            }),
+            Harness::OpenCode => json!({
+                "type": "local",
+                "command": std::iter::once(environment.current_exe.to_string_lossy().to_string())
+                    .chain(args.iter().cloned())
+                    .collect::<Vec<_>>(),
+                "enabled": true
+            }),
+            _ => unreachable!("only JSON-backed harnesses reach install_json"),
+        },
+    );
+    write_json(&path, &root)
+}
+
+fn remove_json(harness: Harness, environment: &Environment) -> Result<()> {
+    let path = json_path(harness, environment);
+    let Some(mut root) = load_json(&path)? else {
+        return Ok(());
+    };
+    if let Some(servers) = root
+        .get_mut(container_key(harness))
+        .and_then(Value::as_object_mut)
+    {
+        servers.remove("sift");
+    }
+    write_json(&path, &root)
+}
+
+fn classify_json_entry(harness: Harness, entry: &Value, environment: &Environment) -> State {
+    let Some(entry) = entry.as_object() else {
+        return State::Conflict("the existing `sift` MCP entry is not an object".to_string());
+    };
+
+    let (command, args, metadata_is_managed) = match harness {
+        Harness::Cursor => {
+            let allowed = ["command", "args"];
+            let managed = entry.keys().all(|key| allowed.contains(&key.as_str()));
+            let Some(args) = string_array(entry.get("args")) else {
+                return State::Conflict(
+                    "the existing `sift` MCP entry has invalid arguments".to_string(),
+                );
+            };
+            (
+                entry
+                    .get("command")
+                    .and_then(Value::as_str)
+                    .map(str::to_string),
+                args,
+                managed,
+            )
+        }
+        Harness::OpenCode => {
+            let allowed = ["type", "command", "enabled"];
+            let managed = entry.keys().all(|key| allowed.contains(&key.as_str()))
+                && entry.get("type").and_then(Value::as_str) == Some("local");
+            let Some(command_parts) = string_array(entry.get("command")) else {
+                return State::Conflict(
+                    "the existing `sift` MCP entry has an invalid command".to_string(),
+                );
+            };
+            let command = command_parts.first().cloned();
+            let args = command_parts.iter().skip(1).cloned().collect();
+            let enabled = true_or_missing(entry.get("enabled"));
+            (command, args, managed && enabled)
+        }
+        _ => unreachable!("only JSON-backed harnesses reach classify_json_entry"),
+    };
+
+    let Some(command) = command else {
+        return State::Conflict(
+            "could not read the command for the existing `sift` MCP entry".to_string(),
+        );
+    };
+    let classified = classify_command(&command, &args, environment);
+    if !metadata_is_managed {
+        return match classified {
+            State::Current(_) | State::ManagedDrift(_) => State::Conflict(
+                "the existing `sift` MCP entry contains custom settings".to_string(),
+            ),
+            other => other,
+        };
+    }
+    classified
+}
+
 fn classify_command(command: &str, args: &[String], environment: &Environment) -> State {
     let current = environment.current_exe.to_string_lossy();
     let current_command = command == "sift-cli" || command == current;
@@ -385,6 +589,74 @@ fn is_sift_cli(command: &str) -> bool {
                 "sift-cli" | "sift-cli.exe"
             )
         })
+}
+
+fn json_path(harness: Harness, environment: &Environment) -> PathBuf {
+    match harness {
+        Harness::Cursor => environment.home.join(".cursor").join("mcp.json"),
+        Harness::OpenCode => environment
+            .home
+            .join(".config")
+            .join("opencode")
+            .join("opencode.json"),
+        _ => unreachable!("only JSON-backed harnesses have JSON paths"),
+    }
+}
+
+fn container_key(harness: Harness) -> &'static str {
+    match harness {
+        Harness::Cursor => "mcpServers",
+        Harness::OpenCode => "mcp",
+        _ => unreachable!("only JSON-backed harnesses have container keys"),
+    }
+}
+
+fn load_json(path: &Path) -> Result<Option<Map<String, Value>>> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.file_type().is_symlink() => {
+            return Err(anyhow!(
+                "{} is a symbolic link; refusing to replace it",
+                path.display()
+            ));
+        }
+        Ok(_) => {}
+        Err(error) if error.kind() == ErrorKind::NotFound => return Ok(None),
+        Err(error) => {
+            return Err(error).with_context(|| format!("failed to inspect {}", path.display()));
+        }
+    }
+
+    let contents = match fs::read(path) {
+        Ok(contents) => contents,
+        Err(error) => {
+            return Err(error).with_context(|| format!("failed to read {}", path.display()));
+        }
+    };
+    let value: Value = serde_json::from_slice(&contents)
+        .with_context(|| format!("{} is not valid JSON", path.display()))?;
+    value
+        .as_object()
+        .cloned()
+        .map(Some)
+        .ok_or_else(|| anyhow!("{} must contain a JSON object", path.display()))
+}
+
+fn write_json(path: &Path, root: &Map<String, Value>) -> Result<()> {
+    let mut contents = serde_json::to_vec_pretty(root)?;
+    contents.push(b'\n');
+    files::write_atomic(path, &contents)
+}
+
+fn object_entry<'a>(
+    root: &'a mut Map<String, Value>,
+    key: &str,
+) -> Result<&'a mut Map<String, Value>> {
+    let value = root
+        .entry(key.to_string())
+        .or_insert_with(|| Value::Object(Map::new()));
+    value
+        .as_object_mut()
+        .ok_or_else(|| anyhow!("`{key}` must be a JSON object"))
 }
 
 fn string_array(value: Option<&Value>) -> Option<Vec<String>> {
@@ -522,6 +794,9 @@ fn add_native(harness: Harness, entry: &NativeEntry, runner: &dyn Runner) -> Res
             os_args(["mcp", "add", "sift", "--"]),
             "register the Sift MCP server with Codex",
         ),
+        Harness::Cursor | Harness::OpenCode => {
+            unreachable!("JSON-backed harnesses do not use native registration commands")
+        }
     };
     args.push(OsString::from(&entry.command));
     args.extend(entry.args.iter().map(OsString::from));
@@ -540,6 +815,9 @@ fn remove_native(harness: Harness, runner: &dyn Runner) -> Result<()> {
             os_args(["mcp", "remove", "sift"]),
             "remove the Codex MCP registration",
         ),
+        Harness::Cursor | Harness::OpenCode => {
+            unreachable!("JSON-backed harnesses do not use native registration commands")
+        }
     };
     run_checked(runner, program, &args, action)
 }

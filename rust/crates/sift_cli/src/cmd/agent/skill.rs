@@ -72,7 +72,9 @@ pub(super) fn targets(environment: &Environment) -> Vec<Target> {
     for harness in &environment.harnesses {
         let path = match harness {
             Harness::Claude => environment.home.join(".claude").join("skills").join("sift"),
-            Harness::Codex => environment.home.join(".agents").join("skills").join("sift"),
+            Harness::Codex | Harness::Cursor | Harness::OpenCode => {
+                environment.home.join(".agents").join("skills").join("sift")
+            }
         };
         by_path.entry(path).or_default().push(*harness);
     }

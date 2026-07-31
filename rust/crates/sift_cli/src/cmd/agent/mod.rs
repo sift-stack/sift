@@ -39,6 +39,8 @@ impl AccessMode {
 pub(super) enum Harness {
     Claude,
     Codex,
+    Cursor,
+    OpenCode,
 }
 
 impl Harness {
@@ -46,6 +48,8 @@ impl Harness {
         match self {
             Self::Claude => "Claude Code",
             Self::Codex => "Codex",
+            Self::Cursor => "Cursor",
+            Self::OpenCode => "OpenCode",
         }
     }
 }
@@ -75,17 +79,31 @@ impl Environment {
 
     fn detect_harnesses(&self) -> Vec<Harness> {
         let candidates = [
-            (Harness::Claude, &["claude"][..]),
-            (Harness::Codex, &["codex"][..]),
+            (Harness::Claude, &["claude"][..], self.home.join(".claude")),
+            (Harness::Codex, &["codex"][..], self.home.join(".codex")),
+            (
+                Harness::Cursor,
+                &["cursor", "cursor-agent"][..],
+                self.home.join(".cursor"),
+            ),
+            (
+                Harness::OpenCode,
+                &["opencode"][..],
+                self.home.join(".config").join("opencode"),
+            ),
         ];
 
         candidates
             .into_iter()
-            .filter_map(|(harness, commands)| {
-                commands
+            .filter_map(|(harness, commands, config_dir)| {
+                let command_exists = commands
                     .iter()
-                    .any(|command| self.command_available(command))
-                    .then_some(harness)
+                    .any(|command| self.command_available(command));
+                let detected = match harness {
+                    Harness::Claude | Harness::Codex => command_exists,
+                    Harness::Cursor | Harness::OpenCode => command_exists || config_dir.exists(),
+                };
+                detected.then_some(harness)
             })
             .collect()
     }
@@ -373,7 +391,7 @@ fn install_environment(
     if environment.harnesses.is_empty() {
         println!(
             "No supported AI coding clients were detected. Supported clients: \
-             Claude Code and Codex."
+             Claude Code, Codex, Cursor, and OpenCode."
         );
         return Ok(ExitCode::FAILURE);
     }
