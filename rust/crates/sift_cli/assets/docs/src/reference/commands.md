@@ -46,14 +46,6 @@ Export data from Sift. See [Exporting Data](../data/exporting.md).
 | `export run`    | Export data for a run.     |
 | `export asset`  | Export data for an asset.  |
 
-## `mcp`
-
-Start the Sift MCP server. See [MCP Server](../agents/mcp.md).
-
-In active development and not built into default releases. Opt in only if
-you are exploring or contributing to its development by building from source
-with `--features mcp`.
-
 ## `ping`
 
 Verify credentials and connectivity. See
@@ -67,4 +59,3 @@ Install optional tooling.
 | -------------------------------- | -------------------------------------------- |
 | `install completions print`      | Print shell completions to stdout.           |
 | `install completions update`     | Update the completions file for your shell.  |
-| `install agent-skills <AGENT>`   | Install a Sift skill for an AI assistant.    |

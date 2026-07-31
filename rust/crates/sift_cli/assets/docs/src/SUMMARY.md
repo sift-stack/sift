@@ -20,12 +20,6 @@
   - [Backups](./data/import-backups.md)
 - [Exporting Data](./data/exporting.md)
 
-# Agentic Tooling
-
-- [MCP Server](./agents/mcp.md)
-  - [Built-in Prompts](./agents/prompts.md)
-- [Agent Skills](./agents/skills.md)
-
 # Reference
 
 - [Shell Completions](./reference/completions.md)
