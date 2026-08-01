@@ -18,5 +18,14 @@ Prefix the channels for the panel you chose:
 `explore_host` passed on the call. Without either it fails with
 `INVALID_PARAMS`.
 
+If `app_uri` is missing, run `sift-cli agent doctor`. For a production or
+government profile, doctor gives a safe `--fix` command. Show that command and
+wait for approval before you run it. For any other domain, ask the user to open
+their Sift web app. Ask them to copy the URL origin from the browser address
+bar. Keep the scheme and host. Do not assume a top-level domain. Propose the
+profile-specific `sift-cli config update --app-uri <SIFT_WEB_ORIGIN>` command.
+Wait for approval before you run it. Ask the user to restart the MCP client
+before you retry `explore_url`.
+
 When the user wants a chart and numbers together, build the link and also run
 `get_data` then `sql`.

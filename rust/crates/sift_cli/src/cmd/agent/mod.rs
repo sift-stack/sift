@@ -17,8 +17,8 @@ use crossterm::style::Stylize;
 use semver::Version;
 
 use crate::{
-    cli::{AgentInstallArgs, AgentUpdateArgs},
-    cmd::version,
+    cli::{AgentDoctorArgs, AgentInstallArgs, AgentUpdateArgs},
+    cmd::{config as profile_config, config::AppUriState, version},
     util::progress::Spinner,
 };
 
@@ -55,6 +55,20 @@ impl Profile {
         match self {
             Self::Default => "default profile".to_string(),
             Self::Named(profile) => format!("profile '{profile}'"),
+        }
+    }
+
+    fn config_name(&self) -> Option<&str> {
+        match self {
+            Self::Default => None,
+            Self::Named(profile) => Some(profile),
+        }
+    }
+
+    fn command_prefix(&self) -> String {
+        match self {
+            Self::Default => "sift-cli".to_string(),
+            Self::Named(profile) => format!("sift-cli --profile {profile}"),
         }
     }
 }
@@ -244,12 +258,14 @@ pub async fn update(profile: Option<String>, args: AgentUpdateArgs) -> Result<Ex
     install_environment(&environment, "Updated", &registration)
 }
 
-pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
+pub async fn doctor(expected_profile: Option<String>, args: AgentDoctorArgs) -> Result<ExitCode> {
     let environment = Environment::discover()?;
     println!("Sift agent bundle {}", env!("CARGO_PKG_VERSION"));
 
     let mut unhealthy = check_release().await;
     let mut blocked = false;
+    let mut warnings = false;
+    let mut fixed_app_uri = false;
     if environment.harnesses.is_empty() {
         println!("[error] No supported AI coding clients were detected.");
         return Ok(ExitCode::FAILURE);
@@ -373,6 +389,79 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
         unhealthy = true;
     }
 
+    if !mixed_profiles
+        && !unexpected_profile
+        && let Some(profile) = profiles.first()
+    {
+        match profile_config::inspect_app_uri(profile.config_name()) {
+            Ok(AppUriState::Configured(app_uri)) => {
+                println!("[ok] {} app_uri: {app_uri}", profile.label());
+            }
+            Ok(AppUriState::MissingKnown(app_uri)) if args.fix => {
+                match profile_config::set_missing_app_uri(profile.config_name(), &app_uri) {
+                    Ok(true) => {
+                        println!("[fixed] {} app_uri: {app_uri}", profile.label());
+                        fixed_app_uri = true;
+                    }
+                    Ok(false) => {
+                        println!("[ok] {} app_uri is already configured", profile.label());
+                    }
+                    Err(error) => {
+                        println!(
+                            "[warning] Could not set app_uri for {}: {error}",
+                            profile.label()
+                        );
+                        warnings = true;
+                    }
+                }
+            }
+            Ok(AppUriState::MissingKnown(app_uri)) => {
+                println!("[warning] {} has no app_uri.", profile.label());
+                println!(
+                    "Run `{} agent doctor --fix` to set it to {app_uri}.",
+                    profile.command_prefix()
+                );
+                warnings = true;
+            }
+            Ok(AppUriState::MissingUnknown(rest_uri)) => {
+                println!("[warning] {} has no app_uri.", profile.label());
+                if let Some(rest_uri) = rest_uri {
+                    println!("No public Sift app URL maps from {rest_uri}.");
+                }
+                println!("Open your Sift web app and copy its URL origin.");
+                println!(
+                    "Then run `{} config update --app-uri <SIFT_WEB_ORIGIN>`.",
+                    profile.command_prefix()
+                );
+                warnings = true;
+            }
+            Ok(AppUriState::Invalid) => {
+                println!(
+                    "[warning] {} has an app_uri value that is not a string.",
+                    profile.label()
+                );
+                println!(
+                    "Set it with `{} config update --app-uri <SIFT_WEB_ORIGIN>`.",
+                    profile.command_prefix()
+                );
+                warnings = true;
+            }
+            Err(error) => {
+                println!(
+                    "[warning] Could not inspect app_uri for {}: {error}",
+                    profile.label()
+                );
+                warnings = true;
+            }
+        }
+    } else if args.fix && (mixed_profiles || unexpected_profile) {
+        println!("[skip] app_uri fix needs one profile across all detected MCP clients.");
+    }
+
+    if fixed_app_uri {
+        println!("Restart your MCP client to load the updated profile.");
+    }
+
     if unhealthy {
         if blocked {
             println!(
@@ -420,6 +509,9 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
             println!("Run `sift-cli agent update` to repair the detected integrations.");
         }
         Ok(ExitCode::FAILURE)
+    } else if warnings {
+        println!("All detected Sift agent integrations are healthy with warnings.");
+        Ok(ExitCode::SUCCESS)
     } else {
         println!("All detected Sift agent integrations are healthy.");
         Ok(ExitCode::SUCCESS)

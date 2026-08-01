@@ -1,9 +1,9 @@
 use super::*;
 
-const REST_URI: &str = "https://api.siftstack.com";
+const APP_URI: &str = "https://app.siftstack.com";
 
 fn service() -> UrlService {
-    UrlService::new(REST_URI.to_string())
+    UrlService::new(Some(APP_URI.to_string()))
 }
 
 #[test]
@@ -94,11 +94,50 @@ fn empty_vecs_are_treated_as_missing() {
 }
 
 #[test]
-fn host_derivation_strips_rest_uri_path() {
-    let svc = UrlService::new(String::from("https://api.siftstack.com/v1"));
+fn configured_app_uri_trims_a_trailing_slash() {
+    let svc = UrlService::new(Some(String::from("https://sift.example.net/")));
     let url = svc
         .build_explore_url(ExploreUrlRequest {
             assets: Some(vec![String::from("a")]),
+            ..Default::default()
+        })
+        .unwrap();
+    assert!(
+        url.starts_with("https://sift.example.net/explore?"),
+        "got {url}"
+    );
+}
+
+#[test]
+fn slash_only_app_uri_is_treated_as_missing() {
+    let svc = UrlService::new(Some(String::from(" / ")));
+    let err = svc.build_report_url("rep-123").unwrap_err();
+    assert_eq!(err.code.0, -32602);
+}
+
+#[test]
+fn missing_app_uri_without_explore_host_errors() {
+    let svc = UrlService::new(None);
+    let err = svc
+        .build_explore_url(ExploreUrlRequest {
+            assets: Some(vec![String::from("a")]),
+            ..Default::default()
+        })
+        .unwrap_err();
+    assert_eq!(err.code.0, -32602);
+    assert!(
+        err.message.contains("app_uri") && err.message.contains("explore_host"),
+        "expected profile and request guidance, got `{}`",
+        err.message
+    );
+}
+
+#[test]
+fn slash_only_explore_host_uses_configured_app_uri() {
+    let url = service()
+        .build_explore_url(ExploreUrlRequest {
+            assets: Some(vec![String::from("a")]),
+            explore_host: Some(String::from(" / ")),
             ..Default::default()
         })
         .unwrap();
@@ -109,44 +148,42 @@ fn host_derivation_strips_rest_uri_path() {
 }
 
 #[test]
-fn unsupported_rest_uri_without_explore_host_errors() {
-    let svc = UrlService::new(String::from("https://my-self-hosted.example"));
-    let err = svc
+fn explore_host_takes_priority_over_configured_app_uri() {
+    let url = service()
         .build_explore_url(ExploreUrlRequest {
             assets: Some(vec![String::from("a")]),
+            explore_host: Some(String::from("https://override.example.net/")),
             ..Default::default()
         })
-        .unwrap_err();
-    assert_eq!(err.code.0, -32602);
+        .unwrap();
     assert!(
-        err.message.contains("explore_host"),
-        "expected guidance to point at explore_host, got `{}`",
-        err.message
+        url.starts_with("https://override.example.net/explore?"),
+        "got {url}"
     );
 }
 
 #[test]
-fn report_url_uses_derived_web_host() {
+fn report_url_uses_configured_app_uri() {
     let url = service().build_report_url("rep-123").unwrap();
     assert_eq!(url, "https://app.siftstack.com/reports/rep-123");
 }
 
 #[test]
-fn report_url_errors_when_host_cannot_be_derived() {
-    let svc = UrlService::new(String::from("https://my-self-hosted.example"));
+fn report_url_errors_without_app_uri() {
+    let svc = UrlService::new(None);
     let err = svc.build_report_url("rep-123").unwrap_err();
     assert_eq!(err.code.0, -32602);
 }
 
 #[test]
-fn rule_url_uses_derived_web_host() {
+fn rule_url_uses_configured_app_uri() {
     let url = service().build_rule_url("rule-123").unwrap();
     assert_eq!(url, "https://app.siftstack.com/rules/rule-123");
 }
 
 #[test]
-fn rule_url_errors_when_host_cannot_be_derived() {
-    let svc = UrlService::new(String::from("https://my-self-hosted.example"));
+fn rule_url_errors_without_app_uri() {
+    let svc = UrlService::new(None);
     let err = svc.build_rule_url("rule-123").unwrap_err();
     assert_eq!(err.code.0, -32602);
 }
@@ -169,8 +206,8 @@ fn annotation_asset_run_urls_use_singular_path_segments() {
 }
 
 #[test]
-fn annotation_asset_run_urls_error_when_host_cannot_be_derived() {
-    let svc = UrlService::new(String::from("https://my-self-hosted.example"));
+fn annotation_asset_run_urls_error_without_app_uri() {
+    let svc = UrlService::new(None);
     assert_eq!(
         svc.build_annotation_url("ann-1").unwrap_err().code.0,
         -32602

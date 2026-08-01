@@ -476,6 +476,15 @@ fn update_named_and_default_profile_flags_are_mutually_exclusive() {
 }
 
 #[test]
+fn doctor_fix_flag_is_parsed() {
+    let args = crate::cli::Args::parse_from(["sift-cli", "agent", "doctor", "--fix"]);
+    let Some(crate::cli::Cmd::Agent(crate::cli::AgentCmd::Doctor(doctor))) = args.cmd else {
+        panic!("expected agent doctor arguments");
+    };
+    assert!(doctor.fix);
+}
+
+#[test]
 fn uninstall_removes_only_sift_json_entry() {
     let directory = TempDir::new("sift-cli-agent-uninstall").unwrap();
     let environment = Environment::for_test(

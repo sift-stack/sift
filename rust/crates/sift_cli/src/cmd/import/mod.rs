@@ -7,7 +7,8 @@ use sift_rs::{SiftChannel, common::r#type::v1::ChannelConfig, jobs::v1::JobStatu
 
 use crate::cmd::Context;
 use crate::util::{
-    explore_url::{explore_or_note, import_target, pending_import_tip, resolve_app_uri},
+    app_uri::resolve_app_uri,
+    explore_url::{explore_or_note, import_target, pending_import_tip},
     job::JobServiceWrapper,
     progress::Spinner,
     tty::Output,

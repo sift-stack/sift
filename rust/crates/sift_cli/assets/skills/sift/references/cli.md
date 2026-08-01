@@ -70,14 +70,13 @@ per session. The rest apply to each subcommand invocation.
    accepts no `--wait`, `--preview`, or `--run`.
 7. **Surface the Explore link from import output.** `sift-cli import`
    prints a `View in Sift: <URL>` tip line after a successful upload when
-   the URL can be resolved — either because the profile sets `app_uri`
-   or because the API host is a recognized Sift environment (prod, gov,
-   or Sift's dev SaaS). Surface that URL to the user as plain text, in
+   the URL can be resolved. The profile can set `app_uri`. The CLI can also
+   infer the production and government app URLs. Surface the URL as plain text, in
    full. Do not wrap it in a markdown link, do not summarize it away —
    the URL is part of the deliverable, and not every IDE renders
-   markdown. Otherwise the CLI prints a fallback note telling the user
-   how to configure `app_uri`; relay that note verbatim and do not
-   invent a URL.
+   markdown. Otherwise the CLI prints a fallback note. Relay that note
+   verbatim. Ask the user to open their Sift web app and copy its URL origin.
+   Do not assume `.com` or any other top-level domain. Do not invent a URL.
 8. **On failure, read stderr and retry.** A non-zero exit usually means a
    bad flag combination or missing required argument; the CLI's stderr
    names the exact issue. Adjust the command and run again rather than

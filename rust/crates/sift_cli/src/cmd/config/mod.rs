@@ -14,10 +14,21 @@ use toml::{Table, Value};
 
 use crate::{
     cli::ConfigUpdateArgs,
-    util::tty::{Output, PromptUser},
+    util::{
+        app_uri::infer_app_uri,
+        tty::{Output, PromptUser},
+    },
 };
 
 pub const CONFIG_FILE_NAME: &str = "sift.toml";
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub(super) enum AppUriState {
+    Configured(String),
+    MissingKnown(String),
+    MissingUnknown(Option<String>),
+    Invalid,
+}
 
 pub fn show() -> Result<ExitCode> {
     let p = get_config_file_path()?;
@@ -58,8 +69,7 @@ pub fn create() -> Result<ExitCode> {
 }
 
 pub fn update(profile: Option<String>, args: ConfigUpdateArgs) -> Result<ExitCode> {
-    let prof = profile.clone();
-    let mut target = prof.unwrap_or_else(|| String::from("default"));
+    let mut configured_profile = profile.clone();
 
     let updated_config = {
         if !args.interactive {
@@ -68,32 +78,40 @@ pub fn update(profile: Option<String>, args: ConfigUpdateArgs) -> Result<ExitCod
                 return Ok(ExitCode::SUCCESS);
             }
             get_updated_config(
-                profile,
+                profile.clone(),
                 args.grpc_uri,
                 args.rest_uri,
                 args.api_key,
                 args.app_uri,
             )?
         } else {
-            let [prof, grpc, rest, key, app]: [Option<String>; 5] = PromptUser::new()
+            let [prof, grpc, rest, key]: [Option<String>; 4] = PromptUser::new()
                 .header("Any blank values will be ignored preserving the original.")
                 .prompt("  Specify the profile to configure (leave blank for default profile): ")
                 .prompt("  Specify the gRPC API base URL: ")
                 .prompt("  Specify the REST API base URL: ")
                 .prompt("  Provide your Sift API key: ")
-                .prompt(
-                    "  Specify the Sift web app URL — the address you visit in your browser \
-                     when signed in to Sift (e.g. https://app.siftstack.com). Optional for \
-                     standard Sift hosts; set it for custom or on-prem deployments to enable \
-                     Explore links: ",
-                )
                 .run()?
                 .try_into()
                 .unwrap();
 
-            if let Some(p) = prof.as_ref() {
-                target = p.clone();
-            }
+            configured_profile = prof.clone();
+            let suggested_app_uri = rest.as_deref().and_then(infer_app_uri);
+            let app_prompt = suggested_app_uri.map_or_else(
+                || {
+                    "  Open your Sift web app and copy its URL origin. Keep the scheme and host. \
+                     Specify that origin here (for example, https://sift.example.net): "
+                        .to_string()
+                },
+                |uri| format!("  Specify the Sift web app URL [{uri}]: "),
+            );
+            let [app]: [Option<String>; 1] = PromptUser::new()
+                .prompt(app_prompt)
+                .run()?
+                .try_into()
+                .unwrap();
+            let app = app.or_else(|| suggested_app_uri.map(str::to_string));
+
             let updated = get_updated_config(prof, grpc, rest, key, app)?;
             let divider = "-".repeat(40);
 
@@ -113,14 +131,23 @@ pub fn update(profile: Option<String>, args: ConfigUpdateArgs) -> Result<ExitCod
         }
     };
 
+    let config_toml = updated_config
+        .parse::<Table>()
+        .context("updated config is invalid TOML")?;
+    let app_uri_state = app_uri_state(&config_toml, configured_profile.as_deref())?;
     update_config_file(updated_config)?;
 
+    let target = configured_profile
+        .as_deref()
+        .unwrap_or("default")
+        .to_string();
     Output::new()
         .line(format!(
             "Successfully configured the '{}' profile.",
             target.yellow()
         ))
         .print();
+    print_app_uri_guidance(configured_profile.as_deref(), &app_uri_state);
 
     Ok(ExitCode::SUCCESS)
 }
@@ -177,6 +204,26 @@ fn get_updated_config(
         .parse::<Table>()
         .context("config file is invalid TOML")?;
 
+    apply_profile_updates(
+        &mut config_toml,
+        profile,
+        grpc_uri,
+        rest_uri,
+        api_key,
+        app_uri,
+    )?;
+
+    Ok(config_toml.to_string())
+}
+
+fn apply_profile_updates(
+    config_toml: &mut Table,
+    profile: Option<String>,
+    grpc_uri: Option<String>,
+    rest_uri: Option<String>,
+    api_key: Option<String>,
+    app_uri: Option<String>,
+) -> Result<()> {
     let target = match profile {
         Some(prof) => match config_toml.get_mut(&prof) {
             Some(Value::Table(profile_config)) => profile_config,
@@ -185,8 +232,11 @@ fn get_updated_config(
                 config_toml[&prof].as_table_mut().unwrap()
             }
         },
-        None => &mut config_toml,
+        None => config_toml,
     };
+
+    let infer_missing_app_uri =
+        rest_uri.is_some() && app_uri.as_deref().is_none_or(|uri| uri.trim().is_empty());
 
     if let Some(uri) = grpc_uri {
         target.insert(String::from("grpc_uri"), Value::String(uri));
@@ -197,11 +247,126 @@ fn get_updated_config(
     if let Some(token) = api_key {
         target.insert(String::from("apikey"), Value::String(token));
     }
-    if let Some(uri) = app_uri {
+    if let Some(uri) = app_uri.filter(|uri| !uri.trim().is_empty()) {
         target.insert(String::from("app_uri"), Value::String(uri));
     }
+    let app_uri_is_missing = target
+        .get("app_uri")
+        .and_then(Value::as_str)
+        .is_none_or(|uri| uri.trim().is_empty());
+    if infer_missing_app_uri
+        && app_uri_is_missing
+        && let Some(rest_uri) = target.get("rest_uri").and_then(Value::as_str)
+        && let Some(app_uri) = infer_app_uri(rest_uri)
+    {
+        target.insert(String::from("app_uri"), Value::String(app_uri.to_string()));
+    }
 
-    Ok(config_toml.to_string())
+    Ok(())
+}
+
+#[cfg(feature = "mcp")]
+pub(super) fn inspect_app_uri(profile: Option<&str>) -> Result<AppUriState> {
+    let path = get_config_file_path()?;
+    let contents = read_to_string(path).context("failed to read config file")?;
+    let config_toml = contents
+        .parse::<Table>()
+        .context("config file is invalid TOML")?;
+    app_uri_state(&config_toml, profile)
+}
+
+#[cfg(feature = "mcp")]
+pub(super) fn set_missing_app_uri(profile: Option<&str>, app_uri: &str) -> Result<bool> {
+    let path = get_config_file_path()?;
+    let contents = read_to_string(path).context("failed to read config file")?;
+    let mut config_toml = contents
+        .parse::<Table>()
+        .context("config file is invalid TOML")?;
+    if !set_missing_app_uri_value(&mut config_toml, profile, app_uri)? {
+        return Ok(false);
+    }
+    update_config_file(config_toml.to_string())?;
+    Ok(true)
+}
+
+#[cfg(any(feature = "mcp", test))]
+fn set_missing_app_uri_value(
+    config_toml: &mut Table,
+    profile: Option<&str>,
+    app_uri: &str,
+) -> Result<bool> {
+    let target = profile_table_mut(config_toml, profile)?;
+    match target.get("app_uri") {
+        Some(Value::String(uri)) if !uri.trim().is_empty() => return Ok(false),
+        Some(Value::String(_)) | None => {}
+        Some(_) => return Err(anyhow!("Expected value of 'app_uri' to be a string")),
+    }
+
+    target.insert(String::from("app_uri"), Value::String(app_uri.to_string()));
+    Ok(true)
+}
+
+fn app_uri_state(config_toml: &Table, profile: Option<&str>) -> Result<AppUriState> {
+    let target = profile_table(config_toml, profile)?;
+    match target.get("app_uri") {
+        Some(Value::String(uri)) if !uri.trim().is_empty() => {
+            return Ok(AppUriState::Configured(uri.trim().to_string()));
+        }
+        Some(Value::String(_)) | None => {}
+        Some(_) => return Ok(AppUriState::Invalid),
+    }
+
+    let rest_uri = target
+        .get("rest_uri")
+        .and_then(Value::as_str)
+        .map(str::to_string);
+    Ok(match rest_uri.as_deref().and_then(infer_app_uri) {
+        Some(app_uri) => AppUriState::MissingKnown(app_uri.to_string()),
+        None => AppUriState::MissingUnknown(rest_uri),
+    })
+}
+
+fn profile_table<'a>(config_toml: &'a Table, profile: Option<&str>) -> Result<&'a Table> {
+    match profile {
+        Some(profile) => config_toml
+            .get(profile)
+            .and_then(Value::as_table)
+            .ok_or_else(|| anyhow!("Profile '{profile}' not found or not a TOML table.")),
+        None => Ok(config_toml),
+    }
+}
+
+#[cfg(any(feature = "mcp", test))]
+fn profile_table_mut<'a>(
+    config_toml: &'a mut Table,
+    profile: Option<&str>,
+) -> Result<&'a mut Table> {
+    match profile {
+        Some(profile) => config_toml
+            .get_mut(profile)
+            .and_then(Value::as_table_mut)
+            .ok_or_else(|| anyhow!("Profile '{profile}' not found or not a TOML table.")),
+        None => Ok(config_toml),
+    }
+}
+
+fn print_app_uri_guidance(profile: Option<&str>, state: &AppUriState) {
+    let profile_flag = profile.map_or_else(String::new, |profile| format!("--profile {profile} "));
+    match state {
+        AppUriState::Configured(_) => {}
+        AppUriState::MissingKnown(app_uri) => println!(
+            "[warning] This profile has no app_uri. Set it with `sift-cli {profile_flag}config \
+             update --app-uri {app_uri}`."
+        ),
+        AppUriState::MissingUnknown(_) => println!(
+            "[warning] This profile has no app_uri. Open your Sift web app and copy its URL \
+             origin. Then run `sift-cli {profile_flag}config update --app-uri \
+             <SIFT_WEB_ORIGIN>`."
+        ),
+        AppUriState::Invalid => {
+            println!("[warning] This profile has an app_uri value that is not a string.")
+        }
+    }
 }
 
 fn update_config_file(updated: String) -> Result<()> {

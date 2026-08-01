@@ -76,7 +76,7 @@ impl ServerHandler for SiftMcpServer {
 }
 
 impl SiftMcpServer {
-    pub fn new(channel: SiftChannel, rest_uri: String, allow_destructive: bool) -> Self {
+    pub fn new(channel: SiftChannel, app_uri: Option<String>, allow_destructive: bool) -> Self {
         // Add more routers here as new tool groups are introduced, e.g.
         //   tool_router.merge(Self::ingestion_router())
         let mut tool_router = Self::assets_router();
@@ -100,7 +100,7 @@ impl SiftMcpServer {
         let asset_service = AssetService::new(channel.clone(), retry_policy.clone());
         let data_service = DataService::new(channel.clone(), retry_policy.clone());
         let channel_service = ChannelService::new(channel.clone(), retry_policy.clone());
-        let url_service = UrlService::new(rest_uri);
+        let url_service = UrlService::new(app_uri);
         let ingest_service = IngestService::new(channel.clone());
         let ping_service = PingService::new(channel.clone(), retry_policy.clone());
         let run_service = RunService::new(channel.clone(), retry_policy.clone());

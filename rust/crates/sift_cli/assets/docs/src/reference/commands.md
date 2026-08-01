@@ -21,7 +21,7 @@ Manage CLI configuration. See [Configuration](../getting-started/configuration.m
 | `config create`         | Create a new (empty) config file.                 |
 | `config show`           | Print the current config file.                    |
 | `config where`          | Print the path to the config file.                |
-| `config update`         | Set fields (`-g`, `-r`, `-k`) or use `--interactive`. |
+| `config update`         | Set connection, app, or key fields. Use `--interactive` for prompts. |
 
 ## `import`
 

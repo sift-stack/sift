@@ -1,16 +1,21 @@
 # Configuration
 
-Before the CLI can talk to Sift it needs three things:
+The CLI needs three connection values. It also uses a web app origin for links.
 
-| Field      | Description                                  | Example                        |
-| ---------- | -------------------------------------------- | ------------------------------ |
-| `grpc_uri` | Base gRPC endpoint for Sift                  | `https://api.siftstack.com`    |
-| `rest_uri` | Base REST endpoint for Sift                  | `https://api.siftstack.com`    |
-| `apikey`   | Your Sift API key                            | `sift_...`                     |
+| Field      | Description                                  | Example                         |
+| ---------- | -------------------------------------------- | ------------------------------- |
+| `grpc_uri` | Base gRPC endpoint for Sift                  | `https://api.siftstack.com`     |
+| `rest_uri` | Base REST endpoint for Sift                  | `https://api.siftstack.com`     |
+| `app_uri`  | Web app origin from your browser             | `https://app.siftstack.com`     |
+| `apikey`   | Your Sift API key                            | `sift_...`                      |
 
 For Sift Cloud, both URIs are `https://api.siftstack.com`. For self-hosted or
 non-cloud environments, use the endpoints provided by your administrator (and
 see [Disabling TLS](#disabling-tls) below if they are not served over TLS).
+
+The CLI can infer `app_uri` for production and government Sift. For any other
+domain, open the Sift web app and copy its URL origin. Keep the scheme and host.
+Do not include a page path, query, or fragment.
 
 You can generate an API key from the Sift web app under your account settings.
 
@@ -40,9 +45,9 @@ sift-cli config create
 sift-cli config update --interactive
 ```
 
-The interactive prompt walks you through the profile name, both URIs, and your
-API key, then shows the result for confirmation before writing it. Leaving the
-profile blank configures the `default` profile.
+The interactive prompt asks for the profile, API URLs, app origin, and API key.
+It shows the result before it writes the file. A blank profile selects the
+`default` profile.
 
 ### Non-interactive setup
 
@@ -53,11 +58,12 @@ values as flags:
 sift-cli config update \
   --grpc-uri https://api.siftstack.com \
   --rest-uri https://api.siftstack.com \
+  --app-uri https://app.siftstack.com \
   --api-key "$SIFT_API_KEY"
 ```
 
-Short forms: `-g` (grpc), `-r` (rest), `-k` (api key). Any field you omit is
-left untouched, so you can update one value at a time:
+Short forms are `-g` for gRPC, `-r` for REST, and `-k` for the API key.
+Omitted fields stay unchanged. You can update one value at a time:
 
 ```sh
 sift-cli config update --api-key "$SIFT_API_KEY"
@@ -75,6 +81,7 @@ A configured `default` profile looks like this:
 ```toml
 grpc_uri = "https://api.siftstack.com"
 rest_uri = "https://api.siftstack.com"
+app_uri = "https://app.siftstack.com"
 apikey = "sift_..."
 ```
 

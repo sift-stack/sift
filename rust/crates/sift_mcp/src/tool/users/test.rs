@@ -64,7 +64,7 @@ async fn server_with_mocks(
     });
 
     (
-        SiftMcpServer::new(channel, String::from("https://api.test.local"), false),
+        SiftMcpServer::new(channel, Some(String::from("https://app.test.local")), false),
         handle,
     )
 }

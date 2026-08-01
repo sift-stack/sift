@@ -1,4 +1,5 @@
 pub mod api;
+pub mod app_uri;
 pub mod calculated_channel;
 pub mod channel;
 pub mod explore_url;
