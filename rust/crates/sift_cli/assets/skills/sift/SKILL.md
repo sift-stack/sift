@@ -63,6 +63,10 @@ exists.
 
 ## Workflows that span tools
 
+- **Search a list.** Filter with a pattern rather than an exact match. Each
+  tool's description names its own filterable fields. When the request is too
+  vague to filter on, sample with a small `limit` and ask the user to narrow
+  it. Do not guess.
 - **Attribute something to a person.** Resolve the person with `list_users`,
   then filter another list on `created_by_user_id`. For "runs I created", pass
   `me: true`. Never guess which listed user is the caller.
