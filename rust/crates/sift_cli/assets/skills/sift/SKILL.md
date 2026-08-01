@@ -71,7 +71,7 @@ exists.
 - **Produce a chart.** Build a link with `explore_url`. When the user wants a
   chart and numbers, do both and give the user both.
 - **Answer a question about how Sift works.** Call `search_docs`. Do not answer
-  from memory.
+  from memory, and cite the page you used.
 
 ## Rules that always apply
 
@@ -97,7 +97,6 @@ Read the file that matches the task in front of you. Do not read them all.
 | When the task is | Read |
 |---|---|
 | any `sift-cli` invocation: import, export, config | [references/cli.md](references/cli.md) |
-| a question about how Sift works, or an API detail | [references/docs-lookup.md](references/docs-lookup.md) |
-| numbers, summaries, charts, or an Explore link | [references/analysis-and-explore.md](references/analysis-and-explore.md) |
+| a chart, a plot, or an Explore link | [references/explore-links.md](references/explore-links.md) |
 | install, update, or diagnose the Sift integration | [references/agent-setup.md](references/agent-setup.md) |
 | code written against Sift's libraries or REST API | [references/integration-code.md](references/integration-code.md) |
