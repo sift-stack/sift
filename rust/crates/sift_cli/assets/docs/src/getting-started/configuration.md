@@ -13,7 +13,7 @@ For Sift Cloud, both URIs are `https://api.siftstack.com`. For self-hosted or
 non-cloud environments, use the endpoints provided by your administrator (and
 see [Disabling TLS](#disabling-tls) below if they are not served over TLS).
 
-The CLI can infer `app_uri` for production and government Sift. For any other
+The CLI can infer `app_uri` for PubCloud and GovCloud Sift. For any other
 domain, open the Sift web app and copy its URL origin. Keep the scheme and host.
 Do not include a page path, query, or fragment.
 
