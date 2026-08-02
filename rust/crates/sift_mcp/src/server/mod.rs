@@ -48,7 +48,10 @@ pub struct SiftMcpServer {
     diagnosis, `sift-cli agent install` for first setup, and \
     `sift-cli agent update` to refresh every detected client together. If the \
     CLI is outdated, relay the exact curl or PowerShell installer it prints. \
-    Never enable destructive tools without explicit user approval.",
+    Never enable destructive tools without explicit user approval. Result \
+    objects follow proto3 JSON rules: fields at their default value (false, \
+    0, empty string/list) are omitted, so a missing boolean key means false, \
+    not unknown.",
 )]
 #[prompt_handler(router = self.prompt_router)]
 impl ServerHandler for SiftMcpServer {
