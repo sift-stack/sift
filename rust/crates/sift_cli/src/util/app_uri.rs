@@ -34,6 +34,7 @@ mod tests {
             "http://api.siftstack.com",
             "https://api.siftstack.com",
             "https://api.siftstack.com/",
+            "https://API.SIFTSTACK.COM",
         ] {
             assert_eq!(infer_app_uri(rest_uri), Some("https://app.siftstack.com"));
         }
@@ -51,7 +52,14 @@ mod tests {
         for rest_uri in [
             "https://api.example.net",
             "https://app.siftstack.com",
+            "https://api.development.siftstack.com",
+            "https://api.staging.internal",
+            "https://api.sift.test",
             "https://api.siftstack.com/v1",
+            "https://api.siftstack.com?query=value",
+            "https://api.siftstack.com#fragment",
+            "https://api.siftstack.com:443",
+            "https://api.siftstack.com.example.net",
             "api.siftstack.com",
         ] {
             assert_eq!(infer_app_uri(rest_uri), None, "rest_uri: {rest_uri}");

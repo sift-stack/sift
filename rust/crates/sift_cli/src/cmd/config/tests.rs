@@ -90,37 +90,50 @@ rest_uri = "https://api.example.net"
 
     #[test]
     fn known_rest_uri_sets_a_missing_app_uri() {
-        let mut config = Table::new();
-        apply_profile_updates(
-            &mut config,
-            None,
-            None,
-            Some("https://api.siftstack.com".to_string()),
-            None,
-            None,
-        )
-        .unwrap();
+        for (rest_uri, app_uri) in [
+            ("https://api.siftstack.com", "https://app.siftstack.com"),
+            ("https://gov.api.siftstack.com", "https://gov.siftstack.com"),
+        ] {
+            let mut config = Table::new();
+            apply_profile_updates(
+                &mut config,
+                None,
+                None,
+                Some(rest_uri.to_string()),
+                None,
+                None,
+            )
+            .unwrap();
 
-        assert_eq!(
-            config.get("app_uri"),
-            Some(&Value::String("https://app.siftstack.com".to_string()))
-        );
+            assert_eq!(
+                config.get("app_uri"),
+                Some(&Value::String(app_uri.to_string())),
+                "rest_uri: {rest_uri}"
+            );
+        }
     }
 
     #[test]
     fn unknown_rest_uri_does_not_set_app_uri() {
-        let mut config = Table::new();
-        apply_profile_updates(
-            &mut config,
-            None,
-            None,
-            Some("https://api.example.net".to_string()),
-            None,
-            None,
-        )
-        .unwrap();
+        for rest_uri in [
+            "https://api.example.net",
+            "https://api.development.siftstack.com",
+            "https://api.staging.internal",
+            "https://api.sift.test",
+        ] {
+            let mut config = Table::new();
+            apply_profile_updates(
+                &mut config,
+                None,
+                None,
+                Some(rest_uri.to_string()),
+                None,
+                None,
+            )
+            .unwrap();
 
-        assert!(!config.contains_key("app_uri"));
+            assert!(!config.contains_key("app_uri"), "rest_uri: {rest_uri}");
+        }
     }
 
     #[test]

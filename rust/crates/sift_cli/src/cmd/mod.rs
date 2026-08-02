@@ -2,7 +2,7 @@ use crate::BIN_NAME;
 use crate::util::app_uri::infer_app_uri;
 use anyhow::{Context as AnyhowContext, Result, anyhow};
 use crossterm::style::Stylize;
-use std::{fs::read_to_string, io::ErrorKind};
+use std::{fs::read_to_string, io::ErrorKind, path::Path};
 use toml::{Table, Value};
 
 #[cfg(feature = "mcp")]
@@ -29,6 +29,14 @@ pub struct Context {
 impl Context {
     pub fn new(profile: Option<String>, disable_tls: bool) -> Result<Self> {
         let config_path = config::get_config_file_path()?;
+        Self::from_config_path(&config_path, profile, disable_tls)
+    }
+
+    fn from_config_path(
+        config_path: &Path,
+        profile: Option<String>,
+        disable_tls: bool,
+    ) -> Result<Self> {
         let p = config_path.display().to_string();
 
         let config_txt = match read_to_string(config_path) {
@@ -149,8 +157,109 @@ fn app_uri_guidance(profile: Option<&str>, rest_uri: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::required_app_uri;
+    use super::{Context, required_app_uri};
+    use std::fs;
+    use tempdir::TempDir;
     use toml::Table;
+
+    const COMPLETE_CONFIG: &str = r#"
+grpc_uri = "https://api.siftstack.com"
+rest_uri = "https://api.siftstack.com"
+app_uri = "https://app.siftstack.com"
+apikey = "default-key"
+
+[mission]
+grpc_uri = "https://grpc.example.net"
+rest_uri = "https://api.example.net"
+app_uri = "https://sift.example.net"
+apikey = "mission-key"
+"#;
+
+    fn context(config: &str, profile: Option<&str>) -> anyhow::Result<Context> {
+        let directory = TempDir::new("sift-cli-context").unwrap();
+        let path = directory.path().join("sift.toml");
+        fs::write(&path, config).unwrap();
+        Context::from_config_path(&path, profile.map(str::to_string), false)
+    }
+
+    #[test]
+    fn loads_complete_default_and_named_profiles() {
+        let default = context(COMPLETE_CONFIG, None).unwrap();
+        assert_eq!(default.grpc_uri, "https://api.siftstack.com");
+        assert_eq!(default.rest_uri, "https://api.siftstack.com");
+        assert_eq!(default.app_uri, "https://app.siftstack.com");
+        assert_eq!(default.api_key, "default-key");
+
+        let mission = context(COMPLETE_CONFIG, Some("mission")).unwrap();
+        assert_eq!(mission.grpc_uri, "https://grpc.example.net");
+        assert_eq!(mission.rest_uri, "https://api.example.net");
+        assert_eq!(mission.app_uri, "https://sift.example.net");
+        assert_eq!(mission.api_key, "mission-key");
+    }
+
+    #[test]
+    fn rejects_each_missing_required_field() {
+        for (field, config) in [
+            (
+                "grpc_uri",
+                r#"
+rest_uri = "https://api.siftstack.com"
+app_uri = "https://app.siftstack.com"
+apikey = "key"
+"#,
+            ),
+            (
+                "rest_uri",
+                r#"
+grpc_uri = "https://api.siftstack.com"
+app_uri = "https://app.siftstack.com"
+apikey = "key"
+"#,
+            ),
+            (
+                "app_uri",
+                r#"
+grpc_uri = "https://api.siftstack.com"
+rest_uri = "https://api.siftstack.com"
+apikey = "key"
+"#,
+            ),
+            (
+                "apikey",
+                r#"
+grpc_uri = "https://api.siftstack.com"
+rest_uri = "https://api.siftstack.com"
+app_uri = "https://app.siftstack.com"
+"#,
+            ),
+        ] {
+            let message = format!("{:#}", context(config, None).err().unwrap());
+            assert!(message.contains(field), "field: {field}, error: {message}");
+        }
+    }
+
+    #[test]
+    fn missing_app_uri_reports_known_and_custom_commands() {
+        let known = r#"
+grpc_uri = "https://api.siftstack.com"
+rest_uri = "https://api.siftstack.com"
+apikey = "key"
+"#;
+        let known_message = format!("{:#}", context(known, None).err().unwrap());
+        assert!(
+            known_message.contains("sift-cli config update --app-uri https://app.siftstack.com")
+        );
+
+        let custom = r#"
+[mission]
+grpc_uri = "https://grpc.example.net"
+rest_uri = "https://api.example.net"
+apikey = "key"
+"#;
+        let custom_message = format!("{:#}", context(custom, Some("mission")).err().unwrap());
+        assert!(custom_message.contains("Open your Sift web app"));
+        assert!(custom_message.contains("sift-cli --profile mission config update --app-uri"));
+    }
 
     #[test]
     fn app_uri_is_required() {
