@@ -16,11 +16,15 @@ use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::{
+        common,
         data::{ChannelInput, DataService, TimeRange},
         ingest::RunForm,
     },
     tool::common::MetadataEntry,
 };
+
+#[cfg(test)]
+mod test;
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct GetDataParams {
@@ -85,6 +89,9 @@ impl SiftMcpServer {
               - `RESOURCE_NOT_FOUND` if the asset or run is missing or there are no matching channels.
               - `INVALID_PARAMS` if `run_name` is absent and the full time range is not supplied, if neither
                 `channel_names` nor `channel_regex` is set, if both are set, or if `channel_names` is empty.
+              - `INVALID_PARAMS` if the channel selection matches 200 or more channels — the result would be
+                silently incomplete. Narrow `channel_regex`, pass explicit `channel_names`, or split the request
+                into multiple calls.
 
             Guidance:
               - If the user's intent is to view/plot/graph/visualize the data in a UI, call `explore_url` first
@@ -195,13 +202,27 @@ impl SiftMcpServer {
 
         let channels = self
             .channel_service
-            .list_channels(channel_filter, None, None)
+            .list_channels(channel_filter, None, Some(common::PAGE_SIZE))
             .await
             .map_err(from_anyhow)?;
 
         if channels.is_empty() {
             return Err(ErrorData::resource_not_found(
                 format!("no channels matched the search criteria for asset '{asset_name}'"),
+                None,
+            ));
+        }
+
+        // A selection that fills the record cap may have been truncated, which
+        // would write a Parquet file that is missing channels with no warning.
+        if channels.len() >= common::PAGE_SIZE as usize {
+            return Err(ErrorData::invalid_params(
+                format!(
+                    "channel selection matched {} or more channels and may be incomplete; \
+                     narrow `channel_regex`, pass explicit `channel_names`, or split the \
+                     request into multiple calls",
+                    common::PAGE_SIZE
+                ),
                 None,
             ));
         }
