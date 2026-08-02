@@ -111,7 +111,7 @@ pub enum AgentCmd {
     Update(AgentUpdateArgs),
 
     /// Check the CLI version, skill files, MCP profiles, and access modes
-    Doctor(AgentDoctorArgs),
+    Doctor,
 
     /// Remove Sift-owned agent files and registrations
     Uninstall,
@@ -123,14 +123,6 @@ pub struct AgentInstallArgs {
     /// Enable tools that modify or archive resources for every detected MCP client
     #[arg(long)]
     pub allow_destructive: bool,
-}
-
-#[cfg(feature = "mcp")]
-#[derive(clap::Args)]
-pub struct AgentDoctorArgs {
-    /// Set a missing app_uri when the selected profile uses a known public Sift REST URL
-    #[arg(long)]
-    pub fix: bool,
 }
 
 #[cfg(feature = "mcp")]
@@ -327,7 +319,7 @@ pub struct ConfigUpdateArgs {
     pub api_key: Option<String>,
 
     /// Sift web app origin from your browser (e.g. https://sift.example.net).
-    /// Production and government profiles can infer this value from rest_uri.
+    /// PubCloud and GovCloud profiles can infer this value from rest_uri.
     #[arg(long)]
     pub app_uri: Option<String>,
 }

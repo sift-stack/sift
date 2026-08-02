@@ -52,9 +52,7 @@ mod test_is_update_empty {
 }
 
 mod app_uri {
-    use super::super::{
-        AppUriState, app_uri_state, apply_profile_updates, set_missing_app_uri_value,
-    };
+    use super::super::{AppUriState, app_uri_state, apply_profile_updates};
     use toml::{Table, Value};
 
     fn config(input: &str) -> Table {
@@ -164,37 +162,6 @@ app_uri = "https://sift.example.net"
 
         assert_eq!(
             config["customer"]["app_uri"].as_str(),
-            Some("https://sift.example.net")
-        );
-    }
-
-    #[test]
-    fn doctor_fix_sets_only_a_missing_app_uri() {
-        let mut config = config(
-            r#"
-[production]
-rest_uri = "https://api.siftstack.com"
-
-[custom]
-rest_uri = "https://api.example.net"
-app_uri = "https://sift.example.net"
-"#,
-        );
-
-        assert!(
-            set_missing_app_uri_value(&mut config, Some("production"), "https://app.siftstack.com")
-                .unwrap()
-        );
-        assert!(
-            !set_missing_app_uri_value(&mut config, Some("custom"), "https://wrong.example.net")
-                .unwrap()
-        );
-        assert_eq!(
-            config["production"]["app_uri"].as_str(),
-            Some("https://app.siftstack.com")
-        );
-        assert_eq!(
-            config["custom"]["app_uri"].as_str(),
             Some("https://sift.example.net")
         );
     }

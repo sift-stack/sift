@@ -1,21 +1,23 @@
 # Configuration
 
-The CLI needs three connection values. It also uses a web app origin for links.
+Each CLI profile needs four values:
 
 | Field      | Description                                  | Example                         |
 | ---------- | -------------------------------------------- | ------------------------------- |
 | `grpc_uri` | Base gRPC endpoint for Sift                  | `https://api.siftstack.com`     |
 | `rest_uri` | Base REST endpoint for Sift                  | `https://api.siftstack.com`     |
-| `app_uri`  | Web app origin from your browser             | `https://app.siftstack.com`     |
+| `app_uri`  | Required web app origin from your browser    | `https://app.siftstack.com`     |
 | `apikey`   | Your Sift API key                            | `sift_...`                      |
 
 For Sift Cloud, both URIs are `https://api.siftstack.com`. For self-hosted or
 non-cloud environments, use the endpoints provided by your administrator (and
 see [Disabling TLS](#disabling-tls) below if they are not served over TLS).
 
-The CLI can infer `app_uri` for PubCloud and GovCloud Sift. For any other
-domain, open the Sift web app and copy its URL origin. Keep the scheme and host.
-Do not include a page path, query, or fragment.
+The config command can infer `app_uri` for PubCloud and GovCloud Sift. For any
+other domain, open the Sift web app and copy its URL origin. Keep the scheme and
+host. Do not include a page path, query, or fragment.
+
+Commands reject a profile when `app_uri` is missing, empty, or not a string.
 
 You can generate an API key from the Sift web app under your account settings.
 

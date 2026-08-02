@@ -88,9 +88,7 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
             AgentCmd::Update(args) => {
                 return run_future(cmd::agent::update(clargs.profile, args));
             }
-            AgentCmd::Doctor(args) => {
-                return run_future(cmd::agent::doctor(clargs.profile, args));
-            }
+            AgentCmd::Doctor => return run_future(cmd::agent::doctor(clargs.profile)),
             AgentCmd::Uninstall => return cmd::agent::uninstall(),
         },
         _ => (),

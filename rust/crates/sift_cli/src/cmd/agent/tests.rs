@@ -476,12 +476,8 @@ fn update_named_and_default_profile_flags_are_mutually_exclusive() {
 }
 
 #[test]
-fn doctor_fix_flag_is_parsed() {
-    let args = crate::cli::Args::parse_from(["sift-cli", "agent", "doctor", "--fix"]);
-    let Some(crate::cli::Cmd::Agent(crate::cli::AgentCmd::Doctor(doctor))) = args.cmd else {
-        panic!("expected agent doctor arguments");
-    };
-    assert!(doctor.fix);
+fn doctor_fix_flag_is_rejected() {
+    assert!(crate::cli::Args::try_parse_from(["sift-cli", "agent", "doctor", "--fix"]).is_err());
 }
 
 #[test]

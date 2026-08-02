@@ -17,15 +17,15 @@ The skill is embedded at compile time, so rebuild `sift-cli` after changing it.
 
 - `sift-cli agent install`
 - `sift-cli agent update`
-- `sift-cli agent doctor [--fix]`
+- `sift-cli agent doctor`
 - `sift-cli agent uninstall`
 
 Install and update operate on every detected supported client. They preflight
 all targets before writing and refuse to overwrite an unmanaged same-name skill
 or MCP entry. Doctor checks installed files, client configs, and Sift profiles.
-Plain doctor does not write files. `doctor --fix` can set a missing `app_uri`
-for a known production or government REST URL. Uninstall removes only content
-identifiable as Sift-managed. Do not add a state file or version tracking.
+Doctor does not write files. It reports a missing required `app_uri` and prints
+the config command. Uninstall removes only content identifiable as Sift-managed.
+Do not add a state file or version tracking.
 
 Install defaults every MCP registration to read-only. Install accepts
 `--allow-destructive` as an explicit opt-in. Install uses the default Sift
@@ -66,6 +66,6 @@ cargo test -p sift_cli --features mcp cmd::agent
 ```
 
 `agent install` changes real user-level client configuration and points it at
-the exact `sift-cli` executable that runs the command. Use plain `doctor` for a
-read-only check. Use `doctor --fix` only when a profile change is intended.
-Run install, update, or uninstall only when those client changes are intended.
+the exact `sift-cli` executable that runs the command. Use `doctor` for a
+read-only check. Run install, update, or uninstall only when those client
+changes are intended.

@@ -24,9 +24,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Removed the MCP server, built-in prompt, and agent skill pages from the
   bundled `sift-cli` documentation. The agent-facing tool surface is documented
   in the installed skill instead.
-- Added profile-aware `app_uri` checks to `sift-cli agent doctor`. The new
-  `--fix` flag sets missing production and government app URLs. Profile setup
-  now asks for the web app origin. MCP links now use the selected profile value.
+- Added `app_uri` as a required profile field. Profile setup now asks for the
+  web app origin. `sift-cli agent doctor` reports a missing value and prints the
+  config command. MCP links now use the selected profile value.
 
 ## [v0.3.0] - July 13, 2026
 

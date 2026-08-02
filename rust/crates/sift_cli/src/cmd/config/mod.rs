@@ -275,37 +275,6 @@ pub(super) fn inspect_app_uri(profile: Option<&str>) -> Result<AppUriState> {
     app_uri_state(&config_toml, profile)
 }
 
-#[cfg(feature = "mcp")]
-pub(super) fn set_missing_app_uri(profile: Option<&str>, app_uri: &str) -> Result<bool> {
-    let path = get_config_file_path()?;
-    let contents = read_to_string(path).context("failed to read config file")?;
-    let mut config_toml = contents
-        .parse::<Table>()
-        .context("config file is invalid TOML")?;
-    if !set_missing_app_uri_value(&mut config_toml, profile, app_uri)? {
-        return Ok(false);
-    }
-    update_config_file(config_toml.to_string())?;
-    Ok(true)
-}
-
-#[cfg(any(feature = "mcp", test))]
-fn set_missing_app_uri_value(
-    config_toml: &mut Table,
-    profile: Option<&str>,
-    app_uri: &str,
-) -> Result<bool> {
-    let target = profile_table_mut(config_toml, profile)?;
-    match target.get("app_uri") {
-        Some(Value::String(uri)) if !uri.trim().is_empty() => return Ok(false),
-        Some(Value::String(_)) | None => {}
-        Some(_) => return Err(anyhow!("Expected value of 'app_uri' to be a string")),
-    }
-
-    target.insert(String::from("app_uri"), Value::String(app_uri.to_string()));
-    Ok(true)
-}
-
 fn app_uri_state(config_toml: &Table, profile: Option<&str>) -> Result<AppUriState> {
     let target = profile_table(config_toml, profile)?;
     match target.get("app_uri") {
@@ -331,20 +300,6 @@ fn profile_table<'a>(config_toml: &'a Table, profile: Option<&str>) -> Result<&'
         Some(profile) => config_toml
             .get(profile)
             .and_then(Value::as_table)
-            .ok_or_else(|| anyhow!("Profile '{profile}' not found or not a TOML table.")),
-        None => Ok(config_toml),
-    }
-}
-
-#[cfg(any(feature = "mcp", test))]
-fn profile_table_mut<'a>(
-    config_toml: &'a mut Table,
-    profile: Option<&str>,
-) -> Result<&'a mut Table> {
-    match profile {
-        Some(profile) => config_toml
-            .get_mut(profile)
-            .and_then(Value::as_table_mut)
             .ok_or_else(|| anyhow!("Profile '{profile}' not found or not a TOML table.")),
         None => Ok(config_toml),
     }

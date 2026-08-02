@@ -17,7 +17,7 @@ use crossterm::style::Stylize;
 use semver::Version;
 
 use crate::{
-    cli::{AgentDoctorArgs, AgentInstallArgs, AgentUpdateArgs},
+    cli::{AgentInstallArgs, AgentUpdateArgs},
     cmd::{config as profile_config, config::AppUriState, version},
     util::progress::Spinner,
 };
@@ -258,14 +258,13 @@ pub async fn update(profile: Option<String>, args: AgentUpdateArgs) -> Result<Ex
     install_environment(&environment, "Updated", &registration)
 }
 
-pub async fn doctor(expected_profile: Option<String>, args: AgentDoctorArgs) -> Result<ExitCode> {
+pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
     let environment = Environment::discover()?;
     println!("Sift agent bundle {}", env!("CARGO_PKG_VERSION"));
 
     let mut unhealthy = check_release().await;
     let mut blocked = false;
     let mut warnings = false;
-    let mut fixed_app_uri = false;
     if environment.harnesses.is_empty() {
         println!("[error] No supported AI coding clients were detected.");
         return Ok(ExitCode::FAILURE);
@@ -397,28 +396,10 @@ pub async fn doctor(expected_profile: Option<String>, args: AgentDoctorArgs) -> 
             Ok(AppUriState::Configured(app_uri)) => {
                 println!("[ok] {} app_uri: {app_uri}", profile.label());
             }
-            Ok(AppUriState::MissingKnown(app_uri)) if args.fix => {
-                match profile_config::set_missing_app_uri(profile.config_name(), &app_uri) {
-                    Ok(true) => {
-                        println!("[fixed] {} app_uri: {app_uri}", profile.label());
-                        fixed_app_uri = true;
-                    }
-                    Ok(false) => {
-                        println!("[ok] {} app_uri is already configured", profile.label());
-                    }
-                    Err(error) => {
-                        println!(
-                            "[warning] Could not set app_uri for {}: {error}",
-                            profile.label()
-                        );
-                        warnings = true;
-                    }
-                }
-            }
             Ok(AppUriState::MissingKnown(app_uri)) => {
                 println!("[warning] {} has no app_uri.", profile.label());
                 println!(
-                    "Run `{} agent doctor --fix` to set it to {app_uri}.",
+                    "Run `{} config update --app-uri {app_uri}` to set it.",
                     profile.command_prefix()
                 );
                 warnings = true;
@@ -454,12 +435,6 @@ pub async fn doctor(expected_profile: Option<String>, args: AgentDoctorArgs) -> 
                 warnings = true;
             }
         }
-    } else if args.fix && (mixed_profiles || unexpected_profile) {
-        println!("[skip] app_uri fix needs one profile across all detected MCP clients.");
-    }
-
-    if fixed_app_uri {
-        println!("Restart your MCP client to load the updated profile.");
     }
 
     if unhealthy {

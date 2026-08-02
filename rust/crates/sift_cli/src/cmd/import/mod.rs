@@ -7,7 +7,6 @@ use sift_rs::{SiftChannel, common::r#type::v1::ChannelConfig, jobs::v1::JobStatu
 
 use crate::cmd::Context;
 use crate::util::{
-    app_uri::resolve_app_uri,
     explore_url::{explore_or_note, import_target, pending_import_tip},
     job::JobServiceWrapper,
     progress::Spinner,
@@ -36,8 +35,7 @@ pub async fn finish_import(
     run_id: Option<&str>,
     wait: bool,
 ) -> Result<ExitCode> {
-    let app_uri = resolve_app_uri(ctx.app_uri.as_deref(), &ctx.rest_uri);
-    let target = import_target(asset, run_name, run_id, app_uri.as_deref());
+    let target = import_target(asset, run_name, run_id, Some(&ctx.app_uri));
 
     if !wait {
         Output::new()
