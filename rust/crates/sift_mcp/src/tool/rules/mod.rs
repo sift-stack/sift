@@ -74,6 +74,9 @@ impl SiftMcpServer {
                 exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
                 `contains(\"Avionics\")` silently misses `avionics-power-limit`. An empty result is not proof of
                 absence — retry once with a shorter fragment.
+                Folder membership is filterable via `folders` and `activeFolders` (folder-id lists;
+                `activeFolders` excludes archived folders): `\"<folder_id>\" in folders` returns rules in a
+                folder, `size(activeFolders) == 0` returns uncategorized rules.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields:
                 `created_date`, `modified_date`. Default sort is `created_date desc` (newest first).
                 Example: `\"created_date desc,modified_date\"`.
