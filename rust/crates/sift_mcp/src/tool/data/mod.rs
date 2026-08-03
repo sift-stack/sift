@@ -367,12 +367,15 @@ impl SiftMcpServer {
             Upload a Parquet dataset (typically the output of `get_data` or `sql`) to Sift. The file is streamed
             row-by-row to Sift's ingest service under an automatically-derived flow.
 
-            Expected input schema (all three rules are enforced; a violation rejects the whole file):
+            Expected input schema (every rule is enforced; a violation rejects the whole file before
+            anything is created in Sift):
+              - The file MUST have at least two columns: `timestamp_unix_nanos` plus one channel column.
               - Column 0 MUST be `timestamp_unix_nanos` (Int64) and MUST be declared non-nullable in the
                 Parquet schema.
               - Every other column MUST carry the brace-delimited attribute block in its column name:
                 `<channel_name> {channel_id=\"...\"[, bit_field_element=\"...\"][, run=\"...\"][, units=\"...\"]}`.
-                A bare column name without the `{...}` block is rejected.
+                The single space before `{` is required; a bare column name without the ` {...}` block is
+                rejected.
               - `channel_id` is REQUIRED inside the block; the bracketed attributes are optional. This is the
                 canonical form produced by `get_data`. Enum and BitField channels are recognized via field
                 metadata under the `enum_config` and `bit_field_elements` keys respectively.
