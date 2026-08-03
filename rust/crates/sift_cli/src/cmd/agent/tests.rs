@@ -1,6 +1,7 @@
 use std::{fs, path::PathBuf};
 
 use clap::Parser;
+use crossterm::style::Stylize;
 use serde_json::Value;
 use tempdir::TempDir;
 
@@ -24,6 +25,13 @@ fn default_registration(access: AccessMode) -> Registration {
 
 fn named_registration(access: AccessMode, profile: &str) -> Registration {
     Registration::new(access, Profile::Named(profile.to_string()))
+}
+
+#[test]
+fn status_tags_use_expected_colors() {
+    assert_eq!(super::ok_status(), "[ok]".green());
+    assert_eq!(super::error_status(), "[error]".red());
+    assert_eq!(super::warning_status(), "[warning]".yellow());
 }
 
 #[test]
@@ -473,6 +481,11 @@ fn update_named_and_default_profile_flags_are_mutually_exclusive() {
         ])
         .is_err()
     );
+}
+
+#[test]
+fn doctor_fix_flag_is_rejected() {
+    assert!(crate::cli::Args::try_parse_from(["sift-cli", "agent", "doctor", "--fix"]).is_err());
 }
 
 #[test]

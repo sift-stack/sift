@@ -1,6 +1,8 @@
 use crossterm::style::Stylize;
 use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, utf8_percent_encode};
 
+use super::app_uri::normalize_app_uri;
+
 const VALUE_ENCODE_SET: &AsciiSet = &NON_ALPHANUMERIC
     .remove(b'-')
     .remove(b'_')
@@ -35,31 +37,12 @@ pub fn import_target(
     }
 }
 
-pub fn resolve_app_uri(app_uri: Option<&str>, rest_uri: &str) -> Option<String> {
-    if let Some(uri) = app_uri.map(str::trim).filter(|s| !s.is_empty()) {
-        return Some(uri.to_string());
-    }
-    match host_of(rest_uri)? {
-        "api.siftstack.com" => Some("https://app.siftstack.com".to_string()),
-        "gov.api.siftstack.com" => Some("https://gov.siftstack.com".to_string()),
-        "api.development.siftstack.com" => {
-            Some("https://app.development.siftstack.com".to_string())
-        }
-        _ => None,
-    }
-}
-
-fn host_of(url: &str) -> Option<&str> {
-    let after_scheme = url.split_once("://").map(|(_, rest)| rest).unwrap_or(url);
-    let host_with_port = after_scheme.split('/').next()?;
-    Some(host_with_port.split(':').next().unwrap_or(host_with_port))
-}
-
 pub fn explore_or_note(explore_url: Option<&str>) -> String {
     match explore_url {
         Some(url) => format!("\nView in Sift: {url}"),
-        None => "\nRun `sift-cli config update --app-uri <SIFT_WEB_URL>` so future imports \
-                 include a Sift Explore link."
+        None => "\nOpen your Sift web app and copy its URL origin. Then run `sift-cli config \
+                 update --app-uri <SIFT_WEB_ORIGIN>`. Add `--profile <name>` when you use a \
+                 named profile."
             .to_string(),
     }
 }
@@ -76,12 +59,56 @@ pub fn build_explore_url(
     asset_name: &str,
     run: Option<&str>,
 ) -> Option<String> {
-    let host = app_uri.map(str::trim).filter(|s| !s.is_empty())?;
-    let host = host.trim_end_matches('/');
+    let host = app_uri.and_then(normalize_app_uri)?;
 
     let mut url = format!("{host}/explore?method=single&assets={}", encode(asset_name));
     if let Some(run) = run {
         url.push_str(&format!("&runs={}", encode(run)));
     }
     Some(url)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{build_explore_url, import_target};
+
+    #[test]
+    fn import_target_uses_the_configured_app_uri() {
+        let target = import_target(
+            "Engine / 7",
+            Some("Test Run"),
+            None,
+            Some("https://sift.example.net/"),
+        );
+        assert_eq!(
+            target.explore_url.as_deref(),
+            Some(
+                "https://sift.example.net/explore?method=single&assets=Engine%20%2F%207&runs=Test%20Run"
+            )
+        );
+    }
+
+    #[test]
+    fn run_id_takes_priority_over_run_name() {
+        let target = import_target(
+            "asset",
+            Some("name"),
+            Some("run-id"),
+            Some("https://app.siftstack.com"),
+        );
+        assert!(
+            target
+                .explore_url
+                .as_deref()
+                .unwrap()
+                .ends_with("&runs=run-id")
+        );
+    }
+
+    #[test]
+    fn empty_or_slash_only_app_uri_does_not_build_a_link() {
+        for app_uri in [None, Some(""), Some("   "), Some(" / ")] {
+            assert_eq!(build_explore_url(app_uri, "asset", None), None);
+        }
+    }
 }

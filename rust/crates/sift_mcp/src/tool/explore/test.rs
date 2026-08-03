@@ -5,12 +5,12 @@ use sift_test_util::grpc::memory_sift_channel;
 use super::*;
 use crate::server::SiftMcpServer;
 
-const REST_URI: &str = "https://api.siftstack.com";
+const APP_URI: &str = "https://app.siftstack.com";
 
-async fn server_for_explore(rest_uri: &str) -> SiftMcpServer {
+async fn server_for_explore(app_uri: &str) -> SiftMcpServer {
     let (client, _server) = tokio::io::duplex(1024);
     let channel = memory_sift_channel(client).await;
-    SiftMcpServer::new(channel, rest_uri.to_string(), true)
+    SiftMcpServer::new(channel, app_uri.to_string(), true)
 }
 
 fn structured_field(result: rmcp::model::CallToolResult, key: &str) -> Value {
@@ -25,7 +25,7 @@ fn structured_field(result: rmcp::model::CallToolResult, key: &str) -> Value {
 
 #[tokio::test]
 async fn handler_returns_structured_url_and_text_content() {
-    let server = server_for_explore(REST_URI).await;
+    let server = server_for_explore(APP_URI).await;
     let params = ExploreUrlParams {
         assets: Some(vec![String::from("Engine-7")]),
         runs: None,
@@ -33,7 +33,6 @@ async fn handler_returns_structured_url_and_text_content() {
         panel_type: None,
         start_time_unix_nanos: None,
         end_time_unix_nanos: None,
-        explore_host: None,
     };
 
     let result = server.explore_url(Parameters(params)).await.unwrap();

@@ -19,7 +19,6 @@ pub struct ExploreUrlParams {
     panel_type: Option<String>,
     start_time_unix_nanos: Option<i64>,
     end_time_unix_nanos: Option<i64>,
-    explore_host: Option<String>,
 }
 
 #[tool_router(router = explore_router, vis = "pub(crate)")]
@@ -46,13 +45,9 @@ impl SiftMcpServer {
                 rejected with `INVALID_PARAMS`; the error message enumerates the accepted set.
               - `start_time_unix_nanos`, `end_time_unix_nanos`: optional time window. Provided as Unix nanoseconds
                 for parity with `get_data`; the tool converts to ISO 8601 UTC for the URL.
-              - `explore_host`: optional override for the Sift web host (e.g. `https://app.staging.siftstack.com`).
-                When omitted the host is derived from the server's configured `rest_uri`.
-
             Errors:
               - `INVALID_PARAMS` if no selection or time parameter is set (the URL would be useless), if
-                `panel_type` is not in the known set, if `end_time_unix_nanos < start_time_unix_nanos`, or if the
-                Sift web host cannot be derived from `rest_uri` and `explore_host` is unset.
+                `panel_type` is not in the known set, or if `end_time_unix_nanos < start_time_unix_nanos`.
 
             Guidance:
               - Reach for this tool when the user asks to \"see\", \"view\", \"graph\", \"plot\", \"visualize\", or
@@ -71,7 +66,6 @@ impl SiftMcpServer {
             panel_type,
             start_time_unix_nanos,
             end_time_unix_nanos,
-            explore_host,
         }) = params;
 
         let url = self.url_service.build_explore_url(ExploreUrlRequest {
@@ -81,7 +75,6 @@ impl SiftMcpServer {
             panel_type,
             start_time_unix_nanos,
             end_time_unix_nanos,
-            explore_host,
         })?;
 
         let next_step = format!(

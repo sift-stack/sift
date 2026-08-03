@@ -99,7 +99,11 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
     // Mcp Server
     #[cfg(feature = "mcp")]
     if let Cmd::Mcp(args) = cmd {
-        return run_future_mt(cmd::mcp::run(ctx, args));
+        let app_uri = match ctx.require_app_uri(clargs.profile.as_deref()) {
+            Ok(app_uri) => app_uri.to_string(),
+            Err(error) => return run_future_mt(cmd::mcp::report_startup_error(error)),
+        };
+        return run_future_mt(cmd::mcp::run(ctx, args, app_uri));
     }
 
     let profile = clargs

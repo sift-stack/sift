@@ -35,7 +35,7 @@ async fn server_with_mock_and_flag(
     (
         SiftMcpServer::new(
             channel,
-            String::from("https://api.test.local"),
+            String::from("https://app.test.local"),
             allow_destructive,
         ),
         handle,

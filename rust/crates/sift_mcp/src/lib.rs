@@ -6,6 +6,9 @@ use sift_rs::{Credentials, SiftChannelBuilder};
 mod server;
 use server::SiftMcpServer;
 
+mod startup;
+pub use startup::report_startup_error;
+
 mod error;
 mod policy;
 mod prompt;
@@ -15,7 +18,7 @@ mod tool;
 pub async fn run(
     credentials: Credentials,
     use_tls: bool,
-    rest_uri: String,
+    app_uri: String,
     allow_destructive: bool,
 ) -> Result<()> {
     let channel = SiftChannelBuilder::new(credentials)
@@ -24,7 +27,7 @@ pub async fn run(
         .build()
         .context("failed to build gRPC channel to connect to Sift")?;
 
-    let service = SiftMcpServer::new(channel, rest_uri, allow_destructive)
+    let service = SiftMcpServer::new(channel, app_uri, allow_destructive)
         .serve(stdio())
         .await
         .context("failed to start MCP server")?;
