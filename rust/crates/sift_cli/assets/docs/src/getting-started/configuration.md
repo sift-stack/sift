@@ -2,12 +2,12 @@
 
 Each CLI profile needs four values:
 
-| Field      | Description                                  | Example                         |
-| ---------- | -------------------------------------------- | ------------------------------- |
-| `grpc_uri` | Base gRPC endpoint for Sift                  | `https://api.siftstack.com`     |
-| `rest_uri` | Base REST endpoint for Sift                  | `https://api.siftstack.com`     |
-| `app_uri`  | Required web app origin from your browser    | `https://app.siftstack.com`     |
-| `apikey`   | Your Sift API key                            | `sift_...`                      |
+| Field      | Description                                  | Example                          |
+| ---------- | -------------------------------------------- | -------------------------------- |
+| `grpc_uri` | Base gRPC endpoint for Sift                  | `https://grpc-api.siftstack.com` |
+| `rest_uri` | Base REST endpoint for Sift                  | `https://api.siftstack.com`      |
+| `app_uri`  | Required web app origin from your browser    | `https://app.siftstack.com`      |
+| `apikey`   | Your Sift API key                            | `sift_...`                       |
 
 For Sift Cloud, both URIs are `https://api.siftstack.com`. For self-hosted or
 non-cloud environments, use the endpoints provided by your administrator (and
@@ -27,9 +27,9 @@ Settings live in a TOML file named `sift.toml` inside your OS config directory:
 
 | Platform | Location                                            |
 | -------- | --------------------------------------------------- |
-| macOS    | `~/Library/Application Support/sift.toml`            |
-| Linux    | `~/.config/sift.toml`                                |
-| Windows  | `%APPDATA%\sift.toml`                                |
+| macOS    | `~/Library/Application Support/sift.toml`           |
+| Linux    | `~/.config/sift.toml`                               |
+| Windows  | `%APPDATA%\sift.toml`                               |
 
 Find the exact path on your machine:
 
@@ -58,7 +58,7 @@ values as flags:
 
 ```sh
 sift-cli config update \
-  --grpc-uri https://api.siftstack.com \
+  --grpc-uri https://grpc-api.siftstack.com \
   --rest-uri https://api.siftstack.com \
   --app-uri https://app.siftstack.com \
   --api-key "$SIFT_API_KEY"
@@ -81,7 +81,7 @@ sift-cli config where    # print the path to the config file
 A configured `default` profile looks like this:
 
 ```toml
-grpc_uri = "https://api.siftstack.com"
+grpc_uri = "https://grpc-api.siftstack.com"
 rest_uri = "https://api.siftstack.com"
 app_uri = "https://app.siftstack.com"
 apikey = "sift_..."

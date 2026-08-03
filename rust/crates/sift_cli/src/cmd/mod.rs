@@ -163,7 +163,7 @@ mod tests {
     use toml::Table;
 
     const COMPLETE_CONFIG: &str = r#"
-grpc_uri = "https://api.siftstack.com"
+grpc_uri = "https://grpc-api.siftstack.com"
 rest_uri = "https://api.siftstack.com"
 app_uri = "https://app.siftstack.com"
 apikey = "default-key"
@@ -185,7 +185,7 @@ apikey = "mission-key"
     #[test]
     fn loads_complete_default_and_named_profiles() {
         let default = context(COMPLETE_CONFIG, None).unwrap();
-        assert_eq!(default.grpc_uri, "https://api.siftstack.com");
+        assert_eq!(default.grpc_uri, "https://grpc-api.siftstack.com");
         assert_eq!(default.rest_uri, "https://api.siftstack.com");
         assert_eq!(default.app_uri, "https://app.siftstack.com");
         assert_eq!(default.api_key, "default-key");
@@ -211,7 +211,7 @@ apikey = "key"
             (
                 "rest_uri",
                 r#"
-grpc_uri = "https://api.siftstack.com"
+grpc_uri = "https://grpc-api.siftstack.com"
 app_uri = "https://app.siftstack.com"
 apikey = "key"
 "#,
@@ -219,7 +219,7 @@ apikey = "key"
             (
                 "app_uri",
                 r#"
-grpc_uri = "https://api.siftstack.com"
+grpc_uri = "https://grpc-api.siftstack.com"
 rest_uri = "https://api.siftstack.com"
 apikey = "key"
 "#,
@@ -227,7 +227,7 @@ apikey = "key"
             (
                 "apikey",
                 r#"
-grpc_uri = "https://api.siftstack.com"
+grpc_uri = "https://grpc-api.siftstack.com"
 rest_uri = "https://api.siftstack.com"
 app_uri = "https://app.siftstack.com"
 "#,
@@ -241,7 +241,7 @@ app_uri = "https://app.siftstack.com"
     #[test]
     fn missing_app_uri_reports_known_and_custom_commands() {
         let known = r#"
-grpc_uri = "https://api.siftstack.com"
+grpc_uri = "https://grpc-api.siftstack.com"
 rest_uri = "https://api.siftstack.com"
 apikey = "key"
 "#;
