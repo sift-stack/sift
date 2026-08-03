@@ -104,6 +104,10 @@ impl SiftMcpServer {
                 `annotation_type`, `tag_name`, `report_id`, `asset_id`, `asset_name`, `pending`, `assignee`,
                 `campaign_reports`, `metadata`, `archived_date`, `is_archived`. Reference metadata entries as
                 `metadata.{key}` (e.g. `metadata.severity == \"high\"`).
+                When filtering or searching, use `name.matches(\"(?i)vibration\")`, not `==`. Use `==` only for an
+                exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
+                `contains(\"Vibration\")` silently misses `vibration-check`. An empty result is not proof of
+                absence — retry once with a shorter fragment.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `created_date`,
                 `modified_date`, `start_time`, `end_time`, `name`, `description`. Default sort is `created_date desc`
                 (newest first). Example: `\"start_time desc,name\"`.
