@@ -3,7 +3,9 @@
 When a user wants help integrating their own systems with Sift, consult the
 references below and write code against `sift_client` for Python or
 `sift_stream` for Rust. Use the examples in those docs as the starting point
-rather than inventing API shapes.
+rather than inventing API shapes. When writing code to interact with Sift,
+infer based on the user's environment which language is preferred. If both
+Python and Rust exist, ask the user which language to author code in.
 
 Look up any detail you are unsure of with `search_docs` before you write the
 call. It serves the full REST and gRPC API reference.

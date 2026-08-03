@@ -63,10 +63,11 @@ per session. The rest apply to each subcommand invocation.
    running.
 5. **Use absolute paths.** Pass absolute paths for any file argument so
    the command does not depend on the shell's current directory.
-6. **For imports, always pass `--wait`.** With `--wait` the CLI blocks
-   until the server-side import job finishes and emits a final status
-   line. Without it you cannot confirm the data actually landed. Relay
-   the final stdout line to the user verbatim.
+6. **For imports, pass `--wait`.** With `--wait` the CLI blocks until the
+   server-side import job finishes and emits a final status line. Without
+   it you cannot confirm the data actually landed. Relay the final stdout
+   line to the user verbatim. `import backups` is the one exception: it
+   accepts no `--wait`, `--preview`, or `--run`.
 7. **Surface the Explore link from import output.** `sift-cli import`
    prints a `View in Sift: <URL>` tip line after a successful upload when
    the URL can be resolved — either because the profile sets `app_uri`
@@ -92,13 +93,15 @@ There are two ways to get data into Sift: importing a file, or streaming.
 supports CSV, Parquet (flat-dataset and channel-per-row), TDMS, HDF5, ULog,
 and `sift_stream` backups.
 
-If the user's file type is not supported by the CLI or MCP server, you have
-three options:
+If the CLI does not support the user's file type:
 
-1. Transform the data into a CSV or Parquet file and import that with the CLI.
-2. Transform the data into a Parquet file and upload it with the MCP
-   `upload_dataset` tool.
-3. Stream the data into Sift with the Python library.
+1. Transform the data into CSV or Parquet and import that with `sift-cli`.
+2. Stream the data into Sift with the Python library.
+
+Do not reach for the MCP `upload_dataset` tool to import a user's file. It
+accepts only Sift's canonical Parquet schema — every column named
+`<channel_name> {channel_id="<uuid>"}` — so it round-trips the output of
+`get_data`, and rejects a foreign file with `missing attribute block`.
 
 ### Stream data
 

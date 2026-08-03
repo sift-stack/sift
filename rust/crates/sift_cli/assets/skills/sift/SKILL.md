@@ -79,11 +79,9 @@ exists.
 
 ## Rules that always apply
 
-- **Surface URLs as plain text, in full.** The `explore_url` tool, the
-  `explore_url` field on `upload_dataset`, and the `View in Sift:` line from
-  `sift-cli import` are all deliverables. Never wrap one in a markdown link and
-  never summarize it away, because not every IDE renders markdown. If the URL
-  is null, do not invent one.
+- **Surface URLs as plain text, in full.** The link from `explore_url` and the
+  `View in Sift:` line from `sift-cli import` are deliverables. Never invent a
+  URL that a tool did not return.
 - **Confirm every write before you run it.** Show the user the proposed change
   and its target, then wait for approval.
 - **Destructive tools are off by default.** `update_*`, `archive_*`, and
