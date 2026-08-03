@@ -30,6 +30,10 @@ fn error_status() -> StyledContent<&'static str> {
     "[error]".red()
 }
 
+fn warning_status() -> StyledContent<&'static str> {
+    "[warning]".yellow()
+}
+
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub(super) enum AccessMode {
     ReadOnly,
@@ -432,7 +436,7 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
                 println!("{} {} app_uri: {app_uri}", ok_status(), profile.label());
             }
             Ok(AppUriState::MissingKnown(app_uri)) => {
-                println!("[warning] {} has no app_uri.", profile.label());
+                println!("{} {} has no app_uri.", warning_status(), profile.label());
                 println!(
                     "Run `{} config update --app-uri {app_uri}` to set it.",
                     profile.command_prefix()
@@ -440,7 +444,7 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
                 warnings = true;
             }
             Ok(AppUriState::MissingUnknown(rest_uri)) => {
-                println!("[warning] {} has no app_uri.", profile.label());
+                println!("{} {} has no app_uri.", warning_status(), profile.label());
                 if let Some(rest_uri) = rest_uri {
                     println!("No public Sift app URL maps from {rest_uri}.");
                 }
@@ -453,7 +457,8 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
             }
             Ok(AppUriState::Invalid) => {
                 println!(
-                    "[warning] {} has an app_uri value that is not a string.",
+                    "{} {} has an app_uri value that is not a string.",
+                    warning_status(),
                     profile.label()
                 );
                 println!(
@@ -464,7 +469,8 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
             }
             Err(error) => {
                 println!(
-                    "[warning] Could not inspect app_uri for {}: {error}",
+                    "{} Could not inspect app_uri for {}: {error}",
+                    warning_status(),
                     profile.label()
                 );
                 warnings = true;
@@ -809,7 +815,10 @@ async fn check_release() -> bool {
     let current = match Version::parse(env!("CARGO_PKG_VERSION")) {
         Ok(current) => current,
         Err(error) => {
-            println!("[warning] Could not parse the installed CLI version: {error}");
+            println!(
+                "{} Could not parse the installed CLI version: {error}",
+                warning_status()
+            );
             return false;
         }
     };
@@ -835,11 +844,17 @@ async fn check_release() -> bool {
             false
         }
         Ok(None) => {
-            println!("[warning] No stable sift-cli releases were found on GitHub");
+            println!(
+                "{} No stable sift-cli releases were found on GitHub",
+                warning_status()
+            );
             false
         }
         Err(error) => {
-            println!("[warning] Could not check for a newer sift-cli release: {error}");
+            println!(
+                "{} Could not check for a newer sift-cli release: {error}",
+                warning_status()
+            );
             false
         }
     }

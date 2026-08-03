@@ -31,6 +31,7 @@ fn named_registration(access: AccessMode, profile: &str) -> Registration {
 fn status_tags_use_expected_colors() {
     assert_eq!(super::ok_status(), "[ok]".green());
     assert_eq!(super::error_status(), "[error]".red());
+    assert_eq!(super::warning_status(), "[warning]".yellow());
 }
 
 #[test]

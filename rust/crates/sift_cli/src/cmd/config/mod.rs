@@ -310,16 +310,21 @@ fn print_app_uri_guidance(profile: Option<&str>, state: &AppUriState) {
     match state {
         AppUriState::Configured(_) => {}
         AppUriState::MissingKnown(app_uri) => println!(
-            "[warning] This profile has no app_uri. Set it with `sift-cli {profile_flag}config \
-             update --app-uri {app_uri}`."
+            "{} This profile has no app_uri. Set it with `sift-cli {profile_flag}config \
+             update --app-uri {app_uri}`.",
+            "[warning]".yellow()
         ),
         AppUriState::MissingUnknown(_) => println!(
-            "[warning] This profile has no app_uri. Open your Sift web app and copy its URL \
+            "{} This profile has no app_uri. Open your Sift web app and copy its URL \
              origin. Then run `sift-cli {profile_flag}config update --app-uri \
-             <SIFT_WEB_ORIGIN>`."
+             <SIFT_WEB_ORIGIN>`.",
+            "[warning]".yellow()
         ),
         AppUriState::Invalid => {
-            println!("[warning] This profile has an app_uri value that is not a string.")
+            println!(
+                "{} This profile has an app_uri value that is not a string.",
+                "[warning]".yellow()
+            )
         }
     }
 }
