@@ -56,6 +56,47 @@ fn one_shared_skill_covers_agent_skills_clients() {
     );
 }
 
+/// The table in SKILL.md is the only index of the reference files. A link to a
+/// file the bundle does not carry sends the agent after a path that will not
+/// exist once installed, and an unlinked file never gets read at all.
+#[test]
+fn skill_reference_map_matches_the_bundle() {
+    let linked = linked_references(skill::CONTENT);
+    let bundled = skill::bundled_references();
+
+    assert!(!bundled.is_empty(), "the bundle carries no reference files");
+
+    for name in &bundled {
+        assert!(
+            linked.contains(name),
+            "references/{name} is bundled but SKILL.md never links to it"
+        );
+    }
+    for name in &linked {
+        assert!(
+            bundled.contains(name),
+            "SKILL.md links to references/{name}, which the bundle does not carry"
+        );
+    }
+}
+
+fn linked_references(content: &str) -> Vec<String> {
+    const PREFIX: &str = "references/";
+    let mut names = Vec::new();
+    for (index, _) in content.match_indices(PREFIX) {
+        let rest = &content[index + PREFIX.len()..];
+        let Some(end) = rest.find(".md") else {
+            continue;
+        };
+        let name = format!("{}.md", &rest[..end]);
+        if name.contains(['/', ')', ' ', '(']) || names.contains(&name) {
+            continue;
+        }
+        names.push(name);
+    }
+    names
+}
+
 #[test]
 fn skill_install_is_fresh_and_stateless() {
     let directory = TempDir::new("sift-cli-agent-skill").unwrap();

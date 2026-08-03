@@ -13,6 +13,8 @@ use super::{Environment, Harness, files};
 
 #[cfg(test)]
 pub(super) const CONTENT: &str = include_str!("../../../assets/skills/sift/SKILL.md");
+#[cfg(test)]
+pub(super) const REFERENCE_DIR: &str = "references";
 static BUNDLE: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/assets/skills/sift");
 const MANAGED_MARKER: &str = "Managed by sift-cli.";
 const LEGACY_MARKER: &str = "LOCKSTEP:";
@@ -64,6 +66,17 @@ impl Replacement {
         }
         Ok(())
     }
+}
+
+/// Reference file names carried in the bundle, without the `references/` prefix.
+#[cfg(test)]
+pub(super) fn bundled_references() -> Vec<String> {
+    BUNDLE
+        .get_dir(REFERENCE_DIR)
+        .into_iter()
+        .flat_map(Dir::files)
+        .filter_map(|file| file.path().file_name()?.to_str().map(str::to_string))
+        .collect()
 }
 
 pub(super) fn targets(environment: &Environment) -> Vec<Target> {
