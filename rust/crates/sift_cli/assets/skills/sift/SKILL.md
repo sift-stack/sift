@@ -43,7 +43,7 @@ to combine them when working with Sift.
      means the pattern was too narrow, so retry a shorter fragment before you
      tell the user that nothing exists. Each tool's description lists its own
      filterable fields. When a request is too vague to filter on, sample with a
-     small `limit` and ask the user to narrow it rather than guessing.
+     small `limit` (e.g. 5) and ask the user to narrow it rather than guessing.
    - `list_users`: resolve a person to a `user_id` by name, email, or id, then
      filter another list on `created_by_user_id` — that is how you answer "runs
      Jane created". For "runs I created", pass `me: true`, which resolves the
