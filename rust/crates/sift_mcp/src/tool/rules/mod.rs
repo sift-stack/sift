@@ -70,8 +70,10 @@ impl SiftMcpServer {
                 `created_date`, `created_by_user_id`, `metadata`, `modified_date`, `modified_by_user_id`,
                 `deleted_date`, `is_archived`, `archived_date`, `is_live_evaluation_enabled`.
                 Reference metadata entries as `metadata.{key}` (e.g. `metadata.severity == \"high\"`).
-                Prefer a pattern over `==`: `name.matches(\"(?i)avionics\")` is RE2, case-insensitive.
-                `contains`/`startsWith`/`endsWith` are case-SENSITIVE. Empty result: retry a shorter fragment.
+                When filtering or searching, use `name.matches(\"(?i)avionics\")`, not `==`. Use `==` only for an
+                exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
+                `contains(\"Avionics\")` silently misses `avionics-power-limit`. An empty result is not proof of
+                absence — retry once with a shorter fragment.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields:
                 `created_date`, `modified_date`. Default sort is `created_date desc` (newest first).
                 Example: `\"created_date desc,modified_date\"`.
@@ -126,8 +128,11 @@ impl SiftMcpServer {
               - `rule_id`: required. The rule whose versions to list.
               - `filter`: optional CEL expression. Filterable fields: `rule_version_id`, `user_notes`, and
                 `change_message`. Omit or pass an empty string to list all versions. There is no `name` here;
-                `user_notes` and `change_message` are the searchable text fields, e.g.
-                `change_message.matches(\"(?i)asset\")`.
+                `user_notes` and `change_message` are the text fields. When filtering or searching them, use
+                `change_message.matches(\"(?i)asset\")`, not `==`. Use `==` only for an exact value from a prior
+                result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE: `contains(\"Asset\")` silently
+                misses `asset renamed`. An empty result is not proof of absence — retry once with a shorter
+                fragment.
               - `limit`: max items to return. Start at 50 and only raise it if the result is capped
                 and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
 

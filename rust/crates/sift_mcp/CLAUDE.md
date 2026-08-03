@@ -503,12 +503,19 @@ The tool description is downstream of it.
 
 A field list does not tell an agent *how* to search it, and the default failure is an exact `==`
 against a value the caller only half knows. Every tool that takes a `filter` therefore closes its
-`filter` bullet with two lines naming that resource's own text fields:
+`filter` bullet with a short block naming that resource's own text fields:
 
 ```
-                Prefer a pattern over `==`: `name.matches(\"(?i)rover\")` is RE2, case-insensitive.
-                `contains`/`startsWith`/`endsWith` are case-SENSITIVE. Empty result: retry a shorter fragment.
+                When filtering or searching, use `name.matches(\"(?i)rover\")`, not `==`. Use `==` only for an
+                exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
+                `contains(\"Rover\")` silently misses `rover-01`. An empty result is not proof of absence — retry
+                once with a shorter fragment.
 ```
+
+Write it as a direct instruction, and name the failure. "Prefer a pattern" states a preference the
+agent can weigh against its own guess; "use `name.matches(...)`, not `==`" does not. The
+case-sensitivity line carries a concrete miss, because an agent that reads only the rule still
+writes `contains("Rover")`.
 
 Adapt it per resource; they are not uniform:
 
@@ -518,15 +525,18 @@ Adapt it per resource; they are not uniform:
 - **`list_rule_versions`** has no `name`; `user_notes` and `change_message` are its text fields.
 - **`list_report_rule_summaries`** filters only on ids and an enum, so it states there is no
   free-text field instead of carrying the block.
-- **`list_channels`** points at `contains`, because channel names embed `.` (`motor_d.current`),
-  which is a regex wildcard.
+- **`list_channels`** adds a line pointing at `contains` for a full literal name, because channel
+  names embed `.` (`motor_d.current`), which is a regex wildcard. `list_users` adds the same line
+  for `.` and `+` in email addresses.
+- **`count_test_steps`** and **`count_test_measurements`** return a number, not rows, so they say
+  "a count of 0 is not proof of absence".
 
 This guidance is not proto-sourced, so Step 5's "fix the proto first" rule does not apply. The
 string functions are behavior of the shared CEL filter engine, not of any one proto.
 
-Keep it in the description, and keep it to two lines. The description is what the agent reads at
-the moment it composes a filter, so guidance placed there acts on the decision it is meant to
-change. Do not move it to the server-level `instructions` in `src/server/mod.rs`: that text sits
+Keep it in the description, and keep it to four or five lines. The description is what the agent
+reads at the moment it composes a filter, so guidance placed there acts on the decision it is meant
+to change. Do not move it to the server-level `instructions` in `src/server/mod.rs`: that text sits
 far from the call site, clients truncate it, and a second location invites the two copies to
 drift. Repetition across tools is the cheaper failure here.
 
@@ -639,8 +649,8 @@ Run through this before declaring the tool done:
       services follow their own proto shape.
 - [ ] Description follows the five-section structure and the style rules. `list_*` descriptions
       match the current proto comments.
-- [ ] Any tool taking a `filter` closes its `filter` bullet with the two-line search block from
-      Step 5, adapted to that resource's own text fields.
+- [ ] Any tool taking a `filter` closes its `filter` bullet with the search block from Step 5,
+      adapted to that resource's own text fields and phrased as a direct instruction.
 - [ ] `read_only_hint` is correct, and write tools set `destructive_hint` / `idempotent_hint`
       per the Step 4 mapping. Write tools confirm the destination via `next_step`.
 - [ ] Every handler with `destructive_hint = true` calls `self.require_destructive()?` as its

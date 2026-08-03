@@ -40,9 +40,10 @@ impl SiftMcpServer {
 
             Parameters:
               - `filter`: CEL expression over `user_id` and `name` (`name` is the user's `user_name`). Pass an empty
-                string to list everyone. Callers rarely know an exact sign-in address, so patterns are the norm
-                here. `name.matches(\"(?i)jane\")` is RE2, case-insensitive; `contains`/`startsWith`/`endsWith`
-                are case-SENSITIVE. Empty result: retry a shorter fragment. `name.matches(\"(?i)^(jane|john)@\")`
+                string to list everyone. When searching for a person, use `name.matches(\"(?i)jane\")`, not `==`.
+                Use `==` only for an exact address from a prior result. `contains`/`startsWith`/`endsWith` are
+                case-SENSITIVE: `contains(\"Jane\")` silently misses `jane@siftstack.com`. An empty result is not
+                proof of absence — retry once with a shorter fragment. `name.matches(\"(?i)^(jane|john)@\")`
                 resolves several people at once; `user_id in [\"<uuid>\"]` maps ids back to names. Addresses
                 contain `.` and `+`, both regex metacharacters, so use `contains` to match one literally.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `name`,

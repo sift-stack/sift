@@ -37,13 +37,14 @@ to combine them when working with Sift.
      (start at 50, max 200). Omitting it defaults to 50 and values above 200
      clamp to 200, so raise `limit` when a result comes back capped.
    - `list_report_rule_summaries`: per-rule pass/fail/open breakdown for a report.
-   - Searching any of those lists: prefer a pattern over an exact `==`.
-     `name.matches("(?i)rover")` is RE2 and case-insensitive; `contains`,
-     `startsWith`, and `endsWith` are case-sensitive. An empty result usually
-     means the pattern was too narrow, so retry a shorter fragment before you
-     tell the user that nothing exists. Each tool's description lists its own
-     filterable fields. When a request is too vague to filter on, sample with a
-     small `limit` (e.g. 5) and ask the user to narrow it rather than guessing.
+   - Searching any of those lists: use `name.matches("(?i)rover")`, not `==`. Use
+     `==` only for an exact value from a prior result. `contains`, `startsWith`,
+     and `endsWith` are case-SENSITIVE: `contains("Rover")` silently misses
+     `rover-01`. An empty result is not proof of absence — retry once with a
+     shorter fragment before you tell the user that nothing exists. Each tool's
+     description lists its own filterable fields. When a request is too vague to
+     filter on, sample with a small `limit` and ask the user to narrow it rather
+     than guessing.
    - `list_users`: resolve a person to a `user_id` by name, email, or id, then
      filter another list on `created_by_user_id` — that is how you answer "runs
      Jane created". For "runs I created", pass `me: true`, which resolves the
