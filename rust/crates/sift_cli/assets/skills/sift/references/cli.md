@@ -13,6 +13,10 @@ Key subcommands:
 - `config`: manage profiles and credentials.
 - `agent`: install, update, diagnose, or uninstall Sift's agent integration.
 
+The `mcp` command requires a usable `app_uri` in the selected profile. If the
+profile is incomplete, the server returns the reason when the client lists its
+tools. Relay its exact config command.
+
 ## Protocol
 
 Invoke the CLI through your client's shell execution. The first step runs once
@@ -68,15 +72,13 @@ per session. The rest apply to each subcommand invocation.
    it you cannot confirm the data actually landed. Relay the final stdout
    line to the user verbatim. `import backups` is the one exception: it
    accepts no `--wait`, `--preview`, or `--run`.
-7. **Surface the Explore link from import output.** `sift-cli import`
-   prints a `View in Sift: <URL>` tip line after a successful upload. Each
-   profile must set `app_uri`. The config command can infer it for PubCloud
-   and GovCloud. Surface the URL as plain text, in full. Do not wrap it in a
-   markdown link, do not summarize it away —
-   the URL is part of the deliverable, and not every IDE renders
-   markdown. If the CLI rejects a profile with no `app_uri`, relay its config
-   command. For an unknown domain, ask the user to copy the origin from their
-   Sift web app. Do not assume a top-level domain. Do not invent a URL.
+7. **Surface the Explore link from import output.** Each profile must set
+   `app_uri`. `sift-cli import` prints a `View in Sift: <URL>` tip when this
+   value is usable. Surface the URL as plain text, in full. Do not wrap it in a
+   markdown link. An incomplete old profile does not block the import. The CLI
+   prints a config note instead. Relay that note. For an unknown domain, ask
+   the user to copy the origin from their Sift web app. Do not assume a
+   top-level domain. Do not invent a URL.
 8. **On failure, read stderr and retry.** A non-zero exit usually means a
    bad flag combination or missing required argument; the CLI's stderr
    names the exact issue. Adjust the command and run again rather than

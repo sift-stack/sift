@@ -35,7 +35,7 @@ pub async fn finish_import(
     run_id: Option<&str>,
     wait: bool,
 ) -> Result<ExitCode> {
-    let target = import_target(asset, run_name, run_id, Some(&ctx.app_uri));
+    let target = import_target(asset, run_name, run_id, ctx.app_uri.as_deref());
 
     if !wait {
         Output::new()

@@ -23,9 +23,12 @@ The skill is embedded at compile time, so rebuild `sift-cli` after changing it.
 Install and update operate on every detected supported client. They preflight
 all targets before writing and refuse to overwrite an unmanaged same-name skill
 or MCP entry. Doctor checks installed files, client configs, and Sift profiles.
-Doctor does not write files. It reports a missing required `app_uri` and prints
-the config command. Uninstall removes only content identifiable as Sift-managed.
+Doctor does not write files. It treats a missing required `app_uri` as an error.
+It prints the config command. Uninstall removes only identifiable Sift content.
 Do not add a state file or version tracking.
+
+The `mcp` command rejects a profile without a usable `app_uri`. Other commands
+can load an incomplete old profile so the user can recover it.
 
 Install defaults every MCP registration to read-only. Install accepts
 `--allow-destructive` as an explicit opt-in. Install uses the default Sift

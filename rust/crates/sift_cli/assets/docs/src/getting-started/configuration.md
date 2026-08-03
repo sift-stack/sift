@@ -9,15 +9,19 @@ Each CLI profile needs four values:
 | `app_uri`  | Required web app origin from your browser    | `https://app.siftstack.com`      |
 | `apikey`   | Your Sift API key                            | `sift_...`                       |
 
-For Sift Cloud, both URIs are `https://api.siftstack.com`. For self-hosted or
-non-cloud environments, use the endpoints provided by your administrator (and
-see [Disabling TLS](#disabling-tls) below if they are not served over TLS).
+For Sift Cloud, use the gRPC and REST values in the table. For other
+environments, use the endpoints from your administrator. See
+[Disabling TLS](#disabling-tls) if the endpoints do not use TLS.
 
 The config command can infer `app_uri` for PubCloud and GovCloud Sift. For any
 other domain, open the Sift web app and copy its URL origin. Keep the scheme and
 host. Do not include a page path, query, or fragment.
 
-Commands reject a profile when `app_uri` is missing, empty, or not a string.
+A profile without a usable `app_uri` is incomplete. API commands can continue
+so users can recover an old profile. Imports omit their web link. MCP URL tools
+need `app_uri`. `sift-cli mcp` does not expose tools for the incomplete profile.
+Its tool-list error includes the repair command, so the MCP client can show the
+reason. `sift-cli agent doctor` treats a missing or unusable value as an error.
 
 You can generate an API key from the Sift web app under your account settings.
 
@@ -47,9 +51,9 @@ sift-cli config create
 sift-cli config update --interactive
 ```
 
-The interactive prompt asks for the profile, API URLs, app origin, and API key.
-It shows the result before it writes the file. A blank profile selects the
-`default` profile.
+The interactive prompt asks for the profile, API URLs, API key, and app origin.
+The prompt shows the result before it writes the file. A blank profile selects
+the `default` profile.
 
 ### Non-interactive setup
 

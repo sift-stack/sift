@@ -28,16 +28,15 @@ pub struct ExploreUrlRequest {
     pub panel_type: Option<String>,
     pub start_time_unix_nanos: Option<i64>,
     pub end_time_unix_nanos: Option<i64>,
-    pub explore_host: Option<String>,
 }
 
 #[derive(Clone)]
 pub struct UrlService {
-    app_uri: Option<String>,
+    app_uri: String,
 }
 
 impl UrlService {
-    pub fn new(app_uri: Option<String>) -> Self {
+    pub fn new(app_uri: String) -> Self {
         Self { app_uri }
     }
 
@@ -49,7 +48,6 @@ impl UrlService {
             panel_type,
             start_time_unix_nanos,
             end_time_unix_nanos,
-            explore_host,
         } = request;
 
         let no_selection = assets.as_ref().is_none_or(|v| v.is_empty())
@@ -87,19 +85,7 @@ impl UrlService {
             ));
         }
 
-        let host = explore_host
-            .as_deref()
-            .map(str::trim)
-            .map(|host| host.trim_end_matches('/'))
-            .filter(|host| !host.is_empty())
-            .or_else(|| self.app_host().ok())
-            .ok_or_else(|| {
-                ErrorData::invalid_params(
-                    "could not build a Sift Explore URL because `app_uri` is not configured; \
-                     set it in the selected sift-cli profile or pass `explore_host`",
-                    None,
-                )
-            })?;
+        let host = self.app_host()?;
 
         let mut query = String::from("method=single");
         if let Some(v) = assets.as_ref().filter(|v| !v.is_empty()) {
@@ -170,18 +156,14 @@ impl UrlService {
     }
 
     fn app_host(&self) -> Result<&str, ErrorData> {
-        self.app_uri
-            .as_deref()
-            .map(str::trim)
-            .map(|host| host.trim_end_matches('/'))
-            .filter(|host| !host.is_empty())
-            .ok_or_else(|| {
-                ErrorData::invalid_params(
-                    "could not build a Sift web URL because `app_uri` is not configured in the \
+        let host = self.app_uri.trim().trim_end_matches('/');
+        (!host.is_empty()).then_some(host).ok_or_else(|| {
+            ErrorData::invalid_params(
+                "could not build a Sift web URL because `app_uri` is not configured in the \
                      selected sift-cli profile",
-                    None,
-                )
-            })
+                None,
+            )
+        })
     }
 }
 

@@ -6,6 +6,9 @@ use sift_rs::{Credentials, SiftChannelBuilder};
 mod server;
 use server::SiftMcpServer;
 
+mod startup;
+pub use startup::report_startup_error;
+
 mod error;
 mod policy;
 mod prompt;
@@ -15,7 +18,7 @@ mod tool;
 pub async fn run(
     credentials: Credentials,
     use_tls: bool,
-    app_uri: Option<String>,
+    app_uri: String,
     allow_destructive: bool,
 ) -> Result<()> {
     let channel = SiftChannelBuilder::new(credentials)

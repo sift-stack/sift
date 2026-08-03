@@ -71,6 +71,14 @@ rest_uri = "https://gov.api.siftstack.com"
 
 [custom]
 rest_uri = "https://api.example.net"
+
+[slash]
+rest_uri = "https://api.siftstack.com"
+app_uri = " / "
+
+[invalid]
+rest_uri = "https://api.siftstack.com"
+app_uri = 42
 "#,
         );
 
@@ -85,6 +93,14 @@ rest_uri = "https://api.example.net"
         assert_eq!(
             app_uri_state(&config, Some("custom")).unwrap(),
             AppUriState::MissingUnknown(Some("https://api.example.net".to_string()))
+        );
+        assert_eq!(
+            app_uri_state(&config, Some("slash")).unwrap(),
+            AppUriState::MissingKnown("https://app.siftstack.com".to_string())
+        );
+        assert_eq!(
+            app_uri_state(&config, Some("invalid")).unwrap(),
+            AppUriState::Invalid
         );
     }
 

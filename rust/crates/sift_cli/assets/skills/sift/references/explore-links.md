@@ -15,7 +15,7 @@ Prefix the channels for the panel you chose:
 - `lat:`, `lon:`, and `color:` for a geo map.
 
 `explore_url` uses the required `app_uri` from the user's `sift-cli` profile.
-An `explore_host` passed on the call overrides this value.
+The `sift-cli mcp` command rejects a profile without this value.
 
 If `app_uri` is missing, run `sift-cli agent doctor`. Relay the exact config
 command for PubCloud or GovCloud. For any other domain, ask the user to copy the

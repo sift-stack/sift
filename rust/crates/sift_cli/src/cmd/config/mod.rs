@@ -15,7 +15,7 @@ use toml::{Table, Value};
 use crate::{
     cli::ConfigUpdateArgs,
     util::{
-        app_uri::infer_app_uri,
+        app_uri::{infer_app_uri, normalize_app_uri},
         tty::{Output, PromptUser},
     },
 };
@@ -236,7 +236,7 @@ fn apply_profile_updates(
     };
 
     let infer_missing_app_uri =
-        rest_uri.is_some() && app_uri.as_deref().is_none_or(|uri| uri.trim().is_empty());
+        rest_uri.is_some() && app_uri.as_deref().and_then(normalize_app_uri).is_none();
 
     if let Some(uri) = grpc_uri {
         target.insert(String::from("grpc_uri"), Value::String(uri));
@@ -247,13 +247,14 @@ fn apply_profile_updates(
     if let Some(token) = api_key {
         target.insert(String::from("apikey"), Value::String(token));
     }
-    if let Some(uri) = app_uri.filter(|uri| !uri.trim().is_empty()) {
-        target.insert(String::from("app_uri"), Value::String(uri));
+    if let Some(uri) = app_uri.as_deref().and_then(normalize_app_uri) {
+        target.insert(String::from("app_uri"), Value::String(uri.to_string()));
     }
     let app_uri_is_missing = target
         .get("app_uri")
         .and_then(Value::as_str)
-        .is_none_or(|uri| uri.trim().is_empty());
+        .and_then(normalize_app_uri)
+        .is_none();
     if infer_missing_app_uri
         && app_uri_is_missing
         && let Some(rest_uri) = target.get("rest_uri").and_then(Value::as_str)
@@ -278,8 +279,8 @@ pub(super) fn inspect_app_uri(profile: Option<&str>) -> Result<AppUriState> {
 fn app_uri_state(config_toml: &Table, profile: Option<&str>) -> Result<AppUriState> {
     let target = profile_table(config_toml, profile)?;
     match target.get("app_uri") {
-        Some(Value::String(uri)) if !uri.trim().is_empty() => {
-            return Ok(AppUriState::Configured(uri.trim().to_string()));
+        Some(Value::String(uri)) if let Some(uri) = normalize_app_uri(uri) => {
+            return Ok(AppUriState::Configured(uri.to_string()));
         }
         Some(Value::String(_)) | None => {}
         Some(_) => return Ok(AppUriState::Invalid),

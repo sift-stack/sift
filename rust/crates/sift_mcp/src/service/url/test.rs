@@ -3,7 +3,7 @@ use super::*;
 const APP_URI: &str = "https://app.siftstack.com";
 
 fn service() -> UrlService {
-    UrlService::new(Some(APP_URI.to_string()))
+    UrlService::new(APP_URI.to_string())
 }
 
 #[test]
@@ -16,7 +16,6 @@ fn full_url_with_all_params() {
             panel_type: Some(String::from("scatter-plot")),
             start_time_unix_nanos: Some(0),
             end_time_unix_nanos: Some(1_700_000_000_000_000_000),
-            explore_host: None,
         })
         .unwrap();
     assert_eq!(
@@ -95,7 +94,7 @@ fn empty_vecs_are_treated_as_missing() {
 
 #[test]
 fn configured_app_uri_trims_a_trailing_slash() {
-    let svc = UrlService::new(Some(String::from("https://sift.example.net/")));
+    let svc = UrlService::new(String::from("https://sift.example.net/"));
     let url = svc
         .build_explore_url(ExploreUrlRequest {
             assets: Some(vec![String::from("a")]),
@@ -110,56 +109,9 @@ fn configured_app_uri_trims_a_trailing_slash() {
 
 #[test]
 fn slash_only_app_uri_is_treated_as_missing() {
-    let svc = UrlService::new(Some(String::from(" / ")));
+    let svc = UrlService::new(String::from(" / "));
     let err = svc.build_report_url("rep-123").unwrap_err();
     assert_eq!(err.code.0, -32602);
-}
-
-#[test]
-fn missing_app_uri_without_explore_host_errors() {
-    let svc = UrlService::new(None);
-    let err = svc
-        .build_explore_url(ExploreUrlRequest {
-            assets: Some(vec![String::from("a")]),
-            ..Default::default()
-        })
-        .unwrap_err();
-    assert_eq!(err.code.0, -32602);
-    assert!(
-        err.message.contains("app_uri") && err.message.contains("explore_host"),
-        "expected profile and request guidance, got `{}`",
-        err.message
-    );
-}
-
-#[test]
-fn slash_only_explore_host_uses_configured_app_uri() {
-    let url = service()
-        .build_explore_url(ExploreUrlRequest {
-            assets: Some(vec![String::from("a")]),
-            explore_host: Some(String::from(" / ")),
-            ..Default::default()
-        })
-        .unwrap();
-    assert!(
-        url.starts_with("https://app.siftstack.com/explore?"),
-        "got {url}"
-    );
-}
-
-#[test]
-fn explore_host_takes_priority_over_configured_app_uri() {
-    let url = service()
-        .build_explore_url(ExploreUrlRequest {
-            assets: Some(vec![String::from("a")]),
-            explore_host: Some(String::from("https://override.example.net/")),
-            ..Default::default()
-        })
-        .unwrap();
-    assert!(
-        url.starts_with("https://override.example.net/explore?"),
-        "got {url}"
-    );
 }
 
 #[test]
@@ -169,23 +121,9 @@ fn report_url_uses_configured_app_uri() {
 }
 
 #[test]
-fn report_url_errors_without_app_uri() {
-    let svc = UrlService::new(None);
-    let err = svc.build_report_url("rep-123").unwrap_err();
-    assert_eq!(err.code.0, -32602);
-}
-
-#[test]
 fn rule_url_uses_configured_app_uri() {
     let url = service().build_rule_url("rule-123").unwrap();
     assert_eq!(url, "https://app.siftstack.com/rules/rule-123");
-}
-
-#[test]
-fn rule_url_errors_without_app_uri() {
-    let svc = UrlService::new(None);
-    let err = svc.build_rule_url("rule-123").unwrap_err();
-    assert_eq!(err.code.0, -32602);
 }
 
 #[test]
@@ -203,15 +141,4 @@ fn annotation_asset_run_urls_use_singular_path_segments() {
         svc.build_run_url("run-1").unwrap(),
         "https://app.siftstack.com/run/run-1"
     );
-}
-
-#[test]
-fn annotation_asset_run_urls_error_without_app_uri() {
-    let svc = UrlService::new(None);
-    assert_eq!(
-        svc.build_annotation_url("ann-1").unwrap_err().code.0,
-        -32602
-    );
-    assert_eq!(svc.build_asset_url("asset-1").unwrap_err().code.0, -32602);
-    assert_eq!(svc.build_run_url("run-1").unwrap_err().code.0, -32602);
 }

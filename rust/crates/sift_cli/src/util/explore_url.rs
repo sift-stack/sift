@@ -1,6 +1,8 @@
 use crossterm::style::Stylize;
 use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, utf8_percent_encode};
 
+use super::app_uri::normalize_app_uri;
+
 const VALUE_ENCODE_SET: &AsciiSet = &NON_ALPHANUMERIC
     .remove(b'-')
     .remove(b'_')
@@ -57,10 +59,7 @@ pub fn build_explore_url(
     asset_name: &str,
     run: Option<&str>,
 ) -> Option<String> {
-    let host = app_uri
-        .map(str::trim)
-        .map(|host| host.trim_end_matches('/'))
-        .filter(|host| !host.is_empty())?;
+    let host = app_uri.and_then(normalize_app_uri)?;
 
     let mut url = format!("{host}/explore?method=single&assets={}", encode(asset_name));
     if let Some(run) = run {

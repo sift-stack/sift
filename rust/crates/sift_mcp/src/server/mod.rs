@@ -76,7 +76,7 @@ impl ServerHandler for SiftMcpServer {
 }
 
 impl SiftMcpServer {
-    pub fn new(channel: SiftChannel, app_uri: Option<String>, allow_destructive: bool) -> Self {
+    pub fn new(channel: SiftChannel, app_uri: String, allow_destructive: bool) -> Self {
         // Add more routers here as new tool groups are introduced, e.g.
         //   tool_router.merge(Self::ingestion_router())
         let mut tool_router = Self::assets_router();

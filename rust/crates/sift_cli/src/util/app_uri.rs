@@ -3,6 +3,11 @@ const PROD_APP_URI: &str = "https://app.siftstack.com";
 const GOV_REST_HOST: &str = "gov.api.siftstack.com";
 const GOV_APP_URI: &str = "https://gov.siftstack.com";
 
+pub fn normalize_app_uri(app_uri: &str) -> Option<&str> {
+    let app_uri = app_uri.trim().trim_end_matches('/');
+    (!app_uri.is_empty()).then_some(app_uri)
+}
+
 pub fn infer_app_uri(rest_uri: &str) -> Option<&'static str> {
     let rest_uri = rest_uri.trim();
     let authority_and_path = rest_uri
@@ -26,7 +31,18 @@ pub fn infer_app_uri(rest_uri: &str) -> Option<&'static str> {
 
 #[cfg(test)]
 mod tests {
-    use super::infer_app_uri;
+    use super::{infer_app_uri, normalize_app_uri};
+
+    #[test]
+    fn normalizes_usable_app_uris() {
+        assert_eq!(
+            normalize_app_uri("  https://app.siftstack.com///  "),
+            Some("https://app.siftstack.com")
+        );
+        for app_uri in ["", "   ", "/", " / ", "///"] {
+            assert_eq!(normalize_app_uri(app_uri), None);
+        }
+    }
 
     #[test]
     fn infers_public_sift_app_uris() {

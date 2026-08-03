@@ -5,16 +5,18 @@ skill:
 
 - Run `sift-cli agent doctor` to diagnose setup. It checks the installed
   profile, access mode, and profile `app_uri` without a change.
-- Treat `app_uri` as a required profile field. If doctor finds a missing value
-  for PubCloud or GovCloud, relay its exact `sift-cli config update --app-uri`
+- Treat `app_uri` as a required profile field. Doctor treats a missing or
+  unusable value as an error. The `mcp` command returns the same reason when the
+  client lists its tools. For PubCloud or GovCloud, relay the exact config
   command. Show the profile and command, then wait for approval. Ask the user
   to restart the MCP client after the config change.
-- For any other domain, do not guess `app_uri`. Ask the user to open their Sift
+- For another domain, do not guess `app_uri`. Ask the user to open their Sift
   web app. Ask them to copy the URL origin from the browser address bar. The
   origin contains the scheme and host. It can use any top-level domain. For the
-  default profile, propose `sift-cli config update --app-uri <SIFT_WEB_ORIGIN>`.
-  For a named profile, add `--profile <name>` before `config`. Wait for approval
-  before the config change. Ask for an MCP client restart afterward.
+  default profile, propose
+  `sift-cli config update --app-uri <SIFT_WEB_ORIGIN>`. For a named profile, add
+  `--profile <name>` before `config`. Wait for approval before the config
+  change. Ask for an MCP client restart afterward.
 - For first-time setup, explain that `sift-cli agent install` installs the
   release-matched skill and read-only MCP registration for every detected
   client using the default Sift profile. If the user selected a named profile,

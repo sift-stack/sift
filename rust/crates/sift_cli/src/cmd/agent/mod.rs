@@ -426,6 +426,7 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
         );
         unhealthy = true;
     }
+    let integration_unhealthy = unhealthy;
 
     if !mixed_profiles
         && !unexpected_profile
@@ -436,15 +437,15 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
                 println!("{} {} app_uri: {app_uri}", ok_status(), profile.label());
             }
             Ok(AppUriState::MissingKnown(app_uri)) => {
-                println!("{} {} has no app_uri.", warning_status(), profile.label());
+                println!("{} {} has no app_uri.", error_status(), profile.label());
                 println!(
                     "Run `{} config update --app-uri {app_uri}` to set it.",
                     profile.command_prefix()
                 );
-                warnings = true;
+                unhealthy = true;
             }
             Ok(AppUriState::MissingUnknown(rest_uri)) => {
-                println!("{} {} has no app_uri.", warning_status(), profile.label());
+                println!("{} {} has no app_uri.", error_status(), profile.label());
                 if let Some(rest_uri) = rest_uri {
                     println!("No public Sift app URL maps from {rest_uri}.");
                 }
@@ -453,19 +454,19 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
                     "Then run `{} config update --app-uri <SIFT_WEB_ORIGIN>`.",
                     profile.command_prefix()
                 );
-                warnings = true;
+                unhealthy = true;
             }
             Ok(AppUriState::Invalid) => {
                 println!(
                     "{} {} has an app_uri value that is not a string.",
-                    warning_status(),
+                    error_status(),
                     profile.label()
                 );
                 println!(
                     "Set it with `{} config update --app-uri <SIFT_WEB_ORIGIN>`.",
                     profile.command_prefix()
                 );
-                warnings = true;
+                unhealthy = true;
             }
             Err(error) => {
                 println!(
@@ -521,7 +522,12 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
                 "Then run `sift-cli agent update` to repair all detected integrations together."
             );
         }
-        if !blocked && !mixed_access && !mixed_profiles && !unexpected_profile {
+        if integration_unhealthy
+            && !blocked
+            && !mixed_access
+            && !mixed_profiles
+            && !unexpected_profile
+        {
             println!("Run `sift-cli agent update` to repair the detected integrations.");
         }
         Ok(ExitCode::FAILURE)
