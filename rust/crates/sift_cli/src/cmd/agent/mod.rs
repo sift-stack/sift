@@ -13,7 +13,7 @@ use std::{
 };
 
 use anyhow::{Context, Result, anyhow};
-use crossterm::style::Stylize;
+use crossterm::style::{StyledContent, Stylize};
 use semver::Version;
 
 use crate::{
@@ -21,6 +21,14 @@ use crate::{
     cmd::{config as profile_config, config::AppUriState, version},
     util::progress::Spinner,
 };
+
+fn ok_status() -> StyledContent<&'static str> {
+    "[ok]".green()
+}
+
+fn error_status() -> StyledContent<&'static str> {
+    "[error]".red()
+}
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub(super) enum AccessMode {
@@ -266,7 +274,10 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
     let mut blocked = false;
     let mut warnings = false;
     if environment.harnesses.is_empty() {
-        println!("[error] No supported AI coding clients were detected.");
+        println!(
+            "{} No supported AI coding clients were detected.",
+            error_status()
+        );
         return Ok(ExitCode::FAILURE);
     }
 
@@ -284,25 +295,28 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
         let clients = harness_labels(&target.harnesses);
         match skill::inspect(&target.path)? {
             skill::State::Current => {
-                println!("[ok] {clients} skill: {}", target.path.display());
+                println!("{} {clients} skill: {}", ok_status(), target.path.display());
             }
             skill::State::Missing => {
                 println!(
-                    "[error] {clients} skill is missing: {}",
+                    "{} {clients} skill is missing: {}",
+                    error_status(),
                     target.path.display()
                 );
                 unhealthy = true;
             }
             skill::State::ManagedOutdated => {
                 println!(
-                    "[error] {clients} skill is from a different sift-cli release: {}",
+                    "{} {clients} skill is from a different sift-cli release: {}",
+                    error_status(),
                     target.path.display()
                 );
                 unhealthy = true;
             }
             skill::State::Conflict => {
                 println!(
-                    "[error] {clients} has an unmanaged skill at {}",
+                    "{} {clients} has an unmanaged skill at {}",
+                    error_status(),
                     target.path.display()
                 );
                 unhealthy = true;
@@ -326,19 +340,25 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
         match state {
             config::State::Current(registration) => {
                 println!(
-                    "[ok] {} MCP registration ({})",
+                    "{} {} MCP registration ({})",
+                    ok_status(),
                     harness.label(),
                     registration.label()
                 );
                 registrations.push(registration);
             }
             config::State::Missing => {
-                println!("[error] {} MCP registration is missing", harness.label());
+                println!(
+                    "{} {} MCP registration is missing",
+                    error_status(),
+                    harness.label()
+                );
                 unhealthy = true;
             }
             config::State::ManagedDrift(registration) => {
                 println!(
-                    "[error] {} MCP registration differs from the current bundle ({})",
+                    "{} {} MCP registration differs from the current bundle ({})",
+                    error_status(),
                     harness.label(),
                     registration.label()
                 );
@@ -346,12 +366,20 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
                 unhealthy = true;
             }
             config::State::Conflict(detail) => {
-                println!("[error] {} MCP registration: {detail}", harness.label());
+                println!(
+                    "{} {} MCP registration: {detail}",
+                    error_status(),
+                    harness.label()
+                );
                 unhealthy = true;
                 blocked = true;
             }
             config::State::Unavailable(detail) => {
-                println!("[error] {} MCP registration: {detail}", harness.label());
+                println!(
+                    "{} {} MCP registration: {detail}",
+                    error_status(),
+                    harness.label()
+                );
                 unhealthy = true;
                 blocked = true;
             }
@@ -367,12 +395,18 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
         .collect::<Vec<_>>();
     let mixed_access = has_mixed_access_modes(&access_modes);
     if mixed_access {
-        println!("[error] Detected MCP clients use mixed access modes.");
+        println!(
+            "{} Detected MCP clients use mixed access modes.",
+            error_status()
+        );
         unhealthy = true;
     }
     let mixed_profiles = has_mixed_profiles(&profiles);
     if mixed_profiles {
-        println!("[error] Detected MCP clients use mixed profiles.");
+        println!(
+            "{} Detected MCP clients use mixed profiles.",
+            error_status()
+        );
         unhealthy = true;
     }
     let expected_profile = expected_profile.map(Profile::Named);
@@ -382,7 +416,8 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
     });
     if unexpected_profile {
         println!(
-            "[error] Detected MCP clients do not all use the requested {}.",
+            "{} Detected MCP clients do not all use the requested {}.",
+            error_status(),
             expected_profile.as_ref().expect("checked above").label()
         );
         unhealthy = true;
@@ -394,7 +429,7 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
     {
         match profile_config::inspect_app_uri(profile.config_name()) {
             Ok(AppUriState::Configured(app_uri)) => {
-                println!("[ok] {} app_uri: {app_uri}", profile.label());
+                println!("{} {} app_uri: {app_uri}", ok_status(), profile.label());
             }
             Ok(AppUriState::MissingKnown(app_uri)) => {
                 println!("[warning] {} has no app_uri.", profile.label());
@@ -673,14 +708,16 @@ fn install_environment(
 
     for target in &targets {
         println!(
-            "[ok] {verb} {} skill: {}",
+            "{} {verb} {} skill: {}",
+            ok_status(),
             harness_labels(&target.harnesses),
             target.path.display()
         );
     }
     for harness in &environment.harnesses {
         println!(
-            "[ok] {verb} {} MCP registration ({})",
+            "{} {verb} {} MCP registration ({})",
+            ok_status(),
             harness.label(),
             registration.label()
         );
@@ -786,12 +823,15 @@ async fn check_release() -> bool {
     };
     match latest {
         Ok(Some(latest)) if latest > current => {
-            println!("[error] sift-cli {current} is outdated; latest is {latest}");
+            println!(
+                "{} sift-cli {current} is outdated; latest is {latest}",
+                error_status()
+            );
             println!("Update with:\n\n  {}\n", version::install_command(&latest));
             true
         }
         Ok(Some(_)) => {
-            println!("[ok] sift-cli {current} is current");
+            println!("{} sift-cli {current} is current", ok_status());
             false
         }
         Ok(None) => {

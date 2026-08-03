@@ -1,6 +1,7 @@
 use std::{fs, path::PathBuf};
 
 use clap::Parser;
+use crossterm::style::Stylize;
 use serde_json::Value;
 use tempdir::TempDir;
 
@@ -24,6 +25,12 @@ fn default_registration(access: AccessMode) -> Registration {
 
 fn named_registration(access: AccessMode, profile: &str) -> Registration {
     Registration::new(access, Profile::Named(profile.to_string()))
+}
+
+#[test]
+fn status_tags_use_expected_colors() {
+    assert_eq!(super::ok_status(), "[ok]".green());
+    assert_eq!(super::error_status(), "[error]".red());
 }
 
 #[test]
