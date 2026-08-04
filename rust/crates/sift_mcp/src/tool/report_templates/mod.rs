@@ -56,8 +56,9 @@ impl SiftMcpServer {
         name = "list_report_templates",
         description = "
             List report templates in Sift, optionally filtered by a CEL expression and ordered by one or more fields.
-            A report template is a named, reusable bundle of external rules; reports created from a template inherit
-            its rule set. Wraps `report_templates/v1 ListReportTemplates`.
+            A report template is a named, reusable bundle of rules; reports created from a template inherit its
+            rule set. Only standard rules (`is_external: false`) can be attached to a template; ad-hoc rules
+            (`is_external: true`) cannot. Wraps `report_templates/v1 ListReportTemplates`.
 
             Output:
               - `{ \"report_templates\": [ReportTemplate, ...] }`. Each item carries `report_template_id`,
@@ -116,9 +117,10 @@ impl SiftMcpServer {
     #[tool(
         name = "create_report_template",
         description = "
-            Create a report template from a set of external rules. A report template is a named, reusable bundle
-            of rules that any future `create_report` call can reference via `report_template_id`. Wraps
-            `report_templates/v1 CreateReportTemplate`.
+            Create a report template from a set of standard rules. A report template is a named, reusable
+            bundle of rules that any future `create_report` call can reference via `report_template_id`. Only
+            standard rules (`is_external: false`) can be attached; ad-hoc rules (`is_external: true`) are
+            rejected by the server. Wraps `report_templates/v1 CreateReportTemplate`.
 
             Output:
               - `{ \"report_template\": ReportTemplate, \"next_step\": string }`. The returned template is the
