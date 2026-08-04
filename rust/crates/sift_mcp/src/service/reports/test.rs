@@ -36,8 +36,6 @@ async fn service_with_mock(mock: MockReportServiceImpl) -> (ReportService, JoinH
     )
 }
 
-/// Serve both `ReportService` and `RuleEvaluationService` on the same in-memory
-/// channel — required for `create_report`, which orchestrates both.
 async fn service_with_dual_mocks(
     report_mock: MockReportServiceImpl,
     eval_mock: MockRuleEvaluationServiceImpl,
@@ -382,17 +380,8 @@ async fn list_report_rule_summaries_propagates_grpc_error() {
     );
 }
 
-// ----- create_report -----------------------------------------------------
-//
-// These tests guard the fix for the "reports created via MCP never run" bug.
-// The service MUST call `RuleEvaluationService.EvaluateRules` (which creates the
-// report AND queues the worker job), NOT `ReportService.CreateReport` (which
-// only writes a record — the job never runs). The MockReportServiceImpl never
-// sets an expectation on `create_report` here; if the code regresses, the mock
-// will panic on an unexpected call.
-
 #[tokio::test]
-async fn create_report_calls_evaluate_rules_from_rule_ids() {
+async fn create_report_from_rule_ids() {
     let mut eval_mock = MockRuleEvaluationServiceImpl::new();
     eval_mock
         .expect_evaluate_rules()
@@ -460,7 +449,7 @@ async fn create_report_calls_evaluate_rules_from_rule_ids() {
 }
 
 #[tokio::test]
-async fn create_report_calls_evaluate_rules_from_client_keys() {
+async fn create_report_from_rule_client_keys() {
     let mut eval_mock = MockRuleEvaluationServiceImpl::new();
     eval_mock
         .expect_evaluate_rules()
@@ -511,7 +500,7 @@ async fn create_report_calls_evaluate_rules_from_client_keys() {
 }
 
 #[tokio::test]
-async fn create_report_calls_evaluate_rules_from_version_ids() {
+async fn create_report_from_rule_version_ids() {
     let mut eval_mock = MockRuleEvaluationServiceImpl::new();
     eval_mock
         .expect_evaluate_rules()
@@ -558,7 +547,7 @@ async fn create_report_calls_evaluate_rules_from_version_ids() {
 }
 
 #[tokio::test]
-async fn create_report_from_template_calls_evaluate_rules() {
+async fn create_report_from_template() {
     let mut eval_mock = MockRuleEvaluationServiceImpl::new();
     eval_mock
         .expect_evaluate_rules()
@@ -612,7 +601,7 @@ async fn create_report_from_template_calls_evaluate_rules() {
 }
 
 #[tokio::test]
-async fn create_report_applies_description_via_update_report() {
+async fn create_report_applies_description() {
     let mut eval_mock = MockRuleEvaluationServiceImpl::new();
     eval_mock.expect_evaluate_rules().returning(|_| {
         Ok(Response::new(EvaluateRulesResponse {
@@ -672,7 +661,7 @@ async fn create_report_applies_description_via_update_report() {
 }
 
 #[tokio::test]
-async fn create_report_skips_update_report_when_no_description_or_metadata() {
+async fn create_report_skips_metadata_write_when_none_provided() {
     let mut eval_mock = MockRuleEvaluationServiceImpl::new();
     eval_mock.expect_evaluate_rules().returning(|_| {
         Ok(Response::new(EvaluateRulesResponse {
@@ -683,7 +672,6 @@ async fn create_report_skips_update_report_when_no_description_or_metadata() {
     });
 
     let mut report_mock = MockReportServiceImpl::new();
-    // No `expect_update_report()` — the mock will panic if the code calls it.
     report_mock.expect_get_report().returning(|_| {
         Ok(Response::new(GetReportResponse {
             report: Some(Report {
@@ -711,7 +699,7 @@ async fn create_report_skips_update_report_when_no_description_or_metadata() {
 }
 
 #[tokio::test]
-async fn create_report_errors_when_evaluate_returns_no_report_id() {
+async fn create_report_errors_when_no_report_id_returned() {
     let mut eval_mock = MockRuleEvaluationServiceImpl::new();
     eval_mock.expect_evaluate_rules().returning(|_| {
         Ok(Response::new(EvaluateRulesResponse {
@@ -765,7 +753,7 @@ async fn create_report_propagates_grpc_error() {
         .await
         .expect_err("expected error");
 
-    assert!(err.to_string().contains("failed to evaluate rules"));
+    assert!(err.to_string().contains("failed to create report"));
 }
 
 #[tokio::test]

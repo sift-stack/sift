@@ -195,28 +195,21 @@ impl SiftMcpServer {
     #[tool(
         name = "create_report",
         description = "
-            Create a report over a run and queue its evaluation job. Wraps
-            `rule_evaluation/v1 EvaluateRules` (the same RPC the Sift web app uses), which creates the report
-            record AND enqueues the worker job atomically. Applies `description` and `metadata`, if provided,
-            via a follow-up `reports/v1 UpdateReport` call.
+            Create a report over a run and start its evaluation.
 
             Output:
               - `{ \"report\": Report, \"report_url\": string|null, \"job_id\": string|null,
-                \"created_annotation_count\": number, \"next_step\": string }`. The returned `Report` is the
-                server-assigned state re-fetched after evaluation was queued (it may still be in `CREATED` /
-                running state — poll `list_report_rule_summaries` to track progress). `report_url` is the
-                report's Sift web link (`<host>/reports/<report_id>`), or null on self-hosted deployments where
-                the host can't be derived. `job_id` is set when the evaluation is running asynchronously (the
-                common case). `created_annotation_count` is the number of annotations produced synchronously
-                (typically 0 when `job_id` is set).
+                \"created_annotation_count\": number, \"next_step\": string }`. The returned `Report` may still
+                be in a running state — poll `list_report_rule_summaries` to track progress. `report_url` is
+                the report's Sift web link, or null when it can't be derived.
 
             Parameters:
               - `run_id`: required; the run the report is generated over.
               - `name`: required; the report name.
               - `organization_id`: optional. Required only when the caller belongs to multiple organizations.
-              - `description`: optional; free-form description applied to the report after evaluation is queued.
-              - `metadata`: optional list of `{ \"name\": \"<key>\", \"value\": <scalar> }` entries applied to the
-                report after evaluation is queued (REPLACE semantics on the metadata list).
+              - `description`: optional free-form description.
+              - `metadata`: optional list of `{ \"name\": \"<key>\", \"value\": <scalar> }` entries (REPLACE
+                semantics on the metadata list).
 
               The report SOURCE is one of two mutually exclusive shapes — provide exactly one:
               - Template: set `report_template_id`. The template defines which rules run.
@@ -227,12 +220,10 @@ impl SiftMcpServer {
             Errors:
               - `INVALID_PARAMS` if `run_id` or `name` is empty, if both a template and rule identifiers are given,
                 if neither is given, or if more than one rule-identifier list is given.
-              - `INTERNAL_ERROR` for upstream gRPC failures (e.g. unknown run, template, or rule). If the
-                evaluation succeeded but the follow-up `UpdateReport` failed, the report exists and is running;
-                the error message says so.
+              - `INTERNAL_ERROR` for upstream gRPC failures.
 
             Guidance:
-              - This is a write that kicks off report execution. CONFIRM the run, source, and name with the user
+              - This is a write that starts report execution. CONFIRM the run, source, and name with the user
                 before invoking.
               - Use `list_report_rule_summaries` on the returned `report_id` to track per-rule progress.
         ",

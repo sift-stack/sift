@@ -298,7 +298,6 @@ async fn update_report_template_rejects_both_rule_shapes() {
 
 #[tokio::test]
 async fn update_report_template_blocked_without_allow_destructive() {
-    // No expectations on the mock: the gate must fire before any RPC.
     let mock = MockReportTemplateServiceImpl::new();
     let (server, _h) = server_with_mock_and_flag(mock, false).await;
 

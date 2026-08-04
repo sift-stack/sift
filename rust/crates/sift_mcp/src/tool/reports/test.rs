@@ -52,8 +52,6 @@ async fn server_with_mock(mock: MockReportServiceImpl) -> (SiftMcpServer, JoinHa
     )
 }
 
-/// Serve both `ReportService` and `RuleEvaluationService` — required by
-/// `create_report` since it orchestrates both.
 async fn server_with_dual_mocks(
     report_mock: MockReportServiceImpl,
     eval_mock: MockRuleEvaluationServiceImpl,
@@ -383,7 +381,7 @@ async fn create_report_from_rules_happy_path() {
 }
 
 #[tokio::test]
-async fn create_report_applies_description_via_update_report() {
+async fn create_report_applies_description() {
     let mut eval_mock = MockRuleEvaluationServiceImpl::new();
     eval_mock.expect_evaluate_rules().returning(|_| {
         Ok(Response::new(EvaluateRulesResponse {

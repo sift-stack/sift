@@ -17,19 +17,12 @@ use sift_rs::{
 #[cfg(test)]
 mod test;
 
-/// How the rules on a report template are identified. Exactly one variant is
-/// constructed from the flat tool params. Variant names mirror the proto
-/// `rule_identifiers` oneof fields on `CreateReportTemplateRequest`.
 #[allow(clippy::enum_variant_names)]
 pub enum TemplateRuleIdentifier {
     RuleIds(Vec<String>),
     RuleClientKeys(Vec<String>),
 }
 
-/// A partial set of changes to apply to an existing report template. Every
-/// field is optional; `None` means "leave unchanged" (i.e. absent from the
-/// `update_mask`). `Some(_)` names the field in the mask, which means server-
-/// side REPLACE semantics on collections (`tags`, `rules`, `metadata`).
 #[derive(Default)]
 pub struct ReportTemplateUpdate {
     pub name: Option<String>,
@@ -169,14 +162,6 @@ impl ReportTemplateService {
             .ok_or_else(|| anyhow!("create_report_template response missing report_template"))
     }
 
-    /// Update selected fields on a report template. Per
-    /// `protos/sift/report_templates/v1/report_templates.proto::UpdateReportTemplateRequest`
-    /// the updatable fields are `name`, `description`, `tags`, `rules`,
-    /// `metadata`, `is_archived`, and `archived_date`; this service exposes all
-    /// but `archived_date` (server-managed via `is_archived`).
-    ///
-    /// Collections use REPLACE semantics when named in the mask: `tags`,
-    /// `rules`, and `metadata` overwrite the current value on the template.
     pub async fn update_report_template(
         &self,
         report_template_id: String,
@@ -249,11 +234,6 @@ impl ReportTemplateService {
     }
 }
 
-/// Build the write-side `rules` slice from a caller-supplied identifier list.
-/// Only one field on each `ReportTemplateRule` is set (per the proto comment on
-/// `UpdateReportTemplateRequest`: "only the rule ID or the rule client key is
-/// required"). Slice order becomes `display_order` server-side when
-/// `display_order` is omitted.
 fn template_rules_from_identifier(rules: TemplateRuleIdentifier) -> Vec<ReportTemplateRule> {
     match rules {
         TemplateRuleIdentifier::RuleIds(rule_ids) => rule_ids

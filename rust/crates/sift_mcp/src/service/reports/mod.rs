@@ -24,10 +24,6 @@ use sift_rs::{
 #[cfg(test)]
 mod test;
 
-/// How the set of rules a report is built from is identified. Exactly one variant
-/// is constructed from the flat tool params. `RuleIds` and `RuleClientKeys` both
-/// resolve to the current version of each rule; `RuleVersionIds` pins to
-/// specific rule versions.
 #[allow(clippy::enum_variant_names)]
 pub enum RuleIdentifier {
     RuleIds(Vec<String>),
@@ -35,15 +31,11 @@ pub enum RuleIdentifier {
     RuleVersionIds(Vec<String>),
 }
 
-/// The source a report is created from. Exactly one is used per call.
 pub enum ReportSource {
     Template { report_template_id: String },
     Rules { rules: RuleIdentifier },
 }
 
-/// Structured output of a successful `create_report`. `report` is the full Sift
-/// `Report` re-fetched after the evaluation job was queued; `job_id` and
-/// `created_annotation_count` come straight from the `EvaluateRules` response.
 #[derive(Debug)]
 pub struct CreateReportOutput {
     pub report: Report,
@@ -191,17 +183,6 @@ impl ReportService {
         Ok(results)
     }
 
-    /// Create a report and queue its evaluation job by calling
-    /// `rule_evaluation/v1 EvaluateRules`. This is what the Sift web app uses;
-    /// the older `reports/v1 CreateReport` writes a `Report` row but does NOT
-    /// queue the worker job, so a report created via `CreateReport` sits at
-    /// `CREATED` indefinitely. Do not switch back to `CreateReport`.
-    ///
-    /// Because `EvaluateRulesRequest` accepts only `report_name` on the report
-    /// itself (no `description`, no `metadata`), `description` and `metadata`
-    /// — when provided — are applied via a follow-up `UpdateReport` call using
-    /// its field mask. Both fields survive to the final `GetReport` fetch that
-    /// hydrates the returned `Report`.
     pub async fn create_report(
         &self,
         organization_id: Option<String>,
@@ -271,21 +252,19 @@ impl ReportService {
             }
         })
         .await
-        .context("failed to evaluate rules for report")?;
+        .context("failed to create report")?;
 
-        let report_id = resp.report_id.clone().ok_or_else(|| {
-            anyhow!(
-                "evaluate_rules response missing report_id — evaluation ran but no report was created"
-            )
-        })?;
+        let report_id = resp
+            .report_id
+            .clone()
+            .ok_or_else(|| anyhow!("create_report response missing report_id"))?;
         let job_id = resp.job_id.clone();
         let created_annotation_count = resp.created_annotation_count;
 
         let metadata_update = (!metadata.is_empty()).then_some(metadata);
         if description.is_some() || metadata_update.is_some() {
             self.update_report_fields(report_id.clone(), description, metadata_update)
-                .await
-                .context("report was created but description/metadata update failed")?;
+                .await?;
         }
 
         let report = self.get_report(report_id).await?;
@@ -297,14 +276,6 @@ impl ReportService {
         })
     }
 
-    /// Update an existing report's metadata. Per
-    /// `protos/sift/reports/v1/reports.proto::UpdateReportRequest` the updatable
-    /// fields are `name`, `description`, `archived_date`, `is_archived`, and
-    /// `metadata`; this service exposes `metadata` only (archive flow is out of
-    /// scope). `metadata` uses REPLACE semantics.
-    ///
-    /// `UpdateReportResponse` is empty, so the updated `Report` is re-fetched via
-    /// `GetReport` and returned.
     pub async fn update_report(
         &self,
         report_id: String,
@@ -315,10 +286,6 @@ impl ReportService {
         self.get_report(report_id).await
     }
 
-    /// Apply a subset of `UpdateReportRequest` fields via a mask. Only fields
-    /// with `Some(_)` are named in the mask and written. `metadata = Some(vec![])`
-    /// clears the field (REPLACE semantics); `None` leaves it untouched.
-    /// Never called with no fields set.
     async fn update_report_fields(
         &self,
         report_id: String,
@@ -362,7 +329,6 @@ impl ReportService {
         Ok(())
     }
 
-    /// Fetch a `Report` by id.
     async fn get_report(&self, report_id: String) -> Result<Report> {
         let channel = self.channel.clone();
         let resp = with_retry(&self.policy, move || {
