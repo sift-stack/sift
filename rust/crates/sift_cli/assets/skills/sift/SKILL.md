@@ -76,6 +76,13 @@ exists.
   chart and numbers, do both and give the user both.
 - **Answer a question about how Sift works.** Call `search_docs`. Do not answer
   from memory, and cite the page you used.
+- **Run rules against a run.** Author reusable rules with `create_rule` and
+  `is_external: true` (or find existing ones via `list_rules`). To reuse the
+  same rule set across many runs, bundle them into a template with
+  `create_report_template`, then `create_report` with `report_template_id`.
+  For a one-off, skip the template and pass `rule_ids`, `rule_client_keys`,
+  or `rule_version_ids` directly to `create_report`. Track progress via
+  `list_report_rule_summaries`.
 
 ## Rules that always apply
 
