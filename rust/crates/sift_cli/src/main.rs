@@ -14,6 +14,8 @@ use util::tty::Output;
 
 use clap::{CommandFactory, Parser};
 
+#[cfg(feature = "mcp")]
+use crate::cli::AgentCmd;
 use crate::cli::InstallCmd;
 
 const BIN_NAME: &str = "sift-cli";
@@ -79,7 +81,15 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
                 cli::CompletionsCmd::Print(args) => return cmd::install::completions::print(args),
                 cli::CompletionsCmd::Update => return cmd::install::completions::update(),
             },
-            InstallCmd::AgentSkills(args) => return cmd::install::agent::skills(args),
+        },
+        #[cfg(feature = "mcp")]
+        Cmd::Agent(cmd) => match cmd {
+            AgentCmd::Install(args) => return cmd::agent::install(clargs.profile, args),
+            AgentCmd::Update(args) => {
+                return run_future(cmd::agent::update(clargs.profile, args));
+            }
+            AgentCmd::Doctor => return run_future(cmd::agent::doctor(clargs.profile)),
+            AgentCmd::Uninstall => return cmd::agent::uninstall(),
         },
         _ => (),
     }
@@ -89,7 +99,11 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
     // Mcp Server
     #[cfg(feature = "mcp")]
     if let Cmd::Mcp(args) = cmd {
-        return run_future_mt(cmd::mcp::run(ctx, args));
+        let app_uri = match ctx.require_app_uri(clargs.profile.as_deref()) {
+            Ok(app_uri) => app_uri.to_string(),
+            Err(error) => return run_future_mt(cmd::mcp::report_startup_error(error)),
+        };
+        return run_future_mt(cmd::mcp::run(ctx, args, app_uri));
     }
 
     let profile = clargs

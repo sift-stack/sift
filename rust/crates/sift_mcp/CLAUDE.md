@@ -489,8 +489,8 @@ When you add or update a list tool:
    - Order-by: list every orderable field, the default sort when the field is empty (assets and
      runs default to `created_date desc`; channels defaults to `created_date` ascending — these
      differ, do not assume), and the `\"FIELD_NAME[ desc],...\"` format.
-   - Limit: describe the clamp in `service::common::paging`. Any value is bounded to `1..=1000`,
-     and omitting `limit` falls back to `DEFAULT_LIMIT` (200), so no call is ever unbounded. This
+   - Limit: describe the clamp in `service::common::paging`. Any value is bounded to `1..=200`,
+     and omitting `limit` falls back to `DEFAULT_LIMIT` (50), so no call is ever unbounded. This
      differs from the proto's raw `page_size` (it caps higher for some services).
 4. **Re-read the proto whenever the resource changes.** If a filterable or orderable field is
    added to the proto, update the tool description in the same change. A stale description is
@@ -498,6 +498,44 @@ When you add or update a list tool:
 
 If the proto comments are themselves wrong or incomplete, fix the proto first and regenerate.
 The tool description is downstream of it.
+
+### Search guidance on the `filter` bullet
+
+A field list does not tell an agent *how* to search it, and the default failure is an exact `==`
+against a value the caller only half knows. Every tool that takes a `filter` therefore closes its
+`filter` bullet with a short block naming that resource's own text fields:
+
+```
+                When filtering or searching, use `name.matches(\"(?i)rover\")`, not `==`. Use `==` only for an
+                exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
+                `contains(\"Rover\")` silently misses `rover-01`.
+```
+
+Write it as a direct instruction, and name the failure. "Prefer a pattern" states a preference the
+agent can weigh against its own guess; "use `name.matches(...)`, not `==`" does not. The
+case-sensitivity line carries a concrete miss, because an agent that reads only the rule still
+writes `contains("Rover")`.
+
+Adapt it per resource; they are not uniform:
+
+- **`list_assets`** recommends `name_lower.contains(...)`. `name_lower` is an indexed lowercased
+  copy of `name` and exists only on assets, so the same filter elsewhere fails with
+  `undeclared reference to 'name_lower'`.
+- **`list_rule_versions`** has no `name`; `user_notes` and `change_message` are its text fields.
+- **`list_report_rule_summaries`** filters only on ids and an enum, so it states there is no
+  free-text field instead of carrying the block.
+- **`list_channels`** adds a line pointing at `contains` for a full literal name, because channel
+  names embed `.` (`motor_d.current`), which is a regex wildcard. `list_users` adds the same line
+  for `.` and `+` in email addresses.
+
+This guidance is not proto-sourced, so Step 5's "fix the proto first" rule does not apply. The
+string functions are behavior of the shared CEL filter engine, not of any one proto.
+
+Keep it in the description, and keep it to four or five lines. The description is what the agent
+reads at the moment it composes a filter, so guidance placed there acts on the decision it is meant
+to change. Do not move it to the server-level `instructions` in `src/server/mod.rs`: that text sits
+far from the call site, clients truncate it, and a second location invites the two copies to
+drift. Repetition across tools is the cheaper failure here.
 
 ---
 
@@ -551,26 +589,14 @@ including the order of calls and a failure injected partway through.
 
 ---
 
-## Step 7 — Update the onboarding docs
+## Step 7 — Update the agent skill
 
-The MCP server ships as part of `sift-cli`, and its onboarding docs live in
-`rust/crates/sift_cli/assets/docs/src/`. A new tool or prompt that is not documented does not
-exist as far as users are concerned. Update the docs in the same change.
+The `sift-cli` mdBook deliberately does not document the MCP server or its prompts. Do not add
+a page for them. The installed Sift skill is the only user-facing record of the tool surface, so
+a tool missing from it does not exist as far as agents are concerned.
 
-- **New or changed tool** → `agents/mcp.md`. Add a row to the "Available tools" table with the
-  tool name and a one-line purpose drawn from your tool description. If the tool changes the
-  typical agent flow, update the flow line beneath the table.
-- **New or changed prompt** → `agents/prompts.md`. Add a `## <prompt>` section with a one-line
-  summary, an argument table (`Argument` / `Required` / `Description`), and at least one
-  invocation example using the `/mcp__sift__<prompt>` slash-command form. Match the format of
-  the existing `explore_asset` / `analyze_run` / `derive_and_upload` sections.
-
-These docs are mdBook source. Keep prose in direct voice, concise, and consistent with the
-surrounding pages.
-
-Parallel obligation: the agent skill files (`SKILL.md` / `AGENTS.md`) also carry the MCP tool
-list. They are governed by `rust/crates/sift_cli/CLAUDE.md`; follow its lockstep rules and
-update them in the same change when you add or remove a tool.
+The skill is governed by `rust/crates/sift_cli/AGENTS.md`; follow its rules and update it in the
+same change when you add or remove a tool.
 
 ---
 
@@ -620,6 +646,8 @@ Run through this before declaring the tool done:
       services follow their own proto shape.
 - [ ] Description follows the five-section structure and the style rules. `list_*` descriptions
       match the current proto comments.
+- [ ] Any tool taking a `filter` closes its `filter` bullet with the search block from Step 5,
+      adapted to that resource's own text fields and phrased as a direct instruction.
 - [ ] `read_only_hint` is correct, and write tools set `destructive_hint` / `idempotent_hint`
       per the Step 4 mapping. Write tools confirm the destination via `next_step`.
 - [ ] Every handler with `destructive_hint = true` calls `self.require_destructive()?` as its
@@ -629,6 +657,5 @@ Run through this before declaring the tool done:
 - [ ] Service registered in `server/mod.rs` and the router merged.
 - [ ] Service tests added, covering single page, pagination, `limit`, and an error path. A mock
       was added to `sift_test_util` if one did not exist.
-- [ ] Onboarding docs updated: `agents/mcp.md` for a tool, `agents/prompts.md` for a prompt. Skill
-      files (`SKILL.md` / `AGENTS.md`) updated per `sift_cli/CLAUDE.md` if the tool list changed.
+- [ ] Installed skill updated per `sift_cli/AGENTS.md` if the tool list changed.
 - [ ] `cargo build -p sift_mcp` and `cargo test -p sift_mcp` both pass.

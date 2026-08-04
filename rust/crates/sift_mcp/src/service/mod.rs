@@ -11,5 +11,6 @@ pub mod rules;
 pub mod runs;
 pub mod test_reports;
 pub mod url;
+pub mod users;
 
 pub(crate) mod common;

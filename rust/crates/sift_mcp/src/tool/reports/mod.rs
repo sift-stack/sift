@@ -69,14 +69,18 @@ impl SiftMcpServer {
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
-                `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, `is_archived`, `archived_date`,
-                `created_date`, `created_by_user_id`, `metadata`, `modified_date`, `modified_by_user_id`.
+                `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, `report_type`, `is_archived`,
+                `archived_date`, `created_date`, `created_by_user_id`, `metadata`, `modified_date`,
+                `modified_by_user_id`.
                 Reference metadata entries as `metadata.{key}` (e.g. `metadata.batch == \"nightly\"`).
+                When filtering or searching, use `name.matches(\"(?i)nightly\")`, not `==`. Use `==` only for an
+                exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
+                `contains(\"Nightly\")` silently misses `nightly-regression`.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `name`,
                 `created_date`, `modified_date`. Default sort is `created_date desc` (newest first).
                 Example: `\"created_date desc,modified_date\"`.
-              - `limit`: max items to return. Start at 200 and only raise it if the result is capped
-                and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200.
+              - `limit`: max items to return. Start at 50 and only raise it if the result is capped
+                and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
               - `organization_id`: optional. Required only when the caller belongs to multiple organizations; it
                 scopes the listing to that org. Omit it for single-organization users.
 
@@ -129,11 +133,12 @@ impl SiftMcpServer {
             Parameters:
               - `report_id`: required; the report whose rule summaries to list.
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields include
-                `rule_id`, `rule_version_id`, `asset_id`, and `status`.
+                `rule_id`, `rule_version_id`, `asset_id`, and `status`. All are ids or an enum, so there is no
+                free-text field to pattern-match here; narrow by `rule_id` or `status`.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `display_order`,
                 `created_date`, `modified_date`. Default sort is `display_order` ascending.
-              - `limit`: max items to return. Start at 200 and only raise it if the result is capped
-                and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200.
+              - `limit`: max items to return. Start at 50 and only raise it if the result is capped
+                and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
 
             Errors:
               - `INVALID_PARAMS` if `report_id` is empty or `filter`/`order_by` is invalid.

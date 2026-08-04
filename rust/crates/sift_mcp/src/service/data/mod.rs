@@ -808,7 +808,19 @@ impl DataService {
         }
 
         if columns.is_empty() {
-            bail!("no channel data for given input parameters")
+            // "No data" is a plausible real answer, so spell out what was
+            // actually queried; otherwise an empty window or a run scope that
+            // excludes the data reads as "the asset has no data".
+            let run_note = run_id
+                .as_ref()
+                .map(|id| format!(" scoped to run {id}"))
+                .unwrap_or_default();
+            bail!(
+                "no channel data for given input parameters: {} matched channel(s) returned no \
+                 samples in the queried window{run_note}; the channels exist, so widen the time \
+                 range or drop the run scope before concluding the asset has no data",
+                channel_inputs.len(),
+            )
         }
 
         let columns = columns.into_iter().collect::<Vec<_>>();

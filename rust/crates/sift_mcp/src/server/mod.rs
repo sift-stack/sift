@@ -14,7 +14,7 @@ use crate::service::{
     annotations::AnnotationService, assets::AssetService, channels::ChannelService,
     data::DataService, docs::DocsService, ingest::IngestService, ping::PingService,
     report_templates::ReportTemplateService, reports::ReportService, rules::RuleService,
-    runs::RunService, test_reports::TestReportService, url::UrlService,
+    runs::RunService, test_reports::TestReportService, url::UrlService, users::UserService,
 };
 
 #[derive(Clone)]
@@ -35,6 +35,7 @@ pub struct SiftMcpServer {
     pub rule_service: RuleService,
     pub test_report_service: TestReportService,
     pub docs_service: DocsService,
+    pub user_service: UserService,
 
     pub allow_destructive: bool,
 }
@@ -43,7 +44,15 @@ pub struct SiftMcpServer {
     router = self.tool_router,
     name = "SiftMcp",
     version = "0.1.0",
-    instructions = "Sift MCP Server",
+    instructions = "Use Sift tools for telemetry discovery, analysis, and \
+    ingestion. Run `sift-cli agent doctor` for read-only integration \
+    diagnosis, `sift-cli agent install` for first setup, and \
+    `sift-cli agent update` to refresh every detected client together. If the \
+    CLI is outdated, relay the exact curl or PowerShell installer it prints. \
+    Never enable destructive tools without explicit user approval. Result \
+    objects follow proto3 JSON rules: fields at their default value (false, \
+    0, empty string/list) are omitted, so a missing boolean key means false, \
+    not unknown.",
 )]
 #[prompt_handler(router = self.prompt_router)]
 impl ServerHandler for SiftMcpServer {
@@ -71,7 +80,7 @@ impl ServerHandler for SiftMcpServer {
 }
 
 impl SiftMcpServer {
-    pub fn new(channel: SiftChannel, rest_uri: String, allow_destructive: bool) -> Self {
+    pub fn new(channel: SiftChannel, app_uri: String, allow_destructive: bool) -> Self {
         // Add more routers here as new tool groups are introduced, e.g.
         //   tool_router.merge(Self::ingestion_router())
         let mut tool_router = Self::assets_router();
@@ -86,6 +95,7 @@ impl SiftMcpServer {
         tool_router.merge(Self::annotations_router());
         tool_router.merge(Self::test_reports_router());
         tool_router.merge(Self::docs_router());
+        tool_router.merge(Self::users_router());
 
         let prompt_router = Self::prompt_router();
 
@@ -95,7 +105,7 @@ impl SiftMcpServer {
         let asset_service = AssetService::new(channel.clone(), retry_policy.clone());
         let data_service = DataService::new(channel.clone(), retry_policy.clone());
         let channel_service = ChannelService::new(channel.clone(), retry_policy.clone());
-        let url_service = UrlService::new(rest_uri);
+        let url_service = UrlService::new(app_uri);
         let ingest_service = IngestService::new(channel.clone());
         let ping_service = PingService::new(channel.clone(), retry_policy.clone());
         let run_service = RunService::new(channel.clone(), retry_policy.clone());
@@ -104,7 +114,8 @@ impl SiftMcpServer {
             ReportTemplateService::new(channel.clone(), retry_policy.clone());
         let rule_service = RuleService::new(channel.clone(), retry_policy.clone());
         let test_report_service = TestReportService::new(channel.clone(), retry_policy.clone());
-        let docs_service = DocsService::new(channel.clone(), retry_policy);
+        let docs_service = DocsService::new(channel.clone(), retry_policy.clone());
+        let user_service = UserService::new(channel.clone(), retry_policy);
 
         Self {
             annotation_service,
@@ -120,6 +131,7 @@ impl SiftMcpServer {
             rule_service,
             test_report_service,
             docs_service,
+            user_service,
             tool_router,
             prompt_router,
             allow_destructive,
@@ -134,14 +146,17 @@ impl SiftMcpServer {
             return Ok(());
         }
         Err(ErrorData::invalid_request(
-            "This tool is destructive and is disabled. Ask the user to relaunch \
-             the Sift MCP server with the `--allow-destructive` flag (e.g. \
-             `sift-cli mcp --allow-destructive`) and update their MCP client \
-             config accordingly. Do not retry until they confirm the server has \
-             been restarted.",
+            "This tool is destructive and is disabled. Ask the user for explicit \
+             approval to enable destructive Sift tools. If they approve, run \
+             `sift-cli agent update --allow-destructive` to update every detected \
+             client together, then ask the user to reload or restart their MCP \
+             client. Do not retry until they confirm the client has restarted.",
             Some(serde_json::json!({
                 "status": "stopped",
                 "reason": "DestructiveToolsDisabled",
+                "requires_user_approval": true,
+                "remediation_command": "sift-cli agent update --allow-destructive",
+                "restart_required": true,
             })),
         ))
     }

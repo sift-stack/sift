@@ -66,11 +66,15 @@ impl SiftMcpServer {
                 `TEST_STATUS_PASSED`, `TEST_STATUS_FAILED`, `TEST_STATUS_ABORTED`, `TEST_STATUS_ERROR`,
                 `TEST_STATUS_IN_PROGRESS`, `TEST_STATUS_SKIPPED`. Filtering `test_report_id == \"...\"` fetches one
                 report (there is no separate get tool).
+                When filtering or searching the text fields (`name`, `test_case`, `serial_number`), use
+                `name.matches(\"(?i)vibe\")`, not `==`. Use `==` only for an exact value from a prior result.
+                `contains`/`startsWith`/`endsWith` are case-SENSITIVE: `contains(\"Vibe\")` silently misses
+                `vibe-test-2`.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `test_report_id`,
                 `name`, `test_system_name`, `test_case`, `start_time`, `end_time`, `created_date`, `modified_date`.
                 Default sort is `start_time desc` (newest first). Example: `\"start_time desc,name\"`.
-              - `limit`: max items to return. Start at 200 and only raise it if the result is capped
-                and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200.
+              - `limit`: max items to return. Start at 50 and only raise it if the result is capped
+                and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an unknown field.
@@ -120,12 +124,16 @@ impl SiftMcpServer {
                 `error_message`, `created_date`, `modified_date`, `metadata`. `step_type` matches the
                 `TestStepType` enum: `TEST_STEP_TYPE_SEQUENCE`, `TEST_STEP_TYPE_GROUP`, `TEST_STEP_TYPE_ACTION`,
                 `TEST_STEP_TYPE_FLOW_CONTROL`. `status` matches `TestStatus` (see `list_test_reports`).
+                When filtering or searching `name`, `description`, or `error_message`, use
+                `name.matches(\"(?i)power\")`, not `==`. Use `==` only for an exact value from a prior result.
+                `contains`/`startsWith`/`endsWith` are case-SENSITIVE: `contains(\"Power\")` silently misses
+                `power-on`.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `test_step_id`,
                 `name`, `step_type`, `step_path`, `status`, `start_time`, `end_time`, `created_date`,
                 `modified_date`. Default sort is `step_path` ascending (tree order). Example:
                 `\"step_path asc,start_time desc\"`.
-              - `limit`: max items to return. Start at 200 and only raise it if the result is capped
-                and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200. Use
+              - `limit`: max items to return. Start at 50 and only raise it if the result is capped
+                and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50. Use
                 `count_test_steps` to learn the true total before relying on a capped page.
 
             Errors:
@@ -133,7 +141,7 @@ impl SiftMcpServer {
               - `INTERNAL_ERROR` for upstream gRPC failures.
 
             Guidance:
-              - To find failures, filter `test_report_id == \"...\" && status == TEST_STATUS_FAILED`.
+              - To find failures, filter `test_report_id == \"...\" && status == \"TEST_STATUS_FAILED\"`.
               - Order by `step_path` to reconstruct the execution tree; use `parent_step_id` to attach children.
         ",
         annotations(title = "test_reports/list_test_steps", read_only_hint = true)
@@ -177,12 +185,15 @@ impl SiftMcpServer {
                 `passed`, `timestamp`, `created_date`, `modified_date`, `metadata`. `measurement_type` matches the
                 `TestMeasurementType` enum: `TEST_MEASUREMENT_TYPE_DOUBLE`, `TEST_MEASUREMENT_TYPE_STRING`,
                 `TEST_MEASUREMENT_TYPE_BOOLEAN`, `TEST_MEASUREMENT_TYPE_LIMIT`.
+                When filtering or searching `name`, use `name.matches(\"(?i)voltage\")`, not `==`. Use `==` only
+                for an exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
+                `contains(\"Voltage\")` silently misses `voltage_bus_a`.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `measurement_id`,
                 `name`, `measurement_type`, `test_step_id`, `test_report_id`, `passed`, `timestamp`,
                 `created_date`, `modified_date`. Default sort is `timestamp` ascending. Example:
                 `\"timestamp asc,name\"`.
-              - `limit`: max items to return. Start at 200 and only raise it if the result is capped
-                and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200. Use
+              - `limit`: max items to return. Start at 50 and only raise it if the result is capped
+                and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50. Use
                 `count_test_measurements` to learn the true total before relying on a capped page.
 
             Errors:
@@ -216,7 +227,7 @@ impl SiftMcpServer {
         name = "count_test_steps",
         description = "
             Count test steps matching a CEL filter, without fetching them. Use this to learn the true total when a
-            report may hold more steps than the 1000-item list cap, or to reconcile expected vs actual counts in an
+            report may hold more steps than the 200-item list cap, or to reconcile expected vs actual counts in an
             audit (e.g. \"how many steps failed in this report\").
 
             Output:
@@ -226,7 +237,10 @@ impl SiftMcpServer {
               - `filter`: CEL expression. Pass an empty string to count all steps. Filterable fields are identical
                 to `list_test_steps`: `test_step_id`, `test_report_id`, `parent_step_id`, `name`, `description`,
                 `step_type`, `step_path`, `status`, `start_time`, `end_time`, `error_code`, `error_message`,
-                `created_date`, `modified_date`, `metadata`.
+                `created_date`, `modified_date`, `metadata`. When filtering `name`, `description`, or
+                `error_message`, use `name.matches(\"(?i)power\")`, not `==`. Use `==` only for an exact value from
+                a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE: `contains(\"Power\")`
+                silently misses `power-on`.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression.
@@ -251,7 +265,7 @@ impl SiftMcpServer {
         name = "count_test_measurements",
         description = "
             Count test measurements matching a CEL filter, without fetching them. Use this to learn the true total
-            when a report may hold more measurements than the 1000-item list cap, or to reconcile expected vs actual
+            when a report may hold more measurements than the 200-item list cap, or to reconcile expected vs actual
             counts in an audit (e.g. \"how many measurements failed their limits\").
 
             Output:
@@ -261,7 +275,10 @@ impl SiftMcpServer {
               - `filter`: CEL expression. Pass an empty string to count all measurements. Filterable fields are
                 identical to `list_test_measurements`: `measurement_id`, `measurement_type`, `name`,
                 `test_step_id`, `test_report_id`, `numeric_value`, `string_value`, `boolean_value`, `passed`,
-                `timestamp`, `created_date`, `modified_date`, `metadata`.
+                `timestamp`, `created_date`, `modified_date`, `metadata`. When filtering `name`, use
+                `name.matches(\"(?i)voltage\")`, not `==`. Use `==` only for an exact value from a prior result.
+                `contains`/`startsWith`/`endsWith` are case-SENSITIVE: `contains(\"Voltage\")` silently misses
+                `voltage_bus_a`.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression.
