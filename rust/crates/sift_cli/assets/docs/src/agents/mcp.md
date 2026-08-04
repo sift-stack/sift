@@ -31,18 +31,19 @@ not run interactively.
 ## Destructive tools
 
 Tools that modify existing state (`update_asset`, `update_run`, `update_report`,
-`update_annotation`, `update_rule`, `archive_rule`, `unarchive_rule`) are
-disabled by default. Calling one returns an error telling the agent that the
-server must be relaunched with `--allow-destructive`:
+`update_report_template`, `update_annotation`, `update_rule`, `archive_rule`,
+`unarchive_rule`) are disabled by default. Calling one returns an error telling
+the agent that the server must be relaunched with `--allow-destructive`:
 
 ```sh
 sift-cli mcp --allow-destructive
 ```
 
-Additive writes (`create_annotation`, `create_report`, `create_rule`,
-`create_test_report`, `append_test_measurements`, `upload_dataset`) remain
-available without the flag. Update your MCP client config to include the flag
-if you want the agent to be able to modify or archive existing resources.
+Additive writes (`create_annotation`, `create_report`, `create_report_template`,
+`create_rule`, `create_test_report`, `append_test_measurements`,
+`upload_dataset`) remain available without the flag. Update your MCP client
+config to include the flag if you want the agent to be able to modify or
+archive existing resources.
 
 ## Available tools
 
@@ -55,6 +56,9 @@ if you want the agent to be able to modify or archive existing resources.
 | `list_report_rule_summaries` | List the per-rule pass/fail/open summaries for a single report.   |
 | `create_report`  | Create a report over a run, from a template or a set of rules.                |
 | `update_report`  | Update a report's metadata (replace semantics).                               |
+| `list_report_templates` | List report templates, with filtering and ordering.                    |
+| `create_report_template` | Create a named, reusable report template from a set of external rules. |
+| `update_report_template` | Update a report template's fields (replace semantics for tags, rules, metadata). |
 | `list_annotations` | List annotations, with filtering and ordering.                              |
 | `create_annotation` | Create a data-review or phase annotation over a time range.                |
 | `update_annotation` | Update an annotation's fields (replace semantics for collections).         |

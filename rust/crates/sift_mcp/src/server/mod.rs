@@ -13,8 +13,8 @@ use crate::policy::RetryPolicy;
 use crate::service::{
     annotations::AnnotationService, assets::AssetService, channels::ChannelService,
     data::DataService, docs::DocsService, ingest::IngestService, ping::PingService,
-    reports::ReportService, rules::RuleService, runs::RunService, test_reports::TestReportService,
-    url::UrlService,
+    report_templates::ReportTemplateService, reports::ReportService, rules::RuleService,
+    runs::RunService, test_reports::TestReportService, url::UrlService,
 };
 
 #[derive(Clone)]
@@ -31,6 +31,7 @@ pub struct SiftMcpServer {
     pub ping_service: PingService,
     pub run_service: RunService,
     pub report_service: ReportService,
+    pub report_template_service: ReportTemplateService,
     pub rule_service: RuleService,
     pub test_report_service: TestReportService,
     pub docs_service: DocsService,
@@ -77,6 +78,7 @@ impl SiftMcpServer {
         tool_router.merge(Self::runs_router());
         tool_router.merge(Self::channels_router());
         tool_router.merge(Self::reports_router());
+        tool_router.merge(Self::report_templates_router());
         tool_router.merge(Self::data_router());
         tool_router.merge(Self::explore_router());
         tool_router.merge(Self::ping_router());
@@ -98,6 +100,8 @@ impl SiftMcpServer {
         let ping_service = PingService::new(channel.clone(), retry_policy.clone());
         let run_service = RunService::new(channel.clone(), retry_policy.clone());
         let report_service = ReportService::new(channel.clone(), retry_policy.clone());
+        let report_template_service =
+            ReportTemplateService::new(channel.clone(), retry_policy.clone());
         let rule_service = RuleService::new(channel.clone(), retry_policy.clone());
         let test_report_service = TestReportService::new(channel.clone(), retry_policy.clone());
         let docs_service = DocsService::new(channel.clone(), retry_policy);
@@ -112,6 +116,7 @@ impl SiftMcpServer {
             ping_service,
             run_service,
             report_service,
+            report_template_service,
             rule_service,
             test_report_service,
             docs_service,

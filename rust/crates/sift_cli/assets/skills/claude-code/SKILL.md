@@ -32,10 +32,11 @@ to combine them when working with Sift.
 
 1. **Sift MCP server** — started by `sift-cli mcp`. The preferred surface for
    agents. Exposes structured, authenticated tools:
-   - `list_assets`, `list_runs`, `list_channels`, `list_reports`, `list_rules`,
-     `list_rule_versions`, `list_annotations`: discover what exists. Pass `limit`
-     (start at 200, max 1000). Omitting it defaults to 200 and values above 1000
-     clamp to 1000, so raise `limit` when a result comes back capped.
+   - `list_assets`, `list_runs`, `list_channels`, `list_reports`,
+     `list_report_templates`, `list_rules`, `list_rule_versions`,
+     `list_annotations`: discover what exists. Pass `limit` (start at 200, max
+     1000). Omitting it defaults to 200 and values above 1000 clamp to 1000, so
+     raise `limit` when a result comes back capped.
    - `list_report_rule_summaries`: per-rule pass/fail/open breakdown for a report.
    - `list_test_reports`, `list_test_steps`, `list_test_measurements`: inspect
      test-results data (reports own steps own measurements); `count_test_steps`,
@@ -59,6 +60,10 @@ to combine them when working with Sift.
    - `create_annotation`, `update_annotation`: manage annotations (writes —
      collections use replace semantics, so confirm the change first).
    - `create_report`, `update_report`: manage reports (writes — confirm first).
+   - `create_report_template`, `update_report_template`: manage report templates
+     — named, reusable bundles of external rules referenced by `create_report`
+     via `report_template_id` (writes; `update_report_template` uses replace
+     semantics on tags, rules, and metadata, so confirm before invoking).
    - Destructive tools (`update_*`, `archive_*`, `unarchive_*`) are gated on
      `--allow-destructive`. If one errors with a message about the flag, tell
      the user to relaunch the server with `sift-cli mcp --allow-destructive`

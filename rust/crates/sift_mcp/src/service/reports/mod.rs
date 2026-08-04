@@ -4,14 +4,20 @@ use anyhow::{Context, Result, anyhow};
 use pbjson_types::FieldMask;
 use sift_rs::{
     SiftChannel,
+    common::r#type::v1::{
+        ClientKeys, Ids, ResourceIdentifier, ResourceIdentifiers, resource_identifier,
+        resource_identifiers,
+    },
     metadata::v1::MetadataValue,
     reports::v1::{
-        CreateReportFromReportTemplateRequest, CreateReportFromRulesRequest, CreateReportRequest,
-        CreateReportRequestClientKeys, CreateReportRequestRuleIds,
-        CreateReportRequestRuleVersionIds, GetReportRequest, ListReportRuleSummariesRequest,
-        ListReportRuleSummariesResponse, ListReportsRequest, ListReportsResponse, Report,
-        ReportRuleSummary, UpdateReportRequest, create_report_from_rules_request,
-        create_report_request, report_service_client::ReportServiceClient,
+        GetReportRequest, ListReportRuleSummariesRequest, ListReportRuleSummariesResponse,
+        ListReportsRequest, ListReportsResponse, Report, ReportRuleSummary, UpdateReportRequest,
+        report_service_client::ReportServiceClient,
+    },
+    rule_evaluation::v1::{
+        EvaluateRulesFromCurrentRuleVersions, EvaluateRulesFromReportTemplate,
+        EvaluateRulesFromRuleVersions, EvaluateRulesRequest, evaluate_rules_request,
+        rule_evaluation_service_client::RuleEvaluationServiceClient,
     },
 };
 
@@ -19,8 +25,9 @@ use sift_rs::{
 mod test;
 
 /// How the set of rules a report is built from is identified. Exactly one variant
-/// is constructed from the flat tool params. Variant names mirror the proto
-/// `rule_identifiers` oneof fields.
+/// is constructed from the flat tool params. `RuleIds` and `RuleClientKeys` both
+/// resolve to the current version of each rule; `RuleVersionIds` pins to
+/// specific rule versions.
 #[allow(clippy::enum_variant_names)]
 pub enum RuleIdentifier {
     RuleIds(Vec<String>),
@@ -28,17 +35,20 @@ pub enum RuleIdentifier {
     RuleVersionIds(Vec<String>),
 }
 
-/// The source a report is created from. Flattens the `CreateReportRequest`
-/// oneof into a typed choice built in the tool handler.
+/// The source a report is created from. Exactly one is used per call.
 pub enum ReportSource {
-    Template {
-        report_template_id: String,
-    },
-    Rules {
-        description: Option<String>,
-        tag_names: Vec<String>,
-        rules: RuleIdentifier,
-    },
+    Template { report_template_id: String },
+    Rules { rules: RuleIdentifier },
+}
+
+/// Structured output of a successful `create_report`. `report` is the full Sift
+/// `Report` re-fetched after the evaluation job was queued; `job_id` and
+/// `created_annotation_count` come straight from the `EvaluateRules` response.
+#[derive(Debug)]
+pub struct CreateReportOutput {
+    pub report: Report,
+    pub job_id: Option<String>,
+    pub created_annotation_count: i32,
 }
 
 #[derive(Clone)]
@@ -181,85 +191,117 @@ impl ReportService {
         Ok(results)
     }
 
+    /// Create a report and queue its evaluation job by calling
+    /// `rule_evaluation/v1 EvaluateRules`. This is what the Sift web app uses;
+    /// the older `reports/v1 CreateReport` writes a `Report` row but does NOT
+    /// queue the worker job, so a report created via `CreateReport` sits at
+    /// `CREATED` indefinitely. Do not switch back to `CreateReport`.
+    ///
+    /// Because `EvaluateRulesRequest` accepts only `report_name` on the report
+    /// itself (no `description`, no `metadata`), `description` and `metadata`
+    /// — when provided — are applied via a follow-up `UpdateReport` call using
+    /// its field mask. Both fields survive to the final `GetReport` fetch that
+    /// hydrates the returned `Report`.
     pub async fn create_report(
         &self,
         organization_id: Option<String>,
         run_id: String,
         name: String,
-        metadata: Option<Vec<MetadataValue>>,
+        description: Option<String>,
+        metadata: Vec<MetadataValue>,
         source: ReportSource,
-    ) -> Result<Report> {
-        let request = match source {
+    ) -> Result<CreateReportOutput> {
+        let mode = match source {
             ReportSource::Template { report_template_id } => {
-                create_report_request::Request::ReportFromReportTemplateRequest(
-                    CreateReportFromReportTemplateRequest { report_template_id },
-                )
+                evaluate_rules_request::Mode::ReportTemplate(EvaluateRulesFromReportTemplate {
+                    report_template: Some(ResourceIdentifier {
+                        identifier: Some(resource_identifier::Identifier::Id(report_template_id)),
+                    }),
+                })
             }
-            ReportSource::Rules {
-                description,
-                tag_names,
-                rules,
-            } => {
-                let rule_identifiers = match rules {
-                    RuleIdentifier::RuleIds(rule_ids) => {
-                        create_report_from_rules_request::RuleIdentifiers::RuleIds(
-                            CreateReportRequestRuleIds { rule_ids },
-                        )
-                    }
-                    RuleIdentifier::RuleClientKeys(rule_client_keys) => {
-                        create_report_from_rules_request::RuleIdentifiers::RuleClientKeys(
-                            CreateReportRequestClientKeys { rule_client_keys },
-                        )
-                    }
-                    RuleIdentifier::RuleVersionIds(rule_version_ids) => {
-                        create_report_from_rules_request::RuleIdentifiers::RuleVersionIds(
-                            CreateReportRequestRuleVersionIds { rule_version_ids },
-                        )
-                    }
-                };
-                create_report_request::Request::ReportFromRulesRequest(
-                    CreateReportFromRulesRequest {
-                        name: name.clone(),
-                        description,
-                        tag_names,
-                        rule_identifiers: Some(rule_identifiers),
-                    },
-                )
-            }
+            ReportSource::Rules { rules } => match rules {
+                RuleIdentifier::RuleIds(rule_ids) => {
+                    evaluate_rules_request::Mode::Rules(EvaluateRulesFromCurrentRuleVersions {
+                        rules: Some(ResourceIdentifiers {
+                            identifiers: Some(resource_identifiers::Identifiers::Ids(Ids {
+                                ids: rule_ids,
+                            })),
+                        }),
+                    })
+                }
+                RuleIdentifier::RuleClientKeys(rule_client_keys) => {
+                    evaluate_rules_request::Mode::Rules(EvaluateRulesFromCurrentRuleVersions {
+                        rules: Some(ResourceIdentifiers {
+                            identifiers: Some(resource_identifiers::Identifiers::ClientKeys(
+                                ClientKeys {
+                                    client_keys: rule_client_keys,
+                                },
+                            )),
+                        }),
+                    })
+                }
+                RuleIdentifier::RuleVersionIds(rule_version_ids) => {
+                    evaluate_rules_request::Mode::RuleVersions(EvaluateRulesFromRuleVersions {
+                        rule_version_ids,
+                    })
+                }
+            },
         };
 
-        let create_request = CreateReportRequest {
+        let evaluate_request = EvaluateRulesRequest {
             organization_id: organization_id.unwrap_or_default(),
-            run_id,
-            name: Some(name),
-            metadata: metadata.unwrap_or_default(),
-            request: Some(request),
+            report_name: Some(name),
+            time: Some(evaluate_rules_request::Time::Run(ResourceIdentifier {
+                identifier: Some(resource_identifier::Identifier::Id(run_id)),
+            })),
+            mode: Some(mode),
+            ..Default::default()
         };
 
         let channel = self.channel.clone();
         let resp = with_retry(&self.policy, move || {
             let channel = channel.clone();
-            let create_request = create_request.clone();
+            let request = evaluate_request.clone();
             async move {
-                let mut client = ReportServiceClient::new(channel);
+                let mut client = RuleEvaluationServiceClient::new(channel);
                 client
-                    .create_report(create_request)
+                    .evaluate_rules(request)
                     .await
                     .map(|resp| resp.into_inner())
             }
         })
         .await
-        .context("failed to create report")?;
+        .context("failed to evaluate rules for report")?;
 
-        resp.report
-            .ok_or_else(|| anyhow!("create_report response missing report"))
+        let report_id = resp.report_id.clone().ok_or_else(|| {
+            anyhow!(
+                "evaluate_rules response missing report_id — evaluation ran but no report was created"
+            )
+        })?;
+        let job_id = resp.job_id.clone();
+        let created_annotation_count = resp.created_annotation_count;
+
+        let metadata_update = (!metadata.is_empty()).then_some(metadata);
+        if description.is_some() || metadata_update.is_some() {
+            self.update_report_fields(report_id.clone(), description, metadata_update)
+                .await
+                .context("report was created but description/metadata update failed")?;
+        }
+
+        let report = self.get_report(report_id).await?;
+
+        Ok(CreateReportOutput {
+            report,
+            job_id,
+            created_annotation_count,
+        })
     }
 
     /// Update an existing report's metadata. Per
     /// `protos/sift/reports/v1/reports.proto::UpdateReportRequest` the updatable
-    /// fields are `archived_date`, `is_archived`, and `metadata`; this service
-    /// exposes `metadata` only (archive flow is out of scope). `metadata` uses
-    /// REPLACE semantics.
+    /// fields are `name`, `description`, `archived_date`, `is_archived`, and
+    /// `metadata`; this service exposes `metadata` only (archive flow is out of
+    /// scope). `metadata` uses REPLACE semantics.
     ///
     /// `UpdateReportResponse` is empty, so the updated `Report` is re-fetched via
     /// `GetReport` and returned.
@@ -268,12 +310,35 @@ impl ReportService {
         report_id: String,
         metadata: Vec<MetadataValue>,
     ) -> Result<Report> {
-        let report = Report {
-            report_id: report_id.clone(),
-            metadata,
+        self.update_report_fields(report_id.clone(), None, Some(metadata))
+            .await?;
+        self.get_report(report_id).await
+    }
+
+    /// Apply a subset of `UpdateReportRequest` fields via a mask. Only fields
+    /// with `Some(_)` are named in the mask and written. `metadata = Some(vec![])`
+    /// clears the field (REPLACE semantics); `None` leaves it untouched.
+    /// Never called with no fields set.
+    async fn update_report_fields(
+        &self,
+        report_id: String,
+        description: Option<String>,
+        metadata: Option<Vec<MetadataValue>>,
+    ) -> Result<()> {
+        let mut report = Report {
+            report_id,
             ..Default::default()
         };
-        let paths = vec!["metadata".to_string()];
+        let mut paths = Vec::new();
+
+        if let Some(description) = description {
+            report.description = Some(description);
+            paths.push("description".to_string());
+        }
+        if let Some(metadata) = metadata {
+            report.metadata = metadata;
+            paths.push("metadata".to_string());
+        }
 
         let channel = self.channel.clone();
         with_retry(&self.policy, move || {
@@ -294,6 +359,11 @@ impl ReportService {
         .await
         .context("failed to update report")?;
 
+        Ok(())
+    }
+
+    /// Fetch a `Report` by id.
+    async fn get_report(&self, report_id: String) -> Result<Report> {
         let channel = self.channel.clone();
         let resp = with_retry(&self.policy, move || {
             let channel = channel.clone();
@@ -307,7 +377,7 @@ impl ReportService {
             }
         })
         .await
-        .context("failed to fetch report after update")?;
+        .context("failed to fetch report")?;
 
         resp.report
             .ok_or_else(|| anyhow!("get_report response missing report"))

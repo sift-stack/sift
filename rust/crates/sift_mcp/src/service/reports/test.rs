@@ -1,9 +1,17 @@
-use sift_rs::reports::v1::{
-    CreateReportResponse, GetReportResponse, ListReportRuleSummariesResponse, ListReportsResponse,
-    Report, ReportRuleSummary, UpdateReportResponse, create_report_request,
-    report_service_server::ReportServiceServer,
+use sift_rs::{
+    reports::v1::{
+        GetReportResponse, ListReportRuleSummariesResponse, ListReportsResponse, Report,
+        ReportRuleSummary, UpdateReportResponse, report_service_server::ReportServiceServer,
+    },
+    rule_evaluation::v1::{
+        EvaluateRulesResponse, evaluate_rules_request,
+        rule_evaluation_service_server::RuleEvaluationServiceServer,
+    },
 };
-use sift_test_util::{grpc::memory_sift_channel, mock::reports::v1::MockReportServiceImpl};
+use sift_test_util::{
+    grpc::memory_sift_channel,
+    mock::{reports::v1::MockReportServiceImpl, rule_evaluation::v1::MockRuleEvaluationServiceImpl},
+};
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
@@ -17,6 +25,30 @@ async fn service_with_mock(mock: MockReportServiceImpl) -> (ReportService, JoinH
     let handle = tokio::spawn(async move {
         Server::builder()
             .add_service(ReportServiceServer::new(mock))
+            .serve_with_incoming(tokio_stream::once(Ok::<_, std::io::Error>(server)))
+            .await
+            .unwrap();
+    });
+
+    (
+        ReportService::new(channel, crate::policy::RetryPolicy::default()),
+        handle,
+    )
+}
+
+/// Serve both `ReportService` and `RuleEvaluationService` on the same in-memory
+/// channel — required for `create_report`, which orchestrates both.
+async fn service_with_dual_mocks(
+    report_mock: MockReportServiceImpl,
+    eval_mock: MockRuleEvaluationServiceImpl,
+) -> (ReportService, JoinHandle<()>) {
+    let (client, server) = tokio::io::duplex(1024);
+    let channel = memory_sift_channel(client).await;
+
+    let handle = tokio::spawn(async move {
+        Server::builder()
+            .add_service(ReportServiceServer::new(report_mock))
+            .add_service(RuleEvaluationServiceServer::new(eval_mock))
             .serve_with_incoming(tokio_stream::once(Ok::<_, std::io::Error>(server)))
             .await
             .unwrap();
@@ -313,16 +345,10 @@ async fn list_report_rule_summaries_respects_limit() {
         .returning(|req| {
             assert_eq!(req.get_ref().page_size, 1);
             Ok(Response::new(ListReportRuleSummariesResponse {
-                report_rule_summaries: vec![
-                    ReportRuleSummary {
-                        rule_id: "rule-1".into(),
-                        ..Default::default()
-                    },
-                    ReportRuleSummary {
-                        rule_id: "rule-2".into(),
-                        ..Default::default()
-                    },
-                ],
+                report_rule_summaries: vec![ReportRuleSummary {
+                    rule_id: "rule-1".into(),
+                    ..Default::default()
+                }],
                 next_page_token: "page-2".into(),
             }))
         });
@@ -356,75 +382,224 @@ async fn list_report_rule_summaries_propagates_grpc_error() {
     );
 }
 
+// ----- create_report -----------------------------------------------------
+//
+// These tests guard the fix for the "reports created via MCP never run" bug.
+// The service MUST call `RuleEvaluationService.EvaluateRules` (which creates the
+// report AND queues the worker job), NOT `ReportService.CreateReport` (which
+// only writes a record — the job never runs). The MockReportServiceImpl never
+// sets an expectation on `create_report` here; if the code regresses, the mock
+// will panic on an unexpected call.
+
 #[tokio::test]
-async fn create_report_from_rules_maps_oneof() {
-    let mut mock = MockReportServiceImpl::new();
-    mock.expect_create_report()
+async fn create_report_calls_evaluate_rules_from_rule_ids() {
+    let mut eval_mock = MockRuleEvaluationServiceImpl::new();
+    eval_mock
+        .expect_evaluate_rules()
         .withf(|req| {
             let req = req.get_ref();
-            req.run_id == "run-1"
-                && req.name.as_deref() == Some("nightly report")
-                && matches!(
-                    req.request,
-                    Some(create_report_request::Request::ReportFromRulesRequest(_))
-                )
+            let run_ok = matches!(
+                &req.time,
+                Some(evaluate_rules_request::Time::Run(rid))
+                    if matches!(&rid.identifier,
+                        Some(sift_rs::common::r#type::v1::resource_identifier::Identifier::Id(id))
+                            if id == "run-1")
+            );
+            let mode_ok = matches!(
+                &req.mode,
+                Some(evaluate_rules_request::Mode::Rules(inner))
+                    if matches!(
+                        &inner.rules.as_ref().and_then(|r| r.identifiers.as_ref()),
+                        Some(sift_rs::common::r#type::v1::resource_identifiers::Identifiers::Ids(ids))
+                            if ids.ids == vec!["rule-1".to_string()]
+                    )
+            );
+            req.report_name.as_deref() == Some("nightly report") && run_ok && mode_ok
         })
         .returning(|_| {
-            Ok(Response::new(CreateReportResponse {
+            Ok(Response::new(EvaluateRulesResponse {
+                report_id: Some("rep-new".into()),
+                job_id: Some("job-1".into()),
+                created_annotation_count: 0,
+            }))
+        });
+
+    let mut report_mock = MockReportServiceImpl::new();
+    report_mock
+        .expect_get_report()
+        .withf(|req| req.get_ref().report_id == "rep-new")
+        .returning(|_| {
+            Ok(Response::new(GetReportResponse {
                 report: Some(Report {
                     report_id: "rep-new".into(),
+                    name: "nightly report".into(),
                     ..Default::default()
                 }),
             }))
         });
 
-    let (service, _h) = service_with_mock(mock).await;
+    let (service, _h) = service_with_dual_mocks(report_mock, eval_mock).await;
 
-    let report = service
+    let output = service
         .create_report(
             None,
             "run-1".to_string(),
             "nightly report".to_string(),
             None,
+            vec![],
             ReportSource::Rules {
-                description: None,
-                tag_names: vec![],
                 rules: RuleIdentifier::RuleIds(vec!["rule-1".to_string()]),
             },
         )
         .await
         .expect("create_report failed");
 
-    assert_eq!(report.report_id, "rep-new");
+    assert_eq!(output.report.report_id, "rep-new");
+    assert_eq!(output.job_id.as_deref(), Some("job-1"));
+    assert_eq!(output.created_annotation_count, 0);
 }
 
 #[tokio::test]
-async fn create_report_from_template_maps_oneof() {
-    let mut mock = MockReportServiceImpl::new();
-    mock.expect_create_report()
+async fn create_report_calls_evaluate_rules_from_client_keys() {
+    let mut eval_mock = MockRuleEvaluationServiceImpl::new();
+    eval_mock
+        .expect_evaluate_rules()
         .withf(|req| {
             matches!(
-                req.get_ref().request,
-                Some(create_report_request::Request::ReportFromReportTemplateRequest(_))
+                &req.get_ref().mode,
+                Some(evaluate_rules_request::Mode::Rules(inner))
+                    if matches!(
+                        inner.rules.as_ref().and_then(|r| r.identifiers.as_ref()),
+                        Some(sift_rs::common::r#type::v1::resource_identifiers::Identifiers::ClientKeys(k))
+                            if k.client_keys == vec!["ck-1".to_string()]
+                    )
             )
         })
         .returning(|_| {
-            Ok(Response::new(CreateReportResponse {
-                report: Some(Report {
-                    report_id: "rep-tmpl".into(),
-                    ..Default::default()
-                }),
+            Ok(Response::new(EvaluateRulesResponse {
+                report_id: Some("rep-new".into()),
+                job_id: None,
+                created_annotation_count: 0,
             }))
         });
 
-    let (service, _h) = service_with_mock(mock).await;
+    let mut report_mock = MockReportServiceImpl::new();
+    report_mock.expect_get_report().returning(|_| {
+        Ok(Response::new(GetReportResponse {
+            report: Some(Report {
+                report_id: "rep-new".into(),
+                ..Default::default()
+            }),
+        }))
+    });
 
-    let report = service
+    let (service, _h) = service_with_dual_mocks(report_mock, eval_mock).await;
+
+    service
+        .create_report(
+            None,
+            "run-1".to_string(),
+            "x".to_string(),
+            None,
+            vec![],
+            ReportSource::Rules {
+                rules: RuleIdentifier::RuleClientKeys(vec!["ck-1".to_string()]),
+            },
+        )
+        .await
+        .expect("create_report failed");
+}
+
+#[tokio::test]
+async fn create_report_calls_evaluate_rules_from_version_ids() {
+    let mut eval_mock = MockRuleEvaluationServiceImpl::new();
+    eval_mock
+        .expect_evaluate_rules()
+        .withf(|req| {
+            matches!(
+                &req.get_ref().mode,
+                Some(evaluate_rules_request::Mode::RuleVersions(v))
+                    if v.rule_version_ids == vec!["rv-1".to_string()]
+            )
+        })
+        .returning(|_| {
+            Ok(Response::new(EvaluateRulesResponse {
+                report_id: Some("rep-new".into()),
+                job_id: None,
+                created_annotation_count: 0,
+            }))
+        });
+
+    let mut report_mock = MockReportServiceImpl::new();
+    report_mock.expect_get_report().returning(|_| {
+        Ok(Response::new(GetReportResponse {
+            report: Some(Report {
+                report_id: "rep-new".into(),
+                ..Default::default()
+            }),
+        }))
+    });
+
+    let (service, _h) = service_with_dual_mocks(report_mock, eval_mock).await;
+
+    service
+        .create_report(
+            None,
+            "run-1".to_string(),
+            "x".to_string(),
+            None,
+            vec![],
+            ReportSource::Rules {
+                rules: RuleIdentifier::RuleVersionIds(vec!["rv-1".to_string()]),
+            },
+        )
+        .await
+        .expect("create_report failed");
+}
+
+#[tokio::test]
+async fn create_report_from_template_calls_evaluate_rules() {
+    let mut eval_mock = MockRuleEvaluationServiceImpl::new();
+    eval_mock
+        .expect_evaluate_rules()
+        .withf(|req| {
+            matches!(
+                &req.get_ref().mode,
+                Some(evaluate_rules_request::Mode::ReportTemplate(t))
+                    if matches!(
+                        t.report_template.as_ref().and_then(|r| r.identifier.as_ref()),
+                        Some(sift_rs::common::r#type::v1::resource_identifier::Identifier::Id(id))
+                            if id == "tmpl-1"
+                    )
+            )
+        })
+        .returning(|_| {
+            Ok(Response::new(EvaluateRulesResponse {
+                report_id: Some("rep-tmpl".into()),
+                job_id: Some("job-2".into()),
+                created_annotation_count: 0,
+            }))
+        });
+
+    let mut report_mock = MockReportServiceImpl::new();
+    report_mock.expect_get_report().returning(|_| {
+        Ok(Response::new(GetReportResponse {
+            report: Some(Report {
+                report_id: "rep-tmpl".into(),
+                ..Default::default()
+            }),
+        }))
+    });
+
+    let (service, _h) = service_with_dual_mocks(report_mock, eval_mock).await;
+
+    let output = service
         .create_report(
             None,
             "run-1".to_string(),
             "from template".to_string(),
             None,
+            vec![],
             ReportSource::Template {
                 report_template_id: "tmpl-1".to_string(),
             },
@@ -432,16 +607,122 @@ async fn create_report_from_template_maps_oneof() {
         .await
         .expect("create_report failed");
 
-    assert_eq!(report.report_id, "rep-tmpl");
+    assert_eq!(output.report.report_id, "rep-tmpl");
+    assert_eq!(output.job_id.as_deref(), Some("job-2"));
 }
 
 #[tokio::test]
-async fn create_report_propagates_grpc_error() {
-    let mut mock = MockReportServiceImpl::new();
-    mock.expect_create_report()
-        .returning(|_| Err(Status::invalid_argument("bad input")));
+async fn create_report_applies_description_via_update_report() {
+    let mut eval_mock = MockRuleEvaluationServiceImpl::new();
+    eval_mock.expect_evaluate_rules().returning(|_| {
+        Ok(Response::new(EvaluateRulesResponse {
+            report_id: Some("rep-new".into()),
+            job_id: Some("job-3".into()),
+            created_annotation_count: 0,
+        }))
+    });
 
-    let (service, _h) = service_with_mock(mock).await;
+    let mut report_mock = MockReportServiceImpl::new();
+    report_mock
+        .expect_update_report()
+        .withf(|req| {
+            let req = req.get_ref();
+            let paths = req
+                .update_mask
+                .as_ref()
+                .map(|m| m.paths.clone())
+                .unwrap_or_default();
+            let report = req.report.as_ref().expect("report");
+            paths == vec!["description".to_string()]
+                && report.report_id == "rep-new"
+                && report.description.as_deref() == Some("what this evaluates")
+        })
+        .times(1)
+        .returning(|_| Ok(Response::new(UpdateReportResponse {})));
+    report_mock.expect_get_report().returning(|_| {
+        Ok(Response::new(GetReportResponse {
+            report: Some(Report {
+                report_id: "rep-new".into(),
+                description: Some("what this evaluates".into()),
+                ..Default::default()
+            }),
+        }))
+    });
+
+    let (service, _h) = service_with_dual_mocks(report_mock, eval_mock).await;
+
+    let output = service
+        .create_report(
+            None,
+            "run-1".to_string(),
+            "x".to_string(),
+            Some("what this evaluates".to_string()),
+            vec![],
+            ReportSource::Rules {
+                rules: RuleIdentifier::RuleIds(vec!["rule-1".to_string()]),
+            },
+        )
+        .await
+        .expect("create_report failed");
+
+    assert_eq!(
+        output.report.description.as_deref(),
+        Some("what this evaluates")
+    );
+}
+
+#[tokio::test]
+async fn create_report_skips_update_report_when_no_description_or_metadata() {
+    let mut eval_mock = MockRuleEvaluationServiceImpl::new();
+    eval_mock.expect_evaluate_rules().returning(|_| {
+        Ok(Response::new(EvaluateRulesResponse {
+            report_id: Some("rep-new".into()),
+            job_id: None,
+            created_annotation_count: 0,
+        }))
+    });
+
+    let mut report_mock = MockReportServiceImpl::new();
+    // No `expect_update_report()` — the mock will panic if the code calls it.
+    report_mock.expect_get_report().returning(|_| {
+        Ok(Response::new(GetReportResponse {
+            report: Some(Report {
+                report_id: "rep-new".into(),
+                ..Default::default()
+            }),
+        }))
+    });
+
+    let (service, _h) = service_with_dual_mocks(report_mock, eval_mock).await;
+
+    service
+        .create_report(
+            None,
+            "run-1".to_string(),
+            "x".to_string(),
+            None,
+            vec![],
+            ReportSource::Rules {
+                rules: RuleIdentifier::RuleIds(vec!["rule-1".to_string()]),
+            },
+        )
+        .await
+        .expect("create_report failed");
+}
+
+#[tokio::test]
+async fn create_report_errors_when_evaluate_returns_no_report_id() {
+    let mut eval_mock = MockRuleEvaluationServiceImpl::new();
+    eval_mock.expect_evaluate_rules().returning(|_| {
+        Ok(Response::new(EvaluateRulesResponse {
+            report_id: None,
+            job_id: None,
+            created_annotation_count: 0,
+        }))
+    });
+
+    let (service, _h) =
+        service_with_dual_mocks(MockReportServiceImpl::new(), eval_mock).await;
 
     let err = service
         .create_report(
@@ -449,6 +730,34 @@ async fn create_report_propagates_grpc_error() {
             "run-1".to_string(),
             "x".to_string(),
             None,
+            vec![],
+            ReportSource::Rules {
+                rules: RuleIdentifier::RuleIds(vec!["rule-1".to_string()]),
+            },
+        )
+        .await
+        .expect_err("expected error");
+
+    assert!(err.to_string().contains("missing report_id"));
+}
+
+#[tokio::test]
+async fn create_report_propagates_grpc_error() {
+    let mut eval_mock = MockRuleEvaluationServiceImpl::new();
+    eval_mock
+        .expect_evaluate_rules()
+        .returning(|_| Err(Status::invalid_argument("bad input")));
+
+    let (service, _h) =
+        service_with_dual_mocks(MockReportServiceImpl::new(), eval_mock).await;
+
+    let err = service
+        .create_report(
+            None,
+            "run-1".to_string(),
+            "x".to_string(),
+            None,
+            vec![],
             ReportSource::Template {
                 report_template_id: "tmpl-1".to_string(),
             },
@@ -456,7 +765,7 @@ async fn create_report_propagates_grpc_error() {
         .await
         .expect_err("expected error");
 
-    assert!(err.to_string().contains("failed to create report"));
+    assert!(err.to_string().contains("failed to evaluate rules"));
 }
 
 #[tokio::test]
