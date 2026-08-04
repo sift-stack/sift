@@ -508,8 +508,7 @@ against a value the caller only half knows. Every tool that takes a `filter` the
 ```
                 When filtering or searching, use `name.matches(\"(?i)rover\")`, not `==`. Use `==` only for an
                 exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
-                `contains(\"Rover\")` silently misses `rover-01`. An empty result is not proof of absence — retry
-                once with a shorter fragment.
+                `contains(\"Rover\")` silently misses `rover-01`.
 ```
 
 Write it as a direct instruction, and name the failure. "Prefer a pattern" states a preference the
@@ -528,8 +527,6 @@ Adapt it per resource; they are not uniform:
 - **`list_channels`** adds a line pointing at `contains` for a full literal name, because channel
   names embed `.` (`motor_d.current`), which is a regex wildcard. `list_users` adds the same line
   for `.` and `+` in email addresses.
-- **`count_test_steps`** and **`count_test_measurements`** return a number, not rows, so they say
-  "a count of 0 is not proof of absence".
 
 This guidance is not proto-sourced, so Step 5's "fix the proto first" rule does not apply. The
 string functions are behavior of the shared CEL filter engine, not of any one proto.

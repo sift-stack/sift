@@ -75,8 +75,7 @@ impl SiftMcpServer {
                 Reference metadata entries as `metadata.{key}` (e.g. `metadata.severity == \"high\"`).
                 When filtering or searching, use `name.matches(\"(?i)avionics\")`, not `==`. Use `==` only for an
                 exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
-                `contains(\"Avionics\")` silently misses `avionics-power-limit`. An empty result is not proof of
-                absence — retry once with a shorter fragment.
+                `contains(\"Avionics\")` silently misses `avionics-power-limit`.
                 Folder membership is filterable via `folders` and `activeFolders` (folder-id lists;
                 `activeFolders` excludes archived folders): `\"<folder_id>\" in folders` returns rules in a
                 folder, `size(activeFolders) == 0` returns uncategorized rules.
@@ -137,8 +136,7 @@ impl SiftMcpServer {
                 `user_notes` and `change_message` are the text fields. When filtering or searching them, use
                 `change_message.matches(\"(?i)asset\")`, not `==`. Use `==` only for an exact value from a prior
                 result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE: `contains(\"Asset\")` silently
-                misses `asset renamed`. An empty result is not proof of absence — retry once with a shorter
-                fragment.
+                misses `asset renamed`.
               - `limit`: max items to return. Start at 50 and only raise it if the result is capped
                 and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
 

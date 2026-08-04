@@ -69,7 +69,7 @@ impl SiftMcpServer {
                 When filtering or searching the text fields (`name`, `test_case`, `serial_number`), use
                 `name.matches(\"(?i)vibe\")`, not `==`. Use `==` only for an exact value from a prior result.
                 `contains`/`startsWith`/`endsWith` are case-SENSITIVE: `contains(\"Vibe\")` silently misses
-                `vibe-test-2`. An empty result is not proof of absence — retry once with a shorter fragment.
+                `vibe-test-2`.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `test_report_id`,
                 `name`, `test_system_name`, `test_case`, `start_time`, `end_time`, `created_date`, `modified_date`.
                 Default sort is `start_time desc` (newest first). Example: `\"start_time desc,name\"`.
@@ -127,7 +127,7 @@ impl SiftMcpServer {
                 When filtering or searching `name`, `description`, or `error_message`, use
                 `name.matches(\"(?i)power\")`, not `==`. Use `==` only for an exact value from a prior result.
                 `contains`/`startsWith`/`endsWith` are case-SENSITIVE: `contains(\"Power\")` silently misses
-                `power-on`. An empty result is not proof of absence — retry once with a shorter fragment.
+                `power-on`.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `test_step_id`,
                 `name`, `step_type`, `step_path`, `status`, `start_time`, `end_time`, `created_date`,
                 `modified_date`. Default sort is `step_path` ascending (tree order). Example:
@@ -187,8 +187,7 @@ impl SiftMcpServer {
                 `TEST_MEASUREMENT_TYPE_BOOLEAN`, `TEST_MEASUREMENT_TYPE_LIMIT`.
                 When filtering or searching `name`, use `name.matches(\"(?i)voltage\")`, not `==`. Use `==` only
                 for an exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
-                `contains(\"Voltage\")` silently misses `voltage_bus_a`. An empty result is not proof of absence —
-                retry once with a shorter fragment.
+                `contains(\"Voltage\")` silently misses `voltage_bus_a`.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `measurement_id`,
                 `name`, `measurement_type`, `test_step_id`, `test_report_id`, `passed`, `timestamp`,
                 `created_date`, `modified_date`. Default sort is `timestamp` ascending. Example:
@@ -241,8 +240,7 @@ impl SiftMcpServer {
                 `created_date`, `modified_date`, `metadata`. When filtering `name`, `description`, or
                 `error_message`, use `name.matches(\"(?i)power\")`, not `==`. Use `==` only for an exact value from
                 a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE: `contains(\"Power\")`
-                silently misses `power-on`. A count of 0 is not proof of absence — retry once with a shorter
-                fragment.
+                silently misses `power-on`.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression.
@@ -280,7 +278,7 @@ impl SiftMcpServer {
                 `timestamp`, `created_date`, `modified_date`, `metadata`. When filtering `name`, use
                 `name.matches(\"(?i)voltage\")`, not `==`. Use `==` only for an exact value from a prior result.
                 `contains`/`startsWith`/`endsWith` are case-SENSITIVE: `contains(\"Voltage\")` silently misses
-                `voltage_bus_a`. A count of 0 is not proof of absence — retry once with a shorter fragment.
+                `voltage_bus_a`.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression.

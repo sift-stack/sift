@@ -54,8 +54,7 @@ impl SiftMcpServer {
                 `duration(...)` helper, e.g. `duration_string > duration('10h')`.
                 When filtering or searching, use `name.matches(\"(?i)rover\")`, not `==`. Use `==` only for an
                 exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
-                `contains(\"Rover\")` silently misses `rover-01`. An empty result is not proof of absence — retry
-                once with a shorter fragment.
+                `contains(\"Rover\")` silently misses `rover-01`.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `name`,
                 `description`, `created_date`, `modified_date`, `start_time`, `stop_time`. Default sort is
                 `created_date desc` (newest first). Example: `\"created_date desc,modified_date\"`.
