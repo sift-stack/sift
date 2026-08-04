@@ -26,7 +26,7 @@ from sift.data.v2.data_pb2 import (
 )
 
 from sift_client.sift_types._base import BaseType, MappingHelper, ModelUpdate
-from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
+from sift_client.util.metadata import Metadata, metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
     from sift_stream_bindings import ChannelBitFieldElementPy, ChannelDataTypePy
@@ -254,7 +254,7 @@ class Channel(BaseType[ChannelProto, "Channel"]):
     bit_field_elements: list[ChannelBitFieldElement] = Field(default_factory=list)
     enum_types: dict[str, int] = Field(default_factory=dict)
     asset_id: str
-    metadata: dict[str, str | float | bool] = Field(default_factory=dict)
+    metadata: Metadata = Field(default_factory=Metadata)
     is_archived: bool
     created_date: datetime
     modified_date: datetime
