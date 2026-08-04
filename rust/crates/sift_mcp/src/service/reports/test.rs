@@ -10,7 +10,9 @@ use sift_rs::{
 };
 use sift_test_util::{
     grpc::memory_sift_channel,
-    mock::{reports::v1::MockReportServiceImpl, rule_evaluation::v1::MockRuleEvaluationServiceImpl},
+    mock::{
+        reports::v1::MockReportServiceImpl, rule_evaluation::v1::MockRuleEvaluationServiceImpl,
+    },
 };
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
@@ -709,8 +711,7 @@ async fn create_report_errors_when_no_report_id_returned() {
         }))
     });
 
-    let (service, _h) =
-        service_with_dual_mocks(MockReportServiceImpl::new(), eval_mock).await;
+    let (service, _h) = service_with_dual_mocks(MockReportServiceImpl::new(), eval_mock).await;
 
     let err = service
         .create_report(
@@ -736,8 +737,7 @@ async fn create_report_propagates_grpc_error() {
         .expect_evaluate_rules()
         .returning(|_| Err(Status::invalid_argument("bad input")));
 
-    let (service, _h) =
-        service_with_dual_mocks(MockReportServiceImpl::new(), eval_mock).await;
+    let (service, _h) = service_with_dual_mocks(MockReportServiceImpl::new(), eval_mock).await;
 
     let err = service
         .create_report(

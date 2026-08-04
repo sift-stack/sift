@@ -10,7 +10,9 @@ use sift_rs::{
 };
 use sift_test_util::{
     grpc::memory_sift_channel,
-    mock::{reports::v1::MockReportServiceImpl, rule_evaluation::v1::MockRuleEvaluationServiceImpl},
+    mock::{
+        reports::v1::MockReportServiceImpl, rule_evaluation::v1::MockRuleEvaluationServiceImpl,
+    },
 };
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};

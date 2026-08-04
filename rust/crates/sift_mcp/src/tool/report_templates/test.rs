@@ -1,8 +1,7 @@
 use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
 use sift_rs::report_templates::v1::{
     CreateReportTemplateResponse, ListReportTemplatesResponse, ReportTemplate,
-    UpdateReportTemplateResponse,
-    report_template_service_server::ReportTemplateServiceServer,
+    UpdateReportTemplateResponse, report_template_service_server::ReportTemplateServiceServer,
 };
 use sift_test_util::{
     grpc::memory_sift_channel, mock::report_templates::v1::MockReportTemplateServiceImpl,
@@ -13,9 +12,7 @@ use tonic::{Response, Status, transport::Server};
 use super::{CreateReportTemplateParams, ReportTemplateListParams, UpdateReportTemplateParams};
 use crate::{server::SiftMcpServer, tool::common::test_support::structured_field};
 
-async fn server_with_mock(
-    mock: MockReportTemplateServiceImpl,
-) -> (SiftMcpServer, JoinHandle<()>) {
+async fn server_with_mock(mock: MockReportTemplateServiceImpl) -> (SiftMcpServer, JoinHandle<()>) {
     server_with_mock_and_flag(mock, true).await
 }
 

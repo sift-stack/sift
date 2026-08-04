@@ -305,7 +305,10 @@ impl SiftMcpServer {
             .await
             .map_err(from_anyhow)?;
 
-        let report_url = self.url_service.build_report_url(&output.report.report_id).ok();
+        let report_url = self
+            .url_service
+            .build_report_url(&output.report.report_id)
+            .ok();
         let job_clause = output
             .job_id
             .as_deref()

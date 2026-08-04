@@ -86,7 +86,10 @@ impl SiftMcpServer {
               - Use this to discover a template before referencing it from `create_report` via `report_template_id`.
               - Use `is_archived == false` to exclude archived templates unless they are explicitly needed.
         ",
-        annotations(title = "report_templates/list_report_templates", read_only_hint = true)
+        annotations(
+            title = "report_templates/list_report_templates",
+            read_only_hint = true
+        )
     )]
     pub async fn list_report_templates(
         &self,

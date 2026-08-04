@@ -7,9 +7,9 @@ use sift_rs::{
     metadata::v1::MetadataValue,
     report_templates::v1::{
         CreateReportTemplateRequest, CreateReportTemplateRequestClientKeys,
-        CreateReportTemplateRequestRuleIds, ListReportTemplatesRequest, ListReportTemplatesResponse,
-        ReportTemplate, ReportTemplateRule, ReportTemplateTag, UpdateReportTemplateRequest,
-        create_report_template_request,
+        CreateReportTemplateRequestRuleIds, ListReportTemplatesRequest,
+        ListReportTemplatesResponse, ReportTemplate, ReportTemplateRule, ReportTemplateTag,
+        UpdateReportTemplateRequest, create_report_template_request,
         report_template_service_client::ReportTemplateServiceClient,
     },
 };
