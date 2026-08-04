@@ -79,6 +79,9 @@ exists.
 
 ## Rules that always apply
 
+- **Stop on empty list results.** If any `list_*` tool returns no items, tell
+  the user that nothing matched and ask how to proceed. Do not make subsequent
+  tool calls using an empty or placeholder name or id from the missing result.
 - **Surface URLs as plain text, in full.** The link from `explore_url` and the
   `View in Sift:` line from `sift-cli import` are deliverables. Never invent a
   URL that a tool did not return.

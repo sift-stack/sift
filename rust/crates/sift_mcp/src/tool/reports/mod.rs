@@ -76,8 +76,7 @@ impl SiftMcpServer {
                 Reference metadata entries as `metadata.{key}` (e.g. `metadata.batch == \"nightly\"`).
                 When filtering or searching, use `name.matches(\"(?i)nightly\")`, not `==`. Use `==` only for an
                 exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
-                `contains(\"Nightly\")` silently misses `nightly-regression`. An empty result is not proof of
-                absence — retry once with a shorter fragment.
+                `contains(\"Nightly\")` silently misses `nightly-regression`.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `name`,
                 `created_date`, `modified_date`. Default sort is `created_date desc` (newest first).
                 Example: `\"created_date desc,modified_date\"`.
