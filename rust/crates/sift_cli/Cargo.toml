@@ -1,9 +1,9 @@
 [features]
-mcp = []
+test-reports = ["sift_mcp/test-reports"]
 
 [package]
 name = "sift_cli"
-version = "0.3.0"
+version = "0.4.0"
 authors.workspace = true
 edition.workspace = true
 categories.workspace = true

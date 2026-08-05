@@ -5,6 +5,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [v0.4.0] - August 5, 2026
+
 ### What's New
 
 - Added `sift-cli agent install`, `update`, `doctor`, and `uninstall` for
@@ -16,6 +18,18 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   modes.
 - Consolidated the duplicated agent instructions into one canonical skill at
   `assets/skills/sift/SKILL.md`.
+- The `agent` command and `mcp` sidecar are no longer behind a Cargo feature
+  and ship in every build. `cargo build -p sift_cli` now includes them by
+  default; the prior `--features mcp` flag is gone.
+- Added top-level `sift-cli get jobs`, `get job <ID>`, `status job <ID>`, and
+  `wait job <ID> [ID ...]` commands. Enables the CI/CD pattern: fire imports
+  without `--wait`, capture each printed `Job ID:` line, then gate the
+  pipeline on a single `wait job` call.
+- Import commands now print the assigned `Job ID: <uuid>` on the no-wait path
+  so scripts can capture it.
+- Added an opt-in `test-reports` Cargo feature on `sift_mcp` (forwarded from
+  `sift_cli`) that gates the test-report tools. Off by default; enable with
+  `--features test-reports` when a build needs them.
 - Removed the project-scoped `install agent-skills` workflow. Existing Sift
   blocks in project `AGENTS.md` files must be removed manually because the new
   lifecycle is user-scoped.

@@ -64,17 +64,14 @@ pub enum Cmd {
     Install(InstallCmd),
 
     /// Manage the Sift integration for detected AI coding clients
-    #[cfg(feature = "mcp")]
     #[command(subcommand)]
     Agent(AgentCmd),
 
     /// Start the Sift MCP server
-    #[cfg(feature = "mcp")]
     #[command(hide = true)]
     Mcp(McpArgs),
 }
 
-#[cfg(feature = "mcp")]
 #[derive(clap::Args)]
 pub struct McpArgs {
     /// Expose destructive tools (updates, archives, restores). When omitted,
@@ -101,7 +98,6 @@ pub enum InstallCmd {
 }
 
 /// Manage Sift's release-matched skill and MCP sidecar as one bundle.
-#[cfg(feature = "mcp")]
 #[derive(Subcommand)]
 pub enum AgentCmd {
     /// Install every detected client in safe mode using the default profile unless selected
@@ -117,7 +113,6 @@ pub enum AgentCmd {
     Uninstall,
 }
 
-#[cfg(feature = "mcp")]
 #[derive(clap::Args)]
 pub struct AgentInstallArgs {
     /// Enable tools that modify or archive resources for every detected MCP client
@@ -125,7 +120,6 @@ pub struct AgentInstallArgs {
     pub allow_destructive: bool,
 }
 
-#[cfg(feature = "mcp")]
 #[derive(clap::Args)]
 pub struct AgentUpdateArgs {
     /// Enable tools that modify or archive resources for every detected MCP client
