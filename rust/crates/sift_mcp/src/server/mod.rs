@@ -10,14 +10,14 @@ use rmcp::{
 use sift_rs::SiftChannel;
 
 use crate::policy::RetryPolicy;
+#[cfg(feature = "test-reports")]
+use crate::service::test_reports::TestReportService;
 use crate::service::{
     annotations::AnnotationService, assets::AssetService, channels::ChannelService,
     data::DataService, docs::DocsService, ingest::IngestService, ping::PingService,
     report_templates::ReportTemplateService, reports::ReportService, rules::RuleService,
     runs::RunService, url::UrlService, users::UserService,
 };
-#[cfg(feature = "test-reports")]
-use crate::service::test_reports::TestReportService;
 
 #[derive(Clone)]
 pub struct SiftMcpServer {
