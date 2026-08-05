@@ -6,9 +6,7 @@ use crossterm::style::Stylize;
 use pbjson_types::Timestamp;
 use sift_rs::jobs::v1::{Job, JobStatus, JobType, ListJobsRequest};
 
-use crate::cli::{
-    GetJobArgs, GetJobsArgs, JobStatusArg, JobTypeArg, StatusJobArgs, WaitJobArgs,
-};
+use crate::cli::{GetJobArgs, GetJobsArgs, JobStatusArg, JobTypeArg, StatusJobArgs, WaitJobArgs};
 use crate::util::{api::create_grpc_channel, job::JobServiceWrapper, tty::Output};
 
 use super::Context;
@@ -125,10 +123,7 @@ pub async fn wait_job(ctx: Context, args: WaitJobArgs) -> Result<ExitCode> {
     }
 }
 
-fn build_list_filter(
-    job_type: Option<&JobTypeArg>,
-    status: Option<&JobStatusArg>,
-) -> String {
+fn build_list_filter(job_type: Option<&JobTypeArg>, status: Option<&JobStatusArg>) -> String {
     let mut parts: Vec<String> = Vec::new();
     if let Some(t) = job_type {
         parts.push(format!("job_type == \"{}\"", job_type_cel(t)));
@@ -219,7 +214,11 @@ fn format_timestamp(ts: Option<&Timestamp>) -> String {
 fn print_job_details(job: &Job) {
     let mut out = Output::new();
     out.line(format!("{}: {}", "Job ID".green(), job.job_id));
-    out.line(format!("{}: {}", "Type".green(), type_label(job.job_type())));
+    out.line(format!(
+        "{}: {}",
+        "Type".green(),
+        type_label(job.job_type())
+    ));
     out.line(format!(
         "{}: {}",
         "Status".green(),
