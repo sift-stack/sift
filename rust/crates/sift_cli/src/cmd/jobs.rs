@@ -295,7 +295,10 @@ mod tests {
             (JobStatus::Finished, ExitCode::SUCCESS),
             (JobStatus::Failed, ExitCode::from(EXIT_JOB_FAILED)),
             (JobStatus::Cancelled, ExitCode::from(EXIT_JOB_CANCELLED)),
-            (JobStatus::CancelRequested, ExitCode::from(EXIT_JOB_CANCELLED)),
+            (
+                JobStatus::CancelRequested,
+                ExitCode::from(EXIT_JOB_CANCELLED),
+            ),
             (JobStatus::Created, ExitCode::from(EXIT_JOB_RUNNING)),
             (JobStatus::Running, ExitCode::from(EXIT_JOB_RUNNING)),
         ];
