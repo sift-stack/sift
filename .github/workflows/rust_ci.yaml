@@ -65,17 +65,23 @@ jobs:
         with:
           mdbook-version: "0.4.40"
 
+      - name: Set up just
+        uses: extractions/setup-just@v4
+
+      # These call the same recipes developers run locally (rust/justfile), so
+      # CI and local stay in lockstep. The toolchain install above provides
+      # cargo/clippy/rustfmt; just only wraps the commands.
       - name: Run cargo check
-        run: cargo check --all-features
+        run: just rust::check
 
       - name: Run cargo clippy
-        run: cargo clippy --all-features
+        run: just rust::clippy
 
       - name: Run cargo fmt
-        run: cargo fmt --check --all
+        run: just rust::fmt-check
 
       - name: Run cargo test
-        run: cargo test --all-features
+        run: just rust::test
 
       - name: Run sift-stream-bindings lint & test
         shell: bash

@@ -1,0 +1,41 @@
+# Go module tasks. Run from the repo root as `just go::<recipe>`.
+# Recipes run in go/ (where go.mod lives), matching the go_ci workflow.
+
+# Format all Go files
+fmt:
+    gofmt -w .
+
+# Check formatting without writing (used by the pre-commit hook)
+fmt-check:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    unformatted=$(gofmt -l .)
+    if [[ -n "$unformatted" ]]; then
+      echo "ERROR: these files need gofmt:"
+      echo "$unformatted" | sed 's/^/  /'
+      exit 1
+    fi
+
+# Verify module dependencies
+mod-verify:
+    go mod verify
+
+# Build all packages
+build:
+    go build -v ./...
+
+# Run go vet
+vet:
+    go vet ./...
+
+# Run staticcheck
+staticcheck:
+    go run honnef.co/go/tools/cmd/staticcheck@latest ./...
+
+# Run golangci-lint (must be installed)
+lint:
+    golangci-lint run
+
+# Run the test suite
+test:
+    go test ./...
