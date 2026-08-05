@@ -32,7 +32,6 @@ polars = { workspace = true, features = ["lazy", "parquet", "sql"] }
 tokio-stream.workspace = true
 
 [features]
-default = ["test-reports"]
 test-reports = []
 
 [dev-dependencies]
