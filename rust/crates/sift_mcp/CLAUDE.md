@@ -629,6 +629,30 @@ and `derive_and_upload` are the reference implementations.
 
 ---
 
+## Reference — feature flags
+
+The crate defines Cargo features to let downstream consumers strip individual tool domains from
+the built server. Feature-gated modules follow the same rules as everything else, plus these:
+
+- **`test-reports`** (default on). Gates `service::test_reports`, `tool::test_reports`, the
+  `test_report_service` field and its construction in `server/mod.rs`, the
+  `Self::test_reports_router()` merge, and `UrlService::build_test_report_url`. Building with
+  `--no-default-features` yields a server without the `list_test_reports`, `list_test_steps`,
+  `list_test_measurements`, `count_test_steps`, `count_test_measurements`, `create_test_report`,
+  and `append_test_measurements` tools. All other tools remain available.
+
+When gating a domain behind a feature:
+
+- Wrap every declaration and reference — `pub mod`, `use`, struct field, service construction,
+  router merge, `Self { ... }` init, and any helper on a cross-domain service (see
+  `UrlService::build_test_report_url`) that only that domain calls.
+- Verify both `cargo build -p sift_mcp` and `cargo build -p sift_mcp --no-default-features`
+  build clean, with no dead-code warnings from unused helpers left behind.
+- Update the tool inventory in `rust/crates/sift_cli/assets/skills/sift/SKILL.md` to name the
+  feature next to the affected tools, so agents know why a tool they expected may be missing.
+
+---
+
 ## Pre-merge checklist
 
 Run through this before declaring the tool done:

@@ -52,6 +52,9 @@ exists.
 - **Report detail:** `list_report_rule_summaries`.
 - **Test results:** `list_test_reports`, `list_test_steps`,
   `list_test_measurements`, `count_test_steps`, `count_test_measurements`.
+  These, along with the `create_test_report` and `append_test_measurements`
+  writes below, are gated behind the `test-reports` Cargo feature (default on).
+  A server built with `--no-default-features` will not expose them.
 - **Data:** `get_data` writes channel data to a Parquet file. `sql` queries
   Parquet files. `upload_dataset` streams a Parquet dataset into Sift.
 - **Links:** `explore_url`.
