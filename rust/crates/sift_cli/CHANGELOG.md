@@ -12,24 +12,39 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Added `sift-cli agent install`, `update`, `doctor`, and `uninstall` for
   stateless, lockstep management of the release-matched Sift skill and MCP
   sidecar across detected Claude Code, Codex, Cursor, and OpenCode clients.
+  Cursor and OpenCode support is new in this release.
 - Added safe-by-default, lockstep MCP access controls: install defaults to
   read-only, update preserves the existing mode, explicit flags enable or
   disable destructive tools for all detected clients, and doctor reports mixed
   modes.
-- Consolidated the duplicated agent instructions into one canonical skill at
-  `assets/skills/sift/SKILL.md`.
 - The `agent` command and `mcp` sidecar are no longer behind a Cargo feature
   and ship in every build. `cargo build -p sift_cli` now includes them by
   default; the prior `--features mcp` flag is gone.
-- Added top-level `sift-cli get jobs`, `get job <ID>`, `status job <ID>`, and
-  `wait job <ID> [ID ...]` commands. Enables the CI/CD pattern: fire imports
-  without `--wait`, capture each printed `Job ID:` line, then gate the
-  pipeline on a single `wait job` call.
-- Import commands now print the assigned `Job ID: <uuid>` on the no-wait path
-  so scripts can capture it.
+- Split the installed skill into a router (`SKILL.md`) plus dedicated
+  reference files under `references/` for better token efficiency and clearer
+  agent guidance.
+- Added a `list_users` MCP tool. Combined with the other list tools, this
+  supports patterns like "runs I created" or "assets created by <teammate>"
+  without guessing IDs.
+- Added report-template MCP tools: `list_report_templates`,
+  `create_report_template`, and `update_report_template`. Templates bundle a
+  reusable set of rules that any `create_report` call can inherit via
+  `report_template_id`.
+- Improved MCP filter guidance: agents default `is_archived == false` on
+  every list call, use regex/case-insensitive matching
+  (`name.matches("(?i)...")`) instead of `==` for text search, and always
+  pass `limit` to keep results within the context window.
+- MCP tool calls no longer proceed on an empty list result. Empty lists
+  surface to the user for guidance instead of triggering a follow-up call
+  with an empty ID.
 - Added an opt-in `test-reports` Cargo feature on `sift_mcp` (forwarded from
   `sift_cli`) that gates the test-report tools. Off by default; enable with
   `--features test-reports` when a build needs them.
+- Added `app_uri` as a required profile field. Profile setup now asks for the
+  web app origin. `sift-cli agent doctor` treats a missing value as an error and
+  prints the config command. `sift-cli mcp` does not expose tools for an
+  incomplete profile. MCP links now use only the selected profile value. The
+  MCP tool-list error includes the config command.
 - Removed the project-scoped `install agent-skills` workflow. Existing Sift
   blocks in project `AGENTS.md` files must be removed manually because the new
   lifecycle is user-scoped.
@@ -38,11 +53,15 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Removed the MCP server, built-in prompt, and agent skill pages from the
   bundled `sift-cli` documentation. The agent-facing tool surface is documented
   in the installed skill instead.
-- Added `app_uri` as a required profile field. Profile setup now asks for the
-  web app origin. `sift-cli agent doctor` treats a missing value as an error and
-  prints the config command. `sift-cli mcp` does not expose tools for an
-  incomplete profile. MCP links now use only the selected profile value. The
-  MCP tool-list error includes the config command.
+- Replaced the ASCII loading indicator with a braille spinner across the
+  `agent` commands.
+
+### Bug Fixes
+
+- `create_report` now actually starts the rule evaluation for the new report
+  instead of leaving it in the initial state.
+- Various fixes surfaced during the internal alpha across the MCP data,
+  reports, and rules tools.
 
 ## [v0.3.0] - July 13, 2026
 
