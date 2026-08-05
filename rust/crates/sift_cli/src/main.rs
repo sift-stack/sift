@@ -159,6 +159,16 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
             cli::ExportCmd::Asset(args) => run_future(cmd::export::asset(ctx, args)),
         },
         Cmd::Ping => run_future(cmd::ping::run(ctx)),
+        Cmd::Get(cmd) => match cmd {
+            cli::GetCmd::Jobs(args) => run_future(cmd::jobs::get_jobs(ctx, args)),
+            cli::GetCmd::Job(args) => run_future(cmd::jobs::get_job(ctx, args)),
+        },
+        Cmd::Status(cmd) => match cmd {
+            cli::StatusCmd::Job(args) => run_future(cmd::jobs::status_job(ctx, args)),
+        },
+        Cmd::Wait(cmd) => match cmd {
+            cli::WaitCmd::Job(args) => run_future_mt(cmd::jobs::wait_job(ctx, args)),
+        },
         _ => Ok(ExitCode::SUCCESS),
     }
 }

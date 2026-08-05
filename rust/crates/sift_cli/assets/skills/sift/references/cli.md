@@ -8,6 +8,8 @@ Key subcommands:
 - `import`: `csv`, `parquet flat-dataset`, `parquet cpr`, `tdms`, `hdf5`,
   `ulog`, `backups`.
 - `export`: `run`, `asset` (to CSV and other formats).
+- `get`, `status`, `wait`: inspect and poll server-side jobs (`get jobs`,
+  `get job <ID>`, `status job <ID>`, `wait job <ID> [ID ...]`).
 - `mcp`: start the MCP server.
 - `ping`: verify credentials and connectivity.
 - `config`: manage profiles and credentials.
@@ -72,6 +74,11 @@ per session. The rest apply to each subcommand invocation.
    it you cannot confirm the data actually landed. Relay the final stdout
    line to the user verbatim. `import backups` is the one exception: it
    accepts no `--wait`, `--preview`, or `--run`.
+
+   Skip `--wait` only when firing multiple imports in parallel. In that
+   case capture each `Job ID: <uuid>` line from the upload output, then
+   run `sift-cli wait job <ID> [ID ...]` to block on the whole batch and
+   report failures. `wait job` exits non-zero if any job failed.
 7. **Surface the Explore link from import output.** Each profile must set
    `app_uri`. `sift-cli import` prints a `View in Sift: <URL>` tip when this
    value is usable. Surface the URL as plain text, in full. Do not wrap it in a

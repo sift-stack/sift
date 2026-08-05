@@ -1,7 +1,6 @@
 use anyhow::Result;
 use crossterm::style::Stylize;
-use std::{process::ExitCode, time::Duration};
-use tokio::time::sleep;
+use std::process::ExitCode;
 
 use sift_rs::{SiftChannel, common::r#type::v1::ChannelConfig, jobs::v1::JobStatus};
 
@@ -40,6 +39,7 @@ pub async fn finish_import(
     if !wait {
         Output::new()
             .line(format!("{} file for processing", "Uploaded".green()))
+            .line(format!("{}: {job_id}", "Job ID".green()))
             .tip(pending_import_tip(
                 &target.location,
                 target.explore_url.as_deref(),
@@ -60,33 +60,10 @@ pub async fn wait_for_job_completion(
     let spinner = Spinner::new();
     spinner.set_message(format!("{} file for processing", "Uploaded".green()));
 
-    let mut job_service = JobServiceWrapper::new(grpc_channel.clone());
+    let mut job_service = JobServiceWrapper::new(grpc_channel);
 
-    let Some(mut job) = job_service.get_job(&job_id).await? else {
-        spinner.finish_and_clear();
-
-        Output::new()
-            .line("The file was successfully uploaded but the job was unexpectedly not found")
-            .tip("Please notify Sift about this bug")
-            .eprint();
-        return Ok(ExitCode::FAILURE);
-    };
-
-    loop {
-        sleep(Duration::from_secs(3)).await;
-
-        let Some(updated_job) = job_service.get_job(&job.job_id).await? else {
-            spinner.finish_and_clear();
-            Output::new()
-                .line("The file was successfully uploaded but the job was unexpectedly not found")
-                .tip("Please notify Sift about this bug")
-                .eprint();
-            return Ok(ExitCode::FAILURE);
-        };
-        job = updated_job;
-
-        match job.job_status() {
-            JobStatus::Created => (),
+    let outcome = job_service
+        .poll_until_terminal(&job_id, |job| match job.job_status() {
             JobStatus::Running => {
                 spinner.set_message(format!("{} imported file", "Processing".green()));
             }
@@ -96,36 +73,52 @@ pub async fn wait_for_job_completion(
                     "Cancellation".green()
                 ));
             }
-            JobStatus::Cancelled => {
-                spinner.finish_and_clear();
-                Output::new()
-                    .line(format!("{} data import job", "Cancelled".green()))
-                    .print();
-                break;
-            }
-            JobStatus::Failed => {
-                spinner.finish_and_clear();
-                Output::new()
-                    .line("Processing failed")
-                    .tip("Please check the Sift jobs manage page for further details")
-                    .eprint();
-                return Ok(ExitCode::FAILURE);
-            }
-            JobStatus::Finished => {
-                spinner.finish_and_clear();
-                let mut tip_text =
-                    format!("The data should be available on the {import_output_location}");
-                tip_text.push_str(&explore_or_note(explore_url.as_deref()));
-                Output::new()
-                    .line(format!("{} data import job", "Completed".green()))
-                    .tip(tip_text)
-                    .print();
-                break;
-            }
             _ => (),
+        })
+        .await?;
+
+    spinner.finish_and_clear();
+
+    let Some(job) = outcome else {
+        Output::new()
+            .line("The file was successfully uploaded but the job was unexpectedly not found")
+            .tip("Please notify Sift about this bug")
+            .eprint();
+        return Ok(ExitCode::FAILURE);
+    };
+
+    match job.job_status() {
+        JobStatus::Finished => {
+            let mut tip_text =
+                format!("The data should be available on the {import_output_location}");
+            tip_text.push_str(&explore_or_note(explore_url.as_deref()));
+            Output::new()
+                .line(format!("{} data import job", "Completed".green()))
+                .tip(tip_text)
+                .print();
+            Ok(ExitCode::SUCCESS)
+        }
+        JobStatus::Cancelled => {
+            Output::new()
+                .line(format!("{} data import job", "Cancelled".green()))
+                .print();
+            Ok(ExitCode::SUCCESS)
+        }
+        JobStatus::Failed => {
+            Output::new()
+                .line("Processing failed")
+                .tip("Please check the Sift jobs manage page for further details")
+                .eprint();
+            Ok(ExitCode::FAILURE)
+        }
+        other => {
+            Output::new()
+                .line(format!("unexpected job status `{other:?}`"))
+                .tip("Please notify Sift about this bug")
+                .eprint();
+            Ok(ExitCode::FAILURE)
         }
     }
-    Ok(ExitCode::SUCCESS)
 }
 
 pub struct TimePreview<'a> {

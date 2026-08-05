@@ -51,6 +51,18 @@ Export data from Sift. See [Exporting Data](../data/exporting.md).
 Verify credentials and connectivity. See
 [Verifying Your Setup](../getting-started/verifying.md).
 
+## `get`, `status`, `wait`
+
+Inspect and poll Sift resources. See [Jobs](../data/jobs.md) for the CI/CD
+pattern (fire imports without `--wait`, then gate on a single `wait job`).
+
+| Command                                    | Description                                                                        |
+| ------------------------------------------ | ---------------------------------------------------------------------------------- |
+| `get jobs [--job-type ...] [--status ...]` | List recent jobs, newest first.                                                    |
+| `get job <JOB_ID>`                         | Show full details for one job.                                                     |
+| `status job <JOB_ID>`                      | Print a terse status line. Exit `0` finished, `1` failed, `2` cancelled, `3` running. |
+| `wait job <JOB_ID> [JOB_ID ...]`           | Block until every named job reaches a terminal state.                              |
+
 ## `install`
 
 Install optional tooling.

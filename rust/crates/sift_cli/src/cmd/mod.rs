@@ -14,6 +14,7 @@ pub mod doc;
 pub mod export;
 pub mod import;
 pub mod install;
+pub mod jobs;
 #[cfg(feature = "mcp")]
 pub mod mcp;
 pub mod ping;
