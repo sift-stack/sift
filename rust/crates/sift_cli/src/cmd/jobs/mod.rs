@@ -92,13 +92,11 @@ pub async fn wait_job(ctx: Context, args: WaitJobArgs) -> Result<ExitCode> {
             Ok(Some(job)) => {
                 let status = job.job_status();
                 let line = format!("{}: {}", job_id.cyan(), status_label(status));
-                match status {
-                    JobStatus::Finished => Output::new().line(line).print(),
-                    JobStatus::Cancelled => Output::new().line(line).print(),
-                    _ => {
-                        any_failed = true;
-                        Output::new().line(line).eprint();
-                    }
+                if status == JobStatus::Finished {
+                    Output::new().line(line).print();
+                } else {
+                    any_failed = true;
+                    Output::new().line(line).eprint();
                 }
             }
             Ok(None) => {
