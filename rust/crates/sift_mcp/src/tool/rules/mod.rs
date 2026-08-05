@@ -92,7 +92,7 @@ impl SiftMcpServer {
             Guidance:
               - Scope with `asset_id == \"...\"` when the rule's target asset is known — it's the most selective
                 field for narrowing rule listings.
-              - Always add `is_archived == false` to the filter. Include archived rules only when the user
+              - Default add `is_archived == false` to the filter. Include archived rules only when the user
                 explicitly asks for them.
               - Use `is_live_evaluation_enabled == true` to find only rules that run against live data.
         ",

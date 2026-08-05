@@ -59,7 +59,7 @@ impl SiftMcpServer {
             Guidance:
               - Narrow with `filter` whenever you know what you're looking for; pass `limit` regardless, so an
                 open-ended listing stays bounded.
-              - Always add `is_archived == false` to the filter. Include archived assets only when the user
+              - Default add `is_archived == false` to the filter. Include archived assets only when the user
                 explicitly asks for them.
         ",
         annotations(title = "assets/list_assets", read_only_hint = true)

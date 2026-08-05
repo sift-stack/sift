@@ -88,7 +88,7 @@ impl SiftMcpServer {
 
             Guidance:
               - Use this to discover a template before referencing it from `create_report` via `report_template_id`.
-              - Always add `is_archived == false` to the filter. Include archived templates only when the user
+              - Default add `is_archived == false` to the filter. Include archived templates only when the user
                 explicitly asks for them.
         ",
         annotations(

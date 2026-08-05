@@ -120,7 +120,7 @@ impl SiftMcpServer {
 
             Guidance:
               - Narrow with `run_id == \"...\"` or `asset_id == \"...\"` when known — those are the most selective.
-              - Always add `is_archived == false` to the filter. Include archived annotations only when the user
+              - Default add `is_archived == false` to the filter. Include archived annotations only when the user
                 explicitly asks for them.
         ",
         annotations(title = "annotations/list_annotations", read_only_hint = true)
