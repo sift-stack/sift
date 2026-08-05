@@ -1,9 +1,19 @@
 use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
-use sift_rs::reports::v1::{
-    CreateReportResponse, GetReportResponse, ListReportRuleSummariesResponse, ListReportsResponse,
-    Report, ReportRuleSummary, UpdateReportResponse, report_service_server::ReportServiceServer,
+use sift_rs::{
+    reports::v1::{
+        GetReportResponse, ListReportRuleSummariesResponse, ListReportsResponse, Report,
+        ReportRuleSummary, UpdateReportResponse, report_service_server::ReportServiceServer,
+    },
+    rule_evaluation::v1::{
+        EvaluateRulesResponse, rule_evaluation_service_server::RuleEvaluationServiceServer,
+    },
 };
-use sift_test_util::{grpc::memory_sift_channel, mock::reports::v1::MockReportServiceImpl};
+use sift_test_util::{
+    grpc::memory_sift_channel,
+    mock::{
+        reports::v1::MockReportServiceImpl, rule_evaluation::v1::MockRuleEvaluationServiceImpl,
+    },
+};
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
@@ -20,7 +30,6 @@ fn create_report_params() -> CreateReportParams {
         metadata: None,
         report_template_id: None,
         description: None,
-        tag_names: None,
         rule_ids: None,
         rule_client_keys: None,
         rule_version_ids: None,
@@ -34,6 +43,28 @@ async fn server_with_mock(mock: MockReportServiceImpl) -> (SiftMcpServer, JoinHa
     let handle = tokio::spawn(async move {
         Server::builder()
             .add_service(ReportServiceServer::new(mock))
+            .serve_with_incoming(tokio_stream::once(Ok::<_, std::io::Error>(server)))
+            .await
+            .unwrap();
+    });
+
+    (
+        SiftMcpServer::new(channel, String::from("https://app.test.local"), true),
+        handle,
+    )
+}
+
+async fn server_with_dual_mocks(
+    report_mock: MockReportServiceImpl,
+    eval_mock: MockRuleEvaluationServiceImpl,
+) -> (SiftMcpServer, JoinHandle<()>) {
+    let (client, server) = tokio::io::duplex(1024);
+    let channel = memory_sift_channel(client).await;
+
+    let handle = tokio::spawn(async move {
+        Server::builder()
+            .add_service(ReportServiceServer::new(report_mock))
+            .add_service(RuleEvaluationServiceServer::new(eval_mock))
             .serve_with_incoming(tokio_stream::once(Ok::<_, std::io::Error>(server)))
             .await
             .unwrap();
@@ -313,9 +344,18 @@ async fn list_report_rule_summaries_rejects_empty_report_id() {
 
 #[tokio::test]
 async fn create_report_from_rules_happy_path() {
-    let mut mock = MockReportServiceImpl::new();
-    mock.expect_create_report().returning(|_| {
-        Ok(Response::new(CreateReportResponse {
+    let mut eval_mock = MockRuleEvaluationServiceImpl::new();
+    eval_mock.expect_evaluate_rules().returning(|_| {
+        Ok(Response::new(EvaluateRulesResponse {
+            report_id: Some("rep-new".into()),
+            job_id: Some("job-1".into()),
+            created_annotation_count: 0,
+        }))
+    });
+
+    let mut report_mock = MockReportServiceImpl::new();
+    report_mock.expect_get_report().returning(|_| {
+        Ok(Response::new(GetReportResponse {
             report: Some(Report {
                 report_id: "rep-new".into(),
                 name: "nightly report".into(),
@@ -324,7 +364,7 @@ async fn create_report_from_rules_happy_path() {
         }))
     });
 
-    let (server, _h) = server_with_mock(mock).await;
+    let (server, _h) = server_with_dual_mocks(report_mock, eval_mock).await;
 
     let mut params = create_report_params();
     params.rule_ids = Some(vec!["rule-1".into()]);
@@ -336,8 +376,60 @@ async fn create_report_from_rules_happy_path() {
 
     let report_url = structured_field(resp.clone(), "report_url");
     assert_eq!(report_url, "https://app.test.local/reports/rep-new");
+    let job_id = structured_field(resp.clone(), "job_id");
+    assert_eq!(job_id, "job-1");
     let report = structured_field(resp, "report");
     assert_eq!(report["reportId"], "rep-new");
+}
+
+#[tokio::test]
+async fn create_report_applies_description() {
+    let mut eval_mock = MockRuleEvaluationServiceImpl::new();
+    eval_mock.expect_evaluate_rules().returning(|_| {
+        Ok(Response::new(EvaluateRulesResponse {
+            report_id: Some("rep-new".into()),
+            job_id: None,
+            created_annotation_count: 0,
+        }))
+    });
+
+    let mut report_mock = MockReportServiceImpl::new();
+    report_mock
+        .expect_update_report()
+        .withf(|req| {
+            let paths = req
+                .get_ref()
+                .update_mask
+                .as_ref()
+                .map(|m| m.paths.clone())
+                .unwrap_or_default();
+            paths == vec!["description".to_string()]
+        })
+        .times(1)
+        .returning(|_| Ok(Response::new(UpdateReportResponse {})));
+    report_mock.expect_get_report().returning(|_| {
+        Ok(Response::new(GetReportResponse {
+            report: Some(Report {
+                report_id: "rep-new".into(),
+                description: Some("evaluates nightly runs".into()),
+                ..Default::default()
+            }),
+        }))
+    });
+
+    let (server, _h) = server_with_dual_mocks(report_mock, eval_mock).await;
+
+    let mut params = create_report_params();
+    params.rule_ids = Some(vec!["rule-1".into()]);
+    params.description = Some("evaluates nightly runs".into());
+
+    let resp = server
+        .create_report(Parameters(params))
+        .await
+        .expect("create_report failed");
+
+    let report = structured_field(resp, "report");
+    assert_eq!(report["description"], "evaluates nightly runs");
 }
 
 #[tokio::test]

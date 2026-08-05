@@ -42,7 +42,6 @@ pub struct CreateReportParams {
     metadata: Option<Vec<MetadataEntry>>,
     report_template_id: Option<String>,
     description: Option<String>,
-    tag_names: Option<Vec<String>>,
     rule_ids: Option<Vec<String>>,
     rule_client_keys: Option<Vec<String>>,
     rule_version_ids: Option<Vec<String>>,
@@ -91,7 +90,8 @@ impl SiftMcpServer {
 
             Guidance:
               - When the report's run is known, narrow with `run_id == \"...\"` first — it's the most selective field.
-              - Use `is_archived == false` to exclude archived reports unless they're explicitly needed.
+              - Default add `is_archived == false` to the filter. Include archived reports only when the user
+                explicitly asks for them.
               - Order by `created_date desc` when surfacing the most recent reports to a user.
         ",
         annotations(title = "reports/list_reports", read_only_hint = true)
@@ -196,33 +196,35 @@ impl SiftMcpServer {
     #[tool(
         name = "create_report",
         description = "
-            Create a report over a run, either from a report template or from an explicit set of rules. Wraps
-            `reports/v1 CreateReport`.
+            Create a report over a run and start its evaluation.
 
             Output:
-              - `{ \"report\": Report, \"report_url\": string|null, \"next_step\": string }`. The returned `Report`
-                is the server-assigned state including its new `report_id` and `job_id`. `report_url` is the report's
-                Sift web link (`<host>/reports/<report_id>`), or null on self-hosted deployments where the host
-                can't be derived.
+              - `{ \"report\": Report, \"report_url\": string|null, \"job_id\": string|null,
+                \"created_annotation_count\": number, \"next_step\": string }`. The returned `Report` may still
+                be in a running state — poll `list_report_rule_summaries` to track progress. `report_url` is
+                the report's Sift web link, or null when it can't be derived.
 
             Parameters:
               - `run_id`: required; the run the report is generated over.
               - `name`: required; the report name.
               - `organization_id`: optional. Required only when the caller belongs to multiple organizations.
-              - `metadata`: optional list of `{ \"name\": \"<key>\", \"value\": <scalar> }` entries.
+              - `description`: optional free-form description.
+              - `metadata`: optional list of `{ \"name\": \"<key>\", \"value\": <scalar> }` entries (REPLACE
+                semantics on the metadata list).
 
               The report SOURCE is one of two mutually exclusive shapes — provide exactly one:
               - Template: set `report_template_id`. The template defines which rules run.
               - Rules: leave `report_template_id` unset and provide EXACTLY ONE of `rule_ids`, `rule_client_keys`,
-                or `rule_version_ids`. `description` and `tag_names` are optional and apply only to this shape.
+                or `rule_version_ids`. `rule_ids` / `rule_client_keys` resolve to each rule's current version;
+                `rule_version_ids` pins to specific historical versions.
 
             Errors:
               - `INVALID_PARAMS` if `run_id` or `name` is empty, if both a template and rule identifiers are given,
                 if neither is given, or if more than one rule-identifier list is given.
-              - `INTERNAL_ERROR` for upstream gRPC failures (e.g. unknown run, template, or rule).
+              - `INTERNAL_ERROR` for upstream gRPC failures.
 
             Guidance:
-              - This is a write that kicks off report execution. CONFIRM the run, source, and name with the user
+              - This is a write that starts report execution. CONFIRM the run, source, and name with the user
                 before invoking.
               - Use `list_report_rule_summaries` on the returned `report_id` to track per-rule progress.
         ",
@@ -241,7 +243,6 @@ impl SiftMcpServer {
             metadata,
             report_template_id,
             description,
-            tag_names,
             rule_ids,
             rule_client_keys,
             rule_version_ids,
@@ -278,11 +279,7 @@ impl SiftMcpServer {
                     .flatten()
                     .next()
                     .expect("one source");
-                ReportSource::Rules {
-                    description,
-                    tag_names: tag_names.unwrap_or_default(),
-                    rules,
-                }
+                ReportSource::Rules { rules }
             }
             (None, 0) => {
                 return Err(ErrorData::invalid_params(
@@ -299,26 +296,39 @@ impl SiftMcpServer {
             }
         };
 
-        let metadata = metadata.map(|m| m.into_iter().map(MetadataValue::from).collect::<Vec<_>>());
+        let metadata = metadata
+            .map(|m| m.into_iter().map(MetadataValue::from).collect::<Vec<_>>())
+            .unwrap_or_default();
 
-        let report = self
+        let output = self
             .report_service
-            .create_report(organization_id, run_id, name, metadata, source)
+            .create_report(organization_id, run_id, name, description, metadata, source)
             .await
             .map_err(from_anyhow)?;
 
-        let report_url = self.url_service.build_report_url(&report.report_id).ok();
+        let report_url = self
+            .url_service
+            .build_report_url(&output.report.report_id)
+            .ok();
+        let job_clause = output
+            .job_id
+            .as_deref()
+            .map(|jid| format!(" Evaluation job `{jid}` is running asynchronously."))
+            .unwrap_or_default();
         let next_step = format!(
-            "Created report `{}` ({}).{} Surface it to the user. Use `list_report_rule_summaries` \
-             with this `report_id` to track per-rule progress.",
-            report.name,
-            report.report_id,
+            "Created report `{}` ({}) and queued its evaluation.{}{} Surface it to the user. Use \
+             `list_report_rule_summaries` with this `report_id` to track per-rule progress.",
+            output.report.name,
+            output.report.report_id,
+            job_clause,
             url_clause(report_url.as_deref()),
         );
 
         let mut result = CallToolResult::structured(serde_json::json!({
-            "report": report,
+            "report": output.report,
             "report_url": report_url,
+            "job_id": output.job_id,
+            "created_annotation_count": output.created_annotation_count,
             "next_step": next_step,
         }));
         result.content = vec![ContentBlock::text(next_step)];

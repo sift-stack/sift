@@ -47,7 +47,7 @@ errors. Read the tool schema instead of guessing. This map only tells you what
 exists.
 
 - **Discovery:** `list_assets`, `list_runs`, `list_channels`, `list_reports`,
-  `list_rules`, `list_rule_versions`, `list_annotations`.
+  `list_report_templates`, `list_rules`, `list_rule_versions`, `list_annotations`.
 - **People:** `list_users`.
 - **Report detail:** `list_report_rule_summaries`.
 - **Test results:** `list_test_reports`, `list_test_steps`,
@@ -58,8 +58,8 @@ exists.
 - **Docs:** `search_docs`.
 - **Writes:** `create_rule`, `update_rule`, `archive_rule`, `unarchive_rule`,
   `create_annotation`, `update_annotation`, `create_report`, `update_report`,
-  `create_test_report`, `append_test_measurements`, `update_asset`,
-  `update_run`.
+  `create_report_template`, `update_report_template`, `create_test_report`,
+  `append_test_measurements`, `update_asset`, `update_run`.
 
 ## Workflows that span tools
 
@@ -76,6 +76,14 @@ exists.
   chart and numbers, do both and give the user both.
 - **Answer a question about how Sift works.** Call `search_docs`. Do not answer
   from memory, and cite the page you used.
+- **Evaluate rules against a run.** Find rules with `list_rules` and author rules
+  with `create_rule`. To reuse the same rule set across many runs, bundle
+  standard rules (`is_external: false`) into a template with `create_report_template`,
+  then call `create_report` with `report_template_id`. For a one-off — or for
+  ad-hoc rules (`is_external: true`, which the API also calls "external" but
+  cannot be attached to a template) — skip the template and pass `rule_ids`,
+  `rule_client_keys`, or `rule_version_ids` directly to `create_report`. Track
+  progress via `list_report_rule_summaries`.
 
 ## Rules that always apply
 
