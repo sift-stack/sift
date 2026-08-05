@@ -71,6 +71,9 @@ impl SiftMcpServer {
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
                 `report_template_id`, `tag_id`, `tag_name`, `client_key`, `metadata`, `name`, `is_archived`.
                 Reference metadata entries as `metadata.{key}` (e.g. `metadata.owner == \"qa-team\"`).
+                When filtering or searching, use `name.matches(\"(?i)avionics\")`, not `==`. Use `==` only for an
+                exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
+                `contains(\"Avionics\")` silently misses `avionics-power-limit`.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `created_date`,
                 `modified_date`. Default sort is `created_date desc` (newest first). Example:
                 `\"created_date desc,modified_date\"`.
@@ -85,7 +88,8 @@ impl SiftMcpServer {
 
             Guidance:
               - Use this to discover a template before referencing it from `create_report` via `report_template_id`.
-              - Use `is_archived == false` to exclude archived templates unless they are explicitly needed.
+              - Always add `is_archived == false` to the filter. Include archived templates only when the user
+                explicitly asks for them.
         ",
         annotations(
             title = "report_templates/list_report_templates",

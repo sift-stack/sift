@@ -83,7 +83,8 @@ impl SiftMcpServer {
             Guidance:
               - To audit a single run, resolve the report first (by `name`, `run_id`, or `test_case`), then pass
                 its `test_report_id` to the step and measurement tools.
-              - Use `is_archived == false` to exclude archived test reports unless they're explicitly needed.
+              - Always add `is_archived == false` to the filter. Include archived test reports only when the
+                user explicitly asks for them.
         ",
         annotations(title = "test_reports/list_test_reports", read_only_hint = true)
     )]

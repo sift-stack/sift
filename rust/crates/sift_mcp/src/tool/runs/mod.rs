@@ -71,7 +71,8 @@ impl SiftMcpServer {
               - To find runs covering a specific moment, filter on both `start_time` and `stop_time` rather than
                 pulling everything and filtering client-side.
               - Order by `start_time desc` when surfacing the most recent runs to a user.
-              - Use `is_archived == false` to exclude archived runs unless they're explicitly needed.
+              - Always add `is_archived == false` to the filter. Include archived runs only when the user
+                explicitly asks for them.
         ",
         annotations(title = "runs/list_runs", read_only_hint = true)
     )]

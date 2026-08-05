@@ -90,7 +90,8 @@ impl SiftMcpServer {
 
             Guidance:
               - When the report's run is known, narrow with `run_id == \"...\"` first — it's the most selective field.
-              - Use `is_archived == false` to exclude archived reports unless they're explicitly needed.
+              - Always add `is_archived == false` to the filter. Include archived reports only when the user
+                explicitly asks for them.
               - Order by `created_date desc` when surfacing the most recent reports to a user.
         ",
         annotations(title = "reports/list_reports", read_only_hint = true)
