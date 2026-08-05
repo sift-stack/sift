@@ -10,5 +10,6 @@ pub mod report_templates;
 pub mod reports;
 pub mod rules;
 pub mod runs;
+#[cfg(feature = "test-reports")]
 pub mod test_reports;
 pub mod users;
