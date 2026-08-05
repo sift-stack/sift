@@ -72,6 +72,97 @@ pub enum Cmd {
     #[cfg(feature = "mcp")]
     #[command(hide = true)]
     Mcp(McpArgs),
+
+    /// Retrieve Sift resources (e.g. jobs)
+    #[command(subcommand)]
+    Get(GetCmd),
+
+    /// Print a terse status line for a resource; exit code reflects state
+    #[command(subcommand)]
+    Status(StatusCmd),
+
+    /// Block until one or more resources reach a terminal state
+    #[command(subcommand)]
+    Wait(WaitCmd),
+}
+
+#[derive(Subcommand)]
+pub enum GetCmd {
+    /// List recent jobs, newest first
+    Jobs(GetJobsArgs),
+
+    /// Show full details for a single job
+    Job(GetJobArgs),
+}
+
+#[derive(clap::Args)]
+pub struct GetJobsArgs {
+    /// Filter by job type
+    #[arg(long, value_enum)]
+    pub job_type: Option<JobTypeArg>,
+
+    /// Filter by job status
+    #[arg(long, value_enum)]
+    pub status: Option<JobStatusArg>,
+
+    /// Max jobs to return (clamped to the server's cap)
+    #[arg(long, default_value_t = 50)]
+    pub limit: u32,
+}
+
+#[derive(clap::Args)]
+pub struct GetJobArgs {
+    /// Job ID
+    pub job_id: String,
+}
+
+#[derive(Subcommand)]
+pub enum StatusCmd {
+    /// Print the current status of a job. Exit code: 0 finished, 1 failed,
+    /// 2 cancelled or cancel-requested, 3 still running
+    Job(StatusJobArgs),
+}
+
+#[derive(clap::Args)]
+pub struct StatusJobArgs {
+    /// Job ID
+    pub job_id: String,
+}
+
+#[derive(Subcommand)]
+pub enum WaitCmd {
+    /// Block until every named job reaches a terminal state. Exit 0 if all
+    /// finished; nonzero if any failed or was cancelled
+    Job(WaitJobArgs),
+}
+
+#[derive(clap::Args)]
+#[command(
+    override_usage = "sift-cli wait job <JOB_ID> [JOB_ID ...]",
+    after_help = "Example:\n  \
+        sift-cli wait job <JOB_ID_1> <JOB_ID_2> <JOB_ID_3>"
+)]
+pub struct WaitJobArgs {
+    /// One or more job IDs to wait on, separated by spaces
+    #[arg(required = true, value_name = "JOB_ID")]
+    pub job_ids: Vec<String>,
+}
+
+#[derive(clap::ValueEnum, Clone, Debug)]
+pub enum JobTypeArg {
+    DataImport,
+    DataExport,
+    RuleEvaluation,
+}
+
+#[derive(clap::ValueEnum, Clone, Debug)]
+pub enum JobStatusArg {
+    Created,
+    Running,
+    Finished,
+    Failed,
+    Cancelled,
+    CancelRequested,
 }
 
 #[cfg(feature = "mcp")]

@@ -19,6 +19,7 @@
   - [ULog](./data/import-ulog.md)
   - [Backups](./data/import-backups.md)
 - [Exporting Data](./data/exporting.md)
+- [Jobs](./data/jobs.md)
 
 # Reference
 
