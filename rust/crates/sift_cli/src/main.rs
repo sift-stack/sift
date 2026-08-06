@@ -14,9 +14,7 @@ use util::tty::Output;
 
 use clap::{CommandFactory, Parser};
 
-#[cfg(feature = "mcp")]
-use crate::cli::AgentCmd;
-use crate::cli::InstallCmd;
+use crate::cli::{AgentCmd, InstallCmd};
 
 const BIN_NAME: &str = "sift-cli";
 
@@ -44,7 +42,6 @@ where
     runtime.block_on(fut)
 }
 
-#[allow(dead_code)]
 fn run_future_mt<F>(fut: F) -> Result<ExitCode>
 where
     F: Future<Output = Result<ExitCode>> + 'static,
@@ -82,7 +79,6 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
                 cli::CompletionsCmd::Update => return cmd::install::completions::update(),
             },
         },
-        #[cfg(feature = "mcp")]
         Cmd::Agent(cmd) => match cmd {
             AgentCmd::Install(args) => return cmd::agent::install(clargs.profile, args),
             AgentCmd::Update(args) => {
@@ -96,8 +92,6 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
 
     let ctx = Context::new(clargs.profile.clone(), clargs.disable_tls)?;
 
-    // Mcp Server
-    #[cfg(feature = "mcp")]
     if let Cmd::Mcp(args) = cmd {
         let app_uri = match ctx.require_app_uri(clargs.profile.as_deref()) {
             Ok(app_uri) => app_uri.to_string(),

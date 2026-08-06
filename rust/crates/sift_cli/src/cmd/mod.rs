@@ -1,20 +1,16 @@
 use crate::BIN_NAME;
-#[cfg(feature = "mcp")]
-use crate::util::app_uri::infer_app_uri;
-use crate::util::app_uri::normalize_app_uri;
+use crate::util::app_uri::{infer_app_uri, normalize_app_uri};
 use anyhow::{Context as AnyhowContext, Result, anyhow};
 use crossterm::style::Stylize;
 use std::{fs::read_to_string, io::ErrorKind, path::Path};
 use toml::{Table, Value};
 
-#[cfg(feature = "mcp")]
 pub mod agent;
 pub mod config;
 pub mod doc;
 pub mod export;
 pub mod import;
 pub mod install;
-#[cfg(feature = "mcp")]
 pub mod mcp;
 pub mod ping;
 pub mod version;
@@ -125,7 +121,6 @@ impl Context {
         })
     }
 
-    #[cfg(feature = "mcp")]
     pub fn require_app_uri(&self, profile: Option<&str>) -> Result<&str> {
         self.app_uri
             .as_deref()
@@ -133,7 +128,6 @@ impl Context {
     }
 }
 
-#[cfg(feature = "mcp")]
 fn app_uri_guidance(profile: Option<&str>, rest_uri: &str) -> String {
     let profile_name = profile.unwrap_or("default");
     let profile_flag = profile.map_or_else(String::new, |profile| format!("--profile {profile} "));
@@ -264,7 +258,6 @@ apikey = "key"
         );
     }
 
-    #[cfg(feature = "mcp")]
     #[test]
     fn mcp_requires_app_uri_with_profile_guidance() {
         let known = r#"

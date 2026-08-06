@@ -266,7 +266,6 @@ fn apply_profile_updates(
     Ok(())
 }
 
-#[cfg(feature = "mcp")]
 pub(super) fn inspect_app_uri(profile: Option<&str>) -> Result<AppUriState> {
     let path = get_config_file_path()?;
     let contents = read_to_string(path).context("failed to read config file")?;

@@ -40,8 +40,8 @@ switch back to the default; each change applies to every detected client.
 Doctor reports both settings. Mixed modes or profiles are errors rather than
 values the CLI silently resolves.
 
-The `agent` command and `mcp` sidecar remain behind the `mcp` Cargo feature until
-the open-beta release explicitly changes that policy.
+The `agent` command and `mcp` sidecar ship in every build. The prior `mcp`
+Cargo feature was removed in 0.4.0.
 
 ## Updating the skill
 
@@ -63,8 +63,8 @@ pressure, so every line should change what the agent does.
 From the repository root:
 
 ```sh
-cargo build -p sift_cli --features mcp
-cargo test -p sift_cli --features mcp cmd::agent
+cargo build -p sift_cli
+cargo test -p sift_cli cmd::agent
 ./target/debug/sift-cli agent doctor
 ```
 
