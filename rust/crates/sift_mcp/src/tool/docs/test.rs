@@ -24,7 +24,7 @@ async fn server_with_mock(mock: MockDocsServiceImpl) -> (SiftMcpServer, JoinHand
             .unwrap();
     });
 
-    let server = SiftMcpServer::new(channel, "https://app.test.local".into(), true);
+    let server = SiftMcpServer::new(channel, "https://app.test.local".into(), true, true);
     (server, handle)
 }
 

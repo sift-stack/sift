@@ -5,6 +5,16 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### What's New
+
+- Added an `--allow-create` MCP access tier alongside `--allow-destructive`.
+  The server now recognizes three tiers: read-only (default), create (enables
+  `create_*`, `upload_dataset`, `append_test_measurements`), and destructive
+  (implies create; enables `update_*`, `archive_*`, `unarchive_*`). The flag is
+  available on `sift-cli mcp`, `sift-cli agent install`, and
+  `sift-cli agent update`; blocked calls now name the exact remediation command
+  for the tier they need.
+
 ## [v0.4.0] - August 5, 2026
 
 ### What's New

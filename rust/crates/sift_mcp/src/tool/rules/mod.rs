@@ -226,6 +226,8 @@ impl SiftMcpServer {
         )
     )]
     pub async fn create_rule(&self, params: Parameters<RuleDefinitionParams>) -> error::McpResult {
+        self.require_create()?;
+
         let Parameters(RuleDefinitionParams { rule_json }) = params;
 
         let update = parse_rule_definition(&rule_json)?;

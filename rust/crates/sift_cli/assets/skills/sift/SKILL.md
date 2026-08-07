@@ -79,6 +79,14 @@ exists.
   chart and numbers, do both and give the user both.
 - **Answer a question about how Sift works.** Call `search_docs`. Do not answer
   from memory, and cite the page you used.
+- **Create an asset.** There is no `create_asset` MCP tool because Sift creates
+  assets implicitly on ingest. The MCP path is `upload_dataset` with the target
+  asset name; the asset is registered as a side effect. `upload_dataset` is a
+  create tool, so it is gated by `--allow-create`. If the server is read-only,
+  DO NOT reach for the REST `CreateAsset` RPC, `sift-cli import`, `sift_stream`,
+  or a gRPC client to make the asset another way. Surface the block: name the
+  gated tool and the exact `sift-cli agent update --allow-create` command, and
+  wait for the user to widen access.
 - **Evaluate rules against a run.** Find rules with `list_rules` and author rules
   with `create_rule`. To reuse the same rule set across many runs, bundle
   standard rules (`is_external: false`) into a template with `create_report_template`,
@@ -98,11 +106,27 @@ exists.
   URL that a tool did not return.
 - **Confirm every write before you run it.** Show the user the proposed change
   and its target, then wait for approval.
-- **Destructive tools are off by default.** `update_*`, `archive_*`, and
-  `unarchive_*` need `--allow-destructive`. If one is blocked, tell the user
-  that this access is disabled by default and ask for explicit approval. Never
-  enable it silently. The procedure is in
-  [references/agent-setup.md](references/agent-setup.md).
+- **Write tools are off by default.** Read-only is the default access mode.
+  `create_*`, `upload_dataset`, and `append_test_measurements` need
+  `--allow-create`. `update_*`, `archive_*`, and `unarchive_*` need
+  `--allow-destructive` (which implies create). If a call is blocked, tell the
+  user that this access is disabled by default and ask for explicit approval.
+  Never widen access silently.
+- **A blocked MCP tool is a user policy signal, not a transport error.** If
+  the MCP gate blocks a write, do NOT route around it — do not shell to
+  `sift-cli import`, `curl` against the REST API, `sift_client` Python, or
+  another MCP server that happens to be in destructive mode. Surface the
+  block and the exact remediation command; wait for the user to widen access.
+  The procedure is in [references/agent-setup.md](references/agent-setup.md).
+- **"No dedicated MCP tool" is not the same as "can't do this in MCP".**
+  Several creates happen as side effects of other MCP tools — an asset is
+  created when `upload_dataset` names one that doesn't exist, a run is
+  created when a `create_report`/`create_test_report`/`upload_dataset` names
+  one. When the user asks for a create with no matching `create_*` tool,
+  look for the tool that creates it as a side effect before falling out of
+  MCP. If that side-effect tool is gated and blocked, that IS the block —
+  surface it, do not treat "no `create_asset` tool" as license to shell out
+  to REST/gRPC/`sift-cli import`.
 - **Choose one profile for the session and keep it.** Never switch profiles to
   recover from a failure. Surface the failure and ask the user.
 

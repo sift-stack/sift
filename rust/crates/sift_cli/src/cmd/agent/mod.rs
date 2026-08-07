@@ -37,6 +37,7 @@ fn warning_status() -> StyledContent<&'static str> {
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub(super) enum AccessMode {
     ReadOnly,
+    Create,
     Destructive,
 }
 
@@ -44,6 +45,7 @@ impl AccessMode {
     fn label(self) -> &'static str {
         match self {
             Self::ReadOnly => "read-only",
+            Self::Create => "create tools enabled",
             Self::Destructive => "destructive tools enabled",
         }
     }
@@ -201,6 +203,8 @@ impl Environment {
 pub fn install(profile: Option<String>, args: AgentInstallArgs) -> Result<ExitCode> {
     let access = if args.allow_destructive {
         AccessMode::Destructive
+    } else if args.allow_create {
+        AccessMode::Create
     } else {
         AccessMode::ReadOnly
     };
@@ -231,6 +235,8 @@ pub async fn update(profile: Option<String>, args: AgentUpdateArgs) -> Result<Ex
     let inference = infer_registration(&environment)?;
     let requested_access = if args.allow_destructive {
         Some(AccessMode::Destructive)
+    } else if args.allow_create {
+        Some(AccessMode::Create)
     } else if args.read_only {
         Some(AccessMode::ReadOnly)
     } else {
@@ -249,7 +255,9 @@ pub async fn update(profile: Option<String>, args: AgentUpdateArgs) -> Result<Ex
     if unresolved_access || unresolved_profile {
         println!("No changes were made because detected MCP clients are not configured uniformly.");
         if unresolved_access {
-            println!("- Access modes are mixed. Choose `--allow-destructive` or `--read-only`.");
+            println!(
+                "- Access modes are mixed. Choose `--allow-destructive`, `--allow-create`, or `--read-only`."
+            );
         }
         if unresolved_profile {
             println!("- Profiles are mixed. Choose `--profile <name>` or `--default-profile`.");

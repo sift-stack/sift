@@ -466,6 +466,16 @@ fn update_access_flags_are_mutually_exclusive() {
         ])
         .is_err()
     );
+    assert!(
+        crate::cli::Args::try_parse_from([
+            "sift-cli",
+            "agent",
+            "update",
+            "--allow-create",
+            "--read-only",
+        ])
+        .is_err()
+    );
 }
 
 #[test]

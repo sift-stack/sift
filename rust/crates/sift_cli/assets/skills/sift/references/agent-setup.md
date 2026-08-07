@@ -23,29 +23,62 @@ skill:
   pass it as `sift-cli agent install --profile <name>`. Run the command when the
   user asks you to install or approves the change.
 - Run `sift-cli agent update` to refresh every detected client together. It
-  preserves the existing profile and read-only or destructive access mode.
-  Switch every client to another named profile with
-  `sift-cli agent update --profile <name>`, or return them to the default with
-  `sift-cli agent update --default-profile`.
+  preserves the existing profile and access mode. Switch every client to another
+  named profile with `sift-cli agent update --profile <name>`, or return them to
+  the default with `sift-cli agent update --default-profile`.
 - If the CLI is outdated, relay the exact curl or PowerShell installer printed
   by `agent doctor` or `agent update`. After the user updates `sift-cli`, rerun
   `sift-cli agent update`.
 - Never repair or update only one detected client. If doctor reports mixed
-  access modes, ask the user to choose `sift-cli agent update --read-only` or
-  `sift-cli agent update --allow-destructive`. If it reports mixed profiles,
+  access modes, ask the user to choose `sift-cli agent update --read-only`,
+  `--allow-create`, or `--allow-destructive`. If it reports mixed profiles,
   ask for the intended profile and use `sift-cli agent update --profile <name>`
   or `sift-cli agent update --default-profile`.
 
-## Enabling destructive tools
+## Access modes
 
-Destructive tools (`update_*`, `archive_*`, `unarchive_*`) are gated on
-`--allow-destructive` and disabled by default. When a call is blocked:
+Three tiers, each a superset of the last. All are opt-in per detected client
+via `sift-cli agent update`:
 
-1. Explain to the user that this access is disabled by default.
+- **Read-only** (default) — no writes. Any create or destructive tool call
+  returns a structured error naming the remediation command.
+- **Create** — enables `create_*`, `upload_dataset`, and `append_test_measurements`
+  (additive writes that don't modify existing data). Enable with
+  `sift-cli agent update --allow-create`.
+- **Destructive** — enables everything, including `update_*`, `archive_*`, and
+  `unarchive_*`. Enable with `sift-cli agent update --allow-destructive`.
+  Implies create.
+
+When a call is blocked:
+
+1. Explain to the user which tier is required and that it's disabled by default.
 2. Ask for explicit approval to enable it across every detected client.
-3. Only after approval, run `sift-cli agent update --allow-destructive`.
+3. Only after approval, run the exact command in the tool's error message
+   (`sift-cli agent update --allow-create` or `--allow-destructive`).
 4. Ask the user to reload or restart the MCP client.
 5. Wait for the user to confirm the restart before you retry the call.
 
-Never enable destructive access silently. Restore safe mode with
+Never widen access silently. Restore safe mode with
 `sift-cli agent update --read-only`.
+
+## Access modes are the ceiling for the whole session
+
+The MCP access tier is a policy signal for what the user has authorized, not
+just an MCP-transport gate. If the tier blocks a write, DO NOT accomplish the
+same write another way:
+
+- Do not shell to `sift-cli import`, `curl` against the Sift REST API, or
+  `sift_client` Python to route around a blocked MCP tool.
+- Do not use one MCP server to make a write another MCP server would block
+  (e.g. `sift-dev` in destructive mode is not a bypass for `sift` in read-only).
+- Do not compose reads and side-effects to imitate a write (creating an
+  annotation with a "create" verb is a create, whichever path runs it).
+
+Treat a blocked MCP tool the same way you would treat any other explicit user
+denial: surface the block, name the exact remediation command from the error
+payload, and wait for the user to widen access before retrying. The whole
+point of read-only and create tiers is to let a user register the agent with
+narrow authority; a fallback path that ignores the tier is a foot-gun that
+defeats the setting.
+
+Reads work everywhere at every tier. This rule is only about writes.

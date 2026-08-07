@@ -418,8 +418,10 @@ fn mcp_args(registration: &Registration) -> Vec<String> {
         args.push("--profile".to_string());
         args.push(profile.clone());
     }
-    if registration.access == AccessMode::Destructive {
-        args.push("--allow-destructive".to_string());
+    match registration.access {
+        AccessMode::ReadOnly => {}
+        AccessMode::Create => args.push("--allow-create".to_string()),
+        AccessMode::Destructive => args.push("--allow-destructive".to_string()),
     }
     args
 }
@@ -582,8 +584,8 @@ fn classify_command(command: &str, args: &[String], environment: &Environment) -
 fn registration_from_args(args: &[String]) -> Option<Registration> {
     match args {
         [mcp] if mcp == "mcp" => Some(Registration::new(AccessMode::ReadOnly, Profile::Default)),
-        [mcp, destructive] if mcp == "mcp" && destructive == "--allow-destructive" => {
-            Some(Registration::new(AccessMode::Destructive, Profile::Default))
+        [mcp, access] if mcp == "mcp" => {
+            access_from_flag(access).map(|a| Registration::new(a, Profile::Default))
         }
         [mcp, profile_flag, profile]
             if mcp == "mcp" && profile_flag == "--profile" && valid_profile(profile) =>
@@ -593,17 +595,19 @@ fn registration_from_args(args: &[String]) -> Option<Registration> {
                 Profile::Named(profile.clone()),
             ))
         }
-        [mcp, profile_flag, profile, destructive]
-            if mcp == "mcp"
-                && profile_flag == "--profile"
-                && valid_profile(profile)
-                && destructive == "--allow-destructive" =>
+        [mcp, profile_flag, profile, access]
+            if mcp == "mcp" && profile_flag == "--profile" && valid_profile(profile) =>
         {
-            Some(Registration::new(
-                AccessMode::Destructive,
-                Profile::Named(profile.clone()),
-            ))
+            access_from_flag(access).map(|a| Registration::new(a, Profile::Named(profile.clone())))
         }
+        _ => None,
+    }
+}
+
+fn access_from_flag(flag: &str) -> Option<AccessMode> {
+    match flag {
+        "--allow-create" => Some(AccessMode::Create),
+        "--allow-destructive" => Some(AccessMode::Destructive),
         _ => None,
     }
 }
@@ -940,8 +944,13 @@ mod tests {
     #[test]
     fn only_exact_sift_mcp_argument_shapes_are_managed() {
         assert!(registration_from_args(&args(&["mcp"])).is_some());
+        assert!(registration_from_args(&args(&["mcp", "--allow-create"])).is_some());
         assert!(registration_from_args(&args(&["mcp", "--allow-destructive"])).is_some());
         assert!(registration_from_args(&args(&["mcp", "--profile", "localdev"])).is_some());
+        assert!(
+            registration_from_args(&args(&["mcp", "--profile", "localdev", "--allow-create",]))
+                .is_some()
+        );
         assert!(
             registration_from_args(&args(&[
                 "mcp",
@@ -957,6 +966,7 @@ mod tests {
             args(&["mcp", "--profile"]),
             args(&["mcp", "--profile", "--allow-destructive"]),
             args(&["mcp", "--allow-destructive", "--profile", "localdev"]),
+            args(&["mcp", "--allow-create", "--profile", "localdev"]),
             args(&["mcp", "--profile", "localdev", "--extra"]),
         ] {
             assert_eq!(registration_from_args(&custom), None);

@@ -168,6 +168,8 @@ impl SiftMcpServer {
         &self,
         params: Parameters<CreateReportTemplateParams>,
     ) -> error::McpResult {
+        self.require_create()?;
+
         let Parameters(CreateReportTemplateParams {
             name,
             description,
