@@ -65,6 +65,12 @@ per session. The rest apply to each subcommand invocation.
    (imports, config changes), surface the final proposed command and the
    target (asset, run, profile) to the user and wait for approval before
    running.
+   **Never use the CLI to route around a blocked MCP write.** If an MCP
+   tool returned a "disabled by default" error naming an
+   `sift-cli agent update --allow-...` command, honor that block. Do not
+   shell to `sift-cli import`, `curl`, or a Python client to accomplish the
+   same operation. Surface the block per [references/agent-setup.md](agent-setup.md)
+   and wait for the user to widen access first.
 5. **Use absolute paths.** Pass absolute paths for any file argument so
    the command does not depend on the shell's current directory.
 6. **For imports, pass `--wait`.** With `--wait` the CLI blocks until the

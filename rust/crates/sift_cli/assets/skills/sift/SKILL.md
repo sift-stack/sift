@@ -103,8 +103,13 @@ exists.
   `--allow-create`. `update_*`, `archive_*`, and `unarchive_*` need
   `--allow-destructive` (which implies create). If a call is blocked, tell the
   user that this access is disabled by default and ask for explicit approval.
-  Never widen access silently. The procedure is in
-  [references/agent-setup.md](references/agent-setup.md).
+  Never widen access silently.
+- **A blocked MCP tool is a user policy signal, not a transport error.** If
+  the MCP gate blocks a write, do NOT route around it — do not shell to
+  `sift-cli import`, `curl` against the REST API, `sift_client` Python, or
+  another MCP server that happens to be in destructive mode. Surface the
+  block and the exact remediation command; wait for the user to widen access.
+  The procedure is in [references/agent-setup.md](references/agent-setup.md).
 - **Choose one profile for the session and keep it.** Never switch profiles to
   recover from a failure. Surface the failure and ask the user.
 

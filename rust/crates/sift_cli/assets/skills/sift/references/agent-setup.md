@@ -60,3 +60,25 @@ When a call is blocked:
 
 Never widen access silently. Restore safe mode with
 `sift-cli agent update --read-only`.
+
+## Access modes are the ceiling for the whole session
+
+The MCP access tier is a policy signal for what the user has authorized, not
+just an MCP-transport gate. If the tier blocks a write, DO NOT accomplish the
+same write another way:
+
+- Do not shell to `sift-cli import`, `curl` against the Sift REST API, or
+  `sift_client` Python to route around a blocked MCP tool.
+- Do not use one MCP server to make a write another MCP server would block
+  (e.g. `sift-dev` in destructive mode is not a bypass for `sift` in read-only).
+- Do not compose reads and side-effects to imitate a write (creating an
+  annotation with a "create" verb is a create, whichever path runs it).
+
+Treat a blocked MCP tool the same way you would treat any other explicit user
+denial: surface the block, name the exact remediation command from the error
+payload, and wait for the user to widen access before retrying. The whole
+point of read-only and create tiers is to let a user register the agent with
+narrow authority; a fallback path that ignores the tier is a foot-gun that
+defeats the setting.
+
+Reads work everywhere at every tier. This rule is only about writes.
