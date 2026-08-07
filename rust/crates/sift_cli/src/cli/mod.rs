@@ -74,9 +74,15 @@ pub enum Cmd {
 
 #[derive(clap::Args)]
 pub struct McpArgs {
+    /// Expose create tools (creates, ingest, appends). When omitted, create
+    /// tool calls return an error instructing the caller to relaunch the
+    /// server with this flag. Implied by `--allow-destructive`.
+    #[arg(long)]
+    pub allow_create: bool,
+
     /// Expose destructive tools (updates, archives, restores). When omitted,
     /// destructive tool calls return an error instructing the caller to
-    /// relaunch the server with this flag.
+    /// relaunch the server with this flag. Also enables create tools.
     #[arg(long)]
     pub allow_destructive: bool,
 }
@@ -115,19 +121,29 @@ pub enum AgentCmd {
 
 #[derive(clap::Args)]
 pub struct AgentInstallArgs {
-    /// Enable tools that modify or archive resources for every detected MCP client
+    /// Enable tools that create new resources for every detected MCP client
+    #[arg(long)]
+    pub allow_create: bool,
+
+    /// Enable tools that modify or archive resources for every detected MCP client.
+    /// Also enables create tools.
     #[arg(long)]
     pub allow_destructive: bool,
 }
 
 #[derive(clap::Args)]
 pub struct AgentUpdateArgs {
-    /// Enable tools that modify or archive resources for every detected MCP client
+    /// Enable tools that create new resources for every detected MCP client
+    #[arg(long, conflicts_with = "read_only")]
+    pub allow_create: bool,
+
+    /// Enable tools that modify or archive resources for every detected MCP client.
+    /// Also enables create tools.
     #[arg(long, conflicts_with = "read_only")]
     pub allow_destructive: bool,
 
-    /// Disable destructive tools for every detected MCP client
-    #[arg(long, conflicts_with = "allow_destructive")]
+    /// Disable create and destructive tools for every detected MCP client
+    #[arg(long, conflicts_with_all = ["allow_create", "allow_destructive"])]
     pub read_only: bool,
 
     /// Switch every detected MCP client back to the default profile

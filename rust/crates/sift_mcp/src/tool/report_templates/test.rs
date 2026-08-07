@@ -36,6 +36,7 @@ async fn server_with_mock_and_flag(
             channel,
             String::from("https://app.test.local"),
             allow_destructive,
+            allow_destructive,
         ),
         handle,
     )

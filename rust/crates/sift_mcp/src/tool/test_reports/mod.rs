@@ -362,6 +362,8 @@ impl SiftMcpServer {
         &self,
         params: Parameters<CreateTestReportParams>,
     ) -> error::McpResult {
+        self.require_create()?;
+
         let Parameters(CreateTestReportParams { report_json }) = params;
 
         let report_spec = parse_report_spec(&report_json)?;
@@ -439,6 +441,8 @@ impl SiftMcpServer {
         &self,
         params: Parameters<AppendMeasurementsParams>,
     ) -> error::McpResult {
+        self.require_create()?;
+
         let Parameters(AppendMeasurementsParams {
             test_report_id,
             test_step_id,

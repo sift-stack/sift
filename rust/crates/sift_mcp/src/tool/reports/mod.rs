@@ -236,6 +236,8 @@ impl SiftMcpServer {
         )
     )]
     pub async fn create_report(&self, params: Parameters<CreateReportParams>) -> error::McpResult {
+        self.require_create()?;
+
         let Parameters(CreateReportParams {
             run_id,
             name,

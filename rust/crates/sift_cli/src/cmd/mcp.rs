@@ -46,6 +46,7 @@ pub async fn run(ctx: Context, args: McpArgs, app_uri: String) -> Result<ExitCod
         credentials,
         !ctx.disable_tls,
         app_uri,
+        args.allow_create,
         args.allow_destructive,
     )
     .await

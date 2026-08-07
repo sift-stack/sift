@@ -98,10 +98,12 @@ exists.
   URL that a tool did not return.
 - **Confirm every write before you run it.** Show the user the proposed change
   and its target, then wait for approval.
-- **Destructive tools are off by default.** `update_*`, `archive_*`, and
-  `unarchive_*` need `--allow-destructive`. If one is blocked, tell the user
-  that this access is disabled by default and ask for explicit approval. Never
-  enable it silently. The procedure is in
+- **Write tools are off by default.** Read-only is the default access mode.
+  `create_*`, `upload_dataset`, and `append_test_measurements` need
+  `--allow-create`. `update_*`, `archive_*`, and `unarchive_*` need
+  `--allow-destructive` (which implies create). If a call is blocked, tell the
+  user that this access is disabled by default and ask for explicit approval.
+  Never widen access silently. The procedure is in
   [references/agent-setup.md](references/agent-setup.md).
 - **Choose one profile for the session and keep it.** Never switch profiles to
   recover from a failure. Surface the failure and ask the user.

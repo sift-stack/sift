@@ -40,6 +40,7 @@ pub struct SiftMcpServer {
     pub docs_service: DocsService,
     pub user_service: UserService,
 
+    pub allow_create: bool,
     pub allow_destructive: bool,
 }
 
@@ -83,7 +84,12 @@ impl ServerHandler for SiftMcpServer {
 }
 
 impl SiftMcpServer {
-    pub fn new(channel: SiftChannel, app_uri: String, allow_destructive: bool) -> Self {
+    pub fn new(
+        channel: SiftChannel,
+        app_uri: String,
+        allow_create: bool,
+        allow_destructive: bool,
+    ) -> Self {
         // Add more routers here as new tool groups are introduced, e.g.
         //   tool_router.merge(Self::ingestion_router())
         let mut tool_router = Self::assets_router();
@@ -140,13 +146,31 @@ impl SiftMcpServer {
             user_service,
             tool_router,
             prompt_router,
+            allow_create,
             allow_destructive,
         }
     }
 
-    /// Gate for destructive tool handlers. Returns an error the calling agent
-    /// can relay to the user when the server was launched without
-    /// `--allow-destructive`.
+    pub(crate) fn require_create(&self) -> Result<(), ErrorData> {
+        if self.allow_create || self.allow_destructive {
+            return Ok(());
+        }
+        Err(ErrorData::invalid_request(
+            "This tool creates new resources and is disabled. Ask the user for \
+             explicit approval to enable create tools. If they approve, run \
+             `sift-cli agent update --allow-create` to update every detected \
+             client together, then ask the user to reload or restart their MCP \
+             client. Do not retry until they confirm the client has restarted.",
+            Some(serde_json::json!({
+                "status": "stopped",
+                "reason": "CreateToolsDisabled",
+                "requires_user_approval": true,
+                "remediation_command": "sift-cli agent update --allow-create",
+                "restart_required": true,
+            })),
+        ))
+    }
+
     pub(crate) fn require_destructive(&self) -> Result<(), ErrorData> {
         if self.allow_destructive {
             return Ok(());

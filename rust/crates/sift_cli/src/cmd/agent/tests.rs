@@ -396,6 +396,52 @@ fn destructive_access_is_a_current_managed_registration() {
 }
 
 #[test]
+fn create_access_is_a_current_managed_registration() {
+    let directory = TempDir::new("sift-cli-agent-create-access").unwrap();
+    let environment = Environment::for_test(
+        directory.path().to_path_buf(),
+        directory.path().join("bin/sift-cli"),
+        vec![Harness::Cursor],
+    );
+    let path = directory.path().join(".cursor/mcp.json");
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    fs::write(
+        path,
+        r#"{"mcpServers":{"sift":{"command":"sift-cli","args":["mcp","--allow-create"]}}}"#,
+    )
+    .unwrap();
+
+    assert_eq!(
+        config::inspect(Harness::Cursor, &environment).unwrap(),
+        config::State::Current(default_registration(AccessMode::Create))
+    );
+}
+
+#[test]
+fn create_install_updates_every_json_backed_client() {
+    let directory = TempDir::new("sift-cli-agent-create-install").unwrap();
+    let current_exe = directory.path().join("bin/sift-cli");
+    let environment = Environment::for_test(
+        directory.path().to_path_buf(),
+        current_exe,
+        vec![Harness::Cursor, Harness::OpenCode],
+    );
+
+    let registration = default_registration(AccessMode::Create);
+    config::install(Harness::Cursor, &environment, &registration).unwrap();
+    config::install(Harness::OpenCode, &environment, &registration).unwrap();
+
+    assert_eq!(
+        config::inspect(Harness::Cursor, &environment).unwrap(),
+        config::State::Current(registration.clone())
+    );
+    assert_eq!(
+        config::inspect(Harness::OpenCode, &environment).unwrap(),
+        config::State::Current(registration)
+    );
+}
+
+#[test]
 fn destructive_install_updates_every_json_backed_client() {
     let directory = TempDir::new("sift-cli-agent-destructive-install").unwrap();
     let current_exe = directory.path().join("bin/sift-cli");
@@ -430,7 +476,19 @@ fn update_access_inference_preserves_one_mode_and_rejects_mixed_modes() {
         AccessInference::Resolved(AccessMode::Destructive)
     );
     assert_eq!(
+        super::infer_access_modes(&[AccessMode::Create, AccessMode::Create]),
+        AccessInference::Resolved(AccessMode::Create)
+    );
+    assert_eq!(
         super::infer_access_modes(&[AccessMode::ReadOnly, AccessMode::Destructive]),
+        AccessInference::Mixed
+    );
+    assert_eq!(
+        super::infer_access_modes(&[AccessMode::ReadOnly, AccessMode::Create]),
+        AccessInference::Mixed
+    );
+    assert_eq!(
+        super::infer_access_modes(&[AccessMode::Create, AccessMode::Destructive]),
         AccessInference::Mixed
     );
 }
@@ -462,6 +520,16 @@ fn update_access_flags_are_mutually_exclusive() {
             "agent",
             "update",
             "--allow-destructive",
+            "--read-only",
+        ])
+        .is_err()
+    );
+    assert!(
+        crate::cli::Args::try_parse_from([
+            "sift-cli",
+            "agent",
+            "update",
+            "--allow-create",
             "--read-only",
         ])
         .is_err()

@@ -420,6 +420,8 @@ impl SiftMcpServer {
         &self,
         params: Parameters<UploadDatasetParams>,
     ) -> error::McpResult {
+        self.require_create()?;
+
         let Parameters(UploadDatasetParams {
             asset,
             run_name,

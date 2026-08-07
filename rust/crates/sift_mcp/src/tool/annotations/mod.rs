@@ -202,6 +202,8 @@ impl SiftMcpServer {
         &self,
         params: Parameters<CreateAnnotationParams>,
     ) -> error::McpResult {
+        self.require_create()?;
+
         let Parameters(CreateAnnotationParams {
             name,
             description,
