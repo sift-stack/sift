@@ -13,11 +13,12 @@ use super::{CreateReportTemplateParams, ReportTemplateListParams, UpdateReportTe
 use crate::{server::SiftMcpServer, tool::common::test_support::structured_field};
 
 async fn server_with_mock(mock: MockReportTemplateServiceImpl) -> (SiftMcpServer, JoinHandle<()>) {
-    server_with_mock_and_flag(mock, true).await
+    server_with_mock_and_flags(mock, true, true).await
 }
 
-async fn server_with_mock_and_flag(
+async fn server_with_mock_and_flags(
     mock: MockReportTemplateServiceImpl,
+    allow_create: bool,
     allow_destructive: bool,
 ) -> (SiftMcpServer, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
@@ -35,7 +36,7 @@ async fn server_with_mock_and_flag(
         SiftMcpServer::new(
             channel,
             String::from("https://app.test.local"),
-            allow_destructive,
+            allow_create,
             allow_destructive,
         ),
         handle,
@@ -295,9 +296,23 @@ async fn update_report_template_rejects_both_rule_shapes() {
 }
 
 #[tokio::test]
+async fn create_report_template_blocked_without_allow_create() {
+    let mock = MockReportTemplateServiceImpl::new();
+    let (server, _h) = server_with_mock_and_flags(mock, false, false).await;
+
+    let err = server
+        .create_report_template(Parameters(create_params()))
+        .await
+        .expect_err("expected create gate to reject the call");
+
+    assert_eq!(err.code, ErrorCode::INVALID_REQUEST);
+    assert!(err.message.contains("--allow-create"));
+}
+
+#[tokio::test]
 async fn update_report_template_blocked_without_allow_destructive() {
     let mock = MockReportTemplateServiceImpl::new();
-    let (server, _h) = server_with_mock_and_flag(mock, false).await;
+    let (server, _h) = server_with_mock_and_flags(mock, false, false).await;
 
     let mut params = update_params();
     params.name = Some("renamed".into());
