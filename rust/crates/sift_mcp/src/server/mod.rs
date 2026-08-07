@@ -156,9 +156,10 @@ impl SiftMcpServer {
             return Ok(());
         }
         Err(ErrorData::invalid_request(
-            "This tool creates new resources and is disabled. Ask the user for \
-             explicit approval to enable create tools. If they approve, run \
-             `sift-cli agent update --allow-create` to update every detected \
+            "This is a create tool. The MCP server was launched without \
+             `--allow-create`, so tools that create new resources are disabled. \
+             Ask the user for explicit approval to enable them. If they approve, \
+             run `sift-cli agent update --allow-create` to update every detected \
              client together, then ask the user to reload or restart their MCP \
              client. Do not retry until they confirm the client has restarted.",
             Some(serde_json::json!({
@@ -176,11 +177,13 @@ impl SiftMcpServer {
             return Ok(());
         }
         Err(ErrorData::invalid_request(
-            "This tool is destructive and is disabled. Ask the user for explicit \
-             approval to enable destructive Sift tools. If they approve, run \
-             `sift-cli agent update --allow-destructive` to update every detected \
-             client together, then ask the user to reload or restart their MCP \
-             client. Do not retry until they confirm the client has restarted.",
+            "This is a destructive tool. The MCP server was launched without \
+             `--allow-destructive`, so tools that modify or archive resources \
+             are disabled. Ask the user for explicit approval to enable them. \
+             If they approve, run `sift-cli agent update --allow-destructive` \
+             to update every detected client together, then ask the user to \
+             reload or restart their MCP client. Do not retry until they \
+             confirm the client has restarted.",
             Some(serde_json::json!({
                 "status": "stopped",
                 "reason": "DestructiveToolsDisabled",
