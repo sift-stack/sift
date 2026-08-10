@@ -69,8 +69,9 @@ exists.
 
 ## Workflows that span tools
 
-- **Start a Sift session.** If `check_for_updates` is available, call it once
-  before the first other Sift tool. If it reports `update_available`, relay its
+- **Start a Sift session.** If `check_for_updates` is available, call it once at
+  the start of each session. Call it before any other Sift tool. If it reports
+  `update_available`, relay its
   `message` and exact `install_command`. If it reports `unavailable`, continue
   with the requested Sift task.
 - **Search a list.** Filter with a pattern rather than an exact match. Each

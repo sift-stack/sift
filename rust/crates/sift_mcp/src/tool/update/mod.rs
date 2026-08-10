@@ -26,7 +26,7 @@ impl SiftMcpServer {
               - `message`: text to relay to the user.
 
             Guidance:
-              - Call once before the first other Sift tool in each session.
+              - Call once at the start of each session, before any other Sift tool.
               - If `status = update_available`, relay `message` and `install_command` exactly.
               - If `status = unavailable`, continue with the user's requested Sift task.
         ",

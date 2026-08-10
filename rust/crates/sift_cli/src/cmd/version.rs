@@ -18,16 +18,17 @@ const RELEASES_URL: &str = "https://api.github.com/repos/sift-stack/sift/release
 const TAG_PREFIX: &str = "sift_cli-v";
 const USER_AGENT: &str = concat!("sift-cli/", env!("CARGO_PKG_VERSION"));
 const RELEASE_CACHE_TTL: Duration = Duration::from_secs(24 * 60 * 60);
+const RELEASE_FAILURE_CACHE_TTL: Duration = Duration::from_secs(15 * 60);
 
-#[derive(Debug)]
-pub(crate) struct CachedRelease {
-    pub(crate) latest_version: Version,
-    pub(crate) is_outdated: bool,
+#[derive(Debug, Eq, PartialEq)]
+pub(crate) enum CachedRelease {
+    Latest(Version),
+    Unavailable,
 }
 
 #[derive(Deserialize, Serialize)]
 struct ReleaseCache {
-    latest_version: String,
+    latest_version: Option<String>,
     checked_at: u64,
 }
 
@@ -47,7 +48,7 @@ pub async fn run() -> Result<ExitCode> {
     let mut out = Output::new();
     out.line(format!("sift-cli {}", current_str.bold()));
 
-    match latest_with_cache(&current).await {
+    match latest_with_cache().await {
         Ok(Some(latest)) => {
             out.line(format!("Latest release: {}", latest.to_string().bold()));
             if latest > current {
@@ -84,37 +85,39 @@ pub async fn run() -> Result<ExitCode> {
 }
 
 pub(crate) async fn fetch_latest() -> Result<Option<Version>> {
-    let client = ClientBuilder::new()
-        .user_agent(USER_AGENT)
-        .timeout(Duration::from_secs(5))
-        .build()?;
+    let result = async {
+        let client = ClientBuilder::new()
+            .user_agent(USER_AGENT)
+            .timeout(Duration::from_secs(5))
+            .build()?;
 
-    let releases: Vec<GithubRelease> = client
-        .get(RELEASES_URL)
-        .send()
-        .await?
-        .error_for_status()?
-        .json()
-        .await?;
+        let releases: Vec<GithubRelease> = client
+            .get(RELEASES_URL)
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
 
-    let latest = latest_stable(releases);
-    if let Some(latest) = &latest
-        && let Err(error) = write_release_cache(latest)
-    {
+        Ok(latest_stable(releases))
+    }
+    .await;
+
+    let latest = result.as_ref().ok().and_then(|latest| latest.as_ref());
+    if let Err(error) = write_release_cache(latest) {
         tracing::debug!(%error, "could not update the sift-cli release cache");
     }
 
-    Ok(latest)
+    result
 }
 
-pub(crate) async fn latest_with_cache(current: &Version) -> Result<Option<Version>> {
+pub(crate) async fn latest_with_cache() -> Result<Option<Version>> {
     let path = release_cache_path();
-    cached_or_fetch_latest_at(path.as_deref(), current, SystemTime::now(), fetch_latest).await
+    cached_or_fetch_latest_at(path.as_deref(), SystemTime::now(), fetch_latest).await
 }
 
 async fn cached_or_fetch_latest_at<F, Fut>(
     path: Option<&Path>,
-    current: &Version,
     now: SystemTime,
     refresh: F,
 ) -> Result<Option<Version>>
@@ -122,38 +125,47 @@ where
     F: FnOnce() -> Fut,
     Fut: Future<Output = Result<Option<Version>>>,
 {
-    if let Some(cached) = path.and_then(|path| read_release_cache_at(path, current, now)) {
-        return Ok(Some(cached.latest_version));
+    match path.and_then(|path| read_release_cache_at(path, now)) {
+        Some(CachedRelease::Latest(latest)) => return Ok(Some(latest)),
+        Some(CachedRelease::Unavailable) => {
+            return Err(anyhow!("a recent release check failed"));
+        }
+        None => {}
     }
     refresh().await
 }
 
-pub(crate) fn read_release_cache(current: &Version) -> Option<CachedRelease> {
+pub(crate) fn read_release_cache() -> Option<CachedRelease> {
     let path = release_cache_path()?;
-    read_release_cache_at(&path, current, SystemTime::now())
+    read_release_cache_at(&path, SystemTime::now())
 }
 
 fn release_cache_path() -> Option<PathBuf> {
     dirs::cache_dir().map(|path| path.join("sift-cli").join("latest-release.json"))
 }
 
-fn read_release_cache_at(path: &Path, current: &Version, now: SystemTime) -> Option<CachedRelease> {
+fn read_release_cache_at(path: &Path, now: SystemTime) -> Option<CachedRelease> {
     let cache: ReleaseCache = serde_json::from_slice(&fs::read(path).ok()?).ok()?;
     let checked_at = UNIX_EPOCH.checked_add(Duration::from_secs(cache.checked_at))?;
     let age = now.duration_since(checked_at).ok()?;
-    if age > RELEASE_CACHE_TTL {
+    let ttl = if cache.latest_version.is_some() {
+        RELEASE_CACHE_TTL
+    } else {
+        RELEASE_FAILURE_CACHE_TTL
+    };
+    if age > ttl {
         return None;
     }
 
-    let latest_version = Version::parse(&cache.latest_version).ok()?;
-    let is_outdated = latest_version > *current;
-    Some(CachedRelease {
-        latest_version,
-        is_outdated,
-    })
+    match cache.latest_version {
+        Some(latest_version) => Version::parse(&latest_version)
+            .ok()
+            .map(CachedRelease::Latest),
+        None => Some(CachedRelease::Unavailable),
+    }
 }
 
-fn write_release_cache(latest: &Version) -> Result<()> {
+fn write_release_cache(latest: Option<&Version>) -> Result<()> {
     let path =
         release_cache_path().ok_or_else(|| anyhow!("the platform has no cache directory"))?;
     let parent = path
@@ -165,7 +177,7 @@ fn write_release_cache(latest: &Version) -> Result<()> {
         .context("the system clock is before the Unix epoch")?
         .as_secs();
     let cache = ReleaseCache {
-        latest_version: latest.to_string(),
+        latest_version: latest.map(ToString::to_string),
         checked_at,
     };
     let contents = serde_json::to_vec(&cache).context("failed to serialize the release cache")?;
@@ -223,11 +235,12 @@ mod tests {
     use tempdir::TempDir;
 
     use super::{
-        GithubRelease, RELEASE_CACHE_TTL, cached_or_fetch_latest_at, install_command,
-        latest_stable, outdated_warning, read_release_cache_at,
+        CachedRelease, GithubRelease, RELEASE_CACHE_TTL, RELEASE_FAILURE_CACHE_TTL,
+        cached_or_fetch_latest_at, install_command, latest_stable, outdated_warning,
+        read_release_cache_at,
     };
 
-    fn write_cache(path: &std::path::Path, latest_version: &str, checked_at: SystemTime) {
+    fn write_cache(path: &std::path::Path, latest_version: Option<&str>, checked_at: SystemTime) {
         let checked_at = checked_at.duration_since(UNIX_EPOCH).unwrap().as_secs();
         fs::write(
             path,
@@ -267,16 +280,18 @@ mod tests {
     }
 
     #[test]
-    fn fresh_release_cache_reports_an_outdated_binary() {
+    fn fresh_release_cache_returns_the_latest_release() {
         let dir = TempDir::new("sift-release-cache").unwrap();
         let path = dir.path().join("latest-release.json");
         let now = SystemTime::now();
-        write_cache(&path, "0.4.0", now - Duration::from_secs(60));
+        write_cache(&path, Some("0.4.0"), now - Duration::from_secs(60));
 
-        let cached = read_release_cache_at(&path, &Version::parse("0.3.0").unwrap(), now).unwrap();
+        let cached = read_release_cache_at(&path, now).unwrap();
 
-        assert_eq!(cached.latest_version, Version::parse("0.4.0").unwrap());
-        assert!(cached.is_outdated);
+        assert_eq!(
+            cached,
+            CachedRelease::Latest(Version::parse("0.4.0").unwrap())
+        );
     }
 
     #[tokio::test]
@@ -284,18 +299,13 @@ mod tests {
         let dir = TempDir::new("sift-release-cache").unwrap();
         let path = dir.path().join("latest-release.json");
         let now = SystemTime::now();
-        write_cache(&path, "0.4.0", now - Duration::from_secs(60));
+        write_cache(&path, Some("0.4.0"), now - Duration::from_secs(60));
         let refreshed = Cell::new(false);
 
-        let latest = cached_or_fetch_latest_at(
-            Some(&path),
-            &Version::parse("0.3.0").unwrap(),
-            now,
-            || async {
-                refreshed.set(true);
-                Ok(None)
-            },
-        )
+        let latest = cached_or_fetch_latest_at(Some(&path), now, || async {
+            refreshed.set(true);
+            Ok(None)
+        })
         .await
         .unwrap();
 
@@ -310,20 +320,15 @@ mod tests {
         let now = SystemTime::now();
         write_cache(
             &path,
-            "0.3.0",
+            Some("0.3.0"),
             now - RELEASE_CACHE_TTL - Duration::from_secs(1),
         );
         let refreshed = Cell::new(false);
 
-        let latest = cached_or_fetch_latest_at(
-            Some(&path),
-            &Version::parse("0.3.0").unwrap(),
-            now,
-            || async {
-                refreshed.set(true);
-                Ok(Some(Version::parse("0.4.0").unwrap()))
-            },
-        )
+        let latest = cached_or_fetch_latest_at(Some(&path), now, || async {
+            refreshed.set(true);
+            Ok(Some(Version::parse("0.4.0").unwrap()))
+        })
         .await
         .unwrap();
 
@@ -338,11 +343,11 @@ mod tests {
         let now = SystemTime::now();
         write_cache(
             &path,
-            "0.4.0",
+            Some("0.4.0"),
             now - RELEASE_CACHE_TTL - Duration::from_secs(1),
         );
 
-        assert!(read_release_cache_at(&path, &Version::parse("0.3.0").unwrap(), now,).is_none());
+        assert!(read_release_cache_at(&path, now).is_none());
     }
 
     #[test]
@@ -351,22 +356,76 @@ mod tests {
         let path = dir.path().join("latest-release.json");
         fs::write(&path, "not json").unwrap();
 
-        assert!(
-            read_release_cache_at(&path, &Version::parse("0.3.0").unwrap(), SystemTime::now(),)
-                .is_none()
+        assert!(read_release_cache_at(&path, SystemTime::now()).is_none());
+    }
+
+    #[test]
+    fn fresh_release_cache_returns_an_older_release() {
+        let dir = TempDir::new("sift-release-cache").unwrap();
+        let path = dir.path().join("latest-release.json");
+        let now = SystemTime::now();
+        write_cache(&path, Some("0.3.0"), now);
+
+        let cached = read_release_cache_at(&path, now).unwrap();
+
+        assert_eq!(
+            cached,
+            CachedRelease::Latest(Version::parse("0.3.0").unwrap())
         );
     }
 
     #[test]
-    fn older_cached_release_does_not_mark_the_binary_outdated() {
+    fn fresh_failure_cache_is_unavailable() {
         let dir = TempDir::new("sift-release-cache").unwrap();
         let path = dir.path().join("latest-release.json");
         let now = SystemTime::now();
-        write_cache(&path, "0.3.0", now);
+        write_cache(&path, None, now - Duration::from_secs(60));
 
-        let cached = read_release_cache_at(&path, &Version::parse("0.4.0").unwrap(), now).unwrap();
+        assert_eq!(
+            read_release_cache_at(&path, now),
+            Some(CachedRelease::Unavailable)
+        );
+    }
 
-        assert!(!cached.is_outdated);
+    #[tokio::test]
+    async fn fresh_failure_cache_skips_the_refresh() {
+        let dir = TempDir::new("sift-release-cache").unwrap();
+        let path = dir.path().join("latest-release.json");
+        let now = SystemTime::now();
+        write_cache(&path, None, now - Duration::from_secs(60));
+        let refreshed = Cell::new(false);
+
+        let result = cached_or_fetch_latest_at(Some(&path), now, || async {
+            refreshed.set(true);
+            Ok(Some(Version::parse("0.4.0").unwrap()))
+        })
+        .await;
+
+        assert!(result.is_err());
+        assert!(!refreshed.get());
+    }
+
+    #[tokio::test]
+    async fn expired_failure_cache_runs_the_refresh() {
+        let dir = TempDir::new("sift-release-cache").unwrap();
+        let path = dir.path().join("latest-release.json");
+        let now = SystemTime::now();
+        write_cache(
+            &path,
+            None,
+            now - RELEASE_FAILURE_CACHE_TTL - Duration::from_secs(1),
+        );
+        let refreshed = Cell::new(false);
+
+        let latest = cached_or_fetch_latest_at(Some(&path), now, || async {
+            refreshed.set(true);
+            Ok(Some(Version::parse("0.4.0").unwrap()))
+        })
+        .await
+        .unwrap();
+
+        assert_eq!(latest, Some(Version::parse("0.4.0").unwrap()));
+        assert!(refreshed.get());
     }
 
     #[test]

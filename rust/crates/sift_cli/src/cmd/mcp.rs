@@ -92,14 +92,16 @@ fn start_update_check() -> sift_mcp::UpdateCheckReceiver {
         }
     };
 
-    if let Some(cached) = version::read_release_cache(&current) {
-        let update_check = if cached.is_outdated {
-            update_check_from_versions(&current, &cached.latest_version)
-        } else {
-            sift_mcp::UpdateCheck::Current {
-                current_version,
-                latest_version: cached.latest_version.to_string(),
+    if let Some(cached) = version::read_release_cache() {
+        let update_check = match cached {
+            version::CachedRelease::Latest(latest) => {
+                update_check_from_versions(&current, &latest)
             }
+            version::CachedRelease::Unavailable => sift_mcp::UpdateCheck::Unavailable {
+                current_version,
+                message: "Could not check for a newer sift-cli release. Run `sift-cli --version` for details."
+                    .to_string(),
+            },
         };
         log_update_notice(&update_check);
         return ready_update_check(update_check);

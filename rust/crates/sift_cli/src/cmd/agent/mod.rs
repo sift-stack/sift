@@ -236,7 +236,7 @@ async fn print_install_update_notice() {
         Ok(current) => current,
         Err(_) => return,
     };
-    let Ok(Some(latest)) = version::latest_with_cache(&current).await else {
+    let Ok(Some(latest)) = version::latest_with_cache().await else {
         return;
     };
     if let Some(message) = version::outdated_warning(&current, &latest) {
@@ -944,7 +944,7 @@ async fn check_release() -> bool {
             "{} for a newer sift-cli release...",
             "Checking".green()
         ));
-        version::latest_with_cache(&current).await
+        version::latest_with_cache().await
     };
     match latest {
         Ok(Some(latest)) if latest > current => {

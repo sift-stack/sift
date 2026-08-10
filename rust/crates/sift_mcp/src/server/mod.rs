@@ -21,7 +21,7 @@ use crate::{UpdateCheckReceiver, policy::RetryPolicy};
 mod test;
 
 const UPDATE_CHECK_INSTRUCTIONS: &str = concat!(
-    "Call `check_for_updates` once before the first other Sift tool in each session. ",
+    "Call `check_for_updates` once at the start of each session, before you call any other Sift tool. ",
     "If it reports `update_available`, relay its `message` and exact ",
     "`install_command` to the user. If the check is unavailable, continue with ",
     "the requested Sift task. "
