@@ -2,14 +2,39 @@ use rmcp::{
     ErrorData, RoleServer, ServerHandler,
     handler::server::router::prompt::PromptRouter,
     handler::server::tool::ToolRouter,
-    model::{ListToolsResult, PaginatedRequestParams},
+    model::{
+        Implementation, ListToolsResult, PaginatedRequestParams, ServerCapabilities, ServerInfo,
+    },
     prompt_handler,
     service::RequestContext,
     tool_handler,
 };
 use sift_rs::SiftChannel;
+#[cfg(test)]
+use tokio::sync::watch;
 
-use crate::policy::RetryPolicy;
+#[cfg(test)]
+use crate::UpdateCheck;
+use crate::{UpdateCheckReceiver, policy::RetryPolicy};
+
+#[cfg(test)]
+mod test;
+
+const UPDATE_CHECK_INSTRUCTIONS: &str = concat!(
+    "Call `check_for_updates` once before the first other Sift tool in each session. ",
+    "If it reports `update_available`, relay its `message` and exact ",
+    "`install_command` to the user. If the check is unavailable, continue with ",
+    "the requested Sift task. "
+);
+pub(crate) const BASE_INSTRUCTIONS: &str = concat!(
+    "Use Sift tools for telemetry discovery, analysis, ",
+    "and ingestion. Run `sift-cli agent doctor` for read-only integration ",
+    "diagnosis, `sift-cli agent install` for first setup, and `sift-cli agent ",
+    "update` to refresh every detected client together. Never enable destructive ",
+    "tools without explicit user approval. Result objects follow proto3 JSON ",
+    "rules: fields at their default value (false, 0, empty string/list) are ",
+    "omitted, so a missing boolean key means false, not unknown."
+);
 #[cfg(feature = "test-reports")]
 use crate::service::test_reports::TestReportService;
 use crate::service::{
@@ -42,22 +67,11 @@ pub struct SiftMcpServer {
 
     pub allow_create: bool,
     pub allow_destructive: bool,
+    cli_version: String,
+    pub update_check: Option<UpdateCheckReceiver>,
 }
 
-#[tool_handler(
-    router = self.tool_router,
-    name = "SiftMcp",
-    version = "0.1.0",
-    instructions = "Use Sift tools for telemetry discovery, analysis, and \
-    ingestion. Run `sift-cli agent doctor` for read-only integration \
-    diagnosis, `sift-cli agent install` for first setup, and \
-    `sift-cli agent update` to refresh every detected client together. If the \
-    CLI is outdated, relay the exact curl or PowerShell installer it prints. \
-    Never enable destructive tools without explicit user approval. Result \
-    objects follow proto3 JSON rules: fields at their default value (false, \
-    0, empty string/list) are omitted, so a missing boolean key means false, \
-    not unknown.",
-)]
+#[tool_handler(router = self.tool_router)]
 #[prompt_handler(router = self.prompt_router)]
 impl ServerHandler for SiftMcpServer {
     async fn list_tools(
@@ -81,14 +95,62 @@ impl ServerHandler for SiftMcpServer {
         });
         Ok(ListToolsResult::with_all_items(tools))
     }
+
+    fn get_info(&self) -> ServerInfo {
+        let instructions = match &self.update_check {
+            Some(receiver) => {
+                let update_check = receiver.borrow();
+                let base = format!("{UPDATE_CHECK_INSTRUCTIONS}{BASE_INSTRUCTIONS}");
+                match update_check.update_message() {
+                    Some(message) => format!("{message}\n\n{base}"),
+                    None => base,
+                }
+            }
+            None => BASE_INSTRUCTIONS.to_string(),
+        };
+
+        ServerInfo::new(
+            ServerCapabilities::builder()
+                .enable_tools()
+                .enable_prompts()
+                .build(),
+        )
+        .with_server_info(Implementation::new("SiftMcp", self.cli_version.clone()))
+        .with_instructions(instructions)
+    }
 }
 
 impl SiftMcpServer {
+    #[cfg(test)]
     pub fn new(
         channel: SiftChannel,
         app_uri: String,
         allow_create: bool,
         allow_destructive: bool,
+    ) -> Self {
+        let version = env!("CARGO_PKG_VERSION").to_string();
+        let update_check = watch::channel(UpdateCheck::Current {
+            current_version: version.clone(),
+            latest_version: version.clone(),
+        })
+        .1;
+        Self::new_with_update_check(
+            channel,
+            app_uri,
+            allow_create,
+            allow_destructive,
+            version,
+            Some(update_check),
+        )
+    }
+
+    pub fn new_with_update_check(
+        channel: SiftChannel,
+        app_uri: String,
+        allow_create: bool,
+        allow_destructive: bool,
+        cli_version: String,
+        update_check: Option<UpdateCheckReceiver>,
     ) -> Self {
         // Add more routers here as new tool groups are introduced, e.g.
         //   tool_router.merge(Self::ingestion_router())
@@ -106,6 +168,9 @@ impl SiftMcpServer {
         tool_router.merge(Self::test_reports_router());
         tool_router.merge(Self::docs_router());
         tool_router.merge(Self::users_router());
+        if update_check.is_some() {
+            tool_router.merge(Self::update_router());
+        }
 
         let prompt_router = Self::prompt_router();
 
@@ -148,6 +213,8 @@ impl SiftMcpServer {
             prompt_router,
             allow_create,
             allow_destructive,
+            cli_version,
+            update_check,
         }
     }
 

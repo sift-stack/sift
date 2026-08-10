@@ -85,6 +85,10 @@ pub struct McpArgs {
     /// relaunch the server with this flag. Also enables create tools.
     #[arg(long)]
     pub allow_destructive: bool,
+
+    /// Disable the MCP update tool and all automatic release checks
+    #[arg(long)]
+    pub disable_update_check: bool,
 }
 
 /// Serve the bundled Sift CLI user documentation over HTTP.

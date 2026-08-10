@@ -1,16 +1,35 @@
-use std::{process::ExitCode, time::Duration};
+use std::{
+    fs,
+    future::Future,
+    path::{Path, PathBuf},
+    process::ExitCode,
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
 
-use anyhow::Result;
+use anyhow::{Context, Result, anyhow};
 use crossterm::style::Stylize;
 use reqwest::ClientBuilder;
 use semver::Version;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::util::tty::Output;
 
 const RELEASES_URL: &str = "https://api.github.com/repos/sift-stack/sift/releases?per_page=100";
 const TAG_PREFIX: &str = "sift_cli-v";
 const USER_AGENT: &str = concat!("sift-cli/", env!("CARGO_PKG_VERSION"));
+const RELEASE_CACHE_TTL: Duration = Duration::from_secs(24 * 60 * 60);
+
+#[derive(Debug)]
+pub(crate) struct CachedRelease {
+    pub(crate) latest_version: Version,
+    pub(crate) is_outdated: bool,
+}
+
+#[derive(Deserialize, Serialize)]
+struct ReleaseCache {
+    latest_version: String,
+    checked_at: u64,
+}
 
 #[derive(Deserialize)]
 struct GithubRelease {
@@ -28,7 +47,7 @@ pub async fn run() -> Result<ExitCode> {
     let mut out = Output::new();
     out.line(format!("sift-cli {}", current_str.bold()));
 
-    match fetch_latest().await {
+    match latest_with_cache(&current).await {
         Ok(Some(latest)) => {
             out.line(format!("Latest release: {}", latest.to_string().bold()));
             if latest > current {
@@ -78,7 +97,79 @@ pub(crate) async fn fetch_latest() -> Result<Option<Version>> {
         .json()
         .await?;
 
-    Ok(latest_stable(releases))
+    let latest = latest_stable(releases);
+    if let Some(latest) = &latest
+        && let Err(error) = write_release_cache(latest)
+    {
+        tracing::debug!(%error, "could not update the sift-cli release cache");
+    }
+
+    Ok(latest)
+}
+
+pub(crate) async fn latest_with_cache(current: &Version) -> Result<Option<Version>> {
+    let path = release_cache_path();
+    cached_or_fetch_latest_at(path.as_deref(), current, SystemTime::now(), fetch_latest).await
+}
+
+async fn cached_or_fetch_latest_at<F, Fut>(
+    path: Option<&Path>,
+    current: &Version,
+    now: SystemTime,
+    refresh: F,
+) -> Result<Option<Version>>
+where
+    F: FnOnce() -> Fut,
+    Fut: Future<Output = Result<Option<Version>>>,
+{
+    if let Some(cached) = path.and_then(|path| read_release_cache_at(path, current, now)) {
+        return Ok(Some(cached.latest_version));
+    }
+    refresh().await
+}
+
+pub(crate) fn read_release_cache(current: &Version) -> Option<CachedRelease> {
+    let path = release_cache_path()?;
+    read_release_cache_at(&path, current, SystemTime::now())
+}
+
+fn release_cache_path() -> Option<PathBuf> {
+    dirs::cache_dir().map(|path| path.join("sift-cli").join("latest-release.json"))
+}
+
+fn read_release_cache_at(path: &Path, current: &Version, now: SystemTime) -> Option<CachedRelease> {
+    let cache: ReleaseCache = serde_json::from_slice(&fs::read(path).ok()?).ok()?;
+    let checked_at = UNIX_EPOCH.checked_add(Duration::from_secs(cache.checked_at))?;
+    let age = now.duration_since(checked_at).ok()?;
+    if age > RELEASE_CACHE_TTL {
+        return None;
+    }
+
+    let latest_version = Version::parse(&cache.latest_version).ok()?;
+    let is_outdated = latest_version > *current;
+    Some(CachedRelease {
+        latest_version,
+        is_outdated,
+    })
+}
+
+fn write_release_cache(latest: &Version) -> Result<()> {
+    let path =
+        release_cache_path().ok_or_else(|| anyhow!("the platform has no cache directory"))?;
+    let parent = path
+        .parent()
+        .ok_or_else(|| anyhow!("the release cache path has no parent"))?;
+    fs::create_dir_all(parent).context("failed to create the sift-cli cache directory")?;
+    let checked_at = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .context("the system clock is before the Unix epoch")?
+        .as_secs();
+    let cache = ReleaseCache {
+        latest_version: latest.to_string(),
+        checked_at,
+    };
+    let contents = serde_json::to_vec(&cache).context("failed to serialize the release cache")?;
+    fs::write(path, contents).context("failed to write the release cache")
 }
 
 fn latest_stable(releases: Vec<GithubRelease>) -> Option<Version> {
@@ -110,10 +201,44 @@ pub(crate) fn install_command(latest: &Version) -> String {
     cmd_tmpl.replace("{url}", &url)
 }
 
+pub(crate) fn outdated_warning(current: &Version, latest: &Version) -> Option<String> {
+    (latest > current).then(|| {
+        format!(
+            "sift-cli {current} is outdated; latest is {latest}\nUpdate with:\n\n  {}",
+            install_command(latest)
+        )
+    })
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{GithubRelease, latest_stable};
+    use std::cell::Cell;
+    use std::{
+        fs,
+        time::{Duration, SystemTime, UNIX_EPOCH},
+    };
+
     use semver::Version;
+    use serde_json::json;
+    use tempdir::TempDir;
+
+    use super::{
+        GithubRelease, RELEASE_CACHE_TTL, cached_or_fetch_latest_at, install_command,
+        latest_stable, outdated_warning, read_release_cache_at,
+    };
+
+    fn write_cache(path: &std::path::Path, latest_version: &str, checked_at: SystemTime) {
+        let checked_at = checked_at.duration_since(UNIX_EPOCH).unwrap().as_secs();
+        fs::write(
+            path,
+            json!({
+                "latest_version": latest_version,
+                "checked_at": checked_at,
+            })
+            .to_string(),
+        )
+        .unwrap();
+    }
 
     #[test]
     fn latest_release_excludes_drafts_and_prereleases() {
@@ -139,5 +264,129 @@ mod tests {
             latest_stable(releases),
             Some(Version::parse("0.3.0").unwrap())
         );
+    }
+
+    #[test]
+    fn fresh_release_cache_reports_an_outdated_binary() {
+        let dir = TempDir::new("sift-release-cache").unwrap();
+        let path = dir.path().join("latest-release.json");
+        let now = SystemTime::now();
+        write_cache(&path, "0.4.0", now - Duration::from_secs(60));
+
+        let cached = read_release_cache_at(&path, &Version::parse("0.3.0").unwrap(), now).unwrap();
+
+        assert_eq!(cached.latest_version, Version::parse("0.4.0").unwrap());
+        assert!(cached.is_outdated);
+    }
+
+    #[tokio::test]
+    async fn fresh_release_cache_skips_the_refresh() {
+        let dir = TempDir::new("sift-release-cache").unwrap();
+        let path = dir.path().join("latest-release.json");
+        let now = SystemTime::now();
+        write_cache(&path, "0.4.0", now - Duration::from_secs(60));
+        let refreshed = Cell::new(false);
+
+        let latest = cached_or_fetch_latest_at(
+            Some(&path),
+            &Version::parse("0.3.0").unwrap(),
+            now,
+            || async {
+                refreshed.set(true);
+                Ok(None)
+            },
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(latest, Some(Version::parse("0.4.0").unwrap()));
+        assert!(!refreshed.get());
+    }
+
+    #[tokio::test]
+    async fn expired_release_cache_runs_the_refresh() {
+        let dir = TempDir::new("sift-release-cache").unwrap();
+        let path = dir.path().join("latest-release.json");
+        let now = SystemTime::now();
+        write_cache(
+            &path,
+            "0.3.0",
+            now - RELEASE_CACHE_TTL - Duration::from_secs(1),
+        );
+        let refreshed = Cell::new(false);
+
+        let latest = cached_or_fetch_latest_at(
+            Some(&path),
+            &Version::parse("0.3.0").unwrap(),
+            now,
+            || async {
+                refreshed.set(true);
+                Ok(Some(Version::parse("0.4.0").unwrap()))
+            },
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(latest, Some(Version::parse("0.4.0").unwrap()));
+        assert!(refreshed.get());
+    }
+
+    #[test]
+    fn expired_release_cache_is_unknown() {
+        let dir = TempDir::new("sift-release-cache").unwrap();
+        let path = dir.path().join("latest-release.json");
+        let now = SystemTime::now();
+        write_cache(
+            &path,
+            "0.4.0",
+            now - RELEASE_CACHE_TTL - Duration::from_secs(1),
+        );
+
+        assert!(read_release_cache_at(&path, &Version::parse("0.3.0").unwrap(), now,).is_none());
+    }
+
+    #[test]
+    fn corrupt_release_cache_is_unknown() {
+        let dir = TempDir::new("sift-release-cache").unwrap();
+        let path = dir.path().join("latest-release.json");
+        fs::write(&path, "not json").unwrap();
+
+        assert!(
+            read_release_cache_at(&path, &Version::parse("0.3.0").unwrap(), SystemTime::now(),)
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn older_cached_release_does_not_mark_the_binary_outdated() {
+        let dir = TempDir::new("sift-release-cache").unwrap();
+        let path = dir.path().join("latest-release.json");
+        let now = SystemTime::now();
+        write_cache(&path, "0.3.0", now);
+
+        let cached = read_release_cache_at(&path, &Version::parse("0.4.0").unwrap(), now).unwrap();
+
+        assert!(!cached.is_outdated);
+    }
+
+    #[test]
+    fn outdated_warning_includes_the_shared_install_command() {
+        let current = Version::parse("0.3.0").unwrap();
+        let latest = Version::parse("0.4.0").unwrap();
+
+        let warning = outdated_warning(&current, &latest).unwrap();
+        let command = install_command(&latest);
+
+        assert!(warning.contains("sift-cli 0.3.0 is outdated; latest is 0.4.0"));
+        assert!(warning.ends_with(&format!("  {command}")));
+        assert!(warning[..warning.len().min(512)].contains(&command));
+    }
+
+    #[test]
+    fn outdated_warning_is_absent_for_the_latest_release() {
+        let current = Version::parse("0.4.0").unwrap();
+        let latest = Version::parse("0.4.0").unwrap();
+
+        assert_eq!(outdated_warning(&current, &latest), None);
     }
 }

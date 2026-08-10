@@ -200,7 +200,7 @@ impl Environment {
     }
 }
 
-pub fn install(profile: Option<String>, args: AgentInstallArgs) -> Result<ExitCode> {
+pub async fn install(profile: Option<String>, args: AgentInstallArgs) -> Result<ExitCode> {
     let access = if args.allow_destructive {
         AccessMode::Destructive
     } else if args.allow_create {
@@ -209,7 +209,24 @@ pub fn install(profile: Option<String>, args: AgentInstallArgs) -> Result<ExitCo
         AccessMode::ReadOnly
     };
     let registration = Registration::new(access, Profile::from_option(profile));
-    install_environment(&Environment::discover()?, "Installed", &registration)
+    let result = install_environment(&Environment::discover()?, "Installed", &registration)?;
+    if result == ExitCode::SUCCESS {
+        print_install_update_notice().await;
+    }
+    Ok(result)
+}
+
+async fn print_install_update_notice() {
+    let current = match Version::parse(env!("CARGO_PKG_VERSION")) {
+        Ok(current) => current,
+        Err(_) => return,
+    };
+    let Ok(Some(latest)) = version::latest_with_cache(&current).await else {
+        return;
+    };
+    if let Some(message) = version::outdated_warning(&current, &latest) {
+        println!("\n{message}\n");
+    }
 }
 
 pub async fn update(profile: Option<String>, args: AgentUpdateArgs) -> Result<ExitCode> {
@@ -842,7 +859,7 @@ async fn check_release() -> bool {
             "{} for a newer sift-cli release...",
             "Checking".green()
         ));
-        version::fetch_latest().await
+        version::latest_with_cache(&current).await
     };
     match latest {
         Ok(Some(latest)) if latest > current => {
