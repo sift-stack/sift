@@ -25,12 +25,6 @@ impl SiftMcpServer {
               - `install_command`: exact curl or PowerShell installer command when an update exists.
               - `message`: text to relay to the user.
 
-            Parameters:
-              - None.
-
-            Errors:
-              - Network and release lookup failures return `status = unavailable`; they do not block other Sift tools.
-
             Guidance:
               - Call once before the first other Sift tool in each session.
               - If `status = update_available`, relay `message` and `install_command` exactly.

@@ -40,17 +40,13 @@ pub async fn run(ctx: Context, args: McpArgs, app_uri: String) -> Result<ExitCod
         "starting Sift MCP server"
     );
 
-    let update_check = if args.disable_update_check {
-        None
-    } else {
-        Some(start_update_check())
-    };
+    let update_check = select_update_check(args.disable_update_check, start_update_check);
 
     let credentials = Credentials::Config {
         uri: ctx.grpc_uri,
         apikey: ctx.api_key,
     };
-    match sift_mcp::run(
+    match sift_mcp::run_with_update_check(
         credentials,
         !ctx.disable_tls,
         app_uri,
@@ -70,6 +66,16 @@ pub async fn run(ctx: Context, args: McpArgs, app_uri: String) -> Result<ExitCod
             Err(err)
         }
     }
+}
+
+fn select_update_check<F>(
+    disable_update_check: bool,
+    start: F,
+) -> Option<sift_mcp::UpdateCheckReceiver>
+where
+    F: FnOnce() -> sift_mcp::UpdateCheckReceiver,
+{
+    (!disable_update_check).then(start)
 }
 
 fn start_update_check() -> sift_mcp::UpdateCheckReceiver {
@@ -155,10 +161,13 @@ fn ready_update_check(update_check: sift_mcp::UpdateCheck) -> sift_mcp::UpdateCh
 
 #[cfg(test)]
 mod tests {
+    use std::cell::Cell;
+
     use clap::Parser;
     use semver::Version;
+    use tokio::sync::watch;
 
-    use super::update_check_from_versions;
+    use super::{select_update_check, update_check_from_versions};
 
     #[test]
     fn disable_update_check_flag_is_accepted() {
@@ -169,6 +178,22 @@ mod tests {
         };
 
         assert!(args.disable_update_check);
+    }
+
+    #[test]
+    fn disabled_update_check_does_not_start_the_check() {
+        let called = Cell::new(false);
+
+        let update_check = select_update_check(true, || {
+            called.set(true);
+            watch::channel(sift_mcp::UpdateCheck::Checking {
+                current_version: "0.4.0".to_string(),
+            })
+            .1
+        });
+
+        assert!(update_check.is_none());
+        assert!(!called.get());
     }
 
     #[test]

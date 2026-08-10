@@ -113,10 +113,10 @@ pub enum AgentCmd {
     /// Install every detected client in safe mode using the default profile unless selected
     Install(AgentInstallArgs),
 
-    /// Refresh every detected client while preserving its profile and access mode
+    /// Refresh every client while preserving its profile, access, and update-check settings
     Update(AgentUpdateArgs),
 
-    /// Check the CLI version, skill files, MCP profiles, and access modes
+    /// Check the CLI version, skill files, MCP profiles, access, and update-check settings
     Doctor,
 
     /// Remove Sift-owned agent files and registrations
@@ -133,6 +133,10 @@ pub struct AgentInstallArgs {
     /// Also enables create tools.
     #[arg(long)]
     pub allow_destructive: bool,
+
+    /// Disable release checks in every installed MCP server
+    #[arg(long)]
+    pub disable_update_check: bool,
 }
 
 #[derive(clap::Args)]
@@ -153,6 +157,14 @@ pub struct AgentUpdateArgs {
     /// Switch every detected MCP client back to the default profile
     #[arg(long, conflicts_with = "profile")]
     pub default_profile: bool,
+
+    /// Disable release checks in every detected MCP server
+    #[arg(long, conflicts_with = "enable_update_check")]
+    pub disable_update_check: bool,
+
+    /// Enable release checks in every detected MCP server
+    #[arg(long, conflicts_with = "disable_update_check")]
+    pub enable_update_check: bool,
 }
 
 #[derive(Subcommand)]

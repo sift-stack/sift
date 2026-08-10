@@ -75,6 +75,25 @@ pub async fn run(
     app_uri: String,
     allow_create: bool,
     allow_destructive: bool,
+) -> Result<()> {
+    run_with_update_check(
+        credentials,
+        use_tls,
+        app_uri,
+        allow_create,
+        allow_destructive,
+        crate_version!().to_string(),
+        None,
+    )
+    .await
+}
+
+pub async fn run_with_update_check(
+    credentials: Credentials,
+    use_tls: bool,
+    app_uri: String,
+    allow_create: bool,
+    allow_destructive: bool,
     cli_version: String,
     update_check: Option<UpdateCheckReceiver>,
 ) -> Result<()> {
@@ -102,4 +121,23 @@ pub async fn run(
         .context("MCP server terminated unexpectedly")?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::future::Future;
+
+    use sift_rs::Credentials;
+
+    fn accepts_legacy_run<F, Fut>(_run: F)
+    where
+        F: Fn(Credentials, bool, String, bool, bool) -> Fut,
+        Fut: Future<Output = anyhow::Result<()>>,
+    {
+    }
+
+    #[test]
+    fn public_run_keeps_its_legacy_signature() {
+        accepts_legacy_run(super::run);
+    }
 }

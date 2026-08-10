@@ -7,7 +7,7 @@ use tempdir::TempDir;
 
 use super::{
     AccessInference, AccessMode, Environment, Harness, Profile, ProfileInference, Registration,
-    config, skill,
+    UpdateCheckInference, config, skill,
 };
 
 fn environment(harnesses: Vec<Harness>) -> (TempDir, Environment) {
@@ -451,6 +451,36 @@ fn update_profile_inference_preserves_one_profile_and_rejects_mixed_profiles() {
     assert_eq!(
         super::infer_profiles(&[Profile::Default, Profile::Named("localdev".to_string()),]),
         ProfileInference::Mixed
+    );
+}
+
+#[test]
+fn update_check_inference_preserves_one_mode_and_rejects_mixed_modes() {
+    assert_eq!(
+        super::infer_update_checks(&[]),
+        UpdateCheckInference::Resolved(false)
+    );
+    assert_eq!(
+        super::infer_update_checks(&[true, true]),
+        UpdateCheckInference::Resolved(true)
+    );
+    assert_eq!(
+        super::infer_update_checks(&[false, true]),
+        UpdateCheckInference::Mixed
+    );
+}
+
+#[test]
+fn update_check_flags_are_mutually_exclusive() {
+    assert!(
+        crate::cli::Args::try_parse_from([
+            "sift-cli",
+            "agent",
+            "update",
+            "--disable-update-check",
+            "--enable-update-check",
+        ])
+        .is_err()
     );
 }
 

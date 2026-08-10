@@ -224,6 +224,50 @@ async fn update_tool_waits_for_the_background_check_and_returns_the_install_comm
 }
 
 #[tokio::test]
+async fn update_tool_fails_open_when_the_background_check_closes() {
+    let (sender, update_check) = watch::channel(UpdateCheck::Checking {
+        current_version: "0.3.0".to_string(),
+    });
+    let (mut reader, mut writer, server) = initialized_client(Some(update_check), 1).await;
+    let _initialize = read_json(&mut reader).await;
+    writer
+        .write_all(b"{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}\n")
+        .await
+        .unwrap();
+    drop(sender);
+    writer
+        .write_all(
+            b"{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"check_for_updates\",\"arguments\":{}}}\n",
+        )
+        .await
+        .unwrap();
+
+    let response = read_json(&mut reader).await;
+    assert_eq!(
+        response["result"]["structuredContent"]["status"],
+        "unavailable"
+    );
+    assert_eq!(
+        response["result"]["structuredContent"]["current_version"],
+        "0.3.0"
+    );
+
+    writer
+        .write_all(
+            b"{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"list_assets\",\"arguments\":{\"filter\":\"\"}}}\n",
+        )
+        .await
+        .unwrap();
+    let assets = read_json(&mut reader).await;
+    assert_eq!(
+        assets["result"]["structuredContent"],
+        serde_json::json!({ "assets": [] })
+    );
+
+    finish(reader, writer, server).await;
+}
+
+#[tokio::test]
 async fn update_notice_does_not_change_unrelated_tool_results() {
     let (mut reader, mut writer, server) =
         initialized_client(Some(receiver(update_available())), 1).await;
