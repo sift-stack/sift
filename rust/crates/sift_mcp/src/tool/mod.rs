@@ -12,4 +12,5 @@ pub mod rules;
 pub mod runs;
 #[cfg(feature = "test-reports")]
 pub mod test_reports;
+pub mod update;
 pub mod users;

@@ -46,6 +46,9 @@ Each tool's own description carries its parameters, filters, defaults, and
 errors. Read the tool schema instead of guessing. This map only tells you what
 exists.
 
+- **Setup:** When available, `check_for_updates` reports the installed sift-cli
+  version, the latest stable version, and the exact installer command. Servers
+  started with `--disable-update-check` omit this tool.
 - **Discovery:** `list_assets`, `list_runs`, `list_channels`, `list_reports`,
   `list_report_templates`, `list_rules`, `list_rule_versions`, `list_annotations`.
 - **People:** `list_users`.
@@ -66,6 +69,11 @@ exists.
 
 ## Workflows that span tools
 
+- **Start a Sift session.** If `check_for_updates` is available, call it once at
+  the start of each session. Call it before any other Sift tool. If it reports
+  `update_available`, relay its
+  `message` and exact `install_command`. If it reports `unavailable`, continue
+  with the requested Sift task.
 - **Search a list.** Filter with a pattern rather than an exact match. Each
   tool's description names its own filterable fields. When the request is too
   vague to filter on, sample with a small `limit` and ask the user to narrow

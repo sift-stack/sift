@@ -91,15 +91,29 @@ impl Profile {
 pub(super) struct Registration {
     access: AccessMode,
     profile: Profile,
+    disable_update_check: bool,
 }
 
 impl Registration {
     fn new(access: AccessMode, profile: Profile) -> Self {
-        Self { access, profile }
+        Self {
+            access,
+            profile,
+            disable_update_check: false,
+        }
+    }
+
+    fn with_update_check_disabled(mut self, disabled: bool) -> Self {
+        self.disable_update_check = disabled;
+        self
     }
 
     fn label(&self) -> String {
-        format!("{}, {}", self.access.label(), self.profile.label())
+        let mut label = format!("{}, {}", self.access.label(), self.profile.label());
+        if self.disable_update_check {
+            label.push_str(", update check disabled");
+        }
+        label
     }
 }
 
@@ -200,7 +214,7 @@ impl Environment {
     }
 }
 
-pub fn install(profile: Option<String>, args: AgentInstallArgs) -> Result<ExitCode> {
+pub async fn install(profile: Option<String>, args: AgentInstallArgs) -> Result<ExitCode> {
     let access = if args.allow_destructive {
         AccessMode::Destructive
     } else if args.allow_create {
@@ -208,8 +222,26 @@ pub fn install(profile: Option<String>, args: AgentInstallArgs) -> Result<ExitCo
     } else {
         AccessMode::ReadOnly
     };
-    let registration = Registration::new(access, Profile::from_option(profile));
-    install_environment(&Environment::discover()?, "Installed", &registration)
+    let registration = Registration::new(access, Profile::from_option(profile))
+        .with_update_check_disabled(args.disable_update_check);
+    let result = install_environment(&Environment::discover()?, "Installed", &registration)?;
+    if result == ExitCode::SUCCESS {
+        print_install_update_notice().await;
+    }
+    Ok(result)
+}
+
+async fn print_install_update_notice() {
+    let current = match Version::parse(env!("CARGO_PKG_VERSION")) {
+        Ok(current) => current,
+        Err(_) => return,
+    };
+    let Ok(Some(latest)) = version::latest_with_cache().await else {
+        return;
+    };
+    if let Some(message) = version::outdated_warning(&current, &latest) {
+        println!("\n{message}\n");
+    }
 }
 
 pub async fn update(profile: Option<String>, args: AgentUpdateArgs) -> Result<ExitCode> {
@@ -247,12 +279,21 @@ pub async fn update(profile: Option<String>, args: AgentUpdateArgs) -> Result<Ex
     } else {
         profile.map(Profile::Named)
     };
+    let requested_update_check = if args.disable_update_check {
+        Some(true)
+    } else if args.enable_update_check {
+        Some(false)
+    } else {
+        None
+    };
 
     let unresolved_access =
         requested_access.is_none() && matches!(&inference.access, AccessInference::Mixed);
     let unresolved_profile =
         requested_profile.is_none() && matches!(&inference.profile, ProfileInference::Mixed);
-    if unresolved_access || unresolved_profile {
+    let unresolved_update_check = requested_update_check.is_none()
+        && matches!(&inference.update_check, UpdateCheckInference::Mixed);
+    if unresolved_access || unresolved_profile || unresolved_update_check {
         println!("No changes were made because detected MCP clients are not configured uniformly.");
         if unresolved_access {
             println!(
@@ -261,6 +302,11 @@ pub async fn update(profile: Option<String>, args: AgentUpdateArgs) -> Result<Ex
         }
         if unresolved_profile {
             println!("- Profiles are mixed. Choose `--profile <name>` or `--default-profile`.");
+        }
+        if unresolved_update_check {
+            println!(
+                "- Update checks are mixed. Choose `--enable-update-check` or `--disable-update-check`."
+            );
         }
         return Ok(ExitCode::FAILURE);
     }
@@ -273,7 +319,13 @@ pub async fn update(profile: Option<String>, args: AgentUpdateArgs) -> Result<Ex
         ProfileInference::Resolved(profile) => profile,
         ProfileInference::Mixed => unreachable!("mixed profiles were handled above"),
     });
-    let registration = Registration::new(access, profile);
+    let disable_update_check =
+        requested_update_check.unwrap_or_else(|| match inference.update_check {
+            UpdateCheckInference::Resolved(disabled) => disabled,
+            UpdateCheckInference::Mixed => unreachable!("mixed update checks were handled above"),
+        });
+    let registration =
+        Registration::new(access, profile).with_update_check_disabled(disable_update_check);
 
     install_environment(&environment, "Updated", &registration)
 }
@@ -405,6 +457,10 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
         .iter()
         .map(|registration| registration.profile.clone())
         .collect::<Vec<_>>();
+    let update_checks = registrations
+        .iter()
+        .map(|registration| registration.disable_update_check)
+        .collect::<Vec<_>>();
     let mixed_access = has_mixed_access_modes(&access_modes);
     if mixed_access {
         println!(
@@ -417,6 +473,14 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
     if mixed_profiles {
         println!(
             "{} Detected MCP clients use mixed profiles.",
+            error_status()
+        );
+        unhealthy = true;
+    }
+    let mixed_update_checks = has_mixed_update_checks(&update_checks);
+    if mixed_update_checks {
+        println!(
+            "{} Detected MCP clients use mixed update-check settings.",
             error_status()
         );
         unhealthy = true;
@@ -516,6 +580,12 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
                 }
             }
         }
+        if mixed_update_checks {
+            println!(
+                "Choose one explicitly with `sift-cli agent update --enable-update-check` or \
+                 `sift-cli agent update --disable-update-check`."
+            );
+        }
         if unexpected_profile && !mixed_profiles {
             println!(
                 "Run `sift-cli agent update --profile {}` to switch every detected integration.",
@@ -525,7 +595,12 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
                 }
             );
         }
-        if blocked && !mixed_access && !mixed_profiles && !unexpected_profile {
+        if blocked
+            && !mixed_access
+            && !mixed_profiles
+            && !mixed_update_checks
+            && !unexpected_profile
+        {
             println!(
                 "Then run `sift-cli agent update` to repair all detected integrations together."
             );
@@ -534,6 +609,7 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
             && !blocked
             && !mixed_access
             && !mixed_profiles
+            && !mixed_update_checks
             && !unexpected_profile
         {
             println!("Run `sift-cli agent update` to repair the detected integrations.");
@@ -763,9 +839,16 @@ enum ProfileInference {
     Mixed,
 }
 
+#[derive(Debug, Eq, PartialEq)]
+enum UpdateCheckInference {
+    Resolved(bool),
+    Mixed,
+}
+
 struct RegistrationInference {
     access: AccessInference,
     profile: ProfileInference,
+    update_check: UpdateCheckInference,
 }
 
 fn infer_registration(environment: &Environment) -> Result<RegistrationInference> {
@@ -783,12 +866,17 @@ fn infer_registration(environment: &Environment) -> Result<RegistrationInference
         .map(|registration| registration.access)
         .collect::<Vec<_>>();
     let profiles = registrations
-        .into_iter()
-        .map(|registration| registration.profile)
+        .iter()
+        .map(|registration| registration.profile.clone())
+        .collect::<Vec<_>>();
+    let update_checks = registrations
+        .iter()
+        .map(|registration| registration.disable_update_check)
         .collect::<Vec<_>>();
     Ok(RegistrationInference {
         access: infer_access_modes(&access_modes),
         profile: infer_profiles(&profiles),
+        update_check: infer_update_checks(&update_checks),
     })
 }
 
@@ -825,6 +913,20 @@ fn has_mixed_profiles(profiles: &[Profile]) -> bool {
         .is_some_and(|first| profiles.iter().any(|profile| profile != first))
 }
 
+fn infer_update_checks(disabled: &[bool]) -> UpdateCheckInference {
+    if has_mixed_update_checks(disabled) {
+        UpdateCheckInference::Mixed
+    } else {
+        UpdateCheckInference::Resolved(disabled.first().copied().unwrap_or(false))
+    }
+}
+
+fn has_mixed_update_checks(disabled: &[bool]) -> bool {
+    disabled
+        .first()
+        .is_some_and(|first| disabled.iter().any(|value| value != first))
+}
+
 async fn check_release() -> bool {
     let current = match Version::parse(env!("CARGO_PKG_VERSION")) {
         Ok(current) => current,
@@ -842,7 +944,7 @@ async fn check_release() -> bool {
             "{} for a newer sift-cli release...",
             "Checking".green()
         ));
-        version::fetch_latest().await
+        version::latest_with_cache().await
     };
     match latest {
         Ok(Some(latest)) if latest > current => {

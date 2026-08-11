@@ -80,7 +80,9 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
             },
         },
         Cmd::Agent(cmd) => match cmd {
-            AgentCmd::Install(args) => return cmd::agent::install(clargs.profile, args),
+            AgentCmd::Install(args) => {
+                return run_future(cmd::agent::install(clargs.profile, args));
+            }
             AgentCmd::Update(args) => {
                 return run_future(cmd::agent::update(clargs.profile, args));
             }

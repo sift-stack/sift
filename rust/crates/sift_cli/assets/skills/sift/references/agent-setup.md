@@ -4,7 +4,7 @@ Use the CLI lifecycle instead of editing one client's MCP configuration or
 skill:
 
 - Run `sift-cli agent doctor` to diagnose setup. It checks the installed
-  profile, access mode, and profile `app_uri` without a change.
+  profile, access mode, update-check setting, and profile `app_uri`.
 - Treat `app_uri` as a required profile field. Doctor treats a missing or
   unusable value as an error. The `mcp` command returns the same reason when the
   client lists its tools. For PubCloud or GovCloud, relay the exact config
@@ -21,11 +21,12 @@ skill:
   release-matched skill and read-only MCP registration for every detected
   client using the default Sift profile. If the user selected a named profile,
   pass it as `sift-cli agent install --profile <name>`. Run the command when the
-  user asks you to install or approves the change.
+  user asks you to install or approves the change. Add
+  `--disable-update-check` only when the user requests it.
 - Run `sift-cli agent update` to refresh every detected client together. It
-  preserves the existing profile and access mode. Switch every client to another
-  named profile with `sift-cli agent update --profile <name>`, or return them to
-  the default with `sift-cli agent update --default-profile`.
+  preserves the existing profile, access mode, and update-check setting. Use
+  `--disable-update-check` or `--enable-update-check` to change the setting for
+  every client.
 - If the CLI is outdated, relay the exact curl or PowerShell installer printed
   by `agent doctor` or `agent update`. After the user updates `sift-cli`, rerun
   `sift-cli agent update`.
@@ -33,7 +34,8 @@ skill:
   access modes, ask the user to choose `sift-cli agent update --read-only`,
   `--allow-create`, or `--allow-destructive`. If it reports mixed profiles,
   ask for the intended profile and use `sift-cli agent update --profile <name>`
-  or `sift-cli agent update --default-profile`.
+  or `sift-cli agent update --default-profile`. For mixed update-check settings,
+  use `--enable-update-check` or `--disable-update-check`.
 
 ## Access modes
 

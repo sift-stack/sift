@@ -423,6 +423,9 @@ fn mcp_args(registration: &Registration) -> Vec<String> {
         AccessMode::Create => args.push("--allow-create".to_string()),
         AccessMode::Destructive => args.push("--allow-destructive".to_string()),
     }
+    if registration.disable_update_check {
+        args.push("--disable-update-check".to_string());
+    }
     args
 }
 
@@ -582,7 +585,11 @@ fn classify_command(command: &str, args: &[String], environment: &Environment) -
 }
 
 fn registration_from_args(args: &[String]) -> Option<Registration> {
-    match args {
+    let (base_args, disable_update_check) = match args.split_last() {
+        Some((flag, base_args)) if flag == "--disable-update-check" => (base_args, true),
+        _ => (args, false),
+    };
+    let registration = match base_args {
         [mcp] if mcp == "mcp" => Some(Registration::new(AccessMode::ReadOnly, Profile::Default)),
         [mcp, access] if mcp == "mcp" => {
             access_from_flag(access).map(|a| Registration::new(a, Profile::Default))
@@ -601,7 +608,8 @@ fn registration_from_args(args: &[String]) -> Option<Registration> {
             access_from_flag(access).map(|a| Registration::new(a, Profile::Named(profile.clone())))
         }
         _ => None,
-    }
+    }?;
+    Some(registration.with_update_check_disabled(disable_update_check))
 }
 
 fn access_from_flag(flag: &str) -> Option<AccessMode> {
@@ -960,6 +968,21 @@ mod tests {
             ]))
             .is_some()
         );
+        assert!(registration_from_args(&args(&["mcp", "--disable-update-check"])).is_some());
+        assert!(
+            registration_from_args(&args(&["mcp", "--allow-create", "--disable-update-check",]))
+                .is_some()
+        );
+        assert!(
+            registration_from_args(&args(&[
+                "mcp",
+                "--profile",
+                "localdev",
+                "--allow-destructive",
+                "--disable-update-check",
+            ]))
+            .is_some()
+        );
 
         for custom in [
             args(&["mcp", "--custom"]),
@@ -971,6 +994,17 @@ mod tests {
         ] {
             assert_eq!(registration_from_args(&custom), None);
         }
+    }
+
+    #[test]
+    fn disabled_update_check_round_trips_through_managed_args() {
+        let registration = Registration::new(AccessMode::Create, Profile::Default)
+            .with_update_check_disabled(true);
+
+        let args = mcp_args(&registration);
+
+        assert_eq!(args, ["mcp", "--allow-create", "--disable-update-check"]);
+        assert_eq!(registration_from_args(&args), Some(registration));
     }
 
     #[test]
