@@ -3,7 +3,8 @@ use rmcp::{
     handler::server::router::prompt::PromptRouter,
     handler::server::tool::ToolRouter,
     model::{
-        Implementation, ListToolsResult, PaginatedRequestParams, ServerCapabilities, ServerInfo,
+        CacheScope, Implementation, ListToolsResult, PaginatedRequestParams, ProtocolVersion,
+        ServerCapabilities, ServerInfo,
     },
     prompt_handler,
     service::RequestContext,
@@ -77,7 +78,7 @@ impl ServerHandler for SiftMcpServer {
     async fn list_tools(
         &self,
         _request: Option<PaginatedRequestParams>,
-        _context: RequestContext<RoleServer>,
+        context: RequestContext<RoleServer>,
     ) -> Result<ListToolsResult, ErrorData> {
         let mut tools = self.tool_router.list_all();
         tools.sort_by(|a, b| {
@@ -93,7 +94,14 @@ impl ServerHandler for SiftMcpServer {
                 .unwrap_or(b.name.as_ref());
             a_key.cmp(b_key)
         });
-        Ok(ListToolsResult::with_all_items(tools))
+        let mut result = ListToolsResult::with_all_items(tools);
+        if context
+            .protocol_version()
+            .is_some_and(|version| version >= ProtocolVersion::V_2026_07_28)
+        {
+            result = result.with_ttl_ms(0).with_cache_scope(CacheScope::Public);
+        }
+        Ok(result)
     }
 
     fn get_info(&self) -> ServerInfo {

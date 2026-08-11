@@ -83,7 +83,7 @@ mod tests {
             "id": 1,
             "method": "initialize",
             "params": {
-                "protocolVersion": "2025-11-25",
+                "protocolVersion": "2026-07-28",
                 "capabilities": {},
                 "clientInfo": { "name": "test-client", "version": "0.0.1" }
             }
@@ -96,6 +96,7 @@ mod tests {
         let mut response = String::new();
         reader.read_line(&mut response).await.unwrap();
         let init_response: Value = serde_json::from_str(&response).unwrap();
+        assert_eq!(init_response["result"]["protocolVersion"], "2026-07-28");
         assert_eq!(
             init_response["result"]["instructions"],
             "profile needs app_uri"
