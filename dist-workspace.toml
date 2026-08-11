@@ -33,7 +33,7 @@ github-build-setup = "includes/build-setup.yml"
 # Windows stays on the default GitHub runner: the RunsOn stack in this org does
 # not serve Windows jobs (verified on PR #726, the job was never picked up).
 [dist.github-custom-runners]
-x86_64-unknown-linux-gnu = "runs-on,runner=8cpu-linux-x64,image=ubuntu22-full-x64"
+x86_64-unknown-linux-gnu = "runs-on,runner=8cpu-linux-x64,image=ubuntu22-full-x64,spot=false"
 
 # Build the Intel macOS binary on an arm64 runner. The M-series runners are
 # much faster than the Intel `macos-*-intel` pool, and Rosetta 2 runs any
