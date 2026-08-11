@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use rmcp::{ServerHandler, ServiceExt};
+use rmcp::{ServerHandler, ServiceExt, model::ProtocolVersion};
 use serde_json::Value;
 use sift_rs::assets::v1::{ListAssetsResponse, asset_service_server::AssetServiceServer};
 use sift_test_util::{grpc::memory_sift_channel, mock::assets::v1::MockAssetServiceImpl};
@@ -86,22 +86,31 @@ async fn initialized_client(
     tokio::io::WriteHalf<DuplexStream>,
     JoinHandle<()>,
 ) {
-    let (server, grpc_handle) = server_with_update_check(update_check, asset_tool_calls).await;
-    let (server_transport, client_transport) = tokio::io::duplex(8192);
-    let mcp_handle = tokio::spawn(async move {
-        let service = server.serve(server_transport).await.unwrap();
-        service.waiting().await.unwrap();
-        grpc_handle.abort();
-    });
-    let (reader, mut writer) = tokio::io::split(client_transport);
-    let reader = BufReader::new(reader);
+    initialized_client_for_version(
+        update_check,
+        asset_tool_calls,
+        ProtocolVersion::V_2025_11_25,
+    )
+    .await
+}
+
+async fn initialized_client_for_version(
+    update_check: Option<watch::Receiver<UpdateCheck>>,
+    asset_tool_calls: usize,
+    protocol_version: ProtocolVersion,
+) -> (
+    BufReader<tokio::io::ReadHalf<DuplexStream>>,
+    tokio::io::WriteHalf<DuplexStream>,
+    JoinHandle<()>,
+) {
+    let (reader, mut writer, mcp_handle) = connected_client(update_check, asset_tool_calls).await;
 
     let request = serde_json::json!({
         "jsonrpc": "2.0",
         "id": 1,
         "method": "initialize",
         "params": {
-            "protocolVersion": "2025-11-25",
+            "protocolVersion": protocol_version,
             "capabilities": {},
             "clientInfo": { "name": "test-client", "version": "0.0.1" }
         }
@@ -112,6 +121,52 @@ async fn initialized_client(
         .unwrap();
 
     (reader, writer, mcp_handle)
+}
+
+async fn connected_client(
+    update_check: Option<watch::Receiver<UpdateCheck>>,
+    asset_tool_calls: usize,
+) -> (
+    BufReader<tokio::io::ReadHalf<DuplexStream>>,
+    tokio::io::WriteHalf<DuplexStream>,
+    JoinHandle<()>,
+) {
+    let (server, grpc_handle) = server_with_update_check(update_check, asset_tool_calls).await;
+    let (server_transport, client_transport) = tokio::io::duplex(8192);
+    let mcp_handle = tokio::spawn(async move {
+        let service = server.serve(server_transport).await.unwrap();
+        service.waiting().await.unwrap();
+        grpc_handle.abort();
+    });
+    let (reader, writer) = tokio::io::split(client_transport);
+    let reader = BufReader::new(reader);
+
+    (reader, writer, mcp_handle)
+}
+
+fn modern_request(id: u64, method: &str) -> Value {
+    serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": id,
+        "method": method,
+        "params": {
+            "_meta": {
+                "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+                "io.modelcontextprotocol/clientInfo": {
+                    "name": "test-client",
+                    "version": "0.0.1"
+                },
+                "io.modelcontextprotocol/clientCapabilities": {}
+            }
+        }
+    })
+}
+
+fn assert_modern_list_result<'a>(response: &'a Value, item_key: &str) -> &'a [Value] {
+    assert_eq!(response["result"]["resultType"], "complete");
+    assert_eq!(response["result"]["ttlMs"], 0);
+    assert_eq!(response["result"]["cacheScope"], "public");
+    response["result"][item_key].as_array().unwrap()
 }
 
 async fn read_json(reader: &mut BufReader<tokio::io::ReadHalf<DuplexStream>>) -> Value {
@@ -317,6 +372,121 @@ async fn disabled_update_check_is_not_advertised() {
             .iter()
             .all(|tool| tool["name"] != "check_for_updates")
     );
+
+    finish(reader, writer, server).await;
+}
+
+#[tokio::test]
+async fn claude_legacy_handshake_gets_complete_2026_list_results() {
+    let current = UpdateCheck::Current {
+        current_version: "0.4.0".to_string(),
+        latest_version: "0.4.0".to_string(),
+    };
+    let (mut reader, mut writer, server) =
+        initialized_client_for_version(Some(receiver(current)), 0, ProtocolVersion::V_2026_07_28)
+            .await;
+
+    let initialize = read_json(&mut reader).await;
+    assert_eq!(initialize["result"]["protocolVersion"], "2026-07-28");
+
+    writer
+        .write_all(b"{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}\n")
+        .await
+        .unwrap();
+    writer
+        .write_all(b"{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}\n")
+        .await
+        .unwrap();
+    let tools = read_json(&mut reader).await;
+    let tools = assert_modern_list_result(&tools, "tools");
+    assert!(tools.iter().any(|tool| tool["name"] == "list_assets"));
+    assert!(tools.iter().any(|tool| tool["name"] == "check_for_updates"));
+
+    writer
+        .write_all(b"{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"prompts/list\",\"params\":{}}\n")
+        .await
+        .unwrap();
+    let prompts = read_json(&mut reader).await;
+    let prompts = assert_modern_list_result(&prompts, "prompts");
+    assert!(
+        prompts
+            .iter()
+            .any(|prompt| prompt["name"] == "explore_asset")
+    );
+
+    finish(reader, writer, server).await;
+}
+
+#[tokio::test]
+async fn stateless_2026_requests_get_discovery_and_complete_list_results() {
+    let current = UpdateCheck::Current {
+        current_version: "0.4.0".to_string(),
+        latest_version: "0.4.0".to_string(),
+    };
+    let (mut reader, mut writer, server) = connected_client(Some(receiver(current)), 0).await;
+
+    let discover = modern_request(1, "server/discover");
+    writer
+        .write_all(format!("{discover}\n").as_bytes())
+        .await
+        .unwrap();
+    let discover = read_json(&mut reader).await;
+    assert_eq!(discover["result"]["resultType"], "complete");
+    assert_eq!(discover["result"]["ttlMs"], 0);
+    assert_eq!(discover["result"]["cacheScope"], "private");
+    assert!(
+        discover["result"]["supportedVersions"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!("2026-07-28"))
+    );
+    assert!(discover["result"]["capabilities"]["tools"].is_object());
+    assert!(discover["result"]["capabilities"]["prompts"].is_object());
+
+    let list_tools = modern_request(2, "tools/list");
+    writer
+        .write_all(format!("{list_tools}\n").as_bytes())
+        .await
+        .unwrap();
+    let tools = read_json(&mut reader).await;
+    let tools = assert_modern_list_result(&tools, "tools");
+    assert!(tools.iter().any(|tool| tool["name"] == "list_assets"));
+    assert!(tools.iter().any(|tool| tool["name"] == "check_for_updates"));
+
+    let list_prompts = modern_request(3, "prompts/list");
+    writer
+        .write_all(format!("{list_prompts}\n").as_bytes())
+        .await
+        .unwrap();
+    let prompts = read_json(&mut reader).await;
+    let prompts = assert_modern_list_result(&prompts, "prompts");
+    assert!(
+        prompts
+            .iter()
+            .any(|prompt| prompt["name"] == "explore_asset")
+    );
+
+    finish(reader, writer, server).await;
+}
+
+#[tokio::test]
+async fn legacy_2025_lists_keep_the_legacy_result_shape() {
+    let (mut reader, mut writer, server) = initialized_client(None, 0).await;
+    let initialize = read_json(&mut reader).await;
+    assert_eq!(initialize["result"]["protocolVersion"], "2025-11-25");
+
+    writer
+        .write_all(b"{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}\n")
+        .await
+        .unwrap();
+    writer
+        .write_all(b"{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}\n")
+        .await
+        .unwrap();
+    let tools = read_json(&mut reader).await;
+    assert!(tools["result"].get("resultType").is_none());
+    assert!(tools["result"].get("ttlMs").is_none());
+    assert!(tools["result"].get("cacheScope").is_none());
 
     finish(reader, writer, server).await;
 }
