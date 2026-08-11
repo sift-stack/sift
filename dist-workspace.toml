@@ -17,6 +17,9 @@ targets = ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-unknown-linux-
 install-path = "CARGO_HOME"
 # Whether to install an updater program
 install-updater = false
+# TEMPORARY: run the full build matrix on this PR to verify the new runners.
+# Revert this commit before merge.
+pr-run-mode = "upload"
 # Build only sift_cli with `--package` instead of the whole workspace. The
 # workspace build compiles sift_stream_bindings (pyo3), which is not part of
 # the CLI release and fails to link when the apple target is cross-compiled.
