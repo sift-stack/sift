@@ -328,6 +328,15 @@ impl IngestionTask {
                         error = %e,
                         "final stream failed"
                     );
+
+                    // In live-only mode there is no backup or reingestion path to recover
+                    // this data, so a failed final flush is unrecoverable loss. Surface it so
+                    // finish() does not falsely acknowledge delivery.
+                    if self.config.checkpoint_interval.is_none() {
+                        return Err(Error::new(ErrorKind::StreamError, e))
+                            .context("final stream flush to Sift failed during shutdown");
+                    }
+
                     self.control_tx
                         .send(ControlMessage::CheckpointNeedsReingestion {
                             first_message_id: first_message_id.load(Ordering::Relaxed),
@@ -952,6 +961,77 @@ mod tests {
             metrics.messages_sent.get(),
             10,
             "should have sent 10 messages"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_shutdown_live_only_final_flush_failure_errors() {
+        let (ingestion_channel, _mock_service) =
+            crate::test::create_mock_grpc_channel_with_service().await;
+        let (control_tx, _control_rx) = broadcast::channel(1024);
+        let (_data_tx, data_rx) = async_channel::bounded::<DataMessage>(1024);
+        let metrics = Arc::new(SiftStreamMetrics::default());
+        let config = make_live_only_ingestion_task_config(ingestion_channel, metrics);
+
+        let control_rx_task = control_tx.subscribe();
+        let mut ingestion_task = IngestionTask::new(control_tx, control_rx_task, data_rx, config);
+
+        let failing_stream = Some(Box::pin(async {
+            Err::<(), GrpcStatus>(GrpcStatus::unavailable("sift unreachable"))
+        }));
+
+        let result = ingestion_task
+            .shutdown(
+                failing_stream,
+                Arc::new(AtomicU64::new(0)),
+                Arc::new(AtomicU64::new(0)),
+            )
+            .await;
+
+        assert!(
+            result.is_err(),
+            "live-only shutdown must surface a failed final flush as an error"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_shutdown_backups_final_flush_failure_reingests() {
+        let (ingestion_channel, _mock_service) =
+            crate::test::create_mock_grpc_channel_with_service().await;
+        let (control_tx, mut control_rx) = broadcast::channel(1024);
+        let (_data_tx, data_rx) = async_channel::bounded::<DataMessage>(1024);
+        let metrics = Arc::new(SiftStreamMetrics::default());
+        let config = make_ingestion_task_config(ingestion_channel, metrics, Duration::from_secs(60));
+
+        let control_rx_task = control_tx.subscribe();
+        let mut ingestion_task = IngestionTask::new(control_tx, control_rx_task, data_rx, config);
+
+        let failing_stream = Some(Box::pin(async {
+            Err::<(), GrpcStatus>(GrpcStatus::unavailable("sift unreachable"))
+        }));
+
+        let result = ingestion_task
+            .shutdown(
+                failing_stream,
+                Arc::new(AtomicU64::new(0)),
+                Arc::new(AtomicU64::new(0)),
+            )
+            .await;
+
+        assert!(
+            result.is_ok(),
+            "backups mode routes a failed final flush to reingestion, not an error"
+        );
+
+        let mut saw_reingest = false;
+        while let Ok(msg) = control_rx.try_recv() {
+            if matches!(msg, ControlMessage::CheckpointNeedsReingestion { .. }) {
+                saw_reingest = true;
+            }
+        }
+        assert!(
+            saw_reingest,
+            "backups mode should emit CheckpointNeedsReingestion for the failed final flush"
         );
     }
 }
