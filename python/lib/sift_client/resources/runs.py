@@ -180,7 +180,7 @@ class RunsAPIAsync(ResourceBase):
             filter_parts.append(cel.greater_than("stop_time", stop_time_after))
         if stop_time_before:
             filter_parts.append(cel.less_than("stop_time", stop_time_before))
-        if is_stopped is not None:
+        if is_stopped:
             filter_parts.append(cel.not_(cel.equals_null("stop_time")))
         query_filter = cel.and_(*filter_parts)
 
