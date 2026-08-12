@@ -25,13 +25,6 @@ precise-builds = true
 # sift_cli's build.rs invokes `mdbook build`, so mdbook must be on PATH.
 github-build-setup = "includes/build-setup.yml"
 
-# Faster runners for the build matrix. The RunsOn label is static because the
-# matrix comes from the `dist plan` JSON output, where `${{ }}` does not expand.
-# Windows stays on the default GitHub runner: the RunsOn stack in this org does
-# not serve Windows jobs (verified on PR #726, the job was never picked up).
-[dist.github-custom-runners]
-x86_64-unknown-linux-gnu = "runs-on,runner=8cpu-linux-x64,image=ubuntu22-full-x64,spot=false"
-
 # Build the Intel macOS binary on an arm64 runner. The M-series runners are
 # much faster than the Intel `macos-*-intel` pool, and Rosetta 2 runs any
 # x86_64 build-time helper binaries.
