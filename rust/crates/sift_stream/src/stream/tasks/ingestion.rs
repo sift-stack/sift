@@ -1001,7 +1001,8 @@ mod tests {
         let (control_tx, mut control_rx) = broadcast::channel(1024);
         let (_data_tx, data_rx) = async_channel::bounded::<DataMessage>(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
-        let config = make_ingestion_task_config(ingestion_channel, metrics, Duration::from_secs(60));
+        let config =
+            make_ingestion_task_config(ingestion_channel, metrics, Duration::from_secs(60));
 
         let control_rx_task = control_tx.subscribe();
         let mut ingestion_task = IngestionTask::new(control_tx, control_rx_task, data_rx, config);
