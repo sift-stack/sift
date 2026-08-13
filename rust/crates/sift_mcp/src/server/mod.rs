@@ -1,10 +1,10 @@
 use rmcp::{
     ErrorData, RoleServer, ServerHandler,
     handler::server::router::prompt::PromptRouter,
-    handler::server::tool::ToolRouter,
+    handler::server::tool::{ToolCallContext, ToolRouter},
     model::{
-        CacheScope, Implementation, ListToolsResult, PaginatedRequestParams, ProtocolVersion,
-        ServerCapabilities, ServerInfo,
+        CacheScope, CallToolRequestParams, CallToolResponse, Implementation, ListToolsResult,
+        PaginatedRequestParams, ProtocolVersion, ServerCapabilities, ServerInfo,
     },
     prompt_handler,
     service::RequestContext,
@@ -16,7 +16,7 @@ use tokio::sync::watch;
 
 #[cfg(test)]
 use crate::UpdateCheck;
-use crate::{UpdateCheckReceiver, policy::RetryPolicy};
+use crate::{UpdateCheckReceiver, client_event::ClientEventReporter, policy::RetryPolicy};
 
 #[cfg(test)]
 mod test;
@@ -70,11 +70,23 @@ pub struct SiftMcpServer {
     pub allow_destructive: bool,
     cli_version: String,
     pub update_check: Option<UpdateCheckReceiver>,
+    client_event_reporter: ClientEventReporter,
 }
 
 #[tool_handler(router = self.tool_router)]
 #[prompt_handler(router = self.prompt_router)]
 impl ServerHandler for SiftMcpServer {
+    async fn call_tool(
+        &self,
+        request: CallToolRequestParams,
+        context: RequestContext<RoleServer>,
+    ) -> Result<CallToolResponse, ErrorData> {
+        let _ = self.client_event_reporter.send(request.name.as_ref()).await;
+
+        let context = ToolCallContext::new(self, request, context);
+        self.tool_router.call(context).await
+    }
+
     async fn list_tools(
         &self,
         _request: Option<PaginatedRequestParams>,
@@ -142,23 +154,25 @@ impl SiftMcpServer {
             latest_version: version.clone(),
         })
         .1;
-        Self::new_with_update_check(
+        Self::new_with_client_events(
             channel,
             app_uri,
             allow_create,
             allow_destructive,
             version,
             Some(update_check),
+            ClientEventReporter::default(),
         )
     }
 
-    pub fn new_with_update_check(
+    pub(crate) fn new_with_client_events(
         channel: SiftChannel,
         app_uri: String,
         allow_create: bool,
         allow_destructive: bool,
         cli_version: String,
         update_check: Option<UpdateCheckReceiver>,
+        client_event_reporter: ClientEventReporter,
     ) -> Self {
         // Add more routers here as new tool groups are introduced, e.g.
         //   tool_router.merge(Self::ingestion_router())
@@ -223,6 +237,7 @@ impl SiftMcpServer {
             allow_destructive,
             cli_version,
             update_check,
+            client_event_reporter,
         }
     }
 
