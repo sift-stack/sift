@@ -198,8 +198,10 @@ In `src/server/mod.rs`:
 2. Construct it in `new()` with `channel.clone()` and `retry_policy.clone()` (the last
    constructed service can take `retry_policy` by move).
 3. Merge the tool router: `tool_router.merge(Self::<domain>_router());`.
+4. Add the tool and event pair to `src/tool_events.json`.
+5. Add the same enum name to the client event API allowlist.
 
-The existing `new()` shows all three insertion points:
+The existing `new()` shows all five insertion points:
 
 ```rust
 let mut tool_router = Self::assets_router();

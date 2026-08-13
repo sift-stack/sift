@@ -41,19 +41,22 @@ pub async fn run(ctx: Context, args: McpArgs, app_uri: String) -> Result<ExitCod
     );
 
     let update_check = select_update_check(args.disable_update_check, start_update_check);
+    let cli_version = env!("CARGO_PKG_VERSION").to_string();
+    let client_event_config =
+        sift_mcp::ClientEventConfig::new(ctx.rest_uri.clone(), ctx.api_key.clone(), cli_version);
 
     let credentials = Credentials::Config {
         uri: ctx.grpc_uri,
         apikey: ctx.api_key,
     };
-    match sift_mcp::run_with_update_check(
+    match sift_mcp::run_with_client_events(
         credentials,
         !ctx.disable_tls,
         app_uri,
         args.allow_create,
         args.allow_destructive,
-        env!("CARGO_PKG_VERSION").to_string(),
         update_check,
+        client_event_config,
     )
     .await
     {

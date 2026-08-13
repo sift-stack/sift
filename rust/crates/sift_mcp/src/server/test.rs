@@ -11,7 +11,10 @@ use tokio::{
 };
 use tonic::{Response, transport::Server};
 
-use crate::UpdateCheck;
+use crate::{
+    ClientEventConfig, UpdateCheck,
+    client_event::{ClientEventReporter, event_for_tool},
+};
 
 use super::SiftMcpServer;
 
@@ -50,6 +53,19 @@ async fn server_with_update_check(
     update_check: Option<watch::Receiver<UpdateCheck>>,
     asset_tool_calls: usize,
 ) -> (SiftMcpServer, JoinHandle<()>) {
+    server_with_client_events(
+        update_check,
+        asset_tool_calls,
+        ClientEventReporter::default(),
+    )
+    .await
+}
+
+async fn server_with_client_events(
+    update_check: Option<watch::Receiver<UpdateCheck>>,
+    asset_tool_calls: usize,
+    client_event_reporter: ClientEventReporter,
+) -> (SiftMcpServer, JoinHandle<()>) {
     let mut mock = MockAssetServiceImpl::new();
     mock.expect_list_assets()
         .times(asset_tool_calls)
@@ -66,16 +82,31 @@ async fn server_with_update_check(
     });
 
     (
-        SiftMcpServer::new_with_update_check(
+        SiftMcpServer::new_with_client_events(
             channel,
             "https://app.test.local".to_string(),
             false,
             false,
             CLI_VERSION.to_string(),
             update_check,
+            client_event_reporter,
         ),
         handle,
     )
+}
+
+async fn connected_client_with_events(
+    update_check: Option<watch::Receiver<UpdateCheck>>,
+    asset_tool_calls: usize,
+    client_event_reporter: ClientEventReporter,
+) -> (
+    BufReader<tokio::io::ReadHalf<DuplexStream>>,
+    tokio::io::WriteHalf<DuplexStream>,
+    JoinHandle<()>,
+) {
+    let (server, grpc_handle) =
+        server_with_client_events(update_check, asset_tool_calls, client_event_reporter).await;
+    connect_server(server, grpc_handle).await
 }
 
 async fn initialized_client(
@@ -132,6 +163,17 @@ async fn connected_client(
     JoinHandle<()>,
 ) {
     let (server, grpc_handle) = server_with_update_check(update_check, asset_tool_calls).await;
+    connect_server(server, grpc_handle).await
+}
+
+async fn connect_server(
+    server: SiftMcpServer,
+    grpc_handle: JoinHandle<()>,
+) -> (
+    BufReader<tokio::io::ReadHalf<DuplexStream>>,
+    tokio::io::WriteHalf<DuplexStream>,
+    JoinHandle<()>,
+) {
     let (server_transport, client_transport) = tokio::io::duplex(8192);
     let mcp_handle = tokio::spawn(async move {
         let service = server.serve(server_transport).await.unwrap();
@@ -234,6 +276,76 @@ async fn get_info_reports_the_injected_cli_version() {
     );
 
     grpc_handle.abort();
+}
+
+#[tokio::test]
+async fn every_registered_tool_has_a_client_event() {
+    let current = UpdateCheck::Current {
+        current_version: "0.4.0".to_string(),
+        latest_version: "0.4.0".to_string(),
+    };
+    let (server, grpc_handle) = server_with_update_check(Some(receiver(current)), 0).await;
+    let missing: Vec<_> = server
+        .tool_router
+        .list_all()
+        .into_iter()
+        .filter_map(|tool| {
+            event_for_tool(tool.name.as_ref())
+                .is_none()
+                .then_some(tool.name)
+        })
+        .collect();
+
+    assert!(
+        missing.is_empty(),
+        "tools without client events: {missing:?}"
+    );
+
+    grpc_handle.abort();
+}
+
+#[tokio::test]
+async fn client_event_failure_does_not_change_the_tool_result() {
+    let reporter = ClientEventReporter::new(ClientEventConfig::new(
+        "invalid rest URI".to_string(),
+        "test-key".to_string(),
+        CLI_VERSION.to_string(),
+    ));
+    let (mut reader, mut writer, server) = connected_client_with_events(None, 1, reporter).await;
+    let initialize = serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize",
+        "params": {
+            "protocolVersion": "2025-11-25",
+            "capabilities": {},
+            "clientInfo": { "name": "test-client", "version": "0.0.1" }
+        }
+    });
+    writer
+        .write_all(format!("{initialize}\n").as_bytes())
+        .await
+        .unwrap();
+    let _initialize = read_json(&mut reader).await;
+    writer
+        .write_all(b"{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}\n")
+        .await
+        .unwrap();
+    writer
+        .write_all(
+            b"{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"list_assets\",\"arguments\":{\"filter\":\"\"}}}\n",
+        )
+        .await
+        .unwrap();
+
+    let response = read_json(&mut reader).await;
+
+    assert_eq!(
+        response["result"]["structuredContent"],
+        serde_json::json!({ "assets": [] })
+    );
+
+    finish(reader, writer, server).await;
 }
 
 #[tokio::test]
