@@ -13,7 +13,7 @@ use tonic::{Response, transport::Server};
 
 use crate::{
     ClientEventConfig, UpdateCheck,
-    client_event::{ClientEventReporter, event_for_tool},
+    client_event::{ClientEventReporter, event_for_tool, start_event_server},
 };
 
 use super::SiftMcpServer;
@@ -343,6 +343,64 @@ async fn client_event_failure_does_not_change_the_tool_result() {
     assert_eq!(
         response["result"]["structuredContent"],
         serde_json::json!({ "assets": [] })
+    );
+
+    finish(reader, writer, server).await;
+}
+
+#[tokio::test]
+async fn tool_call_sends_its_client_event() {
+    let (rest_uri, event_server) = start_event_server().await;
+    let reporter = ClientEventReporter::new(ClientEventConfig::new(
+        rest_uri,
+        "test-key".to_string(),
+        CLI_VERSION.to_string(),
+    ));
+    let (mut reader, mut writer, server) = connected_client_with_events(None, 1, reporter).await;
+    let initialize = serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize",
+        "params": {
+            "protocolVersion": "2025-11-25",
+            "capabilities": {},
+            "clientInfo": { "name": "test-client", "version": "0.0.1" }
+        }
+    });
+    writer
+        .write_all(format!("{initialize}\n").as_bytes())
+        .await
+        .unwrap();
+    let _initialize = read_json(&mut reader).await;
+    writer
+        .write_all(b"{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}\n")
+        .await
+        .unwrap();
+    writer
+        .write_all(
+            b"{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"list_assets\",\"arguments\":{\"filter\":\"\"}}}\n",
+        )
+        .await
+        .unwrap();
+
+    let response = read_json(&mut reader).await;
+    assert_eq!(
+        response["result"]["structuredContent"],
+        serde_json::json!({ "assets": [] })
+    );
+
+    let request = String::from_utf8(event_server.await.unwrap()).unwrap();
+    let (headers, body) = request.split_once("\r\n\r\n").unwrap();
+    assert!(
+        headers
+            .lines()
+            .any(|line| line.eq_ignore_ascii_case("user-agent: sift_mcp/7.8.9"))
+    );
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(body).unwrap(),
+        serde_json::json!({
+            "event": "CLIENT_EVENT_USER_CALLED_MCP_TOOL_LIST_ASSETS"
+        })
     );
 
     finish(reader, writer, server).await;

@@ -94,13 +94,11 @@ pub(crate) fn event_for_tool(tool_name: &str) -> Option<&'static str> {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) async fn start_event_server() -> (String, tokio::task::JoinHandle<Vec<u8>>) {
     use tokio::{
         io::{AsyncReadExt, AsyncWriteExt},
         net::TcpListener,
     };
-
-    use super::{ClientEventConfig, ClientEventReporter};
 
     fn request_length(request: &[u8]) -> Option<usize> {
         let header_end = request
@@ -116,35 +114,44 @@ mod tests {
         Some(header_end + 4 + content_length)
     }
 
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = listener.local_addr().unwrap();
+    let server = tokio::spawn(async move {
+        let (mut stream, _) = listener.accept().await.unwrap();
+        let mut request = Vec::new();
+        loop {
+            let mut buffer = [0; 1024];
+            let count = stream.read(&mut buffer).await.unwrap();
+            assert!(
+                count > 0,
+                "the client closed before the request was complete"
+            );
+            request.extend_from_slice(&buffer[..count]);
+            if request_length(&request).is_some_and(|length| request.len() >= length) {
+                break;
+            }
+        }
+        stream
+            .write_all(
+                b"HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: 2\r\nconnection: close\r\n\r\n{}",
+            )
+            .await
+            .unwrap();
+        request
+    });
+
+    (format!("http://{address}"), server)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ClientEventConfig, ClientEventReporter, start_event_server};
+
     #[tokio::test]
     async fn sends_only_the_event_with_the_cli_version() {
-        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let address = listener.local_addr().unwrap();
-        let server = tokio::spawn(async move {
-            let (mut stream, _) = listener.accept().await.unwrap();
-            let mut request = Vec::new();
-            loop {
-                let mut buffer = [0; 1024];
-                let count = stream.read(&mut buffer).await.unwrap();
-                assert!(
-                    count > 0,
-                    "the client closed before the request was complete"
-                );
-                request.extend_from_slice(&buffer[..count]);
-                if request_length(&request).is_some_and(|length| request.len() >= length) {
-                    break;
-                }
-            }
-            stream
-                .write_all(
-                    b"HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: 2\r\nconnection: close\r\n\r\n{}",
-                )
-                .await
-                .unwrap();
-            request
-        });
+        let (rest_uri, server) = start_event_server().await;
         let reporter = ClientEventReporter::new(ClientEventConfig::new(
-            format!("http://{address}/"),
+            rest_uri,
             "test-key".to_string(),
             "7.8.9".to_string(),
         ));
