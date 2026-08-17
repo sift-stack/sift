@@ -167,6 +167,24 @@ impl IngestionTask {
                             // be consumed by a later non-overlapping CheckpointComplete, causing
                             // backup files from the failed stream to be deleted without re-ingestion.
                             self.control_tx.send(ControlMessage::CheckpointComplete { first_message_id: first_message_id.load(Ordering::Relaxed), last_message_id: last_message_id.load(Ordering::Relaxed) }).map_err(|e| Error::new(ErrorKind::StreamError, e))?;
+
+                            // A closed data channel means `finish` was called, so no further
+                            // stream will be created to carry what this one was holding. In
+                            // live-only mode there is no backup or reingestion path either, so
+                            // the data is unrecoverable. Surface it here rather than breaking
+                            // into a clean shutdown; otherwise whether the loss is reported
+                            // depends on which `select!` branch observes the shutdown first.
+                            if self.config.checkpoint_interval.is_none() && self.data_rx.is_closed() {
+                                #[cfg(feature = "tracing")]
+                                tracing::error!(
+                                    sift_stream_id = %self.config.sift_stream_id,
+                                    error = %e,
+                                    "stream failed after shutdown began; not retrying"
+                                );
+
+                                return Err(Error::new(ErrorKind::StreamError, e))
+                                    .context("stream to Sift failed during shutdown");
+                            }
                         }
                     }
 
@@ -1034,5 +1052,46 @@ mod tests {
             saw_reingest,
             "backups mode should emit CheckpointNeedsReingestion for the failed final flush"
         );
+    }
+
+    /// Regression test for the shutdown race: the run loop can observe the closed data channel
+    /// from the failed-stream arm instead of the `Shutdown` control message, which used to break
+    /// into a clean shutdown and report `Ok` for data that never reached Sift. Closing the data
+    /// channel without sending `Shutdown` forces that arm deterministically.
+    #[tokio::test]
+    async fn test_live_only_stream_failure_after_close_errors() {
+        let (ingestion_channel, mock_service) =
+            crate::test::create_mock_grpc_channel_with_service().await;
+        let (control_tx, _control_rx) = broadcast::channel(1024);
+        let (data_tx, data_rx) = async_channel::bounded(1024);
+        let metrics = Arc::new(SiftStreamMetrics::default());
+        let mut config = make_live_only_ingestion_task_config(ingestion_channel, metrics);
+        config.retry_policy = RetryPolicy {
+            max_attempts: 3,
+            initial_backoff: Duration::from_millis(1),
+            max_backoff: Duration::from_millis(10),
+            backoff_multiplier: 2,
+        };
+
+        // Every stream attempt fails, so nothing is ever acknowledged by Sift.
+        mock_service.set_num_errors_to_return(usize::MAX);
+
+        let control_rx_task = control_tx.subscribe();
+        let mut ingestion_task = IngestionTask::new(control_tx, control_rx_task, data_rx, config);
+
+        let handle = tokio::spawn(async move { ingestion_task.run().await });
+
+        send_messages_for_ingestion(&data_tx, 10).await;
+
+        // Close the channel without a Shutdown message.
+        data_tx.close();
+
+        let res = tokio::time::timeout(Duration::from_secs(10), handle)
+            .await
+            .expect("ingestion task should not hang")
+            .expect("ingestion task should not panic");
+
+        let err = res.expect_err("live-only mode must not report Ok for undelivered data");
+        assert_eq!(err.kind(), ErrorKind::StreamError);
     }
 }

@@ -164,9 +164,11 @@ impl Transport for LiveStreamingOnly {
     /// Closes the ingestion channel, sends the shutdown signal, and awaits task completion.
     ///
     /// The ingestion task drains any messages already queued before acting on the shutdown
-    /// signal, so all messages sent before `finish` is called are delivered. A returned `Ok`
-    /// is an acknowledgment that every message reached Sift; an `Err` means delivery of some
-    /// data may have failed.
+    /// signal, so all messages sent before `finish` is called are delivered. An `Err` means the
+    /// stream carrying that tail-end data failed and Sift never acknowledged it; since live-only
+    /// mode keeps no disk backup, that data is unrecoverable. An `Ok` means shutdown completed
+    /// with an acknowledged stream. Note that `Ok` does not account for data lost to earlier
+    /// mid-stream failures that the retry loop recovered from.
     async fn finish(self, stream_id: &Uuid) -> Result<()> {
         self.ingestion_tx.close();
         let _ = self.control_tx.send(ControlMessage::Shutdown);
