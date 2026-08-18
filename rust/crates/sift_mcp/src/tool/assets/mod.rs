@@ -11,7 +11,7 @@ use sift_rs::metadata::v1::MetadataValue;
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
-    tool::common::{ListParams, MetadataEntry, url_clause, with_urls},
+    tool::common::{ListParams, MetadataEntry, list_body, url_clause, with_urls},
 };
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -47,6 +47,12 @@ impl SiftMcpServer {
                 Example: `\"created_date desc,modified_date\"`.
               - `limit`: max items to return. Start at 200 and only raise it if the result is capped
                 and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200.
+              - `fields`: optional array of field names to keep on each item, e.g.
+                `[\"name\"]`. Omit it for the full object. Names match case-insensitively
+                and ignore underscores, so `asset_id` and `assetId` both work. Any name
+                that matched nothing is returned in `unmatched_fields` beside the results.
+                Reach for this whenever you need only a few fields: full objects are wide,
+                and a large listing can exceed the response size limit without it.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an unknown field.
@@ -64,6 +70,7 @@ impl SiftMcpServer {
             filter,
             limit,
             order_by,
+            fields,
         }) = params;
 
         let assets = self
@@ -76,9 +83,9 @@ impl SiftMcpServer {
             self.url_service.build_asset_url(&a.asset_id).ok()
         })?;
 
-        Ok(CallToolResult::structured(
-            serde_json::json!({ "assets": assets }),
-        ))
+        Ok(CallToolResult::structured(list_body(
+            "assets", assets, fields,
+        )))
     }
 
     #[tool(

@@ -14,7 +14,7 @@ use sift_rs::{
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
-    tool::common::{MetadataEntry, url_clause, with_urls},
+    tool::common::{MetadataEntry, list_body, url_clause, with_urls},
 };
 
 #[cfg(test)]
@@ -26,6 +26,7 @@ pub struct AnnotationListParams {
     pub(crate) order_by: Option<String>,
     pub(crate) limit: Option<u32>,
     pub(crate) organization_id: Option<String>,
+    pub(crate) fields: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -110,6 +111,12 @@ impl SiftMcpServer {
               - `limit`: max items to return. Start at 200 and only raise it if the result is capped
                 and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200.
               - `organization_id`: optional. Required only when the caller belongs to multiple organizations.
+              - `fields`: optional array of field names to keep on each item, e.g.
+                `[\"name\"]`. Omit it for the full object. Names match case-insensitively
+                and ignore underscores, so `asset_id` and `assetId` both work. Any name
+                that matched nothing is returned in `unmatched_fields` beside the results.
+                Reach for this whenever you need only a few fields: full objects are wide,
+                and a large listing can exceed the response size limit without it.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an unknown field.
@@ -130,6 +137,7 @@ impl SiftMcpServer {
             order_by,
             limit,
             organization_id,
+            fields,
         }) = params;
 
         let annotations = self
@@ -142,9 +150,11 @@ impl SiftMcpServer {
             self.url_service.build_annotation_url(&a.annotation_id).ok()
         })?;
 
-        Ok(CallToolResult::structured(
-            serde_json::json!({ "annotations": annotations }),
-        ))
+        Ok(CallToolResult::structured(list_body(
+            "annotations",
+            annotations,
+            fields,
+        )))
     }
 
     #[tool(

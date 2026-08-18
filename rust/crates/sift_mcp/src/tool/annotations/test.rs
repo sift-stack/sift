@@ -85,6 +85,7 @@ async fn list_annotations_returns_single_page() {
             order_by: None,
             limit: None,
             organization_id: None,
+            fields: None,
         }))
         .await
         .expect("list_annotations failed");

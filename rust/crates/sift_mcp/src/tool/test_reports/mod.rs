@@ -11,7 +11,7 @@ use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::test_reports::spec::{self, ReportSpec},
-    tool::common::{ListParams, url_clause},
+    tool::common::{ListParams, list_body, to_values, url_clause},
 };
 
 #[cfg(test)]
@@ -71,6 +71,12 @@ impl SiftMcpServer {
                 Default sort is `start_time desc` (newest first). Example: `\"start_time desc,name\"`.
               - `limit`: max items to return. Start at 200 and only raise it if the result is capped
                 and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200.
+              - `fields`: optional array of field names to keep on each item, e.g.
+                `[\"name\"]`. Omit it for the full object. Names match case-insensitively
+                and ignore underscores, so `asset_id` and `assetId` both work. Any name
+                that matched nothing is returned in `unmatched_fields` beside the results.
+                Reach for this whenever you need only a few fields: full objects are wide,
+                and a large listing can exceed the response size limit without it.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an unknown field.
@@ -87,16 +93,22 @@ impl SiftMcpServer {
             filter,
             order_by,
             limit,
+            fields,
         }) = params;
 
-        let out = self
+        let test_reports = self
             .test_report_service
             .list_test_reports(filter, order_by, limit)
             .await
-            .map(|test_reports| serde_json::json!({ "test_reports": test_reports }))
             .map_err(from_anyhow)?;
 
-        Ok(CallToolResult::structured(out))
+        let test_reports = to_values(&test_reports)?;
+
+        Ok(CallToolResult::structured(list_body(
+            "test_reports",
+            test_reports,
+            fields,
+        )))
     }
 
     #[tool(
@@ -127,6 +139,12 @@ impl SiftMcpServer {
               - `limit`: max items to return. Start at 200 and only raise it if the result is capped
                 and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200. Use
                 `count_test_steps` to learn the true total before relying on a capped page.
+              - `fields`: optional array of field names to keep on each item, e.g.
+                `[\"name\"]`. Omit it for the full object. Names match case-insensitively
+                and ignore underscores, so `asset_id` and `assetId` both work. Any name
+                that matched nothing is returned in `unmatched_fields` beside the results.
+                Reach for this whenever you need only a few fields: full objects are wide,
+                and a large listing can exceed the response size limit without it.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an unknown field.
@@ -143,16 +161,22 @@ impl SiftMcpServer {
             filter,
             order_by,
             limit,
+            fields,
         }) = params;
 
-        let out = self
+        let test_steps = self
             .test_report_service
             .list_test_steps(filter, order_by, limit)
             .await
-            .map(|test_steps| serde_json::json!({ "test_steps": test_steps }))
             .map_err(from_anyhow)?;
 
-        Ok(CallToolResult::structured(out))
+        let test_steps = to_values(&test_steps)?;
+
+        Ok(CallToolResult::structured(list_body(
+            "test_steps",
+            test_steps,
+            fields,
+        )))
     }
 
     #[tool(
@@ -184,6 +208,12 @@ impl SiftMcpServer {
               - `limit`: max items to return. Start at 200 and only raise it if the result is capped
                 and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200. Use
                 `count_test_measurements` to learn the true total before relying on a capped page.
+              - `fields`: optional array of field names to keep on each item, e.g.
+                `[\"name\"]`. Omit it for the full object. Names match case-insensitively
+                and ignore underscores, so `asset_id` and `assetId` both work. Any name
+                that matched nothing is returned in `unmatched_fields` beside the results.
+                Reach for this whenever you need only a few fields: full objects are wide,
+                and a large listing can exceed the response size limit without it.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an unknown field.
@@ -200,16 +230,22 @@ impl SiftMcpServer {
             filter,
             order_by,
             limit,
+            fields,
         }) = params;
 
-        let out = self
+        let test_measurements = self
             .test_report_service
             .list_test_measurements(filter, order_by, limit)
             .await
-            .map(|test_measurements| serde_json::json!({ "test_measurements": test_measurements }))
             .map_err(from_anyhow)?;
 
-        Ok(CallToolResult::structured(out))
+        let test_measurements = to_values(&test_measurements)?;
+
+        Ok(CallToolResult::structured(list_body(
+            "test_measurements",
+            test_measurements,
+            fields,
+        )))
     }
 
     #[tool(

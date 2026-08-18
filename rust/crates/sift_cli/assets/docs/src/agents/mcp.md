@@ -88,6 +88,12 @@ Every `list_*` tool takes a CEL `filter`. String fields support `contains`,
 prefer `name.matches("(?i)jane")` over an exact `==` when you only have part of
 a name. Prefix a regex with `(?i)` to ignore casing.
 
+Every `list_*` tool also takes `fields`, an array of the field names to keep on
+each item. Omit it for the full object; pass `["name"]` when the names are all
+you need. Full objects are wide, and a listing of a few hundred rows can exceed
+the response size limit without it. Names match case-insensitively and ignore
+underscores, and any name that matched nothing comes back in `unmatched_fields`.
+
 ## Identifying yourself
 
 `list_users` accepts `me: true` to return the user whose credentials the server
