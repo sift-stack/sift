@@ -881,7 +881,11 @@ impl DocArgs {
 
 #[derive(clap::Args)]
 pub struct GetAssetArgs {
-    /// Filter option for filtering search
+    /// Filter option for filtering search with CEL expression
     #[arg(long)]
     pub filter: Option<String>,
+
+    /// Caps returned results to set number
+    #[arg(long, default_value = "50")]
+    pub limit: Option<u32>,
 }

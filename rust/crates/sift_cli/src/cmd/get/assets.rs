@@ -20,7 +20,7 @@ pub async fn run(ctx: Context, args: GetAssetArgs) -> Result<ExitCode> {
         .list_assets(ListAssetsRequest {
             filter: args.filter.unwrap_or_default(),
             order_by: "modified_date desc".to_string(),
-            page_size: 50,
+            page_size: args.limit.unwrap_or_default(),
             ..Default::default()
         })
         .await
