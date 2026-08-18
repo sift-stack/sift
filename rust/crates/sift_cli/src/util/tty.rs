@@ -1,4 +1,7 @@
-use std::io::{self, Write};
+use std::{
+    fmt::Display,
+    io::{self, Write},
+};
 
 use anyhow::Result;
 use crossterm::style::Stylize;
@@ -67,8 +70,8 @@ impl Output {
         Self::default()
     }
 
-    pub fn line<S: Into<String>>(&mut self, txt: S) -> &mut Self {
-        self.lines.push(txt.into());
+    pub fn line<S: Display>(&mut self, txt: S) -> &mut Self {
+        self.lines.push(txt.to_string());
         self
     }
 

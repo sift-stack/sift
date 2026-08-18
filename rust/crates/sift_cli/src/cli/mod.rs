@@ -51,6 +51,10 @@ pub enum Cmd {
     #[command(subcommand)]
     Export(ExportCmd),
 
+    /// Get commands to discover and pull data from Sift
+    #[command(subcommand)]
+    Get(GetCmd),
+
     /// Ping the Sift API to verify credentials and connectivity
     Ping,
 
@@ -309,6 +313,12 @@ pub enum ImportCmd {
     /// Run without a subcommand to import; use `ls` to list files without importing.
     #[command(name = "backups")]
     Backup(BackupArgs),
+}
+
+#[derive(Subcommand)]
+pub enum GetCmd {
+    /// Get assets
+    Asset(GetAssetArgs),
 }
 
 #[derive(Subcommand)]
@@ -867,4 +877,11 @@ impl DocArgs {
     fn default_addr() -> SocketAddr {
         "0.0.0.0:3000".parse().unwrap()
     }
+}
+
+#[derive(clap::Args)]
+pub struct GetAssetArgs {
+    /// Filter option for filtering search
+    #[arg(long)]
+    pub filter: Option<String>,
 }
