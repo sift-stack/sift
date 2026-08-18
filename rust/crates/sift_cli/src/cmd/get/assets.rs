@@ -6,9 +6,15 @@ use sift_rs::assets::v1::{
 };
 
 use crate::{
+    BIN_NAME,
     cli::GetAssetArgs,
     cmd::Context,
-    util::{api::create_grpc_channel, tty::Output},
+    util::{
+        api::create_grpc_channel,
+        app_uri::normalize_app_uri,
+        explore_url::build_explore_url,
+        tty::{Output, hyperlink, link_style, stdout_is_tty},
+    },
 };
 
 const ASSET_ID_CHAR_LENGTH_WHITESPACE_LENGTH: usize = 38;
@@ -26,10 +32,13 @@ pub async fn run(ctx: Context, args: GetAssetArgs) -> Result<ExitCode> {
         .await
         .context("failed to list assets")?
         .into_inner();
+    let app_uri = ctx.app_uri.as_deref().and_then(normalize_app_uri);
     let mut output = Output::new();
     if assets.is_empty() {
         output.line("no assets found");
     } else {
+        let linkify = stdout_is_tty();
+
         output.line(format_args!(
             "{:<width$}{}",
             "ID",
@@ -37,13 +46,24 @@ pub async fn run(ctx: Context, args: GetAssetArgs) -> Result<ExitCode> {
             width = ASSET_ID_CHAR_LENGTH_WHITESPACE_LENGTH,
         ));
         for asset in &assets {
+            let name = match build_explore_url(app_uri, &asset.name, None) {
+                Some(url) if linkify => hyperlink(&link_style(&asset.name), &url),
+                _ => asset.name.clone(),
+            };
             output.line(format_args!(
-                "{:<width$}{}",
+                "{:<width$}{name}",
                 asset.asset_id,
-                asset.name,
                 width = ASSET_ID_CHAR_LENGTH_WHITESPACE_LENGTH,
             ));
         }
+        output.tip(match app_uri {
+            Some(host) => {
+                format!("View an asset in Explore at {host}/explore?method=single&assets=<NAME>")
+            }
+            None => format!(
+                "Run `{BIN_NAME} config update --app-uri <SIFT_WEB_ORIGIN>` for Explore links."
+            ),
+        });
     }
     output.print();
 
