@@ -72,7 +72,6 @@ pub fn build_explore_url(
 mod tests {
     use super::{build_explore_url, import_target};
 
-
     #[test]
     fn import_target_uses_the_configured_app_uri() {
         let target = import_target(

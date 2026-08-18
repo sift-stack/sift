@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand, crate_version};
+use clap::{Parser, Subcommand, ValueEnum, crate_version};
 use clap_complete::Shell;
 use parquet::{ChannelMode, ComplexTypesMode};
 pub mod hdf5;
@@ -879,6 +879,13 @@ impl DocArgs {
     }
 }
 
+#[derive(Clone, Copy, ValueEnum, Debug, PartialEq, Eq)]
+#[value(rename_all = "lowercase")]
+pub enum OutputFormats {
+    Text,
+    Json,
+}
+
 #[derive(clap::Args)]
 pub struct GetAssetArgs {
     /// Filter option for filtering search with CEL expression
@@ -888,4 +895,8 @@ pub struct GetAssetArgs {
     /// Caps returned results to set number
     #[arg(long, default_value = "50")]
     pub limit: Option<u32>,
+
+    /// Determines the output format
+    #[arg(long, value_enum)]
+    pub output_format: Option<OutputFormats>,
 }
