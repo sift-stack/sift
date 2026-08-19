@@ -25,7 +25,7 @@ mod test;
 pub struct UserDefinedFunctionVersionListParams {
     pub(crate) user_defined_function_id: Option<String>,
     pub(crate) name: Option<String>,
-    pub(crate) filter: Option<String>,
+    pub(crate) filter: String,
     pub(crate) order_by: Option<String>,
     pub(crate) limit: Option<u32>,
 }
@@ -61,7 +61,6 @@ pub struct ArchiveUserDefinedFunctionParams {
 #[derive(Debug, Deserialize)]
 struct FunctionInputSpec {
     identifier: String,
-    #[serde(alias = "dataType")]
     data_type: String,
     #[serde(default)]
     constant: bool,
@@ -154,7 +153,7 @@ impl SiftMcpServer {
               - `user_defined_function_id`: optional. The id of the function whose versions to list.
               - `name`: optional. The name of the function whose versions to list.
               - Exactly one of `user_defined_function_id` or `name` must be set.
-              - `filter`: optional CEL expression. Omit or pass an empty string to list every version.
+              - `filter`: CEL expression. Pass an empty string to list every version.
                 Filterable fields: `user_defined_function_id`, `name`, `version`, `archived_date`,
                 `is_archived`. `name` is the only free-text field; when filtering or searching it, use
                 `name.matches(\"(?i)rms\")`, not `==`. Use `==` only for an exact value from a prior
@@ -200,7 +199,7 @@ impl SiftMcpServer {
             .list_user_defined_function_versions(
                 user_defined_function_id,
                 name,
-                filter.unwrap_or_default(),
+                filter,
                 order_by,
                 limit,
             )
@@ -231,8 +230,9 @@ impl SiftMcpServer {
               - `function_inputs_json`: required. A JSON array string declaring the function's inputs, in
                 the order callers pass them. Each element is
                 `{ \"identifier\": \"<name>\", \"data_type\": \"numeric\"|\"string\"|\"bool\",
-                \"constant\": <bool> }`. `constant` defaults to `false` and marks an input that takes a
-                literal value rather than a channel. Pass `[]` for a function that takes no inputs.
+                \"constant\": <bool> }`. `data_type` is matched case-insensitively; no other spelling is
+                accepted. `constant` defaults to `false` and marks an input that takes a literal value
+                rather than a channel. Pass `[]` for a function that takes no inputs.
               - `description`: optional. Human-readable summary.
               - `user_notes`: optional. Notes recorded against this first version.
               - `metadata`: optional. Array of `{ \"name\": \"<key>\", \"value\": <scalar> }` where
@@ -466,8 +466,11 @@ impl SiftMcpServer {
 
             Guidance:
               - Archiving does not delete the function and does not rewrite anything that already calls
-                it. Confirm the target with the user before calling, and check for dependents first —
-                calculated channels and rules that call the function keep referencing it.
+                it. Calculated channels and rules that call it keep referencing it. Confirm the target
+                with the user before calling.
+              - This toolset cannot enumerate what depends on a function. `function_dependencies` on a
+                `list_user_defined_functions` row is the reverse direction — the functions this one
+                calls. Treat the archive as reversible and let the user tell you what else is affected.
         ",
         annotations(
             title = "user_defined_functions/archive_user_defined_function",
@@ -636,9 +639,9 @@ fn parse_function_inputs(function_inputs_json: &str) -> Result<Vec<FunctionInput
 
 fn parse_function_data_type(data_type: &str) -> Result<FunctionDataType, ErrorData> {
     match data_type.to_ascii_lowercase().as_str() {
-        "numeric" | "function_data_type_numeric" => Ok(FunctionDataType::Numeric),
-        "string" | "function_data_type_string" => Ok(FunctionDataType::String),
-        "bool" | "boolean" | "function_data_type_bool" => Ok(FunctionDataType::Bool),
+        "numeric" => Ok(FunctionDataType::Numeric),
+        "string" => Ok(FunctionDataType::String),
+        "bool" => Ok(FunctionDataType::Bool),
         other => Err(ErrorData::invalid_params(
             format!("unknown `data_type` `{other}`; expected `numeric`, `string`, or `bool`"),
             None,

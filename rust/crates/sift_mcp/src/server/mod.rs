@@ -44,8 +44,7 @@ use crate::service::{
     docs::DocsService, ingest::IngestService, ping::PingService,
     report_templates::ReportTemplateService, reports::ReportService,
     rule_evaluation::RuleEvaluationService, rules::RuleService, runs::RunService, url::UrlService,
-    user_defined_functions::UserDefinedFunctionService,
-    users::UserService,
+    user_defined_functions::UserDefinedFunctionService, users::UserService,
 };
 
 #[derive(Clone)]
