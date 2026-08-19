@@ -2,9 +2,14 @@
 # `github-build-setup` in dist-workspace.toml). sift_cli's build.rs runs
 # `mdbook build`, so mdbook must be on PATH before `dist build`.
 - name: Install mdbook
+  if: runner.os != 'Linux' || runner.arch != 'ARM64'
   uses: peaceiris/actions-mdbook@v2
   with:
     mdbook-version: '0.4.40'
+# actions-mdbook downloads an x86_64 binary on Linux ARM64 runners.
+- name: Install mdbook on Linux ARM64
+  if: runner.os == 'Linux' && runner.arch == 'ARM64'
+  run: cargo install mdbook --version 0.4.40 --locked
 # cargo-dist links the static MSVC CRT (/MT) by default, but hdf5-metno-src's
 # CMake build defaults to the dynamic CRT (/MD), which leaves __imp_* CRT
 # symbols unresolved at link time. hdf5-metno-src forwards this env var to
