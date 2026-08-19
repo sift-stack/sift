@@ -2,21 +2,30 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::policy::{RetryPolicy, with_retry};
 use crate::service::common;
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, Result, anyhow, bail};
 use pbjson_types::{FieldMask, Timestamp};
 use sift_rs::{
     SiftChannel,
-    calculated_channels::v2::{
-        CalculatedChannel, CalculatedChannelAbstractChannelReference,
-        CalculatedChannelAssetConfiguration, CalculatedChannelConfiguration,
-        CalculatedChannelQueryConfiguration, CalculatedChannelValidationResult,
-        CreateCalculatedChannelRequest, GetCalculatedChannelRequest,
-        ListCalculatedChannelVersionsRequest, ListCalculatedChannelVersionsResponse,
-        ListCalculatedChannelsRequest, ListCalculatedChannelsResponse,
-        UpdateCalculatedChannelRequest,
-        calculated_channel_asset_configuration::{AssetScope, AssetSelection},
-        calculated_channel_query_configuration::{Query, Sel},
-        calculated_channel_service_client::CalculatedChannelServiceClient,
+    calculated_channels::{
+        v1::ExpressionRequest,
+        v2::{
+            BatchResolveCalculatedChannelsRequest, BatchResolveCalculatedChannelsResponse,
+            CalculatedChannel, CalculatedChannelAbstractChannelReference,
+            CalculatedChannelAssetConfiguration, CalculatedChannelConfiguration,
+            CalculatedChannelQueryConfiguration, CalculatedChannelValidationResult,
+            CreateCalculatedChannelRequest, GetCalculatedChannelRequest,
+            ListCalculatedChannelVersionsRequest, ListCalculatedChannelVersionsResponse,
+            ListCalculatedChannelsRequest, ListCalculatedChannelsResponse,
+            ResolveCalculatedChannelRequest, UpdateCalculatedChannelRequest,
+            calculated_channel_asset_configuration::{AssetScope, AssetSelection},
+            calculated_channel_query_configuration::{Query, Sel},
+            calculated_channel_service_client::CalculatedChannelServiceClient,
+            resolve_calculated_channel_request::CalculatedChannel as ResolveTarget,
+        },
+    },
+    common::r#type::v1::{
+        Ids, NamedResources, ResourceIdentifier, named_resources::Resources,
+        resource_identifier::Identifier,
     },
     metadata::v1::MetadataValue,
 };
@@ -85,6 +94,39 @@ pub struct CalculatedChannelWrite {
     pub calculated_channel: CalculatedChannel,
     pub inapplicable_assets: Vec<CalculatedChannelValidationResult>,
 }
+
+/// A saved calculated channel resolved against one asset: the expression and
+/// its channel references already point at that asset's channels, so it can be
+/// queried for data as-is.
+#[derive(Debug)]
+pub struct ResolvedCalculation {
+    /// The name the caller asked for; also the data query's channel key.
+    pub name: String,
+    pub asset_name: String,
+    pub expression_request: ExpressionRequest,
+}
+
+/// A requested calculated channel that yielded no query for the asset, with the
+/// reason to report to the caller.
+#[derive(Debug)]
+pub struct UnresolvedCalculation {
+    pub name: String,
+    pub reason: String,
+}
+
+/// The outcome of resolving a set of names: what can be queried, and what
+/// cannot. Both halves are returned so a caller never silently drops a name it
+/// was asked for.
+#[derive(Debug)]
+pub struct CalculationResolution {
+    pub resolved: Vec<ResolvedCalculation>,
+    pub unresolved: Vec<UnresolvedCalculation>,
+}
+
+const UNKNOWN_NAME_REASON: &str = "no active saved calculated channel has this name";
+const INAPPLICABLE_REASON: &str =
+    "does not apply to this asset: the asset is outside its asset scope or lacks a channel its \
+     expression references";
 
 #[derive(Clone)]
 pub struct CalculatedChannelService {
@@ -224,6 +266,145 @@ impl CalculatedChannelService {
         results.truncate(record_limit);
 
         Ok(results)
+    }
+
+    /// Resolves saved calculated channels, named by the caller, into concrete
+    /// expressions for a single asset, optionally narrowed to a run. Each name
+    /// is looked up among the active saved channels and then resolved by the
+    /// API, which is what decides whether the channel applies to the asset.
+    ///
+    /// Names with no saved channel, and channels the API cannot resolve for the
+    /// asset, are returned in `unresolved` rather than dropped, so the caller
+    /// can name them instead of returning a partial result silently.
+    pub async fn resolve_calculated_channels(
+        &self,
+        names: Vec<String>,
+        asset_id: String,
+        run_id: Option<String>,
+    ) -> Result<CalculationResolution> {
+        let mut resolved = Vec::new();
+        let mut unresolved = Vec::new();
+
+        if names.is_empty() {
+            return Ok(CalculationResolution {
+                resolved,
+                unresolved,
+            });
+        }
+
+        let quoted = names
+            .iter()
+            .map(|name| format!("\"{}\"", common::cel_escape(name)))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let stored = self
+            .list_calculated_channels(
+                format!("is_archived == false && name in [{quoted}]"),
+                None,
+                Some(common::PAGE_SIZE),
+            )
+            .await?;
+
+        // Keep the caller's order so the batch responses map back by index.
+        let mut targets = Vec::new();
+        for name in names {
+            match stored.iter().find(|channel| channel.name == name) {
+                Some(channel) => targets.push((name, channel.calculated_channel_id.clone())),
+                None => unresolved.push(UnresolvedCalculation {
+                    name,
+                    reason: UNKNOWN_NAME_REASON.to_string(),
+                }),
+            }
+        }
+
+        if targets.is_empty() {
+            return Ok(CalculationResolution {
+                resolved,
+                unresolved,
+            });
+        }
+
+        let requests = targets
+            .iter()
+            .map(|(_, id)| ResolveCalculatedChannelRequest {
+                calculated_channel: Some(ResolveTarget::Identifier(ResourceIdentifier {
+                    identifier: Some(Identifier::Id(id.clone())),
+                })),
+                organization_id: String::new(),
+                assets: Some(NamedResources {
+                    resources: Some(Resources::Ids(Ids {
+                        ids: vec![asset_id.clone()],
+                    })),
+                }),
+                run: run_id.clone().map(|id| ResourceIdentifier {
+                    identifier: Some(Identifier::Id(id)),
+                }),
+            })
+            .collect::<Vec<_>>();
+
+        let grpc_channel = self.channel.clone();
+        let resp = with_retry(&self.policy, move || {
+            let grpc_channel = grpc_channel.clone();
+            let requests = requests.clone();
+            async move {
+                let mut client = CalculatedChannelServiceClient::new(grpc_channel);
+                client
+                    .batch_resolve_calculated_channels(BatchResolveCalculatedChannelsRequest {
+                        requests,
+                    })
+                    .await
+                    .map(|resp| resp.into_inner())
+            }
+        })
+        .await
+        .context("failed to resolve calculated channels")?;
+
+        let BatchResolveCalculatedChannelsResponse { responses } = resp;
+        if responses.len() != targets.len() {
+            bail!(
+                "resolve returned {} response(s) for {} requested calculated channel(s)",
+                responses.len(),
+                targets.len(),
+            );
+        }
+
+        for ((name, _), response) in targets.into_iter().zip(responses) {
+            // Only an entry for the requested asset is safe to query; an entry
+            // for another asset would pull that asset's channels instead.
+            let mut candidates = response.resolved;
+            let picked = candidates
+                .iter()
+                .position(|entry| entry.asset_id == asset_id)
+                .map(|index| candidates.swap_remove(index));
+
+            match picked {
+                Some(entry) => {
+                    let Some(expression_request) = entry.expression_request else {
+                        bail!("resolved calculated channel '{name}' is missing its expression");
+                    };
+                    resolved.push(ResolvedCalculation {
+                        name,
+                        asset_name: entry.asset_name,
+                        expression_request,
+                    });
+                }
+                None => {
+                    let reason = response
+                        .unresolved
+                        .into_iter()
+                        .next()
+                        .map(|entry| entry.error_message)
+                        .filter(|message| !message.trim().is_empty())
+                        .unwrap_or_else(|| INAPPLICABLE_REASON.to_string());
+                    unresolved.push(UnresolvedCalculation { name, reason });
+                }
+            }
+        }
+
+        Ok(CalculationResolution {
+            resolved,
+            unresolved,
+        })
     }
 
     pub async fn create_calculated_channel(
