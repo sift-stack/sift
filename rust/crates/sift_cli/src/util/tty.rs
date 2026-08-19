@@ -1,4 +1,7 @@
-use std::io::{self, Write};
+use std::{
+    fmt::Display,
+    io::{self, IsTerminal, Write},
+};
 
 use anyhow::Result;
 use crossterm::style::Stylize;
@@ -56,6 +59,18 @@ impl PromptUser {
     }
 }
 
+pub fn stdout_is_tty() -> bool {
+    io::stdout().is_terminal()
+}
+
+pub fn hyperlink(text: &str, url: &str) -> String {
+    format!("\x1b]8;;{url}\x1b\\{text}\x1b]8;;\x1b\\")
+}
+
+pub fn link_style(text: &str) -> String {
+    text.cyan().underlined().to_string()
+}
+
 #[derive(Default)]
 pub struct Output {
     lines: Vec<String>,
@@ -67,8 +82,8 @@ impl Output {
         Self::default()
     }
 
-    pub fn line<S: Into<String>>(&mut self, txt: S) -> &mut Self {
-        self.lines.push(txt.into());
+    pub fn line<S: Display>(&mut self, txt: S) -> &mut Self {
+        self.lines.push(txt.to_string());
         self
     }
 
@@ -99,5 +114,26 @@ impl Output {
             return;
         }
         eprintln!("{}: {out}", "error".red())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::hyperlink;
+
+    #[test]
+    fn hyperlink_wraps_text_in_an_osc_8_sequence() {
+        assert_eq!(
+            hyperlink("engine", "https://app.siftstack.com/explore?assets=engine"),
+            "\x1b]8;;https://app.siftstack.com/explore?assets=engine\x1b\\engine\x1b]8;;\x1b\\"
+        );
+    }
+
+    #[test]
+    fn hyperlink_leaves_the_visible_width_unchanged() {
+        let link = hyperlink("engine", "https://app.siftstack.com");
+        assert!(link.contains("engine"));
+        assert!(link.starts_with("\x1b]8;;"));
+        assert!(link.ends_with("\x1b]8;;\x1b\\"));
     }
 }
