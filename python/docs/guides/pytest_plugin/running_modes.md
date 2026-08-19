@@ -165,8 +165,8 @@ import-test-result-log ./offline-runs/a1b2c3/a1b2c3.jsonl
 ```
 
 That replay creates the report, steps, and measurements against Sift. See
-[Replaying a saved log file](#replaying-a-saved-log-file) for cleanup and the
-incremental flag.
+[Replaying a saved log file](#replaying-a-saved-log-file) for cleanup and for
+what happens when a replay is interrupted.
 
 `--no-sift-log-file` is rejected when offline is set, since the log is the only
 sink in offline mode and without it the results are gone.
@@ -217,5 +217,23 @@ When the worker doesn't finish cleanly the plugin will print a hint mentioning
 import-test-result-log <path-to-log.jsonl>
 ```
 
-That replays the saved JSONL log as a single batch (no `--incremental`) and
-deletes the file when it lives under the system temp dir.
+That replays the saved JSONL log as a single batch and deletes the file when it
+lives under the system temp dir.
+
+Run the same command again if a replay is interrupted. Each upload records what
+it created in a tracking sidecar next to the log (`<log>.jsonl.tracking`), so a
+second run continues into the report the first one created and sends only what
+is missing, rather than leaving a duplicate report behind. A log that is already
+fully uploaded is a no-op.
+
+```bash
+# Upload as a new report instead, abandoning the partial one
+import-test-result-log --new-report <path-to-log.jsonl>
+```
+
+The existing sidecar is moved to `<log>.jsonl.tracking.bak` rather than
+overwritten, so the abandoned report's ID can still be looked up and cleaned up.
+
+Resuming needs the report the earlier attempt created to still exist. If it was
+deleted, or the sidecar came from a different environment, the command fails and
+names `--new-report` as the way forward.

@@ -105,7 +105,7 @@ so a misconfigured job fails immediately instead of silently producing no report
 During the run, every create and update is appended to a JSONL log file. 
 A background worker uploads new entries to Sift incrementally. 
 If the connection drops mid-test, the test keeps running and the log keeps writing locally. 
-The remaining entries can be uploaded afterward by running import-test-result-log, which the plugin prints on exit.
+The remaining entries can be uploaded afterward by running import-test-result-log, which the plugin prints on exit. That command resumes into the report the interrupted run created rather than starting a second one.
 
 See [Running Modes](running_modes.md) for the log-file and replay pipeline,
 overriding the connection check, and replaying a saved log.

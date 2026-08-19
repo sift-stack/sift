@@ -16,7 +16,9 @@ Three files per run:
   map. Written only by the replay subprocess via :meth:`LogTracking.save` using
   a temp-file + ``os.replace`` so a crash can't leave a half-written sidecar.
   Read once at replay start via :meth:`LogTracking.load`. Never touched by the
-  test process.
+  test process. Restarting an upload against a new report moves any existing
+  sidecar to ``foo.jsonl.tracking.bak`` (see :meth:`LogTracking.archive`) so the
+  abandoned report's ID stays recoverable.
 
 # Concurrency
 
@@ -108,6 +110,22 @@ class LogTracking:
         """Return the sidecar path for a given log file (``<log>.tracking``)."""
         p = Path(log_path)
         return p.with_name(p.name + ".tracking")
+
+    @staticmethod
+    def archive(log_path: str | Path) -> Path | None:
+        """Move an existing sidecar aside to ``<log>.tracking.bak``; return its new path.
+
+        Used when an upload is deliberately restarted against a new report. The
+        old sidecar still names the report the abandoned upload created, so it
+        is preserved rather than overwritten: without it that report is only
+        findable by hand. Returns None when there was nothing to move.
+        """
+        sidecar = LogTracking.sidecar_path(log_path)
+        if not sidecar.exists():
+            return None
+        backup = sidecar.with_name(sidecar.name + ".bak")
+        os.replace(sidecar, backup)
+        return backup
 
     @classmethod
     def load(cls, log_path: str | Path) -> LogTracking:
@@ -255,6 +273,15 @@ async def _read_log_lines(
             f"Timed out after {timeout}s acquiring the test-results log lock at "
             f"{lock_path}; another process or thread is holding it."
         ) from exc
+
+
+def count_data_lines(raw_lines: list[str]) -> int:
+    """Count the data lines in a snapshot, ignoring blanks.
+
+    The count is the upper bound for :attr:`LogTracking.last_uploaded_line`, so
+    a cursor that reaches it means the server is caught up with the whole log.
+    """
+    return sum(1 for raw_line in raw_lines if raw_line.strip())
 
 
 def parse_log_data_lines(

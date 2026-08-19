@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from sift_client import SiftClient, SiftConnectionConfig
+from sift_client._internal.low_level_wrappers._test_results_log import LogTracking
 from sift_client._internal.pytest_plugin.audit_log import log_event
 from sift_client.util.test_results.context_manager import log_replay_instructions
 
@@ -20,6 +21,23 @@ if TYPE_CHECKING:
     from sift_client._internal.low_level_wrappers.test_results import ReplayResult
 
 logger = logging.getLogger(__name__)
+
+
+def _describe_upload(log_file: str, new_report: bool) -> None:
+    """Say up front whether this run continues an upload or starts one.
+
+    The sidecar decides, so without this the same command can do two quite
+    different things with no way to tell which from the output.
+    """
+    tracking = LogTracking.load(log_file)
+    if new_report:
+        print(f"Uploading {log_file} as a new report.")
+    elif tracking.id_map:
+        print(
+            f"Resuming the interrupted upload of {log_file} ({len(tracking.id_map)} already uploaded)."
+        )
+    else:
+        print(f"Uploading {log_file}.")
 
 
 def _print_result(result: ReplayResult) -> None:
@@ -46,7 +64,7 @@ def _cleanup_temp_log(log_file: str) -> None:
     any audit files in one shot.
 
     Legacy flat-temp layout (file directly in tmpdir): only the JSONL and its
-    tracking sidecar are removed individually.
+    tracking sidecars are removed individually.
     """
     fp = Path(log_file).absolute()
     if not str(fp).startswith(tempfile.gettempdir()):
@@ -58,6 +76,7 @@ def _cleanup_temp_log(log_file: str) -> None:
         return
     fp.unlink(missing_ok=True)
     fp.with_name(fp.name + ".tracking").unlink(missing_ok=True)
+    fp.with_name(fp.name + ".tracking.bak").unlink(missing_ok=True)
     log_event(logger, logging.DEBUG, "replay.cleanup", log=str(fp))
 
 
@@ -98,6 +117,12 @@ def main() -> None:
         "--incremental", action="store_true", help="Import the log file incrementally."
     )
     parser.add_argument(
+        "--new-report",
+        action="store_true",
+        help="Ignore a partially uploaded report and upload the log as a new one. "
+        "By default an interrupted upload is resumed into the report it created.",
+    )
+    parser.add_argument(
         "--audit-log", default=None, help="Path to the replay worker's DEBUG audit log."
     )
     args = parser.parse_args()
@@ -124,11 +149,13 @@ def main() -> None:
     # The worker is spawned with --audit-log only when audit logging is on, so
     # its presence is the signal to retain the buffer after a clean upload.
     keep_log = bool(args.audit_log)
+    if not args.incremental:
+        _describe_upload(args.log_file, args.new_report)
     try:
         if args.incremental:
             result = _incremental_import_loop(client, args.log_file, keep_log=keep_log)
         else:
-            result = client.test_results.import_log_file(args.log_file)
+            result = client.test_results.import_log_file(args.log_file, new_report=args.new_report)
             if not keep_log:
                 _cleanup_temp_log(args.log_file)
     except Exception as e:
