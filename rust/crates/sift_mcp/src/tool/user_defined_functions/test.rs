@@ -66,7 +66,7 @@ fn version_list_params(
     Parameters(UserDefinedFunctionVersionListParams {
         user_defined_function_id: user_defined_function_id.map(str::to_string),
         name: name.map(str::to_string),
-        filter: None,
+        filter: String::new(),
         order_by: None,
         limit: None,
     })
@@ -156,7 +156,11 @@ async fn list_user_defined_functions_propagates_grpc_error() {
 async fn list_versions_returns_structured_rows() {
     let mut mock = MockUserDefinedFunctionServiceImpl::new();
     mock.expect_list_user_defined_function_versions()
-        .withf(|req| req.get_ref().user_defined_function_id == "f1")
+        // An empty `filter` lists every version; it is a required String, not an Option.
+        .withf(|req| {
+            let req = req.get_ref();
+            req.user_defined_function_id == "f1" && req.filter.is_empty()
+        })
         .returning(|_| {
             Ok(Response::new(ListUserDefinedFunctionVersionsResponse {
                 user_defined_functions: vec![UserDefinedFunction {
@@ -180,6 +184,36 @@ async fn list_versions_returns_structured_rows() {
     let versions = versions.as_array().expect("array");
     assert_eq!(versions.len(), 1);
     assert_eq!(versions[0]["userDefinedFunctionVersionId"], "v2");
+}
+
+#[tokio::test]
+async fn list_versions_forwards_the_required_filter() {
+    let mut mock = MockUserDefinedFunctionServiceImpl::new();
+    mock.expect_list_user_defined_function_versions()
+        .times(1)
+        .withf(|req| req.get_ref().filter == "version == 2")
+        .returning(|_| {
+            Ok(Response::new(ListUserDefinedFunctionVersionsResponse {
+                user_defined_functions: vec![UserDefinedFunction {
+                    version: 2,
+                    ..Default::default()
+                }],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let (server, _h) = server_with_mock(mock, false, false).await;
+
+    server
+        .list_user_defined_function_versions(Parameters(UserDefinedFunctionVersionListParams {
+            user_defined_function_id: Some("f1".into()),
+            name: None,
+            filter: "version == 2".into(),
+            order_by: None,
+            limit: None,
+        }))
+        .await
+        .expect("list_user_defined_function_versions failed");
 }
 
 #[tokio::test]
@@ -514,6 +548,44 @@ async fn unarchive_clears_the_archive_flag_and_reports_it() {
 
     let body = structured(resp);
     assert_eq!(body["unarchived"], true);
+}
+
+#[tokio::test]
+async fn create_rejects_the_proto_enum_spelling_of_data_type() {
+    // The description documents `numeric`, `string`, and `bool` only. Accepting
+    // the raw proto enum names as well would be undocumented behavior.
+    let mock = MockUserDefinedFunctionServiceImpl::new();
+    let (server, _h) = server_with_mock(mock, true, false).await;
+
+    let err = server
+        .create_user_defined_function(create_params(
+            "[{\"identifier\":\"x\",\"data_type\":\"FUNCTION_DATA_TYPE_NUMERIC\"}]",
+        ))
+        .await
+        .expect_err("expected the proto enum spelling to be rejected");
+
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+    assert!(
+        err.message
+            .contains("expected `numeric`, `string`, or `bool`")
+    );
+}
+
+#[tokio::test]
+async fn create_rejects_a_camel_case_data_type_key() {
+    // Only the documented `data_type` key is accepted.
+    let mock = MockUserDefinedFunctionServiceImpl::new();
+    let (server, _h) = server_with_mock(mock, true, false).await;
+
+    let err = server
+        .create_user_defined_function(create_params(
+            "[{\"identifier\":\"x\",\"dataType\":\"numeric\"}]",
+        ))
+        .await
+        .expect_err("expected a camelCase key to be rejected");
+
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+    assert!(err.message.contains("`function_inputs_json`"));
 }
 
 #[tokio::test]
