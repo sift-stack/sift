@@ -181,11 +181,8 @@ impl Environment {
                 let command_exists = commands
                     .iter()
                     .any(|command| self.command_available(command));
-                // A config directory counts as detection even without the
-                // client binary on PATH, so headless environments (container
-                // builds, CI) can install the skill: skill installation is
-                // plain file IO, and a registration that needs the client's
-                // own CLI is skipped with a warning instead of failing.
+                // A config directory alone counts, so headless environments
+                // without client binaries still install the skill.
                 let detected = command_exists || config_dir.exists();
                 detected.then_some(harness)
             })
@@ -446,9 +443,7 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
                 blocked = true;
             }
             config::State::Unavailable(detail) => {
-                // The client's own CLI is missing (headless image, uninstalled
-                // client with a leftover config directory). Nothing about the
-                // Sift setup is broken, so report it without failing doctor.
+                // A missing client binary is not a broken Sift setup.
                 println!(
                     "{} {} MCP registration not inspectable: {detail}",
                     warning_status(),
@@ -730,9 +725,8 @@ fn install_environment(
     spinner.set_message(format!("{} Sift MCP and skills...", "Installing".green()));
 
     let mut targets = skill::targets(environment);
-    // An explicit --path receives the skill in addition to the detected
-    // clients. An empty harness list marks it as caller-requested; skip it
-    // when a detected client already installs to the same directory.
+    // Empty harnesses marks the caller-requested --path target; drop it when
+    // a detected client already installs to the same directory.
     if let Some(path) = extra_skill_path
         && !targets.iter().any(|target| target.path == path)
     {
@@ -751,9 +745,8 @@ fn install_environment(
             ));
         }
     }
-    // A harness whose registration is unavailable (its own CLI is not on
-    // PATH) still gets the skill: skill installation is plain file IO. Only
-    // the MCP registration is skipped, with a warning below.
+    // Unavailable means the client's own CLI is missing; the skill still
+    // installs and only the registration is skipped, with a warning below.
     let mut registrable = Vec::new();
     let mut skipped = Vec::new();
     for harness in &environment.harnesses {
@@ -1022,8 +1015,7 @@ async fn check_release() -> bool {
     }
 }
 
-/// Like `harness_labels`, but names a target with no harnesses behind it:
-/// a skill directory the caller requested explicitly via `--path`.
+/// `harness_labels`, with a name for the caller-requested `--path` target.
 fn target_label(harnesses: &[Harness]) -> String {
     if harnesses.is_empty() {
         "requested --path".to_string()

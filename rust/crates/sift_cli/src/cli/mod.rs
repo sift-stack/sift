@@ -147,9 +147,8 @@ pub struct AgentInstallArgs {
     #[arg(long)]
     pub disable_update_check: bool,
 
-    /// Also install the agent skill into this directory, in addition to every
-    /// detected client. The directory receives SKILL.md and references/
-    /// directly; rerun with the same --path to refresh it.
+    /// Install the agent skill into this directory too, even when no clients
+    /// are detected. Rerun with the same --path to refresh it.
     #[arg(long, value_name = "DIR")]
     pub path: Option<std::path::PathBuf>,
 }
