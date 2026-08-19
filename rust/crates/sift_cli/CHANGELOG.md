@@ -20,7 +20,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   the agent skill into the named directory in addition to every detected
   client, for image builds and other environments that package the skill at a
   fixed location. The directory receives `SKILL.md` and `references/`
-  directly; rerun with the same `--path` to refresh it.
+  directly; rerun with the same `--path` to refresh it. Without `--path`, the
+  skill installs only to the default locations for detected clients.
 
 ## [v0.4.1] - August 10, 2026
 
