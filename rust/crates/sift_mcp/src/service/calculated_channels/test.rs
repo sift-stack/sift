@@ -1126,7 +1126,11 @@ async fn resolve_calculated_channels_builds_lookup_and_resolve_requests() {
                     _ => String::new(),
                 })
                 .collect::<Vec<_>>();
-            let assets = match requests[0].assets.as_ref().and_then(|a| a.resources.as_ref()) {
+            let assets = match requests[0]
+                .assets
+                .as_ref()
+                .and_then(|a| a.resources.as_ref())
+            {
                 Some(Resources::Ids(ids)) => ids.ids.clone(),
                 _ => Vec::new(),
             };
@@ -1149,16 +1153,15 @@ async fn resolve_calculated_channels_builds_lookup_and_resolve_requests() {
                     resolved: vec![ResolvedCalculatedChannel {
                         asset_name: "bench".into(),
                         asset_id: "asset-1".into(),
-                        expression_request: Some(expression_request(
-                            "$1 * 2",
-                            &format!("ch-{i}"),
-                        )),
+                        expression_request: Some(expression_request("$1 * 2", &format!("ch-{i}"))),
                         output_data_type: 0,
                     }],
                     unresolved: vec![],
                 })
                 .collect();
-            Ok(Response::new(BatchResolveCalculatedChannelsResponse { responses }))
+            Ok(Response::new(BatchResolveCalculatedChannelsResponse {
+                responses,
+            }))
         });
 
     let (service, _h) = service_with_mock(mock).await;
@@ -1181,7 +1184,6 @@ async fn resolve_calculated_channels_builds_lookup_and_resolve_requests() {
             .collect::<Vec<_>>(),
         vec!["thrust_margin", "chamber_delta"],
     );
-    assert_eq!(resolution.resolved[0].asset_name, "bench");
     assert_eq!(
         resolution.resolved[0]
             .expression_request
@@ -1397,7 +1399,10 @@ async fn resolve_calculated_channels_propagates_grpc_error() {
         .await
         .expect_err("expected the gRPC error to propagate");
 
-    assert!(err.to_string().contains("failed to resolve calculated channels"));
+    assert!(
+        err.to_string()
+            .contains("failed to resolve calculated channels")
+    );
 }
 
 /// A response count that does not line up with the requests would silently

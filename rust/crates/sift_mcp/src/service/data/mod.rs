@@ -31,7 +31,7 @@ use sift_rs::{
         BytesValues, CalculatedChannelQuery, ChannelQuery, DoubleValue, DoubleValues, EnumValue,
         EnumValues, FloatValue, FloatValues, GetDataRequest, GetDataResponse, Int32Value,
         Int32Values, Int64Value, Int64Values, Query, StringValue, StringValues, Uint32Value,
-        Uint32Values, Uint64Value, Uint64Values, data_service_client::DataServiceClient,
+        Uint32Values, Uint64Value, Uint64Values, data_service_client::DataServiceClient, metadata,
         query::Query as QueryKind,
     },
     runs::v2::Run,
@@ -49,6 +49,17 @@ mod test;
 const ROW_FLUSH_THRESHOLD: usize = 1_000_000;
 const SIZE_FLUSH_THRESHOLD: usize = 64 << 20;
 
+/// The column label for a returned channel page. A calculated channel page
+/// carries no channel name and puts the query's channel key in `channel_id`, so
+/// fall back to that key rather than emitting an unlabelled column.
+fn column_label(channel: &metadata::Channel) -> &str {
+    if channel.name.is_empty() {
+        &channel.channel_id
+    } else {
+        &channel.name
+    }
+}
+
 #[derive(Clone)]
 pub struct DataService {
     channel: SiftChannel,
@@ -62,6 +73,13 @@ pub enum ChannelInput {
         name: String,
         input_channels: Vec<(String, Channel)>,
         expression: String,
+    },
+    /// A saved calculated channel already resolved against the target asset.
+    /// The expression and its references come from the API's resolution, so
+    /// references to other calculated channels survive intact.
+    SavedCalculation {
+        channel_key: String,
+        expression_request: Box<ExpressionRequest>,
     },
 }
 
@@ -252,6 +270,18 @@ impl DataService {
                         })),
                     }
                 }
+                ChannelInput::SavedCalculation {
+                    channel_key,
+                    expression_request,
+                } => Query {
+                    query: Some(QueryKind::CalculatedChannel(CalculatedChannelQuery {
+                        channel_key: channel_key.clone(),
+                        expression: Some((**expression_request).clone()),
+                        run_id: run_id.clone(),
+                        mode: Some(ExpressionMode::CalculatedChannels.into()),
+                        combine_run_data: Some(false),
+                    })),
+                },
             })
             .collect::<Vec<_>>();
 
@@ -309,10 +339,11 @@ impl DataService {
                             bail!("unexpected missing channel from metadata");
                         };
 
-                        let column_name = ColumnName::builder(&channel.name, &channel.channel_id)
-                            .run(run_id.as_deref())
-                            .units(channel.unit.as_ref().map(|u| u.name.as_str()))
-                            .build();
+                        let column_name =
+                            ColumnName::builder(column_label(&channel), &channel.channel_id)
+                                .run(run_id.as_deref())
+                                .units(channel.unit.as_ref().map(|u| u.name.as_str()))
+                                .build();
 
                         let values = values
                             .into_iter()
@@ -365,10 +396,11 @@ impl DataService {
                         let enum_config_md = serde_json::to_string(&channel.enum_types)
                             .context("failed to serialize enum config to JSON")?;
 
-                        let column_name = ColumnName::builder(&channel.name, &channel.channel_id)
-                            .run(run_id.as_deref())
-                            .units(channel.unit.as_ref().map(|u| u.name.as_str()))
-                            .build();
+                        let column_name =
+                            ColumnName::builder(column_label(&channel), &channel.channel_id)
+                                .run(run_id.as_deref())
+                                .units(channel.unit.as_ref().map(|u| u.name.as_str()))
+                                .build();
 
                         let values = values
                             .into_iter()
@@ -425,7 +457,7 @@ impl DataService {
 
                         for BitFieldElementValues { name, values } in values {
                             let column_name =
-                                ColumnName::builder(&channel.name, &channel.channel_id)
+                                ColumnName::builder(column_label(&channel), &channel.channel_id)
                                     .bit_field_element(Some(&name))
                                     .run(run_id.as_deref())
                                     .units(channel.unit.as_ref().map(|u| u.name.as_str()))
@@ -473,10 +505,11 @@ impl DataService {
                             bail!("unexpected missing channel from metadata");
                         };
 
-                        let column_name = ColumnName::builder(&channel.name, &channel.channel_id)
-                            .run(run_id.as_deref())
-                            .units(channel.unit.as_ref().map(|u| u.name.as_str()))
-                            .build();
+                        let column_name =
+                            ColumnName::builder(column_label(&channel), &channel.channel_id)
+                                .run(run_id.as_deref())
+                                .units(channel.unit.as_ref().map(|u| u.name.as_str()))
+                                .build();
 
                         let values = values
                             .into_iter()
@@ -519,10 +552,11 @@ impl DataService {
                             bail!("unexpected missing channel from metadata");
                         };
 
-                        let column_name = ColumnName::builder(&channel.name, &channel.channel_id)
-                            .run(run_id.as_deref())
-                            .units(channel.unit.as_ref().map(|u| u.name.as_str()))
-                            .build();
+                        let column_name =
+                            ColumnName::builder(column_label(&channel), &channel.channel_id)
+                                .run(run_id.as_deref())
+                                .units(channel.unit.as_ref().map(|u| u.name.as_str()))
+                                .build();
 
                         let values = values
                             .into_iter()
@@ -565,10 +599,11 @@ impl DataService {
                             bail!("unexpected missing channel from metadata");
                         };
 
-                        let column_name = ColumnName::builder(&channel.name, &channel.channel_id)
-                            .run(run_id.as_deref())
-                            .units(channel.unit.as_ref().map(|u| u.name.as_str()))
-                            .build();
+                        let column_name =
+                            ColumnName::builder(column_label(&channel), &channel.channel_id)
+                                .run(run_id.as_deref())
+                                .units(channel.unit.as_ref().map(|u| u.name.as_str()))
+                                .build();
 
                         let values = values
                             .into_iter()
@@ -611,10 +646,11 @@ impl DataService {
                             bail!("unexpected missing channel from metadata");
                         };
 
-                        let column_name = ColumnName::builder(&channel.name, &channel.channel_id)
-                            .run(run_id.as_deref())
-                            .units(channel.unit.as_ref().map(|u| u.name.as_str()))
-                            .build();
+                        let column_name =
+                            ColumnName::builder(column_label(&channel), &channel.channel_id)
+                                .run(run_id.as_deref())
+                                .units(channel.unit.as_ref().map(|u| u.name.as_str()))
+                                .build();
 
                         let values = values
                             .into_iter()
@@ -657,10 +693,11 @@ impl DataService {
                             bail!("unexpected missing channel from metadata");
                         };
 
-                        let column_name = ColumnName::builder(&channel.name, &channel.channel_id)
-                            .run(run_id.as_deref())
-                            .units(channel.unit.as_ref().map(|u| u.name.as_str()))
-                            .build();
+                        let column_name =
+                            ColumnName::builder(column_label(&channel), &channel.channel_id)
+                                .run(run_id.as_deref())
+                                .units(channel.unit.as_ref().map(|u| u.name.as_str()))
+                                .build();
 
                         let values = values
                             .into_iter()
@@ -703,10 +740,11 @@ impl DataService {
                             bail!("unexpected missing channel from metadata");
                         };
 
-                        let column_name = ColumnName::builder(&channel.name, &channel.channel_id)
-                            .run(run_id.as_deref())
-                            .units(channel.unit.as_ref().map(|u| u.name.as_str()))
-                            .build();
+                        let column_name =
+                            ColumnName::builder(column_label(&channel), &channel.channel_id)
+                                .run(run_id.as_deref())
+                                .units(channel.unit.as_ref().map(|u| u.name.as_str()))
+                                .build();
 
                         let values = values
                             .into_iter()
@@ -749,10 +787,11 @@ impl DataService {
                             bail!("unexpected missing channel from metadata");
                         };
 
-                        let column_name = ColumnName::builder(&channel.name, &channel.channel_id)
-                            .run(run_id.as_deref())
-                            .units(channel.unit.as_ref().map(|u| u.name.as_str()))
-                            .build();
+                        let column_name =
+                            ColumnName::builder(column_label(&channel), &channel.channel_id)
+                                .run(run_id.as_deref())
+                                .units(channel.unit.as_ref().map(|u| u.name.as_str()))
+                                .build();
 
                         let values = values
                             .into_iter()
@@ -795,10 +834,11 @@ impl DataService {
                             bail!("unexpected missing channel from metadata");
                         };
 
-                        let column_name = ColumnName::builder(&channel.name, &channel.channel_id)
-                            .run(run_id.as_deref())
-                            .units(channel.unit.as_ref().map(|u| u.name.as_str()))
-                            .build();
+                        let column_name =
+                            ColumnName::builder(column_label(&channel), &channel.channel_id)
+                                .run(run_id.as_deref())
+                                .units(channel.unit.as_ref().map(|u| u.name.as_str()))
+                                .build();
 
                         let values = values
                             .into_iter()

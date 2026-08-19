@@ -102,7 +102,6 @@ pub struct CalculatedChannelWrite {
 pub struct ResolvedCalculation {
     /// The name the caller asked for; also the data query's channel key.
     pub name: String,
-    pub asset_name: String,
     pub expression_request: ExpressionRequest,
 }
 
@@ -124,8 +123,7 @@ pub struct CalculationResolution {
 }
 
 const UNKNOWN_NAME_REASON: &str = "no active saved calculated channel has this name";
-const INAPPLICABLE_REASON: &str =
-    "does not apply to this asset: the asset is outside its asset scope or lacks a channel its \
+const INAPPLICABLE_REASON: &str = "does not apply to this asset: the asset is outside its asset scope or lacks a channel its \
      expression references";
 
 #[derive(Clone)]
@@ -404,7 +402,6 @@ impl CalculatedChannelService {
                     };
                     resolved.push(ResolvedCalculation {
                         name,
-                        asset_name: entry.asset_name,
                         expression_request,
                     });
                 }
