@@ -305,6 +305,8 @@ impl SiftMcpServer {
         // A raw channel wins a name it shares with a saved calculated channel;
         // only names with no raw channel go on to calculated-channel resolution.
         // A regex selection carries no per-name expectation, so it contributes none.
+        // Repeats are dropped: two queries sharing a channel key merge into one
+        // column, which duplicates timestamps in the output.
         let unmatched_names = requested_names
             .map(|names| {
                 let matched = channels
@@ -312,12 +314,16 @@ impl SiftMcpServer {
                     .map(|c| c.name.as_str())
                     .collect::<HashSet<_>>();
 
-                names
-                    .into_iter()
-                    .filter(|name| !matched.contains(name.as_str()))
-                    .collect::<Vec<_>>()
+                let mut unmatched = Vec::<String>::new();
+                for name in names {
+                    if !matched.contains(name.as_str()) && !unmatched.contains(&name) {
+                        unmatched.push(name);
+                    }
+                }
+                unmatched
             })
             .unwrap_or_default();
+
 
         if channels.is_empty() && unmatched_names.is_empty() {
             return Err(ErrorData::resource_not_found(
@@ -426,7 +432,16 @@ impl SiftMcpServer {
                 let empty_channels = err
                     .downcast_ref::<NoChannelData>()
                     .map(|no_data| no_data.empty_channels.clone());
-                let mut error = from_anyhow(err.context("get data call failure - data_router"));
+                let err = err.context("get data call failure - data_router");
+                // A failure here says nothing about channels that were never
+                // queried, so carry the report into it. Otherwise an empty window
+                // reads as "the asset has no data" when part of the request never
+                // resolved.
+                let err = match unresolved_report.as_ref() {
+                    Some(report) => err.context(report.clone()),
+                    None => err,
+                };
+                let mut error = from_anyhow(err);
                 error.data = gap_report(empty_channels, &unmatched_channel_names);
                 return Err(error);
             }
