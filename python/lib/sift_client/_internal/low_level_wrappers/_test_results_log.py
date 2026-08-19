@@ -92,17 +92,26 @@ class LogTracking:
     file itself is append-only and stores only API-call data lines.
 
     * ``last_uploaded_line`` is the count of data lines that have been
-      successfully replayed against the server. Each data line corresponds to a
-      single API call, so line granularity matches the atomic unit of work: a
-      line is either fully replayed or must be retried in its entirety. Data
-      lines are strictly append-only, so this counter is stable across runs.
+      successfully replayed against the server, in log order. Each data line
+      corresponds to a single API call, so line granularity matches the atomic
+      unit of work: a line is either fully replayed or must be retried in its
+      entirety. Data lines are strictly append-only, so this counter is stable
+      across runs. A batch upload creates in collapsed order rather than log
+      order and so leaves it at zero; ``complete`` is what marks that upload
+      finished.
     * ``id_map`` maps simulated response IDs (created during the original test
       run) to the real IDs assigned by the server during replay. Subsequent
-      ``Update*`` entries consult this map to translate IDs.
+      ``Update*`` entries consult this map to translate IDs, and a resumed
+      replay uses it to skip the creates that already reached the server.
+    * ``complete`` marks the whole log as uploaded, so a stray re-run does
+      nothing instead of replaying a finished upload. Sidecars written before
+      this field existed default to False and are treated as resumable, which
+      costs a no-op walk at worst.
     """
 
     last_uploaded_line: int = 0
     id_map: dict[str, str] = field(default_factory=dict)
+    complete: bool = False
     client_version: str = field(default_factory=_client_version)
 
     @staticmethod
@@ -110,6 +119,12 @@ class LogTracking:
         """Return the sidecar path for a given log file (``<log>.tracking``)."""
         p = Path(log_path)
         return p.with_name(p.name + ".tracking")
+
+    @staticmethod
+    def backup_path(log_path: str | Path) -> Path:
+        """Return where a sidecar is kept when an upload is restarted (``<log>.tracking.bak``)."""
+        sidecar = LogTracking.sidecar_path(log_path)
+        return sidecar.with_name(sidecar.name + ".bak")
 
     @staticmethod
     def archive(log_path: str | Path) -> Path | None:
@@ -123,7 +138,7 @@ class LogTracking:
         sidecar = LogTracking.sidecar_path(log_path)
         if not sidecar.exists():
             return None
-        backup = sidecar.with_name(sidecar.name + ".bak")
+        backup = LogTracking.backup_path(log_path)
         os.replace(sidecar, backup)
         return backup
 
@@ -144,6 +159,7 @@ class LogTracking:
         return cls(
             last_uploaded_line=data.get("lastUploadedLine", 0),
             id_map=data.get("idMap", {}),
+            complete=data.get("complete", False),
             client_version=data.get("clientVersion", "unknown"),
         )
 
@@ -159,6 +175,7 @@ class LogTracking:
             {
                 "clientVersion": self.client_version,
                 "lastUploadedLine": self.last_uploaded_line,
+                "complete": self.complete,
                 "idMap": self.id_map,
             },
             separators=(",", ":"),
@@ -273,15 +290,6 @@ async def _read_log_lines(
             f"Timed out after {timeout}s acquiring the test-results log lock at "
             f"{lock_path}; another process or thread is holding it."
         ) from exc
-
-
-def count_data_lines(raw_lines: list[str]) -> int:
-    """Count the data lines in a snapshot, ignoring blanks.
-
-    The count is the upper bound for :attr:`LogTracking.last_uploaded_line`, so
-    a cursor that reaches it means the server is caught up with the whole log.
-    """
-    return sum(1 for raw_line in raw_lines if raw_line.strip())
 
 
 def parse_log_data_lines(

@@ -46,7 +46,6 @@ from sift_client._internal.low_level_wrappers._test_results_log import (
     ReplayResult,
     _read_log_lines,
     _ReplayState,
-    count_data_lines,
     log_request_to_file,
     parse_log_data_lines,
 )
@@ -73,6 +72,12 @@ logger = logging.getLogger(__name__)
 
 
 _EntityT = TypeVar("_EntityT", TestReport, TestStep, TestMeasurement)
+
+# Create entries a resumed replay can skip outright once the sidecar id map
+# names them. CreateTestMeasurements is absent on purpose: one line covers many
+# measurements, of which an interrupted run may have created only some, so that
+# handler filters per measurement instead.
+_WHOLE_ENTRY_CREATES = frozenset({"CreateTestReport", "CreateTestStep", "CreateTestMeasurement"})
 
 
 class _EntryIds(NamedTuple):
@@ -959,15 +964,21 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         Raises:
             FileNotFoundError: If the log file does not exist.
-            ValueError: If a resume cannot find the report the earlier attempt
-                created, which happens when it was deleted or was uploaded to a
-                different environment.
+            ValueError: If both ``incremental`` and ``new_report`` are set, or if
+                a resume cannot find the report the earlier attempt created,
+                which happens when it was deleted or was uploaded to a different
+                environment.
         """
         log_path = Path(log_file)
         if not log_path.exists():
             raise FileNotFoundError(f"Log file not found: {log_file}")
 
         if incremental:
+            if new_report:
+                raise ValueError(
+                    "incremental and new_report are mutually exclusive: incremental replay "
+                    "continues whatever the sidecar records, which is what new_report discards."
+                )
             return await self._incremental_import_log_file(log_path)
 
         if new_report:
@@ -977,15 +988,13 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             return await self._batch_import_log_file(log_path)
 
         tracking = LogTracking.load(log_path)
+        if tracking.complete:
+            log_event(logger, logging.INFO, "replay.already_complete", log=str(log_path))
+            return ReplayResult()
         if not tracking.id_map:
             return await self._batch_import_log_file(log_path)
 
-        raw_lines = await _read_log_lines(log_path)
-        if tracking.last_uploaded_line >= count_data_lines(raw_lines):
-            log_event(logger, logging.INFO, "replay.already_complete", log=str(log_path))
-            return ReplayResult()
-
-        existing_report = await self._resume_report(log_path, tracking, raw_lines)
+        existing_report = await self._resume_report(log_path, tracking)
         log_event(
             logger,
             logging.INFO,
@@ -994,20 +1003,20 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             report=existing_report._id_or_error,
             uploaded=len(tracking.id_map),
         )
-        return await self._incremental_import_log_file(log_path, existing_report=existing_report)
+        result = await self._incremental_import_log_file(log_path, resuming=True)
+        # The report was created by the interrupted run, so replay never sees a
+        # create line for it; name it here so callers can still link the report.
+        result.report = result.report or existing_report
+        return result
 
-    async def _resume_report(
-        self,
-        log_path: Path,
-        tracking: LogTracking,
-        raw_lines: list[str],
-    ) -> TestReport:
+    async def _resume_report(self, log_path: Path, tracking: LogTracking) -> TestReport:
         """Fetch the report a partial upload created, so replay continues into it.
 
         Fetching up front turns a report that was deleted, or a sidecar carried
         to a different environment, into one clear failure before anything is
         uploaded, rather than a bare NOT_FOUND partway through the replay.
         """
+        raw_lines = await _read_log_lines(log_path)
         logged_report_id = next(
             (
                 response_id
@@ -1016,7 +1025,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             ),
             None,
         )
-        real_report_id = tracking.id_map.get(logged_report_id or "")
+        real_report_id = tracking.id_map.get(logged_report_id) if logged_report_id else None
         sidecar = LogTracking.sidecar_path(log_path)
         if not real_report_id:
             raise ValueError(
@@ -1026,6 +1035,8 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         try:
             return await self.get_test_report(real_report_id)
         except RpcError as exc:
+            # RpcError itself carries no status; only the Call subclasses the
+            # channel actually raises do, and the async ones are not grpc.Call.
             code = getattr(exc, "code", lambda: None)()
             if code != StatusCode.NOT_FOUND:
                 raise
@@ -1072,31 +1083,19 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         handler = handlers.get(request_type)
         if handler is None:
             return _EntryIds()
+        if not simulate and request_type in _WHOLE_ENTRY_CREATES and response_id in id_map:
+            # A resumed replay walks the log from the first line, so every create
+            # an interrupted run completed is already in the sidecar id map.
+            # Re-issuing it would duplicate the entity, which is the outcome
+            # resuming exists to avoid. Skipping here rather than inside each
+            # handler keeps a new create type resume-safe by default.
+            return _EntryIds(response_id, id_map[response_id], skipped=True)
         return await handler(json_str, response_id, simulate=simulate, id_map=id_map, state=state)
 
     @staticmethod
     def _map_id(id_map: dict[str, str], sid: str) -> str:
         """Translate a simulated ID to its real counterpart, or return *sid* unchanged."""
         return id_map.get(sid, sid)
-
-    @staticmethod
-    def _already_created(
-        id_map: dict[str, str],
-        response_id: str | None,
-        *,
-        simulate: bool,
-    ) -> str | None:
-        """Real ID for a create entry an earlier run already sent, if any.
-
-        A resumed replay walks the log from the first line, so every create the
-        interrupted run completed is already recorded in the sidecar id map.
-        Re-issuing those calls would duplicate the entities, which is the
-        outcome resuming exists to avoid. Simulation builds its own map from
-        scratch each pass, so it never skips.
-        """
-        if simulate or not response_id:
-            return None
-        return id_map.get(response_id)
 
     async def _replay_create_report(
         self,
@@ -1107,11 +1106,6 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         id_map: dict[str, str],
         state: _ReplayState,
     ) -> _EntryIds:
-        already_created = self._already_created(id_map, response_id, simulate=simulate)
-        if already_created:
-            # The report exists from an earlier run; state.report is seeded by
-            # the caller so later updates still have something to merge into.
-            return _EntryIds(response_id, already_created, skipped=True)
         request = CreateTestReportRequest()
         json_format.Parse(json_str, request)
         state.report = await self.create_test_report(request=request, simulate=simulate)
@@ -1128,9 +1122,6 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         id_map: dict[str, str],
         state: _ReplayState,
     ) -> _EntryIds:
-        already_created = self._already_created(id_map, response_id, simulate=simulate)
-        if already_created:
-            return _EntryIds(response_id, already_created, skipped=True)
         request = CreateTestStepRequest()
         json_format.Parse(json_str, request)
         request.test_step.test_report_id = self._map_id(id_map, request.test_step.test_report_id)
@@ -1154,9 +1145,6 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         id_map: dict[str, str],
         state: _ReplayState,
     ) -> _EntryIds:
-        already_created = self._already_created(id_map, response_id, simulate=simulate)
-        if already_created:
-            return _EntryIds(response_id, already_created, skipped=True)
         request = CreateTestMeasurementRequest()
         json_format.Parse(json_str, request)
         request.test_measurement.test_step_id = self._map_id(
@@ -1198,26 +1186,22 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             # Batch replay creates measurements one at a time, so an interrupted
             # run can leave part of a batch line already on the server. Re-sending
             # the whole line would duplicate those, so send only what is missing.
-            pending_indices = [
-                i
-                for i in range(len(request.test_measurements))
-                if not self._already_created(
-                    id_map,
-                    original_ids[i] if i < len(original_ids) else None,
-                    simulate=simulate,
+            pending: list[tuple[str | None, TestMeasurementProto]] = []
+            for i, tm in enumerate(request.test_measurements):
+                logged_id = original_ids[i] if i < len(original_ids) else None
+                if logged_id and logged_id in id_map:
+                    continue
+                pending.append((logged_id, tm))
+            real_ids: list[str] = []
+            if pending:
+                _, real_ids = await self.create_test_measurements(
+                    request=CreateTestMeasurementsRequest(
+                        test_measurements=[tm for _, tm in pending]
+                    )
                 )
-            ]
-            pending_request = CreateTestMeasurementsRequest()
-            pending_request.test_measurements.extend(
-                request.test_measurements[i] for i in pending_indices
-            )
-            real_ids = []
-            if pending_request.test_measurements:
-                _, real_ids = await self.create_test_measurements(request=pending_request)
-            for position, real_id in enumerate(real_ids):
-                i = pending_indices[position]
-                if i < len(original_ids):
-                    id_map[original_ids[i]] = real_id
+            for (logged_id, _), real_id in zip(pending, real_ids):
+                if logged_id:
+                    id_map[logged_id] = real_id
                 created_ids.append(real_id)
         # Batch line covers many measurements; comma-join both sides so the
         # audit row still names every entity (fields are space-free, so commas
@@ -1328,21 +1312,25 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if state.report is None:
             raise ValueError("No CreateTestReport found in log file")
 
-        # The simulate pass maps each logged response ID to a fresh simulated ID,
-        # and the collapsed entities are keyed by those simulated IDs. Inverting
-        # it recovers the logged ID to record a created entity under, which is
-        # the key a later resume looks it up by. The values are uuid4, so the
-        # inversion cannot collide.
+        # Collapsed entities are keyed by the simulate pass's own IDs, while the
+        # sidecar is keyed by the logged response IDs a resume looks entities up
+        # by, so invert the map the pass just built.
         logged_by_simulated = {simulated: logged for logged, simulated in id_map.items()}
+        real_id_map: dict[str, str] = {}
 
         def record_created(simulated_id: str, real_id: str) -> None:
+            """Note a real entity against both the in-run map and the sidecar.
+
+            The sidecar is saved per entity so an upload interrupted at any point
+            is resumable. That is one small atomic rewrite per created entity;
+            the incremental path already pays the same cost per log line.
+            """
+            real_id_map[simulated_id] = real_id
             logged_id = logged_by_simulated.get(simulated_id)
             if not logged_id:
                 return
             tracking.id_map[logged_id] = real_id
             tracking.save(log_path)
-
-        real_id_map: dict[str, str] = {}
 
         real_report = await self._create_report_from_simulated(state.report)
         real_report_id = real_report._id_or_error
@@ -1361,7 +1349,6 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             )
             real_step = await self.create_test_step(step_create)
             real_steps.append(real_step)
-            real_id_map[sim_step_id] = real_step._id_or_error
             record_created(sim_step_id, real_step._id_or_error)
 
         real_measurements: list[TestMeasurement] = []
@@ -1377,10 +1364,10 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             real_measurements.append(real_measurement)
             record_created(sim_measurement_id, real_measurement._id_or_error)
 
-        # Everything in the log reached the server, so park the cursor at the end
-        # of the log. A later run sees a caught-up sidecar and does nothing rather
-        # than replaying a finished upload.
-        tracking.last_uploaded_line = count_data_lines(raw_lines)
+        # Everything in the log reached the server. The cursor stays at zero
+        # because batch created in collapsed order, not log order; the flag is
+        # what stops a later run from replaying a finished upload.
+        tracking.complete = True
         tracking.save(log_path)
 
         return ReplayResult(
@@ -1396,7 +1383,8 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     async def _incremental_import_log_file(
         self,
         log_path: Path,
-        existing_report: TestReport | None = None,
+        *,
+        resuming: bool = False,
     ) -> ReplayResult:
         """Replay line-by-line, issuing real API calls and updating tracking.
 
@@ -1411,13 +1399,18 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         since it creates in collapsed order rather than log order. Finishing one
         therefore re-walks the log from the first line, and the create entries it
         already sent are skipped by their sidecar id-map entry instead of the
-        cursor. ``existing_report`` is that upload's report, passed in so updates
-        have something to merge into and the result names the report.
+        cursor.
+
+        ``resuming`` says the log is final and this call is finishing an earlier
+        upload: the create line for the report was consumed by that upload, so
+        its absence is not an error, and reaching the end marks the sidecar
+        complete. The live worker leaves it False, since for a log still being
+        written the end of the file is not the end of the run.
         """
         tracking = LogTracking.load(log_path)
-        resuming = tracking.last_uploaded_line > 0 or existing_report is not None
+        resuming = resuming or tracking.last_uploaded_line > 0
         id_map = tracking.id_map
-        state = _ReplayState(report=existing_report)
+        state = _ReplayState()
 
         raw_lines = await _read_log_lines(log_path)
         for request_type, response_id, json_str in parse_log_data_lines(
@@ -1470,6 +1463,12 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         # on the server. Only a genuine first pass over an empty log is an error.
         if state.report is None and not resuming:
             raise ValueError("No CreateTestReport found in log file")
+
+        if resuming:
+            # The log is final and the walk reached its end, so the upload is
+            # done; a stray re-run now does nothing instead of replaying it.
+            tracking.complete = True
+            tracking.save(log_path)
 
         return ReplayResult(
             report=state.report,

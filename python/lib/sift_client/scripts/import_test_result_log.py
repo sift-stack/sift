@@ -26,15 +26,21 @@ logger = logging.getLogger(__name__)
 def _describe_upload(log_file: str, new_report: bool) -> None:
     """Say up front whether this run continues an upload or starts one.
 
-    The sidecar decides, so without this the same command can do two quite
-    different things with no way to tell which from the output.
+    The sidecar decides, so without this the same command can do several quite
+    different things with no way to tell which from the output. The branches
+    read the same recorded state the importer routes on, so the two cannot
+    drift into disagreeing about what is about to happen.
     """
-    tracking = LogTracking.load(log_file)
     if new_report:
         print(f"Uploading {log_file} as a new report.")
+        return
+    tracking = LogTracking.load(log_file)
+    if tracking.complete:
+        print(f"{log_file} is already fully uploaded; nothing to do.")
     elif tracking.id_map:
         print(
-            f"Resuming the interrupted upload of {log_file} ({len(tracking.id_map)} already uploaded)."
+            f"Resuming the interrupted upload of {log_file} "
+            f"({len(tracking.id_map)} already uploaded)."
         )
     else:
         print(f"Uploading {log_file}.")
@@ -75,8 +81,8 @@ def _cleanup_temp_log(log_file: str) -> None:
         log_event(logger, logging.DEBUG, "replay.cleanup", log=str(fp), dir=str(session_dir))
         return
     fp.unlink(missing_ok=True)
-    fp.with_name(fp.name + ".tracking").unlink(missing_ok=True)
-    fp.with_name(fp.name + ".tracking.bak").unlink(missing_ok=True)
+    LogTracking.sidecar_path(fp).unlink(missing_ok=True)
+    LogTracking.backup_path(fp).unlink(missing_ok=True)
     log_event(logger, logging.DEBUG, "replay.cleanup", log=str(fp))
 
 
@@ -126,6 +132,11 @@ def main() -> None:
         "--audit-log", default=None, help="Path to the replay worker's DEBUG audit log."
     )
     args = parser.parse_args()
+
+    if args.incremental and args.new_report:
+        # The worker's incremental mode continues whatever the sidecar records,
+        # which is what --new-report discards.
+        parser.error("--incremental and --new-report cannot be used together")
 
     if args.audit_log:
         from sift_client._internal.pytest_plugin.audit_log import attach_file_handler

@@ -268,32 +268,35 @@ async def _build_log(client, log_file, *, step_names=("s1", "s2")):
     return report, steps
 
 
-def _answer_real_creates(client, *, report_id, step_ids):
+def _answer_real_creates(client, *, report_id, step_ids=(), measurement_ids=()):
     """Answer the real create calls with canned IDs, leaving simulation alone.
 
     Batch replay drives its in-memory collapse through the same create methods
     with ``simulate=True``, so a blanket mock would swallow those too. Returns
-    the list that records each real create, in order.
+    the list that records the name of each real create, in order; the report is
+    recorded as ``"report"`` since a report create carries no step name.
     """
-    real_create_report = client.create_test_report
-    real_create_step = client.create_test_step
     created: list[str] = []
-    remaining_step_ids = iter(step_ids)
 
-    async def create_report(*args, **kwargs):
-        if kwargs.get("simulate") or kwargs.get("log_file"):
-            return await real_create_report(*args, **kwargs)
-        created.append("report")
-        return _make_report(report_id)
+    def answer(name, canned_ids, describe):
+        real = getattr(client, name)
+        remaining = iter(canned_ids)
 
-    async def create_step(*args, **kwargs):
-        if kwargs.get("simulate") or kwargs.get("log_file"):
-            return await real_create_step(*args, **kwargs)
-        created.append(args[0].name)
-        return _make_step(next(remaining_step_ids))
+        async def call(*args, **kwargs):
+            if kwargs.get("simulate") or kwargs.get("log_file"):
+                return await real(*args, **kwargs)
+            created.append(describe(*args))
+            return next(remaining)
 
-    client.create_test_report = create_report
-    client.create_test_step = create_step
+        setattr(client, name, call)
+
+    answer("create_test_report", [_make_report(report_id)], lambda *_: "report")
+    answer("create_test_step", [_make_step(sid) for sid in step_ids], lambda create: create.name)
+    answer(
+        "create_test_measurement",
+        [_make_measurement(mid) for mid in measurement_ids],
+        lambda create: create.name,
+    )
     return created
 
 
@@ -321,8 +324,10 @@ async def test_batch_upload_records_what_it_created(tmp_path):
         steps[0].id_: "real-step-1",
         steps[1].id_: "real-step-2",
     }
-    # Four logged calls, all of them accounted for, so a re-run has nothing to do.
-    assert tracking.last_uploaded_line == 4
+    # Everything reached the server, so a re-run has nothing to do. The cursor
+    # stays at zero: batch creates in collapsed order, not log order.
+    assert tracking.complete
+    assert tracking.last_uploaded_line == 0
 
 
 @pytest.mark.asyncio
@@ -368,7 +373,7 @@ async def test_completed_upload_is_a_noop(tmp_path):
     report, steps = await _build_log(client, log_file)
 
     LogTracking(
-        last_uploaded_line=4,
+        complete=True,
         id_map={report.id_: "real-report", steps[0].id_: "real-step-1"},
     ).save(log_file)
 
@@ -406,7 +411,7 @@ async def test_new_report_abandons_the_partial_upload(tmp_path):
     assert result.report is not None
     assert result.report.id_ == "fresh-report"
     # The abandoned report's ID survives, so it can still be found and cleaned up.
-    backup = log_file.with_name(log_file.name + ".tracking.bak")
+    backup = LogTracking.backup_path(log_file)
     assert json.loads(backup.read_text())["idMap"] == {report.id_: "abandoned-report"}
     assert LogTracking.load(log_file).id_map[report.id_] == "fresh-report"
 
@@ -546,21 +551,16 @@ async def test_batch_upload_records_measurements(tmp_path):
     client = ResultsLowLevelClient(grpc_client=MagicMock())
     report, step, measurement_ids = await _build_measurement_log(client, log_file, batched=False)
 
-    real_create_measurement = client.create_test_measurement
-    created_measurements = []
-
-    async def create_measurement(*args, **kwargs):
-        if kwargs.get("simulate") or kwargs.get("log_file"):
-            return await real_create_measurement(*args, **kwargs)
-        created_measurements.append(args[0].name)
-        return _make_measurement(f"real-meas-{len(created_measurements)}")
-
-    _answer_real_creates(client, report_id="real-report", step_ids=["real-step"])
-    client.create_test_measurement = create_measurement
+    created = _answer_real_creates(
+        client,
+        report_id="real-report",
+        step_ids=["real-step"],
+        measurement_ids=["real-meas-1", "real-meas-2", "real-meas-3"],
+    )
 
     await client.import_log_file(log_file)
 
-    assert created_measurements == ["m1", "m2", "m3"]
+    assert created == ["report", "s1", "m1", "m2", "m3"]
     tracking = LogTracking.load(log_file)
     assert [tracking.id_map[mid] for mid in measurement_ids] == [
         "real-meas-1",
@@ -645,6 +645,22 @@ async def test_resume_propagates_errors_other_than_a_missing_report(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_incremental_and_new_report_are_rejected_together(tmp_path):
+    """The two flags contradict each other, so asking for both is an error.
+
+    Incremental replay continues whatever the sidecar records, which is exactly
+    what new_report discards. Silently honouring one of them would upload into
+    the wrong report.
+    """
+    log_file = tmp_path / "conflict.jsonl"
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+    await _build_log(client, log_file, step_names=("s1",))
+
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        await client.import_log_file(log_file, incremental=True, new_report=True)
+
+
+@pytest.mark.asyncio
 async def test_new_report_on_a_fresh_log_writes_no_backup(tmp_path):
     """``new_report`` against a log that was never uploaded has nothing to move aside."""
     log_file = tmp_path / "fresh.jsonl"
@@ -656,7 +672,7 @@ async def test_new_report_on_a_fresh_log_writes_no_backup(tmp_path):
     await client.import_log_file(log_file, new_report=True)
 
     assert created == ["report", "s1"]
-    assert not log_file.with_name(log_file.name + ".tracking.bak").exists()
+    assert not LogTracking.backup_path(log_file).exists()
 
 
 # ---------------------------------------------------------------------------

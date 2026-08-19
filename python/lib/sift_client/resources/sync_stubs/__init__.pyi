@@ -3159,6 +3159,7 @@ class TestResultsAPI:
             log_file: Path to the log file to import.
             incremental: (internal tooling) If True, goes line by line and calls API every event -- keeps track of last line sent so it can be called after some updates and be additive vs. replaying the entire log file each time(i.e. when False, reads the entire log file, building a test report in memory, then sends the calls for each step/measurement to the API). Used by the replay worker, which ticks against a log that is still being written.
             new_report: If True, ignore any partial upload and create a new report.
+                Mutually exclusive with incremental.
 
         Returns:
             A ReplayResult containing the created report, steps, and measurements.
