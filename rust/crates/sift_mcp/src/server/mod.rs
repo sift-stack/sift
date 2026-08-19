@@ -40,9 +40,9 @@ pub(crate) const BASE_INSTRUCTIONS: &str = concat!(
 use crate::service::test_reports::TestReportService;
 use crate::service::{
     annotations::AnnotationService, assets::AssetService,
-    calculated_channels::CalculatedChannelService, channels::ChannelService, data::DataService,
-    docs::DocsService, ingest::IngestService, ping::PingService,
-    report_templates::ReportTemplateService, reports::ReportService,
+    calculated_channels::CalculatedChannelService, campaigns::CampaignService,
+    channels::ChannelService, data::DataService, docs::DocsService, ingest::IngestService,
+    ping::PingService, report_templates::ReportTemplateService, reports::ReportService,
     rule_evaluation::RuleEvaluationService, rules::RuleService, runs::RunService, url::UrlService,
     user_defined_functions::UserDefinedFunctionService, users::UserService,
 };
@@ -55,6 +55,7 @@ pub struct SiftMcpServer {
     pub annotation_service: AnnotationService,
     pub asset_service: AssetService,
     pub calculated_channel_service: CalculatedChannelService,
+    pub campaign_service: CampaignService,
     pub channel_service: ChannelService,
     pub data_service: DataService,
     pub url_service: UrlService,
@@ -182,6 +183,7 @@ impl SiftMcpServer {
         // Add more routers here as new tool groups are introduced, e.g.
         //   tool_router.merge(Self::ingestion_router())
         let mut tool_router = Self::assets_router();
+        tool_router.merge(Self::campaigns_router());
         tool_router.merge(Self::runs_router());
         tool_router.merge(Self::channels_router());
         tool_router.merge(Self::calculated_channels_router());
@@ -210,6 +212,7 @@ impl SiftMcpServer {
         let asset_service = AssetService::new(channel.clone(), retry_policy.clone());
         let calculated_channel_service =
             CalculatedChannelService::new(channel.clone(), retry_policy.clone());
+        let campaign_service = CampaignService::new(channel.clone(), retry_policy.clone());
         let data_service = DataService::new(channel.clone(), retry_policy.clone());
         let channel_service = ChannelService::new(channel.clone(), retry_policy.clone());
         let url_service = UrlService::new(app_uri);
@@ -233,6 +236,7 @@ impl SiftMcpServer {
             annotation_service,
             asset_service,
             calculated_channel_service,
+            campaign_service,
             channel_service,
             data_service,
             url_service,
