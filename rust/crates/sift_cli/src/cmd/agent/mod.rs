@@ -226,7 +226,12 @@ pub async fn install(profile: Option<String>, args: AgentInstallArgs) -> Result<
     };
     let registration = Registration::new(access, Profile::from_option(profile))
         .with_update_check_disabled(args.disable_update_check);
-    let result = install_environment(&Environment::discover()?, "Installed", &registration)?;
+    let result = install_environment(
+        &Environment::discover()?,
+        "Installed",
+        &registration,
+        args.path.as_deref(),
+    )?;
     if result == ExitCode::SUCCESS {
         print_install_update_notice().await;
     }
@@ -329,7 +334,7 @@ pub async fn update(profile: Option<String>, args: AgentUpdateArgs) -> Result<Ex
     let registration =
         Registration::new(access, profile).with_update_check_disabled(disable_update_check);
 
-    install_environment(&environment, "Updated", &registration)
+    install_environment(&environment, "Updated", &registration, None)
 }
 
 pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
@@ -709,8 +714,9 @@ fn install_environment(
     environment: &Environment,
     verb: &str,
     registration: &Registration,
+    extra_skill_path: Option<&Path>,
 ) -> Result<ExitCode> {
-    if environment.harnesses.is_empty() {
+    if environment.harnesses.is_empty() && extra_skill_path.is_none() {
         println!(
             "No supported AI coding clients were detected. Supported clients: \
              Claude Code, Codex, Cursor, and OpenCode."
@@ -723,13 +729,24 @@ fn install_environment(
     let spinner = Spinner::new();
     spinner.set_message(format!("{} Sift MCP and skills...", "Installing".green()));
 
-    let targets = skill::targets(environment);
+    let mut targets = skill::targets(environment);
+    // An explicit --path receives the skill in addition to the detected
+    // clients. An empty harness list marks it as caller-requested; skip it
+    // when a detected client already installs to the same directory.
+    if let Some(path) = extra_skill_path
+        && !targets.iter().any(|target| target.path == path)
+    {
+        targets.push(skill::Target {
+            path: path.to_path_buf(),
+            harnesses: Vec::new(),
+        });
+    }
     let mut blockers = Vec::new();
     for target in &targets {
         if skill::inspect(&target.path)? == skill::State::Conflict {
             blockers.push(format!(
                 "{} has an unmanaged skill at {}",
-                harness_labels(&target.harnesses),
+                target_label(&target.harnesses),
                 target.path.display()
             ));
         }
@@ -819,7 +836,7 @@ fn install_environment(
         println!(
             "{} {verb} {} skill: {}",
             ok_status(),
-            harness_labels(&target.harnesses),
+            target_label(&target.harnesses),
             target.path.display()
         );
     }
@@ -844,7 +861,7 @@ fn install_environment(
     if registrable.is_empty() {
         println!(
             "{verb} the Sift agent skill for: {}; no MCP registrations were made.",
-            harness_labels(&environment.harnesses)
+            target_label(&environment.harnesses)
         );
     } else {
         println!(
@@ -1002,6 +1019,16 @@ async fn check_release() -> bool {
             );
             false
         }
+    }
+}
+
+/// Like `harness_labels`, but names a target with no harnesses behind it:
+/// a skill directory the caller requested explicitly via `--path`.
+fn target_label(harnesses: &[Harness]) -> String {
+    if harnesses.is_empty() {
+        "requested --path".to_string()
+    } else {
+        harness_labels(harnesses)
     }
 }
 

@@ -146,6 +146,12 @@ pub struct AgentInstallArgs {
     /// Disable release checks in every installed MCP server
     #[arg(long)]
     pub disable_update_check: bool,
+
+    /// Also install the agent skill into this directory, in addition to every
+    /// detected client. The directory receives SKILL.md and references/
+    /// directly; rerun with the same --path to refresh it.
+    #[arg(long, value_name = "DIR")]
+    pub path: Option<std::path::PathBuf>,
 }
 
 #[derive(clap::Args)]
