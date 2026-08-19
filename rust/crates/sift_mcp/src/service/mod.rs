@@ -6,12 +6,14 @@ pub mod channels;
 pub mod data;
 pub mod docs;
 pub mod ingest;
+pub mod metadata;
 pub mod ping;
 pub mod report_templates;
 pub mod reports;
 pub mod rule_evaluation;
 pub mod rules;
 pub mod runs;
+pub mod tags;
 #[cfg(feature = "test-reports")]
 pub mod test_reports;
 pub mod url;
