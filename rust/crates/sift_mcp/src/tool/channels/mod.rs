@@ -20,6 +20,9 @@ impl SiftMcpServer {
               - `{ \"channels\": [Channel, ...] }`. Each item is the full Sift `Channel` shape including
                 `channel_id`, `name`, `description`, `asset_id`/`asset_name`, data type, units, enum/bit-field
                 configuration, and timestamps.
+              - `count`: how many items the response carries. Read this instead of
+                counting the array yourself — it is exact, and it already accounts for
+                `limit` and any `fields` projection.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:

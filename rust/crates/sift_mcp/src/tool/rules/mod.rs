@@ -63,6 +63,9 @@ impl SiftMcpServer {
                 `metadata`, and timestamps, plus an added `url` field with the rule's Sift web link
                 (`<host>/rules/<rule_id>`). `url` is omitted when the host can't be derived. Surface these links
                 to the user when presenting rules.
+              - `count`: how many items the response carries. Read this instead of
+                counting the array yourself — it is exact, and it already accounts for
+                `limit` and any `fields` projection.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:

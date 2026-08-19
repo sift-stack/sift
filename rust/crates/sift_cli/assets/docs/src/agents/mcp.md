@@ -94,6 +94,10 @@ you need. Full objects are wide, and a listing of a few hundred rows can exceed
 the response size limit without it. Names match case-insensitively and ignore
 underscores, and any name that matched nothing comes back in `unmatched_fields`.
 
+Every `list_*` response also carries `count`, the number of items it holds. Read
+that rather than counting the array — it is exact, and it already accounts for
+`limit` and any `fields` projection.
+
 ## Identifying yourself
 
 `list_users` accepts `me: true` to return the user whose credentials the server

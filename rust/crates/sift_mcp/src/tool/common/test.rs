@@ -94,7 +94,7 @@ fn list_body_without_fields_returns_every_key() {
 
     assert_eq!(
         list_body("channels", items.clone(), None),
-        json!({ "channels": items })
+        json!({ "channels": items, "count": 1 })
     );
 }
 
@@ -104,7 +104,7 @@ fn list_body_treats_an_empty_field_list_as_no_projection() {
 
     assert_eq!(
         list_body("channels", items.clone(), Some(vec![])),
-        json!({ "channels": items })
+        json!({ "channels": items, "count": 1 })
     );
 }
 
@@ -116,7 +116,32 @@ fn list_body_surfaces_unmatched_fields_alongside_the_items() {
         list_body("channels", items, Some(vec!["name".into(), "nope".into()])),
         json!({
             "channels": [{ "name": "throttle" }],
+            "count": 1,
             "unmatched_fields": ["nope"],
         })
     );
+}
+
+#[test]
+fn list_body_counts_the_items_it_returns() {
+    // The caller should never have to count the array itself.
+    let items: Vec<Value> = (0..120)
+        .map(|i| json!({ "name": format!("c{i}") }))
+        .collect();
+
+    let body = list_body("channels", items, None);
+
+    assert_eq!(body["count"], json!(120));
+    assert_eq!(body["channels"].as_array().unwrap().len(), 120);
+}
+
+#[test]
+fn list_body_counts_what_survived_projection() {
+    // Projection drops nothing here, but the count must describe the returned
+    // rows rather than anything upstream of them.
+    let items = vec![json!({ "name": "a" }), json!({ "name": "b" })];
+
+    let body = list_body("channels", items, Some(vec!["name".into()]));
+
+    assert_eq!(body["count"], json!(2));
 }

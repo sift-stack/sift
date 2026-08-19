@@ -138,6 +138,12 @@ pub(crate) fn project_fields(items: Vec<Value>, fields: &[String]) -> (Vec<Value
 /// `fields` is set, and reports any requested field that matched nothing, so a
 /// mistyped name is visible rather than silently narrowing the response. An
 /// empty `fields` array is treated as no projection.
+///
+/// Every body carries `count`, the number of items returned. Counting a JSON
+/// array by eye is arithmetic a caller should not have to do: an agent asked
+/// how many channels an asset has read a 120-row response and reported 122,
+/// then explained the discrepancy away rather than trusting its own correct
+/// enumeration. The number is free here and exact, so hand it over.
 pub(crate) fn list_body(key: &str, items: Vec<Value>, fields: Option<Vec<String>>) -> Value {
     let (items, unmatched) = match fields.as_deref() {
         Some(fields) if !fields.is_empty() => project_fields(items, fields),
@@ -145,6 +151,7 @@ pub(crate) fn list_body(key: &str, items: Vec<Value>, fields: Option<Vec<String>
     };
 
     let mut body = serde_json::Map::new();
+    body.insert("count".to_string(), Value::from(items.len()));
     body.insert(key.to_string(), Value::Array(items));
     if !unmatched.is_empty() {
         body.insert(
