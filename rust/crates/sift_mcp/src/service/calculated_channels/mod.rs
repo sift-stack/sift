@@ -60,8 +60,10 @@ pub struct CalculatedChannelUpdate {
 }
 
 impl CalculatedChannelUpdate {
-    /// Whether any updatable field is set. An update with nothing set would
-    /// produce an empty mask, which the API treats as a no-op.
+    /// Whether any *maskable* field is set. `user_notes` is deliberately not
+    /// counted: it rides on the request rather than the update mask, so on its
+    /// own it produces an empty mask — a no-op the caller would mistake for a
+    /// new version.
     pub fn is_empty(&self) -> bool {
         self.name.is_none()
             && self.description.is_none()
@@ -72,7 +74,6 @@ impl CalculatedChannelUpdate {
             && self.all_assets.is_none()
             && self.asset_ids.is_none()
             && self.tag_ids.is_none()
-            && self.user_notes.is_none()
     }
 }
 
