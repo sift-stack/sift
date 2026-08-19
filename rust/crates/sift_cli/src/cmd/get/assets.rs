@@ -24,9 +24,9 @@ pub async fn run(ctx: Context, args: GetAssetArgs) -> Result<ExitCode> {
 
     let ListAssetsResponse { assets, .. } = AssetServiceClient::new(grpc_channel)
         .list_assets(ListAssetsRequest {
-            filter: args.filter.unwrap_or_default(),
-            order_by: "modified_date desc".to_string(),
-            page_size: args.limit.unwrap_or_default(),
+            filter: args.common.filter.unwrap_or_default(),
+            order_by: args.common.order_by,
+            page_size: args.common.limit,
             ..Default::default()
         })
         .await
@@ -34,7 +34,7 @@ pub async fn run(ctx: Context, args: GetAssetArgs) -> Result<ExitCode> {
         .into_inner();
     let app_uri = ctx.app_uri.as_deref().and_then(normalize_app_uri);
     let mut output = Output::new();
-    match args.output_format {
+    match args.common.output_format {
         Some(OutputFormats::Json) => {
             output.line(serde_json::to_string_pretty(&assets).context("failed to encode assets")?);
         }
