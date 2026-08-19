@@ -11,7 +11,7 @@ use sift_rs::rules::v1::UpdateRuleRequest;
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
-    service::rule_evaluation::PreviewRuleSource,
+    service::{common::cel_escape, rule_evaluation::PreviewRuleSource},
 };
 
 #[cfg(test)]
@@ -190,8 +190,4 @@ impl SiftMcpServer {
             }
         }
     }
-}
-
-fn cel_escape(s: &str) -> String {
-    s.replace('\\', "\\\\").replace('"', "\\\"")
 }
