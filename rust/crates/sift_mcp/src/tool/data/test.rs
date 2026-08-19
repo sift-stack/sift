@@ -692,3 +692,148 @@ async fn get_data_prefers_raw_channel_over_calculated_channel() {
         .await
         .expect("the raw channel should be served without any calculated lookup");
 }
+
+/// A window with no samples still has to tell the caller which calculated
+/// channels never resolved; otherwise the failure reads as "the asset has no
+/// data" when part of the request was never queried at all.
+#[tokio::test]
+async fn get_data_reports_unresolved_calculated_channel_when_no_samples() {
+    let mut calculated = MockCalculatedChannelServiceImpl::new();
+    calculated.expect_list_calculated_channels().returning(|_| {
+        Ok(Response::new(ListCalculatedChannelsResponse {
+            calculated_channels: vec![CalculatedChannel {
+                calculated_channel_id: "cc1".into(),
+                name: "chamber_delta".into(),
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+    calculated
+        .expect_batch_resolve_calculated_channels()
+        .returning(|_| {
+            Ok(Response::new(BatchResolveCalculatedChannelsResponse {
+                responses: vec![ResolveCalculatedChannelResponse {
+                    calculated_channel_id: Some("cc1".into()),
+                    resolved: vec![],
+                    unresolved: vec![UnresolvedCalculatedChannel {
+                        asset_name: "bench".into(),
+                        error_message: "asset is missing channel chamber_pressure".into(),
+                    }],
+                }],
+            }))
+        });
+
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data().times(1).returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let dir = TempDir::new("sift-mcp-cc-nodata").expect("temp dir");
+    let output = dir.path().join("out.parquet");
+
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        raw_channel_mock(&["temperature_c"]),
+        MockRunServiceImpl::new(),
+        calculated,
+        data,
+    )
+    .await;
+
+    let err = server
+        .get_data(named_params(
+            &["temperature_c", "chamber_delta"],
+            None,
+            output,
+        ))
+        .await
+        .expect_err("an empty window is still an error");
+
+    assert!(
+        err.message
+            .contains("calculated channel data was not resolved for asset 'bench'")
+            && err.message.contains("chamber_delta"),
+        "the empty-window error must still name what did not resolve: {}",
+        err.message,
+    );
+}
+
+/// The same calculated channel named twice must be queried once. Two identical
+/// queries share a channel key, so their pages merge into one column and repeat
+/// timestamps in the output file.
+#[tokio::test]
+async fn get_data_deduplicates_repeated_calculated_channel_name() {
+    let mut calculated = MockCalculatedChannelServiceImpl::new();
+    calculated.expect_list_calculated_channels().returning(|_| {
+        Ok(Response::new(ListCalculatedChannelsResponse {
+            calculated_channels: vec![CalculatedChannel {
+                calculated_channel_id: "cc1".into(),
+                name: "thrust_margin".into(),
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+    calculated
+        .expect_batch_resolve_calculated_channels()
+        .times(1)
+        .withf(|req| req.get_ref().requests.len() == 1)
+        .returning(|_| {
+            Ok(Response::new(BatchResolveCalculatedChannelsResponse {
+                responses: vec![ResolveCalculatedChannelResponse {
+                    calculated_channel_id: Some("cc1".into()),
+                    resolved: vec![ResolvedCalculatedChannel {
+                        asset_name: "bench".into(),
+                        asset_id: "asset-1".into(),
+                        expression_request: Some(ExpressionRequest {
+                            expression: "$1 * 2".into(),
+                            expression_channel_references: vec![ExpressionChannelReference {
+                                channel_reference: "$1".into(),
+                                channel_id: "ch-9".into(),
+                                calculated_channel_reference: None,
+                            }],
+                            ..Default::default()
+                        }),
+                        output_data_type: 0,
+                    }],
+                    unresolved: vec![],
+                }],
+            }))
+        });
+
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data()
+        .times(1)
+        .withf(|req| req.get_ref().queries.len() == 1)
+        .returning(|_| {
+            Ok(Response::new(GetDataResponse {
+                data: vec![double_page("thrust_margin", "", vec![(1_000_000_000, 4.0)])],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let dir = TempDir::new("sift-mcp-cc-dedupe").expect("temp dir");
+    let output = dir.path().join("out.parquet");
+
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        raw_channel_mock(&[]),
+        MockRunServiceImpl::new(),
+        calculated,
+        data,
+    )
+    .await;
+
+    server
+        .get_data(named_params(
+            &["thrust_margin", "thrust_margin"],
+            None,
+            output,
+        ))
+        .await
+        .expect("a repeated name must resolve and query once");
+}
