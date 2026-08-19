@@ -10,8 +10,7 @@ use sift_rs::{
     },
 };
 use sift_test_util::{
-    grpc::memory_sift_channel,
-    mock::user_defined_functions::v1::MockUserDefinedFunctionServiceImpl,
+    grpc::memory_sift_channel, mock::user_defined_functions::v1::MockUserDefinedFunctionServiceImpl,
 };
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
@@ -520,7 +519,10 @@ async fn update_masks_only_the_provided_fields() {
         .times(1)
         .withf(|req| {
             let req = req.get_ref();
-            let function = req.user_defined_function.as_ref().expect("function present");
+            let function = req
+                .user_defined_function
+                .as_ref()
+                .expect("function present");
             let mask = req.update_mask.as_ref().expect("mask present");
             function.user_defined_function_id == "f1"
                 && function.description == "updated"
@@ -559,7 +561,10 @@ async fn update_masks_every_provided_field_in_declaration_order() {
         .times(1)
         .withf(|req| {
             let req = req.get_ref();
-            let function = req.user_defined_function.as_ref().expect("function present");
+            let function = req
+                .user_defined_function
+                .as_ref()
+                .expect("function present");
             let mask = req.update_mask.as_ref().expect("mask present");
             function.name == "rms_v2"
                 && function.description == "updated"
@@ -654,7 +659,10 @@ async fn update_with_no_fields_sends_an_empty_mask() {
         .times(1)
         .withf(|req| {
             let req = req.get_ref();
-            let function = req.user_defined_function.as_ref().expect("function present");
+            let function = req
+                .user_defined_function
+                .as_ref()
+                .expect("function present");
             let mask = req.update_mask.as_ref().expect("mask present");
             function.user_defined_function_id == "f1" && mask.paths.is_empty()
         })
@@ -733,7 +741,10 @@ async fn archive_sets_is_archived_true_through_the_mask() {
         .times(1)
         .withf(|req| {
             let req = req.get_ref();
-            let function = req.user_defined_function.as_ref().expect("function present");
+            let function = req
+                .user_defined_function
+                .as_ref()
+                .expect("function present");
             let mask = req.update_mask.as_ref().expect("mask present");
             function.user_defined_function_id == "f1"
                 && function.is_archived
@@ -764,7 +775,10 @@ async fn unarchive_sets_is_archived_false_through_the_mask() {
         .times(1)
         .withf(|req| {
             let req = req.get_ref();
-            let function = req.user_defined_function.as_ref().expect("function present");
+            let function = req
+                .user_defined_function
+                .as_ref()
+                .expect("function present");
             let mask = req.update_mask.as_ref().expect("mask present");
             function.user_defined_function_id == "f2"
                 && !function.is_archived
