@@ -100,32 +100,34 @@ pub async fn run_with_update_check(
     cli_version: String,
     update_check: Option<UpdateCheckReceiver>,
 ) -> Result<()> {
-    run_server(
+    run_with_client_events(
         credentials,
         use_tls,
-        RunConfig {
-            app_uri,
-            allow_create,
-            allow_destructive,
-            cli_version,
-            update_check,
-            client_event_reporter: client_event::ClientEventReporter::default(),
-        },
+        app_uri,
+        allow_create,
+        allow_destructive,
+        cli_version,
+        update_check,
+        None,
     )
     .await
 }
 
+/// Runs the server, reporting anonymous tool-call events only when a client
+/// event config is supplied. `None` leaves the server silent, which is what
+/// `sift-cli mcp --disable-nonessential-traffic` passes.
 pub async fn run_with_client_events(
     credentials: Credentials,
     use_tls: bool,
     app_uri: String,
     allow_create: bool,
     allow_destructive: bool,
+    cli_version: String,
     update_check: Option<UpdateCheckReceiver>,
-    client_event_config: ClientEventConfig,
+    client_event_config: Option<ClientEventConfig>,
 ) -> Result<()> {
-    let cli_version = client_event_config.cli_version().to_string();
-    let client_event_reporter = client_event::ClientEventReporter::new(client_event_config);
+    let client_event_reporter =
+        client_event::ClientEventReporter::from_config(client_event_config, &cli_version);
     run_server(
         credentials,
         use_tls,

@@ -93,6 +93,11 @@ pub struct McpArgs {
     /// Disable the MCP update tool and all automatic release checks
     #[arg(long)]
     pub disable_update_check: bool,
+
+    /// Disable non-essential network traffic. Release checks are controlled
+    /// separately by `--disable-update-check`.
+    #[arg(long)]
+    pub disable_nonessential_traffic: bool,
 }
 
 /// Serve the bundled Sift CLI user documentation over HTTP.
