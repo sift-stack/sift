@@ -229,10 +229,15 @@ impl SiftMcpServer {
 
         // A raw channel wins a name it shares with a saved calculated channel;
         // only names with no raw channel go on to calculated-channel resolution.
-        let unmatched_names = requested_names
-            .into_iter()
-            .filter(|name| !channels.iter().any(|channel| &channel.name == name))
-            .collect::<Vec<_>>();
+        // Repeats are dropped: two queries sharing a channel key merge into one
+        // column, which duplicates timestamps in the output.
+        let mut unmatched_names: Vec<String> = Vec::new();
+        for name in requested_names {
+            let matched_raw = channels.iter().any(|channel| channel.name == name);
+            if !matched_raw && !unmatched_names.contains(&name) {
+                unmatched_names.push(name);
+            }
+        }
 
         if channels.is_empty() && unmatched_names.is_empty() {
             return Err(ErrorData::resource_not_found(
@@ -313,11 +318,20 @@ impl SiftMcpServer {
             .context("failed to open output parquet file")
             .map_err(from_anyhow)?;
 
-        self.data_service
+        let queried = self
+            .data_service
             .get_data(&channel_inputs, time_range, sample_ms, &mut file)
             .await
-            .context("get data call failure - data_router")
-            .map_err(from_anyhow)?;
+            .context("get data call failure - data_router");
+
+        // A failure here says nothing about channels that were never queried, so
+        // carry the report into it. Otherwise an empty window reads as "the asset
+        // has no data" when part of the request never resolved.
+        match (queried, unresolved_report.as_ref()) {
+            (Err(error), Some(report)) => return Err(from_anyhow(error.context(report.clone()))),
+            (Err(error), None) => return Err(from_anyhow(error)),
+            (Ok(()), _) => (),
+        }
 
         let output_str = output.to_string_lossy().into_owned();
         let mut next_step = format!(

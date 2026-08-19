@@ -1436,3 +1436,128 @@ async fn resolve_calculated_channels_errors_on_response_count_mismatch() {
 
     assert!(err.to_string().contains("resolve"));
 }
+
+/// The API echoes the resolved channel's id. Responses that do not line up with
+/// their requests would assign one channel's expression to another channel's
+/// name, so a mismatch must fail loudly rather than resolve to the wrong data.
+#[tokio::test]
+async fn resolve_calculated_channels_errors_when_responses_are_reordered() {
+    let mut mock = MockCalculatedChannelServiceImpl::new();
+    mock.expect_list_calculated_channels().returning(|_| {
+        Ok(Response::new(ListCalculatedChannelsResponse {
+            calculated_channels: vec![
+                stored_channel("cc1", "thrust_margin"),
+                stored_channel("cc2", "chamber_delta"),
+            ],
+            next_page_token: String::new(),
+        }))
+    });
+    mock.expect_batch_resolve_calculated_channels()
+        .returning(|_| {
+            // Requested cc1 then cc2; answered cc2 then cc1.
+            Ok(Response::new(BatchResolveCalculatedChannelsResponse {
+                responses: vec![
+                    ResolveCalculatedChannelResponse {
+                        calculated_channel_id: Some("cc2".into()),
+                        resolved: vec![ResolvedCalculatedChannel {
+                            asset_name: "bench".into(),
+                            asset_id: "asset-1".into(),
+                            expression_request: Some(expression_request("$1", "ch-2")),
+                            output_data_type: 0,
+                        }],
+                        unresolved: vec![],
+                    },
+                    ResolveCalculatedChannelResponse {
+                        calculated_channel_id: Some("cc1".into()),
+                        resolved: vec![ResolvedCalculatedChannel {
+                            asset_name: "bench".into(),
+                            asset_id: "asset-1".into(),
+                            expression_request: Some(expression_request("$1", "ch-1")),
+                            output_data_type: 0,
+                        }],
+                        unresolved: vec![],
+                    },
+                ],
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let err = service
+        .resolve_calculated_channels(
+            vec!["thrust_margin".to_string(), "chamber_delta".to_string()],
+            "asset-1".to_string(),
+            None,
+        )
+        .await
+        .expect_err("a reordered response must not be mapped by position");
+
+    let message = err.to_string();
+    assert!(
+        message.contains("cc2") && message.contains("cc1"),
+        "error should name both the answered and the requested channel: {message}",
+    );
+}
+
+/// A response that echoes the requested id maps cleanly; an empty echo is
+/// accepted, since the field is optional.
+#[tokio::test]
+async fn resolve_calculated_channels_accepts_matching_and_absent_echo() {
+    let mut mock = MockCalculatedChannelServiceImpl::new();
+    mock.expect_list_calculated_channels().returning(|_| {
+        Ok(Response::new(ListCalculatedChannelsResponse {
+            calculated_channels: vec![
+                stored_channel("cc1", "thrust_margin"),
+                stored_channel("cc2", "chamber_delta"),
+            ],
+            next_page_token: String::new(),
+        }))
+    });
+    mock.expect_batch_resolve_calculated_channels()
+        .returning(|_| {
+            Ok(Response::new(BatchResolveCalculatedChannelsResponse {
+                responses: vec![
+                    ResolveCalculatedChannelResponse {
+                        calculated_channel_id: Some("cc1".into()),
+                        resolved: vec![ResolvedCalculatedChannel {
+                            asset_name: "bench".into(),
+                            asset_id: "asset-1".into(),
+                            expression_request: Some(expression_request("$1", "ch-1")),
+                            output_data_type: 0,
+                        }],
+                        unresolved: vec![],
+                    },
+                    ResolveCalculatedChannelResponse {
+                        calculated_channel_id: None,
+                        resolved: vec![ResolvedCalculatedChannel {
+                            asset_name: "bench".into(),
+                            asset_id: "asset-1".into(),
+                            expression_request: Some(expression_request("$1", "ch-2")),
+                            output_data_type: 0,
+                        }],
+                        unresolved: vec![],
+                    },
+                ],
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let resolution = service
+        .resolve_calculated_channels(
+            vec!["thrust_margin".to_string(), "chamber_delta".to_string()],
+            "asset-1".to_string(),
+            None,
+        )
+        .await
+        .expect("resolve_calculated_channels failed");
+
+    assert_eq!(
+        resolution
+            .resolved
+            .iter()
+            .map(|r| r.name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["thrust_margin", "chamber_delta"],
+    );
+}

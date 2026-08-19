@@ -366,7 +366,19 @@ impl CalculatedChannelService {
             );
         }
 
-        for ((name, _), response) in targets.into_iter().zip(responses) {
+        for ((name, id), response) in targets.into_iter().zip(responses) {
+            // Responses are matched to requests by position, so verify the id
+            // the API echoes back before trusting one: a shifted response would
+            // hand this name another channel's expression. The echo is
+            // optional, and an empty one leaves position as the only mapping.
+            let echoed = response.calculated_channel_id.unwrap_or_default();
+            if !echoed.is_empty() && echoed != id {
+                bail!(
+                    "resolve answered for calculated channel '{echoed}' where '{id}' was \
+                     requested; responses are out of order"
+                );
+            }
+
             // Only an entry for the requested asset is safe to query; an entry
             // for another asset would pull that asset's channels instead.
             let mut candidates = response.resolved;
