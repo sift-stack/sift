@@ -25,6 +25,7 @@ arrow-schema = { workspace = true }
 chrono = { workspace = true }
 clap = { workspace = true }
 clap_complete = { workspace = true }
+comfy-table = { workspace = true }
 crossterm = { workspace = true }
 csv = { workspace = true }
 dirs = { workspace = true }
