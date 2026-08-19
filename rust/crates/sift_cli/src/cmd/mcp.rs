@@ -42,8 +42,12 @@ pub async fn run(ctx: Context, args: McpArgs, app_uri: String) -> Result<ExitCod
 
     let update_check = select_update_check(args.disable_update_check, start_update_check);
     let cli_version = env!("CARGO_PKG_VERSION").to_string();
-    let client_event_config =
-        sift_mcp::ClientEventConfig::new(ctx.rest_uri.clone(), ctx.api_key.clone(), cli_version);
+    let client_event_config = select_client_event_config(args.disable_nonessential_traffic, || {
+        sift_mcp::ClientEventConfig::new(ctx.rest_uri.clone(), ctx.api_key.clone())
+    });
+    if client_event_config.is_none() {
+        tracing::info!("non-essential traffic is disabled");
+    }
 
     let credentials = Credentials::Config {
         uri: ctx.grpc_uri,
@@ -55,6 +59,7 @@ pub async fn run(ctx: Context, args: McpArgs, app_uri: String) -> Result<ExitCod
         app_uri,
         args.allow_create,
         args.allow_destructive,
+        cli_version,
         update_check,
         client_event_config,
     )
@@ -79,6 +84,16 @@ where
     F: FnOnce() -> sift_mcp::UpdateCheckReceiver,
 {
     (!disable_update_check).then(start)
+}
+
+fn select_client_event_config<F>(
+    disable_nonessential_traffic: bool,
+    build: F,
+) -> Option<sift_mcp::ClientEventConfig>
+where
+    F: FnOnce() -> sift_mcp::ClientEventConfig,
+{
+    (!disable_nonessential_traffic).then(build)
 }
 
 fn start_update_check() -> sift_mcp::UpdateCheckReceiver {
@@ -172,7 +187,7 @@ mod tests {
     use semver::Version;
     use tokio::sync::watch;
 
-    use super::{select_update_check, update_check_from_versions};
+    use super::{select_client_event_config, select_update_check, update_check_from_versions};
 
     #[test]
     fn disable_update_check_flag_is_accepted() {
@@ -199,6 +214,47 @@ mod tests {
 
         assert!(update_check.is_none());
         assert!(!called.get());
+    }
+
+    #[test]
+    fn disable_nonessential_traffic_flag_is_accepted() {
+        let args =
+            crate::cli::Args::try_parse_from(["sift-cli", "mcp", "--disable-nonessential-traffic"])
+                .unwrap();
+        let Some(crate::cli::Cmd::Mcp(args)) = args.cmd else {
+            panic!("expected the MCP command");
+        };
+
+        assert!(args.disable_nonessential_traffic);
+        assert!(!args.disable_update_check);
+    }
+
+    #[test]
+    fn disabled_nonessential_traffic_does_not_build_a_client_event_config() {
+        let called = Cell::new(false);
+
+        let client_event_config = select_client_event_config(true, || {
+            called.set(true);
+            sift_mcp::ClientEventConfig::new(
+                "https://rest.test.local".to_string(),
+                "test-key".to_string(),
+            )
+        });
+
+        assert!(client_event_config.is_none());
+        assert!(!called.get());
+    }
+
+    #[test]
+    fn enabled_nonessential_traffic_builds_a_client_event_config() {
+        let client_event_config = select_client_event_config(false, || {
+            sift_mcp::ClientEventConfig::new(
+                "https://rest.test.local".to_string(),
+                "test-key".to_string(),
+            )
+        });
+
+        assert!(client_event_config.is_some());
     }
 
     #[test]

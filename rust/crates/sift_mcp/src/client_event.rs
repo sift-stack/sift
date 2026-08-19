@@ -15,23 +15,16 @@ static TOOL_EVENTS: LazyLock<HashMap<String, String>> = LazyLock::new(|| {
 pub struct ClientEventConfig {
     rest_uri: String,
     api_key: String,
-    cli_version: String,
 }
 
 impl ClientEventConfig {
-    pub fn new(rest_uri: String, api_key: String, cli_version: String) -> Self {
-        Self {
-            rest_uri,
-            api_key,
-            cli_version,
-        }
-    }
-
-    pub(crate) fn cli_version(&self) -> &str {
-        &self.cli_version
+    pub fn new(rest_uri: String, api_key: String) -> Self {
+        Self { rest_uri, api_key }
     }
 }
 
+/// A reporter without a target never builds a request, which is how a server
+/// launched with `--disable-nonessential-traffic` stays silent.
 #[derive(Clone, Default)]
 pub(crate) struct ClientEventReporter {
     target: Option<ClientEventTarget>,
@@ -51,7 +44,11 @@ struct ClientEventRequest {
 }
 
 impl ClientEventReporter {
-    pub(crate) fn new(config: ClientEventConfig) -> Self {
+    pub(crate) fn from_config(config: Option<ClientEventConfig>, cli_version: &str) -> Self {
+        config.map_or_else(Self::default, |config| Self::new(config, cli_version))
+    }
+
+    pub(crate) fn new(config: ClientEventConfig, cli_version: &str) -> Self {
         let endpoint = format!(
             "{}{CLIENT_EVENT_PATH}",
             config.rest_uri.trim_end_matches('/')
@@ -61,9 +58,14 @@ impl ClientEventReporter {
                 client: reqwest::Client::new(),
                 endpoint,
                 api_key: config.api_key,
-                user_agent: format!("{CLIENT_NAME}/{}", config.cli_version),
+                user_agent: format!("{CLIENT_NAME}/{cli_version}"),
             }),
         }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn is_reporting(&self) -> bool {
+        self.target.is_some()
     }
 
     pub(crate) async fn send(&self, tool_name: &str) -> reqwest::Result<()> {
@@ -150,11 +152,10 @@ mod tests {
     #[tokio::test]
     async fn sends_only_the_event_with_the_cli_version() {
         let (rest_uri, server) = start_event_server().await;
-        let reporter = ClientEventReporter::new(ClientEventConfig::new(
-            rest_uri,
-            "test-key".to_string(),
-            "7.8.9".to_string(),
-        ));
+        let reporter = ClientEventReporter::new(
+            ClientEventConfig::new(rest_uri, "test-key".to_string()),
+            "7.8.9",
+        );
 
         reporter.send("list_assets").await.unwrap();
         let request = String::from_utf8(server.await.unwrap()).unwrap();
@@ -176,6 +177,21 @@ mod tests {
             serde_json::json!({
                 "event": "CLIENT_EVENT_USER_CALLED_MCP_TOOL_LIST_ASSETS"
             })
+        );
+    }
+
+    #[test]
+    fn a_missing_config_reports_nothing() {
+        assert!(!ClientEventReporter::from_config(None, "7.8.9").is_reporting());
+        assert!(
+            ClientEventReporter::from_config(
+                Some(ClientEventConfig::new(
+                    "https://rest.test.local".to_string(),
+                    "test-key".to_string(),
+                )),
+                "7.8.9",
+            )
+            .is_reporting()
         );
     }
 }
