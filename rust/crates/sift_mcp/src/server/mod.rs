@@ -39,8 +39,9 @@ pub(crate) const BASE_INSTRUCTIONS: &str = concat!(
 #[cfg(feature = "test-reports")]
 use crate::service::test_reports::TestReportService;
 use crate::service::{
-    annotations::AnnotationService, assets::AssetService, channels::ChannelService,
-    data::DataService, docs::DocsService, ingest::IngestService, ping::PingService,
+    annotations::AnnotationService, assets::AssetService,
+    calculated_channels::CalculatedChannelService, channels::ChannelService, data::DataService,
+    docs::DocsService, ingest::IngestService, ping::PingService,
     report_templates::ReportTemplateService, reports::ReportService, rules::RuleService,
     runs::RunService, url::UrlService, users::UserService,
 };
@@ -52,6 +53,7 @@ pub struct SiftMcpServer {
 
     pub annotation_service: AnnotationService,
     pub asset_service: AssetService,
+    pub calculated_channel_service: CalculatedChannelService,
     pub channel_service: ChannelService,
     pub data_service: DataService,
     pub url_service: UrlService,
@@ -179,6 +181,7 @@ impl SiftMcpServer {
         let mut tool_router = Self::assets_router();
         tool_router.merge(Self::runs_router());
         tool_router.merge(Self::channels_router());
+        tool_router.merge(Self::calculated_channels_router());
         tool_router.merge(Self::reports_router());
         tool_router.merge(Self::report_templates_router());
         tool_router.merge(Self::data_router());
@@ -200,6 +203,8 @@ impl SiftMcpServer {
 
         let annotation_service = AnnotationService::new(channel.clone(), retry_policy.clone());
         let asset_service = AssetService::new(channel.clone(), retry_policy.clone());
+        let calculated_channel_service =
+            CalculatedChannelService::new(channel.clone(), retry_policy.clone());
         let data_service = DataService::new(channel.clone(), retry_policy.clone());
         let channel_service = ChannelService::new(channel.clone(), retry_policy.clone());
         let url_service = UrlService::new(app_uri);
@@ -218,6 +223,7 @@ impl SiftMcpServer {
         Self {
             annotation_service,
             asset_service,
+            calculated_channel_service,
             channel_service,
             data_service,
             url_service,
