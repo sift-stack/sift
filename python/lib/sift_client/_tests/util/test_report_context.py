@@ -99,3 +99,17 @@ def test_worker_nonzero_exit_warns_stderr_no_raise() -> None:
     assert "exited with code 2" in messages
     assert "rpc deadline exceeded" in messages
     assert "import-test-result-log --incremental" in messages
+
+
+def test_replay_command_runs_module_through_current_interpreter() -> None:
+    """Replay argv must not depend on PATH resolution.
+
+    The ``import-test-result-log`` console script installs into the venv's
+    ``bin/``, which is absent from PATH under ``sudo`` (sudoers' secure_path
+    replaces PATH even with ``-E``) and when pytest runs from a non-activated
+    venv. Spawning by bare name raised FileNotFoundError out of ``__enter__``
+    there, erroring the session-scoped fixture and blocking every test.
+    """
+    rc = ReportContext(_make_simulate_client(), name="test", log_file=True)
+    cmd = rc._build_replay_command()
+    assert cmd[:3] == [sys.executable, "-m", "sift_client.scripts.import_test_result_log"]
