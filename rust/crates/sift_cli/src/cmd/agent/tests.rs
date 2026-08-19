@@ -35,7 +35,10 @@ fn status_tags_use_expected_colors() {
 }
 
 #[test]
-fn stale_native_config_directories_are_not_detected_as_installed_clients() {
+fn native_config_directories_detect_clients_without_binaries() {
+    // Headless environments (container builds, CI) have a config directory
+    // but no client binary on PATH. Detection must still fire so the skill
+    // installs; the binary-dependent MCP registration degrades separately.
     let directory = TempDir::new("sift-cli-agent-detection").unwrap();
     fs::create_dir_all(directory.path().join(".claude")).unwrap();
     fs::create_dir_all(directory.path().join(".codex")).unwrap();
@@ -45,7 +48,41 @@ fn stale_native_config_directories_are_not_detected_as_installed_clients() {
         Vec::new(),
     );
 
-    assert!(environment.detect_harnesses().is_empty());
+    assert_eq!(
+        environment.detect_harnesses(),
+        vec![Harness::Claude, Harness::Codex]
+    );
+}
+
+#[test]
+fn install_without_client_binaries_installs_the_skill_and_skips_registration() {
+    // The container/CI case end to end: Claude Code detected via ~/.claude
+    // with no `claude` on PATH. The skill must install and the run must
+    // succeed; only the MCP registration is skipped.
+    let directory = TempDir::new("sift-cli-agent-headless-install").unwrap();
+    fs::create_dir_all(directory.path().join(".claude")).unwrap();
+    let environment = Environment::for_test(
+        directory.path().to_path_buf(),
+        directory.path().join("bin/sift-cli"),
+        vec![Harness::Claude],
+    );
+
+    let exit = super::install_environment(
+        &environment,
+        "Installed",
+        &default_registration(AccessMode::ReadOnly),
+    )
+    .unwrap();
+
+    // ExitCode has no PartialEq; its Debug form distinguishes SUCCESS/FAILURE.
+    assert_eq!(
+        format!("{exit:?}"),
+        format!("{:?}", std::process::ExitCode::SUCCESS)
+    );
+    let skill_path = directory.path().join(".claude/skills/sift/SKILL.md");
+    assert_eq!(fs::read_to_string(skill_path).unwrap(), skill::CONTENT);
+    // No registration side effects: nothing wrote a Claude config file.
+    assert!(!directory.path().join(".claude.json").exists());
 }
 
 #[test]

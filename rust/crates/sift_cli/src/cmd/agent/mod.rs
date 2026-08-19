@@ -181,10 +181,12 @@ impl Environment {
                 let command_exists = commands
                     .iter()
                     .any(|command| self.command_available(command));
-                let detected = match harness {
-                    Harness::Claude | Harness::Codex => command_exists,
-                    Harness::Cursor | Harness::OpenCode => command_exists || config_dir.exists(),
-                };
+                // A config directory counts as detection even without the
+                // client binary on PATH, so headless environments (container
+                // builds, CI) can install the skill: skill installation is
+                // plain file IO, and a registration that needs the client's
+                // own CLI is skipped with a warning instead of failing.
+                let detected = command_exists || config_dir.exists();
                 detected.then_some(harness)
             })
             .collect()
@@ -439,13 +441,15 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
                 blocked = true;
             }
             config::State::Unavailable(detail) => {
+                // The client's own CLI is missing (headless image, uninstalled
+                // client with a leftover config directory). Nothing about the
+                // Sift setup is broken, so report it without failing doctor.
                 println!(
-                    "{} {} MCP registration: {detail}",
-                    error_status(),
+                    "{} {} MCP registration not inspectable: {detail}",
+                    warning_status(),
                     harness.label()
                 );
-                unhealthy = true;
-                blocked = true;
+                warnings = true;
             }
         }
     }
@@ -730,13 +734,23 @@ fn install_environment(
             ));
         }
     }
+    // A harness whose registration is unavailable (its own CLI is not on
+    // PATH) still gets the skill: skill installation is plain file IO. Only
+    // the MCP registration is skipped, with a warning below.
+    let mut registrable = Vec::new();
+    let mut skipped = Vec::new();
     for harness in &environment.harnesses {
         let state = config::inspect(*harness, environment)?;
         match state {
-            config::State::Conflict(detail) | config::State::Unavailable(detail) => {
+            config::State::Conflict(detail) => {
                 blockers.push(format!("{} MCP registration: {detail}", harness.label()));
             }
-            _ => {}
+            config::State::Unavailable(detail) => {
+                skipped.push((*harness, detail));
+            }
+            _ => {
+                registrable.push(*harness);
+            }
         }
     }
 
@@ -749,8 +763,7 @@ fn install_environment(
         return Ok(ExitCode::FAILURE);
     }
 
-    let config_snapshots = environment
-        .harnesses
+    let config_snapshots = registrable
         .iter()
         .map(|harness| config::snapshot(*harness, environment))
         .collect::<Result<Vec<_>>>()?;
@@ -760,7 +773,7 @@ fn install_environment(
         for target in &targets {
             replacements.push(skill::begin_install(&target.path)?);
         }
-        for harness in &environment.harnesses {
+        for harness in &registrable {
             config::install(*harness, environment, registration)?;
             installed_configs += 1;
         }
@@ -810,7 +823,7 @@ fn install_environment(
             target.path.display()
         );
     }
-    for harness in &environment.harnesses {
+    for harness in &registrable {
         println!(
             "{} {verb} {} MCP registration ({})",
             ok_status(),
@@ -818,12 +831,28 @@ fn install_environment(
             registration.label()
         );
     }
+    for (harness, detail) in &skipped {
+        println!(
+            "{} Skipped {} MCP registration: {detail}. The skill is installed; rerun \
+             `{} agent install` once the client is available.",
+            warning_status(),
+            harness.label(),
+            registration.profile.command_prefix()
+        );
+    }
 
-    println!(
-        "{verb} the Sift agent bundle for: {} ({}).",
-        harness_labels(&environment.harnesses),
-        registration.label()
-    );
+    if registrable.is_empty() {
+        println!(
+            "{verb} the Sift agent skill for: {}; no MCP registrations were made.",
+            harness_labels(&environment.harnesses)
+        );
+    } else {
+        println!(
+            "{verb} the Sift agent bundle for: {} ({}).",
+            harness_labels(&registrable),
+            registration.label()
+        );
+    }
     Ok(ExitCode::SUCCESS)
 }
 
