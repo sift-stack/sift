@@ -1,7 +1,6 @@
 use super::new_table;
 use crate::util::tty::{hyperlink, link_style};
 
-/// Strips OSC and SGR escape sequences so only the visible characters remain.
 fn visible(line: &str) -> String {
     let mut out = String::new();
     let mut chars = line.chars().peekable();
@@ -12,7 +11,6 @@ fn visible(line: &str) -> String {
             continue;
         }
         match chars.next() {
-            // OSC, terminated by BEL or ESC \
             Some(']') => {
                 while let Some(c) = chars.next() {
                     if c == '\x07' {
@@ -24,7 +22,6 @@ fn visible(line: &str) -> String {
                     }
                 }
             }
-            // CSI, terminated by a final byte in the alphabetic range
             Some('[') => {
                 for c in chars.by_ref() {
                     if c.is_ascii_alphabetic() {

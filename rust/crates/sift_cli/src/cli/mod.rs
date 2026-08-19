@@ -886,7 +886,6 @@ pub enum OutputFormats {
     Json,
 }
 
-/// Options common to every `get` subcommand.
 #[derive(clap::Args)]
 pub struct GetArgs {
     /// Filter option for filtering search with CEL expression
