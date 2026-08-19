@@ -2,18 +2,21 @@
 name: sift
 description: >-
   Use when working with Sift: ingesting or importing time-series data,
-  querying assets/runs/channels/users, exporting data, decimating or running
-  SQL over data, opening a view in the Sift Explore web app, writing code that
-  integrates with Sift, installing, updating, or diagnosing the Sift agent
-  integration, or looking up how Sift works in its product and API
-  documentation. Covers the Sift MCP server (started by `sift-cli mcp`), the
-  `sift-cli` itself, the Sift REST API over cURL, the Sift Python library
-  (`sift_client`), and the Sift Rust streaming library (`sift_stream`).
+  querying assets/runs/channels/users, managing calculated channels, rules,
+  user-defined functions, campaigns, tags, and metadata, exporting data,
+  decimating or running SQL over data, opening a view in the Sift Explore web
+  app, writing code that integrates with Sift, installing, updating, or
+  diagnosing the Sift agent integration, or looking up how Sift works in its
+  product and API documentation. Covers the Sift MCP server (started by
+  `sift-cli mcp`), the `sift-cli` itself, the Sift REST API over cURL, the Sift
+  Python library (`sift_client`), and the Sift Rust streaming library
+  (`sift_stream`).
   Triggers include phrases like "import this file into Sift", "stream data to
   Sift", "list assets/runs/channels", "runs I created", "runs a teammate
   created", "export a run", "query Sift", "graph", "plot", "visualize", "open
   in Explore", "write code to integrate with Sift", "how does X work in Sift",
-  "what does this endpoint do", or "look up the Sift API reference".
+  "what does this endpoint do", "list calculated channels", "preview a rule",
+  "review a campaign", "what tags exist", or "look up the Sift API reference".
 ---
 
 <!--
@@ -48,11 +51,24 @@ exists.
 
 - **Setup:** When available, `check_for_updates` reports the installed sift-cli
   version, the latest stable version, and the exact installer command. Servers
-  started with `--disable-update-check` omit this tool.
+  started with `--disable-update-check` omit this tool. `ping` is a
+  connectivity check; when it fails, expect every other Sift tool to fail too.
 - **Discovery:** `list_assets`, `list_runs`, `list_channels`, `list_reports`,
-  `list_report_templates`, `list_rules`, `list_rule_versions`, `list_annotations`.
+  `list_report_templates`, `list_rules`, `list_rule_versions`, `list_annotations`,
+  `list_campaigns`, `list_tags`.
+- **Derived channels:** `list_calculated_channels`,
+  `list_calculated_channel_versions`, `list_user_defined_functions`,
+  `list_user_defined_function_versions`.
+- **Metadata:** `list_metadata_keys`, `list_metadata_values`,
+  `list_metadata_usage`.
 - **People:** `list_users`.
-- **Report detail:** `list_report_rule_summaries`.
+- **Rollups:** `list_report_rule_summaries` for a report's rule progress,
+  `review_campaigns` for a campaign's annotation and rule totals.
+  `review_campaigns` is expensive; call it only when the user asks for the
+  rollup.
+- **Rule dry runs:** `preview_rule` returns the annotations a rule would create
+  without persisting anything. It is read-only whatever the server's access
+  mode, so it needs no write flag.
 - **Test results:** `list_test_reports`, `list_test_steps`,
   `list_test_measurements`, `count_test_steps`, `count_test_measurements`.
   These, along with the `create_test_report` and `append_test_measurements`
@@ -64,8 +80,13 @@ exists.
 - **Docs:** `search_docs`.
 - **Writes:** `create_rule`, `update_rule`, `archive_rule`, `unarchive_rule`,
   `create_annotation`, `update_annotation`, `create_report`, `update_report`,
-  `create_report_template`, `update_report_template`, `create_test_report`,
-  `append_test_measurements`, `update_asset`, `update_run`.
+  `create_report_template`, `update_report_template`,
+  `create_calculated_channel`, `update_calculated_channel`,
+  `archive_calculated_channel`, `unarchive_calculated_channel`,
+  `create_user_defined_function`, `update_user_defined_function`,
+  `archive_user_defined_function`, `unarchive_user_defined_function`,
+  `create_test_report`, `append_test_measurements`, `update_asset`,
+  `update_run`.
 
 ## Workflows that span tools
 
@@ -83,6 +104,43 @@ exists.
   `me: true`. Never guess which listed user is the caller.
 - **Produce numbers.** `get_data` writes a Parquet file. `sql` then queries it.
   Add `upload_dataset` when the result belongs back in Sift.
+- **Query a derived channel.** `get_data` serves saved calculated channels as
+  well as raw ones: name the calculated channel in `channel_names` and it is
+  evaluated for the requested asset and run. Confirm the name with
+  `list_calculated_channels` filtered on the asset first. A raw channel wins a
+  name it shares with a calculated channel, and `channel_regex` matches raw
+  channels only, so name calculated channels explicitly. When the result
+  carries `unresolved_calculated_channels`, the file is missing those columns:
+  tell the user which channels did not resolve rather than reporting the file as
+  complete.
+- **Author or change a calculated channel.** A calculated channel is a SEL
+  expression plus an asset scope. `create_calculated_channel` and
+  `update_calculated_channel` take the expression with `$1`, `$2`, …
+  placeholders plus `expression_channel_references_json`, a JSON string array
+  mapping each placeholder to a channel. Resolve those channel names with
+  `list_channels` first. Update and archive both create a new version instead of
+  replacing or deleting anything, and `list_calculated_channel_versions` shows
+  the history.
+- **Use or change a user-defined function.** Call
+  `list_user_defined_functions` before writing an expression that calls a UDF:
+  it gives the exact name, input order, and output type the expression must
+  match. An update creates a new version and leaves earlier ones intact, so
+  `list_user_defined_function_versions` gives history and pinned version ids.
+  Send a rename on its own. The API applies a `name` change by itself and
+  ignores every other field, so `update_user_defined_function` rejects `name`
+  combined with anything else.
+- **Review a campaign.** `list_campaigns` browses and never returns review
+  counts. Annotation totals and rule pass/fail counts come only from
+  `review_campaigns`, keyed by the `campaign_id`s you pass in, and only when the
+  user asks for the rollup. For archived campaigns alone, pass
+  `include_archived: true` AND an `is_archived == true` filter; the flag by
+  itself only stops the backend from excluding them.
+- **Tag something or set metadata.** Call `list_tags` or `list_metadata_keys`
+  before introducing new taxonomy, because near-duplicate names (`prod` vs
+  `production`) fragment filtering later. `list_metadata_values` needs a real
+  `metadata_key_name` from `list_metadata_keys`; a guessed name returns
+  `RESOURCE_NOT_FOUND`, not an empty list. `list_metadata_usage` shows where a
+  key or value is already applied.
 - **Produce a chart.** Build a link with `explore_url`. When the user wants a
   chart and numbers, do both and give the user both.
 - **Answer a question about how Sift works.** Call `search_docs`. Do not answer
@@ -96,7 +154,11 @@ exists.
   gated tool and the exact `sift-cli agent update --allow-create` command, and
   wait for the user to widen access.
 - **Evaluate rules against a run.** Find rules with `list_rules` and author rules
-  with `create_rule`. To reuse the same rule set across many runs, bundle
+  with `create_rule`. Dry-run first: `preview_rule` returns the annotations a
+  rule would generate for one run and persists nothing. It takes either a saved
+  rule (`rule_id` or `rule_name`) or a fully ad-hoc `draft_rule_config` JSON
+  string, so a rule need not be saved to be tested. Use `create_report` when the
+  evaluation should persist. To reuse the same rule set across many runs, bundle
   standard rules (`is_external: false`) into a template with `create_report_template`,
   then call `create_report` with `report_template_id`. For a one-off — or for
   ad-hoc rules (`is_external: true`, which the API also calls "external" but
@@ -130,9 +192,11 @@ exists.
   Several creates happen as side effects of other MCP tools — an asset is
   created when `upload_dataset` names one that doesn't exist, a run is
   created when a `create_report`/`create_test_report`/`upload_dataset` names
-  one. When the user asks for a create with no matching `create_*` tool,
-  look for the tool that creates it as a side effect before falling out of
-  MCP. If that side-effect tool is gated and blocked, that IS the block —
+  one, and a tag is created when `update_asset` or `update_run` names one that
+  doesn't exist (there is no `create_tag` tool). When the user asks for a create
+  with no matching `create_*` tool, look for the tool that creates it as a side
+  effect before falling out of MCP. If that side-effect tool is gated and
+  blocked, that IS the block —
   surface it, do not treat "no `create_asset` tool" as license to shell out
   to REST/gRPC/`sift-cli import`.
 - **Choose one profile for the session and keep it.** Never switch profiles to
