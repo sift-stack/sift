@@ -174,7 +174,7 @@ async fn list_calculated_channel_versions_returns_versions() {
     let resp = server
         .list_calculated_channel_versions(Parameters(CalculatedChannelVersionListParams {
             calculated_channel_id: "cc1".into(),
-            filter: None,
+            filter: String::new(),
             order_by: None,
             limit: None,
         }))
@@ -197,7 +197,7 @@ async fn list_calculated_channel_versions_rejects_empty_id() {
     let err = server
         .list_calculated_channel_versions(Parameters(CalculatedChannelVersionListParams {
             calculated_channel_id: String::new(),
-            filter: None,
+            filter: String::new(),
             order_by: None,
             limit: None,
         }))
@@ -363,6 +363,29 @@ async fn update_calculated_channel_rejects_empty_update() {
         .expect_err("expected error");
 
     assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+}
+
+#[tokio::test]
+async fn update_calculated_channel_rejects_user_notes_only_update() {
+    // `user_notes` is a request field, not a mask path. On its own it would send
+    // an empty mask — a no-op the tool would then report as a new version. No
+    // mock expectations: nothing may reach the wire.
+    let (server, _h) = server_with_mock(MockCalculatedChannelServiceImpl::new()).await;
+
+    let mut params = update_params();
+    params.user_notes = Some("just a note".into());
+
+    let err = server
+        .update_calculated_channel(Parameters(params))
+        .await
+        .expect_err("expected error");
+
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+    assert!(
+        err.message.contains("user_notes"),
+        "error should name `user_notes` as needing a maskable field: {}",
+        err.message
+    );
 }
 
 #[tokio::test]

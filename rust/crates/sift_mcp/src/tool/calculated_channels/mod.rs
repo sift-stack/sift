@@ -25,7 +25,7 @@ mod test;
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct CalculatedChannelVersionListParams {
     calculated_channel_id: String,
-    filter: Option<String>,
+    filter: String,
     order_by: Option<String>,
     limit: Option<u32>,
 }
@@ -109,8 +109,9 @@ impl SiftMcpServer {
               - Default add `is_archived == false` to the filter. Include archived calculated channels only when
                 the user explicitly asks for them.
               - Scope with `asset_id == \"...\"` when the asset is known — it is the most selective field.
-              - Calculated channels do not carry data of their own; they are evaluated per asset. Use this tool to
-                discover what derived channels exist before reaching for `get_data`.
+              - Calculated channels store a definition, not stored samples: each one is a SEL expression evaluated
+                per asset. Use this tool to answer what derived channels exist, what each one computes (read
+                `calculated_channel_configuration`), and which assets it is scoped to.
         ",
         annotations(
             title = "calculated_channels/list_calculated_channels",
@@ -152,10 +153,10 @@ impl SiftMcpServer {
             Parameters:
               - `calculated_channel_id`: required. The calculated channel whose versions to list. Resolve it with
                 `list_calculated_channels` first if you only have the name.
-              - `filter`: optional CEL expression. Filterable fields: `calculated_channel_id`, `organization_id`,
+              - `filter`: CEL expression. Filterable fields: `calculated_channel_id`, `organization_id`,
                 `client_key`, `name`, `description`, `asset_id`, `asset_name`, `tag_id`, `tag_name`, `version`,
                 `units`, `calculated_channel_version_id`, `created_date`, `modified_date`, `created_by_user_id`,
-                `modified_by_user_id`, `is_archived`, `archived_date`. Omit or pass an empty string to list all
+                `modified_by_user_id`, `is_archived`, `archived_date`. Pass an empty string to list all
                 versions. When filtering or searching text, use `name.matches(\"(?i)thrust\")`, not `==`. Use `==`
                 only for an exact value from a prior result. `contains`/`startsWith`/`endsWith` are
                 case-SENSITIVE: `contains(\"Thrust\")` silently misses `thrust_margin`.
@@ -195,12 +196,7 @@ impl SiftMcpServer {
 
         let versions = self
             .calculated_channel_service
-            .list_calculated_channel_versions(
-                calculated_channel_id,
-                filter.unwrap_or_default(),
-                order_by,
-                limit,
-            )
+            .list_calculated_channel_versions(calculated_channel_id, filter, order_by, limit)
             .await
             .map_err(from_anyhow)?;
 
@@ -372,11 +368,13 @@ impl SiftMcpServer {
               - `asset_ids` / `tag_ids`: optional. REPLACE the corresponding list on the channel's selection
                 scope; the list you omit is preserved. Setting either alongside `all_assets: true` is rejected.
               - `metadata`: optional. REPLACES the full metadata list. Pass `[]` to clear.
-              - `user_notes`: optional. Notes recorded against this new version.
-              - At least one field besides `calculated_channel_id` must be set.
+              - `user_notes`: optional. Notes recorded against this new version. This ANNOTATES a change; it
+                cannot be the change. Sending only `user_notes` is rejected, because it would write nothing.
+              - At least one of `name`, `description`, `units`, `metadata`, `expression`, `all_assets`,
+                `asset_ids`, or `tag_ids` must be set.
 
             Errors:
-              - `INVALID_PARAMS` if no updatable field is set, `expression` and
+              - `INVALID_PARAMS` if no updatable field is set (including a `user_notes`-only call), `expression` and
                 `expression_channel_references_json` are not supplied together, the references JSON is invalid, or
                 both asset-scope forms are set.
               - `INVALID_REQUEST` if the server was launched without `--allow-destructive`.
@@ -453,7 +451,10 @@ impl SiftMcpServer {
 
         if changes.is_empty() {
             return Err(ErrorData::invalid_params(
-                "at least one field besides `calculated_channel_id` must be set",
+                "at least one changed field besides `calculated_channel_id` must be set; \
+                 `user_notes` only annotates a change, so it must accompany at least one of \
+                 `name`, `description`, `units`, `metadata`, `expression`, `all_assets`, \
+                 `asset_ids`, or `tag_ids`",
                 None,
             ));
         }
