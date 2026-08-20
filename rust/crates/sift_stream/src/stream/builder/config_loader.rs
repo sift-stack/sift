@@ -8,7 +8,7 @@ use sift_rs::{
     retry::{RetryConfig, RetryExt},
     wrappers::{
         ServiceOptions,
-        assets::{AssetServiceWrapper, new_asset_service_with_options},
+        assets::{AssetServiceWrapper, new_asset_service},
         ingestion_configs::{
             IngestionConfigServiceWrapper, new_ingestion_config_service_with_options,
         },
@@ -75,8 +75,7 @@ pub async fn load_ingestion_config(
     };
 
     // Get the asset corresponding to the ingestion config.
-    let asset_service_wrapper =
-        new_asset_service_with_options(grpc_channel.clone(), service_options);
+    let asset_service_wrapper = new_asset_service(grpc_channel.clone());
     let retrying_asset = asset_service_wrapper.retrying(RetryConfig::default());
     let asset = {
         let asset_id = ingestion_config.asset_id.clone();

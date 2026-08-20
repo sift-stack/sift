@@ -40,15 +40,11 @@ use std::ops::{Deref, DerefMut};
 /// # }
 /// ```
 pub fn new_run_service(grpc_channel: SiftChannel) -> impl RunServiceWrapper {
-    new_run_service_with_options(grpc_channel, ServiceOptions::default())
-}
-
-/// Like [`new_run_service`] but with explicit [`ServiceOptions`].
-pub fn new_run_service_with_options(
-    grpc_channel: SiftChannel,
-    options: ServiceOptions,
-) -> impl RunServiceWrapper {
-    RunServiceWrapperImpl(configured_client!(RunServiceClient, grpc_channel, options))
+    RunServiceWrapperImpl(configured_client!(
+        RunServiceClient,
+        grpc_channel,
+        ServiceOptions::default()
+    ))
 }
 
 /// Convenience methods for working with Sift's Run service.

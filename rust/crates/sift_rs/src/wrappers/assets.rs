@@ -38,18 +38,10 @@ use crate::assets::v1::{
 /// # }
 /// ```
 pub fn new_asset_service(grpc_channel: SiftChannel) -> impl AssetServiceWrapper {
-    new_asset_service_with_options(grpc_channel, ServiceOptions::default())
-}
-
-/// Like [`new_asset_service`] but with explicit [`ServiceOptions`].
-pub fn new_asset_service_with_options(
-    grpc_channel: SiftChannel,
-    options: ServiceOptions,
-) -> impl AssetServiceWrapper {
     AssetServiceImpl(configured_client!(
         AssetServiceClient,
         grpc_channel,
-        options
+        ServiceOptions::default()
     ))
 }
 
