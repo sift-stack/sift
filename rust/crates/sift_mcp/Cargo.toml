@@ -2,6 +2,7 @@
 name = "sift_mcp"
 authors.workspace = true
 version.workspace = true
+publish = false
 edition.workspace = true
 categories.workspace = true
 homepage.workspace = true
