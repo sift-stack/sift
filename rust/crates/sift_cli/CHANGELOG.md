@@ -11,6 +11,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   the MCP server from making non-essential network requests. Release checks
   stay under `--disable-update-check`.
 
+### Bug Fixes
+
+- Explore links now carry a single selection. A run-scoped import links to the
+  run alone instead of pairing `assets` with `runs`, and the `explore_url` MCP
+  tool and Sift skill instruct the agent to send `assets` and `runs` together
+  only when the user explicitly asks for both.
+
 ## [v0.4.1] - August 10, 2026
 
 ### What's New

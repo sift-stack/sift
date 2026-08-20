@@ -61,11 +61,13 @@ pub fn build_explore_url(
 ) -> Option<String> {
     let host = app_uri.and_then(normalize_app_uri)?;
 
-    let mut url = format!("{host}/explore?method=single&assets={}", encode(asset_name));
-    if let Some(run) = run {
-        url.push_str(&format!("&runs={}", encode(run)));
-    }
-    Some(url)
+    // Scope the link to one selection. A run already resolves to its own asset, so pairing
+    // both parameters opens a wider view than the import targeted.
+    let selection = match run {
+        Some(run) => format!("runs={}", encode(run)),
+        None => format!("assets={}", encode(asset_name)),
+    };
+    Some(format!("{host}/explore?method=single&{selection}"))
 }
 
 #[cfg(test)]
@@ -82,9 +84,7 @@ mod tests {
         );
         assert_eq!(
             target.explore_url.as_deref(),
-            Some(
-                "https://sift.example.net/explore?method=single&assets=Engine%20%2F%207&runs=Test%20Run"
-            )
+            Some("https://sift.example.net/explore?method=single&runs=Test%20Run")
         );
     }
 
@@ -96,12 +96,18 @@ mod tests {
             Some("run-id"),
             Some("https://app.siftstack.com"),
         );
-        assert!(
-            target
-                .explore_url
-                .as_deref()
-                .unwrap()
-                .ends_with("&runs=run-id")
+        assert_eq!(
+            target.explore_url.as_deref(),
+            Some("https://app.siftstack.com/explore?method=single&runs=run-id")
+        );
+    }
+
+    #[test]
+    fn an_asset_scoped_import_links_to_the_asset_alone() {
+        let target = import_target("Engine / 7", None, None, Some("https://app.siftstack.com"));
+        assert_eq!(
+            target.explore_url.as_deref(),
+            Some("https://app.siftstack.com/explore?method=single&assets=Engine%20%2F%207")
         );
     }
 

@@ -36,7 +36,9 @@ impl SiftMcpServer {
 
             Parameters:
               - `assets`: optional list of asset names or UUIDs. The Explore service resolves either form.
-              - `runs`: optional list of run names or UUIDs. Same resolution rules as `assets`.
+                Send it only for an asset-scoped request.
+              - `runs`: optional list of run names or UUIDs. Same resolution rules as `assets`. A run already
+                scopes the view to its own asset, so send `runs` alone for a run-scoped request.
               - `channels`: optional list of channel names, UUIDs, or prefixed forms. Axis prefixes (`L1:foo`,
                 `L2:bar`) bind a channel to a Y-axis for multi-axis plots. Role prefixes (`x:foo`, `y:foo`,
                 `color:foo` for scatter; `lat:foo`, `lon:foo`, `color:foo` for geo-map) bind a channel to a panel
@@ -53,6 +55,9 @@ impl SiftMcpServer {
               - Reach for this tool when the user asks to \"see\", \"view\", \"graph\", \"plot\", \"visualize\", or
                 \"open\" data in Sift. Pair it with `get_data` only when the user also wants the data locally for
                 SQL or further processing.
+              - Send only the scope the user asked for: `runs` alone for a run, `assets` alone for an asset.
+                Set both only when the user explicitly asked to see asset data and run data in the same view.
+                Passing both otherwise opens a wider selection than the user requested.
               - The tool does not validate that the named asset/run/channel exists — Explore resolves at page
                 load. Use names you have already retrieved from `list_*` tools to avoid 404s on click.
         ",

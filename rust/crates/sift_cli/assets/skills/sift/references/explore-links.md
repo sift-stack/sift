@@ -3,6 +3,11 @@
 Build the link with `explore_url`, then surface the URL to the user as plain
 text, in full.
 
+Send only the scope the user asked for. A run-scoped request gets `runs` alone,
+an asset-scoped request gets `assets` alone. A run already resolves to its own
+asset, so pass `assets` and `runs` together only when the user explicitly asked
+to see asset data and run data in the same view.
+
 Pick the `panel_type` that fits the request: `timeseries` (the default),
 `histogram`, `table`, `fft`, `metrics`, `scatter-plot`, or `geo-map`. The tool
 rejects an unknown value with `INVALID_PARAMS` and names the accepted set in
