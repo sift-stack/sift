@@ -56,9 +56,11 @@ impl SiftMcpServer {
                 `test_system_name`, `test_case`, `start_time`, `end_time`, `serial_number`, `part_number`,
                 `system_operator`, `run_id`, `metadata`, `is_archived`, and `archived_date`. `run_id` links the
                 report to the Sift run that holds the ingested channel data; empty when none is associated.
-              - `count`: how many items the response carries. Read this instead of
-                counting the array yourself — it is exact, and it already accounts for
-                `limit` and any `fields` projection.
+              - `count`: how many items THIS response carries — read it instead of
+                counting the array yourself. It is the size of the page you got back, not
+                how many items match `filter`: results are capped at `limit`, and nothing
+                in the response says whether more exist. If `count` equals the `limit` you
+                passed, assume there are more and narrow the filter or raise `limit`.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
@@ -133,9 +135,11 @@ impl SiftMcpServer {
                 `end_time`, `error_info` (`{ error_code, error_message }`), and `metadata`. `error_info` is
                 diagnostic only: a populated `error_info` does not by itself mean the step failed — derive
                 pass/fail from `status`.
-              - `count`: how many items the response carries. Read this instead of
-                counting the array yourself — it is exact, and it already accounts for
-                `limit` and any `fields` projection.
+              - `count`: how many items THIS response carries — read it instead of
+                counting the array yourself. It is the size of the page you got back, not
+                how many items match `filter`: results are capped at `limit`, and nothing
+                in the response says whether more exist. If `count` equals the `limit` you
+                passed, assume there are more and narrow the filter or raise `limit`.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything (rarely useful; almost always
@@ -209,9 +213,11 @@ impl SiftMcpServer {
                 `string_bounds` `{ expected_value }`), `passed`, `timestamp`, `description`, `channel_names`, and
                 `metadata`. `channel_names` ties the measurement to Sift channels on the report's run for
                 cross-plotting in Explore.
-              - `count`: how many items the response carries. Read this instead of
-                counting the array yourself — it is exact, and it already accounts for
-                `limit` and any `fields` projection.
+              - `count`: how many items THIS response carries — read it instead of
+                counting the array yourself. It is the size of the page you got back, not
+                how many items match `filter`: results are capped at `limit`, and nothing
+                in the response says whether more exist. If `count` equals the `limit` you
+                passed, assume there are more and narrow the filter or raise `limit`.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything (almost always scope by

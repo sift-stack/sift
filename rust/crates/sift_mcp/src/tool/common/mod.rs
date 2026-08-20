@@ -139,7 +139,11 @@ pub(crate) fn project_fields(items: Vec<Value>, fields: &[String]) -> (Vec<Value
 /// mistyped name is visible rather than silently narrowing the response. An
 /// empty `fields` array is treated as no projection.
 ///
-/// Every body carries `count`, the number of items returned. Counting a JSON
+/// Every body carries `count`, the number of items in this response — the size
+/// of the page, not the number matching the filter. The service caps results at
+/// `limit` and does not report whether more exist, so a caller can only infer a
+/// truncated page from `count` reaching its `limit`. Surfacing that properly
+/// needs the truncation flag the service currently discards. Counting a JSON
 /// array by eye is arithmetic a caller should not have to do: an agent asked
 /// how many channels an asset has read a 120-row response and reported 122,
 /// then explained the discrepancy away rather than trusting its own correct

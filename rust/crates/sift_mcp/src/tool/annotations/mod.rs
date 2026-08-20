@@ -97,9 +97,11 @@ impl SiftMcpServer {
                 added `url` field with the annotation's Sift web link (`<host>/annotation/<annotation_id>`). `url`
                 is omitted when the host can't be derived. Surface these links to the user when presenting
                 annotations.
-              - `count`: how many items the response carries. Read this instead of
-                counting the array yourself — it is exact, and it already accounts for
-                `limit` and any `fields` projection.
+              - `count`: how many items THIS response carries — read it instead of
+                counting the array yourself. It is the size of the page you got back, not
+                how many items match `filter`: results are capped at `limit`, and nothing
+                in the response says whether more exist. If `count` equals the `limit` you
+                passed, assume there are more and narrow the filter or raise `limit`.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
