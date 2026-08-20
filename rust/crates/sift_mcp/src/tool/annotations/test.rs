@@ -1,7 +1,12 @@
+use std::sync::{
+    Arc,
+    atomic::{AtomicUsize, Ordering},
+};
+
 use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
 use sift_rs::annotations::v1::{
-    Annotation, CreateAnnotationResponse, ListAnnotationsResponse, UpdateAnnotationResponse,
-    annotation_service_server::AnnotationServiceServer,
+    Annotation, BatchArchiveAnnotationsResponse, CreateAnnotationResponse, ListAnnotationsResponse,
+    UpdateAnnotationResponse, annotation_service_server::AnnotationServiceServer,
 };
 use sift_test_util::{grpc::memory_sift_channel, mock::annotations::v1::MockAnnotationServiceImpl};
 use tokio::task::JoinHandle;
@@ -48,7 +53,7 @@ fn create_params() -> CreateAnnotationParams {
 
 fn update_params(annotation_id: &str) -> UpdateAnnotationParams {
     UpdateAnnotationParams {
-        annotation_id: annotation_id.into(),
+        annotation_ids: vec![annotation_id.into()],
         name: None,
         description: None,
         start_time_unix_nanos: None,
@@ -58,7 +63,18 @@ fn update_params(annotation_id: &str) -> UpdateAnnotationParams {
         tags: None,
         linked_channel_ids: None,
         metadata: None,
+        is_archived: None,
     }
+}
+
+#[test]
+fn update_annotation_params_accept_bulk_ids() {
+    let params = serde_json::from_value::<UpdateAnnotationParams>(serde_json::json!({
+        "annotation_ids": ["ann1", "ann2"],
+        "name": "renamed",
+    }));
+
+    assert!(params.is_ok());
 }
 
 #[tokio::test]
@@ -208,8 +224,171 @@ async fn update_annotation_happy_path() {
         .await
         .expect("update_annotation failed");
 
-    let annotation = structured_field(resp, "annotation");
-    assert_eq!(annotation["name"], "renamed");
+    let annotations = structured_field(resp, "annotations");
+    assert_eq!(annotations[0]["name"], "renamed");
+    assert_eq!(
+        annotations[0]["url"],
+        "https://app.test.local/annotation/ann1"
+    );
+}
+
+#[tokio::test]
+async fn update_annotation_updates_each_annotation() {
+    let mut mock = MockAnnotationServiceImpl::new();
+    mock.expect_update_annotation().times(2).returning(|req| {
+        let annotation = req.into_inner().annotation.unwrap();
+        Ok(Response::new(UpdateAnnotationResponse {
+            annotation: Some(annotation),
+        }))
+    });
+
+    let (server, _h) = server_with_mock(mock).await;
+
+    let mut params = update_params("ann1");
+    params.annotation_ids.push("ann2".into());
+    params.name = Some("renamed".into());
+
+    let resp = server
+        .update_annotation(Parameters(params))
+        .await
+        .expect("update_annotation failed");
+
+    let annotations = structured_field(resp, "annotations");
+    assert_eq!(annotations[0]["annotationId"], "ann1");
+    assert_eq!(annotations[1]["annotationId"], "ann2");
+}
+
+#[tokio::test]
+async fn update_annotation_batch_archives_annotations() {
+    let mut mock = MockAnnotationServiceImpl::new();
+    mock.expect_batch_archive_annotations()
+        .withf(|req| req.get_ref().annotation_ids == ["ann1", "ann2"])
+        .returning(|_| {
+            Ok(Response::new(BatchArchiveAnnotationsResponse {
+                annotations: vec![
+                    Annotation {
+                        annotation_id: "ann1".into(),
+                        is_archived: true,
+                        ..Default::default()
+                    },
+                    Annotation {
+                        annotation_id: "ann2".into(),
+                        is_archived: true,
+                        ..Default::default()
+                    },
+                ],
+            }))
+        });
+
+    let (server, _h) = server_with_mock(mock).await;
+
+    let mut params = update_params("ann1");
+    params.annotation_ids.push("ann2".into());
+    params.is_archived = Some(true);
+
+    let resp = server
+        .update_annotation(Parameters(params))
+        .await
+        .expect("update_annotation failed");
+
+    let annotations = structured_field(resp, "annotations");
+    assert_eq!(annotations.as_array().unwrap().len(), 2);
+    assert_eq!(annotations[0]["isArchived"], true);
+}
+
+#[tokio::test]
+async fn update_annotation_updates_fields_before_archiving() {
+    let mut mock = MockAnnotationServiceImpl::new();
+    let updated_count = Arc::new(AtomicUsize::new(0));
+
+    let update_count = Arc::clone(&updated_count);
+    mock.expect_update_annotation()
+        .times(2)
+        .returning(move |req| {
+            update_count.fetch_add(1, Ordering::SeqCst);
+            let annotation = req.into_inner().annotation.unwrap();
+            Ok(Response::new(UpdateAnnotationResponse {
+                annotation: Some(annotation),
+            }))
+        });
+
+    let archive_count = Arc::clone(&updated_count);
+    mock.expect_batch_archive_annotations()
+        .withf(move |_| archive_count.load(Ordering::SeqCst) == 2)
+        .returning(|req| {
+            let annotations = req
+                .into_inner()
+                .annotation_ids
+                .into_iter()
+                .map(|annotation_id| Annotation {
+                    annotation_id,
+                    is_archived: true,
+                    ..Default::default()
+                })
+                .collect();
+            Ok(Response::new(BatchArchiveAnnotationsResponse {
+                annotations,
+            }))
+        });
+
+    let (server, _h) = server_with_mock(mock).await;
+
+    let mut params = update_params("ann1");
+    params.annotation_ids.push("ann2".into());
+    params.name = Some("renamed".into());
+    params.is_archived = Some(true);
+
+    server
+        .update_annotation(Parameters(params))
+        .await
+        .expect("update_annotation failed");
+}
+
+#[tokio::test]
+async fn update_annotation_unarchives_each_annotation() {
+    let mut mock = MockAnnotationServiceImpl::new();
+    mock.expect_update_annotation()
+        .times(2)
+        .withf(|req| {
+            let req = req.get_ref();
+            !req.annotation.as_ref().unwrap().is_archived
+                && req.update_mask.as_ref().unwrap().paths == ["is_archived"]
+        })
+        .returning(|req| {
+            let annotation = req.into_inner().annotation.unwrap();
+            Ok(Response::new(UpdateAnnotationResponse {
+                annotation: Some(annotation),
+            }))
+        });
+
+    let (server, _h) = server_with_mock(mock).await;
+
+    let mut params = update_params("ann1");
+    params.annotation_ids.push("ann2".into());
+    params.is_archived = Some(false);
+
+    let resp = server
+        .update_annotation(Parameters(params))
+        .await
+        .expect("update_annotation failed");
+
+    let annotations = structured_field(resp, "annotations");
+    assert_eq!(annotations.as_array().unwrap().len(), 2);
+}
+
+#[tokio::test]
+async fn update_annotation_rejects_empty_ids() {
+    let (server, _h) = server_with_mock(MockAnnotationServiceImpl::new()).await;
+
+    let mut params = update_params("ann1");
+    params.annotation_ids.clear();
+
+    let err = server
+        .update_annotation(Parameters(params))
+        .await
+        .expect_err("expected error");
+
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
 }
 
 #[tokio::test]
