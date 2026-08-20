@@ -1,4 +1,5 @@
 use chrono::Local;
+use sift_error::prelude::ErrorKind;
 use sift_rs::{
     common::r#type::v1::ChannelDataType,
     ingest::v1::{
@@ -198,7 +199,14 @@ pub async fn test_live_only_retries_exhausted() {
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
 
-    assert!(sift_stream.finish().await.is_ok());
+    // The server never accepted any data, so the final flush during shutdown cannot succeed.
+    // In live-only mode there is no backup to fall back on, so `finish` must report the loss
+    // instead of acknowledging delivery.
+    let err = sift_stream
+        .finish()
+        .await
+        .expect_err("finish must surface undelivered data in live-only mode");
+    assert_eq!(err.kind(), ErrorKind::StreamError);
 
     assert!(
         server.await.is_ok(),
