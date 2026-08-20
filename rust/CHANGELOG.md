@@ -3,8 +3,25 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [v0.10.2] - August 20, 2026
+## [v0.11.0] - August 20, 2026
 ### What's New
+
+#### `finish()` reports undelivered data (PR [#727](https://github.com/sift-stack/sift/pull/727))
+
+`finish` used to discard the result of its internal tasks, so a final flush that never reached Sift still returned `Ok`. Task panics were swallowed the same way. Both now propagate as `ErrorKind::StreamError`.
+
+What `Ok` means depends on the mode:
+
+- Live-only: every message sent before `finish` was acknowledged by Sift. An `Err` means the stream carrying the tail-end data failed and, with no disk backup, that data is unrecoverable. `Ok` still does not account for data lost to earlier mid-stream failures the retry loop recovered from.
+- Live-with-backups: every message was either delivered or durably written to a backup for later reingestion. A failed final flush still routes to reingestion rather than erroring, so `Ok` is not a synchronous receipt that all data reached Sift.
+
+Live-only mode also no longer depends on which `select!` branch observes shutdown first: a stream failure seen after the data channel closes is reported instead of breaking into a clean shutdown.
+
+Callers that ignored the return value should check it:
+
+```rust
+stream.finish().await?;
+```
 
 #### Configurable gRPC decode limit (PR [#746](https://github.com/sift-stack/sift/pull/746))
 
@@ -23,7 +40,7 @@ let mut stream = SiftStreamBuilder::new(credentials)
 
 The override travels on the new `ServiceOptions` struct and applies to the ingestion config service; the asset and run wrappers use the constant. Exceeding the limit now reports a client-side limit and how to raise it, not tonic's bare `OutOfRange`.
 
-##### `sift-stream-bindings` 0.4.2
+##### `sift-stream-bindings` 0.5.0
 
 `max_decoding_message_size` on `SiftStreamBuilderPy` and `StreamConfigBuilderPy`. Leave it unset for the 50 MiB default.
 
