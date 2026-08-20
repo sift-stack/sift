@@ -133,7 +133,7 @@ impl SiftStreamBuilder {
         self
     }
 
-    /// Largest response, in bytes, this stream's gRPC clients will decode.
+    /// Largest response, in bytes, to decode when fetching this config's flow schema.
     pub fn max_decoding_message_size(mut self, bytes: usize) -> Self {
         self.service_options = self.service_options.with_max_decoding_message_size(bytes);
         self

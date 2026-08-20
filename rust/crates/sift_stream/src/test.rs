@@ -112,21 +112,6 @@ impl MockIngestionConfigService {
         }
     }
 
-    pub(crate) fn with_flows(flows: Vec<FlowConfig>) -> Self {
-        let existing_ingestion_config = IngestionConfig {
-            ingestion_config_id: Uuid::new_v4().to_string(),
-            asset_id: "already_exists_asset".to_string(),
-            client_key: "already_exists_client_key".to_string(),
-        };
-        Self {
-            existing_flows: Arc::new(Mutex::new(flows)),
-            existing_ingestion_configs: Arc::new(Mutex::new(vec![existing_ingestion_config])),
-            flow_create_error: None,
-            list_flows_call_count: Arc::new(AtomicUsize::new(0)),
-            deferred_flows: vec![],
-        }
-    }
-
     // Simulates the TOCTOU race where another SiftStream instance creates the flows
     // between our initial list check and our create attempt. The first list_flows call
     // returns empty; create_flows returns AlreadyExists; subsequent list_flows calls
