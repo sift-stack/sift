@@ -938,23 +938,26 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     ) -> ReplayResult:
         """Replay a log file, creating real API objects from the logged simulation data.
 
-        The tracking sidecar decides what happens, so an upload interrupted
-        partway is finished rather than started over:
+        Three modes, of which the caller picks at most one:
 
-        * **no sidecar**: batch upload. The entire log is collapsed to final
-          state via simulation and created in one pass, which is fewer API calls
-          than replaying every logged update. Each created entity is recorded in
-          the sidecar as it goes.
-        * **sidecar with unfinished work**: resume. The report the earlier
-          attempt created is reused, and replay walks the log line by line,
-          skipping the entries that already reached the server.
-        * **sidecar caught up with the log**: nothing to do.
+        * **new upload** (the default when the tracking sidecar records nothing):
+          the whole log is collapsed to final state via simulation and created in
+          one pass, which is fewer API calls than replaying every logged update.
+          Each created entity is recorded in the sidecar as it goes, so an upload
+          interrupted partway can be finished later.
+        * **resume** (the default when the sidecar records unfinished work): the
+          report the earlier attempt created is reused, and replay walks the log
+          line by line, skipping the entries that already reached the server. A
+          sidecar marked complete means there is nothing to do.
+        * **incremental** (``incremental=True``): follow a log that is still
+          being written, uploading entries as they appear. This is the mode the
+          plugin's background worker ticks in during a test run, not a way to
+          finish an interrupted upload.
 
         Args:
             log_file: Path to the log file to replay.
-            incremental: Force line-by-line replay regardless of sidecar state.
-                Used by the long-lived replay worker, which ticks against a log
-                that is still being written.
+            incremental: Select the worker's follow mode. The log is treated as
+                still growing, so reaching its end does not finish the upload.
             new_report: Ignore any partial upload and create a new report. The
                 existing sidecar is moved aside rather than overwritten, so the
                 abandoned report's ID stays recoverable.
@@ -1408,7 +1411,11 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         written the end of the file is not the end of the run.
         """
         tracking = LogTracking.load(log_path)
-        resuming = resuming or tracking.last_uploaded_line > 0
+        # Two separate questions, and conflating them would let a worker tick
+        # mark a log still being written as complete: whether an earlier pass
+        # already consumed the report's create line, and whether this call is
+        # finishing a final log.
+        report_already_created = resuming or tracking.last_uploaded_line > 0
         id_map = tracking.id_map
         state = _ReplayState()
 
@@ -1461,7 +1468,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         # On a resume tick the CreateTestReport line was consumed on an earlier
         # tick, so state.report is expected to be None; the report already exists
         # on the server. Only a genuine first pass over an empty log is an error.
-        if state.report is None and not resuming:
+        if state.report is None and not report_already_created:
             raise ValueError("No CreateTestReport found in log file")
 
         if resuming:

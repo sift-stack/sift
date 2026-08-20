@@ -220,6 +220,14 @@ import-test-result-log <path-to-log.jsonl>
 That replays the saved JSONL log as a single batch and deletes the file when it
 lives under the system temp dir.
 
+`import-test-result-log` runs in one of three modes:
+
+| Mode | How to get it | What it does |
+| --- | --- | --- |
+| New upload | the default, when nothing has been uploaded yet | Uploads the whole log as a new report |
+| Resume | the default, when a tracking sidecar records an interrupted upload | Continues into the report that upload created, sending only what is missing |
+| Follow | `--incremental` | Uploads entries as they are written. This is the mode the plugin's background worker ticks in during a run; it exits only when its stdin closes, so it is not how you finish an interrupted upload |
+
 Run the same command again if a replay is interrupted. Each upload records what
 it created in a tracking sidecar next to the log (`<log>.jsonl.tracking`), so a
 second run continues into the report the first one created and sends only what

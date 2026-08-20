@@ -114,13 +114,23 @@ def main() -> None:
     """Replay a test result simulation log file against the Sift API."""
     parser = argparse.ArgumentParser(
         description="Replay a test result simulation log file against the Sift API.",
+        epilog=(
+            "Runs in one of three modes. With no flags it uploads the log as a new "
+            "report, or resumes into the report an interrupted earlier run created, "
+            "whichever the tracking sidecar calls for. --new-report forces the first. "
+            "--incremental is the plugin worker's mode and is not meant to be run by hand."
+        ),
     )
     parser.add_argument("log_file", help="Path to the .jsonl log file to replay.")
     parser.add_argument("--grpc-url", default=os.getenv("SIFT_GRPC_URI"))
     parser.add_argument("--rest-url", default=os.getenv("SIFT_REST_URI"))
     parser.add_argument("--api-key", default=os.getenv("SIFT_API_KEY"))
     parser.add_argument(
-        "--incremental", action="store_true", help="Import the log file incrementally."
+        "--incremental",
+        action="store_true",
+        help="(internal) Follow a log that is still being written, uploading new entries "
+        "as they appear. Used by the plugin's background worker; it runs until stdin "
+        "closes, so it is not the way to finish an interrupted upload.",
     )
     parser.add_argument(
         "--new-report",

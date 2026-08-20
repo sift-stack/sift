@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import logging
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
@@ -68,6 +69,28 @@ def _make_step(id_: str) -> TestStep:
         start_time=T0,
         end_time=T0,
     )
+
+
+@contextmanager
+def _captured_replay_logs():
+    """Collect the replay module's log messages for the duration of the block.
+
+    Captured on the module logger directly: the Sift plugin sets
+    propagate=False on the sift_client logger, so caplog's root handler would
+    not see these records.
+    """
+    module_logger = logging.getLogger("sift_client._internal.low_level_wrappers.test_results")
+    messages: list[str] = []
+    handler = logging.Handler()
+    handler.emit = lambda record: messages.append(record.getMessage())  # type: ignore[method-assign]
+    prior_level = module_logger.level
+    module_logger.addHandler(handler)
+    module_logger.setLevel(logging.DEBUG)
+    try:
+        yield messages
+    finally:
+        module_logger.removeHandler(handler)
+        module_logger.setLevel(prior_level)
 
 
 def _make_measurement(id_: str) -> TestMeasurement:
@@ -198,20 +221,8 @@ async def test_replay_upload_log_names_update_target(tmp_path):
     client.create_test_step = AsyncMock(return_value=_make_step("real-step"))
     client.update_test_step = AsyncMock(return_value=_make_step("real-step"))
 
-    # Capture directly on the module logger: the Sift plugin sets propagate=False
-    # on the sift_client logger, so caplog's root handler wouldn't see the records.
-    module_logger = logging.getLogger("sift_client._internal.low_level_wrappers.test_results")
-    messages: list[str] = []
-    handler = logging.Handler()
-    handler.emit = lambda record: messages.append(record.getMessage())  # type: ignore[method-assign]
-    prior_level = module_logger.level
-    module_logger.addHandler(handler)
-    module_logger.setLevel(logging.DEBUG)
-    try:
+    with _captured_replay_logs() as messages:
         await client.import_log_file(log_file, incremental=True)
-    finally:
-        module_logger.removeHandler(handler)
-        module_logger.setLevel(prior_level)
 
     upload_lines = [m for m in messages if m.startswith("replay.upload")]
     update_line = next(line for line in upload_lines if "type=UpdateTestStep" in line)
@@ -363,6 +374,74 @@ async def test_interrupted_batch_upload_resumes_into_same_report(tmp_path):
     assert result.report is not None
     assert result.report.id_ == "real-report"
     assert LogTracking.load(log_file).id_map[steps[1].id_] == "real-step-2"
+
+
+@pytest.mark.asyncio
+async def test_worker_tick_never_marks_the_log_complete(tmp_path):
+    """A worker tick must not mark a log that is still being written as complete.
+
+    The worker ticks against a growing log, so reaching the end of the file is
+    not the end of the run. Marking it complete would make a manual re-run after
+    the worker died silently upload nothing, dropping every entry logged after
+    the last tick.
+    """
+    log_file = tmp_path / "worker_tick.jsonl"
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+    report, steps = await _build_log(client, log_file, step_names=("s1",))
+
+    # An earlier tick uploaded the report; the cursor is past line one.
+    LogTracking(last_uploaded_line=1, id_map={report.id_: "real-report"}).save(log_file)
+
+    client.create_test_step = AsyncMock(return_value=_make_step("real-step-1"))
+    client.update_test_step = AsyncMock(return_value=_make_step("real-step-1"))
+
+    await client.import_log_file(log_file, incremental=True)
+
+    tracking = LogTracking.load(log_file)
+    assert not tracking.complete
+    assert tracking.last_uploaded_line == 3
+
+
+@pytest.mark.asyncio
+async def test_idle_worker_tick_is_silent_and_writes_nothing(tmp_path):
+    """A tick with nothing new to upload must not log or touch the sidecar.
+
+    The worker ticks once a second for the whole session, so anything it does on
+    an idle tick is multiplied by the length of the run: audit-log noise that
+    buries the real entries, and sidecar rewrites that are pure churn.
+    """
+    log_file = tmp_path / "idle_tick.jsonl"
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+    report, _ = await _build_log(client, log_file, step_names=("s1",))
+
+    # The sidecar is caught up with every line currently in the log.
+    LogTracking(last_uploaded_line=3, id_map={report.id_: "real-report"}).save(log_file)
+    sidecar = LogTracking.sidecar_path(log_file)
+    before = sidecar.read_bytes(), sidecar.stat().st_mtime_ns
+
+    with _captured_replay_logs() as messages:
+        await client.import_log_file(log_file, incremental=True)
+
+    assert messages == []
+    assert (sidecar.read_bytes(), sidecar.stat().st_mtime_ns) == before
+
+
+@pytest.mark.asyncio
+async def test_resume_marks_the_log_complete(tmp_path):
+    """Finishing a resumed upload marks it complete, so a re-run does nothing."""
+    log_file = tmp_path / "resume_completes.jsonl"
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+    report, steps = await _build_log(client, log_file, step_names=("s1",))
+
+    LogTracking(id_map={report.id_: "real-report"}).save(log_file)
+
+    client.get_test_report = AsyncMock(return_value=_make_report("real-report"))
+    client.create_test_step = AsyncMock(return_value=_make_step("real-step-1"))
+    client.update_test_step = AsyncMock(return_value=_make_step("real-step-1"))
+
+    await client.import_log_file(log_file)
+
+    assert LogTracking.load(log_file).complete
 
 
 @pytest.mark.asyncio
