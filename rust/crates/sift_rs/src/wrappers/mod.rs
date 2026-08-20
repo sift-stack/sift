@@ -9,14 +9,6 @@
 
 pub use sift_connect::{MAX_DECODING_MESSAGE_SIZE, ServiceOptions};
 
-/// Applies [`ServiceOptions`] to a generated tonic client. A macro rather than a generic fn
-/// because tonic exposes these as inherent methods, not a trait.
-macro_rules! configured_client {
-    ($client:ident, $channel:expr, $options:expr) => {
-        $client::new($channel).max_decoding_message_size($options.max_decoding_message_size)
-    };
-}
-
 /// Offers a wrapper over Sift's assets API.
 pub mod assets;
 

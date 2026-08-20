@@ -48,11 +48,10 @@ pub fn new_ingestion_config_service_with_options(
     grpc_channel: SiftChannel,
     options: ServiceOptions,
 ) -> impl IngestionConfigServiceWrapper {
-    IngestionConfigServiceImpl(configured_client!(
-        IngestionConfigServiceClient,
-        grpc_channel,
-        options
-    ))
+    IngestionConfigServiceImpl(
+        IngestionConfigServiceClient::new(grpc_channel)
+            .max_decoding_message_size(options.max_decoding_message_size),
+    )
 }
 
 /// Convenience methods for working with Sift's IngestionConfig service.
