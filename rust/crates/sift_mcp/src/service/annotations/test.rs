@@ -311,6 +311,7 @@ async fn update_annotation_builds_mask_from_provided_fields() {
             Some(vec!["important".to_string()]),
             None,
             None,
+            None,
         )
         .await
         .expect("update_annotation failed");
@@ -330,6 +331,7 @@ async fn update_annotation_propagates_grpc_error() {
         .update_annotation(
             "ann1".to_string(),
             Some("x".to_string()),
+            None,
             None,
             None,
             None,

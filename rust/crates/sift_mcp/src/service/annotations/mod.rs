@@ -6,8 +6,8 @@ use sift_rs::{
     SiftChannel,
     annotations::v1::{
         Annotation, AnnotationLinkedChannel, AnnotationState, AnnotationType,
-        CreateAnnotationRequest, ListAnnotationsRequest, ListAnnotationsResponse,
-        UpdateAnnotationRequest, annotation_linked_channel,
+        BatchArchiveAnnotationsRequest, CreateAnnotationRequest, ListAnnotationsRequest,
+        ListAnnotationsResponse, UpdateAnnotationRequest, annotation_linked_channel,
         annotation_service_client::AnnotationServiceClient,
     },
     metadata::v1::MetadataValue,
@@ -176,11 +176,33 @@ impl AnnotationService {
             .ok_or_else(|| anyhow!("create_annotation response missing annotation"))
     }
 
+    pub async fn batch_archive_annotations(
+        &self,
+        annotation_ids: Vec<String>,
+    ) -> Result<Vec<Annotation>> {
+        let channel = self.channel.clone();
+        let resp = with_retry(&self.policy, move || {
+            let channel = channel.clone();
+            let annotation_ids = annotation_ids.clone();
+            async move {
+                let mut client = AnnotationServiceClient::new(channel);
+                client
+                    .batch_archive_annotations(BatchArchiveAnnotationsRequest { annotation_ids })
+                    .await
+                    .map(|resp| resp.into_inner())
+            }
+        })
+        .await
+        .context("failed to batch archive annotations")?;
+
+        Ok(resp.annotations)
+    }
+
     /// Update a subset of an existing annotation's fields. Per
     /// `protos/sift/annotations/v1/annotations.proto::UpdateAnnotationRequest` the
     /// updatable fields are `name`, `description`, `start_time`, `end_time`,
     /// `assigned_to_user_id`, `state`, `tags`, `legend_config`, `linked_channels`,
-    /// and `metadata`. This service exposes all but `legend_config`.
+    /// `metadata`, and `is_archived`. This service exposes all but `legend_config`.
     ///
     /// `tags`, `linked_channels`, and `metadata` use REPLACE semantics — passing
     /// `Some(vec![])` clears the field.
@@ -197,6 +219,7 @@ impl AnnotationService {
         tags: Option<Vec<String>>,
         linked_channel_ids: Option<Vec<String>>,
         metadata: Option<Vec<MetadataValue>>,
+        is_archived: Option<bool>,
     ) -> Result<Annotation> {
         let mut annotation = Annotation {
             annotation_id,
@@ -239,6 +262,10 @@ impl AnnotationService {
         if let Some(v) = metadata {
             annotation.metadata = v;
             paths.push("metadata".to_string());
+        }
+        if let Some(v) = is_archived {
+            annotation.is_archived = v;
+            paths.push("is_archived".to_string());
         }
 
         let channel = self.channel.clone();
