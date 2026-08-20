@@ -181,10 +181,9 @@ impl Environment {
                 let command_exists = commands
                     .iter()
                     .any(|command| self.command_available(command));
-                let detected = match harness {
-                    Harness::Claude | Harness::Codex => command_exists,
-                    Harness::Cursor | Harness::OpenCode => command_exists || config_dir.exists(),
-                };
+                // A config directory alone counts, so headless environments
+                // without client binaries still install the skill.
+                let detected = command_exists || config_dir.exists();
                 detected.then_some(harness)
             })
             .collect()
@@ -224,7 +223,12 @@ pub async fn install(profile: Option<String>, args: AgentInstallArgs) -> Result<
     };
     let registration = Registration::new(access, Profile::from_option(profile))
         .with_update_check_disabled(args.disable_update_check);
-    let result = install_environment(&Environment::discover()?, "Installed", &registration)?;
+    let result = install_environment(
+        &Environment::discover()?,
+        "Installed",
+        &registration,
+        args.path.as_deref(),
+    )?;
     if result == ExitCode::SUCCESS {
         print_install_update_notice().await;
     }
@@ -327,7 +331,7 @@ pub async fn update(profile: Option<String>, args: AgentUpdateArgs) -> Result<Ex
     let registration =
         Registration::new(access, profile).with_update_check_disabled(disable_update_check);
 
-    install_environment(&environment, "Updated", &registration)
+    install_environment(&environment, "Updated", &registration, None)
 }
 
 pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
@@ -447,6 +451,14 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
                 unhealthy = true;
                 blocked = true;
             }
+            config::State::Unregistrable(detail) => {
+                println!(
+                    "{} {} MCP registration not inspectable: {detail}",
+                    warning_status(),
+                    harness.label()
+                );
+                warnings = true;
+            }
         }
     }
     let access_modes = registrations
@@ -554,8 +566,8 @@ pub async fn doctor(expected_profile: Option<String>) -> Result<ExitCode> {
     if unhealthy {
         if blocked {
             println!(
-                "Resolve the reported conflicts before repairing all detected integrations \
-                 together."
+                "Resolve the reported conflicts or inspection errors before repairing all \
+                 detected integrations together."
             );
         }
         if mixed_access {
@@ -650,6 +662,7 @@ fn uninstall_environment(environment: &Environment) -> Result<ExitCode> {
             config::State::Conflict(detail) | config::State::Unavailable(detail) => {
                 blockers.push(format!("{} MCP registration: {detail}", harness.label()));
             }
+            config::State::Unregistrable(_) => {}
             _ => {}
         }
     }
@@ -675,6 +688,7 @@ fn uninstall_environment(environment: &Environment) -> Result<ExitCode> {
         }
     }
 
+    let mut skipped_registration = false;
     for harness in &environment.harnesses {
         let state = config::inspect(*harness, environment)?;
         match &state {
@@ -690,6 +704,14 @@ fn uninstall_environment(environment: &Environment) -> Result<ExitCode> {
                     harness.label()
                 );
             }
+            config::State::Unregistrable(detail) => {
+                println!(
+                    "{} Skipped {} MCP registration: {detail}",
+                    warning_status(),
+                    harness.label()
+                );
+                skipped_registration = true;
+            }
             config::State::Current(_) | config::State::ManagedDrift(_) => {
                 config::uninstall(*harness, environment)?;
                 println!("[removed] {} MCP registration", harness.label());
@@ -697,7 +719,11 @@ fn uninstall_environment(environment: &Environment) -> Result<ExitCode> {
         }
     }
 
-    println!("Removed the Sift agent bundle from every detected client.");
+    if skipped_registration {
+        println!("Removed the Sift agent skills; inaccessible MCP registrations were unchanged.");
+    } else {
+        println!("Removed the Sift agent bundle from every detected client.");
+    }
     Ok(ExitCode::SUCCESS)
 }
 
@@ -705,8 +731,9 @@ fn install_environment(
     environment: &Environment,
     verb: &str,
     registration: &Registration,
+    extra_skill_path: Option<&Path>,
 ) -> Result<ExitCode> {
-    if environment.harnesses.is_empty() {
+    if environment.harnesses.is_empty() && extra_skill_path.is_none() {
         println!(
             "No supported AI coding clients were detected. Supported clients: \
              Claude Code, Codex, Cursor, and OpenCode."
@@ -719,24 +746,41 @@ fn install_environment(
     let spinner = Spinner::new();
     spinner.set_message(format!("{} Sift MCP and skills...", "Installing".green()));
 
-    let targets = skill::targets(environment);
+    let mut targets = skill::targets(environment);
+    // Empty harnesses marks the caller-requested --path target; drop it when
+    // a detected client already installs to the same directory.
+    if let Some(path) = extra_skill_path
+        && !targets.iter().any(|target| target.path == path)
+    {
+        targets.push(skill::Target {
+            path: path.to_path_buf(),
+            harnesses: Vec::new(),
+        });
+    }
     let mut blockers = Vec::new();
     for target in &targets {
         if skill::inspect(&target.path)? == skill::State::Conflict {
             blockers.push(format!(
                 "{} has an unmanaged skill at {}",
-                harness_labels(&target.harnesses),
+                target_label(&target.harnesses),
                 target.path.display()
             ));
         }
     }
+    let mut registrable = Vec::new();
+    let mut skipped = Vec::new();
     for harness in &environment.harnesses {
         let state = config::inspect(*harness, environment)?;
         match state {
             config::State::Conflict(detail) | config::State::Unavailable(detail) => {
                 blockers.push(format!("{} MCP registration: {detail}", harness.label()));
             }
-            _ => {}
+            config::State::Unregistrable(detail) => {
+                skipped.push((*harness, detail));
+            }
+            _ => {
+                registrable.push(*harness);
+            }
         }
     }
 
@@ -749,8 +793,7 @@ fn install_environment(
         return Ok(ExitCode::FAILURE);
     }
 
-    let config_snapshots = environment
-        .harnesses
+    let config_snapshots = registrable
         .iter()
         .map(|harness| config::snapshot(*harness, environment))
         .collect::<Result<Vec<_>>>()?;
@@ -760,7 +803,7 @@ fn install_environment(
         for target in &targets {
             replacements.push(skill::begin_install(&target.path)?);
         }
-        for harness in &environment.harnesses {
+        for harness in &registrable {
             config::install(*harness, environment, registration)?;
             installed_configs += 1;
         }
@@ -806,11 +849,11 @@ fn install_environment(
         println!(
             "{} {verb} {} skill: {}",
             ok_status(),
-            harness_labels(&target.harnesses),
+            target_label(&target.harnesses),
             target.path.display()
         );
     }
-    for harness in &environment.harnesses {
+    for harness in &registrable {
         println!(
             "{} {verb} {} MCP registration ({})",
             ok_status(),
@@ -818,12 +861,28 @@ fn install_environment(
             registration.label()
         );
     }
+    for (harness, detail) in &skipped {
+        println!(
+            "{} Skipped {} MCP registration: {detail}. The skill is installed; rerun \
+             `{} agent install` once the client is available.",
+            warning_status(),
+            harness.label(),
+            registration.profile.command_prefix()
+        );
+    }
 
-    println!(
-        "{verb} the Sift agent bundle for: {} ({}).",
-        harness_labels(&environment.harnesses),
-        registration.label()
-    );
+    if registrable.is_empty() {
+        println!(
+            "{verb} the Sift agent skill for: {}; no MCP registrations were made.",
+            target_label(&environment.harnesses)
+        );
+    } else {
+        println!(
+            "{verb} the Sift agent bundle for: {} ({}).",
+            harness_labels(&registrable),
+            registration.label()
+        );
+    }
     Ok(ExitCode::SUCCESS)
 }
 
@@ -973,6 +1032,15 @@ async fn check_release() -> bool {
             );
             false
         }
+    }
+}
+
+/// `harness_labels`, with a name for the caller-requested `--path` target.
+fn target_label(harnesses: &[Harness]) -> String {
+    if harnesses.is_empty() {
+        "requested --path".to_string()
+    } else {
+        harness_labels(harnesses)
     }
 }
 

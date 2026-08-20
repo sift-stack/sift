@@ -10,6 +10,18 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Added a `--disable-nonessential-traffic` flag to `sift-cli mcp` that stops
   the MCP server from making non-essential network requests. Release checks
   stay under `--disable-update-check`.
+- `sift-cli agent install` now works in headless environments (container
+  builds, CI). A client's config directory counts as detection even when its
+  binary is not on PATH, the skill always installs (it is plain file IO), and
+  a client-CLI-backed MCP registration that cannot run is skipped with a
+  warning instead of failing the install. `agent doctor` reports such a
+  registration as a warning rather than an error.
+- Added an optional `--path <DIR>` to `sift-cli agent install` that installs
+  the agent skill into the named directory in addition to every detected
+  client, for image builds and other environments that package the skill at a
+  fixed location. The directory receives `SKILL.md` and `references/`
+  directly; rerun with the same `--path` to refresh it. Without `--path`, the
+  skill installs only to the default locations for detected clients.
 
 ## [v0.4.1] - August 10, 2026
 
