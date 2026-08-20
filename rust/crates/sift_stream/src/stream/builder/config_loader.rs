@@ -7,8 +7,11 @@ use sift_rs::{
     ingestion_configs::v2::{FlowConfig, IngestionConfig},
     retry::{RetryConfig, RetryExt},
     wrappers::{
+        ServiceOptions,
         assets::{AssetServiceWrapper, new_asset_service},
-        ingestion_configs::{IngestionConfigServiceWrapper, new_ingestion_config_service},
+        ingestion_configs::{
+            IngestionConfigServiceWrapper, new_ingestion_config_service_with_options,
+        },
     },
 };
 
@@ -17,6 +20,7 @@ use sift_rs::{
 pub async fn load_ingestion_config(
     grpc_channel: SiftChannel,
     ingestion_config: IngestionConfigForm,
+    service_options: ServiceOptions,
 ) -> Result<(IngestionConfig, Vec<FlowConfig>, Asset)> {
     #[cfg(feature = "tracing")]
     tracing::info_span!("load_ingestion_config");
@@ -27,7 +31,8 @@ pub async fn load_ingestion_config(
         flows,
     } = ingestion_config;
 
-    let ingestion_config_service_wrapper = new_ingestion_config_service(grpc_channel.clone());
+    let ingestion_config_service_wrapper =
+        new_ingestion_config_service_with_options(grpc_channel.clone(), service_options);
     let retrying_ingestion_config =
         ingestion_config_service_wrapper.retrying(RetryConfig::default());
 
@@ -291,7 +296,9 @@ mod tests {
         let form = create_test_ingestion_config_form(asset_name, &client_key, flows.clone());
 
         let (ingestion_config, returned_flows, asset) =
-            load_ingestion_config(grpc_channel, form).await.unwrap();
+            load_ingestion_config(grpc_channel, form, ServiceOptions::default())
+                .await
+                .unwrap();
 
         assert_eq!(ingestion_config.client_key, client_key);
         assert_eq!(asset.name, asset_name);
@@ -307,7 +314,9 @@ mod tests {
         let form = create_test_ingestion_config_form(asset_name, &client_key, vec![]);
 
         let (ingestion_config, returned_flows, asset) =
-            load_ingestion_config(grpc_channel, form).await.unwrap();
+            load_ingestion_config(grpc_channel, form, ServiceOptions::default())
+                .await
+                .unwrap();
 
         assert_eq!(ingestion_config.client_key, client_key);
         assert_eq!(asset.name, asset_name);
@@ -323,7 +332,9 @@ mod tests {
         let form = create_test_ingestion_config_form(asset_name, client_key, vec![]);
 
         let (ingestion_config, returned_flows, _) =
-            load_ingestion_config(grpc_channel, form).await.unwrap();
+            load_ingestion_config(grpc_channel, form, ServiceOptions::default())
+                .await
+                .unwrap();
 
         assert_eq!(ingestion_config.client_key, client_key);
         // Should use existing flows from Sift when no flows provided
@@ -343,7 +354,9 @@ mod tests {
         let form = create_test_ingestion_config_form(asset_name, client_key, flows.clone());
 
         let (ingestion_config, returned_flows, _) =
-            load_ingestion_config(grpc_channel, form).await.unwrap();
+            load_ingestion_config(grpc_channel, form, ServiceOptions::default())
+                .await
+                .unwrap();
 
         assert_eq!(ingestion_config.client_key, client_key);
         // Should return flows (either existing or newly created)
@@ -360,7 +373,7 @@ mod tests {
 
         let form = create_test_ingestion_config_form(asset_name, client_key, flows);
 
-        let result = load_ingestion_config(grpc_channel, form).await;
+        let result = load_ingestion_config(grpc_channel, form, ServiceOptions::default()).await;
 
         // Should fail with IncompatibleIngestionConfigChange error
         assert!(result.is_err());
@@ -386,7 +399,9 @@ mod tests {
         let form = create_test_ingestion_config_form(asset_name, client_key, existing_flows);
 
         let (ingestion_config, returned_flows, _) =
-            load_ingestion_config(grpc_channel, form).await.unwrap();
+            load_ingestion_config(grpc_channel, form, ServiceOptions::default())
+                .await
+                .unwrap();
 
         assert_eq!(ingestion_config.client_key, client_key);
         // Should return existing flows
@@ -401,7 +416,7 @@ mod tests {
         let (grpc_channel, _) = create_mock_grpc_channel_with_service().await;
         let form = create_test_ingestion_config_form("", "some_client_key", vec![]);
 
-        let result = load_ingestion_config(grpc_channel, form).await;
+        let result = load_ingestion_config(grpc_channel, form, ServiceOptions::default()).await;
 
         assert!(result.is_err());
         assert_ne!(result.unwrap_err().kind(), ErrorKind::AlreadyExistsError);
@@ -431,7 +446,7 @@ mod tests {
             flows,
         );
 
-        let result = load_ingestion_config(grpc_channel, form).await;
+        let result = load_ingestion_config(grpc_channel, form, ServiceOptions::default()).await;
 
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().kind(), ErrorKind::CreateFlowError);
@@ -460,7 +475,9 @@ mod tests {
         );
 
         let (ingestion_config, returned_flows, asset) =
-            load_ingestion_config(grpc_channel, form).await.unwrap();
+            load_ingestion_config(grpc_channel, form, ServiceOptions::default())
+                .await
+                .unwrap();
 
         assert_eq!(ingestion_config.client_key, "already_exists_client_key");
         assert_eq!(asset.name, "already_exists_asset");

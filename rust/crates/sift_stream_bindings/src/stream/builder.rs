@@ -52,6 +52,9 @@ pub struct SiftStreamBuilderPy {
     /// Optional metadata key-value pairs to apply to the asset.
     #[pyo3(get, set)]
     metadata: Option<Vec<MetadataPy>>,
+    /// Largest gRPC response, in bytes, this stream will decode. Defaults to 50 MB when `None`.
+    #[pyo3(get, set)]
+    max_decoding_message_size: Option<usize>,
 }
 
 // PyO3 Method Implementations
@@ -69,6 +72,7 @@ impl SiftStreamBuilderPy {
             run_id: None,
             asset_tags: None,
             metadata: None,
+            max_decoding_message_size: None,
         }
     }
 
@@ -94,6 +98,10 @@ impl SiftStreamBuilderPy {
 
         if !self.enable_tls {
             builder = builder.disable_tls();
+        }
+
+        if let Some(bytes) = self.max_decoding_message_size {
+            builder = builder.max_decoding_message_size(bytes);
         }
 
         let mut config_builder = builder.ingestion_config(ingestion_config.into());
@@ -141,6 +149,7 @@ impl SiftStreamBuilderPy {
             run_id: None,
             asset_tags: None,
             metadata: None,
+            max_decoding_message_size: self.max_decoding_message_size,
         }
     }
 }
@@ -156,6 +165,10 @@ fn make_stream_config_builder(base: StreamConfigBuilderPy) -> PyResult<StreamCon
 
     if !base.enable_tls {
         builder = builder.disable_tls();
+    }
+
+    if let Some(bytes) = base.max_decoding_message_size {
+        builder = builder.max_decoding_message_size(bytes);
     }
 
     let mut config_builder = builder.ingestion_config(base.ingestion_config.into());
@@ -215,6 +228,9 @@ pub struct StreamConfigBuilderPy {
     /// Optional metadata key-value pairs to apply to the asset.
     #[pyo3(get, set)]
     pub metadata: Option<Vec<MetadataPy>>,
+    /// Largest gRPC response, in bytes, this stream will decode. Defaults to 50 MB when `None`.
+    #[pyo3(get, set)]
+    pub max_decoding_message_size: Option<usize>,
 }
 
 #[gen_stub_pymethods]

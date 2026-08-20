@@ -1,5 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
+use super::MAX_DECODING_MESSAGE_SIZE;
 use async_trait::async_trait;
 use pbjson_types::FieldMask;
 use sift_connect::SiftChannel;
@@ -37,7 +38,9 @@ use crate::assets::v1::{
 /// # }
 /// ```
 pub fn new_asset_service(grpc_channel: SiftChannel) -> impl AssetServiceWrapper {
-    AssetServiceImpl(AssetServiceClient::new(grpc_channel))
+    AssetServiceImpl(
+        AssetServiceClient::new(grpc_channel).max_decoding_message_size(MAX_DECODING_MESSAGE_SIZE),
+    )
 }
 
 /// Convenience methods for working with Sift's Asset service.

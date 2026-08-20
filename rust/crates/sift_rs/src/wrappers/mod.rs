@@ -7,6 +7,8 @@
 //! - Convenient methods for common operations
 //! - Access to underlying gRPC clients via `Deref` and `DerefMut`
 
+pub use sift_connect::{MAX_DECODING_MESSAGE_SIZE, ServiceOptions};
+
 /// Offers a wrapper over Sift's assets API.
 pub mod assets;
 
