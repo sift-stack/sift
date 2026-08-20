@@ -1,5 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
+use super::ServiceOptions;
 use async_trait::async_trait;
 use pbjson_types::FieldMask;
 use sift_connect::SiftChannel;
@@ -37,7 +38,19 @@ use crate::assets::v1::{
 /// # }
 /// ```
 pub fn new_asset_service(grpc_channel: SiftChannel) -> impl AssetServiceWrapper {
-    AssetServiceImpl(AssetServiceClient::new(grpc_channel))
+    new_asset_service_with_options(grpc_channel, ServiceOptions::default())
+}
+
+/// Like [`new_asset_service`] but with explicit [`ServiceOptions`].
+pub fn new_asset_service_with_options(
+    grpc_channel: SiftChannel,
+    options: ServiceOptions,
+) -> impl AssetServiceWrapper {
+    AssetServiceImpl(configured_client!(
+        AssetServiceClient,
+        grpc_channel,
+        options
+    ))
 }
 
 /// Convenience methods for working with Sift's Asset service.

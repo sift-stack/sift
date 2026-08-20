@@ -1,4 +1,4 @@
-use super::ResourceIdentifier;
+use super::{ResourceIdentifier, ServiceOptions};
 use crate::ingestion_configs::v2::{
     CreateIngestionConfigFlowsRequest, CreateIngestionConfigRequest, FlowConfig,
     GetIngestionConfigRequest, IngestionConfig, ListIngestionConfigFlowsRequest,
@@ -40,7 +40,19 @@ use std::ops::{Deref, DerefMut};
 pub fn new_ingestion_config_service(
     grpc_channel: SiftChannel,
 ) -> impl IngestionConfigServiceWrapper {
-    IngestionConfigServiceImpl(IngestionConfigServiceClient::new(grpc_channel))
+    new_ingestion_config_service_with_options(grpc_channel, ServiceOptions::default())
+}
+
+/// Like [`new_ingestion_config_service`] but with explicit [`ServiceOptions`].
+pub fn new_ingestion_config_service_with_options(
+    grpc_channel: SiftChannel,
+    options: ServiceOptions,
+) -> impl IngestionConfigServiceWrapper {
+    IngestionConfigServiceImpl(configured_client!(
+        IngestionConfigServiceClient,
+        grpc_channel,
+        options
+    ))
 }
 
 /// Convenience methods for working with Sift's IngestionConfig service.
@@ -277,15 +289,31 @@ impl IngestionConfigServiceWrapper for IngestionConfigServiceImpl {
         let mut filtered_flows = Vec::new();
 
         loop {
+            let response = self.list_ingestion_config_flows(request).await;
+
             let ListIngestionConfigFlowsResponse {
                 flows,
                 next_page_token,
-            } = self
-                .list_ingestion_config_flows(request)
-                .await
-                .map(|res| res.into_inner())
-                .map_err(|e| Error::new(ErrorKind::RetrieveIngestionConfigError, e))
-                .context("something went wrong while filtering flows")?;
+            } = match response {
+                Ok(res) => res.into_inner(),
+                Err(status) => {
+                    // tonic reports a response over the client's decode limit as `OutOfRange`.
+                    let exceeded_decode_limit = status.code() == tonic::Code::OutOfRange;
+                    let err: Result<Vec<FlowConfig>> =
+                        Err(Error::new(ErrorKind::RetrieveIngestionConfigError, status));
+
+                    return if exceeded_decode_limit {
+                        err.context(format!(
+                            "the flow schema for ingestion config '{ingestion_config_id}' is larger than this client is configured to decode. This is a client-side limit; the server returned the response successfully"
+                        ))
+                        .help(
+                            "raise this client's max_decoding_message_size, or declare only the flows you intend to stream so the fetch is filtered to those instead of returning every flow",
+                        )
+                    } else {
+                        err.context("something went wrong while filtering flows")
+                    };
+                }
+            };
 
             if flows.is_empty() {
                 break;

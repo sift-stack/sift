@@ -624,6 +624,10 @@ class SiftStreamBuilderPy:
     r"""
     Optional metadata key-value pairs to apply to the asset.
     """
+    max_decoding_message_size: typing.Optional[builtins.int]
+    r"""
+    Largest gRPC response, in bytes, this stream will decode. Defaults to 50 MB when `None`.
+    """
     def __new__(cls, uri:builtins.str, apikey:builtins.str) -> SiftStreamBuilderPy: ...
     def build(self) -> typing.Any:
         r"""
@@ -716,6 +720,10 @@ class StreamConfigBuilderPy:
     metadata: typing.Optional[builtins.list[MetadataPy]]
     r"""
     Optional metadata key-value pairs to apply to the asset.
+    """
+    max_decoding_message_size: typing.Optional[builtins.int]
+    r"""
+    Largest gRPC response, in bytes, this stream will decode. Defaults to 50 MB when `None`.
     """
     def live_only(self) -> LiveOnlyBuilderPy:
         r"""

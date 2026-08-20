@@ -1,4 +1,4 @@
-use super::ResourceIdentifier;
+use super::{ResourceIdentifier, ServiceOptions};
 use crate::{
     metadata::v1::MetadataValue,
     runs::v2::{
@@ -40,7 +40,15 @@ use std::ops::{Deref, DerefMut};
 /// # }
 /// ```
 pub fn new_run_service(grpc_channel: SiftChannel) -> impl RunServiceWrapper {
-    RunServiceWrapperImpl(RunServiceClient::new(grpc_channel))
+    new_run_service_with_options(grpc_channel, ServiceOptions::default())
+}
+
+/// Like [`new_run_service`] but with explicit [`ServiceOptions`].
+pub fn new_run_service_with_options(
+    grpc_channel: SiftChannel,
+    options: ServiceOptions,
+) -> impl RunServiceWrapper {
+    RunServiceWrapperImpl(configured_client!(RunServiceClient, grpc_channel, options))
 }
 
 /// Convenience methods for working with Sift's Run service.

@@ -40,6 +40,32 @@ pub use interceptor::AuthInterceptor;
 /// ```
 pub type SiftChannel = InterceptedService<Channel, AuthInterceptor>;
 
+/// Default maximum size of a response a Sift gRPC client will decode. tonic's own default is 4 MiB.
+pub const MAX_DECODING_MESSAGE_SIZE: usize = 50 * 1024 * 1024;
+
+/// Per-client tunables that travel alongside a [`SiftChannel`]. tonic applies size limits in the
+/// codec, per client, so unlike TLS and keep-alive they can't be set on the channel.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ServiceOptions {
+    /// Largest response, in bytes, that a client will decode.
+    pub max_decoding_message_size: usize,
+}
+
+impl Default for ServiceOptions {
+    fn default() -> Self {
+        Self {
+            max_decoding_message_size: MAX_DECODING_MESSAGE_SIZE,
+        }
+    }
+}
+
+impl ServiceOptions {
+    pub fn with_max_decoding_message_size(mut self, bytes: usize) -> Self {
+        self.max_decoding_message_size = bytes;
+        self
+    }
+}
+
 /// Used to build an instance of [SiftChannel].
 ///
 /// This builder provides a fluent API for configuring a gRPC channel connection
