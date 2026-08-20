@@ -1,4 +1,4 @@
-use super::ResourceIdentifier;
+use super::{MAX_DECODING_MESSAGE_SIZE, ResourceIdentifier};
 use crate::{
     metadata::v1::MetadataValue,
     runs::v2::{
@@ -40,7 +40,9 @@ use std::ops::{Deref, DerefMut};
 /// # }
 /// ```
 pub fn new_run_service(grpc_channel: SiftChannel) -> impl RunServiceWrapper {
-    RunServiceWrapperImpl(RunServiceClient::new(grpc_channel))
+    RunServiceWrapperImpl(
+        RunServiceClient::new(grpc_channel).max_decoding_message_size(MAX_DECODING_MESSAGE_SIZE),
+    )
 }
 
 /// Convenience methods for working with Sift's Run service.

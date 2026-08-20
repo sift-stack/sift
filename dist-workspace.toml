@@ -12,11 +12,22 @@ tag-namespace = "sift_cli-v"
 # The installers to generate for each app
 installers = ["shell", "powershell"]
 # Target platforms to build apps for (Rust target-triple syntax)
-targets = ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"]
+targets = ["aarch64-apple-darwin", "x86_64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"]
 # Path that installers should place binaries in
 install-path = "CARGO_HOME"
 # Whether to install an updater program
 install-updater = false
+# Build only sift_cli with `--package` instead of the whole workspace. The
+# workspace build compiles sift_stream_bindings (pyo3), which is not part of
+# the CLI release and fails to link when the apple target is cross-compiled.
+precise-builds = true
 # Extra CI steps injected into the build job before `dist build`.
 # sift_cli's build.rs invokes `mdbook build`, so mdbook must be on PATH.
 github-build-setup = "includes/build-setup.yml"
+
+# Build the Intel macOS binary on an arm64 runner. The M-series runners are
+# much faster than the Intel `macos-*-intel` pool, and Rosetta 2 runs any
+# x86_64 build-time helper binaries.
+[dist.github-custom-runners.x86_64-apple-darwin]
+runner = "macos-15"
+host = "aarch64-apple-darwin"

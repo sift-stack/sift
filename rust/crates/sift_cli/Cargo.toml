@@ -1,9 +1,9 @@
 [features]
-mcp = []
+test-reports = ["sift_mcp/test-reports"]
 
 [package]
 name = "sift_cli"
-version = "0.3.0"
+version = "0.4.3"
 authors.workspace = true
 edition.workspace = true
 categories.workspace = true
@@ -45,6 +45,8 @@ sift_rs = { workspace = true }
 tokio = { workspace = true, features = ["full", "net", "time"] }
 tokio-stream = { workspace = true }
 toml = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
 zip = { workspace = true }
 axum.workspace = true
 tower-serve-static.workspace = true
@@ -53,3 +55,4 @@ include_dir.workspace = true
 [dev-dependencies]
 indoc = { workspace = true }
 bytes = { workspace = true }
+tempdir = { workspace = true }

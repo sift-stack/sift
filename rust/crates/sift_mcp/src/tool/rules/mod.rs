@@ -63,6 +63,9 @@ impl SiftMcpServer {
                 `metadata`, and timestamps, plus an added `url` field with the rule's Sift web link
                 (`<host>/rules/<rule_id>`). `url` is omitted when the host can't be derived. Surface these links
                 to the user when presenting rules.
+              - Fields at their proto3 default are OMITTED from the JSON: a missing `is_external`,
+                `is_live_evaluation_enabled`, `is_enabled`, or `is_archived` key means `false`, not \"unknown\".
+                Do not fall back to another API to read these; absence IS the value.
               - `count`: how many items the response carries. Read this instead of
                 counting the array yourself — it is exact, and it already accounts for
                 `limit` and any `fields` projection.
@@ -73,11 +76,17 @@ impl SiftMcpServer {
                 `created_date`, `created_by_user_id`, `metadata`, `modified_date`, `modified_by_user_id`,
                 `deleted_date`, `is_archived`, `archived_date`, `is_live_evaluation_enabled`.
                 Reference metadata entries as `metadata.{key}` (e.g. `metadata.severity == \"high\"`).
+                When filtering or searching, use `name.matches(\"(?i)avionics\")`, not `==`. Use `==` only for an
+                exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
+                `contains(\"Avionics\")` silently misses `avionics-power-limit`.
+                Folder membership is filterable via `folders` and `activeFolders` (folder-id lists;
+                `activeFolders` excludes archived folders): `\"<folder_id>\" in folders` returns rules in a
+                folder, `size(activeFolders) == 0` returns uncategorized rules.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields:
                 `created_date`, `modified_date`. Default sort is `created_date desc` (newest first).
                 Example: `\"created_date desc,modified_date\"`.
-              - `limit`: max items to return. Start at 200 and only raise it if the result is capped
-                and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200.
+              - `limit`: max items to return. Start at 50 and only raise it if the result is capped
+                and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
               - `fields`: optional array of field names to keep on each item, e.g.
                 `[\"name\"]`. Omit it for the full object. Names match case-insensitively
                 and ignore underscores, so `asset_id` and `assetId` both work. Any name
@@ -92,7 +101,8 @@ impl SiftMcpServer {
             Guidance:
               - Scope with `asset_id == \"...\"` when the rule's target asset is known — it's the most selective
                 field for narrowing rule listings.
-              - Use `is_archived == false` to exclude archived rules unless they're explicitly needed.
+              - Default add `is_archived == false` to the filter. Include archived rules only when the user
+                explicitly asks for them.
               - Use `is_live_evaluation_enabled == true` to find only rules that run against live data.
         ",
         annotations(title = "rules/list_rules", read_only_hint = true)
@@ -133,9 +143,13 @@ impl SiftMcpServer {
             Parameters:
               - `rule_id`: required. The rule whose versions to list.
               - `filter`: optional CEL expression. Filterable fields: `rule_version_id`, `user_notes`, and
-                `change_message`. Omit or pass an empty string to list all versions.
-              - `limit`: max items to return. Start at 200 and only raise it if the result is capped
-                and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200.
+                `change_message`. Omit or pass an empty string to list all versions. There is no `name` here;
+                `user_notes` and `change_message` are the text fields. When filtering or searching them, use
+                `change_message.matches(\"(?i)asset\")`, not `==`. Use `==` only for an exact value from a prior
+                result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE: `contains(\"Asset\")` silently
+                misses `asset renamed`.
+              - `limit`: max items to return. Start at 50 and only raise it if the result is capped
+                and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression.
@@ -222,6 +236,8 @@ impl SiftMcpServer {
         )
     )]
     pub async fn create_rule(&self, params: Parameters<RuleDefinitionParams>) -> error::McpResult {
+        self.require_create()?;
+
         let Parameters(RuleDefinitionParams { rule_json }) = params;
 
         let update = parse_rule_definition(&rule_json)?;

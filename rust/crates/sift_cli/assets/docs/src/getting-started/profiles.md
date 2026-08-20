@@ -10,8 +10,9 @@ When you do not name a profile, settings are read from and written to the top
 level of the config file. This is the `default` profile:
 
 ```toml
-grpc_uri = "https://api.siftstack.com"
+grpc_uri = "https://grpc-api.siftstack.com"
 rest_uri = "https://api.siftstack.com"
+app_uri = "https://app.siftstack.com"
 apikey = "sift_prod_..."
 ```
 
@@ -24,19 +25,22 @@ TOML table:
 sift-cli config update --profile mission \
   --grpc-uri https://api.staging.example.com \
   --rest-uri https://api.staging.example.com \
+  --app-uri https://sift.staging.example.com \
   --api-key "$SIFT_STAGING_API_KEY"
 ```
 
 The resulting file:
 
 ```toml
-grpc_uri = "https://api.siftstack.com"
+grpc_uri = "https://grpc-api.siftstack.com"
 rest_uri = "https://api.siftstack.com"
+app_uri = "https://app.siftstack.com"
 apikey = "sift_prod_..."
 
 [staging]
-grpc_uri = "https://api.staging.example.com"
+grpc_uri = "https://grpc-api.staging.example.com"
 rest_uri = "https://api.staging.example.com"
+app_uri = "https://sift.staging.example.com"
 apikey = "sift_staging_..."
 ```
 

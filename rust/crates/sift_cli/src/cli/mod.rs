@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand, crate_version};
+use clap::{Parser, Subcommand, ValueEnum, crate_version};
 use clap_complete::Shell;
 use parquet::{ChannelMode, ComplexTypesMode};
 pub mod hdf5;
@@ -12,7 +12,6 @@ use ulog::UlogParseErrorPolicy;
 pub mod channel;
 use channel::DataType;
 
-pub mod agent;
 pub mod export;
 pub mod parquet;
 
@@ -34,7 +33,8 @@ pub struct Args {
     #[arg(short = 'V', long)]
     pub version: bool,
 
-    #[arg(long, global = true, hide = true)]
+    /// Use a named profile from the config file
+    #[arg(long, global = true)]
     pub profile: Option<String>,
 
     #[arg(long, global = true, hide = true)]
@@ -51,6 +51,10 @@ pub enum Cmd {
     #[command(subcommand)]
     Export(ExportCmd),
 
+    /// Get commands to discover and pull data from Sift
+    #[command(subcommand)]
+    Get(GetCmd),
+
     /// Ping the Sift API to verify credentials and connectivity
     Ping,
 
@@ -63,20 +67,37 @@ pub enum Cmd {
     #[command(subcommand)]
     Install(InstallCmd),
 
+    /// Manage the Sift integration for detected AI coding clients
+    #[command(subcommand)]
+    Agent(AgentCmd),
+
     /// Start the Sift MCP server
-    #[cfg(feature = "mcp")]
     #[command(hide = true)]
     Mcp(McpArgs),
 }
 
-#[cfg(feature = "mcp")]
 #[derive(clap::Args)]
 pub struct McpArgs {
+    /// Expose create tools (creates, ingest, appends). When omitted, create
+    /// tool calls return an error instructing the caller to relaunch the
+    /// server with this flag. Implied by `--allow-destructive`.
+    #[arg(long)]
+    pub allow_create: bool,
+
     /// Expose destructive tools (updates, archives, restores). When omitted,
     /// destructive tool calls return an error instructing the caller to
-    /// relaunch the server with this flag.
+    /// relaunch the server with this flag. Also enables create tools.
     #[arg(long)]
     pub allow_destructive: bool,
+
+    /// Disable the MCP update tool and all automatic release checks
+    #[arg(long)]
+    pub disable_update_check: bool,
+
+    /// Disable non-essential network traffic. Release checks are controlled
+    /// separately by `--disable-update-check`.
+    #[arg(long)]
+    pub disable_nonessential_traffic: bool,
 }
 
 /// Serve the bundled Sift CLI user documentation over HTTP.
@@ -87,30 +108,72 @@ pub struct DocArgs {
     pub addr: SocketAddr,
 }
 
-/// Install optional Sift tooling such as autocompletions or Agent skills
+/// Install optional Sift tooling
 #[derive(Subcommand)]
 pub enum InstallCmd {
     /// Install or print shell completions for sift-cli
     #[command(subcommand)]
     Completions(CompletionsCmd),
+}
 
-    /// Install Sift-specific skills for agentic tooling
-    AgentSkills(AgentSkillsArgs),
+/// Manage Sift's release-matched skill and MCP sidecar as one bundle.
+#[derive(Subcommand)]
+pub enum AgentCmd {
+    /// Install every detected client in safe mode using the default profile unless selected
+    Install(AgentInstallArgs),
+
+    /// Refresh every client while preserving its profile, access, and update-check settings
+    Update(AgentUpdateArgs),
+
+    /// Check the CLI version, skill files, MCP profiles, access, and update-check settings
+    Doctor,
+
+    /// Remove Sift-owned agent files and registrations
+    Uninstall,
 }
 
 #[derive(clap::Args)]
-pub struct AgentSkillsArgs {
-    /// The agentic coding assistant to install the skill for.
-    pub agent: agent::Agent,
-
-    /// Path to write the skill file to. When omitted, defaults to the
-    /// standard skill location for the selected agent.
+pub struct AgentInstallArgs {
+    /// Enable tools that create new resources for every detected MCP client
     #[arg(long)]
-    pub output: Option<String>,
+    pub allow_create: bool,
 
-    /// Print the skill content to stdout instead of writing it to --output.
+    /// Enable tools that modify or archive resources for every detected MCP client.
+    /// Also enables create tools.
     #[arg(long)]
-    pub print: bool,
+    pub allow_destructive: bool,
+
+    /// Disable release checks in every installed MCP server
+    #[arg(long)]
+    pub disable_update_check: bool,
+}
+
+#[derive(clap::Args)]
+pub struct AgentUpdateArgs {
+    /// Enable tools that create new resources for every detected MCP client
+    #[arg(long, conflicts_with = "read_only")]
+    pub allow_create: bool,
+
+    /// Enable tools that modify or archive resources for every detected MCP client.
+    /// Also enables create tools.
+    #[arg(long, conflicts_with = "read_only")]
+    pub allow_destructive: bool,
+
+    /// Disable create and destructive tools for every detected MCP client
+    #[arg(long, conflicts_with_all = ["allow_create", "allow_destructive"])]
+    pub read_only: bool,
+
+    /// Switch every detected MCP client back to the default profile
+    #[arg(long, conflicts_with = "profile")]
+    pub default_profile: bool,
+
+    /// Disable release checks in every detected MCP server
+    #[arg(long, conflicts_with = "enable_update_check")]
+    pub disable_update_check: bool,
+
+    /// Enable release checks in every detected MCP server
+    #[arg(long, conflicts_with = "disable_update_check")]
+    pub enable_update_check: bool,
 }
 
 #[derive(Subcommand)]
@@ -258,6 +321,12 @@ pub enum ImportCmd {
 }
 
 #[derive(Subcommand)]
+pub enum GetCmd {
+    /// Get assets
+    Asset(GetAssetArgs),
+}
+
+#[derive(Subcommand)]
 pub enum ConfigCmd {
     /// Display the contents of the current config file
     Show,
@@ -290,9 +359,8 @@ pub struct ConfigUpdateArgs {
     #[arg(short = 'k', long)]
     pub api_key: Option<String>,
 
-    /// Sift web app URL (e.g. https://app.siftstack.com). Optional for standard
-    /// Sift hosts; required for custom or on-prem deployments to render Explore
-    /// links.
+    /// Sift web app origin from your browser (e.g. https://sift.example.net).
+    /// PubCloud and GovCloud profiles can infer this value from rest_uri.
     #[arg(long)]
     pub app_uri: Option<String>,
 }
@@ -814,4 +882,26 @@ impl DocArgs {
     fn default_addr() -> SocketAddr {
         "0.0.0.0:3000".parse().unwrap()
     }
+}
+
+#[derive(Clone, Copy, ValueEnum, Debug, PartialEq, Eq)]
+#[value(rename_all = "lowercase")]
+pub enum OutputFormats {
+    Text,
+    Json,
+}
+
+#[derive(clap::Args)]
+pub struct GetAssetArgs {
+    /// Filter option for filtering search with CEL expression
+    #[arg(long)]
+    pub filter: Option<String>,
+
+    /// Caps returned results to set number
+    #[arg(long, default_value = "50")]
+    pub limit: Option<u32>,
+
+    /// Determines the output format
+    #[arg(long, value_enum)]
+    pub output_format: Option<OutputFormats>,
 }

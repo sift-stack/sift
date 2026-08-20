@@ -28,11 +28,15 @@ impl SiftMcpServer {
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
                 `channel_id`, `asset_id`, `name`, `description`, `run_id`, `run_name`, `run_client_key`,
                 `created_date`, `modified_date`, `created_by_user_id`, `modified_by_user_id`.
+                When filtering or searching, use `name.matches(\"(?i)motor\")`, not `==`. Use `==` only for an
+                exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
+                `contains(\"Motor\")` silently misses `motor_d.current`. Channel names embed `.`, a regex wildcard,
+                so match a full literal name with `contains`, not `matches`.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `name`,
                 `created_date`, `modified_date`, `active`. Default sort is `created_date` ascending (oldest first) —
                 note this differs from `list_assets` and `list_runs`. Example: `\"name,created_date desc\"`.
-              - `limit`: max items to return. Start at 200 and only raise it if the result is capped
-                and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200.
+              - `limit`: max items to return. Start at 50 and only raise it if the result is capped
+                and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
               - `fields`: optional array of field names to keep on each item, e.g.
                 `[\"name\"]`. Omit it for the full object. Names match case-insensitively
                 and ignore underscores, so `asset_id` and `assetId` both work. Any name

@@ -14,7 +14,7 @@ use util::tty::Output;
 
 use clap::{CommandFactory, Parser};
 
-use crate::cli::InstallCmd;
+use crate::cli::{AgentCmd, InstallCmd};
 
 const BIN_NAME: &str = "sift-cli";
 
@@ -42,7 +42,6 @@ where
     runtime.block_on(fut)
 }
 
-#[allow(dead_code)]
 fn run_future_mt<F>(fut: F) -> Result<ExitCode>
 where
     F: Future<Output = Result<ExitCode>> + 'static,
@@ -79,17 +78,28 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
                 cli::CompletionsCmd::Print(args) => return cmd::install::completions::print(args),
                 cli::CompletionsCmd::Update => return cmd::install::completions::update(),
             },
-            InstallCmd::AgentSkills(args) => return cmd::install::agent::skills(args),
+        },
+        Cmd::Agent(cmd) => match cmd {
+            AgentCmd::Install(args) => {
+                return run_future(cmd::agent::install(clargs.profile, args));
+            }
+            AgentCmd::Update(args) => {
+                return run_future(cmd::agent::update(clargs.profile, args));
+            }
+            AgentCmd::Doctor => return run_future(cmd::agent::doctor(clargs.profile)),
+            AgentCmd::Uninstall => return cmd::agent::uninstall(),
         },
         _ => (),
     }
 
     let ctx = Context::new(clargs.profile.clone(), clargs.disable_tls)?;
 
-    // Mcp Server
-    #[cfg(feature = "mcp")]
     if let Cmd::Mcp(args) = cmd {
-        return run_future_mt(cmd::mcp::run(ctx, args));
+        let app_uri = match ctx.require_app_uri(clargs.profile.as_deref()) {
+            Ok(app_uri) => app_uri.to_string(),
+            Err(error) => return run_future_mt(cmd::mcp::report_startup_error(error)),
+        };
+        return run_future_mt(cmd::mcp::run(ctx, args, app_uri));
     }
 
     let profile = clargs
@@ -143,6 +153,9 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
         Cmd::Export(cmd) => match cmd {
             cli::ExportCmd::Run(args) => run_future(cmd::export::run(ctx, args)),
             cli::ExportCmd::Asset(args) => run_future(cmd::export::asset(ctx, args)),
+        },
+        Cmd::Get(cmd) => match cmd {
+            cli::GetCmd::Asset(args) => run_future(cmd::get::assets::run(ctx, args)),
         },
         Cmd::Ping => run_future(cmd::ping::run(ctx)),
         _ => Ok(ExitCode::SUCCESS),

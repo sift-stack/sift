@@ -129,8 +129,12 @@ jobs:
           fi
       - name: "Install mdbook"
         uses: "peaceiris/actions-mdbook@v2"
+        if: "runner.os != 'Linux' || runner.arch != 'ARM64'"
         with:
           "mdbook-version": "0.4.40"
+      - name: "Install mdbook on Linux ARM64"
+        if: "runner.os == 'Linux' && runner.arch == 'ARM64'"
+        run: "cargo install mdbook --version 0.4.40 --locked"
       - name: "Use static MSVC CRT for vendored HDF5"
         if: "runner.os == 'Windows'"
         run: "echo \"CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded\" >> \"$GITHUB_ENV\""

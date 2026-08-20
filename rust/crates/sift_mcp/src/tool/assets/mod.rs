@@ -45,11 +45,15 @@ impl SiftMcpServer {
                 `asset_id`, `name`, `name_lower`, `tag_id`, `tag_name`, `created_date`, `modified_date`,
                 `archived_date`, `is_archived`, `created_by_user_id`, `modified_by_user_id`, `metadata`.
                 Reference metadata entries as `metadata.{key}` (e.g. `metadata.vehicle_type == \"rover\"`).
+                When searching by name, use `name_lower.contains(\"rover\")`: `name_lower` is an indexed lowercase
+                copy of `name` and exists only on assets. On any other text field use `name.matches(\"(?i)rover\")`.
+                Use `==` only for an exact value from a prior result. `contains`/`startsWith`/`endsWith` are
+                case-SENSITIVE: `contains(\"Rover\")` silently misses `rover-01`.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `name`,
                 `created_date`, `modified_date`, `archived_date`. Default sort is `created_date desc` (newest first).
                 Example: `\"created_date desc,modified_date\"`.
-              - `limit`: max items to return. Start at 200 and only raise it if the result is capped
-                and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200.
+              - `limit`: max items to return. Start at 50 and only raise it if the result is capped
+                and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
               - `fields`: optional array of field names to keep on each item, e.g.
                 `[\"name\"]`. Omit it for the full object. Names match case-insensitively
                 and ignore underscores, so `asset_id` and `assetId` both work. Any name
@@ -64,7 +68,8 @@ impl SiftMcpServer {
             Guidance:
               - Narrow with `filter` whenever you know what you're looking for; pass `limit` regardless, so an
                 open-ended listing stays bounded.
-              - Use `is_archived == false` to exclude archived assets unless they're explicitly needed.
+              - Default add `is_archived == false` to the filter. Include archived assets only when the user
+                explicitly asks for them.
         ",
         annotations(title = "assets/list_assets", read_only_hint = true)
     )]

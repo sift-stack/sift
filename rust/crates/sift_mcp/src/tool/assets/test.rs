@@ -1,5 +1,4 @@
-use rmcp::handler::server::wrapper::Parameters;
-use rmcp::model::ErrorCode;
+use rmcp::{ServerHandler, handler::server::wrapper::Parameters, model::ErrorCode};
 use sift_rs::assets::v1::{Asset, ListAssetsResponse, asset_service_server::AssetServiceServer};
 use sift_test_util::{grpc::memory_sift_channel, mock::assets::v1::MockAssetServiceImpl};
 use tokio::task::JoinHandle;
@@ -36,11 +35,56 @@ async fn server_with_mock_and_flag(
     (
         SiftMcpServer::new(
             channel,
-            String::from("https://api.test.local"),
+            String::from("https://app.test.local"),
+            false,
             allow_destructive,
         ),
         handle,
     )
+}
+
+#[tokio::test]
+async fn server_instructions_explain_agent_lifecycle() {
+    let (server, _h) = server_with_mock(MockAssetServiceImpl::new()).await;
+    let instructions = ServerHandler::get_info(&server)
+        .instructions
+        .expect("server should advertise lifecycle instructions");
+
+    assert!(instructions.contains("sift-cli agent"));
+    assert!(instructions.contains("doctor"));
+    assert!(instructions.contains("install"));
+    assert!(instructions.contains("update"));
+}
+
+#[tokio::test]
+async fn list_tool_descriptions_advertise_bounded_limits() {
+    let (server, _h) = server_with_mock(MockAssetServiceImpl::new()).await;
+    let list_tools: Vec<_> = server
+        .tool_router
+        .list_all()
+        .into_iter()
+        .filter(|tool| tool.name.starts_with("list_"))
+        .collect();
+
+    assert!(!list_tools.is_empty());
+    for tool in list_tools {
+        let description = tool.description.as_deref().unwrap_or_default();
+        assert!(
+            description.contains("Start at 50"),
+            "{} does not advertise the starting limit",
+            tool.name
+        );
+        assert!(
+            description.contains("1..=200"),
+            "{} does not advertise the maximum limit",
+            tool.name
+        );
+        assert!(
+            description.contains("defaults to 50"),
+            "{} does not advertise the default limit",
+            tool.name
+        );
+    }
 }
 
 #[tokio::test]
@@ -208,6 +252,20 @@ async fn update_asset_blocked_without_allow_destructive() {
 
     assert_eq!(err.code, ErrorCode::INVALID_REQUEST);
     assert!(err.message.contains("--allow-destructive"));
+    assert!(
+        err.message
+            .contains("sift-cli agent update --allow-destructive")
+    );
+    assert!(err.message.contains("explicit approval"));
+    let data = err
+        .data
+        .expect("destructive gate should return remediation data");
+    assert_eq!(data["requires_user_approval"], true);
+    assert_eq!(
+        data["remediation_command"],
+        "sift-cli agent update --allow-destructive"
+    );
+    assert_eq!(data["restart_required"], true);
 }
 
 #[tokio::test]

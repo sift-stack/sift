@@ -64,7 +64,12 @@ async fn server_with_mocks(
     });
 
     (
-        SiftMcpServer::new(channel, String::from("https://api.test.local"), false),
+        SiftMcpServer::new(
+            channel,
+            String::from("https://app.test.local"),
+            false,
+            false,
+        ),
         handle,
     )
 }
@@ -237,7 +242,7 @@ async fn list_users_me_resolves_caller_via_get_me() {
     me_mock.expect_get_me().times(1).returning(|_| {
         Ok(Response::new(GetMeResponse {
             user_id: "u7".into(),
-            user_email: "liam@siftstack.com".into(),
+            user_email: "jane@siftstack.com".into(),
             organizations: vec![Organization {
                 organization_id: "org1".into(),
                 organization_name: "Sift".into(),
@@ -258,7 +263,7 @@ async fn list_users_me_resolves_caller_via_get_me() {
     let users = structured_field(resp, "users");
     assert_eq!(users.as_array().unwrap().len(), 1);
     assert_eq!(users[0]["userId"], "u7");
-    assert_eq!(users[0]["userName"], "liam@siftstack.com");
+    assert_eq!(users[0]["userName"], "jane@siftstack.com");
     assert_eq!(users[0]["organizations"][0]["organizationId"], "org1");
 }
 
@@ -268,7 +273,7 @@ async fn list_users_me_ignores_paging_params() {
     me_mock.expect_get_me().times(1).returning(|_| {
         Ok(Response::new(GetMeResponse {
             user_id: "u7".into(),
-            user_email: "liam@siftstack.com".into(),
+            user_email: "jane@siftstack.com".into(),
             ..Default::default()
         }))
     });

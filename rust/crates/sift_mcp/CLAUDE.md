@@ -48,10 +48,13 @@ Non-negotiables. These hold regardless of context pressure:
    tools must also set `destructive_hint` and `idempotent_hint` — see Step 4 for the mapping
    (additive vs. update vs. state-flip). These fields follow the MCP tool annotations spec:
    <https://modelcontextprotocol.io/specification/2025-11-25/server/tools>.
-5. Every tool with `destructive_hint = true` MUST call `self.require_destructive()?` as the
-   first line of its handler. The server is launched without destructive tools by default; the
-   gate returns an `INVALID_REQUEST` telling the caller to relaunch with `--allow-destructive`.
-   Skipping this call ships a destructive tool that is always on and bypasses the flag.
+5. Every write handler MUST gate itself as the FIRST line of the handler. Additive-write tools
+   (`destructive_hint = false`) call `self.require_create()?`; destructive tools
+   (`destructive_hint = true`) call `self.require_destructive()?`. The server is launched
+   read-only by default; each gate returns an `INVALID_REQUEST` naming the exact
+   `sift-cli agent update --allow-...` command the caller should run. Skipping the gate ships a
+   write tool that is always on and bypasses the flags. Note: destructive implies create, so
+   destructive tools do not additionally need to call `require_create`.
 6. Do not mirror the API one-to-one. Run Step 0 before writing anything.
 
 ---
@@ -195,8 +198,10 @@ In `src/server/mod.rs`:
 2. Construct it in `new()` with `channel.clone()` and `retry_policy.clone()` (the last
    constructed service can take `retry_policy` by move).
 3. Merge the tool router: `tool_router.merge(Self::<domain>_router());`.
+4. Add the tool and event pair to `src/tool_events.json`.
+5. Add the same enum name to the client event API allowlist.
 
-The existing `new()` shows all three insertion points:
+The existing `new()` shows all five insertion points:
 
 ```rust
 let mut tool_router = Self::assets_router();
@@ -251,11 +256,13 @@ pub async fn list_webhooks(&self, params: Parameters<ListParams>) -> error::McpR
 
 - Validate before calling the service. Return `ErrorData::invalid_params(...)` or
   `ErrorData::resource_not_found(...)` for bad input. `get_data` shows multi-field validation.
-- **Gate destructive handlers.** If the tool sets `destructive_hint = true`, call
-  `self.require_destructive()?` as the FIRST line of the handler — before parameter
-  destructuring, validation, or any service call. The gate returns an `INVALID_REQUEST` when
-  the server was launched without `--allow-destructive`, so no gRPC traffic and no partial
-  work occurs when the flag is off. `tool/assets/mod.rs::update_asset` is the reference.
+- **Gate write handlers.** Additive-write tools (`destructive_hint = false`) call
+  `self.require_create()?` as the FIRST line of the handler; destructive tools
+  (`destructive_hint = true`) call `self.require_destructive()?` as the FIRST line.
+  Both gates run before parameter destructuring, validation, or any service call, and return
+  an `INVALID_REQUEST` naming the exact remediation command when the server was launched
+  without the corresponding flag. `tool/assets/mod.rs::update_asset` is the destructive
+  reference; `tool/annotations/mod.rs::create_annotation` is the create reference.
 - Always return `CallToolResult::structured(json!({ ... }))`.
 - Annotate: `annotations(title = "<domain>/<tool>", read_only_hint = <bool>, destructive_hint = <bool>, idempotent_hint = <bool>)`.
   Read tools set `read_only_hint = true` and may omit the other two. Write tools set
@@ -489,8 +496,8 @@ When you add or update a list tool:
    - Order-by: list every orderable field, the default sort when the field is empty (assets and
      runs default to `created_date desc`; channels defaults to `created_date` ascending — these
      differ, do not assume), and the `\"FIELD_NAME[ desc],...\"` format.
-   - Limit: describe the clamp in `service::common::paging`. Any value is bounded to `1..=1000`,
-     and omitting `limit` falls back to `DEFAULT_LIMIT` (200), so no call is ever unbounded. This
+   - Limit: describe the clamp in `service::common::paging`. Any value is bounded to `1..=200`,
+     and omitting `limit` falls back to `DEFAULT_LIMIT` (50), so no call is ever unbounded. This
      differs from the proto's raw `page_size` (it caps higher for some services).
 4. **Re-read the proto whenever the resource changes.** If a filterable or orderable field is
    added to the proto, update the tool description in the same change. A stale description is
@@ -498,6 +505,44 @@ When you add or update a list tool:
 
 If the proto comments are themselves wrong or incomplete, fix the proto first and regenerate.
 The tool description is downstream of it.
+
+### Search guidance on the `filter` bullet
+
+A field list does not tell an agent *how* to search it, and the default failure is an exact `==`
+against a value the caller only half knows. Every tool that takes a `filter` therefore closes its
+`filter` bullet with a short block naming that resource's own text fields:
+
+```
+                When filtering or searching, use `name.matches(\"(?i)rover\")`, not `==`. Use `==` only for an
+                exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
+                `contains(\"Rover\")` silently misses `rover-01`.
+```
+
+Write it as a direct instruction, and name the failure. "Prefer a pattern" states a preference the
+agent can weigh against its own guess; "use `name.matches(...)`, not `==`" does not. The
+case-sensitivity line carries a concrete miss, because an agent that reads only the rule still
+writes `contains("Rover")`.
+
+Adapt it per resource; they are not uniform:
+
+- **`list_assets`** recommends `name_lower.contains(...)`. `name_lower` is an indexed lowercased
+  copy of `name` and exists only on assets, so the same filter elsewhere fails with
+  `undeclared reference to 'name_lower'`.
+- **`list_rule_versions`** has no `name`; `user_notes` and `change_message` are its text fields.
+- **`list_report_rule_summaries`** filters only on ids and an enum, so it states there is no
+  free-text field instead of carrying the block.
+- **`list_channels`** adds a line pointing at `contains` for a full literal name, because channel
+  names embed `.` (`motor_d.current`), which is a regex wildcard. `list_users` adds the same line
+  for `.` and `+` in email addresses.
+
+This guidance is not proto-sourced, so Step 5's "fix the proto first" rule does not apply. The
+string functions are behavior of the shared CEL filter engine, not of any one proto.
+
+Keep it in the description, and keep it to four or five lines. The description is what the agent
+reads at the moment it composes a filter, so guidance placed there acts on the decision it is meant
+to change. Do not move it to the server-level `instructions` in `src/server/mod.rs`: that text sits
+far from the call site, clients truncate it, and a second location invites the two copies to
+drift. Repetition across tools is the cheaper failure here.
 
 ---
 
@@ -551,26 +596,14 @@ including the order of calls and a failure injected partway through.
 
 ---
 
-## Step 7 — Update the onboarding docs
+## Step 7 — Update the agent skill
 
-The MCP server ships as part of `sift-cli`, and its onboarding docs live in
-`rust/crates/sift_cli/assets/docs/src/`. A new tool or prompt that is not documented does not
-exist as far as users are concerned. Update the docs in the same change.
+The `sift-cli` mdBook deliberately does not document the MCP server or its prompts. Do not add
+a page for them. The installed Sift skill is the only user-facing record of the tool surface, so
+a tool missing from it does not exist as far as agents are concerned.
 
-- **New or changed tool** → `agents/mcp.md`. Add a row to the "Available tools" table with the
-  tool name and a one-line purpose drawn from your tool description. If the tool changes the
-  typical agent flow, update the flow line beneath the table.
-- **New or changed prompt** → `agents/prompts.md`. Add a `## <prompt>` section with a one-line
-  summary, an argument table (`Argument` / `Required` / `Description`), and at least one
-  invocation example using the `/mcp__sift__<prompt>` slash-command form. Match the format of
-  the existing `explore_asset` / `analyze_run` / `derive_and_upload` sections.
-
-These docs are mdBook source. Keep prose in direct voice, concise, and consistent with the
-surrounding pages.
-
-Parallel obligation: the agent skill files (`SKILL.md` / `AGENTS.md`) also carry the MCP tool
-list. They are governed by `rust/crates/sift_cli/CLAUDE.md`; follow its lockstep rules and
-update them in the same change when you add or remove a tool.
+The skill is governed by `rust/crates/sift_cli/AGENTS.md`; follow its rules and update it in the
+same change when you add or remove a tool.
 
 ---
 
@@ -603,6 +636,30 @@ and `derive_and_upload` are the reference implementations.
 
 ---
 
+## Reference — feature flags
+
+The crate defines Cargo features to let downstream consumers strip individual tool domains from
+the built server. Feature-gated modules follow the same rules as everything else, plus these:
+
+- **`test-reports`** (default on). Gates `service::test_reports`, `tool::test_reports`, the
+  `test_report_service` field and its construction in `server/mod.rs`, the
+  `Self::test_reports_router()` merge, and `UrlService::build_test_report_url`. Building with
+  `--no-default-features` yields a server without the `list_test_reports`, `list_test_steps`,
+  `list_test_measurements`, `count_test_steps`, `count_test_measurements`, `create_test_report`,
+  and `append_test_measurements` tools. All other tools remain available.
+
+When gating a domain behind a feature:
+
+- Wrap every declaration and reference — `pub mod`, `use`, struct field, service construction,
+  router merge, `Self { ... }` init, and any helper on a cross-domain service (see
+  `UrlService::build_test_report_url`) that only that domain calls.
+- Verify both `cargo build -p sift_mcp` and `cargo build -p sift_mcp --no-default-features`
+  build clean, with no dead-code warnings from unused helpers left behind.
+- Update the tool inventory in `rust/crates/sift_cli/assets/skills/sift/SKILL.md` to name the
+  feature next to the affected tools, so agents know why a tool they expected may be missing.
+
+---
+
 ## Pre-merge checklist
 
 Run through this before declaring the tool done:
@@ -620,15 +677,17 @@ Run through this before declaring the tool done:
       services follow their own proto shape.
 - [ ] Description follows the five-section structure and the style rules. `list_*` descriptions
       match the current proto comments.
+- [ ] Any tool taking a `filter` closes its `filter` bullet with the search block from Step 5,
+      adapted to that resource's own text fields and phrased as a direct instruction.
 - [ ] `read_only_hint` is correct, and write tools set `destructive_hint` / `idempotent_hint`
       per the Step 4 mapping. Write tools confirm the destination via `next_step`.
-- [ ] Every handler with `destructive_hint = true` calls `self.require_destructive()?` as its
-      first line, and has a test that asserts the gate returns `INVALID_REQUEST` when the
-      server is constructed with `allow_destructive = false`. See
+- [ ] Every write handler gates itself as the first line: `self.require_create()?` for
+      additive writes (`destructive_hint = false`), `self.require_destructive()?` for
+      destructive writes. Tests assert each gate returns `INVALID_REQUEST` when the server is
+      constructed with the corresponding flag off. See
       `tool/assets/test.rs::update_asset_blocked_without_allow_destructive`.
 - [ ] Service registered in `server/mod.rs` and the router merged.
 - [ ] Service tests added, covering single page, pagination, `limit`, and an error path. A mock
       was added to `sift_test_util` if one did not exist.
-- [ ] Onboarding docs updated: `agents/mcp.md` for a tool, `agents/prompts.md` for a prompt. Skill
-      files (`SKILL.md` / `AGENTS.md`) updated per `sift_cli/CLAUDE.md` if the tool list changed.
+- [ ] Installed skill updated per `sift_cli/AGENTS.md` if the tool list changed.
 - [ ] `cargo build -p sift_mcp` and `cargo test -p sift_mcp` both pass.

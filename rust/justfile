@@ -1,0 +1,36 @@
+# Rust workspace tasks. Run from the repo root as `just rust::<recipe>`.
+# The Cargo workspace root is the repo root; cargo resolves it from here.
+
+# Format all crates
+fmt:
+    cargo fmt --all
+
+# Check formatting without writing (used by the pre-commit hook)
+fmt-check:
+    cargo fmt --check --all
+
+# Type-check without producing artifacts
+check:
+    cargo check --all-features
+
+# Lint with clippy
+clippy:
+    cargo clippy --all-features
+
+# Run the test suite
+test:
+    cargo test --all-features
+
+# Verify sift_stream_bindings' generated .pyi stub is up to date (pre-push hook)
+bindings-stubs-check:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    cd crates/sift_stream_bindings
+    cargo run --bin stub_gen
+    changed=$(git status --porcelain sift_stream_bindings.pyi | grep -E '\.pyi$' || true)
+    if [[ -n "$changed" ]]; then
+      echo "ERROR: generated stubs are not up to date:"
+      echo "$changed" | sed 's/^/  /'
+      echo "Commit these changes before pushing."
+      exit 1
+    fi

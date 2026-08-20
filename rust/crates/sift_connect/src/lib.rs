@@ -61,6 +61,8 @@
 
 /// Concerned with establishing a connection to Sift's gRPC service.
 pub mod grpc;
-pub use grpc::{Credentials, SiftChannel, SiftChannelBuilder};
+pub use grpc::{
+    Credentials, MAX_DECODING_MESSAGE_SIZE, ServiceOptions, SiftChannel, SiftChannelBuilder,
+};
 
 pub use sift_error::{Error, ErrorKind};

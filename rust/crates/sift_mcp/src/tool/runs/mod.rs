@@ -55,11 +55,14 @@ impl SiftMcpServer {
                 Reference metadata entries as `metadata.{key}`.
                 `duration` is elapsed seconds (numeric). `duration_string` accepts `h`/`m`/`s`/`ms` suffixes via the
                 `duration(...)` helper, e.g. `duration_string > duration('10h')`.
+                When filtering or searching, use `name.matches(\"(?i)rover\")`, not `==`. Use `==` only for an
+                exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
+                `contains(\"Rover\")` silently misses `rover-01`.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `name`,
                 `description`, `created_date`, `modified_date`, `start_time`, `stop_time`. Default sort is
                 `created_date desc` (newest first). Example: `\"created_date desc,modified_date\"`.
-              - `limit`: max items to return. Start at 200 and only raise it if the result is capped
-                and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200.
+              - `limit`: max items to return. Start at 50 and only raise it if the result is capped
+                and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
               - `fields`: optional array of field names to keep on each item, e.g.
                 `[\"name\"]`. Omit it for the full object. Names match case-insensitively
                 and ignore underscores, so `asset_id` and `assetId` both work. Any name
@@ -77,6 +80,8 @@ impl SiftMcpServer {
               - To find runs covering a specific moment, filter on both `start_time` and `stop_time` rather than
                 pulling everything and filtering client-side.
               - Order by `start_time desc` when surfacing the most recent runs to a user.
+              - Default add `is_archived == false` to the filter. Include archived runs only when the user
+                explicitly asks for them.
         ",
         annotations(title = "runs/list_runs", read_only_hint = true)
     )]

@@ -108,11 +108,14 @@ impl SiftMcpServer {
                 `annotation_type`, `tag_name`, `report_id`, `asset_id`, `asset_name`, `pending`, `assignee`,
                 `campaign_reports`, `metadata`, `archived_date`, `is_archived`. Reference metadata entries as
                 `metadata.{key}` (e.g. `metadata.severity == \"high\"`).
+                When filtering or searching, use `name.matches(\"(?i)vibration\")`, not `==`. Use `==` only for an
+                exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
+                `contains(\"Vibration\")` silently misses `vibration-check`.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `created_date`,
                 `modified_date`, `start_time`, `end_time`, `name`, `description`. Default sort is `created_date desc`
                 (newest first). Example: `\"start_time desc,name\"`.
-              - `limit`: max items to return. Start at 200 and only raise it if the result is capped
-                and you still need more. Values are clamped to `1..=1000`; omitting it defaults to 200.
+              - `limit`: max items to return. Start at 50 and only raise it if the result is capped
+                and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
               - `organization_id`: optional. Required only when the caller belongs to multiple organizations.
               - `fields`: optional array of field names to keep on each item, e.g.
                 `[\"name\"]`. Omit it for the full object. Names match case-insensitively
@@ -127,7 +130,8 @@ impl SiftMcpServer {
 
             Guidance:
               - Narrow with `run_id == \"...\"` or `asset_id == \"...\"` when known — those are the most selective.
-              - Use `is_archived == false` to exclude archived annotations unless they're explicitly needed.
+              - Default add `is_archived == false` to the filter. Include archived annotations only when the user
+                explicitly asks for them.
         ",
         annotations(title = "annotations/list_annotations", read_only_hint = true)
     )]
@@ -211,6 +215,8 @@ impl SiftMcpServer {
         &self,
         params: Parameters<CreateAnnotationParams>,
     ) -> error::McpResult {
+        self.require_create()?;
+
         let Parameters(CreateAnnotationParams {
             name,
             description,
