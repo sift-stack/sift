@@ -114,8 +114,8 @@ fn list_body_without_fields_returns_every_key() {
     let items = vec![json!({ "channelId": "c1", "name": "throttle" })];
 
     assert_eq!(
-        list_body("channels", items.clone(), None),
-        json!({ "channels": items, "count": 1 })
+        list_body("channels", items.clone(), None, false),
+        json!({ "channels": items, "count": 1, "has_more": false })
     );
 }
 
@@ -124,8 +124,8 @@ fn list_body_treats_an_empty_field_list_as_no_projection() {
     let items = vec![json!({ "channelId": "c1", "name": "throttle" })];
 
     assert_eq!(
-        list_body("channels", items.clone(), Some(vec![])),
-        json!({ "channels": items, "count": 1 })
+        list_body("channels", items.clone(), Some(vec![]), false),
+        json!({ "channels": items, "count": 1, "has_more": false })
     );
 }
 
@@ -134,10 +134,16 @@ fn list_body_surfaces_unmatched_fields_alongside_the_items() {
     let items = vec![json!({ "name": "throttle" })];
 
     assert_eq!(
-        list_body("channels", items, Some(vec!["name".into(), "nope".into()])),
+        list_body(
+            "channels",
+            items,
+            Some(vec!["name".into(), "nope".into()]),
+            false
+        ),
         json!({
             "channels": [{ "name": "throttle" }],
             "count": 1,
+            "has_more": false,
             "unmatched_fields": ["nope"],
         })
     );
@@ -150,7 +156,7 @@ fn list_body_counts_the_items_it_returns() {
         .map(|i| json!({ "name": format!("c{i}") }))
         .collect();
 
-    let body = list_body("channels", items, None);
+    let body = list_body("channels", items, None, false);
 
     assert_eq!(body["count"], json!(120));
     assert_eq!(body["channels"].as_array().unwrap().len(), 120);
@@ -162,7 +168,20 @@ fn list_body_counts_what_survived_projection() {
     // rows rather than anything upstream of them.
     let items = vec![json!({ "name": "a" }), json!({ "name": "b" })];
 
-    let body = list_body("channels", items, Some(vec!["name".into()]));
+    let body = list_body("channels", items, Some(vec!["name".into()]), false);
 
     assert_eq!(body["count"], json!(2));
+}
+
+#[test]
+fn list_body_reports_a_capped_page() {
+    // `count` alone reads as a total. Pairing it with `has_more` is what tells a
+    // caller the page was cut short rather than leaving them to guess from
+    // whether count happens to equal the limit they passed.
+    let items = vec![json!({ "name": "a" }), json!({ "name": "b" })];
+
+    let body = list_body("channels", items, None, true);
+
+    assert_eq!(body["count"], json!(2));
+    assert_eq!(body["has_more"], json!(true));
 }

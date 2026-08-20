@@ -121,12 +121,13 @@ impl TestReportService {
         filter: String,
         order_by: Option<String>,
         limit: Option<u32>,
-    ) -> Result<Vec<TestReport>> {
+    ) -> Result<common::Page<TestReport>> {
         let filter = normalize_enum_filter(&filter);
         let (page_size, record_limit) = common::paging(limit);
         let order_by = order_by.unwrap_or_default();
         let mut page_token = String::new();
         let mut results = Vec::new();
+        let mut has_more = false;
 
         loop {
             let channel = self.channel.clone();
@@ -163,14 +164,23 @@ impl TestReportService {
                 break;
             }
             results.extend(test_reports);
-            if results.len() >= record_limit || next_page_token.is_empty() {
+            if results.len() >= record_limit {
+                // The cap, not the end of the data: report that more exist so the
+                // caller does not read this page's size as the match total.
+                has_more = results.len() > record_limit || !next_page_token.is_empty();
+                break;
+            }
+            if next_page_token.is_empty() {
                 break;
             }
             page_token = next_page_token;
         }
 
         results.truncate(record_limit);
-        Ok(results)
+        Ok(common::Page {
+            items: results,
+            has_more,
+        })
     }
 
     pub async fn list_test_steps(
@@ -178,12 +188,13 @@ impl TestReportService {
         filter: String,
         order_by: Option<String>,
         limit: Option<u32>,
-    ) -> Result<Vec<TestStep>> {
+    ) -> Result<common::Page<TestStep>> {
         let filter = normalize_enum_filter(&filter);
         let (page_size, record_limit) = common::paging(limit);
         let order_by = order_by.unwrap_or_default();
         let mut page_token = String::new();
         let mut results = Vec::new();
+        let mut has_more = false;
 
         loop {
             let channel = self.channel.clone();
@@ -220,14 +231,23 @@ impl TestReportService {
                 break;
             }
             results.extend(test_steps);
-            if results.len() >= record_limit || next_page_token.is_empty() {
+            if results.len() >= record_limit {
+                // The cap, not the end of the data: report that more exist so the
+                // caller does not read this page's size as the match total.
+                has_more = results.len() > record_limit || !next_page_token.is_empty();
+                break;
+            }
+            if next_page_token.is_empty() {
                 break;
             }
             page_token = next_page_token;
         }
 
         results.truncate(record_limit);
-        Ok(results)
+        Ok(common::Page {
+            items: results,
+            has_more,
+        })
     }
 
     pub async fn list_test_measurements(
@@ -235,12 +255,13 @@ impl TestReportService {
         filter: String,
         order_by: Option<String>,
         limit: Option<u32>,
-    ) -> Result<Vec<TestMeasurement>> {
+    ) -> Result<common::Page<TestMeasurement>> {
         let filter = normalize_enum_filter(&filter);
         let (page_size, record_limit) = common::paging(limit);
         let order_by = order_by.unwrap_or_default();
         let mut page_token = String::new();
         let mut results = Vec::new();
+        let mut has_more = false;
 
         loop {
             let channel = self.channel.clone();
@@ -277,14 +298,23 @@ impl TestReportService {
                 break;
             }
             results.extend(test_measurements);
-            if results.len() >= record_limit || next_page_token.is_empty() {
+            if results.len() >= record_limit {
+                // The cap, not the end of the data: report that more exist so the
+                // caller does not read this page's size as the match total.
+                has_more = results.len() > record_limit || !next_page_token.is_empty();
+                break;
+            }
+            if next_page_token.is_empty() {
                 break;
             }
             page_token = next_page_token;
         }
 
         results.truncate(record_limit);
-        Ok(results)
+        Ok(common::Page {
+            items: results,
+            has_more,
+        })
     }
 
     pub async fn count_test_steps(&self, filter: String) -> Result<i64> {

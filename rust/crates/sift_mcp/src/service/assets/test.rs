@@ -69,7 +69,8 @@ async fn list_assets_returns_single_page() {
     let assets = service
         .list_assets("name == \"engine\"".to_string(), None, None)
         .await
-        .expect("list_assets failed");
+        .expect("list_assets failed")
+        .items;
 
     assert_eq!(assets.len(), 2);
     assert_eq!(assets[0].asset_id, "a1");
@@ -117,7 +118,8 @@ async fn list_assets_paginates_until_token_empty() {
     let assets = service
         .list_assets(String::new(), None, None)
         .await
-        .expect("list_assets failed");
+        .expect("list_assets failed")
+        .items;
 
     let ids: Vec<&str> = assets.iter().map(|a| a.asset_id.as_str()).collect();
     assert_eq!(ids, vec!["a1", "a2", "a3"]);
@@ -149,7 +151,8 @@ async fn list_assets_respects_limit() {
     let assets = service
         .list_assets(String::new(), None, Some(2))
         .await
-        .expect("list_assets failed");
+        .expect("list_assets failed")
+        .items;
 
     assert_eq!(assets.len(), 2);
 }
@@ -200,7 +203,8 @@ async fn list_assets_truncates_to_limit_across_pages() {
     let assets = service
         .list_assets(String::new(), None, Some(3))
         .await
-        .expect("list_assets failed");
+        .expect("list_assets failed")
+        .items;
 
     let ids: Vec<&str> = assets.iter().map(|a| a.asset_id.as_str()).collect();
     assert_eq!(ids, vec!["a1", "a2", "a3"]);
@@ -221,7 +225,8 @@ async fn list_assets_breaks_on_empty_page() {
     let assets = service
         .list_assets(String::new(), None, None)
         .await
-        .expect("list_assets failed");
+        .expect("list_assets failed")
+        .items;
 
     assert!(assets.is_empty());
 }

@@ -68,9 +68,10 @@ impl SiftMcpServer {
                 Do not fall back to another API to read these; absence IS the value.
               - `count`: how many items THIS response carries — read it instead of
                 counting the array yourself. It is the size of the page you got back, not
-                how many items match `filter`: results are capped at `limit`, and nothing
-                in the response says whether more exist. If `count` equals the `limit` you
-                passed, assume there are more and narrow the filter or raise `limit`.
+                how many items match `filter`.
+              - `has_more`: `true` when the service hit `limit` with matches left over, so
+                this page is not the whole set. Never report `count` as a total while
+                `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
@@ -117,16 +118,21 @@ impl SiftMcpServer {
             fields,
         }) = params;
 
-        let rules = self
+        let page = self
             .rule_service
             .list_rules(filter, order_by, limit)
             .await
             .map_err(from_anyhow)?;
 
-        let rules = with_urls(&rules, |r| self.url_service.build_rule_url(&r.rule_id).ok())?;
+        let rules = with_urls(&page.items, |r| {
+            self.url_service.build_rule_url(&r.rule_id).ok()
+        })?;
 
         Ok(CallToolResult::structured(list_body(
-            "rules", rules, fields,
+            "rules",
+            rules,
+            fields,
+            page.has_more,
         )))
     }
 

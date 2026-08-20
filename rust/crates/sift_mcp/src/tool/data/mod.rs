@@ -133,6 +133,7 @@ impl SiftMcpServer {
             .list_assets(asset_filter, None, Some(1))
             .await
             .map_err(from_anyhow)?
+            .items
             .into_iter()
             .next()
             .ok_or_else(|| {
@@ -151,6 +152,7 @@ impl SiftMcpServer {
                     .list_runs(filter, None, Some(1))
                     .await
                     .map_err(from_anyhow)?
+                    .items
                     .into_iter()
                     .next()
                     .ok_or_else(|| {
@@ -200,11 +202,12 @@ impl SiftMcpServer {
             asset.asset_id
         );
 
-        let channels = self
+        let page = self
             .channel_service
             .list_channels(channel_filter, None, Some(common::PAGE_SIZE))
             .await
             .map_err(from_anyhow)?;
+        let channels = page.items;
 
         if channels.is_empty() {
             return Err(ErrorData::resource_not_found(
@@ -213,12 +216,14 @@ impl SiftMcpServer {
             ));
         }
 
-        // A selection that fills the record cap may have been truncated, which
-        // would write a Parquet file that is missing channels with no warning.
-        if channels.len() >= common::PAGE_SIZE as usize {
+        // A truncated selection would write a Parquet file that is silently
+        // missing channels. The service reports the cut directly now, so this no
+        // longer has to infer it from the result filling the record cap — which
+        // also cried wolf whenever a selection landed on exactly that many.
+        if page.has_more {
             return Err(ErrorData::invalid_params(
                 format!(
-                    "channel selection matched {} or more channels and may be incomplete; \
+                    "channel selection matched more than {} channels and is incomplete; \
                      narrow `channel_regex`, pass explicit `channel_names`, or split the \
                      request into multiple calls",
                     common::PAGE_SIZE

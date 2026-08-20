@@ -52,11 +52,12 @@ impl AnnotationService {
         order_by: Option<String>,
         limit: Option<u32>,
         organization_id: Option<String>,
-    ) -> Result<Vec<Annotation>> {
+    ) -> Result<common::Page<Annotation>> {
         let (page_size, record_limit) = common::paging(limit);
 
         let mut page_token = String::new();
         let mut results = Vec::new();
+        let mut has_more = false;
 
         let order_by = order_by.unwrap_or_default();
         let organization_id = organization_id.unwrap_or_default();
@@ -100,7 +101,13 @@ impl AnnotationService {
             }
             results.extend(annotations);
 
-            if results.len() >= record_limit || next_page_token.is_empty() {
+            if results.len() >= record_limit {
+                // The cap, not the end of the data: report that more exist so the
+                // caller does not read this page's size as the match total.
+                has_more = results.len() > record_limit || !next_page_token.is_empty();
+                break;
+            }
+            if next_page_token.is_empty() {
                 break;
             }
             page_token = next_page_token;
@@ -108,7 +115,10 @@ impl AnnotationService {
 
         results.truncate(record_limit);
 
-        Ok(results)
+        Ok(common::Page {
+            items: results,
+            has_more,
+        })
     }
 
     #[allow(clippy::too_many_arguments)]

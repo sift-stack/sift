@@ -51,7 +51,8 @@ async fn list_rules_returns_single_page() {
     let rules = service
         .list_rules("name == \"overtemp\"".to_string(), None, None)
         .await
-        .expect("list_rules failed");
+        .expect("list_rules failed")
+        .items;
 
     assert_eq!(rules.len(), 1);
     assert_eq!(rules[0].rule_id, "rule1");
@@ -77,7 +78,8 @@ async fn list_rules_forwards_order_by() {
     let rules = service
         .list_rules(String::new(), Some("created_date desc".to_string()), None)
         .await
-        .expect("list_rules failed");
+        .expect("list_rules failed")
+        .items;
 
     assert_eq!(rules.len(), 1);
 }
@@ -116,7 +118,8 @@ async fn list_rules_paginates_until_token_empty() {
     let rules = service
         .list_rules(String::new(), None, None)
         .await
-        .expect("list_rules failed");
+        .expect("list_rules failed")
+        .items;
 
     let ids: Vec<&str> = rules.iter().map(|r| r.rule_id.as_str()).collect();
     assert_eq!(ids, vec!["rule1", "rule2"]);
@@ -148,7 +151,8 @@ async fn list_rules_respects_limit() {
     let rules = service
         .list_rules(String::new(), None, Some(2))
         .await
-        .expect("list_rules failed");
+        .expect("list_rules failed")
+        .items;
 
     assert_eq!(rules.len(), 2);
 }
@@ -199,7 +203,8 @@ async fn list_rules_truncates_to_limit_across_pages() {
     let rules = service
         .list_rules(String::new(), None, Some(3))
         .await
-        .expect("list_rules failed");
+        .expect("list_rules failed")
+        .items;
 
     let ids: Vec<&str> = rules.iter().map(|r| r.rule_id.as_str()).collect();
     assert_eq!(ids, vec!["rule1", "rule2", "rule3"]);
@@ -220,7 +225,8 @@ async fn list_rules_breaks_on_empty_page() {
     let rules = service
         .list_rules(String::new(), None, None)
         .await
-        .expect("list_rules failed");
+        .expect("list_rules failed")
+        .items;
 
     assert!(rules.is_empty());
 }

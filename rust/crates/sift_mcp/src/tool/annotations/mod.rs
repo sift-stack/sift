@@ -99,9 +99,10 @@ impl SiftMcpServer {
                 annotations.
               - `count`: how many items THIS response carries — read it instead of
                 counting the array yourself. It is the size of the page you got back, not
-                how many items match `filter`: results are capped at `limit`, and nothing
-                in the response says whether more exist. If `count` equals the `limit` you
-                passed, assume there are more and narrow the filter or raise `limit`.
+                how many items match `filter`.
+              - `has_more`: `true` when the service hit `limit` with matches left over, so
+                this page is not the whole set. Never report `count` as a total while
+                `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
@@ -149,13 +150,13 @@ impl SiftMcpServer {
             fields,
         }) = params;
 
-        let annotations = self
+        let page = self
             .annotation_service
             .list_annotations(filter, order_by, limit, organization_id)
             .await
             .map_err(from_anyhow)?;
 
-        let annotations = with_urls(&annotations, |a| {
+        let annotations = with_urls(&page.items, |a| {
             self.url_service.build_annotation_url(&a.annotation_id).ok()
         })?;
 
@@ -163,6 +164,7 @@ impl SiftMcpServer {
             "annotations",
             annotations,
             fields,
+            page.has_more,
         )))
     }
 

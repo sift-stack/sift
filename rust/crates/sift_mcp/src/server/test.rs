@@ -341,7 +341,7 @@ async fn client_event_failure_does_not_change_the_tool_result() {
 
     assert_eq!(
         response["result"]["structuredContent"],
-        serde_json::json!({ "assets": [], "count": 0 })
+        serde_json::json!({ "assets": [], "count": 0, "has_more": false })
     );
 
     finish(reader, writer, server).await;
@@ -384,7 +384,7 @@ async fn tool_call_sends_its_client_event() {
     let response = read_json(&mut reader).await;
     assert_eq!(
         response["result"]["structuredContent"],
-        serde_json::json!({ "assets": [], "count": 0 })
+        serde_json::json!({ "assets": [], "count": 0, "has_more": false })
     );
 
     let request = String::from_utf8(event_server.await.unwrap()).unwrap();
@@ -484,7 +484,7 @@ async fn update_tool_fails_open_when_the_background_check_closes() {
     let assets = read_json(&mut reader).await;
     assert_eq!(
         assets["result"]["structuredContent"],
-        serde_json::json!({ "assets": [], "count": 0 })
+        serde_json::json!({ "assets": [], "count": 0, "has_more": false })
     );
 
     finish(reader, writer, server).await;
@@ -510,7 +510,7 @@ async fn update_notice_does_not_change_unrelated_tool_results() {
 
     assert_eq!(
         response["result"]["structuredContent"],
-        serde_json::json!({ "assets": [], "count": 0 })
+        serde_json::json!({ "assets": [], "count": 0, "has_more": false })
     );
     assert_eq!(response["result"]["content"].as_array().unwrap().len(), 1);
 

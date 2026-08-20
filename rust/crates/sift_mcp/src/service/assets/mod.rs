@@ -30,11 +30,12 @@ impl AssetService {
         filter: String,
         order_by: Option<String>,
         limit: Option<u32>,
-    ) -> Result<Vec<Asset>> {
+    ) -> Result<common::Page<Asset>> {
         let (page_size, record_limit) = common::paging(limit);
 
         let mut page_token = String::new();
         let mut results = Vec::new();
+        let mut has_more = false;
 
         let order_by = order_by.unwrap_or_default();
 
@@ -74,7 +75,13 @@ impl AssetService {
             }
             results.extend(assets);
 
-            if results.len() >= record_limit || next_page_token.is_empty() {
+            if results.len() >= record_limit {
+                // The cap, not the end of the data: report that more exist so the
+                // caller does not read this page's size as the match total.
+                has_more = results.len() > record_limit || !next_page_token.is_empty();
+                break;
+            }
+            if next_page_token.is_empty() {
                 break;
             }
             page_token = next_page_token;
@@ -82,7 +89,10 @@ impl AssetService {
 
         results.truncate(record_limit);
 
-        Ok(results)
+        Ok(common::Page {
+            items: results,
+            has_more,
+        })
     }
 
     /// Update a subset of an existing asset's fields. Per

@@ -58,9 +58,10 @@ impl SiftMcpServer {
                 report to the Sift run that holds the ingested channel data; empty when none is associated.
               - `count`: how many items THIS response carries — read it instead of
                 counting the array yourself. It is the size of the page you got back, not
-                how many items match `filter`: results are capped at `limit`, and nothing
-                in the response says whether more exist. If `count` equals the `limit` you
-                passed, assume there are more and narrow the filter or raise `limit`.
+                how many items match `filter`.
+              - `has_more`: `true` when the service hit `limit` with matches left over, so
+                this page is not the whole set. Never report `count` as a total while
+                `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
@@ -107,18 +108,19 @@ impl SiftMcpServer {
             fields,
         }) = params;
 
-        let test_reports = self
+        let page = self
             .test_report_service
             .list_test_reports(filter, order_by, limit)
             .await
             .map_err(from_anyhow)?;
 
-        let test_reports = to_values(&test_reports)?;
+        let test_reports = to_values(&page.items)?;
 
         Ok(CallToolResult::structured(list_body(
             "test_reports",
             test_reports,
             fields,
+            page.has_more,
         )))
     }
 
@@ -137,9 +139,10 @@ impl SiftMcpServer {
                 pass/fail from `status`.
               - `count`: how many items THIS response carries — read it instead of
                 counting the array yourself. It is the size of the page you got back, not
-                how many items match `filter`: results are capped at `limit`, and nothing
-                in the response says whether more exist. If `count` equals the `limit` you
-                passed, assume there are more and narrow the filter or raise `limit`.
+                how many items match `filter`.
+              - `has_more`: `true` when the service hit `limit` with matches left over, so
+                this page is not the whole set. Never report `count` as a total while
+                `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything (rarely useful; almost always
@@ -184,18 +187,19 @@ impl SiftMcpServer {
             fields,
         }) = params;
 
-        let test_steps = self
+        let page = self
             .test_report_service
             .list_test_steps(filter, order_by, limit)
             .await
             .map_err(from_anyhow)?;
 
-        let test_steps = to_values(&test_steps)?;
+        let test_steps = to_values(&page.items)?;
 
         Ok(CallToolResult::structured(list_body(
             "test_steps",
             test_steps,
             fields,
+            page.has_more,
         )))
     }
 
@@ -215,9 +219,10 @@ impl SiftMcpServer {
                 cross-plotting in Explore.
               - `count`: how many items THIS response carries — read it instead of
                 counting the array yourself. It is the size of the page you got back, not
-                how many items match `filter`: results are capped at `limit`, and nothing
-                in the response says whether more exist. If `count` equals the `limit` you
-                passed, assume there are more and narrow the filter or raise `limit`.
+                how many items match `filter`.
+              - `has_more`: `true` when the service hit `limit` with matches left over, so
+                this page is not the whole set. Never report `count` as a total while
+                `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything (almost always scope by
@@ -261,18 +266,19 @@ impl SiftMcpServer {
             fields,
         }) = params;
 
-        let test_measurements = self
+        let page = self
             .test_report_service
             .list_test_measurements(filter, order_by, limit)
             .await
             .map_err(from_anyhow)?;
 
-        let test_measurements = to_values(&test_measurements)?;
+        let test_measurements = to_values(&page.items)?;
 
         Ok(CallToolResult::structured(list_body(
             "test_measurements",
             test_measurements,
             fields,
+            page.has_more,
         )))
     }
 

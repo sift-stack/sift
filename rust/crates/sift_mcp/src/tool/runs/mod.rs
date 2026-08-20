@@ -44,9 +44,10 @@ impl SiftMcpServer {
                 is omitted when the host can't be derived. Surface these links to the user when presenting runs.
               - `count`: how many items THIS response carries — read it instead of
                 counting the array yourself. It is the size of the page you got back, not
-                how many items match `filter`: results are capped at `limit`, and nothing
-                in the response says whether more exist. If `count` equals the `limit` you
-                passed, assume there are more and narrow the filter or raise `limit`.
+                how many items match `filter`.
+              - `has_more`: `true` when the service hit `limit` with matches left over, so
+                this page is not the whole set. Never report `count` as a total while
+                `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
@@ -95,15 +96,22 @@ impl SiftMcpServer {
             fields,
         }) = params;
 
-        let runs = self
+        let page = self
             .run_service
             .list_runs(filter, order_by, limit)
             .await
             .map_err(from_anyhow)?;
 
-        let runs = with_urls(&runs, |r| self.url_service.build_run_url(&r.run_id).ok())?;
+        let runs = with_urls(&page.items, |r| {
+            self.url_service.build_run_url(&r.run_id).ok()
+        })?;
 
-        Ok(CallToolResult::structured(list_body("runs", runs, fields)))
+        Ok(CallToolResult::structured(list_body(
+            "runs",
+            runs,
+            fields,
+            page.has_more,
+        )))
     }
 
     #[tool(

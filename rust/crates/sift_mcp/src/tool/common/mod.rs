@@ -139,16 +139,21 @@ pub(crate) fn project_fields(items: Vec<Value>, fields: &[String]) -> (Vec<Value
 /// mistyped name is visible rather than silently narrowing the response. An
 /// empty `fields` array is treated as no projection.
 ///
-/// Every body carries `count`, the number of items in this response — the size
-/// of the page, not the number matching the filter. The service caps results at
-/// `limit` and does not report whether more exist, so a caller can only infer a
-/// truncated page from `count` reaching its `limit`. Surfacing that properly
-/// needs the truncation flag the service currently discards. Counting a JSON
+/// Every body carries `count`, the number of items in this response, and
+/// `has_more`, whether the service stopped at `limit` with matches left over.
+/// `count` is the size of the page, not the match total — the two fields
+/// together are what let a caller tell a complete result from a truncated one
+/// instead of guessing from whether `count` happens to equal `limit`. Counting a JSON
 /// array by eye is arithmetic a caller should not have to do: an agent asked
 /// how many channels an asset has read a 120-row response and reported 122,
 /// then explained the discrepancy away rather than trusting its own correct
 /// enumeration. The number is free here and exact, so hand it over.
-pub(crate) fn list_body(key: &str, items: Vec<Value>, fields: Option<Vec<String>>) -> Value {
+pub(crate) fn list_body(
+    key: &str,
+    items: Vec<Value>,
+    fields: Option<Vec<String>>,
+    has_more: bool,
+) -> Value {
     let (items, unmatched) = match fields.as_deref() {
         Some(fields) if !fields.is_empty() => project_fields(items, fields),
         _ => (items, Vec::new()),
@@ -156,6 +161,7 @@ pub(crate) fn list_body(key: &str, items: Vec<Value>, fields: Option<Vec<String>
 
     let mut body = serde_json::Map::new();
     body.insert("count".to_string(), Value::from(items.len()));
+    body.insert("has_more".to_string(), Value::Bool(has_more));
     body.insert(key.to_string(), Value::Array(items));
     if !unmatched.is_empty() {
         body.insert(
