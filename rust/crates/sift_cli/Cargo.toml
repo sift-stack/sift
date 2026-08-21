@@ -13,6 +13,10 @@ keywords.workspace = true
 readme.workspace = true
 license.workspace = true
 description = "Sift CLI"
+# Released as a dist binary
+publish = false
+[package.metadata.dist]
+dist = true
 
 [[bin]]
 name = "sift-cli"
