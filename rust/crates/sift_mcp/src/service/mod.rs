@@ -8,6 +8,7 @@ pub mod ingest;
 pub mod ping;
 pub mod report_templates;
 pub mod reports;
+pub mod rule_evaluation;
 pub mod rules;
 pub mod runs;
 #[cfg(feature = "test-reports")]
