@@ -1398,6 +1398,33 @@ stream, like a PR job re-running the same suite five times in a row.</p>
 </span></code></pre></div>
 <p>That replays the saved JSONL log as a single batch and deletes the file when it
 lives under the system temp dir.</p>
+<p><code>import-test-result-log</code> runs in one of three modes:</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>How to get it</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>New upload</td>
+<td>the default, when nothing has been uploaded yet</td>
+<td>Uploads the whole log as a new report</td>
+</tr>
+<tr>
+<td>Resume</td>
+<td>the default, when a tracking sidecar records an interrupted upload</td>
+<td>Continues into the report that upload created, sending only what is missing</td>
+</tr>
+<tr>
+<td>Follow</td>
+<td><code>--incremental</code></td>
+<td>Uploads entries as they are written. This is the mode the plugin's background worker ticks in during a run; it exits only when its stdin closes, so it is not how you finish an interrupted upload</td>
+</tr>
+</tbody>
+</table>
 <p>Run the same command again if a replay is interrupted. Each upload records what
 it created in a tracking sidecar next to the log (<code>&lt;log&gt;.jsonl.tracking</code>), so a
 second run continues into the report the first one created and sends only what
