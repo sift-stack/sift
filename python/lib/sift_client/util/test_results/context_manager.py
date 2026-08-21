@@ -5,6 +5,7 @@ import logging
 import os
 import socket
 import subprocess
+import sys
 import traceback
 import warnings
 from collections import Counter
@@ -325,7 +326,15 @@ class ReportContext(AbstractContextManager):
         branches without depending on the real replay binary.
         """
         cmd = [
-            "import-test-result-log",
+            # Invoked through the running interpreter rather than by the bare
+            # ``import-test-result-log`` name, which resolves through PATH. The
+            # console script installs into the venv's bin/, so a bare-name spawn
+            # raises FileNotFoundError wherever that bin/ isn't on PATH: under
+            # ``sudo`` (sudoers' secure_path replaces PATH even with ``-E``), or
+            # running ``python -m pytest`` against a non-activated venv.
+            sys.executable,
+            "-m",
+            "sift_client.scripts.import_test_result_log",
             "--incremental",
             str(self.log_file),
             "--grpc-url",
@@ -361,7 +370,7 @@ class ReportContext(AbstractContextManager):
                     stderr=subprocess.PIPE,
                 )
         except OSError as exc:
-            # e.g. the ``import-test-result-log`` entry point isn't on PATH.
+            # e.g. the interpreter can't import the replay module.
             # Surface it; the JSONL log is still on disk for a manual replay.
             log_event(
                 logger, logging.WARNING, "replay.spawn_failed", error=repr(exc), log=self.log_file
