@@ -1,6 +1,7 @@
 pub mod annotations;
 pub mod assets;
 pub mod calculated_channels;
+pub mod campaigns;
 pub mod channels;
 pub mod common;
 pub mod data;
