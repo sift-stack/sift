@@ -4,6 +4,11 @@ import threading
 
 import pytest
 
+from sift_client._internal.grpc_transport.transport import (
+    DEFAULT_MAX_DECODING_MESSAGE_SIZE,
+    _compute_channel_options,
+)
+from sift_client.transport.base_connection import SiftConnectionConfig
 from sift_client.transport.grpc_transport import GrpcClient, GrpcConfig
 from sift_client.transport.rest_transport import DEFAULT_REST_TIMEOUT, RestClient, RestConfig
 
@@ -150,3 +155,49 @@ class TestRestRequestTimeout:
         captured = self._capture_request_kwargs(client)
         client.get("/v1/ping")
         assert "timeout" not in captured
+
+
+class TestMaxDecodingMessageSize:
+    @staticmethod
+    def _receive_limit(config: GrpcConfig) -> int:
+        options = dict(_compute_channel_options(config._to_sift_channel_config()))
+        return options["grpc.max_receive_message_length"]
+
+    def test_defaults_to_50_mb(self):
+        config = GrpcConfig(url="https://grpc.sift.com", api_key="api")
+        assert self._receive_limit(config) == DEFAULT_MAX_DECODING_MESSAGE_SIZE
+
+    def test_config_value_overrides_default(self):
+        config = GrpcConfig(
+            url="https://grpc.sift.com", api_key="api", max_decoding_message_size=100 * 1024 * 1024
+        )
+        assert self._receive_limit(config) == 100 * 1024 * 1024
+
+    def test_lowering_the_limit_is_honored(self):
+        config = GrpcConfig(
+            url="https://grpc.sift.com", api_key="api", max_decoding_message_size=1024
+        )
+        assert self._receive_limit(config) == 1024
+
+    def test_channel_config_carries_the_value(self):
+        config = GrpcConfig(
+            url="https://grpc.sift.com", api_key="api", max_decoding_message_size=17
+        )
+        assert config._to_sift_channel_config().get("max_decoding_message_size") == 17
+
+    def test_connection_config_forwards_to_grpc_config(self):
+        connection_config = SiftConnectionConfig(
+            grpc_url="https://grpc.sift.com",
+            rest_url="https://api.sift.com",
+            api_key="api",
+            max_decoding_message_size=64 * 1024 * 1024,
+        )
+        assert connection_config.get_grpc_config().max_decoding_message_size == 64 * 1024 * 1024
+
+    def test_connection_config_default_leaves_it_unset(self):
+        connection_config = SiftConnectionConfig(
+            grpc_url="https://grpc.sift.com", rest_url="https://api.sift.com", api_key="api"
+        )
+        grpc_config = connection_config.get_grpc_config()
+        assert grpc_config.max_decoding_message_size is None
+        assert self._receive_limit(grpc_config) == DEFAULT_MAX_DECODING_MESSAGE_SIZE

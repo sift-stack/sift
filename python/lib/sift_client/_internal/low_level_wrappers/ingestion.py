@@ -250,6 +250,7 @@ async def _build_sift_stream_instance(
     checkpoint_interval_seconds: int | None = None,
     enable_tls: bool = True,
     tracing_config: TracingConfig | None = None,
+    max_decoding_message_size: int | None = None,
 ) -> SiftStreamPy:
     """Build a raw `SiftStreamPy` without wrapping it in a client.
 
@@ -289,6 +290,7 @@ async def _build_sift_stream_instance(
 
     sift_builder = SiftStreamBuilderPy(uri=grpc_uri, apikey=api_key)
     sift_builder.enable_tls = enable_tls
+    sift_builder.max_decoding_message_size = max_decoding_message_size
 
     config_builder = sift_builder.ingestion_config(ingestion_config_form)
     config_builder.run = run_form
@@ -341,6 +343,7 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
         checkpoint_interval_seconds: int | None = None,
         enable_tls: bool = True,
         tracing_config: TracingConfig | None = None,
+        max_decoding_message_size: int | None = None,
     ) -> IngestionConfigStreamingLowLevelClient:
         sift_stream_instance = await _build_sift_stream_instance(
             api_key=api_key,
@@ -356,6 +359,7 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
             checkpoint_interval_seconds=checkpoint_interval_seconds,
             enable_tls=enable_tls,
             tracing_config=tracing_config,
+            max_decoding_message_size=max_decoding_message_size,
         )
         return cls(sift_stream_instance)
 
