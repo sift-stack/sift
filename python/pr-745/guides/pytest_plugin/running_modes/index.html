@@ -1325,11 +1325,10 @@ session with <code>pytest.UsageError</code> and points at <code>--sift-offline</
 get noticed until somebody goes looking for the report, which is usually weeks
 later, which is usually too late.</p>
 <p>With the JSONL log on by default, create/update calls are written to a log file
-in the run's output directory during the run, and an
-<code>import-test-result-log --incremental</code> worker replays them against Sift in the
-background. If the worker crashes mid-session (connection failure, API error) or
-is still draining its backlog at session end, the failure is logged at session
-end with an <code>import-test-result-log</code> command for manual recovery. Test outcomes
+in the run's output directory during the run, and a background worker replays
+them against Sift as they are written. If the worker crashes mid-session
+(connection failure, API error) or is still draining its backlog at session
+end, the failure is logged at session end with an <code>import-test-result-log</code> command for manual recovery. Test outcomes
 are unaffected and the local log file is preserved. Pass <code>--no-sift-log-file</code> to
 make every create/update synchronous against the API instead.</p>
 <h3 id="overriding-the-connection-check">Overriding the connection check<a class="headerlink" href="#overriding-the-connection-check" title="Permanent link">&para;</a></h3>
@@ -1349,8 +1348,8 @@ token cache that's only warm when authenticated:</p>
 <p>Same fixtures, same <code>step.measure(...)</code> semantics as online. The difference is
 where the writes go: every create/update lands in a JSONL log file instead of
 hitting the Sift API. The session-start ping is skipped, missing <code>SIFT_*</code> env
-vars are tolerated (placeholders are filled), and the replay worker
-(<code>import-test-result-log --incremental</code>) does not get spawned at session end.</p>
+vars are tolerated (placeholders are filled), and the replay worker does not
+get spawned at session end.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>pytest<span class="w"> </span>--sift-offline<span class="w"> </span>--sift-output-dir<span class="o">=</span>./offline-runs
 </span></code></pre></div>
 <p>The summary panel prints the exact log path and the replay command. Once you
@@ -1398,7 +1397,7 @@ stream, like a PR job re-running the same suite five times in a row.</p>
 </span></code></pre></div>
 <p>That replays the saved JSONL log as a single batch and deletes the file when it
 lives under the system temp dir.</p>
-<p><code>import-test-result-log</code> runs in one of three modes:</p>
+<p><code>import-test-result-log</code> runs in one of two modes:</p>
 <table>
 <thead>
 <tr>
@@ -1417,11 +1416,6 @@ lives under the system temp dir.</p>
 <td>Resume</td>
 <td>the default, when a tracking sidecar records an interrupted upload</td>
 <td>Continues into the report that upload created, sending only what is missing</td>
-</tr>
-<tr>
-<td>Follow</td>
-<td><code>--incremental</code></td>
-<td>Uploads entries as they are written. This is the mode the plugin's background worker ticks in during a run; it exits only when its stdin closes, so it is not how you finish an interrupted upload</td>
 </tr>
 </tbody>
 </table>
