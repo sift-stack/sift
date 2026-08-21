@@ -119,11 +119,10 @@ get noticed until somebody goes looking for the report, which is usually weeks
 later, which is usually too late.
 
 With the JSONL log on by default, create/update calls are written to a log file
-in the run's output directory during the run, and an
-`import-test-result-log --incremental` worker replays them against Sift in the
-background. If the worker crashes mid-session (connection failure, API error) or
-is still draining its backlog at session end, the failure is logged at session
-end with an `import-test-result-log` command for manual recovery. Test outcomes
+in the run's output directory during the run, and a background worker replays
+them against Sift as they are written. If the worker crashes mid-session
+(connection failure, API error) or is still draining its backlog at session
+end, the failure is logged at session end with an `import-test-result-log` command for manual recovery. Test outcomes
 are unaffected and the local log file is preserved. Pass `--no-sift-log-file` to
 make every create/update synchronous against the API instead.
 
@@ -150,8 +149,8 @@ The override is ignored under `--sift-offline` and `--sift-disabled`.
 Same fixtures, same `step.measure(...)` semantics as online. The difference is
 where the writes go: every create/update lands in a JSONL log file instead of
 hitting the Sift API. The session-start ping is skipped, missing `SIFT_*` env
-vars are tolerated (placeholders are filled), and the replay worker
-(`import-test-result-log --incremental`) does not get spawned at session end.
+vars are tolerated (placeholders are filled), and the replay worker does not
+get spawned at session end.
 
 ```bash
 pytest --sift-offline --sift-output-dir=./offline-runs
@@ -220,13 +219,12 @@ import-test-result-log <path-to-log.jsonl>
 That replays the saved JSONL log as a single batch and deletes the file when it
 lives under the system temp dir.
 
-`import-test-result-log` runs in one of three modes:
+`import-test-result-log` runs in one of two modes:
 
 | Mode | How to get it | What it does |
 | --- | --- | --- |
 | New upload | the default, when nothing has been uploaded yet | Uploads the whole log as a new report |
 | Resume | the default, when a tracking sidecar records an interrupted upload | Continues into the report that upload created, sending only what is missing |
-| Follow | `--incremental` | Uploads entries as they are written. This is the mode the plugin's background worker ticks in during a run; it exits only when its stdin closes, so it is not how you finish an interrupted upload |
 
 Run the same command again if a replay is interrupted. Each upload records what
 it created in a tracking sidecar next to the log (`<log>.jsonl.tracking`), so a

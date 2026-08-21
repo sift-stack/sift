@@ -788,14 +788,14 @@ def test_make_session_dir_concurrent_calls_unique(tmp_path, monkeypatch):
 
 
 def test_cleanup_temp_log_removes_session_dir(tmp_path, monkeypatch):
-    """``_cleanup_temp_log`` removes the whole session dir when audit is off.
+    """``cleanup_temp_log`` removes the whole session dir when audit is off.
 
     Session dir layout: ``<tmpdir>/sift_test_results/<random>/``. The JSONL,
     its tracking sidecar, and any audit files in the dir are all removed.
     """
     import tempfile
 
-    from sift_client.scripts.import_test_result_log import _cleanup_temp_log
+    from sift_client._internal.pytest_plugin.replay_worker import cleanup_temp_log
 
     monkeypatch.setattr(tempfile, "gettempdir", lambda: str(tmp_path))
     session_dir = tmp_path / "sift_test_results" / "abc123"
@@ -806,21 +806,21 @@ def test_cleanup_temp_log_removes_session_dir(tmp_path, monkeypatch):
     for f in (log, tracking, audit):
         f.write_text("{}")
 
-    _cleanup_temp_log(str(log))
+    cleanup_temp_log(str(log))
 
     assert not session_dir.exists()
 
 
 def test_cleanup_temp_log_ignores_explicit_path(tmp_path, monkeypatch):
-    """``_cleanup_temp_log`` does not touch a log outside the temp dir."""
+    """``cleanup_temp_log`` does not touch a log outside the temp dir."""
     import tempfile
 
-    from sift_client.scripts.import_test_result_log import _cleanup_temp_log
+    from sift_client._internal.pytest_plugin.replay_worker import cleanup_temp_log
 
     monkeypatch.setattr(tempfile, "gettempdir", lambda: str(tmp_path))
     explicit_log = tmp_path.parent / "my_project_log.jsonl"
     explicit_log.write_text("{}")
-    _cleanup_temp_log(str(explicit_log))
+    cleanup_temp_log(str(explicit_log))
     assert explicit_log.exists()
     explicit_log.unlink()
 
@@ -829,7 +829,7 @@ def test_cleanup_temp_log_legacy_flat_layout(tmp_path, monkeypatch):
     """Legacy flat-temp layout: only the JSONL and its tracking sidecar are removed."""
     import tempfile
 
-    from sift_client.scripts.import_test_result_log import _cleanup_temp_log
+    from sift_client._internal.pytest_plugin.replay_worker import cleanup_temp_log
 
     monkeypatch.setattr(tempfile, "gettempdir", lambda: str(tmp_path))
     log = tmp_path / "tmp12345.jsonl"
@@ -838,7 +838,7 @@ def test_cleanup_temp_log_legacy_flat_layout(tmp_path, monkeypatch):
     for f in (log, tracking, other):
         f.write_text("{}")
 
-    _cleanup_temp_log(str(log))
+    cleanup_temp_log(str(log))
 
     assert not log.exists()
     assert not tracking.exists()

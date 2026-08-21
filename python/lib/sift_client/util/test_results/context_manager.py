@@ -259,9 +259,9 @@ class ReportContext(AbstractContextManager):
                 on top of git metadata when ``include_git_metadata`` is True, so
                 explicit keys win on collision.
             replay_log_file: When True (the default) and ``log_file`` is set,
-                spawn ``import-test-result-log --incremental`` to push log
-                entries to Sift in the background during the session. When
-                False, the log file is just a record and no worker is spawned.
+                spawn the background replay worker to push log entries to Sift
+                during the session. When False, the log file is just a record
+                and no worker is spawned.
                 Replay happens later via ``import-test-result-log <path>``.
                 Has no effect when ``log_file`` is None.
             audit_log: When set, the path of a DEBUG audit log. The replay worker
@@ -320,23 +320,22 @@ class ReportContext(AbstractContextManager):
         self.report = client.test_results.create(create, log_file=self.log_file)
 
     def _build_replay_command(self) -> list[str]:
-        """Build the argv for the import-test-result-log replay subprocess.
+        """Build the argv for the background replay worker subprocess.
 
         Factored out for testability: tests substitute commands that exit
         with controlled returncodes / stderr to exercise the ``__exit__``
-        branches without depending on the real replay binary.
+        branches without depending on the real replay worker.
         """
         cmd = [
-            # Invoked through the running interpreter rather than by the bare
-            # ``import-test-result-log`` name, which resolves through PATH. The
-            # console script installs into the venv's bin/, so a bare-name spawn
-            # raises FileNotFoundError wherever that bin/ isn't on PATH: under
+            # Invoked through the running interpreter so the worker imports the
+            # same sift_client the session is using. Spawning by a bare command
+            # name would instead resolve through PATH, which raises
+            # FileNotFoundError wherever the venv's bin/ isn't on it: under
             # ``sudo`` (sudoers' secure_path replaces PATH even with ``-E``), or
             # running ``python -m pytest`` against a non-activated venv.
             sys.executable,
             "-m",
-            "sift_client.scripts.import_test_result_log",
-            "--incremental",
+            "sift_client._internal.pytest_plugin.replay_worker",
             str(self.log_file),
             "--grpc-url",
             self.client.grpc_client._config.uri,

@@ -115,4 +115,8 @@ def test_replay_command_runs_module_through_current_interpreter() -> None:
     """
     rc = ReportContext(_make_simulate_client(), name="test", log_file=True)
     cmd = rc._build_replay_command()
-    assert cmd[:3] == [sys.executable, "-m", "sift_client.scripts.import_test_result_log"]
+    assert cmd[:3] == [
+        sys.executable,
+        "-m",
+        "sift_client._internal.pytest_plugin.replay_worker",
+    ]
