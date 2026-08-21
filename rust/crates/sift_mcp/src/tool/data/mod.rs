@@ -16,7 +16,8 @@ use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::{
-        common,
+        calculated_channels::UnresolvedCalculation,
+        common::{self, cel_escape},
         data::{ChannelInput, DataService, TimeRange},
         ingest::RunForm,
     },
@@ -63,14 +64,19 @@ impl SiftMcpServer {
         name = "get_data",
         description = "
             Retrieve time-series data for one or more channels of a single asset and write the result to a Parquet file.
+            Serves both raw channels and saved calculated channels.
 
             Output schema:
               - Column 0 is `timestamp_unix_nanos` (Int64, non-null) holding the merged ascending timestamps across all
                 requested channels.
               - One column per matched channel, named `<channel_name> {channel_id=\"...\", run=\"...\", units=\"...\"}`.
-                Cells are null where that channel has no sample at the row's timestamp.
+                Cells are null where that channel has no sample at the row's timestamp. A saved calculated channel
+                has no channel id, so its column carries the calculated channel's name in both places.
               - Enum and BitField channels carry their decode config in field metadata under the `enum_config` and
                 `bit_field_elements` keys respectively.
+              - Tool result is `{ \"output\": \"<path>\", \"next_step\": \"...\" }`, plus
+                `unresolved_calculated_channels` (`[{ \"name\", \"reason\" }]`) when a requested calculated channel
+                produced no data. Those channels are absent from the file; report them to the user.
 
             Parameters:
               - `asset_name`: exact asset name (not a pattern).
@@ -80,13 +86,21 @@ impl SiftMcpServer {
               - `sample_ms`: decimation interval in milliseconds. Use `0` for raw samples; larger values reduce volume.
               - `channel_names`: optional array of exact channel names. Mutually exclusive with `channel_regex`;
                 exactly one of the two MUST be set. Prefer this form when the set is known — it's more predictable.
+                A name with no raw channel on the asset is resolved as an active saved calculated channel and
+                evaluated for the requested asset and run. A raw channel wins a name it shares with a calculated
+                channel, so a calculated channel named after an existing raw channel is not served here.
               - `channel_regex`: optional RE2 pattern matched against the channel name. Mutually exclusive with
-                `channel_names`; exactly one of the two MUST be set.
+                `channel_names`; exactly one of the two MUST be set. Matches raw channels only; name saved
+                calculated channels explicitly in `channel_names`.
               - `output`: filesystem path for the Parquet file. The file is opened in truncate mode; existing
                 contents are overwritten.
 
             Errors:
               - `RESOURCE_NOT_FOUND` if the asset or run is missing or there are no matching channels.
+              - `RESOURCE_NOT_FOUND` naming every unresolved name when nothing requested can be served: no raw
+                channel matched and no named calculated channel exists or applies to the asset. A calculated
+                channel does not apply when the asset is outside its scope or lacks a channel its expression
+                references. Verify the name with `list_calculated_channels` filtered by `asset_id`.
               - `INVALID_PARAMS` if `run_name` is absent and the full time range is not supplied, if neither
                 `channel_names` nor `channel_regex` is set, if both are set, or if `channel_names` is empty.
               - `INVALID_PARAMS` if the channel selection matches 200 or more channels — the result would be
@@ -102,6 +116,9 @@ impl SiftMcpServer {
                 channel sets can be slow or memory-heavy. For large pulls, split the time range into successive calls
                 with disjoint `[start, end)` windows.
               - Use `sample_ms > 0` for overview/summary work; reserve `sample_ms = 0` for cases that need raw fidelity.
+              - A partial result is possible: when some calculated channels resolve and others do not, the file is
+                written from what resolved and `unresolved_calculated_channels` names the rest. Never report on the
+                data without telling the user what is missing.
               - After a successful call, if the user hasn't already indicated a next step, offer to run a SQL query
                 against the resulting Parquet file using the `sql` tool.
         ",
@@ -164,6 +181,10 @@ impl SiftMcpServer {
             None => None,
         };
 
+        // Kept so names with no raw channel can fall through to the saved
+        // calculated channels below.
+        let requested_names = channel_names.clone().unwrap_or_default();
+
         let channel_search_filter = match (channel_names, channel_regex) {
             (Some(_), Some(_)) => {
                 return Err(ErrorData::invalid_params(
@@ -206,7 +227,19 @@ impl SiftMcpServer {
             .await
             .map_err(from_anyhow)?;
 
-        if channels.is_empty() {
+        // A raw channel wins a name it shares with a saved calculated channel;
+        // only names with no raw channel go on to calculated-channel resolution.
+        // Repeats are dropped: two queries sharing a channel key merge into one
+        // column, which duplicates timestamps in the output.
+        let mut unmatched_names: Vec<String> = Vec::new();
+        for name in requested_names {
+            let matched_raw = channels.iter().any(|channel| channel.name == name);
+            if !matched_raw && !unmatched_names.contains(&name) {
+                unmatched_names.push(name);
+            }
+        }
+
+        if channels.is_empty() && unmatched_names.is_empty() {
             return Err(ErrorData::resource_not_found(
                 format!("no channels matched the search criteria for asset '{asset_name}'"),
                 None,
@@ -227,10 +260,43 @@ impl SiftMcpServer {
             ));
         }
 
-        let channel_inputs = channels
+        let mut channel_inputs = channels
             .into_iter()
             .map(|c| ChannelInput::Raw(Box::new(c)))
             .collect::<Vec<_>>();
+
+        let mut unresolved = Vec::new();
+        if !unmatched_names.is_empty() {
+            let resolution = self
+                .calculated_channel_service
+                .resolve_calculated_channels(
+                    unmatched_names,
+                    asset.asset_id.clone(),
+                    run.as_ref().map(|r| r.run_id.clone()),
+                )
+                .await
+                .map_err(from_anyhow)?;
+
+            channel_inputs.extend(resolution.resolved.into_iter().map(|calculation| {
+                ChannelInput::SavedCalculation {
+                    channel_key: calculation.name,
+                    expression_request: Box::new(calculation.expression_request),
+                }
+            }));
+            unresolved = resolution.unresolved;
+        }
+
+        let unresolved_report = (!unresolved.is_empty())
+            .then(|| unresolved_message(&unresolved, &asset_name, run_name.as_deref()));
+
+        if channel_inputs.is_empty() {
+            return Err(ErrorData::resource_not_found(
+                unresolved_report.unwrap_or_else(|| {
+                    format!("no channels matched the search criteria for asset '{asset_name}'")
+                }),
+                None,
+            ));
+        }
 
         let time_range = match run {
             Some(run) => TimeRange::Run {
@@ -252,23 +318,53 @@ impl SiftMcpServer {
             .context("failed to open output parquet file")
             .map_err(from_anyhow)?;
 
-        self.data_service
+        let queried = self
+            .data_service
             .get_data(&channel_inputs, time_range, sample_ms, &mut file)
             .await
-            .context("get data call failure - data_router")
-            .map_err(from_anyhow)?;
+            .context("get data call failure - data_router");
+
+        // A failure here says nothing about channels that were never queried, so
+        // carry the report into it. Otherwise an empty window reads as "the asset
+        // has no data" when part of the request never resolved.
+        match (queried, unresolved_report.as_ref()) {
+            (Err(error), Some(report)) => return Err(from_anyhow(error.context(report.clone()))),
+            (Err(error), None) => return Err(from_anyhow(error)),
+            (Ok(()), _) => (),
+        }
 
         let output_str = output.to_string_lossy().into_owned();
-        let next_step = format!(
+        let mut next_step = format!(
             "Wrote channel data to `{output_str}`. Inform the user where the data lives. \
              If the user hasn't already indicated a next step, offer to run a SQL query against this \
              file with the `sql` tool — for example to filter, aggregate, or summarize the data."
         );
 
-        let mut result = CallToolResult::structured(serde_json::json!({
+        if let Some(report) = &unresolved_report {
+            next_step = format!(
+                "{report}. The file does NOT contain those channels; tell the user which ones are \
+                 missing and why before reporting on the data. {next_step}"
+            );
+        }
+
+        let mut body = serde_json::json!({
             "output": output_str,
             "next_step": next_step,
-        }));
+        });
+
+        if !unresolved.is_empty() {
+            body["unresolved_calculated_channels"] = serde_json::json!(
+                unresolved
+                    .iter()
+                    .map(|entry| serde_json::json!({
+                        "name": entry.name,
+                        "reason": entry.reason,
+                    }))
+                    .collect::<Vec<_>>()
+            );
+        }
+
+        let mut result = CallToolResult::structured(body);
         result.content = vec![ContentBlock::text(next_step)];
         Ok(result)
     }
@@ -480,6 +576,23 @@ impl SiftMcpServer {
     }
 }
 
-fn cel_escape(s: &str) -> String {
-    s.replace('\\', "\\\\").replace('"', "\\\"")
+/// One phrasing for calculated channels that yielded no data, shared by the
+/// partial-result report and the all-unresolved error so the caller reads the
+/// same wording either way.
+fn unresolved_message(
+    unresolved: &[UnresolvedCalculation],
+    asset_name: &str,
+    run_name: Option<&str>,
+) -> String {
+    let scope = match run_name {
+        Some(run) => format!("asset '{asset_name}' (run '{run}')"),
+        None => format!("asset '{asset_name}'"),
+    };
+    let items = unresolved
+        .iter()
+        .map(|entry| format!("'{}' ({})", entry.name, entry.reason))
+        .collect::<Vec<_>>()
+        .join("; ");
+
+    format!("calculated channel data was not resolved for {scope}: {items}")
 }
