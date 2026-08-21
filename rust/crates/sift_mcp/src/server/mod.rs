@@ -42,8 +42,9 @@ use crate::service::{
     annotations::AnnotationService, assets::AssetService,
     calculated_channels::CalculatedChannelService, campaigns::CampaignService,
     channels::ChannelService, data::DataService, docs::DocsService, ingest::IngestService,
-    ping::PingService, report_templates::ReportTemplateService, reports::ReportService,
-    rule_evaluation::RuleEvaluationService, rules::RuleService, runs::RunService, url::UrlService,
+    metadata::MetadataService, ping::PingService, report_templates::ReportTemplateService,
+    reports::ReportService, rule_evaluation::RuleEvaluationService, rules::RuleService,
+    runs::RunService, tags::TagService, url::UrlService,
     user_defined_functions::UserDefinedFunctionService, users::UserService,
 };
 
@@ -71,6 +72,8 @@ pub struct SiftMcpServer {
     pub docs_service: DocsService,
     pub user_defined_function_service: UserDefinedFunctionService,
     pub user_service: UserService,
+    pub tag_service: TagService,
+    pub metadata_service: MetadataService,
 
     pub allow_create: bool,
     pub allow_destructive: bool,
@@ -195,6 +198,8 @@ impl SiftMcpServer {
         tool_router.merge(Self::rules_router());
         tool_router.merge(Self::rule_evaluation_router());
         tool_router.merge(Self::annotations_router());
+        tool_router.merge(Self::tags_router());
+        tool_router.merge(Self::metadata_router());
         #[cfg(feature = "test-reports")]
         tool_router.merge(Self::test_reports_router());
         tool_router.merge(Self::docs_router());
@@ -230,7 +235,9 @@ impl SiftMcpServer {
         let docs_service = DocsService::new(channel.clone(), retry_policy.clone());
         let user_defined_function_service =
             UserDefinedFunctionService::new(channel.clone(), retry_policy.clone());
-        let user_service = UserService::new(channel.clone(), retry_policy);
+        let user_service = UserService::new(channel.clone(), retry_policy.clone());
+        let tag_service = TagService::new(channel.clone(), retry_policy.clone());
+        let metadata_service = MetadataService::new(channel.clone(), retry_policy);
 
         Self {
             annotation_service,
@@ -252,6 +259,8 @@ impl SiftMcpServer {
             docs_service,
             user_defined_function_service,
             user_service,
+            tag_service,
+            metadata_service,
             tool_router,
             prompt_router,
             allow_create,
