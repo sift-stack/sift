@@ -11,7 +11,7 @@ use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::test_reports::spec::{self, ReportSpec},
-    tool::common::{ListParams, url_clause},
+    tool::common::{ListParams, list_body, to_values, url_clause},
 };
 
 #[cfg(test)]
@@ -56,6 +56,12 @@ impl SiftMcpServer {
                 `test_system_name`, `test_case`, `start_time`, `end_time`, `serial_number`, `part_number`,
                 `system_operator`, `run_id`, `metadata`, `is_archived`, and `archived_date`. `run_id` links the
                 report to the Sift run that holds the ingested channel data; empty when none is associated.
+              - `count`: how many items THIS response carries — read it instead of
+                counting the array yourself. It is the size of the page you got back, not
+                how many items match `filter`.
+              - `has_more`: `true` when the service hit `limit` with matches left over, so
+                this page is not the whole set. Never report `count` as a total while
+                `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
@@ -75,6 +81,12 @@ impl SiftMcpServer {
                 Default sort is `start_time desc` (newest first). Example: `\"start_time desc,name\"`.
               - `limit`: max items to return. Start at 50 and only raise it if the result is capped
                 and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
+              - `fields`: optional array of field names to keep on each item, e.g.
+                `[\"name\"]`. Omit it for the full object. Names match case-insensitively
+                and ignore underscores, so `asset_id` and `assetId` both work. Any name
+                that matched nothing is returned in `unmatched_fields` beside the results.
+                Reach for this whenever you need only a few fields: full objects are wide,
+                and a large listing can exceed the response size limit without it.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an unknown field.
@@ -93,16 +105,23 @@ impl SiftMcpServer {
             filter,
             order_by,
             limit,
+            fields,
         }) = params;
 
-        let out = self
+        let page = self
             .test_report_service
             .list_test_reports(filter, order_by, limit)
             .await
-            .map(|test_reports| serde_json::json!({ "test_reports": test_reports }))
             .map_err(from_anyhow)?;
 
-        Ok(CallToolResult::structured(out))
+        let test_reports = to_values(&page.items)?;
+
+        Ok(CallToolResult::structured(list_body(
+            "test_reports",
+            test_reports,
+            fields,
+            page.has_more,
+        )))
     }
 
     #[tool(
@@ -118,6 +137,12 @@ impl SiftMcpServer {
                 `end_time`, `error_info` (`{ error_code, error_message }`), and `metadata`. `error_info` is
                 diagnostic only: a populated `error_info` does not by itself mean the step failed — derive
                 pass/fail from `status`.
+              - `count`: how many items THIS response carries — read it instead of
+                counting the array yourself. It is the size of the page you got back, not
+                how many items match `filter`.
+              - `has_more`: `true` when the service hit `limit` with matches left over, so
+                this page is not the whole set. Never report `count` as a total while
+                `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything (rarely useful; almost always
@@ -137,6 +162,12 @@ impl SiftMcpServer {
               - `limit`: max items to return. Start at 50 and only raise it if the result is capped
                 and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50. Use
                 `count_test_steps` to learn the true total before relying on a capped page.
+              - `fields`: optional array of field names to keep on each item, e.g.
+                `[\"name\"]`. Omit it for the full object. Names match case-insensitively
+                and ignore underscores, so `asset_id` and `assetId` both work. Any name
+                that matched nothing is returned in `unmatched_fields` beside the results.
+                Reach for this whenever you need only a few fields: full objects are wide,
+                and a large listing can exceed the response size limit without it.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an unknown field.
@@ -153,16 +184,23 @@ impl SiftMcpServer {
             filter,
             order_by,
             limit,
+            fields,
         }) = params;
 
-        let out = self
+        let page = self
             .test_report_service
             .list_test_steps(filter, order_by, limit)
             .await
-            .map(|test_steps| serde_json::json!({ "test_steps": test_steps }))
             .map_err(from_anyhow)?;
 
-        Ok(CallToolResult::structured(out))
+        let test_steps = to_values(&page.items)?;
+
+        Ok(CallToolResult::structured(list_body(
+            "test_steps",
+            test_steps,
+            fields,
+            page.has_more,
+        )))
     }
 
     #[tool(
@@ -179,6 +217,12 @@ impl SiftMcpServer {
                 `string_bounds` `{ expected_value }`), `passed`, `timestamp`, `description`, `channel_names`, and
                 `metadata`. `channel_names` ties the measurement to Sift channels on the report's run for
                 cross-plotting in Explore.
+              - `count`: how many items THIS response carries — read it instead of
+                counting the array yourself. It is the size of the page you got back, not
+                how many items match `filter`.
+              - `has_more`: `true` when the service hit `limit` with matches left over, so
+                this page is not the whole set. Never report `count` as a total while
+                `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything (almost always scope by
@@ -197,6 +241,12 @@ impl SiftMcpServer {
               - `limit`: max items to return. Start at 50 and only raise it if the result is capped
                 and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50. Use
                 `count_test_measurements` to learn the true total before relying on a capped page.
+              - `fields`: optional array of field names to keep on each item, e.g.
+                `[\"name\"]`. Omit it for the full object. Names match case-insensitively
+                and ignore underscores, so `asset_id` and `assetId` both work. Any name
+                that matched nothing is returned in `unmatched_fields` beside the results.
+                Reach for this whenever you need only a few fields: full objects are wide,
+                and a large listing can exceed the response size limit without it.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an unknown field.
@@ -213,16 +263,23 @@ impl SiftMcpServer {
             filter,
             order_by,
             limit,
+            fields,
         }) = params;
 
-        let out = self
+        let page = self
             .test_report_service
             .list_test_measurements(filter, order_by, limit)
             .await
-            .map(|test_measurements| serde_json::json!({ "test_measurements": test_measurements }))
             .map_err(from_anyhow)?;
 
-        Ok(CallToolResult::structured(out))
+        let test_measurements = to_values(&page.items)?;
+
+        Ok(CallToolResult::structured(list_body(
+            "test_measurements",
+            test_measurements,
+            fields,
+            page.has_more,
+        )))
     }
 
     #[tool(

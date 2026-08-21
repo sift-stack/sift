@@ -11,7 +11,7 @@ use sift_rs::metadata::v1::MetadataValue;
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
-    tool::common::{ListParams, MetadataEntry, url_clause, with_urls},
+    tool::common::{ListParams, MetadataEntry, list_body, url_clause, with_urls},
 };
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -36,6 +36,12 @@ impl SiftMcpServer {
                 tags, metadata, timestamps, and archive state, plus an added `url` field with the asset's Sift web
                 link (`<host>/asset/<asset_id>`). `url` is omitted when the host can't be derived. Surface these
                 links to the user when presenting assets.
+              - `count`: how many items THIS response carries — read it instead of
+                counting the array yourself. It is the size of the page you got back, not
+                how many items match `filter`.
+              - `has_more`: `true` when the service hit `limit` with matches left over, so
+                this page is not the whole set. Never report `count` as a total while
+                `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
@@ -51,6 +57,12 @@ impl SiftMcpServer {
                 Example: `\"created_date desc,modified_date\"`.
               - `limit`: max items to return. Start at 50 and only raise it if the result is capped
                 and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
+              - `fields`: optional array of field names to keep on each item, e.g.
+                `[\"name\"]`. Omit it for the full object. Names match case-insensitively
+                and ignore underscores, so `asset_id` and `assetId` both work. Any name
+                that matched nothing is returned in `unmatched_fields` beside the results.
+                Reach for this whenever you need only a few fields: full objects are wide,
+                and a large listing can exceed the response size limit without it.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an unknown field.
@@ -69,21 +81,25 @@ impl SiftMcpServer {
             filter,
             limit,
             order_by,
+            fields,
         }) = params;
 
-        let assets = self
+        let page = self
             .asset_service
             .list_assets(filter, order_by, limit)
             .await
             .map_err(from_anyhow)?;
 
-        let assets = with_urls(&assets, |a| {
+        let assets = with_urls(&page.items, |a| {
             self.url_service.build_asset_url(&a.asset_id).ok()
         })?;
 
-        Ok(CallToolResult::structured(
-            serde_json::json!({ "assets": assets }),
-        ))
+        Ok(CallToolResult::structured(list_body(
+            "assets",
+            assets,
+            fields,
+            page.has_more,
+        )))
     }
 
     #[tool(

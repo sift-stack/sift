@@ -54,7 +54,8 @@ async fn list_channels_returns_single_page() {
     let channels = service
         .list_channels("name == \"throttle\"".to_string(), None, None)
         .await
-        .expect("list_channels failed");
+        .expect("list_channels failed")
+        .items;
 
     assert_eq!(channels.len(), 2);
     assert_eq!(channels[0].channel_id, "c1");
@@ -102,7 +103,8 @@ async fn list_channels_paginates_until_token_empty() {
     let channels = service
         .list_channels(String::new(), None, None)
         .await
-        .expect("list_channels failed");
+        .expect("list_channels failed")
+        .items;
 
     let ids: Vec<&str> = channels.iter().map(|c| c.channel_id.as_str()).collect();
     assert_eq!(ids, vec!["c1", "c2", "c3"]);
@@ -134,7 +136,8 @@ async fn list_channels_respects_limit() {
     let channels = service
         .list_channels(String::new(), None, Some(2))
         .await
-        .expect("list_channels failed");
+        .expect("list_channels failed")
+        .items;
 
     assert_eq!(channels.len(), 2);
 }
@@ -185,7 +188,8 @@ async fn list_channels_truncates_to_limit_across_pages() {
     let channels = service
         .list_channels(String::new(), None, Some(3))
         .await
-        .expect("list_channels failed");
+        .expect("list_channels failed")
+        .items;
 
     let ids: Vec<&str> = channels.iter().map(|c| c.channel_id.as_str()).collect();
     assert_eq!(ids, vec!["c1", "c2", "c3"]);
@@ -206,7 +210,8 @@ async fn list_channels_breaks_on_empty_page() {
     let channels = service
         .list_channels(String::new(), None, None)
         .await
-        .expect("list_channels failed");
+        .expect("list_channels failed")
+        .items;
 
     assert!(channels.is_empty());
 }

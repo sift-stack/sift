@@ -9,7 +9,7 @@ use tonic::{Response, Status, transport::Server};
 use super::UpdateRunParams;
 use crate::{
     server::SiftMcpServer,
-    tool::common::test_support::{list_params, structured_field},
+    tool::common::test_support::{list_params, list_params_with_fields, structured_field},
 };
 
 fn update_run_params(run_id: &str) -> UpdateRunParams {
@@ -246,4 +246,39 @@ async fn update_run_rejects_no_fields() {
         .expect_err("expected error");
 
     assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+}
+
+#[tokio::test]
+async fn list_runs_can_project_the_injected_url() {
+    let mut run_mock = MockRunServiceImpl::new();
+    run_mock.expect_list_runs().returning(|_| {
+        Ok(Response::new(ListRunsResponse {
+            runs: vec![Run {
+                run_id: "r1".into(),
+                name: "liftoff".into(),
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (server, _h) = server_with_mock(run_mock).await;
+
+    let resp = server
+        .list_runs(list_params_with_fields("", &["name", "url"]))
+        .await
+        .expect("list_runs failed");
+
+    let runs = structured_field(resp, "runs");
+    assert_eq!(runs.as_array().unwrap().len(), 1);
+    assert_eq!(runs[0]["name"], "liftoff");
+    assert!(
+        runs[0]["url"].as_str().unwrap().ends_with("/run/r1"),
+        "url should survive projection: {}",
+        runs[0]["url"]
+    );
+    assert!(
+        runs[0].get("runId").is_none(),
+        "runId should be projected out"
+    );
 }

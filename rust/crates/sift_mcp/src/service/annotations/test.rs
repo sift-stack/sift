@@ -48,7 +48,8 @@ async fn list_annotations_returns_single_page() {
     let annotations = service
         .list_annotations("name == \"liftoff\"".to_string(), None, None, None)
         .await
-        .expect("list_annotations failed");
+        .expect("list_annotations failed")
+        .items;
 
     assert_eq!(annotations.len(), 1);
     assert_eq!(annotations[0].annotation_id, "ann1");
@@ -74,7 +75,8 @@ async fn list_annotations_forwards_organization_id() {
     let annotations = service
         .list_annotations(String::new(), None, None, Some("org-123".to_string()))
         .await
-        .expect("list_annotations failed");
+        .expect("list_annotations failed")
+        .items;
 
     assert_eq!(annotations.len(), 1);
 }
@@ -113,7 +115,8 @@ async fn list_annotations_paginates_until_token_empty() {
     let annotations = service
         .list_annotations(String::new(), None, None, None)
         .await
-        .expect("list_annotations failed");
+        .expect("list_annotations failed")
+        .items;
 
     let ids: Vec<&str> = annotations
         .iter()
@@ -168,7 +171,8 @@ async fn list_annotations_truncates_to_limit_across_pages() {
     let annotations = service
         .list_annotations(String::new(), None, Some(3), None)
         .await
-        .expect("list_annotations failed");
+        .expect("list_annotations failed")
+        .items;
 
     let ids: Vec<&str> = annotations
         .iter()

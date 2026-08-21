@@ -3,7 +3,7 @@ use rmcp::{handler::server::wrapper::Parameters, model::CallToolResult, tool, to
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
-    tool::common::ListParams,
+    tool::common::{ListParams, list_body, to_values},
 };
 
 #[cfg(test)]
@@ -20,6 +20,12 @@ impl SiftMcpServer {
               - `{ \"channels\": [Channel, ...] }`. Each item is the full Sift `Channel` shape including
                 `channel_id`, `name`, `description`, `asset_id`/`asset_name`, data type, units, enum/bit-field
                 configuration, and timestamps.
+              - `count`: how many items THIS response carries — read it instead of
+                counting the array yourself. It is the size of the page you got back, not
+                how many items match `filter`.
+              - `has_more`: `true` when the service hit `limit` with matches left over, so
+                this page is not the whole set. Never report `count` as a total while
+                `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
@@ -34,6 +40,12 @@ impl SiftMcpServer {
                 note this differs from `list_assets` and `list_runs`. Example: `\"name,created_date desc\"`.
               - `limit`: max items to return. Start at 50 and only raise it if the result is capped
                 and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
+              - `fields`: optional array of field names to keep on each item, e.g.
+                `[\"name\"]`. Omit it for the full object. Names match case-insensitively
+                and ignore underscores, so `asset_id` and `assetId` both work. Any name
+                that matched nothing is returned in `unmatched_fields` beside the results.
+                Reach for this whenever you need only a few fields: full objects are wide,
+                and a large listing can exceed the response size limit without it.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an unknown field.
@@ -51,15 +63,22 @@ impl SiftMcpServer {
             filter,
             order_by,
             limit,
+            fields,
         }) = params;
 
-        let out = self
+        let page = self
             .channel_service
             .list_channels(filter, order_by, limit)
             .await
-            .map(|channels| serde_json::json!({ "channels": channels }))
             .map_err(from_anyhow)?;
 
-        Ok(CallToolResult::structured(out))
+        let channels = to_values(&page.items)?;
+
+        Ok(CallToolResult::structured(list_body(
+            "channels",
+            channels,
+            fields,
+            page.has_more,
+        )))
     }
 }

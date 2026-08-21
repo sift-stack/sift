@@ -67,7 +67,8 @@ async fn list_test_reports_returns_single_page() {
     let reports = service
         .list_test_reports("name == \"nightly\"".to_string(), None, None)
         .await
-        .expect("list_test_reports failed");
+        .expect("list_test_reports failed")
+        .items;
 
     assert_eq!(reports.len(), 2);
     assert_eq!(reports[0].test_report_id, "r1");
@@ -115,7 +116,8 @@ async fn list_test_reports_paginates_until_token_empty() {
     let reports = service
         .list_test_reports(String::new(), None, None)
         .await
-        .expect("list_test_reports failed");
+        .expect("list_test_reports failed")
+        .items;
 
     let ids: Vec<&str> = reports.iter().map(|r| r.test_report_id.as_str()).collect();
     assert_eq!(ids, vec!["r1", "r2", "r3"]);
@@ -147,7 +149,8 @@ async fn list_test_reports_respects_limit() {
     let reports = service
         .list_test_reports(String::new(), None, Some(2))
         .await
-        .expect("list_test_reports failed");
+        .expect("list_test_reports failed")
+        .items;
 
     assert_eq!(reports.len(), 2);
 }
@@ -198,7 +201,8 @@ async fn list_test_steps_returns_single_page() {
     let steps = service
         .list_test_steps("test_report_id == \"r1\"".to_string(), None, None)
         .await
-        .expect("list_test_steps failed");
+        .expect("list_test_steps failed")
+        .items;
 
     assert_eq!(steps.len(), 2);
     assert_eq!(steps[0].step_path, "1");
@@ -228,7 +232,8 @@ async fn list_test_measurements_returns_single_page() {
     let measurements = service
         .list_test_measurements("test_step_id == \"s1\"".to_string(), None, None)
         .await
-        .expect("list_test_measurements failed");
+        .expect("list_test_measurements failed")
+        .items;
 
     assert_eq!(measurements.len(), 1);
     assert_eq!(measurements[0].measurement_id, "m1");

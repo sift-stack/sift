@@ -14,6 +14,7 @@ pub struct ListParams {
     pub(crate) filter: String,
     pub(crate) order_by: Option<String>,
     pub(crate) limit: Option<u32>,
+    pub(crate) fields: Option<Vec<String>>,
 }
 
 /// A single metadata scalar as it arrives over the wire. Flat (untagged) so the
@@ -65,6 +66,112 @@ pub(crate) fn with_urls<T: Serialize>(
         .collect()
 }
 
+/// Normalize a field name for matching so `asset_id`, `assetId` and `AssetId`
+/// all address the same key. Callers carry names between tools that spell them
+/// differently, and a name that quietly matches nothing is the failure this
+/// projection exists to avoid.
+fn normalized(name: &str) -> String {
+    name.chars()
+        .filter(|c| *c != '_' && *c != '-')
+        .flat_map(char::to_lowercase)
+        .collect()
+}
+
+/// Serialize each item to JSON, adding nothing. The `list_*` tools with no web
+/// URL to attach use this where the others use [`with_urls`].
+pub(crate) fn to_values<T: Serialize>(items: &[T]) -> Result<Vec<Value>, ErrorData> {
+    items
+        .iter()
+        .map(|item| {
+            serde_json::to_value(item).map_err(|e| {
+                ErrorData::internal_error(format!("failed to serialize list item: {e}"), None)
+            })
+        })
+        .collect()
+}
+
+/// Restrict each object to `fields`. Returns the projected items and any
+/// requested name that matched no key on any item. Values that are not objects
+/// pass through untouched. Key order is unchanged from an unprojected response
+/// (`serde_json::Map` sorts), so callers read by name, not position.
+///
+/// Proto3 omits fields sitting at their default value, so a name can be absent
+/// from one item and present on another. Only a name absent from every item
+/// counts as unmatched.
+pub(crate) fn project_fields(items: Vec<Value>, fields: &[String]) -> (Vec<Value>, Vec<String>) {
+    let wanted: Vec<String> = fields.iter().map(|f| normalized(f)).collect();
+    let mut matched = vec![false; wanted.len()];
+
+    let projected = items
+        .into_iter()
+        .map(|item| match item {
+            Value::Object(mut obj) => {
+                let keys: Vec<(String, String)> =
+                    obj.keys().map(|k| (normalized(k), k.clone())).collect();
+                let mut out = serde_json::Map::new();
+                for (i, want) in wanted.iter().enumerate() {
+                    let Some((_, key)) = keys.iter().find(|(norm, _)| norm == want) else {
+                        continue;
+                    };
+                    matched[i] = true;
+                    if let Some(value) = obj.remove(key) {
+                        out.insert(key.clone(), value);
+                    }
+                }
+                Value::Object(out)
+            }
+            other => other,
+        })
+        .collect();
+
+    let unmatched = fields
+        .iter()
+        .zip(&matched)
+        .filter(|(_, hit)| !**hit)
+        .map(|(name, _)| name.clone())
+        .collect();
+
+    (projected, unmatched)
+}
+
+/// Build the structured body for a `list_*` tool. Projects the items when
+/// `fields` is set, and reports any requested field that matched nothing, so a
+/// mistyped name is visible rather than silently narrowing the response. An
+/// empty `fields` array is treated as no projection.
+///
+/// Every body carries `count`, the number of items in this response, and
+/// `has_more`, whether the service stopped at `limit` with matches left over.
+/// `count` is the size of the page, not the match total — the two fields
+/// together are what let a caller tell a complete result from a truncated one
+/// instead of guessing from whether `count` happens to equal `limit`. Counting a JSON
+/// array by eye is arithmetic a caller should not have to do: an agent asked
+/// how many channels an asset has read a 120-row response and reported 122,
+/// then explained the discrepancy away rather than trusting its own correct
+/// enumeration. The number is free here and exact, so hand it over.
+pub(crate) fn list_body(
+    key: &str,
+    items: Vec<Value>,
+    fields: Option<Vec<String>>,
+    has_more: bool,
+) -> Value {
+    let (items, unmatched) = match fields.as_deref() {
+        Some(fields) if !fields.is_empty() => project_fields(items, fields),
+        _ => (items, Vec::new()),
+    };
+
+    let mut body = serde_json::Map::new();
+    body.insert("count".to_string(), Value::from(items.len()));
+    body.insert("has_more".to_string(), Value::Bool(has_more));
+    body.insert(key.to_string(), Value::Array(items));
+    if !unmatched.is_empty() {
+        body.insert(
+            "unmatched_fields".to_string(),
+            Value::Array(unmatched.into_iter().map(Value::String).collect()),
+        );
+    }
+    Value::Object(body)
+}
+
 impl From<MetadataEntry> for MetadataValue {
     fn from(entry: MetadataEntry) -> Self {
         let (key_type, value) = match entry.value {
@@ -106,6 +213,17 @@ pub(crate) mod test_support {
             filter: filter.into(),
             order_by: None,
             limit,
+            fields: None,
+        })
+    }
+
+    /// Build `Parameters<ListParams>` requesting a field projection.
+    pub(crate) fn list_params_with_fields(filter: &str, fields: &[&str]) -> Parameters<ListParams> {
+        Parameters(ListParams {
+            filter: filter.into(),
+            order_by: None,
+            limit: None,
+            fields: Some(fields.iter().map(|f| (*f).to_string()).collect()),
         })
     }
 
