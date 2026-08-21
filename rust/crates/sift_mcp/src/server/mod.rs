@@ -44,7 +44,7 @@ use crate::service::{
     docs::DocsService, ingest::IngestService, ping::PingService,
     report_templates::ReportTemplateService, reports::ReportService,
     rule_evaluation::RuleEvaluationService, rules::RuleService, runs::RunService, url::UrlService,
-    users::UserService,
+    user_defined_functions::UserDefinedFunctionService, users::UserService,
 };
 
 #[derive(Clone)]
@@ -68,6 +68,7 @@ pub struct SiftMcpServer {
     #[cfg(feature = "test-reports")]
     pub test_report_service: TestReportService,
     pub docs_service: DocsService,
+    pub user_defined_function_service: UserDefinedFunctionService,
     pub user_service: UserService,
 
     pub allow_create: bool,
@@ -195,6 +196,7 @@ impl SiftMcpServer {
         #[cfg(feature = "test-reports")]
         tool_router.merge(Self::test_reports_router());
         tool_router.merge(Self::docs_router());
+        tool_router.merge(Self::user_defined_functions_router());
         tool_router.merge(Self::users_router());
         if update_check.is_some() {
             tool_router.merge(Self::update_router());
@@ -223,6 +225,8 @@ impl SiftMcpServer {
         #[cfg(feature = "test-reports")]
         let test_report_service = TestReportService::new(channel.clone(), retry_policy.clone());
         let docs_service = DocsService::new(channel.clone(), retry_policy.clone());
+        let user_defined_function_service =
+            UserDefinedFunctionService::new(channel.clone(), retry_policy.clone());
         let user_service = UserService::new(channel.clone(), retry_policy);
 
         Self {
@@ -242,6 +246,7 @@ impl SiftMcpServer {
             #[cfg(feature = "test-reports")]
             test_report_service,
             docs_service,
+            user_defined_function_service,
             user_service,
             tool_router,
             prompt_router,
