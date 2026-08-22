@@ -420,6 +420,39 @@ async fn update_annotations_collects_failures_and_continues() {
 }
 
 #[tokio::test]
+async fn update_annotations_stops_after_backend_wide_failure() {
+    let mut mock = MockAnnotationServiceImpl::new();
+    mock.expect_update_annotation()
+        .times(50)
+        .returning(|_| Err(Status::resource_exhausted("slow down")));
+
+    let (service, _h) = service_with_mock(mock).await;
+    let annotation_ids = (0..60)
+        .map(|index| format!("ann{index}"))
+        .collect::<Vec<_>>();
+
+    let outcome = service
+        .update_annotations(
+            annotation_ids.clone(),
+            Some("renamed".into()),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        .await
+        .expect("bulk update failed");
+
+    assert_eq!(outcome.failures.len(), 50);
+    assert_eq!(outcome.not_attempted, annotation_ids[50..]);
+}
+
+#[tokio::test]
 async fn update_annotation_builds_mask_from_provided_fields() {
     let mut mock = MockAnnotationServiceImpl::new();
     mock.expect_update_annotation()

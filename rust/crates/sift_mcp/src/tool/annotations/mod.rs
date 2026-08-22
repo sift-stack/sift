@@ -313,9 +313,10 @@ impl SiftMcpServer {
 
             Output:
               - `{ \"annotations\": [Annotation, ...], \"failures\": [...], \"batch_archive_error\": object|null,
-                \"archive_skipped\": bool, \"next_step\": string }`. Successful annotations include a `url` field
-                when the host can be derived. Each individual failure includes `annotation_id`, MCP `code`, `message`,
-                and optional `data`. Partial failures set the tool result's `isError` flag.
+                \"not_attempted\": [string, ...], \"archive_skipped\": bool, \"next_step\": string }`. Successful
+                annotations include a `url` field when the host can be derived. Each individual failure includes
+                `annotation_id`, MCP `code`, `message`, and optional `data`. Partial failures set the tool result's
+                `isError` flag.
 
             Parameters:
               - `annotation_ids`: required list of 1 to 1000 annotation ids. The same changes are applied to every
@@ -341,14 +342,16 @@ impl SiftMcpServer {
                 unrecognized, or no updatable field is set.
               - Individual upstream failures are returned in `failures` next to successful results. Follow each
                 failure's guidance and retry only eligible failed ids.
+              - Backend-wide failures stop later batches. Their ids are returned in `not_attempted` without an API
+                request.
               - Batch-archive failures are returned in `batch_archive_error`. The archive outcome may be unknown.
 
             Guidance:
               - This is a write. CONFIRM every target and the full proposed values with the user before invoking —
                 `tags`, `linked_channel_ids`, and `metadata` are REPLACE operations, not merges.
               - General field updates and unarchive operations issue one API request per annotation and are not
-                atomic. Up to 50 requests run concurrently. Archive uses a single batch API request after all
-                individual updates succeed; otherwise `archive_skipped` is true.
+                atomic. Requests run in batches of up to 50. A backend-wide failure stops later batches. Archive uses
+                a single batch API request after all individual updates succeed; otherwise `archive_skipped` is true.
               - For appends, read the current annotation via `list_annotations` filtered by
                 `annotation_id == \"<id>\"`, then send the union.
         ",
@@ -454,6 +457,8 @@ impl SiftMcpServer {
             })
             .collect::<Vec<_>>();
         let failure_count = failures.len();
+        let not_attempted = outcome.not_attempted;
+        let not_attempted_count = not_attempted.len();
         let batch_archive_error = outcome.batch_archive_error.map(|error| {
             let error = from_anyhow(error);
             serde_json::json!({
@@ -463,7 +468,8 @@ impl SiftMcpServer {
                 "data": error.data,
             })
         });
-        let has_errors = failure_count > 0 || batch_archive_error.is_some();
+        let has_errors =
+            failure_count > 0 || not_attempted_count > 0 || batch_archive_error.is_some();
 
         let annotations = outcome.annotations;
         let annotations = with_urls(&annotations, |annotation| {
@@ -477,10 +483,24 @@ impl SiftMcpServer {
                  failed. Archive state may be unknown. Verify the targets with `list_annotations` before retrying."
             )
         } else if outcome.archive_skipped {
+            if not_attempted_count > 0 {
+                format!(
+                    "Updated {updated_count} of {requested_count} annotation(s); {failure_count} failed and \
+                     {not_attempted_count} were not attempted after a backend-wide failure. Archive was not \
+                     attempted. Review `failures` before retrying eligible failed and not-attempted ids."
+                )
+            } else {
+                format!(
+                    "Updated {updated_count} of {requested_count} annotation(s); {failure_count} failed. Archive was \
+                     not attempted because individual updates failed. Review `failures`, follow their guidance, and \
+                     retry only eligible failed ids."
+                )
+            }
+        } else if not_attempted_count > 0 {
             format!(
-                "Updated {updated_count} of {requested_count} annotation(s); {failure_count} failed. Archive was not \
-                 attempted because individual updates failed. Review `failures`, follow their guidance, and retry \
-                 only eligible failed ids."
+                "Updated {updated_count} of {requested_count} annotation(s); {failure_count} failed and \
+                 {not_attempted_count} were not attempted after a backend-wide failure. Review `failures` before \
+                 retrying eligible failed and not-attempted ids."
             )
         } else if failure_count > 0 {
             format!(
@@ -498,6 +518,7 @@ impl SiftMcpServer {
         let structured = serde_json::json!({
             "annotations": annotations,
             "failures": failures,
+            "not_attempted": not_attempted,
             "batch_archive_error": batch_archive_error,
             "archive_skipped": outcome.archive_skipped,
             "next_step": next_step,
@@ -507,7 +528,11 @@ impl SiftMcpServer {
         } else {
             CallToolResult::structured(structured)
         };
-        result.content = vec![ContentBlock::text(next_step)];
+        if has_errors {
+            result.content.push(ContentBlock::text(next_step));
+        } else {
+            result.content = vec![ContentBlock::text(next_step)];
+        }
         Ok(result)
     }
 }

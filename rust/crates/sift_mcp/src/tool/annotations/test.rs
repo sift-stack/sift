@@ -286,11 +286,46 @@ async fn update_annotation_reports_partial_failures_and_continues() {
         .expect("partial update result should be returned");
 
     assert_eq!(resp.is_error, Some(true));
+    let content = serde_json::to_string(&resp.content).expect("content should serialize");
+    assert!(content.contains("ann2"));
+    assert!(content.contains("no such annotation"));
     let body = structured(resp);
     assert_eq!(body["annotations"][0]["annotationId"], "ann1");
     assert_eq!(body["annotations"][1]["annotationId"], "ann3");
     assert_eq!(body["failures"][0]["annotation_id"], "ann2");
     assert_eq!(body["failures"][0]["code"], ErrorCode::RESOURCE_NOT_FOUND.0);
+    assert_eq!(body["not_attempted"], serde_json::json!([]));
+}
+
+#[tokio::test]
+async fn update_annotation_reports_ids_not_attempted_after_backend_wide_failure() {
+    let mut mock = MockAnnotationServiceImpl::new();
+    mock.expect_update_annotation()
+        .times(50)
+        .returning(|_| Err(Status::resource_exhausted("slow down")));
+
+    let (server, _h) = server_with_mock(mock).await;
+
+    let mut params = update_params("ann0");
+    params
+        .annotation_ids
+        .extend((1..60).map(|index| format!("ann{index}")));
+    params.name = Some("renamed".into());
+
+    let resp = server
+        .update_annotation(Parameters(params))
+        .await
+        .expect("partial update result should be returned");
+
+    assert_eq!(resp.is_error, Some(true));
+    let content = serde_json::to_string(&resp.content).expect("content should serialize");
+    assert!(content.contains("ann0"));
+    assert!(content.contains("ann59"));
+    let body = structured(resp);
+    assert_eq!(body["failures"].as_array().unwrap().len(), 50);
+    assert_eq!(body["not_attempted"].as_array().unwrap().len(), 10);
+    assert_eq!(body["not_attempted"][0], "ann50");
+    assert_eq!(body["not_attempted"][9], "ann59");
 }
 
 #[tokio::test]
