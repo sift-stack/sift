@@ -76,9 +76,11 @@ def test_worker_timeout_kills_and_warns() -> None:
     assert rc._import_proc.poll() is not None
     messages = "\n".join(str(w.message) for w in recorded)
     assert "did not exit in 0.2s" in messages
-    # Recovery must resume from the tracking cursor, not batch-replay (which would
-    # duplicate already-uploaded entries), so the hint carries --incremental.
-    assert "import-test-result-log --incremental" in messages
+    # Recovery must resume rather than re-upload (which would duplicate what the
+    # worker already sent). The plain command resumes off the tracking sidecar,
+    # so the hint must not send anyone to --incremental for it.
+    assert "import-test-result-log" in messages
+    assert "--incremental" not in messages
 
 
 def test_worker_nonzero_exit_warns_stderr_no_raise() -> None:
@@ -98,7 +100,8 @@ def test_worker_nonzero_exit_warns_stderr_no_raise() -> None:
     messages = "\n".join(str(w.message) for w in recorded)
     assert "exited with code 2" in messages
     assert "rpc deadline exceeded" in messages
-    assert "import-test-result-log --incremental" in messages
+    assert "import-test-result-log" in messages
+    assert "--incremental" not in messages
 
 
 def test_replay_command_runs_module_through_current_interpreter() -> None:
@@ -112,4 +115,8 @@ def test_replay_command_runs_module_through_current_interpreter() -> None:
     """
     rc = ReportContext(_make_simulate_client(), name="test", log_file=True)
     cmd = rc._build_replay_command()
-    assert cmd[:3] == [sys.executable, "-m", "sift_client.scripts.import_test_result_log"]
+    assert cmd[:3] == [
+        sys.executable,
+        "-m",
+        "sift_client._internal.pytest_plugin.replay_worker",
+    ]

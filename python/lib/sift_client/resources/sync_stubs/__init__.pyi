@@ -3141,16 +3141,26 @@ class TestResultsAPI:
         """
         ...
 
-    def import_log_file(self, log_file: str | Path, incremental: bool = False) -> ReplayResult:
+    def import_log_file(
+        self, log_file: str | Path, incremental: bool = False, new_report: bool = False
+    ) -> ReplayResult:
         """Replay a log file by parsing each entry, simulating the results, then creating for real.
 
         This method reads a log file created by the simulation logging, reconstructs
         all the objects via simulation, and then creates them via the actual API.
         IDs are mapped from simulated to real during the creation process.
 
+        There are three modes. By default the log is uploaded as a new report,
+        or, if the tracking sidecar beside it records an upload that was
+        interrupted partway, the report that upload created is reused and only
+        the missing entries are sent. The third mode belongs to the plugin's
+        background worker, which follows a log while it is still being written.
+
         Args:
             log_file: Path to the log file to import.
-            incremental: (internal tooling) If True, goes line by line and calls API every event -- keeps track of last line sent so it can be called after some updates and be additive vs. replaying the entire log file each time(i.e. when False, reads the entire log file, building a test report in memory, then sends the calls for each step/measurement to the API).
+            incremental: (internal tooling) If True, goes line by line and calls the API for every event, tracking the last line sent so it can be called repeatedly against a log that is still growing and stay additive. This is the worker's follow mode during a test run, not the way to finish an interrupted upload.
+            new_report: If True, ignore any partial upload and create a new report.
+                Mutually exclusive with incremental.
 
         Returns:
             A ReplayResult containing the created report, steps, and measurements.

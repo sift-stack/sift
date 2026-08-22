@@ -5,6 +5,24 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### What's New
+
+#### Interrupted test-result uploads resume
+
+`import-test-result-log <log>` now finishes an upload that was cut short instead of creating a second report. Every upload records what reached the server in a tracking sidecar beside the log (`<log>.jsonl.tracking`), so a re-run reuses the report the earlier attempt created and sends only the entries that are missing. A log that is already fully uploaded is a no-op.
+
+```bash
+# Resume, or start fresh if there is nothing to resume
+import-test-result-log ./offline-runs/a1b2c3/a1b2c3.jsonl
+
+# Abandon the partial upload and create a new report
+import-test-result-log --new-report ./offline-runs/a1b2c3/a1b2c3.jsonl
+```
+
+`--new-report` moves the existing sidecar to `<log>.jsonl.tracking.bak` rather than overwriting it, so the abandoned report's ID stays recoverable. Resuming requires that report to still exist; if it was deleted, or the sidecar came from another environment, the command fails and names `--new-report` as the way forward.
+
+`client.test_results.import_log_file(...)` takes the matching `new_report` argument. The recovery hints printed by the pytest plugin drop the `--incremental` flag, which is no longer needed to avoid a duplicate report.
+
 ### Bugfixes
 - Fix `assets.archive` raising `AttributeError` by reading the correct response field, `archived_run_ids`.
 
