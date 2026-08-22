@@ -1,6 +1,7 @@
 use crate::policy::{RetryPolicy, with_retry};
 use crate::service::common;
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, Error, Result, anyhow};
+use futures::{StreamExt, stream};
 use pbjson_types::{FieldMask, Timestamp};
 use sift_rs::{
     SiftChannel,
@@ -15,6 +16,39 @@ use sift_rs::{
 
 #[cfg(test)]
 mod test;
+
+const MAX_CONCURRENT_ANNOTATION_UPDATES: usize = 50;
+
+#[derive(Debug)]
+pub struct AnnotationUpdateFailure {
+    pub annotation_id: String,
+    pub error: Error,
+}
+
+#[derive(Debug)]
+pub struct UpdateAnnotationsResult {
+    pub annotations: Vec<Annotation>,
+    pub failures: Vec<AnnotationUpdateFailure>,
+    pub batch_archive_error: Option<Error>,
+    pub archive_skipped: bool,
+}
+
+async fn fan_out_bounded<T, R, F, Fut>(items: Vec<T>, concurrency: usize, mut op: F) -> Vec<R>
+where
+    F: FnMut(T) -> Fut,
+    Fut: Future<Output = R>,
+{
+    let mut results = stream::iter(items.into_iter().enumerate())
+        .map(|(index, item)| {
+            let future = op(item);
+            async move { (index, future.await) }
+        })
+        .buffer_unordered(concurrency)
+        .collect::<Vec<_>>()
+        .await;
+    results.sort_unstable_by_key(|(index, _)| *index);
+    results.into_iter().map(|(_, result)| result).collect()
+}
 
 /// Build a protobuf `Timestamp` from Unix nanoseconds via the shared helper.
 fn timestamp_from_unix_nanos(nanos: i64) -> Timestamp {
@@ -196,6 +230,104 @@ impl AnnotationService {
         .context("failed to batch archive annotations")?;
 
         Ok(resp.annotations)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub async fn update_annotations(
+        &self,
+        annotation_ids: Vec<String>,
+        name: Option<String>,
+        description: Option<String>,
+        start_time_unix_nanos: Option<i64>,
+        end_time_unix_nanos: Option<i64>,
+        assigned_to_user_id: Option<String>,
+        state: Option<AnnotationState>,
+        tags: Option<Vec<String>>,
+        linked_channel_ids: Option<Vec<String>>,
+        metadata: Option<Vec<MetadataValue>>,
+        is_archived: Option<bool>,
+    ) -> Result<UpdateAnnotationsResult> {
+        let has_field_update = name.is_some()
+            || description.is_some()
+            || start_time_unix_nanos.is_some()
+            || end_time_unix_nanos.is_some()
+            || assigned_to_user_id.is_some()
+            || state.is_some()
+            || tags.is_some()
+            || linked_channel_ids.is_some()
+            || metadata.is_some();
+        let unarchive = (is_archived == Some(false)).then_some(false);
+        let has_individual_update = has_field_update || unarchive.is_some();
+
+        let mut annotations = Vec::new();
+        let mut failures = Vec::new();
+
+        if has_individual_update {
+            let service = self.clone();
+            let updates = fan_out_bounded(
+                annotation_ids.clone(),
+                MAX_CONCURRENT_ANNOTATION_UPDATES,
+                move |annotation_id| {
+                    let service = service.clone();
+                    let name = name.clone();
+                    let description = description.clone();
+                    let assigned_to_user_id = assigned_to_user_id.clone();
+                    let tags = tags.clone();
+                    let linked_channel_ids = linked_channel_ids.clone();
+                    let metadata = metadata.clone();
+                    async move {
+                        let result = service
+                            .update_annotation(
+                                annotation_id.clone(),
+                                name,
+                                description,
+                                start_time_unix_nanos,
+                                end_time_unix_nanos,
+                                assigned_to_user_id,
+                                state,
+                                tags,
+                                linked_channel_ids,
+                                metadata,
+                                unarchive,
+                            )
+                            .await;
+                        (annotation_id, result)
+                    }
+                },
+            )
+            .await;
+
+            annotations.reserve(updates.len());
+            for (annotation_id, result) in updates {
+                match result {
+                    Ok(annotation) => annotations.push(annotation),
+                    Err(error) => failures.push(AnnotationUpdateFailure {
+                        annotation_id,
+                        error,
+                    }),
+                }
+            }
+        }
+
+        let mut batch_archive_error = None;
+        let mut archive_skipped = false;
+        if is_archived == Some(true) {
+            if failures.is_empty() {
+                match self.batch_archive_annotations(annotation_ids).await {
+                    Ok(archived) => annotations = archived,
+                    Err(error) => batch_archive_error = Some(error),
+                }
+            } else {
+                archive_skipped = true;
+            }
+        }
+
+        Ok(UpdateAnnotationsResult {
+            annotations,
+            failures,
+            batch_archive_error,
+            archive_skipped,
+        })
     }
 
     /// Update a subset of an existing annotation's fields. Per
