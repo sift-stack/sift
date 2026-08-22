@@ -25,6 +25,7 @@ class SiftConnectionConfig:
         use_ssl: bool = True,
         cert_via_openssl: bool = False,
         app_url: str | None = None,
+        max_decoding_message_size: int | None = None,
     ):
         """Initialize the connection configuration.
 
@@ -38,6 +39,8 @@ class SiftConnectionConfig:
                 Set this for on-prem or custom deployments whose API host can't be
                 mapped to a frontend automatically. When unset, the web-app URL is
                 derived from ``rest_url`` for known hosts.
+            max_decoding_message_size: Largest gRPC response to decode, in bytes. Defaults to
+                50 MB.
         """
         self.api_key = api_key
         self.grpc_url = grpc_url
@@ -45,6 +48,7 @@ class SiftConnectionConfig:
         self.use_ssl = use_ssl
         self.cert_via_openssl = cert_via_openssl
         self.app_url = app_url
+        self.max_decoding_message_size = max_decoding_message_size
 
     def get_grpc_config(self):
         """Create and return a GrpcConfig with the current settings.
@@ -57,6 +61,7 @@ class SiftConnectionConfig:
             api_key=self.api_key,
             use_ssl=self.use_ssl,
             cert_via_openssl=self.cert_via_openssl,
+            max_decoding_message_size=self.max_decoding_message_size,
         )
 
     def get_rest_config(self):

@@ -48,6 +48,7 @@ class GrpcConfig:
         cert_via_openssl: bool = False,
         metadata: dict[str, str] | None = None,
         request_timeout: float | None = DEFAULT_REQUEST_TIMEOUT_SECONDS,
+        max_decoding_message_size: int | None = None,
     ):
         """Initialize the gRPC configuration.
 
@@ -60,6 +61,8 @@ class GrpcConfig:
             metadata: Additional metadata to include in all requests.
             request_timeout: Default deadline in seconds applied to unary RPCs that don't set
                 their own. Defaults to 60s. Set to None to disable the default deadline.
+            max_decoding_message_size: Largest response to decode, in bytes. Defaults to 50 MB.
+                Streaming ingestion clients inherit this value.
         """
         parsed_url = urlparse(url)
         normalized_url = url
@@ -77,6 +80,7 @@ class GrpcConfig:
         self.cert_via_openssl = cert_via_openssl
         self.metadata = metadata or {}
         self.request_timeout = request_timeout
+        self.max_decoding_message_size = max_decoding_message_size
 
     def _to_sift_channel_config(self) -> SiftChannelConfig:
         """Convert to a SiftChannelConfig.
@@ -90,6 +94,7 @@ class GrpcConfig:
             "use_ssl": self.use_ssl,
             "cert_via_openssl": self.cert_via_openssl,
             "request_timeout": self.request_timeout,
+            "max_decoding_message_size": self.max_decoding_message_size,
         }
 
 
