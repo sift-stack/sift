@@ -747,9 +747,9 @@ type IngestionConfigServiceClient interface {
 	CreateIngestionConfig(ctx context.Context, in *CreateIngestionConfigRequest, opts ...grpc.CallOption) (*CreateIngestionConfigResponse, error)
 	// List ingestion configs using an optional filter.
 	ListIngestionConfigs(ctx context.Context, in *ListIngestionConfigsRequest, opts ...grpc.CallOption) (*ListIngestionConfigsResponse, error)
-	// Create ingestion config [flows](/glossary#flow).
+	// Create ingestion config flows.
 	CreateIngestionConfigFlows(ctx context.Context, in *CreateIngestionConfigFlowsRequest, opts ...grpc.CallOption) (*CreateIngestionConfigFlowsResponse, error)
-	// List ingestion config [flows](/glossary#flow) using an optional filter.
+	// List ingestion config flows using an optional filter.
 	ListIngestionConfigFlows(ctx context.Context, in *ListIngestionConfigFlowsRequest, opts ...grpc.CallOption) (*ListIngestionConfigFlowsResponse, error)
 }
 
@@ -816,9 +816,9 @@ type IngestionConfigServiceServer interface {
 	CreateIngestionConfig(context.Context, *CreateIngestionConfigRequest) (*CreateIngestionConfigResponse, error)
 	// List ingestion configs using an optional filter.
 	ListIngestionConfigs(context.Context, *ListIngestionConfigsRequest) (*ListIngestionConfigsResponse, error)
-	// Create ingestion config [flows](/glossary#flow).
+	// Create ingestion config flows.
 	CreateIngestionConfigFlows(context.Context, *CreateIngestionConfigFlowsRequest) (*CreateIngestionConfigFlowsResponse, error)
-	// List ingestion config [flows](/glossary#flow) using an optional filter.
+	// List ingestion config flows using an optional filter.
 	ListIngestionConfigFlows(context.Context, *ListIngestionConfigFlowsRequest) (*ListIngestionConfigFlowsResponse, error)
 	mustEmbedUnimplementedIngestionConfigServiceServer()
 }

@@ -46,7 +46,7 @@ type GetDataRequest struct {
 	// The maximum number of channel values to return.
 	// The service may return fewer than this value.
 	// If unspecified, at most 10,000 values will be returned.
-	// The maximum value is 100,000; values above 100,000 will be coerced to 100,000.
+	// The maximum value is 1,000,000; values above 1,000,000 will be coerced to 1,000,000.
 	// For variable data types (i.e. string channels), at most page_size elements
 	// will be read, or 1MB, whichever occurs first.
 	PageSize uint32 `protobuf:"varint,5,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`

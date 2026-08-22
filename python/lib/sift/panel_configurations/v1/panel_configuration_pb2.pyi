@@ -128,6 +128,7 @@ class ChannelConfigurations(google.protobuf.message.Message):
     EXPRESSION_FIELD_NUMBER: builtins.int
     EXPRESSION_CHANNEL_REFERENCES_FIELD_NUMBER: builtins.int
     DATA_TYPE_FIELD_NUMBER: builtins.int
+    CALCULATED_CHANNEL_ID_FIELD_NUMBER: builtins.int
     name: builtins.str
     type: global___PlottedChannelType.ValueType
     color: builtins.str
@@ -136,6 +137,8 @@ class ChannelConfigurations(google.protobuf.message.Message):
     expression: builtins.str
     """temporary calculated channel"""
     data_type: sift.common.type.v1.channel_data_type_pb2.ChannelDataType.ValueType
+    calculated_channel_id: builtins.str
+    """published calculated channel reference; preferred over name for lookup"""
     @property
     def channel_settings(self) -> google.protobuf.struct_pb2.Struct: ...
     @property
@@ -154,13 +157,16 @@ class ChannelConfigurations(google.protobuf.message.Message):
         expression: builtins.str | None = ...,
         expression_channel_references: collections.abc.Iterable[sift.calculated_channels.v2.calculated_channels_pb2.CalculatedChannelAbstractChannelReference] | None = ...,
         data_type: sift.common.type.v1.channel_data_type_pb2.ChannelDataType.ValueType | None = ...,
+        calculated_channel_id: builtins.str | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_bit_field_element", b"_bit_field_element", "_bit_field_index", b"_bit_field_index", "_data_type", b"_data_type", "_expression", b"_expression", "bit_field_element", b"bit_field_element", "bit_field_index", b"bit_field_index", "channel_settings", b"channel_settings", "data_type", b"data_type", "expression", b"expression"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_bit_field_element", b"_bit_field_element", "_bit_field_index", b"_bit_field_index", "_data_type", b"_data_type", "_expression", b"_expression", "bit_field_element", b"bit_field_element", "bit_field_index", b"bit_field_index", "channel_settings", b"channel_settings", "color", b"color", "data_type", b"data_type", "expression", b"expression", "expression_channel_references", b"expression_channel_references", "name", b"name", "type", b"type"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_bit_field_element", b"_bit_field_element", "_bit_field_index", b"_bit_field_index", "_calculated_channel_id", b"_calculated_channel_id", "_data_type", b"_data_type", "_expression", b"_expression", "bit_field_element", b"bit_field_element", "bit_field_index", b"bit_field_index", "calculated_channel_id", b"calculated_channel_id", "channel_settings", b"channel_settings", "data_type", b"data_type", "expression", b"expression"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_bit_field_element", b"_bit_field_element", "_bit_field_index", b"_bit_field_index", "_calculated_channel_id", b"_calculated_channel_id", "_data_type", b"_data_type", "_expression", b"_expression", "bit_field_element", b"bit_field_element", "bit_field_index", b"bit_field_index", "calculated_channel_id", b"calculated_channel_id", "channel_settings", b"channel_settings", "color", b"color", "data_type", b"data_type", "expression", b"expression", "expression_channel_references", b"expression_channel_references", "name", b"name", "type", b"type"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_bit_field_element", b"_bit_field_element"]) -> typing.Literal["bit_field_element"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_bit_field_index", b"_bit_field_index"]) -> typing.Literal["bit_field_index"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_calculated_channel_id", b"_calculated_channel_id"]) -> typing.Literal["calculated_channel_id"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_data_type", b"_data_type"]) -> typing.Literal["data_type"] | None: ...
     @typing.overload

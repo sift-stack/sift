@@ -61,6 +61,12 @@ class _EntityTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._Enu
     ENTITY_TYPE_TEST_REPORT: _EntityType.ValueType  # 5
     ENTITY_TYPE_TEST_STEP: _EntityType.ValueType  # 6
     ENTITY_TYPE_CANVAS_VERSION: _EntityType.ValueType  # 7
+    ENTITY_TYPE_CANVAS_CELL_EXECUTION_ATTACHMENT: _EntityType.ValueType  # 8
+    """UI evidence files attached to a cell execution on a canvas report."""
+    ENTITY_TYPE_CANVAS_CELL_EXECUTION_OUTPUT: _EntityType.ValueType  # 9
+    """Reserved for a future cell-output upload path (not used by the report
+    attachment UI).
+    """
 
 class EntityType(_EntityType, metaclass=_EntityTypeEnumTypeWrapper): ...
 
@@ -72,6 +78,12 @@ ENTITY_TYPE_ANNOTATION_LOG: EntityType.ValueType  # 4
 ENTITY_TYPE_TEST_REPORT: EntityType.ValueType  # 5
 ENTITY_TYPE_TEST_STEP: EntityType.ValueType  # 6
 ENTITY_TYPE_CANVAS_VERSION: EntityType.ValueType  # 7
+ENTITY_TYPE_CANVAS_CELL_EXECUTION_ATTACHMENT: EntityType.ValueType  # 8
+"""UI evidence files attached to a cell execution on a canvas report."""
+ENTITY_TYPE_CANVAS_CELL_EXECUTION_OUTPUT: EntityType.ValueType  # 9
+"""Reserved for a future cell-output upload path (not used by the report
+attachment UI).
+"""
 global___EntityType = EntityType
 
 @typing.final
@@ -280,7 +292,6 @@ class ListRemoteFilesRequest(google.protobuf.message.Message):
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are `remote_file_id`, `entity_id`, `entity_type`, `metadata`, and `file_name`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-    For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/remote_files#remotefile). Optional.
     """
     organization_id: builtins.str
     """This field is only required if your user belongs to multiple organizations."""

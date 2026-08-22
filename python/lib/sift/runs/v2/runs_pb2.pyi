@@ -11,7 +11,6 @@ import google.protobuf.field_mask_pb2
 import google.protobuf.internal.containers
 import google.protobuf.message
 import google.protobuf.timestamp_pb2
-import sift.common.v1.filter_field_pb2
 import sift.metadata.v1.metadata_pb2
 import typing
 
@@ -182,7 +181,6 @@ class ListRunsRequest(google.protobuf.message.Message):
     and `metadata`. Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
     `duration` is in the format of elapsed seconds and `duration_string` allows for `h`, `m`, `s`, `ms` suffixes (example: `duration_string > duration('10h'))
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-    For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/runs#run). Optional.
     """
     order_by: builtins.str
     """How to order the retrieved runs. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
@@ -548,38 +546,11 @@ class StopRunResponse(google.protobuf.message.Message):
 global___StopRunResponse = StopRunResponse
 
 @typing.final
-class GetFilterFieldsRequest(google.protobuf.message.Message):
-    """The request for a call to `RunService_GetFilterFields`."""
-
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
-
-    def __init__(
-        self,
-    ) -> None: ...
-
-global___GetFilterFieldsRequest = GetFilterFieldsRequest
-
-@typing.final
-class GetFilterFieldsResponse(google.protobuf.message.Message):
-    """The response of a call to `RunService_GetFilterFields`."""
-
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
-
-    FILTER_FIELDS_FIELD_NUMBER: builtins.int
-    @property
-    def filter_fields(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.common.v1.filter_field_pb2.FilterField]: ...
-    def __init__(
-        self,
-        *,
-        filter_fields: collections.abc.Iterable[sift.common.v1.filter_field_pb2.FilterField] | None = ...,
-    ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["filter_fields", b"filter_fields"]) -> None: ...
-
-global___GetFilterFieldsResponse = GetFilterFieldsResponse
-
-@typing.final
 class ValidateRunFilterRequest(google.protobuf.message.Message):
-    """The request for a call to `RunService_ValidateRunFilter`."""
+    """The response of a call to `RunService_GetRunFieldValues`.
+
+    The request for a call to `RunService_ValidateRunFilter`.
+    """
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 

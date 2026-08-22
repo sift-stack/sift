@@ -107,6 +107,9 @@ message ChannelConfigurations {
   optional string expression = 7;
   repeated sift.calculated_channels.v2.CalculatedChannelAbstractChannelReference expression_channel_references = 8;
   optional sift.common.type.v1.ChannelDataType data_type = 9;
+
+  // published calculated channel reference; preferred over name for lookup
+  optional string calculated_channel_id = 10;
 }
 
 message GetPanelConfigurationRequest {

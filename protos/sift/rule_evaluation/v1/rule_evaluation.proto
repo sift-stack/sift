@@ -8,6 +8,7 @@ import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 import "sift/common/type/v1/resource_identifier.proto";
 import "sift/families/v1/families.proto";
+import "sift/reports/v1/reports.proto";
 import "sift/rules/v1/rules.proto";
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
@@ -33,6 +34,8 @@ service RuleEvaluationService {
       summary: "EvaluateRules"
       description: "Evaluate rules from a designated source against a run or asset and return the total amount of annotations created and the ID of the generated report."
     };
+    // Emission is gated in the report_creation extractor: only fires when the
+    // response carries a report_id (run-based evaluations).
   }
 
   // Perform a dry run evaluation for existing rules or rule configurations against a run and return the annotations that would be generated.

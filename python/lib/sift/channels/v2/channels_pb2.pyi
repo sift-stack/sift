@@ -143,7 +143,6 @@ class ListChannelsRequest(google.protobuf.message.Message):
     Available fields to filter by are `channel_id`, `asset_id`, `name`, `component`, `description`
     `run_id`, `run_name`, `run_client_key`, `created_date`, and `modified_date`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-    For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/channels#channel). Optional.
     """
     organization_id: builtins.str
     """This field is only required if your user belongs to multiple organizations."""

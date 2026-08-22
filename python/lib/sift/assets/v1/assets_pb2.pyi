@@ -100,7 +100,6 @@ class ListAssetsRequest(google.protobuf.message.Message):
     Available fields to filter by are `asset_id`, `created_by_user_id`, `modified_by_user_id`,
     `created_date`, `modified_date`, `name`, 'name_lower', `tag_id`, `tag_name`, 'archived_date', `is_archived`, and `metadata`. Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-    For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/assets#asset). Optional.
     """
     order_by: builtins.str
     """How to order the retrieved assets. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".

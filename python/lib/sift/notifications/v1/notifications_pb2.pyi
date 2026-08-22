@@ -36,6 +36,7 @@ class _NotificationKindEnumTypeWrapper(google.protobuf.internal.enum_type_wrappe
     NOTIFICATION_KIND_REPORT_READY: _NotificationKind.ValueType  # 6
     NOTIFICATION_KIND_DATA_EXPORT_READY: _NotificationKind.ValueType  # 7
     NOTIFICATION_KIND_MENTIONED_IN_COMMENT: _NotificationKind.ValueType  # 8
+    NOTIFICATION_KIND_AUTOMATION_TRIGGER_DISPATCHED: _NotificationKind.ValueType  # 9
 
 class NotificationKind(_NotificationKind, metaclass=_NotificationKindEnumTypeWrapper): ...
 
@@ -48,6 +49,7 @@ NOTIFICATION_KIND_ANNOTATION_STATE_CHANGED: NotificationKind.ValueType  # 5
 NOTIFICATION_KIND_REPORT_READY: NotificationKind.ValueType  # 6
 NOTIFICATION_KIND_DATA_EXPORT_READY: NotificationKind.ValueType  # 7
 NOTIFICATION_KIND_MENTIONED_IN_COMMENT: NotificationKind.ValueType  # 8
+NOTIFICATION_KIND_AUTOMATION_TRIGGER_DISPATCHED: NotificationKind.ValueType  # 9
 global___NotificationKind = NotificationKind
 
 @typing.final
@@ -127,7 +129,6 @@ class ListNotificationsRequest(google.protobuf.message.Message):
     Available fields to filter by are `notification_id`, `created_by_user_id`, `recipient_user_id`,
     `created_date`, `notification_type`, and `is_read`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-    For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/notifications#notification). Optional.
     """
     def __init__(
         self,

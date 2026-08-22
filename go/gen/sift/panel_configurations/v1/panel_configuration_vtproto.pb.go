@@ -127,6 +127,10 @@ func (m *ChannelConfigurations) CloneVT() *ChannelConfigurations {
 		tmpVal := *rhs
 		r.DataType = &tmpVal
 	}
+	if rhs := m.CalculatedChannelId; rhs != nil {
+		tmpVal := *rhs
+		r.CalculatedChannelId = &tmpVal
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -470,6 +474,9 @@ func (this *ChannelConfigurations) EqualVT(that *ChannelConfigurations) bool {
 		}
 	}
 	if p, q := this.DataType, that.DataType; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
+		return false
+	}
+	if p, q := this.CalculatedChannelId, that.CalculatedChannelId; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1135,6 +1142,13 @@ func (m *ChannelConfigurations) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.CalculatedChannelId != nil {
+		i -= len(*m.CalculatedChannelId)
+		copy(dAtA[i:], *m.CalculatedChannelId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.CalculatedChannelId)))
+		i--
+		dAtA[i] = 0x52
 	}
 	if m.DataType != nil {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(*m.DataType))
@@ -1873,6 +1887,13 @@ func (m *ChannelConfigurations) MarshalToSizedBufferVTStrict(dAtA []byte) (int, 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.CalculatedChannelId != nil {
+		i -= len(*m.CalculatedChannelId)
+		copy(dAtA[i:], *m.CalculatedChannelId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.CalculatedChannelId)))
+		i--
+		dAtA[i] = 0x52
+	}
 	if m.DataType != nil {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(*m.DataType))
 		i--
@@ -2537,6 +2558,10 @@ func (m *ChannelConfigurations) SizeVT() (n int) {
 	}
 	if m.DataType != nil {
 		n += 1 + protohelpers.SizeOfVarint(uint64(*m.DataType))
+	}
+	if m.CalculatedChannelId != nil {
+		l = len(*m.CalculatedChannelId)
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -3550,6 +3575,39 @@ func (m *ChannelConfigurations) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.DataType = &v
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CalculatedChannelId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			s := string(dAtA[iNdEx:postIndex])
+			m.CalculatedChannelId = &s
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -5462,6 +5520,43 @@ func (m *ChannelConfigurations) UnmarshalVTUnsafe(dAtA []byte) error {
 				}
 			}
 			m.DataType = &v
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CalculatedChannelId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			s := stringValue
+			m.CalculatedChannelId = &s
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

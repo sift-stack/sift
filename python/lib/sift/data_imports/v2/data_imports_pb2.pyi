@@ -72,6 +72,7 @@ class _DataTypeKeyEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._En
     DATA_TYPE_KEY_PARQUET_SINGLE_CHANNEL_PER_ROW: _DataTypeKey.ValueType  # 5
     DATA_TYPE_KEY_HDF5: _DataTypeKey.ValueType  # 6
     DATA_TYPE_KEY_ULOG: _DataTypeKey.ValueType  # 7
+    DATA_TYPE_KEY_MCAP: _DataTypeKey.ValueType  # 8
 
 class DataTypeKey(_DataTypeKey, metaclass=_DataTypeKeyEnumTypeWrapper): ...
 
@@ -83,6 +84,7 @@ DATA_TYPE_KEY_PARQUET_FLATDATASET: DataTypeKey.ValueType  # 4
 DATA_TYPE_KEY_PARQUET_SINGLE_CHANNEL_PER_ROW: DataTypeKey.ValueType  # 5
 DATA_TYPE_KEY_HDF5: DataTypeKey.ValueType  # 6
 DATA_TYPE_KEY_ULOG: DataTypeKey.ValueType  # 7
+DATA_TYPE_KEY_MCAP: DataTypeKey.ValueType  # 8
 global___DataTypeKey = DataTypeKey
 
 class _TdmsFallbackMethod:
@@ -180,6 +182,60 @@ ULOG_PARSE_ERROR_POLICY_IGNORE_ERROR: UlogParseErrorPolicy.ValueType  # 2
 """Import what parsed; skipped records are logged."""
 global___UlogParseErrorPolicy = UlogParseErrorPolicy
 
+class _McapParseErrorPolicy:
+    ValueType = typing.NewType("ValueType", builtins.int)
+    V: typing_extensions.TypeAlias = ValueType
+
+class _McapParseErrorPolicyEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_McapParseErrorPolicy.ValueType], builtins.type):
+    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+    MCAP_PARSE_ERROR_POLICY_UNSPECIFIED: _McapParseErrorPolicy.ValueType  # 0
+    """Treated as MCAP_PARSE_ERROR_POLICY_FAIL_ON_ERROR."""
+    MCAP_PARSE_ERROR_POLICY_FAIL_ON_ERROR: _McapParseErrorPolicy.ValueType  # 1
+    """Fail the import on any recoverable parse error."""
+    MCAP_PARSE_ERROR_POLICY_IGNORE_ERROR: _McapParseErrorPolicy.ValueType  # 2
+    """Import what decoded. Skipped topics and records surface as warnings."""
+
+class McapParseErrorPolicy(_McapParseErrorPolicy, metaclass=_McapParseErrorPolicyEnumTypeWrapper): ...
+
+MCAP_PARSE_ERROR_POLICY_UNSPECIFIED: McapParseErrorPolicy.ValueType  # 0
+"""Treated as MCAP_PARSE_ERROR_POLICY_FAIL_ON_ERROR."""
+MCAP_PARSE_ERROR_POLICY_FAIL_ON_ERROR: McapParseErrorPolicy.ValueType  # 1
+"""Fail the import on any recoverable parse error."""
+MCAP_PARSE_ERROR_POLICY_IGNORE_ERROR: McapParseErrorPolicy.ValueType  # 2
+"""Import what decoded. Skipped topics and records surface as warnings."""
+global___McapParseErrorPolicy = McapParseErrorPolicy
+
+class _McapComplexTypesImportMode:
+    ValueType = typing.NewType("ValueType", builtins.int)
+    V: typing_extensions.TypeAlias = ValueType
+
+class _McapComplexTypesImportModeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_McapComplexTypesImportMode.ValueType], builtins.type):
+    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+    MCAP_COMPLEX_TYPES_IMPORT_MODE_UNSPECIFIED: _McapComplexTypesImportMode.ValueType  # 0
+    """Treated as MCAP_COMPLEX_TYPES_IMPORT_MODE_BOTH."""
+    MCAP_COMPLEX_TYPES_IMPORT_MODE_IGNORE: _McapComplexTypesImportMode.ValueType  # 1
+    """Ignore variable-cardinality fields and do not ingest them."""
+    MCAP_COMPLEX_TYPES_IMPORT_MODE_BOTH: _McapComplexTypesImportMode.ValueType  # 2
+    """Import variable-cardinality fields as both Arrow IPC bytes and JSON strings."""
+    MCAP_COMPLEX_TYPES_IMPORT_MODE_STRING: _McapComplexTypesImportMode.ValueType  # 3
+    """Import variable-cardinality fields as only JSON strings."""
+    MCAP_COMPLEX_TYPES_IMPORT_MODE_BYTES: _McapComplexTypesImportMode.ValueType  # 4
+    """Import variable-cardinality fields as only Arrow IPC bytes."""
+
+class McapComplexTypesImportMode(_McapComplexTypesImportMode, metaclass=_McapComplexTypesImportModeEnumTypeWrapper): ...
+
+MCAP_COMPLEX_TYPES_IMPORT_MODE_UNSPECIFIED: McapComplexTypesImportMode.ValueType  # 0
+"""Treated as MCAP_COMPLEX_TYPES_IMPORT_MODE_BOTH."""
+MCAP_COMPLEX_TYPES_IMPORT_MODE_IGNORE: McapComplexTypesImportMode.ValueType  # 1
+"""Ignore variable-cardinality fields and do not ingest them."""
+MCAP_COMPLEX_TYPES_IMPORT_MODE_BOTH: McapComplexTypesImportMode.ValueType  # 2
+"""Import variable-cardinality fields as both Arrow IPC bytes and JSON strings."""
+MCAP_COMPLEX_TYPES_IMPORT_MODE_STRING: McapComplexTypesImportMode.ValueType  # 3
+"""Import variable-cardinality fields as only JSON strings."""
+MCAP_COMPLEX_TYPES_IMPORT_MODE_BYTES: McapComplexTypesImportMode.ValueType  # 4
+"""Import variable-cardinality fields as only Arrow IPC bytes."""
+global___McapComplexTypesImportMode = McapComplexTypesImportMode
+
 class _DataImportStatus:
     ValueType = typing.NewType("ValueType", builtins.int)
     V: typing_extensions.TypeAlias = ValueType
@@ -213,6 +269,7 @@ class CreateDataImportFromUrlRequest(google.protobuf.message.Message):
     HDF5_CONFIG_FIELD_NUMBER: builtins.int
     BATCH_CONFIG_FIELD_NUMBER: builtins.int
     ULOG_CONFIG_FIELD_NUMBER: builtins.int
+    MCAP_CONFIG_FIELD_NUMBER: builtins.int
     url: builtins.str
     """The url to import. HTTP and S3 urls are supported.
     If you need to import non-public S3 objects, please contact Sift to set that up.
@@ -231,6 +288,8 @@ class CreateDataImportFromUrlRequest(google.protobuf.message.Message):
     def batch_config(self) -> global___BatchConfig: ...
     @property
     def ulog_config(self) -> global___UlogConfig: ...
+    @property
+    def mcap_config(self) -> global___McapConfig: ...
     def __init__(
         self,
         *,
@@ -242,9 +301,10 @@ class CreateDataImportFromUrlRequest(google.protobuf.message.Message):
         hdf5_config: global___Hdf5Config | None = ...,
         batch_config: global___BatchConfig | None = ...,
         ulog_config: global___UlogConfig | None = ...,
+        mcap_config: global___McapConfig | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["batch_config", b"batch_config", "ch10_config", b"ch10_config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config", "ulog_config", b"ulog_config"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["batch_config", b"batch_config", "ch10_config", b"ch10_config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config", "ulog_config", b"ulog_config", "url", b"url"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["batch_config", b"batch_config", "ch10_config", b"ch10_config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "mcap_config", b"mcap_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config", "ulog_config", b"ulog_config"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["batch_config", b"batch_config", "ch10_config", b"ch10_config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "mcap_config", b"mcap_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config", "ulog_config", b"ulog_config", "url", b"url"]) -> None: ...
 
 global___CreateDataImportFromUrlRequest = CreateDataImportFromUrlRequest
 
@@ -306,6 +366,7 @@ class CreateDataImportFromUploadRequest(google.protobuf.message.Message):
     HDF5_CONFIG_FIELD_NUMBER: builtins.int
     BATCH_CONFIG_FIELD_NUMBER: builtins.int
     ULOG_CONFIG_FIELD_NUMBER: builtins.int
+    MCAP_CONFIG_FIELD_NUMBER: builtins.int
     @property
     def csv_config(self) -> global___CsvConfig: ...
     @property
@@ -320,6 +381,8 @@ class CreateDataImportFromUploadRequest(google.protobuf.message.Message):
     def batch_config(self) -> global___BatchConfig: ...
     @property
     def ulog_config(self) -> global___UlogConfig: ...
+    @property
+    def mcap_config(self) -> global___McapConfig: ...
     def __init__(
         self,
         *,
@@ -330,9 +393,10 @@ class CreateDataImportFromUploadRequest(google.protobuf.message.Message):
         hdf5_config: global___Hdf5Config | None = ...,
         batch_config: global___BatchConfig | None = ...,
         ulog_config: global___UlogConfig | None = ...,
+        mcap_config: global___McapConfig | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["batch_config", b"batch_config", "ch10_config", b"ch10_config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config", "ulog_config", b"ulog_config"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["batch_config", b"batch_config", "ch10_config", b"ch10_config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config", "ulog_config", b"ulog_config"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["batch_config", b"batch_config", "ch10_config", b"ch10_config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "mcap_config", b"mcap_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config", "ulog_config", b"ulog_config"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["batch_config", b"batch_config", "ch10_config", b"ch10_config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "mcap_config", b"mcap_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config", "ulog_config", b"ulog_config"]) -> None: ...
 
 global___CreateDataImportFromUploadRequest = CreateDataImportFromUploadRequest
 
@@ -737,17 +801,44 @@ global___ParquetFlatDatasetConfig = ParquetFlatDatasetConfig
 class ParquetSingleChannelPerRowMultiChannelConfig(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
+    @typing.final
+    class ChannelsEntry(google.protobuf.message.Message):
+        DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+        KEY_FIELD_NUMBER: builtins.int
+        VALUE_FIELD_NUMBER: builtins.int
+        key: builtins.str
+        @property
+        def value(self) -> sift.common.type.v1.channel_config_pb2.ChannelConfig: ...
+        def __init__(
+            self,
+            *,
+            key: builtins.str = ...,
+            value: sift.common.type.v1.channel_config_pb2.ChannelConfig | None = ...,
+        ) -> None: ...
+        def HasField(self, field_name: typing.Literal["value", b"value"]) -> builtins.bool: ...
+        def ClearField(self, field_name: typing.Literal["key", b"key", "value", b"value"]) -> None: ...
+
     NAME_PATH_FIELD_NUMBER: builtins.int
     DATA_PATH_FIELD_NUMBER: builtins.int
+    CHANNELS_FIELD_NUMBER: builtins.int
     name_path: builtins.str
     data_path: builtins.str
+    @property
+    def channels(self) -> google.protobuf.internal.containers.MessageMap[builtins.str, sift.common.type.v1.channel_config_pb2.ChannelConfig]:
+        """A map from names (from `name_path`) to the channel configuration for that name.
+        Names without an entry are imported with the data column's data type and no
+        other configuration.
+        """
+
     def __init__(
         self,
         *,
         name_path: builtins.str = ...,
         data_path: builtins.str = ...,
+        channels: collections.abc.Mapping[builtins.str, sift.common.type.v1.channel_config_pb2.ChannelConfig] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["data_path", b"data_path", "name_path", b"name_path"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["channels", b"channels", "data_path", b"data_path", "name_path", b"name_path"]) -> None: ...
 
 global___ParquetSingleChannelPerRowMultiChannelConfig = ParquetSingleChannelPerRowMultiChannelConfig
 
@@ -939,7 +1030,7 @@ class UlogDataConfig(google.protobuf.message.Message):
     """The message instance (e.g. 0)."""
     field_name: builtins.str
     """The full ULog field name (e.g. "x", "esc[0].v"). Empty for log-message
-    channels ("log_messages", "log_messages_<tag>"), which set message_name
+    channels ("log_messages", "log_messages_{tag}"), which set message_name
     to the channel name and instance to 0.
     """
     @property
@@ -993,11 +1084,11 @@ class UlogConfig(google.protobuf.message.Message):
 
     @property
     def info_keys(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
-        """I/M message info keys to import as run metadata (stored as info.<key>). Empty: none."""
+        """I/M message info keys to import as run metadata (stored as info.{key}). Empty: none."""
 
     @property
     def param_keys(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
-        """P parameter names to import as run metadata (stored as param.<name>). Empty: none."""
+        """P parameter names to import as run metadata (stored as param.{name}). Empty: none."""
 
     def __init__(
         self,
@@ -1016,6 +1107,111 @@ class UlogConfig(google.protobuf.message.Message):
     def WhichOneof(self, oneof_group: typing.Literal["_relative_start_time", b"_relative_start_time"]) -> typing.Literal["relative_start_time"] | None: ...
 
 global___UlogConfig = UlogConfig
+
+@typing.final
+class McapRos2Selector(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    FIELD_PATH_FIELD_NUMBER: builtins.int
+    field_path: builtins.str
+    """The dot-delimited field path within the decoded message
+    (e.g. "orientation.x", "orientation_covariance[0]").
+    """
+    def __init__(
+        self,
+        *,
+        field_path: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["field_path", b"field_path"]) -> None: ...
+
+global___McapRos2Selector = McapRos2Selector
+
+@typing.final
+class McapDataConfig(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    TOPIC_FIELD_NUMBER: builtins.int
+    ROS2_FIELD_NUMBER: builtins.int
+    CHANNEL_CONFIG_FIELD_NUMBER: builtins.int
+    topic: builtins.str
+    """The topic the channel comes from (e.g. "/imu/data")."""
+    @property
+    def ros2(self) -> global___McapRos2Selector: ...
+    @property
+    def channel_config(self) -> sift.common.type.v1.channel_config_pb2.ChannelConfig:
+        """The Sift channel config the channel is imported with."""
+
+    def __init__(
+        self,
+        *,
+        topic: builtins.str = ...,
+        ros2: global___McapRos2Selector | None = ...,
+        channel_config: sift.common.type.v1.channel_config_pb2.ChannelConfig | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["channel_config", b"channel_config", "ros2", b"ros2", "selector", b"selector"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["channel_config", b"channel_config", "ros2", b"ros2", "selector", b"selector", "topic", b"topic"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["selector", b"selector"]) -> typing.Literal["ros2"] | None: ...
+
+global___McapDataConfig = McapDataConfig
+
+@typing.final
+class McapConfig(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ASSET_NAME_FIELD_NUMBER: builtins.int
+    RUN_NAME_FIELD_NUMBER: builtins.int
+    RUN_ID_FIELD_NUMBER: builtins.int
+    DATA_FIELD_NUMBER: builtins.int
+    RELATIVE_START_TIME_FIELD_NUMBER: builtins.int
+    METADATA_RECORDS_FIELD_NUMBER: builtins.int
+    PARSE_ERROR_POLICY_FIELD_NUMBER: builtins.int
+    COMPLEX_TYPES_IMPORT_MODE_FIELD_NUMBER: builtins.int
+    asset_name: builtins.str
+    run_name: builtins.str
+    run_id: builtins.str
+    """The id of the run to add this data to. If set, `run_name` is ignored."""
+    parse_error_policy: global___McapParseErrorPolicy.ValueType
+    """Recoverable parse errors. Defaults to failing the import."""
+    complex_types_import_mode: global___McapComplexTypesImportMode.ValueType
+    """Variable-cardinality fields. Defaults to importing them as both Arrow
+    IPC bytes and JSON strings.
+    """
+    @property
+    def data(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___McapDataConfig]:
+        """Channels to import. Empty imports all detected channels with their
+        defaults. If set, only the listed channels are imported, each with a
+        required channel config.
+        """
+
+    @property
+    def relative_start_time(self) -> google.protobuf.timestamp_pb2.Timestamp:
+        """Log-start UTC, only for logs on a non-Unix epoch. When set, `log_time`
+        is reinterpreted as elapsed nanoseconds from this start.
+        """
+
+    @property
+    def metadata_records(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """Metadata records to import as run metadata. Every key of each named
+        record is stored as <record_name>.<key>. Empty imports none.
+        """
+
+    def __init__(
+        self,
+        *,
+        asset_name: builtins.str = ...,
+        run_name: builtins.str = ...,
+        run_id: builtins.str = ...,
+        data: collections.abc.Iterable[global___McapDataConfig] | None = ...,
+        relative_start_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        metadata_records: collections.abc.Iterable[builtins.str] | None = ...,
+        parse_error_policy: global___McapParseErrorPolicy.ValueType = ...,
+        complex_types_import_mode: global___McapComplexTypesImportMode.ValueType = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["_relative_start_time", b"_relative_start_time", "relative_start_time", b"relative_start_time"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_relative_start_time", b"_relative_start_time", "asset_name", b"asset_name", "complex_types_import_mode", b"complex_types_import_mode", "data", b"data", "metadata_records", b"metadata_records", "parse_error_policy", b"parse_error_policy", "relative_start_time", b"relative_start_time", "run_id", b"run_id", "run_name", b"run_name"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["_relative_start_time", b"_relative_start_time"]) -> typing.Literal["relative_start_time"] | None: ...
+
+global___McapConfig = McapConfig
 
 @typing.final
 class BatchConfig(google.protobuf.message.Message):
@@ -1047,6 +1243,7 @@ class BatchConfig(google.protobuf.message.Message):
     DEFAULT_PARQUET_CONFIG_FIELD_NUMBER: builtins.int
     DEFAULT_HDF5_CONFIG_FIELD_NUMBER: builtins.int
     DEFAULT_ULOG_CONFIG_FIELD_NUMBER: builtins.int
+    DEFAULT_MCAP_CONFIG_FIELD_NUMBER: builtins.int
     FILE_CONFIGS_FIELD_NUMBER: builtins.int
     run_name: builtins.str
     """Shared run for all files. Both are optional. If neither is set, data is ingested without a run.
@@ -1076,6 +1273,8 @@ class BatchConfig(google.protobuf.message.Message):
     @property
     def default_ulog_config(self) -> global___UlogConfig: ...
     @property
+    def default_mcap_config(self) -> global___McapConfig: ...
+    @property
     def file_configs(self) -> google.protobuf.internal.containers.MessageMap[builtins.str, global___BatchFileConfig]:
         """Files to import. Key is the filepath as it appears within the archive.
         Only files listed here are imported; other archive files are ignored.
@@ -1092,10 +1291,11 @@ class BatchConfig(google.protobuf.message.Message):
         default_parquet_config: global___ParquetConfig | None = ...,
         default_hdf5_config: global___Hdf5Config | None = ...,
         default_ulog_config: global___UlogConfig | None = ...,
+        default_mcap_config: global___McapConfig | None = ...,
         file_configs: collections.abc.Mapping[builtins.str, global___BatchFileConfig] | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["default_csv_config", b"default_csv_config", "default_hdf5_config", b"default_hdf5_config", "default_parquet_config", b"default_parquet_config", "default_tdms_config", b"default_tdms_config", "default_ulog_config", b"default_ulog_config"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["asset_name", b"asset_name", "default_csv_config", b"default_csv_config", "default_hdf5_config", b"default_hdf5_config", "default_parquet_config", b"default_parquet_config", "default_tdms_config", b"default_tdms_config", "default_ulog_config", b"default_ulog_config", "file_configs", b"file_configs", "run_id", b"run_id", "run_name", b"run_name"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["default_csv_config", b"default_csv_config", "default_hdf5_config", b"default_hdf5_config", "default_mcap_config", b"default_mcap_config", "default_parquet_config", b"default_parquet_config", "default_tdms_config", b"default_tdms_config", "default_ulog_config", b"default_ulog_config"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["asset_name", b"asset_name", "default_csv_config", b"default_csv_config", "default_hdf5_config", b"default_hdf5_config", "default_mcap_config", b"default_mcap_config", "default_parquet_config", b"default_parquet_config", "default_tdms_config", b"default_tdms_config", "default_ulog_config", b"default_ulog_config", "file_configs", b"file_configs", "run_id", b"run_id", "run_name", b"run_name"]) -> None: ...
 
 global___BatchConfig = BatchConfig
 
@@ -1109,6 +1309,7 @@ class BatchFileConfig(google.protobuf.message.Message):
     PARQUET_CONFIG_FIELD_NUMBER: builtins.int
     HDF5_CONFIG_FIELD_NUMBER: builtins.int
     ULOG_CONFIG_FIELD_NUMBER: builtins.int
+    MCAP_CONFIG_FIELD_NUMBER: builtins.int
     type: global___DataTypeKey.ValueType
     """Required. Specifies the format importer to use for this file."""
     @property
@@ -1125,6 +1326,8 @@ class BatchFileConfig(google.protobuf.message.Message):
     def hdf5_config(self) -> global___Hdf5Config: ...
     @property
     def ulog_config(self) -> global___UlogConfig: ...
+    @property
+    def mcap_config(self) -> global___McapConfig: ...
     def __init__(
         self,
         *,
@@ -1134,10 +1337,11 @@ class BatchFileConfig(google.protobuf.message.Message):
         parquet_config: global___ParquetConfig | None = ...,
         hdf5_config: global___Hdf5Config | None = ...,
         ulog_config: global___UlogConfig | None = ...,
+        mcap_config: global___McapConfig | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["config", b"config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config", "ulog_config", b"ulog_config"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["config", b"config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config", "type", b"type", "ulog_config", b"ulog_config"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["config", b"config"]) -> typing.Literal["csv_config", "tdms_config", "parquet_config", "hdf5_config", "ulog_config"] | None: ...
+    def HasField(self, field_name: typing.Literal["config", b"config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "mcap_config", b"mcap_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config", "ulog_config", b"ulog_config"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["config", b"config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "mcap_config", b"mcap_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config", "type", b"type", "ulog_config", b"ulog_config"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["config", b"config"]) -> typing.Literal["csv_config", "tdms_config", "parquet_config", "hdf5_config", "ulog_config", "mcap_config"] | None: ...
 
 global___BatchFileConfig = BatchFileConfig
 
@@ -1158,11 +1362,13 @@ class DataImport(google.protobuf.message.Message):
     HDF5_CONFIG_FIELD_NUMBER: builtins.int
     BATCH_CONFIG_FIELD_NUMBER: builtins.int
     ULOG_CONFIG_FIELD_NUMBER: builtins.int
+    MCAP_CONFIG_FIELD_NUMBER: builtins.int
     RUN_ID_FIELD_NUMBER: builtins.int
     REPORT_ID_FIELD_NUMBER: builtins.int
     ASSET_ID_FIELD_NUMBER: builtins.int
     DATA_START_TIME_FIELD_NUMBER: builtins.int
     DATA_STOP_TIME_FIELD_NUMBER: builtins.int
+    WARNING_MESSAGES_FIELD_NUMBER: builtins.int
     data_import_id: builtins.str
     source_url: builtins.str
     status: global___DataImportStatus.ValueType
@@ -1191,9 +1397,18 @@ class DataImport(google.protobuf.message.Message):
     @property
     def ulog_config(self) -> global___UlogConfig: ...
     @property
+    def mcap_config(self) -> global___McapConfig: ...
+    @property
     def data_start_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
     def data_stop_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    @property
+    def warning_messages(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """What the import left out, such as records it could not read. A data import can
+        succeed and still have warnings. The list may be trimmed; when it is, the last
+        entry says how many were left off.
+        """
+
     def __init__(
         self,
         *,
@@ -1210,14 +1425,16 @@ class DataImport(google.protobuf.message.Message):
         hdf5_config: global___Hdf5Config | None = ...,
         batch_config: global___BatchConfig | None = ...,
         ulog_config: global___UlogConfig | None = ...,
+        mcap_config: global___McapConfig | None = ...,
         run_id: builtins.str | None = ...,
         report_id: builtins.str | None = ...,
         asset_id: builtins.str | None = ...,
         data_start_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         data_stop_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        warning_messages: collections.abc.Iterable[builtins.str] | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_asset_id", b"_asset_id", "_data_start_time", b"_data_start_time", "_data_stop_time", b"_data_stop_time", "_report_id", b"_report_id", "_run_id", b"_run_id", "asset_id", b"asset_id", "batch_config", b"batch_config", "ch10_config", b"ch10_config", "created_date", b"created_date", "csv_config", b"csv_config", "data_start_time", b"data_start_time", "data_stop_time", b"data_stop_time", "hdf5_config", b"hdf5_config", "modified_date", b"modified_date", "parquet_config", b"parquet_config", "report_id", b"report_id", "run_id", b"run_id", "tdms_config", b"tdms_config", "ulog_config", b"ulog_config"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_asset_id", b"_asset_id", "_data_start_time", b"_data_start_time", "_data_stop_time", b"_data_stop_time", "_report_id", b"_report_id", "_run_id", b"_run_id", "asset_id", b"asset_id", "batch_config", b"batch_config", "ch10_config", b"ch10_config", "created_date", b"created_date", "csv_config", b"csv_config", "data_import_id", b"data_import_id", "data_start_time", b"data_start_time", "data_stop_time", b"data_stop_time", "error_message", b"error_message", "hdf5_config", b"hdf5_config", "modified_date", b"modified_date", "parquet_config", b"parquet_config", "report_id", b"report_id", "run_id", b"run_id", "source_url", b"source_url", "status", b"status", "tdms_config", b"tdms_config", "ulog_config", b"ulog_config"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_asset_id", b"_asset_id", "_data_start_time", b"_data_start_time", "_data_stop_time", b"_data_stop_time", "_report_id", b"_report_id", "_run_id", b"_run_id", "asset_id", b"asset_id", "batch_config", b"batch_config", "ch10_config", b"ch10_config", "created_date", b"created_date", "csv_config", b"csv_config", "data_start_time", b"data_start_time", "data_stop_time", b"data_stop_time", "hdf5_config", b"hdf5_config", "mcap_config", b"mcap_config", "modified_date", b"modified_date", "parquet_config", b"parquet_config", "report_id", b"report_id", "run_id", b"run_id", "tdms_config", b"tdms_config", "ulog_config", b"ulog_config"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_asset_id", b"_asset_id", "_data_start_time", b"_data_start_time", "_data_stop_time", b"_data_stop_time", "_report_id", b"_report_id", "_run_id", b"_run_id", "asset_id", b"asset_id", "batch_config", b"batch_config", "ch10_config", b"ch10_config", "created_date", b"created_date", "csv_config", b"csv_config", "data_import_id", b"data_import_id", "data_start_time", b"data_start_time", "data_stop_time", b"data_stop_time", "error_message", b"error_message", "hdf5_config", b"hdf5_config", "mcap_config", b"mcap_config", "modified_date", b"modified_date", "parquet_config", b"parquet_config", "report_id", b"report_id", "run_id", b"run_id", "source_url", b"source_url", "status", b"status", "tdms_config", b"tdms_config", "ulog_config", b"ulog_config", "warning_messages", b"warning_messages"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_asset_id", b"_asset_id"]) -> typing.Literal["asset_id"] | None: ...
     @typing.overload

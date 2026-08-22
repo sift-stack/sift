@@ -309,7 +309,6 @@ type ListChannelsRequest struct {
 	// Available fields to filter by are `channel_id`, `asset_id`, `name`, `description`
 	// `run_id`, `run_name`, `run_client_key`, `created_date`, `modified_date`, `created_by_user_id`, and `modified_by_user_id`.
 	// For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-	// For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/channels#channel). Optional.
 	Filter string `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
 	// How to order the retrieved channels. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
 	// Available fields to order_by are `name`, `created_date` and `modified_date`, `active`.

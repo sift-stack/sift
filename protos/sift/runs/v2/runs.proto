@@ -8,7 +8,6 @@ import "google/protobuf/duration.proto";
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
-import "sift/common/v1/filter_field.proto";
 import "sift/metadata/v1/metadata.proto";
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
@@ -102,13 +101,14 @@ service RunService {
   }
 
   // Returns the available filter fields for the ListRuns CEL filter.
-  rpc GetFilterFields(GetFilterFieldsRequest) returns (GetFilterFieldsResponse) {
-    option (google.api.http) = {get: "/api/v2/runs:filterFields"};
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "GetRunFilterFields"
-      description: "Returns the available filter fields for the ListRuns endpoint."
-    };
-  }
+
+  // Returns distinct values for a searchable run filter field, for a typeahead value picker.
+  // Internal: this powers the app's filter builder and is not part of the public API.
+  //
+  // ABAC is enforced manually in the handler: the response is a set of bare string
+  // values with no resource id, so the outbound interceptor (used by ListRuns) can't
+  // filter it. The handler instead resolves the underlying run/asset ids for the
+  // candidate values and runs them through the policy evaluation service.
 
   // Validates a CEL filter expression against the available run filter fields.
   // Returns an error message if the expression is invalid, or an empty error_message if valid.
@@ -194,7 +194,6 @@ message ListRunsRequest {
   // and `metadata`. Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
   // `duration` is in the format of elapsed seconds and `duration_string` allows for `h`, `m`, `s`, `ms` suffixes (example: `duration_string > duration('10h'))
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-  // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/runs#run). Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
 
   // How to order the retrieved runs. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
@@ -335,12 +334,12 @@ message StopRunRequest {
 message StopRunResponse {}
 
 // The request for a call to `RunService_GetFilterFields`.
-message GetFilterFieldsRequest {}
 
 // The response of a call to `RunService_GetFilterFields`.
-message GetFilterFieldsResponse {
-  repeated sift.common.v1.FilterField filter_fields = 1;
-}
+
+// The request for a call to `RunService_GetRunFieldValues`.
+
+// The response of a call to `RunService_GetRunFieldValues`.
 
 // The request for a call to `RunService_ValidateRunFilter`.
 message ValidateRunFilterRequest {

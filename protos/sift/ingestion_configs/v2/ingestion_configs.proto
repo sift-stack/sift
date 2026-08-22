@@ -55,7 +55,7 @@ service IngestionConfigService {
     };
   }
 
-  // Create ingestion config [flows](/glossary#flow).
+  // Create ingestion config flows.
   rpc CreateIngestionConfigFlows(CreateIngestionConfigFlowsRequest) returns (CreateIngestionConfigFlowsResponse) {
     option (google.api.http) = {
       post: "/api/v2/ingestion-configs/{ingestion_config_id}/flows"
@@ -63,17 +63,17 @@ service IngestionConfigService {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "CreateIngestionConfigFlows"
-      description: "Create ingestion config [flows](/glossary#flow)."
+      description: "Create ingestion config flows."
       operation_id: "IngestionConfigService_CreateIngestionConfigFlowsV2"
     };
   }
 
-  // List ingestion config [flows](/glossary#flow) using an optional filter.
+  // List ingestion config flows using an optional filter.
   rpc ListIngestionConfigFlows(ListIngestionConfigFlowsRequest) returns (ListIngestionConfigFlowsResponse) {
     option (google.api.http) = {get: "/api/v2/ingestion-configs/{ingestion_config_id}/flows"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "ListIngestionConfigFlows"
-      description: "List ingestion config [flows](/glossary#flow) using an optional filter."
+      description: "List ingestion config flows using an optional filter."
       operation_id: "IngestionConfigService_ListIngestionConfigFlowsV2"
     };
   }
@@ -142,7 +142,6 @@ message ListIngestionConfigsRequest {
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are `ingestion_config_id`, `client_key`, `asset_id`, `created_date`, and `modified_date`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-  // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/ingestion_configs#ingestionconfigservice). Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
 }
 
@@ -181,7 +180,6 @@ message ListIngestionConfigFlowsRequest {
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are `flow_name`, `flow_id`, `created_date`, and `modified_date`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-  // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/ingestion_configs#ingestionconfig). Optional.
   string filter = 4 [(google.api.field_behavior) = OPTIONAL];
 }
 
