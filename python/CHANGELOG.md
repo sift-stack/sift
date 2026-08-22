@@ -26,7 +26,7 @@ client = SiftClient(
 Streaming ingestion clients inherit the value and can override it per stream:
 
 ```python
-stream = await client.ingestion.create_ingestion_config_streaming_client(
+stream = await client.async_.ingestion.create_ingestion_config_streaming_client(
     ingestion_config,
     max_decoding_message_size=200 * 1024 * 1024,
 )
