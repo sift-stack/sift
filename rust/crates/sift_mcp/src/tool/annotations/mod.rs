@@ -293,8 +293,10 @@ impl SiftMcpServer {
             Other changes, including unarchiving, use one `UpdateAnnotation` request per annotation.
 
             Output:
-              - `{ \"annotations\": [Annotation, ...], \"next_step\": string }`. Each item is the post-update
-                state from the server and includes a `url` field with its Sift web link when the host can be derived.
+              - `{ \"annotations\": [Annotation, ...], \"failures\": [...], \"batch_archive_error\": object|null,
+                \"archive_skipped\": bool, \"next_step\": string }`. Successful annotations include a `url` field
+                when the host can be derived. Each individual failure includes `annotation_id`, MCP `code`, `message`,
+                and optional `data`. Partial failures set the tool result's `isError` flag.
 
             Parameters:
               - `annotation_ids`: required list of 1 to 1000 annotation ids. The same changes are applied to every
@@ -318,14 +320,16 @@ impl SiftMcpServer {
             Errors:
               - `INVALID_PARAMS` if `annotation_ids` is empty, contains an empty id, exceeds 1000 ids, `state` is
                 unrecognized, or no updatable field is set.
-              - `RESOURCE_NOT_FOUND` if no annotation matches one of the ids.
-              - `INTERNAL_ERROR` for upstream gRPC failures.
+              - Individual upstream failures are returned in `failures` next to successful results. Follow each
+                failure's guidance and retry only eligible failed ids.
+              - Batch-archive failures are returned in `batch_archive_error`. The archive outcome may be unknown.
 
             Guidance:
               - This is a write. CONFIRM every target and the full proposed values with the user before invoking —
                 `tags`, `linked_channel_ids`, and `metadata` are REPLACE operations, not merges.
               - General field updates and unarchive operations issue one API request per annotation and are not
-                atomic. A failure can leave earlier annotations updated. Archive uses a single batch API request.
+                atomic. Up to 50 requests run concurrently. Archive uses a single batch API request after all
+                individual updates succeed; otherwise `archive_skipped` is true.
               - For appends, read the current annotation via `list_annotations` filtered by
                 `annotation_id == \"<id>\"`, then send the union.
         ",
@@ -395,57 +399,95 @@ impl SiftMcpServer {
 
         let state = state.map(|s| parse_annotation_state(&s)).transpose()?;
         let metadata = metadata.map(|m| m.into_iter().map(MetadataValue::from).collect::<Vec<_>>());
-        let unarchive = (is_archived == Some(false)).then_some(false);
-        let has_individual_update = has_field_update || unarchive.is_some();
+        let requested_ids = annotation_ids.clone();
+        let requested_count = annotation_ids.len();
 
-        let mut annotations = Vec::new();
-        if has_individual_update {
-            annotations.reserve(annotation_ids.len());
-            for annotation_id in &annotation_ids {
-                let annotation = self
-                    .annotation_service
-                    .update_annotation(
-                        annotation_id.clone(),
-                        name.clone(),
-                        description.clone(),
-                        start_time_unix_nanos,
-                        end_time_unix_nanos,
-                        assigned_to_user_id.clone(),
-                        state,
-                        tags.clone(),
-                        linked_channel_ids.clone(),
-                        metadata.clone(),
-                        unarchive,
-                    )
-                    .await
-                    .map_err(from_anyhow)?;
-                annotations.push(annotation);
-            }
-        }
+        let outcome = self
+            .annotation_service
+            .update_annotations(
+                annotation_ids,
+                name,
+                description,
+                start_time_unix_nanos,
+                end_time_unix_nanos,
+                assigned_to_user_id,
+                state,
+                tags,
+                linked_channel_ids,
+                metadata,
+                is_archived,
+            )
+            .await
+            .map_err(from_anyhow)?;
 
-        if is_archived == Some(true) {
-            annotations = self
-                .annotation_service
-                .batch_archive_annotations(annotation_ids)
-                .await
-                .map_err(from_anyhow)?;
-        }
+        let updated_count = outcome.annotations.len();
+        let failures = outcome
+            .failures
+            .into_iter()
+            .map(|failure| {
+                let error = from_anyhow(failure.error);
+                serde_json::json!({
+                    "annotation_id": failure.annotation_id,
+                    "code": error.code.0,
+                    "message": error.message,
+                    "data": error.data,
+                })
+            })
+            .collect::<Vec<_>>();
+        let failure_count = failures.len();
+        let batch_archive_error = outcome.batch_archive_error.map(|error| {
+            let error = from_anyhow(error);
+            serde_json::json!({
+                "annotation_ids": requested_ids,
+                "code": error.code.0,
+                "message": error.message,
+                "data": error.data,
+            })
+        });
+        let has_errors = failure_count > 0 || batch_archive_error.is_some();
 
-        let updated_count = annotations.len();
+        let annotations = outcome.annotations;
         let annotations = with_urls(&annotations, |annotation| {
             self.url_service
                 .build_annotation_url(&annotation.annotation_id)
                 .ok()
         })?;
-        let next_step = format!(
-            "Updated {updated_count} annotation(s). Surface the new states and links to the user and confirm the \
-             changes match their intent. Remember: tags, linked channels, and metadata are REPLACE operations.",
-        );
+        let next_step = if batch_archive_error.is_some() {
+            format!(
+                "Completed field updates for {updated_count} of {requested_count} annotation(s), but batch archive \
+                 failed. Archive state may be unknown. Verify the targets with `list_annotations` before retrying."
+            )
+        } else if outcome.archive_skipped {
+            format!(
+                "Updated {updated_count} of {requested_count} annotation(s); {failure_count} failed. Archive was not \
+                 attempted because individual updates failed. Review `failures`, follow their guidance, and retry \
+                 only eligible failed ids."
+            )
+        } else if failure_count > 0 {
+            format!(
+                "Updated {updated_count} of {requested_count} annotation(s); {failure_count} failed. Successful \
+                 annotations are already changed. Review `failures`, follow their guidance, and retry only eligible \
+                 failed ids."
+            )
+        } else {
+            format!(
+                "Updated {updated_count} annotation(s). Surface the new states and links to the user and confirm the \
+                 changes match their intent. Remember: tags, linked channels, and metadata are REPLACE operations."
+            )
+        };
 
-        let mut result = CallToolResult::structured(serde_json::json!({
+        let structured = serde_json::json!({
             "annotations": annotations,
+            "failures": failures,
+            "batch_archive_error": batch_archive_error,
+            "archive_skipped": outcome.archive_skipped,
             "next_step": next_step,
-        }));
+        });
+        let mut result = if has_errors {
+            CallToolResult::structured_error(structured)
+        } else {
+            CallToolResult::structured(structured)
+        };
         result.content = vec![ContentBlock::text(next_step)];
         Ok(result)
     }

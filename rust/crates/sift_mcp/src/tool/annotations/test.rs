@@ -13,7 +13,10 @@ use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
 use super::{AnnotationListParams, CreateAnnotationParams, UpdateAnnotationParams};
-use crate::{server::SiftMcpServer, tool::common::test_support::structured_field};
+use crate::{
+    server::SiftMcpServer,
+    tool::common::test_support::{structured, structured_field},
+};
 
 async fn server_with_mock(mock: MockAnnotationServiceImpl) -> (SiftMcpServer, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
@@ -258,6 +261,38 @@ async fn update_annotation_updates_each_annotation() {
 }
 
 #[tokio::test]
+async fn update_annotation_reports_partial_failures_and_continues() {
+    let mut mock = MockAnnotationServiceImpl::new();
+    mock.expect_update_annotation().times(3).returning(|req| {
+        let annotation = req.into_inner().annotation.unwrap();
+        if annotation.annotation_id == "ann2" {
+            return Err(Status::not_found("no such annotation"));
+        }
+        Ok(Response::new(UpdateAnnotationResponse {
+            annotation: Some(annotation),
+        }))
+    });
+
+    let (server, _h) = server_with_mock(mock).await;
+
+    let mut params = update_params("ann1");
+    params.annotation_ids.extend(["ann2".into(), "ann3".into()]);
+    params.name = Some("renamed".into());
+
+    let resp = server
+        .update_annotation(Parameters(params))
+        .await
+        .expect("partial update result should be returned");
+
+    assert_eq!(resp.is_error, Some(true));
+    let body = structured(resp);
+    assert_eq!(body["annotations"][0]["annotationId"], "ann1");
+    assert_eq!(body["annotations"][1]["annotationId"], "ann3");
+    assert_eq!(body["failures"][0]["annotation_id"], "ann2");
+    assert_eq!(body["failures"][0]["code"], ErrorCode::RESOURCE_NOT_FOUND.0);
+}
+
+#[tokio::test]
 async fn update_annotation_batch_archives_annotations() {
     let mut mock = MockAnnotationServiceImpl::new();
     mock.expect_batch_archive_annotations()
@@ -344,6 +379,68 @@ async fn update_annotation_updates_fields_before_archiving() {
 }
 
 #[tokio::test]
+async fn update_annotation_skips_archive_after_partial_field_failure() {
+    let mut mock = MockAnnotationServiceImpl::new();
+    mock.expect_update_annotation().times(2).returning(|req| {
+        let annotation = req.into_inner().annotation.unwrap();
+        if annotation.annotation_id == "ann2" {
+            return Err(Status::not_found("no such annotation"));
+        }
+        Ok(Response::new(UpdateAnnotationResponse {
+            annotation: Some(annotation),
+        }))
+    });
+    mock.expect_batch_archive_annotations().times(0);
+
+    let (server, _h) = server_with_mock(mock).await;
+
+    let mut params = update_params("ann1");
+    params.annotation_ids.push("ann2".into());
+    params.name = Some("renamed".into());
+    params.is_archived = Some(true);
+
+    let resp = server
+        .update_annotation(Parameters(params))
+        .await
+        .expect("partial update result should be returned");
+
+    assert_eq!(resp.is_error, Some(true));
+    let body = structured(resp);
+    assert_eq!(body["archive_skipped"], true);
+    assert_eq!(body["annotations"][0]["annotationId"], "ann1");
+    assert_eq!(body["failures"][0]["annotation_id"], "ann2");
+}
+
+#[tokio::test]
+async fn update_annotation_reports_opaque_batch_archive_error() {
+    let mut mock = MockAnnotationServiceImpl::new();
+    mock.expect_batch_archive_annotations()
+        .returning(|_| Err(Status::not_found("one target was not found")));
+
+    let (server, _h) = server_with_mock(mock).await;
+
+    let mut params = update_params("ann1");
+    params.annotation_ids.push("ann2".into());
+    params.is_archived = Some(true);
+
+    let resp = server
+        .update_annotation(Parameters(params))
+        .await
+        .expect("batch archive failure details should be returned");
+
+    assert_eq!(resp.is_error, Some(true));
+    let body = structured(resp);
+    assert_eq!(
+        body["batch_archive_error"]["annotation_ids"],
+        serde_json::json!(["ann1", "ann2"])
+    );
+    assert_eq!(
+        body["batch_archive_error"]["code"],
+        ErrorCode::RESOURCE_NOT_FOUND.0
+    );
+}
+
+#[tokio::test]
 async fn update_annotation_unarchives_each_annotation() {
     let mut mock = MockAnnotationServiceImpl::new();
     mock.expect_update_annotation()
@@ -425,10 +522,13 @@ async fn update_annotation_propagates_grpc_error() {
     let mut params = update_params("ann1");
     params.name = Some("x".into());
 
-    let err = server
+    let resp = server
         .update_annotation(Parameters(params))
         .await
-        .expect_err("expected error");
+        .expect("failure details should be returned");
 
-    assert_eq!(err.code, ErrorCode::RESOURCE_NOT_FOUND);
+    assert_eq!(resp.is_error, Some(true));
+    let body = structured(resp);
+    assert_eq!(body["failures"][0]["annotation_id"], "ann1");
+    assert_eq!(body["failures"][0]["code"], ErrorCode::RESOURCE_NOT_FOUND.0);
 }

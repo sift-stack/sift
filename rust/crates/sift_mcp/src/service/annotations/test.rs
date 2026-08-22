@@ -1,12 +1,21 @@
+use std::{
+    sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    },
+    time::Duration,
+};
+
 use sift_rs::annotations::v1::{
-    Annotation, AnnotationState, AnnotationType, CreateAnnotationResponse, ListAnnotationsResponse,
-    UpdateAnnotationResponse, annotation_service_server::AnnotationServiceServer,
+    Annotation, AnnotationState, AnnotationType, BatchArchiveAnnotationsResponse,
+    CreateAnnotationResponse, ListAnnotationsResponse, UpdateAnnotationResponse,
+    annotation_service_server::AnnotationServiceServer,
 };
 use sift_test_util::{grpc::memory_sift_channel, mock::annotations::v1::MockAnnotationServiceImpl};
-use tokio::task::JoinHandle;
+use tokio::{sync::Semaphore, task::JoinHandle};
 use tonic::{Response, Status, transport::Server};
 
-use super::AnnotationService;
+use super::{AnnotationService, fan_out_bounded};
 use crate::service::common::DEFAULT_LIMIT;
 
 async fn service_with_mock(mock: MockAnnotationServiceImpl) -> (AnnotationService, JoinHandle<()>) {
@@ -25,6 +34,47 @@ async fn service_with_mock(mock: MockAnnotationServiceImpl) -> (AnnotationServic
         AnnotationService::new(channel, crate::policy::RetryPolicy::default()),
         handle,
     )
+}
+
+#[tokio::test]
+async fn bounded_fan_out_limits_concurrency_and_preserves_order() {
+    let active = Arc::new(AtomicUsize::new(0));
+    let max_active = Arc::new(AtomicUsize::new(0));
+    let started = Arc::new(AtomicUsize::new(0));
+    let gate = Arc::new(Semaphore::new(0));
+
+    let active_for_task = Arc::clone(&active);
+    let max_for_task = Arc::clone(&max_active);
+    let started_for_task = Arc::clone(&started);
+    let gate_for_task = Arc::clone(&gate);
+    let task = tokio::spawn(fan_out_bounded((0..120).collect(), 50, move |item| {
+        let active = Arc::clone(&active_for_task);
+        let max_active = Arc::clone(&max_for_task);
+        let started = Arc::clone(&started_for_task);
+        let gate = Arc::clone(&gate_for_task);
+        async move {
+            let current = active.fetch_add(1, Ordering::SeqCst) + 1;
+            max_active.fetch_max(current, Ordering::SeqCst);
+            started.fetch_add(1, Ordering::SeqCst);
+            gate.acquire().await.unwrap().forget();
+            active.fetch_sub(1, Ordering::SeqCst);
+            item
+        }
+    }));
+
+    tokio::time::timeout(Duration::from_secs(1), async {
+        while started.load(Ordering::SeqCst) < 50 {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .expect("50 updates should start concurrently");
+    assert_eq!(started.load(Ordering::SeqCst), 50);
+    gate.add_permits(120);
+    let results = task.await.unwrap();
+
+    assert_eq!(results, (0..120).collect::<Vec<_>>());
+    assert_eq!(max_active.load(Ordering::SeqCst), 50);
 }
 
 #[tokio::test]
@@ -269,6 +319,100 @@ async fn create_annotation_propagates_grpc_error() {
         .expect_err("expected error");
 
     assert!(err.to_string().contains("failed to create annotation"));
+}
+
+#[tokio::test]
+async fn batch_archive_annotations_forwards_ids() {
+    let mut mock = MockAnnotationServiceImpl::new();
+    mock.expect_batch_archive_annotations()
+        .withf(|req| req.get_ref().annotation_ids == ["ann1", "ann2"])
+        .returning(|req| {
+            let annotations = req
+                .into_inner()
+                .annotation_ids
+                .into_iter()
+                .map(|annotation_id| Annotation {
+                    annotation_id,
+                    is_archived: true,
+                    ..Default::default()
+                })
+                .collect();
+            Ok(Response::new(BatchArchiveAnnotationsResponse {
+                annotations,
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let annotations = service
+        .batch_archive_annotations(vec!["ann1".into(), "ann2".into()])
+        .await
+        .expect("batch archive failed");
+
+    assert_eq!(annotations.len(), 2);
+    assert!(annotations.iter().all(|annotation| annotation.is_archived));
+}
+
+#[tokio::test]
+async fn batch_archive_annotations_propagates_grpc_error() {
+    let mut mock = MockAnnotationServiceImpl::new();
+    mock.expect_batch_archive_annotations()
+        .returning(|_| Err(Status::not_found("no such annotation")));
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let error = service
+        .batch_archive_annotations(vec!["ann1".into()])
+        .await
+        .expect_err("expected batch archive error");
+
+    assert!(
+        error
+            .to_string()
+            .contains("failed to batch archive annotations")
+    );
+}
+
+#[tokio::test]
+async fn update_annotations_collects_failures_and_continues() {
+    let mut mock = MockAnnotationServiceImpl::new();
+    mock.expect_update_annotation().times(3).returning(|req| {
+        let annotation = req.into_inner().annotation.unwrap();
+        if annotation.annotation_id == "ann2" {
+            return Err(Status::not_found("no such annotation"));
+        }
+        Ok(Response::new(UpdateAnnotationResponse {
+            annotation: Some(annotation),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let outcome = service
+        .update_annotations(
+            vec!["ann1".into(), "ann2".into(), "ann3".into()],
+            Some("renamed".into()),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        .await
+        .expect("bulk update failed");
+
+    let updated_ids = outcome
+        .annotations
+        .iter()
+        .map(|annotation| annotation.annotation_id.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(updated_ids, ["ann1", "ann3"]);
+    assert_eq!(outcome.failures.len(), 1);
+    assert_eq!(outcome.failures[0].annotation_id, "ann2");
 }
 
 #[tokio::test]
