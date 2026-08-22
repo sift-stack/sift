@@ -20,6 +20,8 @@ use crate::{
 #[cfg(test)]
 mod test;
 
+const MAX_UPDATE_ANNOTATIONS: usize = 1_000;
+
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct AnnotationListParams {
     pub(crate) filter: String,
@@ -47,7 +49,7 @@ pub struct CreateAnnotationParams {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct UpdateAnnotationParams {
-    annotation_id: String,
+    annotation_ids: Vec<String>,
     name: Option<String>,
     description: Option<String>,
     start_time_unix_nanos: Option<i64>,
@@ -57,6 +59,7 @@ pub struct UpdateAnnotationParams {
     tags: Option<Vec<String>>,
     linked_channel_ids: Option<Vec<String>>,
     metadata: Option<Vec<MetadataEntry>>,
+    is_archived: Option<bool>,
 }
 
 fn parse_annotation_type(s: &str) -> Result<AnnotationType, ErrorData> {
@@ -286,15 +289,19 @@ impl SiftMcpServer {
     #[tool(
         name = "update_annotation",
         description = "
-            Update an existing annotation. Wraps `annotations/v1 UpdateAnnotation`.
+            Update one or more existing annotations. Uses `annotations/v1 BatchArchiveAnnotations` when archiving.
+            Other changes, including unarchiving, use one `UpdateAnnotation` request per annotation.
 
             Output:
-              - `{ \"annotation\": Annotation, \"annotation_url\": string|null, \"next_step\": string }`. The
-                returned `Annotation` is the post-update state from the server; `annotation_url` is its Sift web
-                link, or null when the host can't be derived.
+              - `{ \"annotations\": [Annotation, ...], \"failures\": [...], \"batch_archive_error\": object|null,
+                \"not_attempted\": [string, ...], \"archive_skipped\": bool, \"next_step\": string }`. Successful
+                annotations include a `url` field when the host can be derived. Each individual failure includes
+                `annotation_id`, MCP `code`, `message`, and optional `data`. Partial failures set the tool result's
+                `isError` flag.
 
             Parameters:
-              - `annotation_id`: required; the id of the annotation to update.
+              - `annotation_ids`: required list of 1 to 1000 annotation ids. The same changes are applied to every
+                annotation.
               - `name`: optional new name.
               - `description`: optional new description.
               - `start_time_unix_nanos` / `end_time_unix_nanos`: optional new time bounds in Unix nanoseconds.
@@ -305,17 +312,27 @@ impl SiftMcpServer {
                 Pass `[]` to clear. Bit-field and calculated-channel links are not exposed here.
               - `metadata`: optional; REPLACES the full metadata list. Each entry is
                 `{ \"name\": \"<key>\", \"value\": <scalar> }`. Pass `[]` to clear.
+              - `is_archived`: optional archive state. `true` uses one batch-archive request. `false` is included in
+                each annotation's individual update request. When `true` is combined with other fields, annotations
+                are updated before archiving.
 
               At least one updatable field must be set; otherwise the tool returns `INVALID_PARAMS`.
 
             Errors:
-              - `INVALID_PARAMS` if `annotation_id` is empty, `state` is unrecognized, or no updatable field is set.
-              - `RESOURCE_NOT_FOUND` if no annotation matches `annotation_id`.
-              - `INTERNAL_ERROR` for upstream gRPC failures.
+              - `INVALID_PARAMS` if `annotation_ids` is empty, contains an empty id, exceeds 1000 ids, `state` is
+                unrecognized, or no updatable field is set.
+              - Individual upstream failures are returned in `failures` next to successful results. Follow each
+                failure's guidance and retry only eligible failed ids.
+              - Backend-wide failures stop later batches. Their ids are returned in `not_attempted` without an API
+                request.
+              - Batch-archive failures are returned in `batch_archive_error`. The archive outcome may be unknown.
 
             Guidance:
-              - This is a write. CONFIRM the target and the full proposed values with the user before invoking —
+              - This is a write. CONFIRM every target and the full proposed values with the user before invoking —
                 `tags`, `linked_channel_ids`, and `metadata` are REPLACE operations, not merges.
+              - General field updates and unarchive operations issue one API request per annotation and are not
+                atomic. Requests run in batches of up to 50. A backend-wide failure stops later batches. Archive uses
+                a single batch API request after all individual updates succeed; otherwise `archive_skipped` is true.
               - For appends, read the current annotation via `list_annotations` filtered by
                 `annotation_id == \"<id>\"`, then send the union.
         ",
@@ -333,7 +350,7 @@ impl SiftMcpServer {
         self.require_destructive()?;
 
         let Parameters(UpdateAnnotationParams {
-            annotation_id,
+            annotation_ids,
             name,
             description,
             start_time_unix_nanos,
@@ -343,16 +360,31 @@ impl SiftMcpServer {
             tags,
             linked_channel_ids,
             metadata,
+            is_archived,
         }) = params;
 
-        if annotation_id.is_empty() {
+        if annotation_ids.is_empty() {
             return Err(ErrorData::invalid_params(
-                "`annotation_id` must not be empty",
+                "`annotation_ids` must contain at least one id",
                 None,
             ));
         }
 
-        let has_update = name.is_some()
+        if annotation_ids.len() > MAX_UPDATE_ANNOTATIONS {
+            return Err(ErrorData::invalid_params(
+                format!("`annotation_ids` must contain at most {MAX_UPDATE_ANNOTATIONS} ids"),
+                None,
+            ));
+        }
+
+        if annotation_ids.iter().any(String::is_empty) {
+            return Err(ErrorData::invalid_params(
+                "`annotation_ids` must not contain empty ids",
+                None,
+            ));
+        }
+
+        let has_field_update = name.is_some()
             || description.is_some()
             || start_time_unix_nanos.is_some()
             || end_time_unix_nanos.is_some()
@@ -361,7 +393,7 @@ impl SiftMcpServer {
             || tags.is_some()
             || linked_channel_ids.is_some()
             || metadata.is_some();
-        if !has_update {
+        if !has_field_update && is_archived.is_none() {
             return Err(ErrorData::invalid_params(
                 "at least one updatable field must be provided",
                 None,
@@ -370,11 +402,13 @@ impl SiftMcpServer {
 
         let state = state.map(|s| parse_annotation_state(&s)).transpose()?;
         let metadata = metadata.map(|m| m.into_iter().map(MetadataValue::from).collect::<Vec<_>>());
+        let requested_ids = annotation_ids.clone();
+        let requested_count = annotation_ids.len();
 
-        let annotation = self
+        let outcome = self
             .annotation_service
-            .update_annotation(
-                annotation_id,
+            .update_annotations(
+                annotation_ids,
                 name,
                 description,
                 start_time_unix_nanos,
@@ -384,28 +418,102 @@ impl SiftMcpServer {
                 tags,
                 linked_channel_ids,
                 metadata,
+                is_archived,
             )
             .await
             .map_err(from_anyhow)?;
 
-        let annotation_url = self
-            .url_service
-            .build_annotation_url(&annotation.annotation_id)
-            .ok();
-        let next_step = format!(
-            "Updated annotation `{}` ({}).{} Surface the new state to the user and confirm the change \
-             matches their intent. Remember: tags, linked channels, and metadata are REPLACE operations.",
-            annotation.name,
-            annotation.annotation_id,
-            url_clause(annotation_url.as_deref()),
-        );
+        let updated_count = outcome.annotations.len();
+        let failures = outcome
+            .failures
+            .into_iter()
+            .map(|failure| {
+                let error = from_anyhow(failure.error);
+                serde_json::json!({
+                    "annotation_id": failure.annotation_id,
+                    "code": error.code.0,
+                    "message": error.message,
+                    "data": error.data,
+                })
+            })
+            .collect::<Vec<_>>();
+        let failure_count = failures.len();
+        let not_attempted = outcome.not_attempted;
+        let not_attempted_count = not_attempted.len();
+        let batch_archive_error = outcome.batch_archive_error.map(|error| {
+            let error = from_anyhow(error);
+            serde_json::json!({
+                "annotation_ids": requested_ids,
+                "code": error.code.0,
+                "message": error.message,
+                "data": error.data,
+            })
+        });
+        let has_errors =
+            failure_count > 0 || not_attempted_count > 0 || batch_archive_error.is_some();
 
-        let mut result = CallToolResult::structured(serde_json::json!({
-            "annotation": annotation,
-            "annotation_url": annotation_url,
+        let annotations = outcome.annotations;
+        let annotations = with_urls(&annotations, |annotation| {
+            self.url_service
+                .build_annotation_url(&annotation.annotation_id)
+                .ok()
+        })?;
+        let next_step = if batch_archive_error.is_some() {
+            format!(
+                "Completed field updates for {updated_count} of {requested_count} annotation(s), but batch archive \
+                 failed. Archive state may be unknown. Verify the targets with `list_annotations` before retrying."
+            )
+        } else if outcome.archive_skipped {
+            if not_attempted_count > 0 {
+                format!(
+                    "Updated {updated_count} of {requested_count} annotation(s); {failure_count} failed and \
+                     {not_attempted_count} were not attempted after a backend-wide failure. Archive was not \
+                     attempted. Review `failures` before retrying eligible failed and not-attempted ids."
+                )
+            } else {
+                format!(
+                    "Updated {updated_count} of {requested_count} annotation(s); {failure_count} failed. Archive was \
+                     not attempted because individual updates failed. Review `failures`, follow their guidance, and \
+                     retry only eligible failed ids."
+                )
+            }
+        } else if not_attempted_count > 0 {
+            format!(
+                "Updated {updated_count} of {requested_count} annotation(s); {failure_count} failed and \
+                 {not_attempted_count} were not attempted after a backend-wide failure. Review `failures` before \
+                 retrying eligible failed and not-attempted ids."
+            )
+        } else if failure_count > 0 {
+            format!(
+                "Updated {updated_count} of {requested_count} annotation(s); {failure_count} failed. Successful \
+                 annotations are already changed. Review `failures`, follow their guidance, and retry only eligible \
+                 failed ids."
+            )
+        } else {
+            format!(
+                "Updated {updated_count} annotation(s). Surface the new states and links to the user and confirm the \
+                 changes match their intent. Remember: tags, linked channels, and metadata are REPLACE operations."
+            )
+        };
+
+        let structured = serde_json::json!({
+            "annotations": annotations,
+            "failures": failures,
+            "not_attempted": not_attempted,
+            "batch_archive_error": batch_archive_error,
+            "archive_skipped": outcome.archive_skipped,
             "next_step": next_step,
-        }));
-        result.content = vec![ContentBlock::text(next_step)];
+        });
+        let mut result = if has_errors {
+            CallToolResult::structured_error(structured)
+        } else {
+            CallToolResult::structured(structured)
+        };
+        if has_errors {
+            result.content.push(ContentBlock::text(next_step));
+        } else {
+            result.content = vec![ContentBlock::text(next_step)];
+        }
         Ok(result)
     }
 }
