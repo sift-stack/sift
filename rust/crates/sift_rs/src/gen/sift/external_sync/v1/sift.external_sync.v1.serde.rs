@@ -28,6 +28,12 @@ impl serde::Serialize for ExternalSync {
         if self.most_recent_token_by_user_id.is_some() {
             len += 1;
         }
+        if !self.realm.is_empty() {
+            len += 1;
+        }
+        if !self.client.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.external_sync.v1.ExternalSync", len)?;
         if !self.organization_id.is_empty() {
             struct_ser.serialize_field("organizationId", &self.organization_id)?;
@@ -49,6 +55,12 @@ impl serde::Serialize for ExternalSync {
         }
         if let Some(v) = self.most_recent_token_by_user_id.as_ref() {
             struct_ser.serialize_field("mostRecentTokenByUserId", v)?;
+        }
+        if !self.realm.is_empty() {
+            struct_ser.serialize_field("realm", &self.realm)?;
+        }
+        if !self.client.is_empty() {
+            struct_ser.serialize_field("client", &self.client)?;
         }
         struct_ser.end()
     }
@@ -74,6 +86,8 @@ impl<'de> serde::Deserialize<'de> for ExternalSync {
             "tokenLifetimeSeconds",
             "most_recent_token_by_user_id",
             "mostRecentTokenByUserId",
+            "realm",
+            "client",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -85,6 +99,8 @@ impl<'de> serde::Deserialize<'de> for ExternalSync {
             TokenCreatedDate,
             TokenLifetimeSeconds,
             MostRecentTokenByUserId,
+            Realm,
+            Client,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -113,6 +129,8 @@ impl<'de> serde::Deserialize<'de> for ExternalSync {
                             "tokenCreatedDate" | "token_created_date" => Ok(GeneratedField::TokenCreatedDate),
                             "tokenLifetimeSeconds" | "token_lifetime_seconds" => Ok(GeneratedField::TokenLifetimeSeconds),
                             "mostRecentTokenByUserId" | "most_recent_token_by_user_id" => Ok(GeneratedField::MostRecentTokenByUserId),
+                            "realm" => Ok(GeneratedField::Realm),
+                            "client" => Ok(GeneratedField::Client),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -139,6 +157,8 @@ impl<'de> serde::Deserialize<'de> for ExternalSync {
                 let mut token_created_date__ = None;
                 let mut token_lifetime_seconds__ = None;
                 let mut most_recent_token_by_user_id__ = None;
+                let mut realm__ = None;
+                let mut client__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::OrganizationId => {
@@ -175,7 +195,7 @@ impl<'de> serde::Deserialize<'de> for ExternalSync {
                             if token_lifetime_seconds__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("tokenLifetimeSeconds"));
                             }
-                            token_lifetime_seconds__ = 
+                            token_lifetime_seconds__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -184,6 +204,18 @@ impl<'de> serde::Deserialize<'de> for ExternalSync {
                                 return Err(serde::de::Error::duplicate_field("mostRecentTokenByUserId"));
                             }
                             most_recent_token_by_user_id__ = map_.next_value()?;
+                        }
+                        GeneratedField::Realm => {
+                            if realm__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("realm"));
+                            }
+                            realm__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Client => {
+                            if client__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("client"));
+                            }
+                            client__ = Some(map_.next_value()?);
                         }
                     }
                 }
@@ -195,6 +227,8 @@ impl<'de> serde::Deserialize<'de> for ExternalSync {
                     token_created_date: token_created_date__,
                     token_lifetime_seconds: token_lifetime_seconds__.unwrap_or_default(),
                     most_recent_token_by_user_id: most_recent_token_by_user_id__,
+                    realm: realm__.unwrap_or_default(),
+                    client: client__.unwrap_or_default(),
                 })
             }
         }
@@ -1009,7 +1043,7 @@ impl<'de> serde::Deserialize<'de> for ExternalSyncRunSummary {
                             if users_activated_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("usersActivatedCount"));
                             }
-                            users_activated_count__ = 
+                            users_activated_count__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1017,7 +1051,7 @@ impl<'de> serde::Deserialize<'de> for ExternalSyncRunSummary {
                             if users_deactivated_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("usersDeactivatedCount"));
                             }
-                            users_deactivated_count__ = 
+                            users_deactivated_count__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1025,7 +1059,7 @@ impl<'de> serde::Deserialize<'de> for ExternalSyncRunSummary {
                             if groups_created_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("groupsCreatedCount"));
                             }
-                            groups_created_count__ = 
+                            groups_created_count__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1033,7 +1067,7 @@ impl<'de> serde::Deserialize<'de> for ExternalSyncRunSummary {
                             if groups_deleted_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("groupsDeletedCount"));
                             }
-                            groups_deleted_count__ = 
+                            groups_deleted_count__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1041,7 +1075,7 @@ impl<'de> serde::Deserialize<'de> for ExternalSyncRunSummary {
                             if users_added_to_groups_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("usersAddedToGroupsCount"));
                             }
-                            users_added_to_groups_count__ = 
+                            users_added_to_groups_count__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1049,7 +1083,7 @@ impl<'de> serde::Deserialize<'de> for ExternalSyncRunSummary {
                             if users_removed_from_groups_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("usersRemovedFromGroupsCount"));
                             }
-                            users_removed_from_groups_count__ = 
+                            users_removed_from_groups_count__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1265,7 +1299,7 @@ impl<'de> serde::Deserialize<'de> for ExternalSyncToken {
                             if lifetime_seconds__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("lifetimeSeconds"));
                             }
-                            lifetime_seconds__ = 
+                            lifetime_seconds__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2223,7 +2257,7 @@ impl<'de> serde::Deserialize<'de> for ListExternalSyncRunsRequest {
                             if page_size__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("pageSize"));
                             }
-                            page_size__ = 
+                            page_size__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2480,7 +2514,7 @@ impl<'de> serde::Deserialize<'de> for ListExternalSyncTokensRequest {
                             if page_size__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("pageSize"));
                             }
-                            page_size__ = 
+                            page_size__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2859,7 +2893,7 @@ impl<'de> serde::Deserialize<'de> for SyncOrganizationResponse {
                             if existing_user_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("existingUserCount"));
                             }
-                            existing_user_count__ = 
+                            existing_user_count__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2885,7 +2919,7 @@ impl<'de> serde::Deserialize<'de> for SyncOrganizationResponse {
                             if existing_group_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("existingGroupCount"));
                             }
-                            existing_group_count__ = 
+                            existing_group_count__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }

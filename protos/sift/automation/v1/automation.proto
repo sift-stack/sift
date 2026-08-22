@@ -1,0 +1,339 @@
+syntax = "proto3";
+
+package sift.automation.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+// AutomationService manages Canvas Scheduler automation triggers. An
+// automation trigger fires when a producer (v1: RunService.StopRun)
+// observes a Run whose metadata matches the trigger's match filter; the
+// resulting automation_triggered_events row is dispatched by the
+// automation worker after a bounded wait, currently by calling
+// CanvasService.EvaluateCanvas.
+service AutomationService {
+  // Retrieve an automation trigger by ID.
+  rpc GetAutomationTrigger(GetAutomationTriggerRequest) returns (GetAutomationTriggerResponse) {
+    option (google.api.http) = {get: "/api/v1/automation-triggers/{automation_trigger_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetAutomationTrigger"
+      description: "Retrieve an automation trigger by ID."
+    };
+  }
+
+  // Create an automation trigger.
+  rpc CreateAutomationTrigger(CreateAutomationTriggerRequest) returns (CreateAutomationTriggerResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/automation-triggers"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateAutomationTrigger"
+      description: "Create an automation trigger."
+    };
+  }
+
+  // Update select fields of an existing automation trigger. To enable or
+  // disable a trigger set the `is_enabled` field and include `is_enabled` in
+  // the update mask.
+  rpc UpdateAutomationTrigger(UpdateAutomationTriggerRequest) returns (UpdateAutomationTriggerResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/automation-triggers"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UpdateAutomationTrigger"
+      description: "Update select fields of an existing automation trigger."
+    };
+  }
+
+  // Retrieve and optionally filter a list of automation triggers.
+  rpc ListAutomationTriggers(ListAutomationTriggersRequest) returns (ListAutomationTriggersResponse) {
+    option (google.api.http) = {get: "/api/v1/automation-triggers"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListAutomationTriggers"
+      description: "Retrieve and optionally filter a list of automation triggers."
+    };
+  }
+
+  // Delete an automation trigger. Soft-delete: sets `archived_date` and hides
+  // the trigger from further producer matches. Historical
+  // `automation_triggered_events` rows survive for the retention window so
+  // past dispatches can still be inspected.
+  rpc DeleteAutomationTrigger(DeleteAutomationTriggerRequest) returns (DeleteAutomationTriggerResponse) {
+    option (google.api.http) = {delete: "/api/v1/automation-triggers/{automation_trigger_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "DeleteAutomationTrigger"
+      description: "Soft-delete an automation trigger by setting its archived_date."
+    };
+  }
+
+  // Retrieve and optionally filter a list of automation triggered events
+  // (per-trigger dispatch history). Filter by `automation_trigger_id` to
+  // power the canvas trigger history sidebar.
+  rpc ListAutomationTriggeredEvents(ListAutomationTriggeredEventsRequest) returns (ListAutomationTriggeredEventsResponse) {
+    option (google.api.http) = {get: "/api/v1/automation-triggered-events"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListAutomationTriggeredEvents"
+      description: "Retrieve and optionally filter a list of automation triggered events."
+    };
+  }
+}
+
+// AutomationTriggerActionKind is what an automation trigger does when it fires.
+// v1 supports `AUTOMATION_TRIGGER_ACTION_KIND_CANVAS_EVALUATION` only; the
+// enum is kept so future dispatch types (webhook, email, ...) can be added
+// without a breaking change.
+enum AutomationTriggerActionKind {
+  AUTOMATION_TRIGGER_ACTION_KIND_UNSPECIFIED = 0;
+  AUTOMATION_TRIGGER_ACTION_KIND_CANVAS_EVALUATION = 1;
+}
+
+// AutomationTriggerRunNameMatchKind is the operator on runs.name in an
+// automation trigger match filter.
+enum AutomationTriggerRunNameMatchKind {
+  AUTOMATION_TRIGGER_RUN_NAME_MATCH_KIND_UNSPECIFIED = 0;
+  AUTOMATION_TRIGGER_RUN_NAME_MATCH_KIND_STARTS_WITH = 1;
+  AUTOMATION_TRIGGER_RUN_NAME_MATCH_KIND_ENDS_WITH = 2;
+  AUTOMATION_TRIGGER_RUN_NAME_MATCH_KIND_CONTAINS = 3;
+  AUTOMATION_TRIGGER_RUN_NAME_MATCH_KIND_REGEX = 4;
+}
+
+// AutomationTriggerRunNameMatch expresses a filter against runs.name.
+message AutomationTriggerRunNameMatch {
+  AutomationTriggerRunNameMatchKind kind = 1 [(google.api.field_behavior) = REQUIRED];
+  string value = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// AutomationTriggerMetadataMatch is an equality filter against a run's
+// entity-metadata key/value. Key names are case-sensitive. Values are
+// compared as strings (numbers/booleans are stringified with Go's default
+// formatting). All listed matches are AND'd together.
+message AutomationTriggerMetadataMatch {
+  string key = 1 [(google.api.field_behavior) = REQUIRED];
+  string value = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// AutomationTriggerMatchFilter is the selector evaluated asynchronously
+// after StopRun. StopRun inserts an automation_source_event (RUN_STOP); the
+// automation_worker then pages through the org's enabled, non-archived
+// automation_triggers and enqueues a row for each trigger whose
+// match_filter accepts the run (the trigger's canvas_id identifies which
+// canvas to evaluate later — runs themselves have no canvas association).
+// Empty asset_ids matches any asset; absent name_match matches any name;
+// empty metadata_matches matches any metadata. Dimensions are AND'd.
+// Name matching for STARTS_WITH / ENDS_WITH / CONTAINS is case-insensitive;
+// REGEX uses Go regexp semantics (add (?i) for case-insensitive patterns).
+message AutomationTriggerMatchFilter {
+  repeated string asset_ids = 1;
+  optional AutomationTriggerRunNameMatch name_match = 2 [(google.api.field_behavior) = OPTIONAL];
+  repeated AutomationTriggerMetadataMatch metadata_matches = 3 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// AutomationTriggerParamSource is a wildcard resolved against the triggering
+// run when the match job builds action_params_snapshot.
+enum AutomationTriggerParamSource {
+  AUTOMATION_TRIGGER_PARAM_SOURCE_UNSPECIFIED = 0;
+  // Resolves to the triggering run's run_id (string).
+  AUTOMATION_TRIGGER_PARAM_SOURCE_TRIGGERING_RUN = 1;
+  // Resolves to the triggering run's asset_ids (string array).
+  AUTOMATION_TRIGGER_PARAM_SOURCE_TRIGGERING_RUN_ASSETS = 2;
+}
+
+// AutomationTriggerParamValue is one canvas param: a JSON literal or a
+// run-scoped wildcard source. Prefer this over ad-hoc `{"source":"..."}`
+// objects in a free-form Struct.
+message AutomationTriggerParamValue {
+  oneof value {
+    google.protobuf.Value literal = 1;
+    AutomationTriggerParamSource source = 2;
+  }
+}
+
+// CanvasEvaluationActionParams is the typed template for
+// AUTOMATION_TRIGGER_ACTION_KIND_CANVAS_EVALUATION. Wildcards in param_json
+// are resolved into automation_triggered_events.action_params_snapshot;
+// the automation worker pass-throughs that snapshot to EvaluateCanvas.
+message CanvasEvaluationActionParams {
+  string canvas_version_id = 1 [(google.api.field_behavior) = REQUIRED];
+  map<string, AutomationTriggerParamValue> param_json = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// AutomationTriggerActionParams is the public action_params shape. oneof by
+// action kind so future dispatch types (webhook, email, ...) don't fall back
+// to google.protobuf.Struct.
+message AutomationTriggerActionParams {
+  oneof kind {
+    CanvasEvaluationActionParams canvas_evaluation = 1;
+  }
+}
+
+message AutomationTrigger {
+  string automation_trigger_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string organization_id = 2 [(google.api.field_behavior) = REQUIRED];
+  string canvas_id = 3 [(google.api.field_behavior) = REQUIRED];
+  string name = 4 [(google.api.field_behavior) = REQUIRED];
+  AutomationTriggerMatchFilter match_filter = 5 [(google.api.field_behavior) = REQUIRED];
+
+  // Impersonation user materialized at create time. Recheck happens at
+  // dispatch when the automation worker impersonates this user for the
+  // EvaluateCanvas call.
+  string user_id = 6 [(google.api.field_behavior) = REQUIRED];
+
+  AutomationTriggerActionKind action_kind = 7 [(google.api.field_behavior) = REQUIRED];
+
+  // Typed template action params. Must agree with `action_kind` (e.g.
+  // CANVAS_EVALUATION requires `action_params.canvas_evaluation`). The match
+  // job resolves wildcards into
+  // automation_triggered_events.action_params_snapshot; the automation
+  // worker pass-throughs that snapshot to EvaluateCanvas.
+  AutomationTriggerActionParams action_params = 8 [(google.api.field_behavior) = OPTIONAL];
+
+  bool is_enabled = 9 [(google.api.field_behavior) = REQUIRED];
+  optional google.protobuf.Timestamp archived_date = 10 [(google.api.field_behavior) = OPTIONAL];
+  bool is_archived = 11 [(google.api.field_behavior) = REQUIRED];
+
+  google.protobuf.Timestamp created_date = 12 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp modified_date = 13 [(google.api.field_behavior) = REQUIRED];
+  string created_by_user_id = 14 [(google.api.field_behavior) = REQUIRED];
+  string modified_by_user_id = 15 [(google.api.field_behavior) = REQUIRED];
+
+  // When true, dispatches also send an email to notification_recipient_emails.
+  // The in-app notification to the trigger's creator is always created.
+  // Defaults to true.
+  bool email_notifications_enabled = 16 [(google.api.field_behavior) = REQUIRED];
+
+  // Addresses emailed when this trigger dispatches. Plain addresses rather
+  // than user ids, so reports can reach shared inboxes, ticket bots and
+  // distribution lists. Empty falls back to the creator's address.
+  repeated string notification_recipient_emails = 17 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `AutomationService_GetAutomationTrigger`.
+message GetAutomationTriggerRequest {
+  string automation_trigger_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The response of a call to `AutomationService_GetAutomationTrigger`.
+message GetAutomationTriggerResponse {
+  AutomationTrigger automation_trigger = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `AutomationService_CreateAutomationTrigger`.
+message CreateAutomationTriggerRequest {
+  string canvas_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string name = 2 [(google.api.field_behavior) = REQUIRED];
+  AutomationTriggerMatchFilter match_filter = 3 [(google.api.field_behavior) = REQUIRED];
+  AutomationTriggerActionKind action_kind = 4 [(google.api.field_behavior) = REQUIRED];
+  AutomationTriggerActionParams action_params = 5 [(google.api.field_behavior) = OPTIONAL];
+  optional bool is_enabled = 6 [(google.api.field_behavior) = OPTIONAL];
+  // Defaults to true when unset.
+  optional bool email_notifications_enabled = 7 [(google.api.field_behavior) = OPTIONAL];
+  // Defaults to the creating user's address when empty.
+  repeated string notification_recipient_emails = 8 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response of a call to `AutomationService_CreateAutomationTrigger`.
+message CreateAutomationTriggerResponse {
+  AutomationTrigger automation_trigger = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `AutomationService_UpdateAutomationTrigger`.
+// The trigger's `automation_trigger_id` is used to identify the row; every
+// other field is applied only when named in `update_mask`.
+message UpdateAutomationTriggerRequest {
+  AutomationTrigger automation_trigger = 1 [(google.api.field_behavior) = REQUIRED];
+
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The response of a call to `AutomationService_UpdateAutomationTrigger`.
+// To archive a trigger, include `archived_date` in the mask and set the
+// field. To unarchive, include `archived_date` in the mask and clear it.
+message UpdateAutomationTriggerResponse {
+  AutomationTrigger automation_trigger = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `AutomationService_ListAutomationTriggers`.
+message ListAutomationTriggersRequest {
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // CEL filter. Available fields: `automation_trigger_id`, `canvas_id`,
+  // `name`, `action_kind`, `is_enabled`, `is_archived`, `archived_date`.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // Order-by. Available fields: `created_date`, `modified_date`, `name`.
+  // Default: `created_date desc`.
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response of a call to `AutomationService_ListAutomationTriggers`.
+message ListAutomationTriggersResponse {
+  repeated AutomationTrigger automation_triggers = 1 [(google.api.field_behavior) = REQUIRED];
+  string next_page_token = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `AutomationService_DeleteAutomationTrigger`.
+// Soft-deletes by setting archived_date.
+message DeleteAutomationTriggerRequest {
+  string automation_trigger_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The response of a call to `AutomationService_DeleteAutomationTrigger`.
+message DeleteAutomationTriggerResponse {}
+
+// AutomationTriggeredEventState is the lifecycle of a single
+// (automation_trigger, run) match / dispatch attempt.
+enum AutomationTriggeredEventState {
+  AUTOMATION_TRIGGERED_EVENT_STATE_UNSPECIFIED = 0;
+  AUTOMATION_TRIGGERED_EVENT_STATE_WAITING = 1;
+  AUTOMATION_TRIGGERED_EVENT_STATE_DISPATCHING = 2;
+  AUTOMATION_TRIGGERED_EVENT_STATE_DONE = 3;
+  AUTOMATION_TRIGGERED_EVENT_STATE_FAILED = 4;
+  AUTOMATION_TRIGGERED_EVENT_STATE_CANCELLED = 5;
+}
+
+// AutomationTriggeredEvent is one (automation_trigger, run) match. When
+// dispatch succeeds, `canvas_execution_id` points at the resulting
+// canvas_executions row (and published report, when publish=true).
+message AutomationTriggeredEvent {
+  string automation_triggered_event_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string organization_id = 2 [(google.api.field_behavior) = REQUIRED];
+  string automation_trigger_id = 3 [(google.api.field_behavior) = REQUIRED];
+  string run_id = 4 [(google.api.field_behavior) = REQUIRED];
+  AutomationTriggeredEventState state = 5 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp dispatch_after = 6 [(google.api.field_behavior) = REQUIRED];
+  optional string canvas_execution_id = 7 [(google.api.field_behavior) = OPTIONAL];
+  int32 attempt_count = 8 [(google.api.field_behavior) = REQUIRED];
+  optional string last_error = 9 [(google.api.field_behavior) = OPTIONAL];
+  optional google.protobuf.Timestamp terminal_date = 10 [(google.api.field_behavior) = OPTIONAL];
+  google.protobuf.Timestamp created_date = 11 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp modified_date = 12 [(google.api.field_behavior) = REQUIRED];
+  string created_by_user_id = 13 [(google.api.field_behavior) = REQUIRED];
+  string modified_by_user_id = 14 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `AutomationService_ListAutomationTriggeredEvents`.
+message ListAutomationTriggeredEventsRequest {
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // CEL filter. Available fields: `automation_triggered_event_id`,
+  // `automation_trigger_id`, `run_id`, `state`.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // Order-by. Available fields: `created_date`, `dispatch_after`.
+  // Default: `created_date desc`.
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response of a call to `AutomationService_ListAutomationTriggeredEvents`.
+message ListAutomationTriggeredEventsResponse {
+  repeated AutomationTriggeredEvent automation_triggered_events = 1 [(google.api.field_behavior) = REQUIRED];
+  string next_page_token = 2 [(google.api.field_behavior) = REQUIRED];
+}

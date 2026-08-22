@@ -38,6 +38,8 @@ func (m *ExternalSync) CloneVT() *ExternalSync {
 	r.ScimServerUrl = m.ScimServerUrl
 	r.TokenCreatedDate = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.TokenCreatedDate).CloneVT())
 	r.TokenLifetimeSeconds = m.TokenLifetimeSeconds
+	r.Realm = m.Realm
+	r.Client = m.Client
 	if rhs := m.MostRecentSyncByUserId; rhs != nil {
 		tmpVal := *rhs
 		r.MostRecentSyncByUserId = &tmpVal
@@ -564,6 +566,12 @@ func (this *ExternalSync) EqualVT(that *ExternalSync) bool {
 		return false
 	}
 	if p, q := this.MostRecentTokenByUserId, that.MostRecentTokenByUserId; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
+		return false
+	}
+	if this.Realm != that.Realm {
+		return false
+	}
+	if this.Client != that.Client {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1601,6 +1609,20 @@ func (m *ExternalSync) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Client) > 0 {
+		i -= len(m.Client)
+		copy(dAtA[i:], m.Client)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Client)))
+		i--
+		dAtA[i] = 0x4a
+	}
+	if len(m.Realm) > 0 {
+		i -= len(m.Realm)
+		copy(dAtA[i:], m.Realm)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Realm)))
+		i--
+		dAtA[i] = 0x42
 	}
 	if m.MostRecentTokenByUserId != nil {
 		i -= len(*m.MostRecentTokenByUserId)
@@ -2884,6 +2906,20 @@ func (m *ExternalSync) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Client) > 0 {
+		i -= len(m.Client)
+		copy(dAtA[i:], m.Client)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Client)))
+		i--
+		dAtA[i] = 0x4a
+	}
+	if len(m.Realm) > 0 {
+		i -= len(m.Realm)
+		copy(dAtA[i:], m.Realm)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Realm)))
+		i--
+		dAtA[i] = 0x42
 	}
 	if m.MostRecentTokenByUserId != nil {
 		i -= len(*m.MostRecentTokenByUserId)
@@ -4171,6 +4207,14 @@ func (m *ExternalSync) SizeVT() (n int) {
 		l = len(*m.MostRecentTokenByUserId)
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	l = len(m.Realm)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Client)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -4897,6 +4941,70 @@ func (m *ExternalSync) UnmarshalVT(dAtA []byte) error {
 			}
 			s := string(dAtA[iNdEx:postIndex])
 			m.MostRecentTokenByUserId = &s
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Realm", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Realm = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Client", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Client = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -8053,6 +8161,78 @@ func (m *ExternalSync) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			s := stringValue
 			m.MostRecentTokenByUserId = &s
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Realm", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.Realm = stringValue
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Client", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.Client = stringValue
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

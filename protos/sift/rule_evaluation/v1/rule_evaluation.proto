@@ -33,6 +33,8 @@ service RuleEvaluationService {
       summary: "EvaluateRules"
       description: "Evaluate rules from a designated source against a run or asset and return the total amount of annotations created and the ID of the generated report."
     };
+    // Emission is gated in the report_creation extractor: only fires when the
+    // response carries a report_id (run-based evaluations).
   }
 
   // Perform a dry run evaluation for existing rules or rule configurations against a run and return the annotations that would be generated.

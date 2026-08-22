@@ -299,7 +299,6 @@ type ListChannelsRequest struct {
 	// Available fields to filter by are `channel_id`, `asset_id`, `name`, `component`, `description`
 	// `run_id`, `run_name`, `run_client_key`, `created_date`, and `modified_date`.
 	// For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-	// For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/channels#channel). Optional.
 	Filter string `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
 	// This field is only required if your user belongs to multiple organizations.
 	OrganizationId string `protobuf:"bytes,4,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`

@@ -105,7 +105,6 @@ class ListActiveUsersRequest(google.protobuf.message.Message):
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are `user_id` and `name`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-    For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/users#user). Optional.
     """
     organization_id: builtins.str
     """Optional. If provided, this will scope down the user search to just those in the organization ID provided."""
@@ -175,7 +174,6 @@ class ListUsersRequest(google.protobuf.message.Message):
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are `user_id` and `name`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-    For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/users#user). Optional.
     """
     order_by: builtins.str
     """How to order the retrieved users. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".

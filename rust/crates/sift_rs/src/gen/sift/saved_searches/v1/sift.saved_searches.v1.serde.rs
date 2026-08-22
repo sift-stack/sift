@@ -850,7 +850,7 @@ impl<'de> serde::Deserialize<'de> for ListSavedSearchesRequest {
                             if page_size__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("pageSize"));
                             }
-                            page_size__ = 
+                            page_size__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1518,6 +1518,12 @@ impl serde::Serialize for SavedSearchProperties {
         if self.duration.is_some() {
             len += 1;
         }
+        if !self.template_items.is_empty() {
+            len += 1;
+        }
+        if self.report_type.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.saved_searches.v1.SavedSearchProperties", len)?;
         if !self.overview_mode.is_empty() {
             struct_ser.serialize_field("overviewMode", &self.overview_mode)?;
@@ -1564,6 +1570,12 @@ impl serde::Serialize for SavedSearchProperties {
         if let Some(v) = self.duration.as_ref() {
             struct_ser.serialize_field("duration", v)?;
         }
+        if !self.template_items.is_empty() {
+            struct_ser.serialize_field("templateItems", &self.template_items)?;
+        }
+        if let Some(v) = self.report_type.as_ref() {
+            struct_ser.serialize_field("reportType", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -1603,6 +1615,10 @@ impl<'de> serde::Deserialize<'de> for SavedSearchProperties {
             "metadata_items",
             "metadataItems",
             "duration",
+            "template_items",
+            "templateItems",
+            "report_type",
+            "reportType",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1622,6 +1638,8 @@ impl<'de> serde::Deserialize<'de> for SavedSearchProperties {
             OrderBy,
             MetadataItems,
             Duration,
+            TemplateItems,
+            ReportType,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1658,6 +1676,8 @@ impl<'de> serde::Deserialize<'de> for SavedSearchProperties {
                             "orderBy" | "order_by" => Ok(GeneratedField::OrderBy),
                             "metadataItems" | "metadata_items" => Ok(GeneratedField::MetadataItems),
                             "duration" => Ok(GeneratedField::Duration),
+                            "templateItems" | "template_items" => Ok(GeneratedField::TemplateItems),
+                            "reportType" | "report_type" => Ok(GeneratedField::ReportType),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1692,6 +1712,8 @@ impl<'de> serde::Deserialize<'de> for SavedSearchProperties {
                 let mut order_by__ = None;
                 let mut metadata_items__ = None;
                 let mut duration__ = None;
+                let mut template_items__ = None;
+                let mut report_type__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::OverviewMode => {
@@ -1784,6 +1806,18 @@ impl<'de> serde::Deserialize<'de> for SavedSearchProperties {
                             }
                             duration__ = map_.next_value()?;
                         }
+                        GeneratedField::TemplateItems => {
+                            if template_items__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("templateItems"));
+                            }
+                            template_items__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::ReportType => {
+                            if report_type__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("reportType"));
+                            }
+                            report_type__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(SavedSearchProperties {
@@ -1802,10 +1836,137 @@ impl<'de> serde::Deserialize<'de> for SavedSearchProperties {
                     order_by: order_by__,
                     metadata_items: metadata_items__.unwrap_or_default(),
                     duration: duration__,
+                    template_items: template_items__.unwrap_or_default(),
+                    report_type: report_type__,
                 })
             }
         }
         deserializer.deserialize_struct("sift.saved_searches.v1.SavedSearchProperties", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for SavedSearchTemplateItem {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.id.is_empty() {
+            len += 1;
+        }
+        if !self.name.is_empty() {
+            len += 1;
+        }
+        if !self.kind.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.saved_searches.v1.SavedSearchTemplateItem", len)?;
+        if !self.id.is_empty() {
+            struct_ser.serialize_field("id", &self.id)?;
+        }
+        if !self.name.is_empty() {
+            struct_ser.serialize_field("name", &self.name)?;
+        }
+        if !self.kind.is_empty() {
+            struct_ser.serialize_field("kind", &self.kind)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for SavedSearchTemplateItem {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "id",
+            "name",
+            "kind",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Id,
+            Name,
+            Kind,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "id" => Ok(GeneratedField::Id),
+                            "name" => Ok(GeneratedField::Name),
+                            "kind" => Ok(GeneratedField::Kind),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = SavedSearchTemplateItem;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.saved_searches.v1.SavedSearchTemplateItem")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<SavedSearchTemplateItem, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut id__ = None;
+                let mut name__ = None;
+                let mut kind__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Id => {
+                            if id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("id"));
+                            }
+                            id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Name => {
+                            if name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("name"));
+                            }
+                            name__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Kind => {
+                            if kind__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("kind"));
+                            }
+                            kind__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(SavedSearchTemplateItem {
+                    id: id__.unwrap_or_default(),
+                    name: name__.unwrap_or_default(),
+                    kind: kind__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.saved_searches.v1.SavedSearchTemplateItem", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for UpdateSavedSearchRequest {

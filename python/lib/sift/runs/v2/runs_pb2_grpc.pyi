@@ -63,17 +63,19 @@ class RunServiceStub:
     ]
     """Set the stop time of a run to the current time. To set the stop time of a run to an arbitrary time see `UpdateRun`."""
 
-    GetFilterFields: grpc.UnaryUnaryMultiCallable[
-        sift.runs.v2.runs_pb2.GetFilterFieldsRequest,
-        sift.runs.v2.runs_pb2.GetFilterFieldsResponse,
-    ]
-    """Returns the available filter fields for the ListRuns CEL filter."""
-
     ValidateRunFilter: grpc.UnaryUnaryMultiCallable[
         sift.runs.v2.runs_pb2.ValidateRunFilterRequest,
         sift.runs.v2.runs_pb2.ValidateRunFilterResponse,
     ]
-    """Validates a CEL filter expression against the available run filter fields.
+    """Returns distinct values for a searchable run filter field, for a typeahead value picker.
+    Internal: this powers the app's filter builder and is not part of the public API.
+
+    ABAC is enforced manually in the handler: the response is a set of bare string
+    values with no resource id, so the outbound interceptor (used by ListRuns) can't
+    filter it. The handler instead resolves the underlying run/asset ids for the
+    candidate values and runs them through the policy evaluation service.
+
+    Validates a CEL filter expression against the available run filter fields.
     Returns an error message if the expression is invalid, or an empty error_message if valid.
     """
 
@@ -128,17 +130,19 @@ class RunServiceAsyncStub:
     ]
     """Set the stop time of a run to the current time. To set the stop time of a run to an arbitrary time see `UpdateRun`."""
 
-    GetFilterFields: grpc.aio.UnaryUnaryMultiCallable[
-        sift.runs.v2.runs_pb2.GetFilterFieldsRequest,
-        sift.runs.v2.runs_pb2.GetFilterFieldsResponse,
-    ]
-    """Returns the available filter fields for the ListRuns CEL filter."""
-
     ValidateRunFilter: grpc.aio.UnaryUnaryMultiCallable[
         sift.runs.v2.runs_pb2.ValidateRunFilterRequest,
         sift.runs.v2.runs_pb2.ValidateRunFilterResponse,
     ]
-    """Validates a CEL filter expression against the available run filter fields.
+    """Returns distinct values for a searchable run filter field, for a typeahead value picker.
+    Internal: this powers the app's filter builder and is not part of the public API.
+
+    ABAC is enforced manually in the handler: the response is a set of bare string
+    values with no resource id, so the outbound interceptor (used by ListRuns) can't
+    filter it. The handler instead resolves the underlying run/asset ids for the
+    candidate values and runs them through the policy evaluation service.
+
+    Validates a CEL filter expression against the available run filter fields.
     Returns an error message if the expression is invalid, or an empty error_message if valid.
     """
 
@@ -208,20 +212,20 @@ class RunServiceServicer(metaclass=abc.ABCMeta):
         """Set the stop time of a run to the current time. To set the stop time of a run to an arbitrary time see `UpdateRun`."""
 
     @abc.abstractmethod
-    def GetFilterFields(
-        self,
-        request: sift.runs.v2.runs_pb2.GetFilterFieldsRequest,
-        context: _ServicerContext,
-    ) -> typing.Union[sift.runs.v2.runs_pb2.GetFilterFieldsResponse, collections.abc.Awaitable[sift.runs.v2.runs_pb2.GetFilterFieldsResponse]]:
-        """Returns the available filter fields for the ListRuns CEL filter."""
-
-    @abc.abstractmethod
     def ValidateRunFilter(
         self,
         request: sift.runs.v2.runs_pb2.ValidateRunFilterRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.runs.v2.runs_pb2.ValidateRunFilterResponse, collections.abc.Awaitable[sift.runs.v2.runs_pb2.ValidateRunFilterResponse]]:
-        """Validates a CEL filter expression against the available run filter fields.
+        """Returns distinct values for a searchable run filter field, for a typeahead value picker.
+        Internal: this powers the app's filter builder and is not part of the public API.
+
+        ABAC is enforced manually in the handler: the response is a set of bare string
+        values with no resource id, so the outbound interceptor (used by ListRuns) can't
+        filter it. The handler instead resolves the underlying run/asset ids for the
+        candidate values and runs them through the policy evaluation service.
+
+        Validates a CEL filter expression against the available run filter fields.
         Returns an error message if the expression is invalid, or an empty error_message if valid.
         """
 

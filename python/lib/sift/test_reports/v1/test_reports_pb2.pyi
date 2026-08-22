@@ -575,7 +575,6 @@ class ListTestReportsRequest(google.protobuf.message.Message):
     `part_number`, `system_operator`, `run_id`, `archived_date`, and `metadata`.
     Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-    For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/test-results#testreport). Optional.
     """
     order_by: builtins.str
     """How to order the retrieved test reports. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
@@ -775,7 +774,6 @@ class ListTestStepsRequest(google.protobuf.message.Message):
     `error_code`, `error_message`, `created_date`, `modified_date`, and `metadata`.
     Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-    For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/test-results#teststep). Optional.
     """
     order_by: builtins.str
     """How to order the retrieved test steps. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
@@ -1021,7 +1019,6 @@ class ListTestMeasurementsRequest(google.protobuf.message.Message):
     `created_date`, `modified_date`, and `metadata`.
     Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-    For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/test-results#testmeasurement). Optional.
     """
     order_by: builtins.str
     """How to order the retrieved test measurements. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
@@ -1081,7 +1078,6 @@ class CountTestStepsRequest(google.protobuf.message.Message):
     `error_code`, `error_message`, `created_date`, `modified_date`, and `metadata`.
     Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-    For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/test-results#teststep). Optional.
     """
     def __init__(
         self,
@@ -1124,7 +1120,6 @@ class CountTestMeasurementsRequest(google.protobuf.message.Message):
     `created_date`, `modified_date`, and `metadata`.
     Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-    For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/test-results#testmeasurement). Optional.
     """
     def __init__(
         self,

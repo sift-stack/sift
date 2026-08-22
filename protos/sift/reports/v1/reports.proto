@@ -154,6 +154,17 @@ message Report {
   // canvas_executions.status. Unset for RULE_EVALUATION reports (whose status is
   // conveyed via the per-rule `summaries` instead).
   optional sift.canvas.v1.CanvasCellExecutionStatus canvas_status = 20 [(google.api.field_behavior) = OPTIONAL];
+  // For CANVAS reports, the id of the canvas_version the linked execution was run
+  // from (read-through from canvas_executions.canvas_version_id). Empty for
+  // RULE_EVALUATION reports. Used by clients to route to the canvas source and to
+  // re-run the report from the same version.
+  optional string canvas_version_id = 21 [(google.api.field_behavior) = OPTIONAL];
+  // For CANVAS reports, the id of the canvas the linked execution was published
+  // from (resolved through canvas_versions.canvas_id). Empty for RULE_EVALUATION
+  // reports, whose equivalent grouping is `report_template_id`. Also the value
+  // matched by the `canvas_id` list filter. Resolve the canvas's display name by
+  // listing canvases filtered on the ids collected from a page of reports.
+  optional string canvas_id = 22 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // ReportWithCumulativeSummary is a projection of `Report` that replaces the per-rule `summaries`
@@ -202,6 +213,17 @@ message ReportWithCumulativeSummary {
   // canvas_executions.status. Unset for RULE_EVALUATION reports (whose status is
   // conveyed via the `cumulative_summary` instead).
   optional sift.canvas.v1.CanvasCellExecutionStatus canvas_status = 19 [(google.api.field_behavior) = OPTIONAL];
+  // For CANVAS reports, the id of the canvas_version the linked execution was run
+  // from (read-through from canvas_executions.canvas_version_id). Empty for
+  // RULE_EVALUATION reports. Used by clients to route to the canvas source and to
+  // re-run the report from the same version.
+  optional string canvas_version_id = 20 [(google.api.field_behavior) = OPTIONAL];
+  // For CANVAS reports, the id of the canvas the linked execution was published
+  // from (resolved through canvas_versions.canvas_id). Empty for RULE_EVALUATION
+  // reports, whose equivalent grouping is `report_template_id`. Also the value
+  // matched by the `canvas_id` list filter. Resolve the canvas's display name by
+  // listing canvases filtered on the ids collected from a page of reports.
+  optional string canvas_id = 21 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message ReportRuleSummary {
@@ -406,10 +428,9 @@ message ListReportsRequest {
   string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-  // Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, `report_type`, `is_archived`, `archived_date`, `created_date`,
+  // Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, `report_type`, `canvas_id`, `is_archived`, `archived_date`, `created_date`,
   // `created_by_user_id`, `metadata`, `modified_date`, and `modified_by_user_id`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-  // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/reports#report). Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
 
   // This field is only required if your user belongs to multiple organizations.
@@ -443,10 +464,9 @@ message ListReportsWithCumulativeSummaryRequest {
   string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-  // Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, `report_type`, `is_archived`, `archived_date`, `created_date`,
+  // Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, `report_type`, `canvas_id`, `is_archived`, `archived_date`, `created_date`,
   // `created_by_user_id`, `metadata`, `modified_date`, and `modified_by_user_id`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-  // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/reports#report). Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
 
   // This field is only required if your user belongs to multiple organizations.

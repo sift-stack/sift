@@ -73,12 +73,18 @@ class SavedSearchProperties(google.protobuf.message.Message):
     ORDER_BY_FIELD_NUMBER: builtins.int
     METADATA_ITEMS_FIELD_NUMBER: builtins.int
     DURATION_FIELD_NUMBER: builtins.int
+    TEMPLATE_ITEMS_FIELD_NUMBER: builtins.int
+    REPORT_TYPE_FIELD_NUMBER: builtins.int
     overview_mode: builtins.str
     search_term: builtins.str
     show_advanced_filters: builtins.bool
     include_archived: builtins.bool
     order_by: builtins.str
     duration: builtins.str
+    report_type: builtins.str
+    """Reports search: restricts results to a single report kind. One of
+    "RULE_EVALUATION" or "CANVAS", matching the `report_type` filter values.
+    """
     @property
     def from_date_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -94,9 +100,18 @@ class SavedSearchProperties(google.protobuf.message.Message):
     @property
     def run_items(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___SavedSearchFilterItem]: ...
     @property
-    def report_template_items(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___SavedSearchFilterItem]: ...
+    def report_template_items(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___SavedSearchFilterItem]:
+        """Superseded by `template_items`, which also carries canvases. Saved searches
+        written before that field exists only populate this one, and reads hydrate
+        `template_items` from it with `kind` set to "reportTemplate".
+        """
+
     @property
     def metadata_items(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___SavedSearchMetadataItem]: ...
+    @property
+    def template_items(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___SavedSearchTemplateItem]:
+        """Reports search: report templates and canvases are stored together in a single filter."""
+
     def __init__(
         self,
         *,
@@ -115,9 +130,11 @@ class SavedSearchProperties(google.protobuf.message.Message):
         order_by: builtins.str | None = ...,
         metadata_items: collections.abc.Iterable[global___SavedSearchMetadataItem] | None = ...,
         duration: builtins.str | None = ...,
+        template_items: collections.abc.Iterable[global___SavedSearchTemplateItem] | None = ...,
+        report_type: builtins.str | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_duration", b"_duration", "_from_date_time", b"_from_date_time", "_include_archived", b"_include_archived", "_order_by", b"_order_by", "_search_term", b"_search_term", "_show_advanced_filters", b"_show_advanced_filters", "_to_date_time", b"_to_date_time", "duration", b"duration", "from_date_time", b"from_date_time", "include_archived", b"include_archived", "order_by", b"order_by", "search_term", b"search_term", "show_advanced_filters", b"show_advanced_filters", "to_date_time", b"to_date_time"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_duration", b"_duration", "_from_date_time", b"_from_date_time", "_include_archived", b"_include_archived", "_order_by", b"_order_by", "_search_term", b"_search_term", "_show_advanced_filters", b"_show_advanced_filters", "_to_date_time", b"_to_date_time", "annotation_items", b"annotation_items", "asset_items", b"asset_items", "duration", b"duration", "from_date_time", b"from_date_time", "include_archived", b"include_archived", "metadata_items", b"metadata_items", "order_by", b"order_by", "overview_mode", b"overview_mode", "report_template_items", b"report_template_items", "run_items", b"run_items", "search_term", b"search_term", "show_advanced_filters", b"show_advanced_filters", "tag_items", b"tag_items", "to_date_time", b"to_date_time", "user_items", b"user_items"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_duration", b"_duration", "_from_date_time", b"_from_date_time", "_include_archived", b"_include_archived", "_order_by", b"_order_by", "_report_type", b"_report_type", "_search_term", b"_search_term", "_show_advanced_filters", b"_show_advanced_filters", "_to_date_time", b"_to_date_time", "duration", b"duration", "from_date_time", b"from_date_time", "include_archived", b"include_archived", "order_by", b"order_by", "report_type", b"report_type", "search_term", b"search_term", "show_advanced_filters", b"show_advanced_filters", "to_date_time", b"to_date_time"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_duration", b"_duration", "_from_date_time", b"_from_date_time", "_include_archived", b"_include_archived", "_order_by", b"_order_by", "_report_type", b"_report_type", "_search_term", b"_search_term", "_show_advanced_filters", b"_show_advanced_filters", "_to_date_time", b"_to_date_time", "annotation_items", b"annotation_items", "asset_items", b"asset_items", "duration", b"duration", "from_date_time", b"from_date_time", "include_archived", b"include_archived", "metadata_items", b"metadata_items", "order_by", b"order_by", "overview_mode", b"overview_mode", "report_template_items", b"report_template_items", "report_type", b"report_type", "run_items", b"run_items", "search_term", b"search_term", "show_advanced_filters", b"show_advanced_filters", "tag_items", b"tag_items", "template_items", b"template_items", "to_date_time", b"to_date_time", "user_items", b"user_items"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_duration", b"_duration"]) -> typing.Literal["duration"] | None: ...
     @typing.overload
@@ -126,6 +143,8 @@ class SavedSearchProperties(google.protobuf.message.Message):
     def WhichOneof(self, oneof_group: typing.Literal["_include_archived", b"_include_archived"]) -> typing.Literal["include_archived"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_order_by", b"_order_by"]) -> typing.Literal["order_by"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_report_type", b"_report_type"]) -> typing.Literal["report_type"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_search_term", b"_search_term"]) -> typing.Literal["search_term"] | None: ...
     @typing.overload
@@ -152,6 +171,32 @@ class SavedSearchFilterItem(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["id", b"id", "name", b"name"]) -> None: ...
 
 global___SavedSearchFilterItem = SavedSearchFilterItem
+
+@typing.final
+class SavedSearchTemplateItem(google.protobuf.message.Message):
+    """A report template or canvas selected in the reports Template filter. Distinct
+    from `SavedSearchFilterItem`, which is shared by filters that have no kind.
+    """
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ID_FIELD_NUMBER: builtins.int
+    NAME_FIELD_NUMBER: builtins.int
+    KIND_FIELD_NUMBER: builtins.int
+    id: builtins.str
+    name: builtins.str
+    kind: builtins.str
+    """One of "reportTemplate" or "canvas"."""
+    def __init__(
+        self,
+        *,
+        id: builtins.str = ...,
+        name: builtins.str = ...,
+        kind: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["id", b"id", "kind", b"kind", "name", b"name"]) -> None: ...
+
+global___SavedSearchTemplateItem = SavedSearchTemplateItem
 
 @typing.final
 class SavedSearchMetadataItem(google.protobuf.message.Message):
@@ -241,7 +286,6 @@ class ListSavedSearchesRequest(google.protobuf.message.Message):
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are 'name', 'saved_search_id', and 'overview_mode'.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-    For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/saved_searches#savedsearch). Optional.
     """
     organization_id: builtins.str
     """This field is only required if your user belongs to multiple organizations."""

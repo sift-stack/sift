@@ -277,6 +277,7 @@ impl DataService {
                             start_time: Some(start_time),
                             end_time: Some(end_time),
                             page_size: PAGE_SIZE,
+                            include_received_at: None,
                         })
                         .await
                         .map(|resp| resp.into_inner())
@@ -293,9 +294,12 @@ impl DataService {
             for channel_page in data {
                 match channel_page.type_url.as_str() {
                     "sift.data.v2.BytesValues" => {
-                        let BytesValues { metadata, values } =
-                            BytesValues::decode(channel_page.value)
-                                .context("failed to decode channel page")?;
+                        let BytesValues {
+                            metadata,
+                            values,
+                            extras: _,
+                        } = BytesValues::decode(channel_page.value)
+                            .context("failed to decode channel page")?;
 
                         let Some(metadata) = metadata else {
                             bail!("unexpected missing channel page metadata");
@@ -454,9 +458,12 @@ impl DataService {
                         }
                     }
                     "sift.data.v2.DoubleValues" => {
-                        let DoubleValues { metadata, values } =
-                            DoubleValues::decode(channel_page.value)
-                                .context("failed to decode channel page")?;
+                        let DoubleValues {
+                            metadata,
+                            values,
+                            extras: _,
+                        } = DoubleValues::decode(channel_page.value)
+                            .context("failed to decode channel page")?;
 
                         let Some(metadata) = metadata else {
                             bail!("unexpected missing channel page metadata");
@@ -497,9 +504,12 @@ impl DataService {
                         }
                     }
                     "sift.data.v2.FloatValues" => {
-                        let FloatValues { metadata, values } =
-                            FloatValues::decode(channel_page.value)
-                                .context("failed to decode channel page")?;
+                        let FloatValues {
+                            metadata,
+                            values,
+                            extras: _,
+                        } = FloatValues::decode(channel_page.value)
+                            .context("failed to decode channel page")?;
 
                         let Some(metadata) = metadata else {
                             bail!("unexpected missing channel page metadata");
@@ -540,9 +550,12 @@ impl DataService {
                         }
                     }
                     "sift.data.v2.StringValues" => {
-                        let StringValues { metadata, values } =
-                            StringValues::decode(channel_page.value)
-                                .context("failed to decode channel page")?;
+                        let StringValues {
+                            metadata,
+                            values,
+                            extras: _,
+                        } = StringValues::decode(channel_page.value)
+                            .context("failed to decode channel page")?;
 
                         let Some(metadata) = metadata else {
                             bail!("unexpected missing channel page metadata");
@@ -583,9 +596,12 @@ impl DataService {
                         }
                     }
                     "sift.data.v2.BoolValues" => {
-                        let BoolValues { metadata, values } =
-                            BoolValues::decode(channel_page.value)
-                                .context("failed to decode channel page")?;
+                        let BoolValues {
+                            metadata,
+                            values,
+                            extras: _,
+                        } = BoolValues::decode(channel_page.value)
+                            .context("failed to decode channel page")?;
 
                         let Some(metadata) = metadata else {
                             bail!("unexpected missing channel page metadata");
@@ -626,9 +642,12 @@ impl DataService {
                         }
                     }
                     "sift.data.v2.Int32Values" => {
-                        let Int32Values { metadata, values } =
-                            Int32Values::decode(channel_page.value)
-                                .context("failed to decode channel page")?;
+                        let Int32Values {
+                            metadata,
+                            values,
+                            extras: _,
+                        } = Int32Values::decode(channel_page.value)
+                            .context("failed to decode channel page")?;
 
                         let Some(metadata) = metadata else {
                             bail!("unexpected missing channel page metadata");
@@ -669,9 +688,12 @@ impl DataService {
                         }
                     }
                     "sift.data.v2.Int64Values" => {
-                        let Int64Values { metadata, values } =
-                            Int64Values::decode(channel_page.value)
-                                .context("failed to decode channel page")?;
+                        let Int64Values {
+                            metadata,
+                            values,
+                            extras: _,
+                        } = Int64Values::decode(channel_page.value)
+                            .context("failed to decode channel page")?;
 
                         let Some(metadata) = metadata else {
                             bail!("unexpected missing channel page metadata");
@@ -712,9 +734,12 @@ impl DataService {
                         }
                     }
                     "sift.data.v2.Uint32Values" => {
-                        let Uint32Values { metadata, values } =
-                            Uint32Values::decode(channel_page.value)
-                                .context("failed to decode channel page")?;
+                        let Uint32Values {
+                            metadata,
+                            values,
+                            extras: _,
+                        } = Uint32Values::decode(channel_page.value)
+                            .context("failed to decode channel page")?;
 
                         let Some(metadata) = metadata else {
                             bail!("unexpected missing channel page metadata");
@@ -755,9 +780,12 @@ impl DataService {
                         }
                     }
                     "sift.data.v2.Uint64Values" => {
-                        let Uint64Values { metadata, values } =
-                            Uint64Values::decode(channel_page.value)
-                                .context("failed to decode channel page")?;
+                        let Uint64Values {
+                            metadata,
+                            values,
+                            extras: _,
+                        } = Uint64Values::decode(channel_page.value)
+                            .context("failed to decode channel page")?;
 
                         let Some(metadata) = metadata else {
                             bail!("unexpected missing channel page metadata");

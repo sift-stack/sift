@@ -202,7 +202,7 @@ impl<'de> serde::Deserialize<'de> for BitFieldValue {
                             if value__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("value"));
                             }
-                            value__ = 
+                            value__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -447,12 +447,18 @@ impl serde::Serialize for BoolValues {
         if !self.values.is_empty() {
             len += 1;
         }
+        if !self.extras.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.data.v2.BoolValues", len)?;
         if let Some(v) = self.metadata.as_ref() {
             struct_ser.serialize_field("metadata", v)?;
         }
         if !self.values.is_empty() {
             struct_ser.serialize_field("values", &self.values)?;
+        }
+        if !self.extras.is_empty() {
+            struct_ser.serialize_field("extras", &self.extras)?;
         }
         struct_ser.end()
     }
@@ -466,12 +472,14 @@ impl<'de> serde::Deserialize<'de> for BoolValues {
         const FIELDS: &[&str] = &[
             "metadata",
             "values",
+            "extras",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Metadata,
             Values,
+            Extras,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -495,6 +503,7 @@ impl<'de> serde::Deserialize<'de> for BoolValues {
                         match value {
                             "metadata" => Ok(GeneratedField::Metadata),
                             "values" => Ok(GeneratedField::Values),
+                            "extras" => Ok(GeneratedField::Extras),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -516,6 +525,7 @@ impl<'de> serde::Deserialize<'de> for BoolValues {
             {
                 let mut metadata__ = None;
                 let mut values__ = None;
+                let mut extras__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Metadata => {
@@ -530,11 +540,18 @@ impl<'de> serde::Deserialize<'de> for BoolValues {
                             }
                             values__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::Extras => {
+                            if extras__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("extras"));
+                            }
+                            extras__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(BoolValues {
                     metadata: metadata__,
                     values: values__.unwrap_or_default(),
+                    extras: extras__.unwrap_or_default(),
                 })
             }
         }
@@ -638,7 +655,7 @@ impl<'de> serde::Deserialize<'de> for BytesValue {
                             if value__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("value"));
                             }
-                            value__ = 
+                            value__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -667,12 +684,18 @@ impl serde::Serialize for BytesValues {
         if !self.values.is_empty() {
             len += 1;
         }
+        if !self.extras.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.data.v2.BytesValues", len)?;
         if let Some(v) = self.metadata.as_ref() {
             struct_ser.serialize_field("metadata", v)?;
         }
         if !self.values.is_empty() {
             struct_ser.serialize_field("values", &self.values)?;
+        }
+        if !self.extras.is_empty() {
+            struct_ser.serialize_field("extras", &self.extras)?;
         }
         struct_ser.end()
     }
@@ -686,12 +709,14 @@ impl<'de> serde::Deserialize<'de> for BytesValues {
         const FIELDS: &[&str] = &[
             "metadata",
             "values",
+            "extras",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Metadata,
             Values,
+            Extras,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -715,6 +740,7 @@ impl<'de> serde::Deserialize<'de> for BytesValues {
                         match value {
                             "metadata" => Ok(GeneratedField::Metadata),
                             "values" => Ok(GeneratedField::Values),
+                            "extras" => Ok(GeneratedField::Extras),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -736,6 +762,7 @@ impl<'de> serde::Deserialize<'de> for BytesValues {
             {
                 let mut metadata__ = None;
                 let mut values__ = None;
+                let mut extras__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Metadata => {
@@ -750,11 +777,18 @@ impl<'de> serde::Deserialize<'de> for BytesValues {
                             }
                             values__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::Extras => {
+                            if extras__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("extras"));
+                            }
+                            extras__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(BytesValues {
                     metadata: metadata__,
                     values: values__.unwrap_or_default(),
+                    extras: extras__.unwrap_or_default(),
                 })
             }
         }
@@ -1035,6 +1069,591 @@ impl<'de> serde::Deserialize<'de> for ChannelQuery {
         deserializer.deserialize_struct("sift.data.v2.ChannelQuery", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for DimensionIndividualWrapper {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.label.is_empty() {
+            len += 1;
+        }
+        if self.r#type != 0 {
+            len += 1;
+        }
+        if self.value_wrapper.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.data.v2.DimensionIndividualWrapper", len)?;
+        if !self.label.is_empty() {
+            struct_ser.serialize_field("label", &self.label)?;
+        }
+        if self.r#type != 0 {
+            let v = dimension_individual_wrapper::Type::try_from(self.r#type)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.r#type)))?;
+            struct_ser.serialize_field("type", &v)?;
+        }
+        if let Some(v) = self.value_wrapper.as_ref() {
+            match v {
+                dimension_individual_wrapper::ValueWrapper::DimensionStringValues(v) => {
+                    struct_ser.serialize_field("dimensionStringValues", v)?;
+                }
+                dimension_individual_wrapper::ValueWrapper::DimensionProtoTimestampValues(v) => {
+                    struct_ser.serialize_field("dimensionProtoTimestampValues", v)?;
+                }
+            }
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for DimensionIndividualWrapper {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "label",
+            "type",
+            "dimension_string_values",
+            "dimensionStringValues",
+            "dimension_proto_timestamp_values",
+            "dimensionProtoTimestampValues",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Label,
+            Type,
+            DimensionStringValues,
+            DimensionProtoTimestampValues,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "label" => Ok(GeneratedField::Label),
+                            "type" => Ok(GeneratedField::Type),
+                            "dimensionStringValues" | "dimension_string_values" => Ok(GeneratedField::DimensionStringValues),
+                            "dimensionProtoTimestampValues" | "dimension_proto_timestamp_values" => Ok(GeneratedField::DimensionProtoTimestampValues),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = DimensionIndividualWrapper;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.data.v2.DimensionIndividualWrapper")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<DimensionIndividualWrapper, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut label__ = None;
+                let mut r#type__ = None;
+                let mut value_wrapper__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Label => {
+                            if label__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("label"));
+                            }
+                            label__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Type => {
+                            if r#type__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("type"));
+                            }
+                            r#type__ = Some(map_.next_value::<dimension_individual_wrapper::Type>()? as i32);
+                        }
+                        GeneratedField::DimensionStringValues => {
+                            if value_wrapper__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("dimensionStringValues"));
+                            }
+                            value_wrapper__ = map_.next_value::<::std::option::Option<_>>()?.map(dimension_individual_wrapper::ValueWrapper::DimensionStringValues)
+;
+                        }
+                        GeneratedField::DimensionProtoTimestampValues => {
+                            if value_wrapper__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("dimensionProtoTimestampValues"));
+                            }
+                            value_wrapper__ = map_.next_value::<::std::option::Option<_>>()?.map(dimension_individual_wrapper::ValueWrapper::DimensionProtoTimestampValues)
+;
+                        }
+                    }
+                }
+                Ok(DimensionIndividualWrapper {
+                    label: label__.unwrap_or_default(),
+                    r#type: r#type__.unwrap_or_default(),
+                    value_wrapper: value_wrapper__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.data.v2.DimensionIndividualWrapper", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for dimension_individual_wrapper::Type {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let variant = match self {
+            Self::Unspecified => "TYPE_UNSPECIFIED",
+            Self::Identifier => "TYPE_IDENTIFIER",
+            Self::AdditionalTimestampNanos => "TYPE_ADDITIONAL_TIMESTAMP_NANOS",
+        };
+        serializer.serialize_str(variant)
+    }
+}
+impl<'de> serde::Deserialize<'de> for dimension_individual_wrapper::Type {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "TYPE_UNSPECIFIED",
+            "TYPE_IDENTIFIER",
+            "TYPE_ADDITIONAL_TIMESTAMP_NANOS",
+        ];
+
+        struct GeneratedVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = dimension_individual_wrapper::Type;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "expected one of: {:?}", &FIELDS)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
+                    })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
+                    })
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "TYPE_UNSPECIFIED" => Ok(dimension_individual_wrapper::Type::Unspecified),
+                    "TYPE_IDENTIFIER" => Ok(dimension_individual_wrapper::Type::Identifier),
+                    "TYPE_ADDITIONAL_TIMESTAMP_NANOS" => Ok(dimension_individual_wrapper::Type::AdditionalTimestampNanos),
+                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
+                }
+            }
+        }
+        deserializer.deserialize_any(GeneratedVisitor)
+    }
+}
+impl serde::Serialize for DimensionProtoTimestampValues {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.values.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.data.v2.DimensionProtoTimestampValues", len)?;
+        if !self.values.is_empty() {
+            struct_ser.serialize_field("values", &self.values)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for DimensionProtoTimestampValues {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "values",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Values,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "values" => Ok(GeneratedField::Values),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = DimensionProtoTimestampValues;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.data.v2.DimensionProtoTimestampValues")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<DimensionProtoTimestampValues, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut values__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Values => {
+                            if values__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("values"));
+                            }
+                            values__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(DimensionProtoTimestampValues {
+                    values: values__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.data.v2.DimensionProtoTimestampValues", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for dimension_proto_timestamp_values::DimensionProtoTimestampValue {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.value.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.data.v2.DimensionProtoTimestampValues.DimensionProtoTimestampValue", len)?;
+        if let Some(v) = self.value.as_ref() {
+            struct_ser.serialize_field("value", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for dimension_proto_timestamp_values::DimensionProtoTimestampValue {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "value",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Value,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "value" => Ok(GeneratedField::Value),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = dimension_proto_timestamp_values::DimensionProtoTimestampValue;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.data.v2.DimensionProtoTimestampValues.DimensionProtoTimestampValue")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<dimension_proto_timestamp_values::DimensionProtoTimestampValue, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut value__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Value => {
+                            if value__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("value"));
+                            }
+                            value__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(dimension_proto_timestamp_values::DimensionProtoTimestampValue {
+                    value: value__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.data.v2.DimensionProtoTimestampValues.DimensionProtoTimestampValue", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for DimensionStringValues {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.values.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.data.v2.DimensionStringValues", len)?;
+        if !self.values.is_empty() {
+            struct_ser.serialize_field("values", &self.values)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for DimensionStringValues {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "values",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Values,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "values" => Ok(GeneratedField::Values),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = DimensionStringValues;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.data.v2.DimensionStringValues")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<DimensionStringValues, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut values__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Values => {
+                            if values__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("values"));
+                            }
+                            values__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(DimensionStringValues {
+                    values: values__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.data.v2.DimensionStringValues", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for dimension_string_values::DimensionStringValue {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.value.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.data.v2.DimensionStringValues.DimensionStringValue", len)?;
+        if let Some(v) = self.value.as_ref() {
+            struct_ser.serialize_field("value", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for dimension_string_values::DimensionStringValue {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "value",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Value,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "value" => Ok(GeneratedField::Value),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = dimension_string_values::DimensionStringValue;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.data.v2.DimensionStringValues.DimensionStringValue")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<dimension_string_values::DimensionStringValue, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut value__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Value => {
+                            if value__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("value"));
+                            }
+                            value__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(dimension_string_values::DimensionStringValue {
+                    value: value__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.data.v2.DimensionStringValues.DimensionStringValue", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for DoubleValue {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -1130,7 +1749,7 @@ impl<'de> serde::Deserialize<'de> for DoubleValue {
                             if value__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("value"));
                             }
-                            value__ = 
+                            value__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1159,12 +1778,18 @@ impl serde::Serialize for DoubleValues {
         if !self.values.is_empty() {
             len += 1;
         }
+        if !self.extras.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.data.v2.DoubleValues", len)?;
         if let Some(v) = self.metadata.as_ref() {
             struct_ser.serialize_field("metadata", v)?;
         }
         if !self.values.is_empty() {
             struct_ser.serialize_field("values", &self.values)?;
+        }
+        if !self.extras.is_empty() {
+            struct_ser.serialize_field("extras", &self.extras)?;
         }
         struct_ser.end()
     }
@@ -1178,12 +1803,14 @@ impl<'de> serde::Deserialize<'de> for DoubleValues {
         const FIELDS: &[&str] = &[
             "metadata",
             "values",
+            "extras",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Metadata,
             Values,
+            Extras,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1207,6 +1834,7 @@ impl<'de> serde::Deserialize<'de> for DoubleValues {
                         match value {
                             "metadata" => Ok(GeneratedField::Metadata),
                             "values" => Ok(GeneratedField::Values),
+                            "extras" => Ok(GeneratedField::Extras),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1228,6 +1856,7 @@ impl<'de> serde::Deserialize<'de> for DoubleValues {
             {
                 let mut metadata__ = None;
                 let mut values__ = None;
+                let mut extras__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Metadata => {
@@ -1242,11 +1871,18 @@ impl<'de> serde::Deserialize<'de> for DoubleValues {
                             }
                             values__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::Extras => {
+                            if extras__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("extras"));
+                            }
+                            extras__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(DoubleValues {
                     metadata: metadata__,
                     values: values__.unwrap_or_default(),
+                    extras: extras__.unwrap_or_default(),
                 })
             }
         }
@@ -1348,7 +1984,7 @@ impl<'de> serde::Deserialize<'de> for EnumValue {
                             if value__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("value"));
                             }
-                            value__ = 
+                            value__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1566,7 +2202,7 @@ impl<'de> serde::Deserialize<'de> for FloatValue {
                             if value__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("value"));
                             }
-                            value__ = 
+                            value__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1595,12 +2231,18 @@ impl serde::Serialize for FloatValues {
         if !self.values.is_empty() {
             len += 1;
         }
+        if !self.extras.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.data.v2.FloatValues", len)?;
         if let Some(v) = self.metadata.as_ref() {
             struct_ser.serialize_field("metadata", v)?;
         }
         if !self.values.is_empty() {
             struct_ser.serialize_field("values", &self.values)?;
+        }
+        if !self.extras.is_empty() {
+            struct_ser.serialize_field("extras", &self.extras)?;
         }
         struct_ser.end()
     }
@@ -1614,12 +2256,14 @@ impl<'de> serde::Deserialize<'de> for FloatValues {
         const FIELDS: &[&str] = &[
             "metadata",
             "values",
+            "extras",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Metadata,
             Values,
+            Extras,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1643,6 +2287,7 @@ impl<'de> serde::Deserialize<'de> for FloatValues {
                         match value {
                             "metadata" => Ok(GeneratedField::Metadata),
                             "values" => Ok(GeneratedField::Values),
+                            "extras" => Ok(GeneratedField::Extras),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1664,6 +2309,7 @@ impl<'de> serde::Deserialize<'de> for FloatValues {
             {
                 let mut metadata__ = None;
                 let mut values__ = None;
+                let mut extras__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Metadata => {
@@ -1678,11 +2324,18 @@ impl<'de> serde::Deserialize<'de> for FloatValues {
                             }
                             values__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::Extras => {
+                            if extras__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("extras"));
+                            }
+                            extras__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(FloatValues {
                     metadata: metadata__,
                     values: values__.unwrap_or_default(),
+                    extras: extras__.unwrap_or_default(),
                 })
             }
         }
@@ -1715,6 +2368,9 @@ impl serde::Serialize for GetDataRequest {
         if !self.page_token.is_empty() {
             len += 1;
         }
+        if self.include_received_at.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.data.v2.GetDataRequest", len)?;
         if !self.queries.is_empty() {
             struct_ser.serialize_field("queries", &self.queries)?;
@@ -1733,6 +2389,9 @@ impl serde::Serialize for GetDataRequest {
         }
         if !self.page_token.is_empty() {
             struct_ser.serialize_field("pageToken", &self.page_token)?;
+        }
+        if let Some(v) = self.include_received_at.as_ref() {
+            struct_ser.serialize_field("includeReceivedAt", v)?;
         }
         struct_ser.end()
     }
@@ -1755,6 +2414,8 @@ impl<'de> serde::Deserialize<'de> for GetDataRequest {
             "pageSize",
             "page_token",
             "pageToken",
+            "include_received_at",
+            "includeReceivedAt",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1765,6 +2426,7 @@ impl<'de> serde::Deserialize<'de> for GetDataRequest {
             SampleMs,
             PageSize,
             PageToken,
+            IncludeReceivedAt,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1792,6 +2454,7 @@ impl<'de> serde::Deserialize<'de> for GetDataRequest {
                             "sampleMs" | "sample_ms" => Ok(GeneratedField::SampleMs),
                             "pageSize" | "page_size" => Ok(GeneratedField::PageSize),
                             "pageToken" | "page_token" => Ok(GeneratedField::PageToken),
+                            "includeReceivedAt" | "include_received_at" => Ok(GeneratedField::IncludeReceivedAt),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1817,6 +2480,7 @@ impl<'de> serde::Deserialize<'de> for GetDataRequest {
                 let mut sample_ms__ = None;
                 let mut page_size__ = None;
                 let mut page_token__ = None;
+                let mut include_received_at__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Queries => {
@@ -1841,7 +2505,7 @@ impl<'de> serde::Deserialize<'de> for GetDataRequest {
                             if sample_ms__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("sampleMs"));
                             }
-                            sample_ms__ = 
+                            sample_ms__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1849,7 +2513,7 @@ impl<'de> serde::Deserialize<'de> for GetDataRequest {
                             if page_size__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("pageSize"));
                             }
-                            page_size__ = 
+                            page_size__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1858,6 +2522,12 @@ impl<'de> serde::Deserialize<'de> for GetDataRequest {
                                 return Err(serde::de::Error::duplicate_field("pageToken"));
                             }
                             page_token__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::IncludeReceivedAt => {
+                            if include_received_at__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("includeReceivedAt"));
+                            }
+                            include_received_at__ = map_.next_value()?;
                         }
                     }
                 }
@@ -1868,6 +2538,7 @@ impl<'de> serde::Deserialize<'de> for GetDataRequest {
                     sample_ms: sample_ms__.unwrap_or_default(),
                     page_size: page_size__.unwrap_or_default(),
                     page_token: page_token__.unwrap_or_default(),
+                    include_received_at: include_received_at__,
                 })
             }
         }
@@ -2078,7 +2749,7 @@ impl<'de> serde::Deserialize<'de> for Int32Value {
                             if value__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("value"));
                             }
-                            value__ = 
+                            value__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2107,12 +2778,18 @@ impl serde::Serialize for Int32Values {
         if !self.values.is_empty() {
             len += 1;
         }
+        if !self.extras.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.data.v2.Int32Values", len)?;
         if let Some(v) = self.metadata.as_ref() {
             struct_ser.serialize_field("metadata", v)?;
         }
         if !self.values.is_empty() {
             struct_ser.serialize_field("values", &self.values)?;
+        }
+        if !self.extras.is_empty() {
+            struct_ser.serialize_field("extras", &self.extras)?;
         }
         struct_ser.end()
     }
@@ -2126,12 +2803,14 @@ impl<'de> serde::Deserialize<'de> for Int32Values {
         const FIELDS: &[&str] = &[
             "metadata",
             "values",
+            "extras",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Metadata,
             Values,
+            Extras,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -2155,6 +2834,7 @@ impl<'de> serde::Deserialize<'de> for Int32Values {
                         match value {
                             "metadata" => Ok(GeneratedField::Metadata),
                             "values" => Ok(GeneratedField::Values),
+                            "extras" => Ok(GeneratedField::Extras),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -2176,6 +2856,7 @@ impl<'de> serde::Deserialize<'de> for Int32Values {
             {
                 let mut metadata__ = None;
                 let mut values__ = None;
+                let mut extras__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Metadata => {
@@ -2190,11 +2871,18 @@ impl<'de> serde::Deserialize<'de> for Int32Values {
                             }
                             values__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::Extras => {
+                            if extras__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("extras"));
+                            }
+                            extras__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(Int32Values {
                     metadata: metadata__,
                     values: values__.unwrap_or_default(),
+                    extras: extras__.unwrap_or_default(),
                 })
             }
         }
@@ -2298,7 +2986,7 @@ impl<'de> serde::Deserialize<'de> for Int64Value {
                             if value__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("value"));
                             }
-                            value__ = 
+                            value__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2327,12 +3015,18 @@ impl serde::Serialize for Int64Values {
         if !self.values.is_empty() {
             len += 1;
         }
+        if !self.extras.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.data.v2.Int64Values", len)?;
         if let Some(v) = self.metadata.as_ref() {
             struct_ser.serialize_field("metadata", v)?;
         }
         if !self.values.is_empty() {
             struct_ser.serialize_field("values", &self.values)?;
+        }
+        if !self.extras.is_empty() {
+            struct_ser.serialize_field("extras", &self.extras)?;
         }
         struct_ser.end()
     }
@@ -2346,12 +3040,14 @@ impl<'de> serde::Deserialize<'de> for Int64Values {
         const FIELDS: &[&str] = &[
             "metadata",
             "values",
+            "extras",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Metadata,
             Values,
+            Extras,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -2375,6 +3071,7 @@ impl<'de> serde::Deserialize<'de> for Int64Values {
                         match value {
                             "metadata" => Ok(GeneratedField::Metadata),
                             "values" => Ok(GeneratedField::Values),
+                            "extras" => Ok(GeneratedField::Extras),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -2396,6 +3093,7 @@ impl<'de> serde::Deserialize<'de> for Int64Values {
             {
                 let mut metadata__ = None;
                 let mut values__ = None;
+                let mut extras__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Metadata => {
@@ -2410,11 +3108,18 @@ impl<'de> serde::Deserialize<'de> for Int64Values {
                             }
                             values__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::Extras => {
+                            if extras__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("extras"));
+                            }
+                            extras__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(Int64Values {
                     metadata: metadata__,
                     values: values__.unwrap_or_default(),
+                    extras: extras__.unwrap_or_default(),
                 })
             }
         }
@@ -2550,7 +3255,7 @@ impl<'de> serde::Deserialize<'de> for Metadata {
                             if sampled_ms__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("sampledMs"));
                             }
-                            sampled_ms__ = 
+                            sampled_ms__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -3307,12 +4012,18 @@ impl serde::Serialize for StringValues {
         if !self.values.is_empty() {
             len += 1;
         }
+        if !self.extras.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.data.v2.StringValues", len)?;
         if let Some(v) = self.metadata.as_ref() {
             struct_ser.serialize_field("metadata", v)?;
         }
         if !self.values.is_empty() {
             struct_ser.serialize_field("values", &self.values)?;
+        }
+        if !self.extras.is_empty() {
+            struct_ser.serialize_field("extras", &self.extras)?;
         }
         struct_ser.end()
     }
@@ -3326,12 +4037,14 @@ impl<'de> serde::Deserialize<'de> for StringValues {
         const FIELDS: &[&str] = &[
             "metadata",
             "values",
+            "extras",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Metadata,
             Values,
+            Extras,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -3355,6 +4068,7 @@ impl<'de> serde::Deserialize<'de> for StringValues {
                         match value {
                             "metadata" => Ok(GeneratedField::Metadata),
                             "values" => Ok(GeneratedField::Values),
+                            "extras" => Ok(GeneratedField::Extras),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -3376,6 +4090,7 @@ impl<'de> serde::Deserialize<'de> for StringValues {
             {
                 let mut metadata__ = None;
                 let mut values__ = None;
+                let mut extras__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Metadata => {
@@ -3390,11 +4105,18 @@ impl<'de> serde::Deserialize<'de> for StringValues {
                             }
                             values__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::Extras => {
+                            if extras__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("extras"));
+                            }
+                            extras__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(StringValues {
                     metadata: metadata__,
                     values: values__.unwrap_or_default(),
+                    extras: extras__.unwrap_or_default(),
                 })
             }
         }
@@ -3496,7 +4218,7 @@ impl<'de> serde::Deserialize<'de> for Uint32Value {
                             if value__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("value"));
                             }
-                            value__ = 
+                            value__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -3525,12 +4247,18 @@ impl serde::Serialize for Uint32Values {
         if !self.values.is_empty() {
             len += 1;
         }
+        if !self.extras.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.data.v2.Uint32Values", len)?;
         if let Some(v) = self.metadata.as_ref() {
             struct_ser.serialize_field("metadata", v)?;
         }
         if !self.values.is_empty() {
             struct_ser.serialize_field("values", &self.values)?;
+        }
+        if !self.extras.is_empty() {
+            struct_ser.serialize_field("extras", &self.extras)?;
         }
         struct_ser.end()
     }
@@ -3544,12 +4272,14 @@ impl<'de> serde::Deserialize<'de> for Uint32Values {
         const FIELDS: &[&str] = &[
             "metadata",
             "values",
+            "extras",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Metadata,
             Values,
+            Extras,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -3573,6 +4303,7 @@ impl<'de> serde::Deserialize<'de> for Uint32Values {
                         match value {
                             "metadata" => Ok(GeneratedField::Metadata),
                             "values" => Ok(GeneratedField::Values),
+                            "extras" => Ok(GeneratedField::Extras),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -3594,6 +4325,7 @@ impl<'de> serde::Deserialize<'de> for Uint32Values {
             {
                 let mut metadata__ = None;
                 let mut values__ = None;
+                let mut extras__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Metadata => {
@@ -3608,11 +4340,18 @@ impl<'de> serde::Deserialize<'de> for Uint32Values {
                             }
                             values__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::Extras => {
+                            if extras__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("extras"));
+                            }
+                            extras__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(Uint32Values {
                     metadata: metadata__,
                     values: values__.unwrap_or_default(),
+                    extras: extras__.unwrap_or_default(),
                 })
             }
         }
@@ -3716,7 +4455,7 @@ impl<'de> serde::Deserialize<'de> for Uint64Value {
                             if value__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("value"));
                             }
-                            value__ = 
+                            value__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -3745,12 +4484,18 @@ impl serde::Serialize for Uint64Values {
         if !self.values.is_empty() {
             len += 1;
         }
+        if !self.extras.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.data.v2.Uint64Values", len)?;
         if let Some(v) = self.metadata.as_ref() {
             struct_ser.serialize_field("metadata", v)?;
         }
         if !self.values.is_empty() {
             struct_ser.serialize_field("values", &self.values)?;
+        }
+        if !self.extras.is_empty() {
+            struct_ser.serialize_field("extras", &self.extras)?;
         }
         struct_ser.end()
     }
@@ -3764,12 +4509,14 @@ impl<'de> serde::Deserialize<'de> for Uint64Values {
         const FIELDS: &[&str] = &[
             "metadata",
             "values",
+            "extras",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Metadata,
             Values,
+            Extras,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -3793,6 +4540,7 @@ impl<'de> serde::Deserialize<'de> for Uint64Values {
                         match value {
                             "metadata" => Ok(GeneratedField::Metadata),
                             "values" => Ok(GeneratedField::Values),
+                            "extras" => Ok(GeneratedField::Extras),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -3814,6 +4562,7 @@ impl<'de> serde::Deserialize<'de> for Uint64Values {
             {
                 let mut metadata__ = None;
                 let mut values__ = None;
+                let mut extras__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Metadata => {
@@ -3828,11 +4577,18 @@ impl<'de> serde::Deserialize<'de> for Uint64Values {
                             }
                             values__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::Extras => {
+                            if extras__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("extras"));
+                            }
+                            extras__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(Uint64Values {
                     metadata: metadata__,
                     values: values__.unwrap_or_default(),
+                    extras: extras__.unwrap_or_default(),
                 })
             }
         }

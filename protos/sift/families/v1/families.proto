@@ -9,7 +9,6 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
-import "sift/common/v1/filter_field.proto";
 import "sift/metadata/v1/metadata.proto";
 import "sift/rules/v1/rules.proto";
 import "sift/runs/v2/runs.proto";
@@ -98,14 +97,6 @@ service FamilyService {
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "ListFamilyCandidateRuns"
       description: "Lists runs that match a candidate-run CEL filter. Supports `include_archived` as a CEL directive (archived runs are excluded by default; pass `include_archived == true` in the filter to include them). When `family_id` is provided, runs already on that family's persisted membership (both included and excluded) are filtered out so the response only contains runs not yet on the family."
-    };
-  }
-
-  rpc GetFamilyCandidateRunFilterFields(GetFamilyCandidateRunFilterFieldsRequest) returns (GetFamilyCandidateRunFilterFieldsResponse) {
-    option (google.api.http) = {get: "/api/v1/families/candidate-runs:filterFields"};
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "GetFamilyCandidateRunFilterFields"
-      description: "Returns the filter fields available to candidate-run CEL queries (the standard run filter fields plus the `include_archived` directive)."
     };
   }
 
@@ -1034,10 +1025,4 @@ message ListFamilyCandidateRunsRequest {
 message ListFamilyCandidateRunsResponse {
   repeated sift.runs.v2.Run runs = 1 [(google.api.field_behavior) = REQUIRED];
   string next_page_token = 2;
-}
-
-message GetFamilyCandidateRunFilterFieldsRequest {}
-
-message GetFamilyCandidateRunFilterFieldsResponse {
-  repeated sift.common.v1.FilterField filter_fields = 1;
 }

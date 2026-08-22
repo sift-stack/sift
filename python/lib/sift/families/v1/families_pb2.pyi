@@ -13,7 +13,6 @@ import google.protobuf.internal.containers
 import google.protobuf.internal.enum_type_wrapper
 import google.protobuf.message
 import google.protobuf.timestamp_pb2
-import sift.common.v1.filter_field_pb2
 import sift.metadata.v1.metadata_pb2
 import sift.rules.v1.rules_pb2
 import sift.runs.v2.runs_pb2
@@ -1829,29 +1828,3 @@ class ListFamilyCandidateRunsResponse(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["next_page_token", b"next_page_token", "runs", b"runs"]) -> None: ...
 
 global___ListFamilyCandidateRunsResponse = ListFamilyCandidateRunsResponse
-
-@typing.final
-class GetFamilyCandidateRunFilterFieldsRequest(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
-
-    def __init__(
-        self,
-    ) -> None: ...
-
-global___GetFamilyCandidateRunFilterFieldsRequest = GetFamilyCandidateRunFilterFieldsRequest
-
-@typing.final
-class GetFamilyCandidateRunFilterFieldsResponse(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
-
-    FILTER_FIELDS_FIELD_NUMBER: builtins.int
-    @property
-    def filter_fields(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.common.v1.filter_field_pb2.FilterField]: ...
-    def __init__(
-        self,
-        *,
-        filter_fields: collections.abc.Iterable[sift.common.v1.filter_field_pb2.FilterField] | None = ...,
-    ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["filter_fields", b"filter_fields"]) -> None: ...
-
-global___GetFamilyCandidateRunFilterFieldsResponse = GetFamilyCandidateRunFilterFieldsResponse
