@@ -17,3 +17,5 @@ maintainers = [
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
+# Workspace-rooted sdist: PyPI resolves License-File from the archive root.
+include = [{ path = "LICENSE", format = "sdist" }]
