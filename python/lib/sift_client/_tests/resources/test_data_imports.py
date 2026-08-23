@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, cast
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from sift.common.type.v1.channel_config_pb2 import ChannelConfig as ChannelConfigProto
@@ -34,6 +35,10 @@ from sift_client.sift_types.data_import import (
     DataTypeKey,
     Hdf5DataColumn,
     Hdf5ImportConfig,
+    McapComplexTypesImportMode,
+    McapDataColumn,
+    McapImportConfig,
+    McapParseErrorPolicy,
     ParquetDataColumn,
     ParquetFlatDatasetImportConfig,
     ParquetSingleChannelPerRowImportConfig,
@@ -458,6 +463,178 @@ class TestUlogConfig:
             self._config()["nonexistent"]
 
 
+class TestMcapConfig:
+    def _config(self):
+        return McapImportConfig(
+            asset_name="my_asset",
+            run_name="run1",
+            data=[
+                McapDataColumn(
+                    topic="/imu/data",
+                    field_path="orientation.x",
+                    data_type=ChannelDataType.DOUBLE,
+                ),
+                McapDataColumn(
+                    topic="/battery",
+                    field_path="voltage",
+                    name="battery_voltage",
+                    data_type=ChannelDataType.FLOAT,
+                    units="V",
+                    description="pack voltage",
+                ),
+            ],
+            metadata_records=["calibration"],
+            parse_error_policy=McapParseErrorPolicy.IGNORE_ERROR,
+            complex_types_import_mode=McapComplexTypesImportMode.STRING,
+        )
+
+    def test_to_proto(self):
+        proto = self._config()._to_proto()
+        assert proto.asset_name == "my_asset"
+        assert proto.run_name == "run1"
+        assert len(proto.data) == 2
+        assert proto.data[0].topic == "/imu/data"
+        assert proto.data[0].ros2.field_path == "orientation.x"
+        assert proto.data[0].channel_config.name == "/imu/data.orientation.x"
+        assert proto.data[1].topic == "/battery"
+        assert proto.data[1].channel_config.name == "battery_voltage"
+        assert proto.data[1].channel_config.units == "V"
+        assert list(proto.metadata_records) == ["calibration"]
+
+    def test_to_proto_defaults(self):
+        """An empty config imports all channels; the default policy fails on
+        error and imports complex fields as both bytes and JSON strings.
+        """
+        from sift.data_imports.v2.data_imports_pb2 import (
+            MCAP_COMPLEX_TYPES_IMPORT_MODE_BOTH,
+            MCAP_PARSE_ERROR_POLICY_FAIL_ON_ERROR,
+        )
+
+        proto = McapImportConfig(asset_name="a")._to_proto()
+        assert len(proto.data) == 0
+        assert proto.run_id == ""
+        assert proto.parse_error_policy == MCAP_PARSE_ERROR_POLICY_FAIL_ON_ERROR
+        assert proto.complex_types_import_mode == MCAP_COMPLEX_TYPES_IMPORT_MODE_BOTH
+        assert not proto.HasField("relative_start_time")
+
+    def test_relative_start_time_round_trips(self):
+        config = McapImportConfig(
+            asset_name="a",
+            relative_start_time=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        )
+        proto = config._to_proto()
+        assert proto.HasField("relative_start_time")
+        restored = McapImportConfig._from_proto(proto)
+        assert restored.relative_start_time == config.relative_start_time
+
+    def test_from_proto_round_trip(self):
+        config = self._config()
+        restored = McapImportConfig._from_proto(config._to_proto())
+        assert restored.asset_name == config.asset_name
+        assert restored.run_name == config.run_name
+        assert restored.metadata_records == config.metadata_records
+        assert restored.parse_error_policy == McapParseErrorPolicy.IGNORE_ERROR
+        assert restored.complex_types_import_mode == McapComplexTypesImportMode.STRING
+        assert len(restored.data) == 2
+        assert restored.data[0].topic == "/imu/data"
+        assert restored.data[0].field_path == "orientation.x"
+        assert restored.data[0].name == "/imu/data.orientation.x"
+        assert restored.data[1].name == "battery_voltage"
+        assert restored.data[1].data_type == ChannelDataType.FLOAT
+        assert restored.data[1].units == "V"
+        assert restored.data[1].description == "pack voltage"
+
+    def test_from_proto_unspecified_enums_fall_back_to_defaults(self):
+        """UNSPECIFIED proto values mean FAIL_ON_ERROR and BOTH on the server."""
+        from sift.data_imports.v2.data_imports_pb2 import McapConfig as McapConfigProto
+
+        restored = McapImportConfig._from_proto(McapConfigProto(asset_name="a"))
+        assert restored.parse_error_policy == McapParseErrorPolicy.FAIL_ON_ERROR
+        assert restored.complex_types_import_mode == McapComplexTypesImportMode.BOTH
+
+    def test_run_id_takes_precedence(self):
+        proto = McapImportConfig(asset_name="a", run_name="ignored", run_id="run_123")._to_proto()
+        assert proto.run_id == "run_123"
+
+    def test_name_defaults_to_channel(self):
+        col = McapDataColumn(
+            topic="/imu/data", field_path="orientation.x", data_type=ChannelDataType.DOUBLE
+        )
+        assert col.default_channel_name == "/imu/data.orientation.x"
+        assert col.name == "/imu/data.orientation.x"
+
+    def test_explicit_name_overrides_channel(self):
+        col = McapDataColumn(
+            topic="/battery",
+            field_path="voltage",
+            name="battery_voltage",
+            data_type=ChannelDataType.FLOAT,
+        )
+        assert col.name == "battery_voltage"
+
+    def test_getitem(self):
+        col = self._config()["battery_voltage"]
+        assert col.field_path == "voltage"
+
+    def test_getitem_not_found(self):
+        with pytest.raises(KeyError, match="nonexistent"):
+            self._config()["nonexistent"]
+
+
+class TestImportFromPathClearsDetectedChannels:
+    """Auto-detected ULog and MCAP configs import with an empty channel list
+    so the server imports every channel instead of strictly filtering on a
+    list that client detection may have misread.
+    """
+
+    async def _import(self, tmp_path, filename, detected):
+        path = tmp_path / filename
+        path.write_bytes(b"")
+
+        api = DataImportAPIAsync(MagicMock())
+        api.detect_config = AsyncMock(return_value=detected)
+        api._low_level_client = MagicMock()
+        api._low_level_client.create_from_upload = AsyncMock(return_value=("import_1", "url"))
+        api.client.async_.jobs.get = AsyncMock(return_value="job")
+
+        return await api.import_from_path(path, asset="my_asset", show_progress=False)
+
+    @pytest.mark.asyncio
+    async def test_mcap_data_cleared(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(
+            "sift_client.resources.data_imports.upload_file", lambda *a, **k: {"jobId": "j1"}
+        )
+        detected = McapImportConfig(
+            asset_name="",
+            data=[McapDataColumn(topic="/imu", field_path="x", data_type=ChannelDataType.DOUBLE)],
+        )
+
+        job = await self._import(tmp_path, "log.mcap", detected)
+
+        assert job == "job"
+        assert detected.data == []
+        assert detected.asset_name == "my_asset"
+
+    @pytest.mark.asyncio
+    async def test_ulog_data_cleared(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(
+            "sift_client.resources.data_imports.upload_file", lambda *a, **k: {"jobId": "j1"}
+        )
+        detected = UlogImportConfig(
+            asset_name="",
+            data=[
+                UlogDataColumn(
+                    message_name="sensor_accel", field_name="x", data_type=ChannelDataType.FLOAT
+                )
+            ],
+        )
+
+        job = await self._import(tmp_path, "log.ulg", detected)
+
+        assert job == "job"
+        assert detected.data == []
+
+
 class TestCsvToProto:
     def test_to_proto(self, csv_config):
         proto = csv_config._to_proto()
@@ -550,6 +727,9 @@ class TestResolveDataTypeKey:
 
     def test_ulog_extension_uses_map(self):
         assert _resolve_data_type_key(".ulg", None) == DataTypeKey.ULOG
+
+    def test_mcap_extension_uses_map(self):
+        assert _resolve_data_type_key(".mcap", None) == DataTypeKey.MCAP
 
     def test_explicit_data_type_overrides_extension(self):
         result = _resolve_data_type_key(".csv", DataTypeKey.TDMS)

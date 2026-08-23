@@ -11,10 +11,17 @@ from sift.common.type.v1.channel_enum_type_pb2 import ChannelEnumType as Channel
 from sift.data_imports.v2.data_imports_pb2 import (
     DATA_TYPE_KEY_CSV,
     DATA_TYPE_KEY_HDF5,
+    DATA_TYPE_KEY_MCAP,
     DATA_TYPE_KEY_PARQUET_FLATDATASET,
     DATA_TYPE_KEY_PARQUET_SINGLE_CHANNEL_PER_ROW,
     DATA_TYPE_KEY_TDMS,
     DATA_TYPE_KEY_ULOG,
+    MCAP_COMPLEX_TYPES_IMPORT_MODE_BOTH,
+    MCAP_COMPLEX_TYPES_IMPORT_MODE_BYTES,
+    MCAP_COMPLEX_TYPES_IMPORT_MODE_IGNORE,
+    MCAP_COMPLEX_TYPES_IMPORT_MODE_STRING,
+    MCAP_PARSE_ERROR_POLICY_FAIL_ON_ERROR,
+    MCAP_PARSE_ERROR_POLICY_IGNORE_ERROR,
     PARQUET_COMPLEX_TYPES_IMPORT_MODE_BOTH,
     PARQUET_COMPLEX_TYPES_IMPORT_MODE_BYTES,
     PARQUET_COMPLEX_TYPES_IMPORT_MODE_IGNORE,
@@ -32,6 +39,9 @@ from sift.data_imports.v2.data_imports_pb2 import CsvConfig as CsvConfigProto
 from sift.data_imports.v2.data_imports_pb2 import CsvTimeColumn as CsvTimeColumnProto
 from sift.data_imports.v2.data_imports_pb2 import Hdf5Config as Hdf5ConfigProto
 from sift.data_imports.v2.data_imports_pb2 import Hdf5DataConfig as Hdf5DataConfigProto
+from sift.data_imports.v2.data_imports_pb2 import McapConfig as McapConfigProto
+from sift.data_imports.v2.data_imports_pb2 import McapDataConfig as McapDataConfigProto
+from sift.data_imports.v2.data_imports_pb2 import McapRos2Selector as McapRos2SelectorProto
 from sift.data_imports.v2.data_imports_pb2 import ParquetConfig as ParquetConfigProto
 from sift.data_imports.v2.data_imports_pb2 import ParquetDataColumn as ParquetDataColumnProto
 from sift.data_imports.v2.data_imports_pb2 import (
@@ -85,6 +95,7 @@ class DataTypeKey(Enum):
     HDF5_TWO_D = "hdf5_two_d"
     HDF5_COMPOUND = "hdf5_compound"
     ULOG = "ulog"
+    MCAP = "mcap"
 
 
 DATA_TYPE_KEY_TO_PROTO = {
@@ -96,6 +107,7 @@ DATA_TYPE_KEY_TO_PROTO = {
     DataTypeKey.HDF5_TWO_D: DATA_TYPE_KEY_HDF5,
     DataTypeKey.HDF5_COMPOUND: DATA_TYPE_KEY_HDF5,
     DataTypeKey.ULOG: DATA_TYPE_KEY_ULOG,
+    DataTypeKey.MCAP: DATA_TYPE_KEY_MCAP,
 }
 
 
@@ -103,6 +115,7 @@ EXTENSION_TO_DATA_TYPE_KEY: dict[str, DataTypeKey] = {
     ".csv": DataTypeKey.CSV,
     ".tdms": DataTypeKey.TDMS,
     ".ulg": DataTypeKey.ULOG,
+    ".mcap": DataTypeKey.MCAP,
 }
 
 
@@ -1008,6 +1021,176 @@ class UlogImportConfig(ImportConfigBase):
         )
 
 
+class McapParseErrorPolicy(Enum):
+    """Controls how MCAP import handles recoverable parse errors.
+
+    Recoverable errors include truncated or undecodable records and
+    unsupported topics. The policy applies when the file is imported, not
+    during ``detect_config``.
+    """
+
+    FAIL_ON_ERROR = MCAP_PARSE_ERROR_POLICY_FAIL_ON_ERROR
+    """Fail the import on any recoverable parse error."""
+
+    IGNORE_ERROR = MCAP_PARSE_ERROR_POLICY_IGNORE_ERROR
+    """Import what decoded. Skipped topics and records surface as warnings."""
+
+
+class McapComplexTypesImportMode(Enum):
+    """Controls how variable-cardinality MCAP fields (dynamic and bounded
+    arrays) are imported.
+
+    Under ``BOTH``, each such field imports as two channels: Arrow IPC bytes
+    under the field's base name and a JSON string under ``<base name>.json``.
+    """
+
+    IGNORE = MCAP_COMPLEX_TYPES_IMPORT_MODE_IGNORE
+    BOTH = MCAP_COMPLEX_TYPES_IMPORT_MODE_BOTH
+    STRING = MCAP_COMPLEX_TYPES_IMPORT_MODE_STRING
+    BYTES = MCAP_COMPLEX_TYPES_IMPORT_MODE_BYTES
+
+
+class McapDataColumn(DataColumnBase):
+    """A single MCAP channel selection.
+
+    Channels are selected by topic and flattened field path, as returned by
+    ``detect_config``. A variable-cardinality field is selected whole by its
+    base path and imports per its ``data_type``: ``BYTES`` (Arrow IPC) or
+    ``STRING`` (JSON), which ``complex_types_import_mode`` must allow.
+
+    Attributes:
+        topic: The topic the channel comes from (e.g. ``"/imu/data"``).
+        field_path: The dot-delimited field path within the decoded message
+            (e.g. ``"orientation.x"``, ``"orientation_covariance[0]"``).
+        name: Sift channel name to create. Defaults to ``default_channel_name``,
+            e.g. ``"/imu/data.orientation.x"``.
+    """
+
+    topic: str
+    field_path: str
+    name: str = ""
+
+    @property
+    def default_channel_name(self) -> str:
+        """The default Sift channel name for this selection,
+        ``<topic>.<field_path>`` (e.g. ``"/imu/data.orientation.x"``).
+        """
+        return f"{self.topic}.{self.field_path}"
+
+    @model_validator(mode="after")
+    def _apply_default_name(self) -> McapDataColumn:
+        if not self.name:
+            self.name = self.default_channel_name
+        return self
+
+
+class McapImportConfig(ImportConfigBase):
+    """Configuration for importing an MCAP (``.mcap``) file.
+
+    MCAP files describe their own channels. Leave ``data`` empty to import
+    every detected channel, or call ``detect_config`` and edit the returned
+    ``data`` list to skip, rename, retype, or annotate channels before
+    importing.
+
+    Attributes:
+        data: Channel selections. If empty, imports all detected channels with
+            default names and data types. If non-empty, imports only these
+            channels.
+        relative_start_time: Log-start UTC, only for logs on a non-Unix epoch.
+            When set, ``log_time`` is reinterpreted as elapsed nanoseconds from
+            this start.
+        metadata_records: Metadata records to import as run metadata. Every key
+            of each named record is stored as ``<record_name>.<key>``. Empty
+            imports none.
+        parse_error_policy: How to handle recoverable parse errors. Defaults to
+            failing the import.
+        complex_types_import_mode: How to import variable-cardinality fields.
+            Defaults to importing them as both Arrow IPC bytes and JSON strings.
+    """
+
+    data: list[McapDataColumn] = []
+    relative_start_time: datetime | None = None
+    metadata_records: list[str] = []
+    parse_error_policy: McapParseErrorPolicy = McapParseErrorPolicy.FAIL_ON_ERROR
+    complex_types_import_mode: McapComplexTypesImportMode = McapComplexTypesImportMode.BOTH
+
+    def __getitem__(self, name: str) -> McapDataColumn:
+        """Look up a configured MCAP channel by Sift channel name.
+
+        Example::
+
+            config["/imu/data.orientation.x"].data_type = ChannelDataType.FLOAT
+        """
+        for dc in self.data:
+            if dc.name == name:
+                return dc
+        raise KeyError(f"No data column named '{name}'")
+
+    def _to_proto(self) -> McapConfigProto:
+        proto = McapConfigProto(
+            asset_name=self.asset_name,
+            run_name=self.run_name or "",
+            run_id=self.run_id or "",
+            metadata_records=self.metadata_records,
+            parse_error_policy=self.parse_error_policy.value,
+            complex_types_import_mode=self.complex_types_import_mode.value,
+        )
+        if self.relative_start_time is not None:
+            proto.relative_start_time.CopyFrom(to_pb_timestamp(self.relative_start_time))
+        for dc in self.data:
+            proto.data.append(
+                McapDataConfigProto(
+                    topic=dc.topic,
+                    ros2=McapRos2SelectorProto(field_path=dc.field_path),
+                    channel_config=ChannelConfigProto(
+                        name=dc.name,
+                        data_type=dc.data_type.value,
+                        units=dc.units,
+                        description=dc.description,
+                    ),
+                )
+            )
+        return proto
+
+    @classmethod
+    def _from_proto(cls, proto: McapConfigProto) -> McapImportConfig:
+        """Create from a proto McapConfig (e.g. from a GetDataImport response)."""
+        relative_start_time = None
+        if proto.HasField("relative_start_time"):
+            from datetime import timezone
+
+            relative_start_time = proto.relative_start_time.ToDatetime(tzinfo=timezone.utc)
+
+        parse_error_policy = McapParseErrorPolicy.FAIL_ON_ERROR
+        if proto.parse_error_policy == MCAP_PARSE_ERROR_POLICY_IGNORE_ERROR:
+            parse_error_policy = McapParseErrorPolicy.IGNORE_ERROR
+
+        mode = proto.complex_types_import_mode
+        data = [
+            McapDataColumn(
+                topic=d.topic,
+                field_path=d.ros2.field_path,
+                name=d.channel_config.name,
+                data_type=ChannelDataType(d.channel_config.data_type),
+                units=d.channel_config.units,
+                description=d.channel_config.description,
+            )
+            for d in proto.data
+        ]
+        return cls(
+            asset_name=proto.asset_name,
+            run_name=proto.run_name or None,
+            run_id=proto.run_id or None,
+            data=data,
+            relative_start_time=relative_start_time,
+            metadata_records=list(proto.metadata_records),
+            parse_error_policy=parse_error_policy,
+            complex_types_import_mode=McapComplexTypesImportMode(mode)
+            if mode
+            else McapComplexTypesImportMode.BOTH,
+        )
+
+
 ImportConfig = Union[
     CsvImportConfig,
     ParquetFlatDatasetImportConfig,
@@ -1015,4 +1198,5 @@ ImportConfig = Union[
     TdmsImportConfig,
     Hdf5ImportConfig,
     UlogImportConfig,
+    McapImportConfig,
 ]

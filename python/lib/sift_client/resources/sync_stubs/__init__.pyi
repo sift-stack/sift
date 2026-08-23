@@ -715,9 +715,10 @@ class DataImportAPI:
         Returns the detected configuration, inferring the file format from the
         extension when ``data_type`` is not provided. CSV and Parquet are
         detected by sending a sample of the file to the server's DetectConfig
-        endpoint; TDMS, HDF5, and ULog are detected locally on the client.
+        endpoint; TDMS, HDF5, ULog, and MCAP are detected locally on the
+        client.
 
-        CSV, Parquet, HDF5, TDMS, and ULog files are supported for
+        CSV, Parquet, HDF5, TDMS, ULog, and MCAP files are supported for
         auto-detection.
 
         For CSV files, the server scans the first two rows for an optional
@@ -744,6 +745,15 @@ class DataImportAPI:
         to exactly those channels; the import fails if a listed channel is
         not in the file. Clear ``data`` to import every channel.
 
+        For MCAP files, ``data`` lists the channels of each supported topic's
+        flattened fields, without decoding messages. A variable-cardinality
+        field expands to two channels: Arrow IPC bytes under the base name and
+        a JSON string under ``<base name>.json``. The same non-empty ``data``
+        semantics as ULog apply. Topics the importer does not support are
+        skipped with a warning; importing such a file fails under the default
+        parse error policy, so set ``McapParseErrorPolicy.IGNORE_ERROR`` to
+        import the rest.
+
         For file types with multiple supported layouts (Parquet, HDF5),
         ``data_type`` must be specified explicitly.
 
@@ -753,8 +763,8 @@ class DataImportAPI:
                 multiple supported layouts (Parquet, HDF5) where the file
                 extension alone is ambiguous.
             time_format: Time format override for CSV, Parquet, HDF5, and TDMS.
-                Ignored for ULog. When omitted, CSV, Parquet, and HDF5 use the
-                detected format if available, otherwise
+                Ignored for ULog and MCAP. When omitted, CSV, Parquet, and
+                HDF5 use the detected format if available, otherwise
                 ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``. TDMS keeps its
                 detected/default time handling.
 
@@ -809,7 +819,7 @@ class DataImportAPI:
         completion before proceeding.
 
         When ``config`` is omitted the file format is auto-detected via
-        ``detect_config`` (CSV, Parquet, HDF5, TDMS, and ULog).
+        ``detect_config`` (CSV, Parquet, HDF5, TDMS, ULog, and MCAP).
         When ``asset`` is provided it overrides the config value;
         otherwise the config's ``asset_name`` is used.
         If neither ``run`` nor ``run_name`` is provided (and none is
@@ -848,16 +858,17 @@ class DataImportAPI:
             config: Import configuration describing the file format and column
                 mapping. When provided, ``data_type`` is ignored. If omitted,
                 the config is auto-detected via ``detect_config`` (for ULog
-                the detected channel list is dropped so every channel in the
-                file is imported). You can call ``detect_config`` yourself to
-                inspect and modify the config before passing it here.
+                and MCAP the detected channel list is dropped so every channel
+                in the file is imported). You can call ``detect_config``
+                yourself to inspect and modify the config before passing it
+                here.
             data_type: Explicit data type key. Required for formats with
                 multiple supported layouts (Parquet, HDF5) where the file
                 extension alone is ambiguous. Only used when ``config`` is
                 not provided.
             time_format: Time format override for CSV, Parquet, HDF5, and TDMS.
-                Ignored for ULog. When omitted, CSV, Parquet, and HDF5 use the
-                detected format if available, otherwise
+                Ignored for ULog and MCAP. When omitted, CSV, Parquet, and
+                HDF5 use the detected format if available, otherwise
                 ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``. TDMS keeps its
                 detected/default time handling. Only used when ``config`` is
                 not provided.

@@ -17,6 +17,7 @@ from sift_client.sift_types.data_import import (
     CsvImportConfig,
     Hdf5ImportConfig,
     ImportConfig,
+    McapImportConfig,
     ParquetFlatDatasetImportConfig,
     ParquetSingleChannelPerRowImportConfig,
     TdmsImportConfig,
@@ -47,6 +48,8 @@ def _set_config_on_request(
         request.hdf5_config.CopyFrom(config._to_proto())
     elif isinstance(config, UlogImportConfig):
         request.ulog_config.CopyFrom(config._to_proto())
+    elif isinstance(config, McapImportConfig):
+        request.mcap_config.CopyFrom(config._to_proto())
     else:
         raise TypeError(f"Unsupported import config type: {type(config).__name__}")
 

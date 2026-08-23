@@ -5,6 +5,18 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### What's New
+
+#### MCAP imports
+
+`client.data_import` now supports MCAP (`.mcap`) files with ROS 2 (`ros2msg`/`cdr`) topics.
+
+```python
+job = client.data_import.import_from_path("recording.mcap", asset=my_asset)
+```
+
+Importing without a config ingests every supported channel; a file containing unsupported topics fails under the default parse error policy unless `McapParseErrorPolicy.IGNORE_ERROR` is set. Call `detect_config` to enumerate the file's channels locally and edit the returned `McapImportConfig` (channel selection, names, types, metadata records, parse error policy, complex types mode) before importing. Detection requires the new `mcap` extra: `pip install sift-stack-py[mcap]`.
+
 ## [v0.20.0] - August 25, 2026
 
 ### What's New
