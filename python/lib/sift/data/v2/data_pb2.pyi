@@ -8,13 +8,20 @@ import collections.abc
 import google.protobuf.any_pb2
 import google.protobuf.descriptor
 import google.protobuf.internal.containers
+import google.protobuf.internal.enum_type_wrapper
 import google.protobuf.message
 import google.protobuf.timestamp_pb2
 import sift.calculated_channels.v1.calculated_channels_pb2
 import sift.common.type.v1.channel_bit_field_element_pb2
 import sift.common.type.v1.channel_data_type_pb2
 import sift.common.type.v1.channel_enum_type_pb2
+import sys
 import typing
+
+if sys.version_info >= (3, 10):
+    import typing as typing_extensions
+else:
+    import typing_extensions
 
 DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
 
@@ -28,6 +35,7 @@ class GetDataRequest(google.protobuf.message.Message):
     SAMPLE_MS_FIELD_NUMBER: builtins.int
     PAGE_SIZE_FIELD_NUMBER: builtins.int
     PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    INCLUDE_RECEIVED_AT_FIELD_NUMBER: builtins.int
     sample_ms: builtins.int
     """The rate to sample the returned data at. The data is sampled using [LTTB](https://github.com/sveinn-steinarsson/flot-downsample)
     which will return one point approximately every sample_ms milliseconds that retains the shape of the raw data.
@@ -40,7 +48,7 @@ class GetDataRequest(google.protobuf.message.Message):
     """The maximum number of channel values to return.
     The service may return fewer than this value.
     If unspecified, at most 10,000 values will be returned.
-    The maximum value is 100,000; values above 100,000 will be coerced to 100,000.
+    The maximum value is 1,000,000; values above 1,000,000 will be coerced to 1,000,000.
     For variable data types (i.e. string channels), at most page_size elements
     will be read, or 1MB, whichever occurs first.
     """
@@ -49,6 +57,10 @@ class GetDataRequest(google.protobuf.message.Message):
     Provide this to retrieve the subsequent page.
     When paginating, all other parameters provided to `GetData` must match
     the call that provided the page token.
+    """
+    include_received_at: builtins.bool
+    """Optional flag to enable inclusion of "sift_received_at" timestamps
+    in GetDataResponse.data.extras field.
     """
     @property
     def queries(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___Query]: ...
@@ -69,9 +81,11 @@ class GetDataRequest(google.protobuf.message.Message):
         sample_ms: builtins.int = ...,
         page_size: builtins.int = ...,
         page_token: builtins.str = ...,
+        include_received_at: builtins.bool | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["end_time", b"end_time", "start_time", b"start_time"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["end_time", b"end_time", "page_size", b"page_size", "page_token", b"page_token", "queries", b"queries", "sample_ms", b"sample_ms", "start_time", b"start_time"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_include_received_at", b"_include_received_at", "end_time", b"end_time", "include_received_at", b"include_received_at", "start_time", b"start_time"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_include_received_at", b"_include_received_at", "end_time", b"end_time", "include_received_at", b"include_received_at", "page_size", b"page_size", "page_token", b"page_token", "queries", b"queries", "sample_ms", b"sample_ms", "start_time", b"start_time"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["_include_received_at", b"_include_received_at"]) -> typing.Literal["include_received_at"] | None: ...
 
 global___GetDataRequest = GetDataRequest
 
@@ -353,18 +367,22 @@ class DoubleValues(google.protobuf.message.Message):
 
     METADATA_FIELD_NUMBER: builtins.int
     VALUES_FIELD_NUMBER: builtins.int
+    EXTRAS_FIELD_NUMBER: builtins.int
     @property
     def metadata(self) -> global___Metadata: ...
     @property
     def values(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___DoubleValue]: ...
+    @property
+    def extras(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___DimensionIndividualWrapper]: ...
     def __init__(
         self,
         *,
         metadata: global___Metadata | None = ...,
         values: collections.abc.Iterable[global___DoubleValue] | None = ...,
+        extras: collections.abc.Iterable[global___DimensionIndividualWrapper] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["metadata", b"metadata"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["metadata", b"metadata", "values", b"values"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["extras", b"extras", "metadata", b"metadata", "values", b"values"]) -> None: ...
 
 global___DoubleValues = DoubleValues
 
@@ -394,18 +412,22 @@ class StringValues(google.protobuf.message.Message):
 
     METADATA_FIELD_NUMBER: builtins.int
     VALUES_FIELD_NUMBER: builtins.int
+    EXTRAS_FIELD_NUMBER: builtins.int
     @property
     def metadata(self) -> global___Metadata: ...
     @property
     def values(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___StringValue]: ...
+    @property
+    def extras(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___DimensionIndividualWrapper]: ...
     def __init__(
         self,
         *,
         metadata: global___Metadata | None = ...,
         values: collections.abc.Iterable[global___StringValue] | None = ...,
+        extras: collections.abc.Iterable[global___DimensionIndividualWrapper] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["metadata", b"metadata"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["metadata", b"metadata", "values", b"values"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["extras", b"extras", "metadata", b"metadata", "values", b"values"]) -> None: ...
 
 global___StringValues = StringValues
 
@@ -536,18 +558,22 @@ class BoolValues(google.protobuf.message.Message):
 
     METADATA_FIELD_NUMBER: builtins.int
     VALUES_FIELD_NUMBER: builtins.int
+    EXTRAS_FIELD_NUMBER: builtins.int
     @property
     def metadata(self) -> global___Metadata: ...
     @property
     def values(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___BoolValue]: ...
+    @property
+    def extras(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___DimensionIndividualWrapper]: ...
     def __init__(
         self,
         *,
         metadata: global___Metadata | None = ...,
         values: collections.abc.Iterable[global___BoolValue] | None = ...,
+        extras: collections.abc.Iterable[global___DimensionIndividualWrapper] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["metadata", b"metadata"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["metadata", b"metadata", "values", b"values"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["extras", b"extras", "metadata", b"metadata", "values", b"values"]) -> None: ...
 
 global___BoolValues = BoolValues
 
@@ -577,18 +603,22 @@ class FloatValues(google.protobuf.message.Message):
 
     METADATA_FIELD_NUMBER: builtins.int
     VALUES_FIELD_NUMBER: builtins.int
+    EXTRAS_FIELD_NUMBER: builtins.int
     @property
     def metadata(self) -> global___Metadata: ...
     @property
     def values(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___FloatValue]: ...
+    @property
+    def extras(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___DimensionIndividualWrapper]: ...
     def __init__(
         self,
         *,
         metadata: global___Metadata | None = ...,
         values: collections.abc.Iterable[global___FloatValue] | None = ...,
+        extras: collections.abc.Iterable[global___DimensionIndividualWrapper] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["metadata", b"metadata"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["metadata", b"metadata", "values", b"values"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["extras", b"extras", "metadata", b"metadata", "values", b"values"]) -> None: ...
 
 global___FloatValues = FloatValues
 
@@ -618,18 +648,22 @@ class Int32Values(google.protobuf.message.Message):
 
     METADATA_FIELD_NUMBER: builtins.int
     VALUES_FIELD_NUMBER: builtins.int
+    EXTRAS_FIELD_NUMBER: builtins.int
     @property
     def metadata(self) -> global___Metadata: ...
     @property
     def values(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___Int32Value]: ...
+    @property
+    def extras(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___DimensionIndividualWrapper]: ...
     def __init__(
         self,
         *,
         metadata: global___Metadata | None = ...,
         values: collections.abc.Iterable[global___Int32Value] | None = ...,
+        extras: collections.abc.Iterable[global___DimensionIndividualWrapper] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["metadata", b"metadata"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["metadata", b"metadata", "values", b"values"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["extras", b"extras", "metadata", b"metadata", "values", b"values"]) -> None: ...
 
 global___Int32Values = Int32Values
 
@@ -659,18 +693,22 @@ class Uint32Values(google.protobuf.message.Message):
 
     METADATA_FIELD_NUMBER: builtins.int
     VALUES_FIELD_NUMBER: builtins.int
+    EXTRAS_FIELD_NUMBER: builtins.int
     @property
     def metadata(self) -> global___Metadata: ...
     @property
     def values(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___Uint32Value]: ...
+    @property
+    def extras(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___DimensionIndividualWrapper]: ...
     def __init__(
         self,
         *,
         metadata: global___Metadata | None = ...,
         values: collections.abc.Iterable[global___Uint32Value] | None = ...,
+        extras: collections.abc.Iterable[global___DimensionIndividualWrapper] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["metadata", b"metadata"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["metadata", b"metadata", "values", b"values"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["extras", b"extras", "metadata", b"metadata", "values", b"values"]) -> None: ...
 
 global___Uint32Values = Uint32Values
 
@@ -700,18 +738,22 @@ class Int64Values(google.protobuf.message.Message):
 
     METADATA_FIELD_NUMBER: builtins.int
     VALUES_FIELD_NUMBER: builtins.int
+    EXTRAS_FIELD_NUMBER: builtins.int
     @property
     def metadata(self) -> global___Metadata: ...
     @property
     def values(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___Int64Value]: ...
+    @property
+    def extras(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___DimensionIndividualWrapper]: ...
     def __init__(
         self,
         *,
         metadata: global___Metadata | None = ...,
         values: collections.abc.Iterable[global___Int64Value] | None = ...,
+        extras: collections.abc.Iterable[global___DimensionIndividualWrapper] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["metadata", b"metadata"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["metadata", b"metadata", "values", b"values"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["extras", b"extras", "metadata", b"metadata", "values", b"values"]) -> None: ...
 
 global___Int64Values = Int64Values
 
@@ -741,20 +783,130 @@ class Uint64Values(google.protobuf.message.Message):
 
     METADATA_FIELD_NUMBER: builtins.int
     VALUES_FIELD_NUMBER: builtins.int
+    EXTRAS_FIELD_NUMBER: builtins.int
     @property
     def metadata(self) -> global___Metadata: ...
     @property
     def values(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___Uint64Value]: ...
+    @property
+    def extras(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___DimensionIndividualWrapper]: ...
     def __init__(
         self,
         *,
         metadata: global___Metadata | None = ...,
         values: collections.abc.Iterable[global___Uint64Value] | None = ...,
+        extras: collections.abc.Iterable[global___DimensionIndividualWrapper] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["metadata", b"metadata"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["metadata", b"metadata", "values", b"values"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["extras", b"extras", "metadata", b"metadata", "values", b"values"]) -> None: ...
 
 global___Uint64Values = Uint64Values
+
+@typing.final
+class DimensionIndividualWrapper(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    class _Type:
+        ValueType = typing.NewType("ValueType", builtins.int)
+        V: typing_extensions.TypeAlias = ValueType
+
+    class _TypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[DimensionIndividualWrapper._Type.ValueType], builtins.type):
+        DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+        TYPE_UNSPECIFIED: DimensionIndividualWrapper._Type.ValueType  # 0
+        TYPE_IDENTIFIER: DimensionIndividualWrapper._Type.ValueType  # 1
+        TYPE_ADDITIONAL_TIMESTAMP_NANOS: DimensionIndividualWrapper._Type.ValueType  # 2
+
+    class Type(_Type, metaclass=_TypeEnumTypeWrapper): ...
+    TYPE_UNSPECIFIED: DimensionIndividualWrapper.Type.ValueType  # 0
+    TYPE_IDENTIFIER: DimensionIndividualWrapper.Type.ValueType  # 1
+    TYPE_ADDITIONAL_TIMESTAMP_NANOS: DimensionIndividualWrapper.Type.ValueType  # 2
+
+    LABEL_FIELD_NUMBER: builtins.int
+    TYPE_FIELD_NUMBER: builtins.int
+    DIMENSION_STRING_VALUES_FIELD_NUMBER: builtins.int
+    DIMENSION_PROTO_TIMESTAMP_VALUES_FIELD_NUMBER: builtins.int
+    label: builtins.str
+    type: global___DimensionIndividualWrapper.Type.ValueType
+    @property
+    def dimension_string_values(self) -> global___DimensionStringValues: ...
+    @property
+    def dimension_proto_timestamp_values(self) -> global___DimensionProtoTimestampValues: ...
+    def __init__(
+        self,
+        *,
+        label: builtins.str = ...,
+        type: global___DimensionIndividualWrapper.Type.ValueType = ...,
+        dimension_string_values: global___DimensionStringValues | None = ...,
+        dimension_proto_timestamp_values: global___DimensionProtoTimestampValues | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["dimension_proto_timestamp_values", b"dimension_proto_timestamp_values", "dimension_string_values", b"dimension_string_values", "value_wrapper", b"value_wrapper"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["dimension_proto_timestamp_values", b"dimension_proto_timestamp_values", "dimension_string_values", b"dimension_string_values", "label", b"label", "type", b"type", "value_wrapper", b"value_wrapper"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["value_wrapper", b"value_wrapper"]) -> typing.Literal["dimension_string_values", "dimension_proto_timestamp_values"] | None: ...
+
+global___DimensionIndividualWrapper = DimensionIndividualWrapper
+
+@typing.final
+class DimensionStringValues(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    @typing.final
+    class DimensionStringValue(google.protobuf.message.Message):
+        DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+        VALUE_FIELD_NUMBER: builtins.int
+        value: builtins.str
+        def __init__(
+            self,
+            *,
+            value: builtins.str | None = ...,
+        ) -> None: ...
+        def HasField(self, field_name: typing.Literal["_value", b"_value", "value", b"value"]) -> builtins.bool: ...
+        def ClearField(self, field_name: typing.Literal["_value", b"_value", "value", b"value"]) -> None: ...
+        def WhichOneof(self, oneof_group: typing.Literal["_value", b"_value"]) -> typing.Literal["value"] | None: ...
+
+    VALUES_FIELD_NUMBER: builtins.int
+    @property
+    def values(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___DimensionStringValues.DimensionStringValue]: ...
+    def __init__(
+        self,
+        *,
+        values: collections.abc.Iterable[global___DimensionStringValues.DimensionStringValue] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["values", b"values"]) -> None: ...
+
+global___DimensionStringValues = DimensionStringValues
+
+@typing.final
+class DimensionProtoTimestampValues(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    @typing.final
+    class DimensionProtoTimestampValue(google.protobuf.message.Message):
+        DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+        VALUE_FIELD_NUMBER: builtins.int
+        @property
+        def value(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+        def __init__(
+            self,
+            *,
+            value: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        ) -> None: ...
+        def HasField(self, field_name: typing.Literal["_value", b"_value", "value", b"value"]) -> builtins.bool: ...
+        def ClearField(self, field_name: typing.Literal["_value", b"_value", "value", b"value"]) -> None: ...
+        def WhichOneof(self, oneof_group: typing.Literal["_value", b"_value"]) -> typing.Literal["value"] | None: ...
+
+    VALUES_FIELD_NUMBER: builtins.int
+    @property
+    def values(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___DimensionProtoTimestampValues.DimensionProtoTimestampValue]: ...
+    def __init__(
+        self,
+        *,
+        values: collections.abc.Iterable[global___DimensionProtoTimestampValues.DimensionProtoTimestampValue] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["values", b"values"]) -> None: ...
+
+global___DimensionProtoTimestampValues = DimensionProtoTimestampValues
 
 @typing.final
 class BytesValue(google.protobuf.message.Message):
@@ -782,17 +934,21 @@ class BytesValues(google.protobuf.message.Message):
 
     METADATA_FIELD_NUMBER: builtins.int
     VALUES_FIELD_NUMBER: builtins.int
+    EXTRAS_FIELD_NUMBER: builtins.int
     @property
     def metadata(self) -> global___Metadata: ...
     @property
     def values(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___BytesValue]: ...
+    @property
+    def extras(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___DimensionIndividualWrapper]: ...
     def __init__(
         self,
         *,
         metadata: global___Metadata | None = ...,
         values: collections.abc.Iterable[global___BytesValue] | None = ...,
+        extras: collections.abc.Iterable[global___DimensionIndividualWrapper] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["metadata", b"metadata"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["metadata", b"metadata", "values", b"values"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["extras", b"extras", "metadata", b"metadata", "values", b"values"]) -> None: ...
 
 global___BytesValues = BytesValues

@@ -76,6 +76,7 @@ fn double_page(channel_id: &str, channel_name: &str, samples: Vec<(i64, f64)>) -
             ..Default::default()
         }),
         values,
+        extras: vec![],
     };
 
     Any {

@@ -87,6 +87,7 @@ message CreateDataImportFromUrlRequest {
   Hdf5Config hdf5_config = 6 [(google.api.field_behavior) = OPTIONAL];
   BatchConfig batch_config = 7 [(google.api.field_behavior) = OPTIONAL];
   UlogConfig ulog_config = 8 [(google.api.field_behavior) = OPTIONAL];
+  McapConfig mcap_config = 9 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message CreateDataImportFromUrlResponse {
@@ -109,6 +110,7 @@ message CreateDataImportFromUploadRequest {
   Hdf5Config hdf5_config = 6 [(google.api.field_behavior) = OPTIONAL];
   BatchConfig batch_config = 7 [(google.api.field_behavior) = OPTIONAL];
   UlogConfig ulog_config = 8 [(google.api.field_behavior) = OPTIONAL];
+  McapConfig mcap_config = 9 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message CreateDataImportFromUploadResponse {
@@ -168,6 +170,7 @@ enum DataTypeKey {
   DATA_TYPE_KEY_PARQUET_SINGLE_CHANNEL_PER_ROW = 5;
   DATA_TYPE_KEY_HDF5 = 6;
   DATA_TYPE_KEY_ULOG = 7;
+  DATA_TYPE_KEY_MCAP = 8;
 }
 
 message DetectConfigRequest {
@@ -289,6 +292,10 @@ message ParquetFlatDatasetConfig {
 message ParquetSingleChannelPerRowMultiChannelConfig {
   string name_path = 1;
   string data_path = 2;
+  // A map from names (from `name_path`) to the channel configuration for that name.
+  // Names without an entry are imported with the data column's data type and no
+  // other configuration.
+  map<string, sift.common.type.v1.ChannelConfig> channels = 3;
 }
 
 message ParquetSingleChannelPerRowSingleChannelConfig {
@@ -372,7 +379,7 @@ message UlogDataConfig {
   // The message instance (e.g. 0).
   int64 instance = 2;
   // The full ULog field name (e.g. "x", "esc[0].v"). Empty for log-message
-  // channels ("log_messages", "log_messages_<tag>"), which set message_name
+  // channels ("log_messages", "log_messages_{tag}"), which set message_name
   // to the channel name and instance to 0.
   string field_name = 3;
   // The Sift channel config the channel is imported with.
@@ -392,12 +399,73 @@ message UlogConfig {
   // the log's GPS fix; otherwise the GPS fix anchors the timeline. The import
   // fails if neither is available.
   optional google.protobuf.Timestamp relative_start_time = 5;
-  // I/M message info keys to import as run metadata (stored as info.<key>). Empty: none.
+  // I/M message info keys to import as run metadata (stored as info.{key}). Empty: none.
   repeated string info_keys = 6;
-  // P parameter names to import as run metadata (stored as param.<name>). Empty: none.
+  // P parameter names to import as run metadata (stored as param.{name}). Empty: none.
   repeated string param_keys = 7;
   // Recoverable parse errors; defaults to failing the import.
   UlogParseErrorPolicy parse_error_policy = 8;
+}
+
+enum McapParseErrorPolicy {
+  // Treated as MCAP_PARSE_ERROR_POLICY_FAIL_ON_ERROR.
+  MCAP_PARSE_ERROR_POLICY_UNSPECIFIED = 0;
+  // Fail the import on any recoverable parse error.
+  MCAP_PARSE_ERROR_POLICY_FAIL_ON_ERROR = 1;
+  // Import what decoded. Skipped topics and records surface as warnings.
+  MCAP_PARSE_ERROR_POLICY_IGNORE_ERROR = 2;
+}
+
+enum McapComplexTypesImportMode {
+  // Treated as MCAP_COMPLEX_TYPES_IMPORT_MODE_BOTH.
+  MCAP_COMPLEX_TYPES_IMPORT_MODE_UNSPECIFIED = 0;
+  // Ignore variable-cardinality fields and do not ingest them.
+  MCAP_COMPLEX_TYPES_IMPORT_MODE_IGNORE = 1;
+  // Import variable-cardinality fields as both Arrow IPC bytes and JSON strings.
+  MCAP_COMPLEX_TYPES_IMPORT_MODE_BOTH = 2;
+  // Import variable-cardinality fields as only JSON strings.
+  MCAP_COMPLEX_TYPES_IMPORT_MODE_STRING = 3;
+  // Import variable-cardinality fields as only Arrow IPC bytes.
+  MCAP_COMPLEX_TYPES_IMPORT_MODE_BYTES = 4;
+}
+
+message McapRos2Selector {
+  // The dot-delimited field path within the decoded message
+  // (e.g. "orientation.x", "orientation_covariance[0]").
+  string field_path = 1;
+}
+
+message McapDataConfig {
+  // The topic the channel comes from (e.g. "/imu/data").
+  string topic = 1;
+  // Per-encoding selector. The members are the supported schema encodings.
+  oneof selector {
+    McapRos2Selector ros2 = 2;
+  }
+  // The Sift channel config the channel is imported with.
+  sift.common.type.v1.ChannelConfig channel_config = 3;
+}
+
+message McapConfig {
+  string asset_name = 1;
+  string run_name = 2;
+  // The id of the run to add this data to. If set, `run_name` is ignored.
+  string run_id = 3;
+  // Channels to import. Empty imports all detected channels with their
+  // defaults. If set, only the listed channels are imported, each with a
+  // required channel config.
+  repeated McapDataConfig data = 4;
+  // Log-start UTC, only for logs on a non-Unix epoch. When set, `log_time`
+  // is reinterpreted as elapsed nanoseconds from this start.
+  optional google.protobuf.Timestamp relative_start_time = 5;
+  // Metadata records to import as run metadata. Every key of each named
+  // record is stored as <record_name>.<key>. Empty imports none.
+  repeated string metadata_records = 6;
+  // Recoverable parse errors. Defaults to failing the import.
+  McapParseErrorPolicy parse_error_policy = 7;
+  // Variable-cardinality fields. Defaults to importing them as both Arrow
+  // IPC bytes and JSON strings.
+  McapComplexTypesImportMode complex_types_import_mode = 8;
 }
 
 message BatchConfig {
@@ -419,6 +487,7 @@ message BatchConfig {
   ParquetConfig default_parquet_config = 6;
   Hdf5Config default_hdf5_config = 7;
   UlogConfig default_ulog_config = 9;
+  McapConfig default_mcap_config = 10;
 
   // Files to import. Key is the filepath as it appears within the archive.
   // Only files listed here are imported; other archive files are ignored.
@@ -439,6 +508,7 @@ message BatchFileConfig {
     ParquetConfig parquet_config = 4;
     Hdf5Config hdf5_config = 5;
     UlogConfig ulog_config = 6;
+    McapConfig mcap_config = 7;
   }
 }
 
@@ -464,6 +534,7 @@ message DataImport {
   Hdf5Config hdf5_config = 17 [(google.api.field_behavior) = OPTIONAL];
   BatchConfig batch_config = 18 [(google.api.field_behavior) = OPTIONAL];
   UlogConfig ulog_config = 19 [(google.api.field_behavior) = OPTIONAL];
+  McapConfig mcap_config = 21 [(google.api.field_behavior) = OPTIONAL];
 
   // The run id will be set if the data import ingests to a run once the run is available.
   optional string run_id = 11 [(google.api.field_behavior) = OPTIONAL];
@@ -474,6 +545,11 @@ message DataImport {
   optional string asset_id = 13 [(google.api.field_behavior) = OPTIONAL];
   optional google.protobuf.Timestamp data_start_time = 14 [(google.api.field_behavior) = OPTIONAL];
   optional google.protobuf.Timestamp data_stop_time = 15 [(google.api.field_behavior) = OPTIONAL];
+
+  // What the import left out, such as records it could not read. A data import can
+  // succeed and still have warnings. The list may be trimmed; when it is, the last
+  // entry says how many were left off.
+  repeated string warning_messages = 20 [(google.api.field_behavior) = REQUIRED];
 }
 
 message ListDataImportsRequest {

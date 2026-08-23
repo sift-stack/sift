@@ -153,7 +153,7 @@ type DocHit struct {
 	// Total line count of the page.
 	TotalLines int32 `protobuf:"varint,5,opt,name=total_lines,json=totalLines,proto3" json:"total_lines,omitempty"`
 	// Window of the 10 lines above and below match_line, clamped to the page.
-	// Each line is prefixed with "<line_number>\t", aligned with ReadDoc.
+	// Each line is prefixed with "{line_number}\t", aligned with ReadDoc.
 	Content string `protobuf:"bytes,6,opt,name=content,proto3" json:"content,omitempty"`
 }
 
@@ -309,7 +309,7 @@ type ReadDocResponse struct {
 	TotalLines int32 `protobuf:"varint,3,opt,name=total_lines,json=totalLines,proto3" json:"total_lines,omitempty"`
 	// 1-indexed line number of the first returned line.
 	StartLine int32 `protobuf:"varint,4,opt,name=start_line,json=startLine,proto3" json:"start_line,omitempty"`
-	// Page markdown. Each line is prefixed with "<line_number>\t" so follow-up
+	// Page markdown. Each line is prefixed with "{line_number}\t" so follow-up
 	// reads can target specific ranges. MDX/JSX tags are stripped; fenced code
 	// blocks are preserved.
 	Content string `protobuf:"bytes,5,opt,name=content,proto3" json:"content,omitempty"`

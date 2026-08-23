@@ -66,14 +66,14 @@ class IngestionConfigServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def CreateIngestionConfigFlows(self, request, context):
-        """Create ingestion config [flows](/glossary#flow).
+        """Create ingestion config flows.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def ListIngestionConfigFlows(self, request, context):
-        """List ingestion config [flows](/glossary#flow) using an optional filter.
+        """List ingestion config flows using an optional filter.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

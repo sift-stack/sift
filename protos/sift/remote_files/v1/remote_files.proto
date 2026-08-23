@@ -146,6 +146,11 @@ enum EntityType {
   ENTITY_TYPE_TEST_REPORT = 5;
   ENTITY_TYPE_TEST_STEP = 6;
   ENTITY_TYPE_CANVAS_VERSION = 7;
+  // UI evidence files attached to a cell execution on a canvas report.
+  ENTITY_TYPE_CANVAS_CELL_EXECUTION_ATTACHMENT = 8;
+  // Reserved for a future cell-output upload path (not used by the report
+  // attachment UI).
+  ENTITY_TYPE_CANVAS_CELL_EXECUTION_OUTPUT = 9;
 }
 
 // The request for a call to `RemoteFileService_GetRemoteFile` to retrieve a remote file;
@@ -174,7 +179,6 @@ message ListRemoteFilesRequest {
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are `remote_file_id`, `entity_id`, `entity_type`, `metadata`, and `file_name`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-  // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/remote_files#remotefile). Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
 
   // This field is only required if your user belongs to multiple organizations.

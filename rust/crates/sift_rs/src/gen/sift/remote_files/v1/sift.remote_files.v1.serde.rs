@@ -89,7 +89,7 @@ impl<'de> serde::Deserialize<'de> for AudioMetadata {
                             if duration_seconds__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("durationSeconds"));
                             }
-                            duration_seconds__ = 
+                            duration_seconds__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -514,7 +514,7 @@ impl<'de> serde::Deserialize<'de> for CreateRemoteFileRequest {
                             if file_size__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("fileSize"));
                             }
-                            file_size__ = 
+                            file_size__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -853,6 +853,8 @@ impl serde::Serialize for EntityType {
             Self::TestReport => "ENTITY_TYPE_TEST_REPORT",
             Self::TestStep => "ENTITY_TYPE_TEST_STEP",
             Self::CanvasVersion => "ENTITY_TYPE_CANVAS_VERSION",
+            Self::CanvasCellExecutionAttachment => "ENTITY_TYPE_CANVAS_CELL_EXECUTION_ATTACHMENT",
+            Self::CanvasCellExecutionOutput => "ENTITY_TYPE_CANVAS_CELL_EXECUTION_OUTPUT",
         };
         serializer.serialize_str(variant)
     }
@@ -872,6 +874,8 @@ impl<'de> serde::Deserialize<'de> for EntityType {
             "ENTITY_TYPE_TEST_REPORT",
             "ENTITY_TYPE_TEST_STEP",
             "ENTITY_TYPE_CANVAS_VERSION",
+            "ENTITY_TYPE_CANVAS_CELL_EXECUTION_ATTACHMENT",
+            "ENTITY_TYPE_CANVAS_CELL_EXECUTION_OUTPUT",
         ];
 
         struct GeneratedVisitor;
@@ -920,6 +924,8 @@ impl<'de> serde::Deserialize<'de> for EntityType {
                     "ENTITY_TYPE_TEST_REPORT" => Ok(EntityType::TestReport),
                     "ENTITY_TYPE_TEST_STEP" => Ok(EntityType::TestStep),
                     "ENTITY_TYPE_CANVAS_VERSION" => Ok(EntityType::CanvasVersion),
+                    "ENTITY_TYPE_CANVAS_CELL_EXECUTION_ATTACHMENT" => Ok(EntityType::CanvasCellExecutionAttachment),
+                    "ENTITY_TYPE_CANVAS_CELL_EXECUTION_OUTPUT" => Ok(EntityType::CanvasCellExecutionOutput),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }
@@ -1384,7 +1390,7 @@ impl<'de> serde::Deserialize<'de> for ImageMetadata {
                             if height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("height"));
                             }
-                            height__ = 
+                            height__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1392,7 +1398,7 @@ impl<'de> serde::Deserialize<'de> for ImageMetadata {
                             if width__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("width"));
                             }
-                            width__ = 
+                            width__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1530,7 +1536,7 @@ impl<'de> serde::Deserialize<'de> for ListRemoteFilesRequest {
                             if page_size__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("pageSize"));
                             }
-                            page_size__ = 
+                            page_size__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2009,7 +2015,7 @@ impl<'de> serde::Deserialize<'de> for RemoteFile {
                             if file_size__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("fileSize"));
                             }
-                            file_size__ = 
+                            file_size__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2497,7 +2503,7 @@ impl<'de> serde::Deserialize<'de> for VideoMetadata {
                             if height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("height"));
                             }
-                            height__ = 
+                            height__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2505,7 +2511,7 @@ impl<'de> serde::Deserialize<'de> for VideoMetadata {
                             if width__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("width"));
                             }
-                            width__ = 
+                            width__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2513,7 +2519,7 @@ impl<'de> serde::Deserialize<'de> for VideoMetadata {
                             if duration_seconds__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("durationSeconds"));
                             }
-                            duration_seconds__ = 
+                            duration_seconds__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }

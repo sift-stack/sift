@@ -98,17 +98,34 @@ message SavedSearchProperties {
   repeated SavedSearchFilterItem tag_items = 7 [(google.api.field_behavior) = OPTIONAL];
   repeated SavedSearchFilterItem annotation_items = 8 [(google.api.field_behavior) = OPTIONAL];
   repeated SavedSearchFilterItem run_items = 9 [(google.api.field_behavior) = OPTIONAL];
+  // Superseded by `template_items`, which also carries canvases. Saved searches
+  // written before that field exists only populate this one, and reads hydrate
+  // `template_items` from it with `kind` set to "reportTemplate".
   repeated SavedSearchFilterItem report_template_items = 10 [(google.api.field_behavior) = OPTIONAL];
   optional bool show_advanced_filters = 11 [(google.api.field_behavior) = OPTIONAL];
   optional bool include_archived = 12 [(google.api.field_behavior) = OPTIONAL];
   optional string order_by = 13 [(google.api.field_behavior) = OPTIONAL];
   repeated SavedSearchMetadataItem metadata_items = 14 [(google.api.field_behavior) = OPTIONAL];
   optional string duration = 15 [(google.api.field_behavior) = OPTIONAL];
+  // Reports search: report templates and canvases are stored together in a single filter.
+  repeated SavedSearchTemplateItem template_items = 16 [(google.api.field_behavior) = OPTIONAL];
+  // Reports search: restricts results to a single report kind. One of
+  // "RULE_EVALUATION" or "CANVAS", matching the `report_type` filter values.
+  optional string report_type = 17 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message SavedSearchFilterItem {
   string id = 1 [(google.api.field_behavior) = REQUIRED];
   string name = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// A report template or canvas selected in the reports Template filter. Distinct
+// from `SavedSearchFilterItem`, which is shared by filters that have no kind.
+message SavedSearchTemplateItem {
+  string id = 1 [(google.api.field_behavior) = REQUIRED];
+  string name = 2 [(google.api.field_behavior) = REQUIRED];
+  // One of "reportTemplate" or "canvas".
+  string kind = 3 [(google.api.field_behavior) = REQUIRED];
 }
 
 message SavedSearchMetadataItem {
@@ -146,7 +163,6 @@ message ListSavedSearchesRequest {
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are 'name', 'saved_search_id', and 'overview_mode'.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-  // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/saved_searches#savedsearch). Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
 
   // This field is only required if your user belongs to multiple organizations.

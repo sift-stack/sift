@@ -45,10 +45,9 @@ use sift_rs::runs::v2::run_service_server::{RunService, RunServiceServer};
 use sift_rs::runs::v2::{
     CreateAdhocRunRequest, CreateAdhocRunResponse, CreateAutomaticRunAssociationForAssetsRequest,
     CreateAutomaticRunAssociationForAssetsResponse, CreateRunRequest, CreateRunResponse,
-    DeleteRunRequest, DeleteRunResponse, GetFilterFieldsRequest, GetFilterFieldsResponse,
-    GetRunRequest, GetRunResponse, ListRunsRequest, ListRunsResponse, Run, StopRunRequest,
-    StopRunResponse, UpdateRunRequest, UpdateRunResponse, ValidateRunFilterRequest,
-    ValidateRunFilterResponse,
+    DeleteRunRequest, DeleteRunResponse, GetRunRequest, GetRunResponse, ListRunsRequest,
+    ListRunsResponse, Run, StopRunRequest, StopRunResponse, UpdateRunRequest, UpdateRunResponse,
+    ValidateRunFilterRequest, ValidateRunFilterResponse,
 };
 use sift_stream::{
     AutoRegisterSendError, AutoRegisterStream, ChannelConfig, ChannelDataType, ChannelValue, Flow,
@@ -374,12 +373,6 @@ impl RunService for MinimalRunService {
         &self,
         _: Request<CreateAutomaticRunAssociationForAssetsRequest>,
     ) -> Result<Response<CreateAutomaticRunAssociationForAssetsResponse>, Status> {
-        Err(Status::unimplemented(""))
-    }
-    async fn get_filter_fields(
-        &self,
-        _: Request<GetFilterFieldsRequest>,
-    ) -> Result<Response<GetFilterFieldsResponse>, Status> {
         Err(Status::unimplemented(""))
     }
     async fn validate_run_filter(

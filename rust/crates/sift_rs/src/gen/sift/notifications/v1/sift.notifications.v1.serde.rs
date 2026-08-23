@@ -282,7 +282,7 @@ impl<'de> serde::Deserialize<'de> for ListNotificationsRequest {
                             if page_size__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("pageSize"));
                             }
-                            page_size__ = 
+                            page_size__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -726,6 +726,7 @@ impl serde::Serialize for NotificationKind {
             Self::ReportReady => "NOTIFICATION_KIND_REPORT_READY",
             Self::DataExportReady => "NOTIFICATION_KIND_DATA_EXPORT_READY",
             Self::MentionedInComment => "NOTIFICATION_KIND_MENTIONED_IN_COMMENT",
+            Self::AutomationTriggerDispatched => "NOTIFICATION_KIND_AUTOMATION_TRIGGER_DISPATCHED",
         };
         serializer.serialize_str(variant)
     }
@@ -746,6 +747,7 @@ impl<'de> serde::Deserialize<'de> for NotificationKind {
             "NOTIFICATION_KIND_REPORT_READY",
             "NOTIFICATION_KIND_DATA_EXPORT_READY",
             "NOTIFICATION_KIND_MENTIONED_IN_COMMENT",
+            "NOTIFICATION_KIND_AUTOMATION_TRIGGER_DISPATCHED",
         ];
 
         struct GeneratedVisitor;
@@ -795,6 +797,7 @@ impl<'de> serde::Deserialize<'de> for NotificationKind {
                     "NOTIFICATION_KIND_REPORT_READY" => Ok(NotificationKind::ReportReady),
                     "NOTIFICATION_KIND_DATA_EXPORT_READY" => Ok(NotificationKind::DataExportReady),
                     "NOTIFICATION_KIND_MENTIONED_IN_COMMENT" => Ok(NotificationKind::MentionedInComment),
+                    "NOTIFICATION_KIND_AUTOMATION_TRIGGER_DISPATCHED" => Ok(NotificationKind::AutomationTriggerDispatched),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }

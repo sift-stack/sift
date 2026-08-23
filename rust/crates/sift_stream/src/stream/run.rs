@@ -407,16 +407,6 @@ mod tests {
             ))
         }
 
-        async fn get_filter_fields(
-            &self,
-            _request: Request<sift_rs::runs::v2::GetFilterFieldsRequest>,
-        ) -> std::result::Result<Response<sift_rs::runs::v2::GetFilterFieldsResponse>, Status>
-        {
-            Err(Status::unimplemented(
-                "get_filter_fields not needed for these tests",
-            ))
-        }
-
         async fn validate_run_filter(
             &self,
             _request: Request<sift_rs::runs::v2::ValidateRunFilterRequest>,
