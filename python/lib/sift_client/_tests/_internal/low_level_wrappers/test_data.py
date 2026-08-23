@@ -1858,3 +1858,319 @@ class TestGetChannelDataProgress:
             assert "/s" not in final, texts  # nothing fetched, so no rate
         finally:
             client.channel_cache.store.close()
+
+
+class TestReceivedAt:
+    """The ``include_received_at`` path: request flag, extras parsing into
+    a ``<channel>.sift_received_at`` column, and the cache bypass.
+    """
+
+    @staticmethod
+    def _double_values_any(
+        *,
+        name: str = "c1",
+        values: list[float],
+        received_at: list[datetime | None] | None = None,
+        start: datetime = _NOW,
+    ) -> Any:
+        """Fake wire payload: a DoubleValues proto behind a duck-typed Any.
+
+        ``received_at`` mirrors the server contract: a ``sift_received_at``
+        extras wrapper with one optional timestamp per point (``None`` for a
+        point without one). ``None`` for the whole arg omits extras entirely.
+        """
+        from types import SimpleNamespace
+
+        from sift.data.v2.data_pb2 import (
+            DimensionIndividualWrapper,
+            DimensionProtoTimestampValues,
+            DoubleValue,
+            DoubleValues,
+            Metadata,
+        )
+
+        from sift_client._internal.time import to_timestamp_pb
+
+        msg = DoubleValues(
+            metadata=Metadata(channel=Metadata.Channel(channel_id="cid1", name=name)),
+            values=[
+                DoubleValue(timestamp=to_timestamp_pb(start + timedelta(milliseconds=i)), value=v)
+                for i, v in enumerate(values)
+            ],
+        )
+        if received_at is not None:
+            msg.extras.append(
+                DimensionIndividualWrapper(
+                    label="sift_received_at",
+                    type=DimensionIndividualWrapper.TYPE_ADDITIONAL_TIMESTAMP_NANOS,
+                    dimension_proto_timestamp_values=DimensionProtoTimestampValues(
+                        values=[
+                            DimensionProtoTimestampValues.DimensionProtoTimestampValue(
+                                value=to_timestamp_pb(ts) if ts is not None else None
+                            )
+                            for ts in received_at
+                        ]
+                    ),
+                )
+            )
+        return SimpleNamespace(type_url="sift.data.v2.DoubleValues", value=msg.SerializeToString())
+
+    def test_deserialize_adds_prefixed_received_at_column(self) -> None:
+        """Extras timestamps land in a ``<name>.sift_received_at`` column."""
+        ingest = _NOW + timedelta(minutes=2)
+        payload = self._double_values_any(values=[1.0, 2.0], received_at=[ingest, ingest])
+
+        result = DataLowLevelClient.try_deserialize_channel_data(payload)
+
+        df = result["c1"]
+        assert list(df.columns) == ["c1", "c1.sift_received_at"]
+        assert list(df["c1"]) == [1.0, 2.0]
+        assert all(ts == pd.Timestamp(ingest) for ts in df["c1.sift_received_at"])
+
+    def test_deserialize_without_extras_keeps_single_column(self) -> None:
+        payload = self._double_values_any(values=[1.0, 2.0])
+
+        result = DataLowLevelClient.try_deserialize_channel_data(payload)
+
+        assert list(result["c1"].columns) == ["c1"]
+
+    def test_deserialize_point_without_received_at_is_nat(self) -> None:
+        """A point the server has no ingest time for surfaces as ``NaT``."""
+        ingest = _NOW + timedelta(minutes=2)
+        payload = self._double_values_any(values=[1.0, 2.0], received_at=[ingest, None])
+
+        result = DataLowLevelClient.try_deserialize_channel_data(payload)
+
+        col = result["c1"]["c1.sift_received_at"]
+        assert col.iloc[0] == pd.Timestamp(ingest)
+        assert pd.isna(col.iloc[1])
+
+    def test_deserialize_ignores_foreign_extras(self) -> None:
+        """Extras wrappers that aren't the received-at dimension are skipped."""
+        from sift.data.v2.data_pb2 import (
+            DimensionIndividualWrapper,
+            DimensionStringValues,
+            DoubleValues,
+        )
+
+        payload = self._double_values_any(values=[1.0])
+        msg = DoubleValues.FromString(payload.value)
+        msg.extras.append(
+            DimensionIndividualWrapper(
+                label="some_identifier",
+                type=DimensionIndividualWrapper.TYPE_IDENTIFIER,
+                dimension_string_values=DimensionStringValues(
+                    values=[DimensionStringValues.DimensionStringValue(value="x")]
+                ),
+            )
+        )
+        payload.value = msg.SerializeToString()
+
+        result = DataLowLevelClient.try_deserialize_channel_data(payload)
+
+        assert list(result["c1"].columns) == ["c1"]
+
+    def test_deserialize_length_mismatch_skips_column(self) -> None:
+        """A misaligned extras array must not produce a partial column."""
+        ingest = _NOW + timedelta(minutes=2)
+        payload = self._double_values_any(values=[1.0, 2.0], received_at=[ingest])
+
+        result = DataLowLevelClient.try_deserialize_channel_data(payload)
+
+        assert list(result["c1"].columns) == ["c1"]
+
+    @pytest.mark.asyncio
+    async def test_get_data_impl_sets_flag_on_request(self) -> None:
+        from unittest.mock import AsyncMock
+
+        from sift.data.v2.data_pb2 import GetDataResponse
+
+        grpc_client = MagicMock()
+        client = DataLowLevelClient(grpc_client)
+        stub = grpc_client.get_stub.return_value
+        stub.GetData = AsyncMock(return_value=GetDataResponse())
+
+        await client._get_data_impl(
+            channel_ids=["c1"], end_time=_WINDOW_END, include_received_at=True
+        )
+
+        request = stub.GetData.await_args_list[0].args[0]
+        assert request.HasField("include_received_at")
+        assert request.include_received_at is True
+
+    @pytest.mark.asyncio
+    async def test_get_data_impl_leaves_flag_unset_by_default(self) -> None:
+        from unittest.mock import AsyncMock
+
+        from sift.data.v2.data_pb2 import GetDataResponse
+
+        grpc_client = MagicMock()
+        client = DataLowLevelClient(grpc_client)
+        stub = grpc_client.get_stub.return_value
+        stub.GetData = AsyncMock(return_value=GetDataResponse())
+
+        await client._get_data_impl(channel_ids=["c1"], end_time=_WINDOW_END)
+
+        request = stub.GetData.await_args_list[0].args[0]
+        assert not request.HasField("include_received_at")
+
+    @pytest.mark.asyncio
+    async def test_include_received_at_bypasses_cache_read(self, tmp_path) -> None:
+        """A warm cache must not satisfy a received-at query (cached frames
+        carry no received-at column).
+        """
+        client = _client_with_cache(tmp_path)
+        cached_df, fresh_df = _frame("c1"), _frame("c1", offset=100)
+        # Full-coverage segment: a plain query for this window would be a
+        # pure cache hit and never touch the wire.
+        _put(client.channel_cache, "c1", data=cached_df, seg_start=_NOW, seg_end=_WINDOW_END)
+        try:
+            with _fake_grpc(client, {"c1": [fresh_df]}) as call_log:
+                result = await client.get_channel_data(
+                    channels=[_channel("c1")],
+                    start_time=_NOW,
+                    end_time=_WINDOW_END,
+                    include_received_at=True,
+                )
+
+            assert call_log, "received-at query should hit the wire despite the warm cache"
+            for call in call_log:
+                assert call["include_received_at"] is True, call
+            pd.testing.assert_frame_equal(result["c1"].sort_index(), fresh_df.sort_index())
+        finally:
+            client.channel_cache.store.close()
+
+    @pytest.mark.asyncio
+    async def test_include_received_at_skips_cache_write(self, tmp_path) -> None:
+        """Received-at frames never land in the cache, so a later plain
+        query fetches fresh instead of serving a frame with the extra column.
+        """
+        client = _client_with_cache(tmp_path)
+        try:
+            with _fake_grpc(client, {"c1": [_frame("c1")]}):
+                await client.get_channel_data(
+                    channels=[_channel("c1")],
+                    start_time=_NOW,
+                    end_time=_WINDOW_END,
+                    include_received_at=True,
+                )
+            assert not client.channel_cache.has_any("c1")
+        finally:
+            client.channel_cache.store.close()
+
+    @pytest.mark.asyncio
+    async def test_received_at_column_survives_page_merge(self) -> None:
+        """Two-column frames concat across pages without losing the column."""
+        received = _NOW + timedelta(minutes=2)
+        page1, page2 = _frame("c1", rows=3), _frame("c1", rows=3, start=_NOW + timedelta(seconds=1))
+        for page in (page1, page2):
+            page["c1.sift_received_at"] = pd.Timestamp(received)
+
+        client = DataLowLevelClient(MagicMock())
+        with _fake_grpc(client, {"c1": [page1, page2]}):
+            result = await client.get_channel_data(
+                channels=[_channel("c1")],
+                start_time=_NOW,
+                end_time=_WINDOW_END,
+                include_received_at=True,
+            )
+
+        df = result["c1"]
+        assert list(df.columns) == ["c1", "c1.sift_received_at"]
+        assert len(df) == 6
+        assert all(ts == pd.Timestamp(received) for ts in df["c1.sift_received_at"])
+
+    def test_deserialize_bitfield_payload_is_unaffected(self) -> None:
+        """BitFieldValues has no extras field on the wire; deserialization
+        must not crash and must not grow received-at columns.
+        """
+        from types import SimpleNamespace
+
+        from sift.data.v2.data_pb2 import (
+            BitFieldElementValues,
+            BitFieldValue,
+            BitFieldValues,
+            Metadata,
+        )
+
+        from sift_client._internal.time import to_timestamp_pb
+
+        msg = BitFieldValues(
+            metadata=Metadata(channel=Metadata.Channel(channel_id="cid1", name="bf")),
+            values=[
+                BitFieldElementValues(
+                    name="flag_a",
+                    values=[BitFieldValue(timestamp=to_timestamp_pb(_NOW), value=1)],
+                )
+            ],
+        )
+        payload = SimpleNamespace(
+            type_url="sift.data.v2.BitFieldValues", value=msg.SerializeToString()
+        )
+
+        result = DataLowLevelClient.try_deserialize_channel_data(payload)
+
+        assert list(result.keys()) == ["bf.flag_a"]
+        assert list(result["bf.flag_a"].columns) == ["bf.flag_a"]
+
+    def test_deserialize_enum_payload_is_unaffected(self) -> None:
+        """EnumValues has no extras field on the wire; deserialization must
+        not crash and must not grow a received-at column.
+        """
+        from types import SimpleNamespace
+
+        from sift.data.v2.data_pb2 import EnumValue, EnumValues, Metadata
+
+        from sift_client._internal.time import to_timestamp_pb
+
+        msg = EnumValues(
+            metadata=Metadata(channel=Metadata.Channel(channel_id="cid1", name="mode")),
+            values=[EnumValue(timestamp=to_timestamp_pb(_NOW), value=2)],
+        )
+        payload = SimpleNamespace(type_url="sift.data.v2.EnumValues", value=msg.SerializeToString())
+
+        result = DataLowLevelClient.try_deserialize_channel_data(payload)
+
+        assert list(result["mode"].columns) == ["mode"]
+
+    def test_all_nat_page_keeps_tz_aware_dtype(self) -> None:
+        """An all-NaT page must carry the same tz-aware dtype as populated
+        pages so the cross-page concat doesn't degrade to object dtype.
+        """
+        ingest = _NOW + timedelta(minutes=2)
+        nat_page = DataLowLevelClient.try_deserialize_channel_data(
+            self._double_values_any(values=[1.0, 2.0], received_at=[None, None])
+        )
+        populated_page = DataLowLevelClient.try_deserialize_channel_data(
+            self._double_values_any(
+                values=[3.0], received_at=[ingest], start=_NOW + timedelta(seconds=1)
+            )
+        )
+
+        assert str(nat_page["c1"]["c1.sift_received_at"].dtype) == "datetime64[ns, UTC]"
+
+        merged = DataLowLevelClient(MagicMock())._merge_pages(
+            [[nat_page, populated_page]], initial={}
+        )["c1"]
+        col = merged["c1.sift_received_at"]
+        assert str(col.dtype) == "datetime64[ns, UTC]"
+        assert col.isna().tolist() == [True, True, False]
+        assert col.iloc[-1] == pd.Timestamp(ingest)
+
+    def test_merge_keeps_later_duplicate_row_whole(self) -> None:
+        """On a duplicate timestamp the fresher page's whole row wins; its
+        NaT received-at must not be back-filled from the stale row.
+        """
+        ingest = _NOW + timedelta(minutes=2)
+        page1 = DataLowLevelClient.try_deserialize_channel_data(
+            self._double_values_any(values=[1.0], received_at=[ingest])
+        )
+        page2 = DataLowLevelClient.try_deserialize_channel_data(
+            self._double_values_any(values=[2.0], received_at=[None])
+        )
+
+        merged = DataLowLevelClient(MagicMock())._merge_pages([[page1, page2]], initial={})["c1"]
+
+        assert len(merged) == 1
+        assert merged["c1"].iloc[0] == 2.0
+        assert pd.isna(merged["c1.sift_received_at"].iloc[0])

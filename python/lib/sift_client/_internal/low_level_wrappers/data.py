@@ -37,6 +37,11 @@ CHANNELS_DEFAULT_PAGE_SIZE = 10_000
 # has been resolved. In the mean time each channel gets its own request.
 REQUEST_BATCH_SIZE = 1
 
+# Label the server attaches to the per-point ingest timestamps returned in the
+# `extras` field when `GetDataRequest.include_received_at` is set. Also used as
+# the suffix of the resulting "<channel>.sift_received_at" DataFrame column.
+RECEIVED_AT_LABEL = "sift_received_at"
+
 
 TimeRange = Tuple[datetime, datetime]
 
@@ -571,6 +576,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         page_size: int | None = None,
         page_token: str | None = None,
         order_by: str | None = None,
+        include_received_at: bool = False,
     ) -> tuple[list[Any], str | None]:
         """Get the data for a channel during a run."""
         queries = [
@@ -584,6 +590,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
             "end_time": to_timestamp_pb(end_time),
             "page_size": page_size,
             "page_token": page_token,
+            "include_received_at": True if include_received_at else None,
         }
 
         request = GetDataRequest(**request_kwargs)
@@ -773,12 +780,19 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         page_size: int | None = None,
         ignore_cache: bool = False,
         show_progress: bool = False,
+        include_received_at: bool = False,
     ) -> dict[str, pd.DataFrame]:
         """Get the data for a channel during a run."""
         ret_data: dict[str, pd.DataFrame] = {}
         # No data will be returned if end_time is not provided.
         start_time = start_time or datetime.fromtimestamp(0, tz=timezone.utc)
         end_time = end_time or datetime.now(timezone.utc)
+
+        # Received-at columns are never cached: cached segments were fetched
+        # without them, so mixing cached and fresh frames would yield rows
+        # with and without the column. Bypass both cache read and write.
+        if include_received_at:
+            ignore_cache = True
 
         self._update_name_id_map(channels)
 
@@ -843,6 +857,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
                         "run_id": run_id,
                         "start_time": start_time,
                         "end_time": end_time,
+                        "include_received_at": include_received_at,
                     },
                     ", ".join(id_to_name.get(cid, cid) for cid in batch),
                 )
@@ -858,6 +873,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
                             "run_id": run_id,
                             "start_time": gap_start,
                             "end_time": gap_end,
+                            "include_received_at": include_received_at,
                         },
                         f"{id_to_name.get(cid, cid)} [{gap_start:%H:%M:%S}-{gap_end:%H:%M:%S}]",
                     )
@@ -987,9 +1003,11 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         stitched inline via :meth:`ChannelDataCache.get_range` before
         dispatching wire fetches for the gaps. Cached entries are
         folded in as the first frame for their channel so they
-        participate in the same final concat; ``groupby(level=0).last()``
-        preserves the previous behavior of letting a later-positioned
-        (fresher) value win on duplicate timestamps.
+        participate in the same final concat; row-level dedup keeps the
+        later-positioned (fresher) row whole on duplicate timestamps.
+        Dedup is per-row, not ``groupby.last()``: last() skips nulls per
+        column, which would pair a fresh value with a stale row's
+        received-at when the fresh point's received-at is NaT.
         """
         per_channel_frames: dict[str, list[pd.DataFrame]] = {}
         for page in pages:
@@ -1001,12 +1019,13 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         for name, frames in per_channel_frames.items():
             if name in ret_data:
                 # Cached slice goes first so fresher pages (positioned later
-                # in the list) win on overlapping timestamps after groupby.
+                # in the list) win on overlapping timestamps after dedup.
                 frames.insert(0, ret_data[name])
             if len(frames) == 1:
                 ret_data[name] = frames[0]
             else:
-                ret_data[name] = pd.concat(frames).groupby(level=0).last()
+                combined = pd.concat(frames)
+                ret_data[name] = combined[~combined.index.duplicated(keep="last")].sort_index()
         return ret_data
 
     @staticmethod
@@ -1021,6 +1040,8 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         metadata = proto_data_value.metadata
         ret_data = {}
 
+        received_at = DataLowLevelClient._received_at_values(proto_data_value)
+
         components = (
             proto_data_value.values if proto_data_class is BitFieldValues else [proto_data_value]
         )
@@ -1034,6 +1055,34 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 time_column.append(to_timestamp_nanos(value_obj.timestamp))
                 value_column.append(value_obj.value)
             df = pd.DataFrame({name: value_column}, index=time_column)
+            if received_at is not None and len(received_at) == len(value_column):
+                # Explicit dtype: an all-NaT page would otherwise infer
+                # tz-naive and degrade the tz-aware concat in _merge_pages
+                # to an object column.
+                df[f"{name}.{RECEIVED_AT_LABEL}"] = pd.Series(
+                    received_at, index=df.index, dtype="datetime64[ns, UTC]"
+                )
             ret_data[name] = df
 
         return ret_data
+
+    @staticmethod
+    def _received_at_values(proto_data_value: Any) -> list[pd.Timestamp] | None:
+        """Extract per-point ``sift_received_at`` timestamps from ``extras``.
+
+        The server aligns one timestamp per data point when
+        ``GetDataRequest.include_received_at`` is set; points without one
+        come back as ``NaT``. Returns ``None`` when the message carries no
+        received-at dimension (flag unset, or a type without extras such as
+        enums and bitfields).
+        """
+        for extra in getattr(proto_data_value, "extras", ()):
+            if extra.label != RECEIVED_AT_LABEL:
+                continue
+            if extra.WhichOneof("value_wrapper") != "dimension_proto_timestamp_values":
+                continue
+            return [
+                to_timestamp_nanos(v.value) if v.HasField("value") else cast("pd.Timestamp", pd.NaT)
+                for v in extra.dimension_proto_timestamp_values.values
+            ]
+        return None

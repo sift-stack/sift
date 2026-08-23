@@ -501,3 +501,36 @@ class TestUpdateUnitResolution:
 
         api._units_low_level_client.create_unit.assert_not_awaited()
         assert captured["update"].unit == ""
+
+
+class TestGetDataForwarding:
+    """get_data forwards its knobs to the data low-level client. The data
+    path itself is covered in the low-level wrapper tests.
+    """
+
+    @pytest.mark.asyncio
+    async def test_forwards_include_received_at(self):
+        """get_data(include_received_at=True) reaches get_channel_data as True."""
+        api = _make_api()
+        api._data_low_level_client = MagicMock()
+        api._data_low_level_client.get_channel_data = AsyncMock(return_value={})
+
+        await api.get_data(
+            channels=[_mock_channel(unit="")],
+            show_progress=False,
+            include_received_at=True,
+        )
+
+        kwargs = api._data_low_level_client.get_channel_data.await_args_list[0].kwargs
+        assert kwargs["include_received_at"] is True
+
+    @pytest.mark.asyncio
+    async def test_include_received_at_defaults_to_false(self):
+        api = _make_api()
+        api._data_low_level_client = MagicMock()
+        api._data_low_level_client.get_channel_data = AsyncMock(return_value={})
+
+        await api.get_data(channels=[_mock_channel(unit="")], show_progress=False)
+
+        kwargs = api._data_low_level_client.get_channel_data.await_args_list[0].kwargs
+        assert kwargs["include_received_at"] is False
