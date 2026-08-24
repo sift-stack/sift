@@ -17,6 +17,20 @@ pub const TS_COLUMN_NAME: &str = "timestamp_unix_nanos";
 
 const NANOS_PER_SEC: i64 = 1_000_000_000;
 
+/// A page of list results, plus whether the service stopped short of the full
+/// match set.
+///
+/// Every list call is capped at `limit`, and the upstream response that told us
+/// more exist is dropped on the floor once we truncate. Without this flag a
+/// caller cannot tell a complete result from a truncated one, so "how many are
+/// there" is unanswerable — and an agent reading a capped page tends to report
+/// its size as the total.
+#[derive(Debug)]
+pub struct Page<T> {
+    pub items: Vec<T>,
+    pub has_more: bool,
+}
+
 /// Returns page size and record limit. `limit` is clamped to `1..=PAGE_SIZE`;
 /// omitting it falls back to [`DEFAULT_LIMIT`]. No input yields an unbounded
 /// record limit.

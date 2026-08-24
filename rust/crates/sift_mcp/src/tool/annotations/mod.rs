@@ -14,7 +14,7 @@ use sift_rs::{
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
-    tool::common::{MetadataEntry, url_clause, with_urls},
+    tool::common::{MetadataEntry, list_body, url_clause, with_urls},
 };
 
 #[cfg(test)]
@@ -26,6 +26,7 @@ pub struct AnnotationListParams {
     pub(crate) order_by: Option<String>,
     pub(crate) limit: Option<u32>,
     pub(crate) organization_id: Option<String>,
+    pub(crate) fields: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -96,6 +97,12 @@ impl SiftMcpServer {
                 added `url` field with the annotation's Sift web link (`<host>/annotation/<annotation_id>`). `url`
                 is omitted when the host can't be derived. Surface these links to the user when presenting
                 annotations.
+              - `count`: how many items THIS response carries — read it instead of
+                counting the array yourself. It is the size of the page you got back, not
+                how many items match `filter`.
+              - `has_more`: `true` when the service hit `limit` with matches left over, so
+                this page is not the whole set. Never report `count` as a total while
+                `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
@@ -113,6 +120,14 @@ impl SiftMcpServer {
               - `limit`: max items to return. Start at 50 and only raise it if the result is capped
                 and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
               - `organization_id`: optional. Required only when the caller belongs to multiple organizations.
+              - `fields`: optional array of field names to keep on each item, e.g.
+                `[\"name\"]`. Omit it for the full object. Names match case-insensitively
+                and ignore underscores and hyphens, so `asset_id`, `assetId` and
+                `asset-id` all work. Any name that matched nothing on any returned item
+                is listed in `unmatched_fields`; an empty page reports none, since it
+                says nothing about whether a name was spelled right.
+                Reach for this whenever you need only a few fields: full objects are wide,
+                and a large listing can exceed the response size limit without it.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an unknown field.
@@ -134,21 +149,25 @@ impl SiftMcpServer {
             order_by,
             limit,
             organization_id,
+            fields,
         }) = params;
 
-        let annotations = self
+        let page = self
             .annotation_service
             .list_annotations(filter, order_by, limit, organization_id)
             .await
             .map_err(from_anyhow)?;
 
-        let annotations = with_urls(&annotations, |a| {
+        let annotations = with_urls(&page.items, |a| {
             self.url_service.build_annotation_url(&a.annotation_id).ok()
         })?;
 
-        Ok(CallToolResult::structured(
-            serde_json::json!({ "annotations": annotations }),
-        ))
+        Ok(CallToolResult::structured(list_body(
+            "annotations",
+            annotations,
+            fields,
+            page.has_more,
+        )))
     }
 
     #[tool(

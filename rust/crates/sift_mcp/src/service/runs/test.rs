@@ -47,7 +47,8 @@ async fn list_runs_returns_single_page() {
     let runs = service
         .list_runs("name == \"launch\"".to_string(), None, None)
         .await
-        .expect("list_runs failed");
+        .expect("list_runs failed")
+        .items;
 
     assert_eq!(runs.len(), 1);
     assert_eq!(runs[0].run_id, "r1");
@@ -87,7 +88,8 @@ async fn list_runs_paginates_until_token_empty() {
     let runs = service
         .list_runs(String::new(), None, None)
         .await
-        .expect("list_runs failed");
+        .expect("list_runs failed")
+        .items;
 
     let ids: Vec<&str> = runs.iter().map(|r| r.run_id.as_str()).collect();
     assert_eq!(ids, vec!["r1", "r2"]);
@@ -119,7 +121,8 @@ async fn list_runs_respects_limit() {
     let runs = service
         .list_runs(String::new(), None, Some(2))
         .await
-        .expect("list_runs failed");
+        .expect("list_runs failed")
+        .items;
 
     assert_eq!(runs.len(), 2);
 }
@@ -170,7 +173,8 @@ async fn list_runs_truncates_to_limit_across_pages() {
     let runs = service
         .list_runs(String::new(), None, Some(3))
         .await
-        .expect("list_runs failed");
+        .expect("list_runs failed")
+        .items;
 
     let ids: Vec<&str> = runs.iter().map(|r| r.run_id.as_str()).collect();
     assert_eq!(ids, vec!["r1", "r2", "r3"]);
@@ -191,7 +195,8 @@ async fn list_runs_breaks_on_empty_page() {
     let runs = service
         .list_runs(String::new(), None, None)
         .await
-        .expect("list_runs failed");
+        .expect("list_runs failed")
+        .items;
 
     assert!(runs.is_empty());
 }

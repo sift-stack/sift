@@ -68,11 +68,12 @@ fn get_data_params(channel_regex: &str) -> Parameters<GetDataParams> {
     })
 }
 
-/// A channel selection that fills the service's record cap may have been
-/// silently truncated, which would produce a Parquet file that is missing
-/// channels with no warning. The tool must refuse loudly instead.
+/// A truncated channel selection would produce a Parquet file that is missing
+/// channels with no warning. The tool must refuse loudly instead. Truncation is
+/// the service reporting more matches beyond the cap, not the result merely
+/// reaching it — see the companion test below.
 #[tokio::test]
-async fn get_data_rejects_channel_selection_at_cap() {
+async fn get_data_rejects_a_truncated_channel_selection() {
     let mut channels = MockChannelServiceImpl::new();
     channels.expect_list_channels().returning(|req| {
         let page_size = req.into_inner().page_size as usize;
@@ -84,7 +85,7 @@ async fn get_data_rejects_channel_selection_at_cap() {
                     ..Default::default()
                 })
                 .collect(),
-            next_page_token: String::new(),
+            next_page_token: "more-channels".into(),
         }))
     });
 
@@ -93,7 +94,7 @@ async fn get_data_rejects_channel_selection_at_cap() {
     let err = server
         .get_data(get_data_params("channel\\..*"))
         .await
-        .expect_err("a capped channel selection must be rejected");
+        .expect_err("a truncated channel selection must be rejected");
 
     assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
     assert!(
@@ -135,4 +136,41 @@ async fn get_data_channel_resolution_requests_service_maximum() {
     // page_size fails the mock expectation. Reaching RESOURCE_NOT_FOUND
     // proves the request passed the filter.
     assert_eq!(err.code, ErrorCode::RESOURCE_NOT_FOUND);
+}
+
+/// The old guard inferred truncation from the result reaching the cap, so a
+/// selection that matched exactly that many channels — with nothing left
+/// upstream — was rejected as incomplete when it was whole. The service reports
+/// the cut directly now, so this case must get through.
+#[tokio::test]
+async fn get_data_accepts_a_full_page_with_nothing_left() {
+    let mut channels = MockChannelServiceImpl::new();
+    channels.expect_list_channels().returning(|req| {
+        let page_size = req.into_inner().page_size as usize;
+        Ok(Response::new(ListChannelsResponse {
+            channels: (0..page_size)
+                .map(|i| Channel {
+                    channel_id: format!("ch-{i}"),
+                    name: format!("channel.{i}"),
+                    ..Default::default()
+                })
+                .collect(),
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (server, _h) = server_with_mocks(one_asset_mock(), channels).await;
+
+    // Data retrieval is not mocked here, so the call still fails — but it must
+    // get past channel selection rather than being turned away as truncated.
+    let err = server
+        .get_data(get_data_params("channel\\..*"))
+        .await
+        .expect_err("no data service is wired in this test");
+
+    assert!(
+        !err.message.contains("incomplete") && !err.message.contains("narrow"),
+        "a complete selection must not be rejected as truncated: {}",
+        err.message
+    );
 }
