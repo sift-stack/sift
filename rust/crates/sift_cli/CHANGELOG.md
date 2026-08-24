@@ -7,6 +7,21 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+## [v0.4.4] - August 24, 2026
+
+### What's New
+
+- Added `sift-cli get asset`, the first of the new `get` subcommands for
+  discovering data in Sift from the terminal. It takes `--filter` with a CEL
+  expression, `--limit` (default 50), and `--output-format` (`text` or
+  `json`).
+- MCP `list_*` tools now accept an optional `fields` projection that keeps
+  only the named fields on each item, cutting response size for wide objects.
+  Names match case-insensitively and ignore underscores and hyphens; names
+  that match nothing are reported back in `unmatched_fields`.
+- MCP `list_*` responses now report `count` (items in the returned page) and
+  `has_more` (whether results were truncated at `limit`), so agents can tell
+  a complete listing from a capped one.
 - Added a `--disable-nonessential-traffic` flag to `sift-cli mcp` that stops
   the MCP server from making non-essential network requests. Release checks
   stay under `--disable-update-check`.
