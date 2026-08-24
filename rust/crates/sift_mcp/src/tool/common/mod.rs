@@ -66,10 +66,17 @@ pub(crate) fn with_urls<T: Serialize>(
         .collect()
 }
 
-/// Normalize a field name for matching so `asset_id`, `assetId` and `AssetId`
-/// all address the same key. Callers carry names between tools that spell them
-/// differently, and a name that quietly matches nothing is the failure this
-/// projection exists to avoid.
+/// Normalize a field name for matching so `asset_id`, `assetId`, `asset-id` and
+/// `AssetId` all address the same key: case is folded and `_` and `-` are
+/// dropped. Callers carry names between tools that spell them differently, and a
+/// name that quietly matches nothing is the failure this projection exists to
+/// avoid.
+///
+/// Two source keys on the same object can therefore normalize alike — `asset_id`
+/// beside `assetId` would both reduce to `assetid`. The first in key order wins,
+/// deterministically. Proto3 JSON emits one casing per field so our shapes do
+/// not hit this, but a serializer change could, and picking one is better than
+/// erroring on an ambiguity the caller cannot see.
 fn normalized(name: &str) -> String {
     name.chars()
         .filter(|c| *c != '_' && *c != '-')
@@ -91,7 +98,8 @@ pub(crate) fn to_values<T: Serialize>(items: &[T]) -> Result<Vec<Value>, ErrorDa
 }
 
 /// Restrict each object to `fields`. Returns the projected items and any
-/// requested name that matched no key on any item. Values that are not objects
+/// requested name that matched no key on any item — empty when the page itself
+/// is empty, since an absent row proves nothing about a field name. Values that are not objects
 /// pass through untouched. Key order is unchanged from an unprojected response
 /// (`serde_json::Map` sorts), so callers read by name, not position.
 ///
@@ -99,6 +107,13 @@ pub(crate) fn to_values<T: Serialize>(items: &[T]) -> Result<Vec<Value>, ErrorDa
 /// from one item and present on another. Only a name absent from every item
 /// counts as unmatched.
 pub(crate) fn project_fields(items: Vec<Value>, fields: &[String]) -> (Vec<Value>, Vec<String>) {
+    // Nothing came back, so nothing can be said about the field names. Reporting
+    // them all as unmatched would read as a spelling problem and send the caller
+    // off renaming fields that were fine — the filter simply matched no rows.
+    if items.is_empty() {
+        return (items, Vec::new());
+    }
+
     let wanted: Vec<String> = fields.iter().map(|f| normalized(f)).collect();
     let mut matched = vec![false; wanted.len()];
 

@@ -122,8 +122,10 @@ impl SiftMcpServer {
               - `organization_id`: optional. Required only when the caller belongs to multiple organizations.
               - `fields`: optional array of field names to keep on each item, e.g.
                 `[\"name\"]`. Omit it for the full object. Names match case-insensitively
-                and ignore underscores, so `asset_id` and `assetId` both work. Any name
-                that matched nothing is returned in `unmatched_fields` beside the results.
+                and ignore underscores and hyphens, so `asset_id`, `assetId` and
+                `asset-id` all work. Any name that matched nothing on any returned item
+                is listed in `unmatched_fields`; an empty page reports none, since it
+                says nothing about whether a name was spelled right.
                 Reach for this whenever you need only a few fields: full objects are wide,
                 and a large listing can exceed the response size limit without it.
 

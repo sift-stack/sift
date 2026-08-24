@@ -185,3 +185,53 @@ fn list_body_reports_a_capped_page() {
     assert_eq!(body["count"], json!(2));
     assert_eq!(body["has_more"], json!(true));
 }
+
+#[test]
+fn project_fields_reports_nothing_unmatched_for_an_empty_page() {
+    // A filter that matched no rows is not a misspelled field name. Reporting
+    // every requested field as unmatched here would send the caller off
+    // respelling names that were fine.
+    let (items, unmatched) = project_fields(Vec::new(), &["name".into(), "channel_id".into()]);
+
+    assert!(items.is_empty());
+    assert!(
+        unmatched.is_empty(),
+        "an empty page says nothing about field names: {unmatched:?}"
+    );
+}
+
+#[test]
+fn project_fields_still_reports_a_typo_on_a_non_empty_page() {
+    // The guard above must not swallow the signal the field exists for.
+    let items = vec![json!({ "name": "throttle" })];
+
+    let (_, unmatched) = project_fields(items, &["name".into(), "nmae".into()]);
+
+    assert_eq!(unmatched, vec!["nmae".to_string()]);
+}
+
+#[test]
+fn normalized_names_ignore_case_and_both_separators() {
+    let items = vec![json!({ "assetId": "a1" })];
+
+    for spelling in ["asset_id", "asset-id", "AssetId", "ASSET_ID"] {
+        let (projected, unmatched) = project_fields(items.clone(), &[spelling.into()]);
+        assert_eq!(
+            projected,
+            vec![json!({ "assetId": "a1" })],
+            "{spelling} should address the same key"
+        );
+        assert!(unmatched.is_empty(), "{spelling} should match");
+    }
+}
+
+#[test]
+fn list_body_omits_unmatched_fields_when_the_page_is_empty() {
+    let body = list_body("channels", Vec::new(), Some(vec!["name".into()]), false);
+
+    assert_eq!(body["count"], json!(0));
+    assert!(
+        body.get("unmatched_fields").is_none(),
+        "an empty page must not look like a spelling problem: {body}"
+    );
+}
