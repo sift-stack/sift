@@ -25,6 +25,7 @@ import-test-result-log --new-report ./offline-runs/a1b2c3/a1b2c3.jsonl
 
 ### Bugfixes
 - Fix `assets.archive` raising `AttributeError` by reading the correct response field, `archived_run_ids`.
+- Fix streaming ingestion failing to start when an ingestion config's flow schema exceeded the streaming client's 4 MiB decode limit. `sift-stream-bindings` 0.5.0 decodes up to 50 MiB.
 
 ## [v0.19.1] - July 27, 2026
 
