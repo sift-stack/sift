@@ -35,12 +35,7 @@ DEFAULT_REQUEST_TIMEOUT_SECONDS = 60.0
 """Default per-call deadline applied to unary RPCs that don't set their own."""
 
 MAX_DECODING_MESSAGE_SIZE = 50 * 1024 * 1024
-"""Largest gRPC response the client will decode, in bytes.
-
-50 MiB, matching the Rust clients' `sift_connect::MAX_DECODING_MESSAGE_SIZE`. Sized to cover the
-largest responses Sift returns, such as 1M-row `GetData` pages and large flow schemas, so it is
-fixed rather than configurable.
-"""
+"""Largest gRPC response the client will decode, in bytes (50 MiB)."""
 
 
 def get_ssl_credentials(cert_via_openssl: bool) -> grpc.ChannelCredentials:
