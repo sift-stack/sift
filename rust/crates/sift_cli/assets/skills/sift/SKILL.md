@@ -82,7 +82,10 @@ exists.
   then filter another list on `created_by_user_id`. For "runs I created", pass
   `me: true`. Never guess which listed user is the caller.
 - **Produce numbers.** `get_data` writes a Parquet file. `sql` then queries it.
-  Add `upload_dataset` when the result belongs back in Sift.
+  Add `upload_dataset` when the result belongs back in Sift. A successful
+  `get_data` does not mean every requested channel is in the file: check
+  `unmatched_channel_names` and `empty_channels` in the result and name any
+  missing channel to the user before reporting numbers derived from it.
 - **Produce a chart.** Build a link with `explore_url`. When the user wants a
   chart and numbers, do both and give the user both.
 - **Answer a question about how Sift works.** Call `search_docs`. Do not answer

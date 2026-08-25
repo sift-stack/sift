@@ -1,4 +1,4 @@
-use std::{fs::File, path::PathBuf};
+use std::{collections::HashSet, fs::File, path::PathBuf};
 
 use anyhow::Context;
 use rmcp::{
@@ -9,6 +9,7 @@ use rmcp::{
     tool, tool_router,
 };
 use serde::Deserialize;
+use serde_json::Value;
 
 use sift_rs::metadata::v1::MetadataValue;
 
@@ -71,6 +72,12 @@ impl SiftMcpServer {
                 Cells are null where that channel has no sample at the row's timestamp.
               - Enum and BitField channels carry their decode config in field metadata under the `enum_config` and
                 `bit_field_elements` keys respectively.
+              - A requested channel that produced no samples has NO column at all, not an all-null one. The tool
+                result reports these so they never have to be inferred from the schema:
+                `unmatched_channel_names` lists requested names that matched no channel on the asset, and
+                `empty_channels` lists channels that matched but returned no samples in the window. Both keys are
+                omitted when empty. When either is present, name those channels to the user before presenting any
+                analysis — the file is a partial answer.
 
             Parameters:
               - `asset_name`: exact asset name (not a pattern).
@@ -87,6 +94,8 @@ impl SiftMcpServer {
 
             Errors:
               - `RESOURCE_NOT_FOUND` if the asset or run is missing or there are no matching channels.
+              - `INTERNAL_ERROR` if every matched channel returned no samples in the window. The message names the
+                channels; widen the time range or drop the run scope rather than concluding the asset has no data.
               - `INVALID_PARAMS` if `run_name` is absent and the full time range is not supplied, if neither
                 `channel_names` nor `channel_regex` is set, if both are set, or if `channel_names` is empty.
               - `INVALID_PARAMS` if the channel selection matches 200 or more channels — the result would be
@@ -102,6 +111,8 @@ impl SiftMcpServer {
                 channel sets can be slow or memory-heavy. For large pulls, split the time range into successive calls
                 with disjoint `[start, end)` windows.
               - Use `sample_ms > 0` for overview/summary work; reserve `sample_ms = 0` for cases that need raw fidelity.
+              - A successful call does NOT mean every requested channel is in the file. Check
+                `unmatched_channel_names` and `empty_channels` before reporting the result or aggregating over it.
               - After a successful call, if the user hasn't already indicated a next step, offer to run a SQL query
                 against the resulting Parquet file using the `sql` tool.
         ",
@@ -166,7 +177,10 @@ impl SiftMcpServer {
             None => None,
         };
 
-        let channel_search_filter = match (channel_names, channel_regex) {
+        // Hold on to the caller's own strings: `name in [...]` matches what it can
+        // and says nothing about the rest, so this is the last point at which an
+        // unmatched name can still be identified.
+        let (channel_search_filter, requested_names) = match (channel_names, channel_regex) {
             (Some(_), Some(_)) => {
                 return Err(ErrorData::invalid_params(
                     "exactly one of `channel_names` or `channel_regex` must be set, not both",
@@ -191,11 +205,9 @@ impl SiftMcpServer {
                     .map(|n| format!("\"{}\"", cel_escape(n)))
                     .collect::<Vec<_>>()
                     .join(", ");
-                format!("name in [{items}]")
+                (format!("name in [{items}]"), Some(names))
             }
-            (None, Some(pattern)) => {
-                format!("name.matches(\"{}\")", cel_escape(&pattern))
-            }
+            (None, Some(pattern)) => (format!("name.matches(\"{}\")", cel_escape(&pattern)), None),
         };
         let channel_filter = format!(
             "asset_id == \"{}\" && {channel_search_filter}",
@@ -232,6 +244,22 @@ impl SiftMcpServer {
             ));
         }
 
+        // A regex selection has no per-name expectation to check against, so this
+        // only applies to an explicit `channel_names` list.
+        let unmatched_channel_names = requested_names
+            .map(|names| {
+                let matched = channels
+                    .iter()
+                    .map(|c| c.name.as_str())
+                    .collect::<HashSet<_>>();
+
+                names
+                    .into_iter()
+                    .filter(|name| !matched.contains(name.as_str()))
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+
         let channel_inputs = channels
             .into_iter()
             .map(|c| ChannelInput::Raw(Box::new(c)))
@@ -257,23 +285,78 @@ impl SiftMcpServer {
             .context("failed to open output parquet file")
             .map_err(from_anyhow)?;
 
-        self.data_service
+        let data_output = self
+            .data_service
             .get_data(&channel_inputs, time_range, sample_ms, &mut file)
             .await
             .context("get data call failure - data_router")
             .map_err(from_anyhow)?;
 
         let output_str = output.to_string_lossy().into_owned();
-        let next_step = format!(
-            "Wrote channel data to `{output_str}`. Inform the user where the data lives. \
-             If the user hasn't already indicated a next step, offer to run a SQL query against this \
-             file with the `sql` tool — for example to filter, aggregate, or summarize the data."
+
+        let mut gaps = Vec::new();
+        if !unmatched_channel_names.is_empty() {
+            gaps.push(format!(
+                "{} matched no channel on this asset: {}.",
+                unmatched_channel_names.len(),
+                common::name_list(&unmatched_channel_names),
+            ));
+        }
+        if !data_output.empty_channels.is_empty() {
+            gaps.push(format!(
+                "{} returned no samples in this window: {}.",
+                data_output.empty_channels.len(),
+                common::name_list(&data_output.empty_channels),
+            ));
+        }
+
+        let mut next_step =
+            format!("Wrote channel data to `{output_str}`. Inform the user where the data lives.");
+        // Without this the agent reads a plain success and reports a partial
+        // fetch as a complete one, because a channel with no column is
+        // indistinguishable from one that was never requested.
+        if !gaps.is_empty() {
+            next_step.push_str(&format!(
+                " The file does NOT have a column for every channel requested. {} Name those \
+                 channels to the user before presenting any analysis, and do not describe the \
+                 fetch as complete.",
+                gaps.join(" "),
+            ));
+        }
+        next_step.push_str(
+            " If the user hasn't already indicated a next step, offer to run a SQL query against \
+             this file with the `sql` tool — for example to filter, aggregate, or summarize the \
+             data.",
         );
 
-        let mut result = CallToolResult::structured(serde_json::json!({
-            "output": output_str,
-            "next_step": next_step,
-        }));
+        let mut body = serde_json::Map::new();
+        body.insert("output".to_string(), Value::from(output_str));
+        body.insert("next_step".to_string(), Value::from(next_step.clone()));
+        if !unmatched_channel_names.is_empty() {
+            body.insert(
+                "unmatched_channel_names".to_string(),
+                Value::Array(
+                    unmatched_channel_names
+                        .into_iter()
+                        .map(Value::String)
+                        .collect(),
+                ),
+            );
+        }
+        if !data_output.empty_channels.is_empty() {
+            body.insert(
+                "empty_channels".to_string(),
+                Value::Array(
+                    data_output
+                        .empty_channels
+                        .into_iter()
+                        .map(Value::String)
+                        .collect(),
+                ),
+            );
+        }
+
+        let mut result = CallToolResult::structured(Value::Object(body));
         result.content = vec![ContentBlock::text(next_step)];
         Ok(result)
     }

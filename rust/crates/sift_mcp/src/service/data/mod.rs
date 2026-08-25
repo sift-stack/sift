@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     io::Write,
     mem,
     path::PathBuf,
@@ -39,7 +39,7 @@ use sift_rs::{
 
 use crate::policy::{RetryPolicy, with_retry};
 use crate::service::common::{
-    BIT_FIELD_METADATA_KEY, ColumnName, ENUM_METADATA_KEY, PAGE_SIZE, TS_COLUMN_NAME,
+    BIT_FIELD_METADATA_KEY, ColumnName, ENUM_METADATA_KEY, PAGE_SIZE, TS_COLUMN_NAME, name_list,
     secs_and_subsec_nanos_to_unix_nanos, unix_nanos_to_secs_and_subsec_nanos,
 };
 
@@ -53,6 +53,16 @@ const SIZE_FLUSH_THRESHOLD: usize = 64 << 20;
 pub struct DataService {
     channel: SiftChannel,
     policy: RetryPolicy,
+}
+
+/// What `get_data` wrote, beyond the Parquet file itself.
+#[derive(Debug)]
+pub struct DataOutput {
+    /// Requested channels that matched the selection but returned no samples in
+    /// the queried window. These have no column in the output at all, so a
+    /// caller diffing the Parquet schema against its request is the only way to
+    /// notice them otherwise.
+    pub empty_channels: Vec<String>,
 }
 
 pub enum ChannelInput {
@@ -156,7 +166,7 @@ impl DataService {
         time_range: TimeRange,
         sample_ms: u32,
         buffer: &mut W,
-    ) -> Result<()> {
+    ) -> Result<DataOutput> {
         if channel_inputs.is_empty() {
             bail!("channel inputs cannot be empty");
         }
@@ -835,6 +845,30 @@ impl DataService {
             page_token = next_page_token;
         }
 
+        // A channel that matched the selection but returned nothing never
+        // reaches `columns`, so it is absent from the Parquet schema rather than
+        // present and null. Nothing downstream can recover the difference
+        // between "asked for and empty" and "never asked for", so name them here
+        // while the request is still in scope.
+        let produced = columns
+            .keys()
+            .map(ColumnName::channel_id)
+            .collect::<HashSet<_>>();
+
+        let empty_channels = channel_inputs
+            .iter()
+            .filter_map(|input| match input {
+                ChannelInput::Raw(channel) => {
+                    (!produced.contains(channel.channel_id.as_str())).then(|| channel.name.clone())
+                }
+                // Calculated channels are keyed by their channel key, not by an
+                // id the caller supplied, so fall back to matching on name.
+                ChannelInput::Calculation { name, .. } => {
+                    (!columns.keys().any(|column| column.name() == name)).then(|| name.clone())
+                }
+            })
+            .collect::<Vec<_>>();
+
         if columns.is_empty() {
             // "No data" is a plausible real answer, so spell out what was
             // actually queried; otherwise an empty window or a run scope that
@@ -844,10 +878,10 @@ impl DataService {
                 .map(|id| format!(" scoped to run {id}"))
                 .unwrap_or_default();
             bail!(
-                "no channel data for given input parameters: {} matched channel(s) returned no \
-                 samples in the queried window{run_note}; the channels exist, so widen the time \
-                 range or drop the run scope before concluding the asset has no data",
-                channel_inputs.len(),
+                "no channel data for given input parameters: no samples in the queried \
+                 window{run_note} for {}; the channels exist, so widen the time range or drop \
+                 the run scope before concluding the asset has no data",
+                name_list(&empty_channels),
             )
         }
 
@@ -976,7 +1010,7 @@ impl DataService {
             .close()
             .context("failed to finalize arrow writer")?;
 
-        Ok(())
+        Ok(DataOutput { empty_channels })
     }
 
     fn append_null_to_builder(

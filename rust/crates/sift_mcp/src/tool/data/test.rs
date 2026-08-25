@@ -1,21 +1,42 @@
+use bytes::Bytes;
+use pbjson_types::{Any, Timestamp};
+use prost::Message;
 use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
 use sift_rs::{
     assets::v1::{Asset, ListAssetsResponse, asset_service_server::AssetServiceServer},
     channels::v3::{Channel, ListChannelsResponse, channel_service_server::ChannelServiceServer},
+    data::v2::{
+        DoubleValue, DoubleValues, GetDataResponse, Metadata,
+        data_service_server::DataServiceServer, metadata,
+    },
 };
 use sift_test_util::{
     grpc::memory_sift_channel,
-    mock::{assets::v1::MockAssetServiceImpl, channels::v3::MockChannelServiceImpl},
+    mock::{
+        assets::v1::MockAssetServiceImpl, channels::v3::MockChannelServiceImpl,
+        data::v2::MockDataServiceImpl,
+    },
 };
+use tempdir::TempDir;
 use tokio::task::JoinHandle;
 use tonic::{Response, transport::Server};
 
 use super::GetDataParams;
-use crate::{server::SiftMcpServer, service::common::PAGE_SIZE};
+use crate::{
+    server::SiftMcpServer, service::common::PAGE_SIZE, tool::common::test_support::structured,
+};
 
 async fn server_with_mocks(
     assets: MockAssetServiceImpl,
     channels: MockChannelServiceImpl,
+) -> (SiftMcpServer, JoinHandle<()>) {
+    server_with_all_mocks(assets, channels, MockDataServiceImpl::new()).await
+}
+
+async fn server_with_all_mocks(
+    assets: MockAssetServiceImpl,
+    channels: MockChannelServiceImpl,
+    data: MockDataServiceImpl,
 ) -> (SiftMcpServer, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
     let channel = memory_sift_channel(client).await;
@@ -24,6 +45,7 @@ async fn server_with_mocks(
         Server::builder()
             .add_service(AssetServiceServer::new(assets))
             .add_service(ChannelServiceServer::new(channels))
+            .add_service(DataServiceServer::new(data))
             .serve_with_incoming(tokio_stream::once(Ok::<_, std::io::Error>(server)))
             .await
             .unwrap();
@@ -173,4 +195,211 @@ async fn get_data_accepts_a_full_page_with_nothing_left() {
         "a complete selection must not be rejected as truncated: {}",
         err.message
     );
+}
+
+fn double_page(channel_id: &str, channel_name: &str, ts_nanos: i64, value: f64) -> Any {
+    let payload = DoubleValues {
+        metadata: Some(Metadata {
+            channel: Some(metadata::Channel {
+                channel_id: channel_id.into(),
+                name: channel_name.into(),
+                ..Default::default()
+            }),
+            ..Default::default()
+        }),
+        values: vec![DoubleValue {
+            timestamp: Some(Timestamp {
+                seconds: ts_nanos / 1_000_000_000,
+                nanos: (ts_nanos % 1_000_000_000) as i32,
+            }),
+            value,
+        }],
+        extras: vec![],
+    };
+
+    Any {
+        type_url: "sift.data.v2.DoubleValues".into(),
+        value: Bytes::from(payload.encode_to_vec()),
+    }
+}
+
+/// `name in [...]` matches what it can and says nothing about the rest, so a
+/// misspelled channel used to come back as a narrower table reported as a
+/// complete fetch.
+#[tokio::test]
+async fn get_data_reports_channel_names_that_matched_nothing() {
+    let mut channels = MockChannelServiceImpl::new();
+    channels.expect_list_channels().returning(|_| {
+        // Only two of the three requested names exist on this asset.
+        Ok(Response::new(ListChannelsResponse {
+            channels: vec![
+                Channel {
+                    channel_id: "ch-1".into(),
+                    name: "pressure".into(),
+                    ..Default::default()
+                },
+                Channel {
+                    channel_id: "ch-2".into(),
+                    name: "temperature".into(),
+                    ..Default::default()
+                },
+            ],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data().returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![
+                double_page("ch-1", "pressure", 1_000_000_000, 1.0),
+                double_page("ch-2", "temperature", 1_000_000_000, 2.0),
+            ],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let dir = TempDir::new("sift-mcp-get-data").expect("failed to create temp dir");
+    let (server, _h) = server_with_all_mocks(one_asset_mock(), channels, data).await;
+
+    let resp = server
+        .get_data(Parameters(GetDataParams {
+            asset_name: "bench".into(),
+            run_name: None,
+            start_time_unix_nanos: Some(0),
+            end_time_unix_nanos: Some(2_000_000_000),
+            sample_ms: 0,
+            channel_names: Some(vec![
+                "pressure".into(),
+                "temperature".into(),
+                "presure".into(),
+            ]),
+            channel_regex: None,
+            output: dir.path().join("out.parquet"),
+        }))
+        .await
+        .expect("get_data should still succeed for the channels that matched");
+
+    let body = structured(resp);
+    assert_eq!(
+        body["unmatched_channel_names"],
+        serde_json::json!(["presure"])
+    );
+    assert!(
+        body.get("empty_channels").is_none(),
+        "both matched channels returned samples: {body}"
+    );
+
+    // The structured field alone is not enough. `next_step` is what the calling
+    // model reads before it answers, so the miss has to appear there too.
+    let next_step = body["next_step"].as_str().expect("next_step");
+    assert!(next_step.contains("presure"), "{next_step}");
+    assert!(
+        !next_step.starts_with("Wrote channel data to") || next_step.contains("does NOT"),
+        "a partial fetch must not read as a clean success: {next_step}"
+    );
+}
+
+/// A regex selection carries no per-name expectation, so there is nothing to
+/// report as unmatched.
+#[tokio::test]
+async fn get_data_reports_no_unmatched_names_for_a_regex_selection() {
+    let mut channels = MockChannelServiceImpl::new();
+    channels.expect_list_channels().returning(|_| {
+        Ok(Response::new(ListChannelsResponse {
+            channels: vec![Channel {
+                channel_id: "ch-1".into(),
+                name: "pressure".into(),
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data().returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![double_page("ch-1", "pressure", 1_000_000_000, 1.0)],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let dir = TempDir::new("sift-mcp-get-data").expect("failed to create temp dir");
+    let (server, _h) = server_with_all_mocks(one_asset_mock(), channels, data).await;
+
+    let resp = server
+        .get_data(Parameters(GetDataParams {
+            asset_name: "bench".into(),
+            run_name: None,
+            start_time_unix_nanos: Some(0),
+            end_time_unix_nanos: Some(2_000_000_000),
+            sample_ms: 0,
+            channel_names: None,
+            channel_regex: Some("press.*".into()),
+            output: dir.path().join("out.parquet"),
+        }))
+        .await
+        .expect("get_data failed");
+
+    let body = structured(resp);
+    assert!(body.get("unmatched_channel_names").is_none(), "{body}");
+    assert!(body.get("empty_channels").is_none(), "{body}");
+}
+
+/// A channel that matched but returned nothing has no column in the file, so the
+/// tool has to name it or the caller cannot tell it was ever requested.
+#[tokio::test]
+async fn get_data_reports_matched_channels_that_returned_no_samples() {
+    let mut channels = MockChannelServiceImpl::new();
+    channels.expect_list_channels().returning(|_| {
+        Ok(Response::new(ListChannelsResponse {
+            channels: vec![
+                Channel {
+                    channel_id: "ch-1".into(),
+                    name: "pressure".into(),
+                    ..Default::default()
+                },
+                Channel {
+                    channel_id: "ch-2".into(),
+                    name: "temperature".into(),
+                    ..Default::default()
+                },
+            ],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data().returning(|_| {
+        // Only one of the two matched channels has samples in this window.
+        Ok(Response::new(GetDataResponse {
+            data: vec![double_page("ch-1", "pressure", 1_000_000_000, 1.0)],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let dir = TempDir::new("sift-mcp-get-data").expect("failed to create temp dir");
+    let (server, _h) = server_with_all_mocks(one_asset_mock(), channels, data).await;
+
+    let resp = server
+        .get_data(Parameters(GetDataParams {
+            asset_name: "bench".into(),
+            run_name: None,
+            start_time_unix_nanos: Some(0),
+            end_time_unix_nanos: Some(2_000_000_000),
+            sample_ms: 0,
+            channel_names: Some(vec!["pressure".into(), "temperature".into()]),
+            channel_regex: None,
+            output: dir.path().join("out.parquet"),
+        }))
+        .await
+        .expect("a partially empty window is still a successful fetch");
+
+    let body = structured(resp);
+    assert_eq!(body["empty_channels"], serde_json::json!(["temperature"]));
+    assert!(body.get("unmatched_channel_names").is_none(), "{body}");
+
+    let next_step = body["next_step"].as_str().expect("next_step");
+    assert!(next_step.contains("temperature"), "{next_step}");
+    assert!(next_step.contains("no samples"), "{next_step}");
 }
