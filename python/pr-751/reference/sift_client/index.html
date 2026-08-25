@@ -1158,17 +1158,6 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.SiftConnectionConfig.max_decoding_message_size" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;max_decoding_message_size
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#sift_client.SiftConnectionConfig.get_grpc_config" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2474,17 +2463,6 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;app_url
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#sift_client.SiftConnectionConfig.max_decoding_message_size" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;max_decoding_message_size
       
     </span>
   </a>
@@ -4222,8 +4200,7 @@ None for unrecognized hosts with no override.</p>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">use_ssl</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">cert_via_openssl</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">app_url</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">max_decoding_message_size</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">)</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -4348,27 +4325,6 @@ derived from <code>rest_url</code> for known hosts.</p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
                       <code><span title="str">str</span> | None</code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>max_decoding_message_size</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>Largest gRPC response to decode, in bytes. Defaults to
-50 MB.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="int">int</span> | None</code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
@@ -4519,21 +4475,6 @@ derived from <code>rest_url</code> for known hosts.</p>
               </p>
             </td>
           </tr>
-          <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="            max_decoding_message_size
-
-
-  
-      instance-attribute
-   (sift_client.SiftConnectionConfig.max_decoding_message_size)" href="#sift_client.SiftConnectionConfig.max_decoding_message_size">max_decoding_message_size</a></code></td>
-            <td class="doc-attribute-details">
-              <div class="doc-md-description">
-                
-              </div>
-              <p>
-              </p>
-            </td>
-          </tr>
       </tbody>
     </table>
 
@@ -4672,28 +4613,6 @@ derived from <code>rest_url</code> for known hosts.</p>
 
 <a href="#sift_client.SiftConnectionConfig.app_url" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">app_url</span> <span class="o">=</span> <span class="n"><span title="sift_client.transport.base_connection.SiftConnectionConfig(app_url)">app_url</span></span>
-</span></code></pre></div>
-
-    <div class="doc doc-contents ">
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-attribute">
-
-
-
-<h3 id="sift_client.SiftConnectionConfig.max_decoding_message_size" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">max_decoding_message_size</span>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
-  </span>
-
-<a href="#sift_client.SiftConnectionConfig.max_decoding_message_size" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">max_decoding_message_size</span> <span class="o">=</span> <span class="n"><span title="sift_client.transport.base_connection.SiftConnectionConfig(max_decoding_message_size)">max_decoding_message_size</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">

@@ -4210,8 +4210,7 @@ representation of ingestion flows using standard Python data structures and type
 </span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">checkpoint_interval_seconds</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">enable_tls</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 </span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">tracing_config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TracingConfig (sift_client.resources.ingestion.TracingConfig)" href="#sift_client.resources.ingestion.TracingConfig">TracingConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">max_decoding_message_size</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            IngestionConfigStreamingClient (sift_client.resources.ingestion.IngestionConfigStreamingClient)" href="#sift_client.resources.ingestion.IngestionConfigStreamingClient">IngestionConfigStreamingClient</a></span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            IngestionConfigStreamingClient (sift_client.resources.ingestion.IngestionConfigStreamingClient)" href="#sift_client.resources.ingestion.IngestionConfigStreamingClient">IngestionConfigStreamingClient</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -4457,27 +4456,6 @@ initialized with default settings if not already initialized).</p>
               </p>
             </td>
           </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>max_decoding_message_size</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>Largest gRPC response to decode, in bytes. Defaults to the
-client's configured value, or 50 MB.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="int">int</span> | None</code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
       </tbody>
     </table>
 
@@ -4574,8 +4552,7 @@ client's configured value, or 50 MB.</p>
   
       pydantic-model
    (sift_client.sift_types.ingestion.FlowConfig)" href="../../sift_types/ingestion/#sift_client.sift_types.ingestion.FlowConfig">FlowConfig</a></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="n">max_decoding_message_size</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            AutoRegisterStreamingClient (sift_client.resources.ingestion.AutoRegisterStreamingClient)" href="#sift_client.resources.ingestion.AutoRegisterStreamingClient">AutoRegisterStreamingClient</a></span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            AutoRegisterStreamingClient (sift_client.resources.ingestion.AutoRegisterStreamingClient)" href="#sift_client.resources.ingestion.AutoRegisterStreamingClient">AutoRegisterStreamingClient</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -4852,27 +4829,6 @@ use; a mismatch raises <code>RuntimeError</code>.</p>
   
       pydantic-model
    (sift_client.sift_types.ingestion.FlowConfig)" href="../../sift_types/ingestion/#sift_client.sift_types.ingestion.FlowConfig">FlowConfig</a>] | None</code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>max_decoding_message_size</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>Largest gRPC response to decode, in bytes. Defaults to the
-client's configured value, or 50 MB.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><span title="int">int</span> | None</code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
