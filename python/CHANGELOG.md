@@ -5,29 +5,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-### What's New
-
-#### `max_decoding_message_size`
-
-The largest gRPC response the client will decode, in bytes. Defaults to 50 MB. Raise it for
-responses that exceed the limit, such as an ingestion config with a very large flow schema.
-
-```python
-client = SiftClient(
-    connection_config=SiftConnectionConfig(
-        grpc_url="...",
-        rest_url="...",
-        api_key="...",
-        max_decoding_message_size=200 * 1024 * 1024,
-    )
-)
-```
-
-Streaming ingestion clients inherit the value, and take `max_decoding_message_size` themselves
-to override it for one stream.
-
 ### Bugfixes
 - Fix `assets.archive` raising `AttributeError` by reading the correct response field, `archived_run_ids`.
+- Fix streaming ingestion failing to start when an ingestion config's flow schema exceeded the streaming client's 4 MiB decode limit. `sift-stream-bindings` 0.5.0 decodes up to 50 MiB.
 
 ## [v0.19.1] - July 27, 2026
 

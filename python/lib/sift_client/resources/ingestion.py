@@ -162,7 +162,6 @@ class IngestionAPIAsync(ResourceBase):
         checkpoint_interval_seconds: int | None = None,
         enable_tls: bool = True,
         tracing_config: TracingConfig | None = None,
-        max_decoding_message_size: int | None = None,
     ) -> IngestionConfigStreamingClient:
         """Create an IngestionConfigStreamingClient.
 
@@ -180,8 +179,6 @@ class IngestionAPIAsync(ResourceBase):
                 to enable tracing to stdout only, or TracingConfig.with_file() to enable
                 tracing to both stdout and rolling log files. Defaults to None (tracing will be
                 initialized with default settings if not already initialized).
-            max_decoding_message_size: Largest gRPC response to decode, in bytes. Defaults to the
-                client's configured value, or 50 MB.
 
         Returns:
             An initialized IngestionConfigStreamingClient.
@@ -198,7 +195,6 @@ class IngestionAPIAsync(ResourceBase):
             checkpoint_interval_seconds=checkpoint_interval_seconds,
             enable_tls=enable_tls,
             tracing_config=tracing_config,
-            max_decoding_message_size=max_decoding_message_size,
         )
 
     async def create_auto_register_streaming_client(
@@ -215,7 +211,6 @@ class IngestionAPIAsync(ResourceBase):
         enable_tls: bool = True,
         tracing_config: TracingConfig | None = None,
         staged_configs: list[FlowConfig] | None = None,
-        max_decoding_message_size: int | None = None,
     ) -> AutoRegisterStreamingClient:
         """Create an `AutoRegisterStreamingClient`.
 
@@ -251,8 +246,6 @@ class IngestionAPIAsync(ResourceBase):
                 of a minimal derived config, preserving units, descriptions, and other metadata.
                 The staged config is validated against the flow's channel names and types before
                 use; a mismatch raises `RuntimeError`.
-            max_decoding_message_size: Largest gRPC response to decode, in bytes. Defaults to the
-                client's configured value, or 50 MB.
 
         Returns:
             An initialized `AutoRegisterStreamingClient`.
@@ -270,7 +263,6 @@ class IngestionAPIAsync(ResourceBase):
             enable_tls=enable_tls,
             tracing_config=tracing_config,
             staged_configs=staged_configs,
-            max_decoding_message_size=max_decoding_message_size,
         )
 
 
@@ -306,7 +298,6 @@ class IngestionConfigStreamingClient(ResourceBase):
         checkpoint_interval_seconds: int | None = None,
         enable_tls: bool = True,
         tracing_config: TracingConfig | None = None,
-        max_decoding_message_size: int | None = None,
     ) -> IngestionConfigStreamingClient:
         """Create an IngestionConfigStreamingClient.
 
@@ -325,8 +316,6 @@ class IngestionConfigStreamingClient(ResourceBase):
                 to enable tracing to stdout only, or TracingConfig.with_file() to enable
                 tracing to both stdout and rolling log files. Defaults to None (tracing will be
                 initialized with default settings for TracingConfig.with_file()).
-            max_decoding_message_size: Largest gRPC response to decode, in bytes. Defaults to the
-                client's configured value, or 50 MB.
 
         Returns:
             An initialized IngestionConfigStreamingClient.
@@ -349,8 +338,6 @@ class IngestionConfigStreamingClient(ResourceBase):
         grpc_config = sift_client.grpc_client._config
         api_key = grpc_config.api_key
         grpc_uri = grpc_config.uri
-        if max_decoding_message_size is None:
-            max_decoding_message_size = grpc_config.max_decoding_message_size
 
         # Convert the ingestion_config variants to a IngestionConfigFormPy
         if isinstance(ingestion_config, IngestionConfig):
@@ -408,7 +395,6 @@ class IngestionConfigStreamingClient(ResourceBase):
             checkpoint_interval_seconds=checkpoint_interval_seconds,
             enable_tls=enable_tls,
             tracing_config=tracing_config,
-            max_decoding_message_size=max_decoding_message_size,
         )
 
         return cls(sift_client, low_level_client)
@@ -651,7 +637,6 @@ class AutoRegisterStreamingClient(ResourceBase):
         enable_tls: bool = True,
         tracing_config: TracingConfig | None = None,
         staged_configs: list[FlowConfig] | None = None,
-        max_decoding_message_size: int | None = None,
     ) -> AutoRegisterStreamingClient:
         try:
             from sift_stream_bindings import (
@@ -667,8 +652,6 @@ class AutoRegisterStreamingClient(ResourceBase):
         grpc_config = sift_client.grpc_client._config
         api_key = grpc_config.api_key
         grpc_uri = grpc_config.uri
-        if max_decoding_message_size is None:
-            max_decoding_message_size = grpc_config.max_decoding_message_size
 
         if isinstance(ingestion_config, IngestionConfig):
             asset = sift_client.assets.get(asset_id=ingestion_config.asset_id)
@@ -720,7 +703,6 @@ class AutoRegisterStreamingClient(ResourceBase):
             checkpoint_interval_seconds=checkpoint_interval_seconds,
             enable_tls=enable_tls,
             tracing_config=tracing_config,
-            max_decoding_message_size=max_decoding_message_size,
         )
 
         staged_configs_py = (
