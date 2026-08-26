@@ -29,7 +29,8 @@ mod test;
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct GetDataParams {
-    asset_name: String,
+    asset_name: Option<String>,
+    asset_id: Option<String>,
     run_name: Option<String>,
     start_time_unix_nanos: Option<i64>,
     end_time_unix_nanos: Option<i64>,
@@ -80,7 +81,11 @@ impl SiftMcpServer {
                 analysis — the file is a partial answer.
 
             Parameters:
-              - `asset_name`: exact asset name (not a pattern).
+              - `asset_name`: optional, exact asset name (not a pattern). Mutually exclusive with `asset_id`;
+                exactly one of the two MUST be set.
+              - `asset_id`: optional, asset UUID. Mutually exclusive with `asset_name`; exactly one of the two
+                MUST be set. Runs reference assets by id (`list_runs` returns `asset_id`, not a name), so pass
+                that id here directly instead of guessing a name.
               - `run_name`: optional, exact run name within the asset. When provided, the run's start/stop bounds are
                 used as the time range; `start_time_unix_nanos` and/or `end_time_unix_nanos` may narrow either side.
                 When omitted, BOTH `start_time_unix_nanos` and `end_time_unix_nanos` are required.
@@ -96,6 +101,7 @@ impl SiftMcpServer {
               - `RESOURCE_NOT_FOUND` if the asset or run is missing or there are no matching channels.
               - `INTERNAL_ERROR` if every matched channel returned no samples in the window. The message names the
                 channels; widen the time range or drop the run scope rather than concluding the asset has no data.
+              - `INVALID_PARAMS` if neither `asset_name` nor `asset_id` is set, or if both are set.
               - `INVALID_PARAMS` if `run_name` is absent and the full time range is not supplied, if neither
                 `channel_names` nor `channel_regex` is set, if both are set, or if `channel_names` is empty.
               - `INVALID_PARAMS` if the channel selection matches 200 or more channels — the result would be
@@ -121,6 +127,7 @@ impl SiftMcpServer {
     pub async fn get_data(&self, params: Parameters<GetDataParams>) -> error::McpResult {
         let Parameters(GetDataParams {
             asset_name,
+            asset_id,
             run_name,
             channel_names,
             channel_regex,
@@ -138,7 +145,28 @@ impl SiftMcpServer {
             ));
         }
 
-        let asset_filter = format!("name == \"{}\"", cel_escape(&asset_name));
+        let (asset_filter, asset_label) = match (&asset_name, &asset_id) {
+            (Some(_), Some(_)) => {
+                return Err(ErrorData::invalid_params(
+                    "exactly one of `asset_name` or `asset_id` must be set, not both",
+                    None,
+                ));
+            }
+            (None, None) => {
+                return Err(ErrorData::invalid_params(
+                    "one of `asset_name` or `asset_id` must be set",
+                    None,
+                ));
+            }
+            (Some(name), None) => (
+                format!("name == \"{}\"", cel_escape(name)),
+                format!("asset '{name}'"),
+            ),
+            (None, Some(id)) => (
+                format!("asset_id == \"{}\"", cel_escape(id)),
+                format!("asset with id '{id}'"),
+            ),
+        };
         let asset = self
             .asset_service
             .list_assets(asset_filter, None, Some(1))
@@ -148,7 +176,7 @@ impl SiftMcpServer {
             .into_iter()
             .next()
             .ok_or_else(|| {
-                ErrorData::resource_not_found(format!("asset '{asset_name}' not found"), None)
+                ErrorData::resource_not_found(format!("{asset_label} not found"), None)
             })?;
 
         let run = match run_name.as_deref() {
@@ -168,7 +196,7 @@ impl SiftMcpServer {
                     .next()
                     .ok_or_else(|| {
                         ErrorData::resource_not_found(
-                            format!("run '{name}' not found for asset '{asset_name}'"),
+                            format!("run '{name}' not found for asset '{}'", asset.name),
                             None,
                         )
                     })?;
@@ -223,7 +251,10 @@ impl SiftMcpServer {
 
         if channels.is_empty() {
             return Err(ErrorData::resource_not_found(
-                format!("no channels matched the search criteria for asset '{asset_name}'"),
+                format!(
+                    "no channels matched the search criteria for asset '{}'",
+                    asset.name
+                ),
                 None,
             ));
         }

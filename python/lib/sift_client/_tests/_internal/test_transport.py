@@ -4,6 +4,10 @@ import threading
 
 import pytest
 
+from sift_client._internal.grpc_transport.transport import (
+    MAX_DECODING_MESSAGE_SIZE,
+    _compute_channel_options,
+)
 from sift_client.transport.grpc_transport import GrpcClient, GrpcConfig
 from sift_client.transport.rest_transport import DEFAULT_REST_TIMEOUT, RestClient, RestConfig
 
@@ -150,3 +154,10 @@ class TestRestRequestTimeout:
         captured = self._capture_request_kwargs(client)
         client.get("/v1/ping")
         assert "timeout" not in captured
+
+
+class TestMaxDecodingMessageSize:
+    def test_channel_uses_the_fixed_limit(self):
+        config = GrpcConfig(url="https://grpc.sift.com", api_key="api")
+        options = dict(_compute_channel_options(config._to_sift_channel_config()))
+        assert options["grpc.max_receive_message_length"] == MAX_DECODING_MESSAGE_SIZE
