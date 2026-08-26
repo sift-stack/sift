@@ -3,7 +3,7 @@ name: sift
 description: >-
   Use when working with Sift: ingesting or importing time-series data,
   querying assets/runs/channels/users, managing calculated channels, rules,
-  user-defined functions, campaigns, tags, and metadata, exporting data,
+  user-defined functions, exporting data,
   decimating or running SQL over data, opening a view in the Sift Explore web
   app, writing code that integrates with Sift, installing, updating, or
   diagnosing the Sift agent integration, or looking up how Sift works in its
@@ -16,7 +16,7 @@ description: >-
   created", "export a run", "query Sift", "graph", "plot", "visualize", "open
   in Explore", "write code to integrate with Sift", "how does X work in Sift",
   "what does this endpoint do", "list calculated channels", "preview a rule",
-  "review a campaign", "what tags exist", or "look up the Sift API reference".
+  or "look up the Sift API reference".
 ---
 
 <!--
@@ -54,18 +54,12 @@ exists.
   started with `--disable-update-check` omit this tool. `ping` is a
   connectivity check; when it fails, expect every other Sift tool to fail too.
 - **Discovery:** `list_assets`, `list_runs`, `list_channels`, `list_reports`,
-  `list_report_templates`, `list_rules`, `list_rule_versions`, `list_annotations`,
-  `list_campaigns`, `list_tags`.
+  `list_report_templates`, `list_rules`, `list_rule_versions`, `list_annotations`.
 - **Derived channels:** `list_calculated_channels`,
   `list_calculated_channel_versions`, `list_user_defined_functions`,
   `list_user_defined_function_versions`.
-- **Metadata:** `list_metadata_keys`, `list_metadata_values`,
-  `list_metadata_usage`.
 - **People:** `list_users`.
-- **Rollups:** `list_report_rule_summaries` for a report's rule progress,
-  `review_campaigns` for a campaign's annotation and rule totals.
-  `review_campaigns` is expensive; call it only when the user asks for the
-  rollup.
+- **Rollups:** `list_report_rule_summaries` for a report's rule progress.
 - **Rule dry runs:** `preview_rule` returns the annotations a rule would create
   without persisting anything. It is read-only whatever the server's access
   mode, so it needs no write flag.
@@ -102,6 +96,10 @@ exists.
 - **Attribute something to a person.** Resolve the person with `list_users`,
   then filter another list on `created_by_user_id`. For "runs I created", pass
   `me: true`. Never guess which listed user is the caller.
+- **Update annotations.** `update_annotation` takes a required
+  `annotation_ids` list of 1 to 1000 ids and applies the same changes to every
+  target. Check its per-id `failures`, `not_attempted` ids, and archive outcome
+  before reporting success; a partial failure sets `isError`.
 - **Produce numbers.** `get_data` writes a Parquet file. `sql` then queries it.
   Add `upload_dataset` when the result belongs back in Sift.
 - **Query a derived channel.** `get_data` serves saved calculated channels as
@@ -129,18 +127,6 @@ exists.
   Send a rename on its own. The API applies a `name` change by itself and
   ignores every other field, so `update_user_defined_function` rejects `name`
   combined with anything else.
-- **Review a campaign.** `list_campaigns` browses and never returns review
-  counts. Annotation totals and rule pass/fail counts come only from
-  `review_campaigns`, keyed by the `campaign_id`s you pass in, and only when the
-  user asks for the rollup. For archived campaigns alone, pass
-  `include_archived: true` AND an `is_archived == true` filter; the flag by
-  itself only stops the backend from excluding them.
-- **Tag something or set metadata.** Call `list_tags` or `list_metadata_keys`
-  before introducing new taxonomy, because near-duplicate names (`prod` vs
-  `production`) fragment filtering later. `list_metadata_values` needs a real
-  `metadata_key_name` from `list_metadata_keys`; a guessed name returns
-  `RESOURCE_NOT_FOUND`, not an empty list. `list_metadata_usage` shows where a
-  key or value is already applied.
 - **Produce a chart.** Build a link with `explore_url`. When the user wants a
   chart and numbers, do both and give the user both.
 - **Answer a question about how Sift works.** Call `search_docs`. Do not answer
