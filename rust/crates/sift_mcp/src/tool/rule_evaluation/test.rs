@@ -107,7 +107,7 @@ async fn preview_rule_saved_by_name_resolves_rule_id() {
     let mut rule_mock = MockRuleServiceImpl::new();
     rule_mock
         .expect_list_rules()
-        .withf(|req| req.get_ref().filter == "name == \"overtemp\"")
+        .withf(|req| req.get_ref().filter == "is_archived == false && name == \"overtemp\"")
         .returning(|_| {
             Ok(Response::new(ListRulesResponse {
                 rules: vec![Rule {

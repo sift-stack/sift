@@ -175,7 +175,7 @@ impl SiftMcpServer {
         match selector {
             SavedRuleSelector::Id(id) => Ok(id),
             SavedRuleSelector::Name(name) => {
-                let filter = format!("name == \"{}\"", cel_escape(&name));
+                let filter = format!("is_archived == false && name == \"{}\"", cel_escape(&name));
                 let rule = self
                     .rule_service
                     .list_rules(filter, None, Some(1))
