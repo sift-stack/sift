@@ -7,11 +7,6 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
-- Test-report tools are now always built and enabled at runtime per account via
-  feature flags evaluated when MCP starts. Flags are fetched in a brief startup
-  network call regardless of `--disable-nonessential-traffic`. The `test-reports`
-  Cargo feature is gone.
-
 ## [v0.4.4] - August 24, 2026
 
 ### What's New

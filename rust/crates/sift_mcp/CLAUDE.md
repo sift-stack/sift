@@ -644,12 +644,12 @@ flag is disabled. Most tools are unflagged and always available. Flag changes ap
 restart.
 
 - To put a tool behind a flag, add its `(tool name, flag name)` pair to `TOOL_FEATURE_FLAGS` in
-  `feature_flags.rs`. The `test-reports` flag currently gates the seven test-report tools:
-  `list_test_reports`, `list_test_steps`, `list_test_measurements`, `count_test_steps`,
-  `count_test_measurements`, `create_test_report`, and `append_test_measurements`.
+  `feature_flags.rs`.
 - If fetching flags fails, the server starts normally with all flag-gated tools disabled.
 - Gated tools still need entries in `tool_events.json` and tests. The registry-drift and
   event-invariant tests in `server/test.rs` cover gated tools through the all-flags-enabled path.
+- Do not cite flag names or enumerate flag-gated tools in prose docs, including `CLAUDE.md`,
+  `SKILL.md`, `CHANGELOG`, or PR text. The registry is the source of truth; prose copies go stale.
 
 ---
 

@@ -58,8 +58,8 @@ exists.
   These, along with the `create_test_report` and `append_test_measurements`
   writes below, are enabled per account by feature flags resolved when the MCP
   server starts, so they may be absent from the tool list. Enabling them requires
-  the account's `test-reports` flag and an MCP restart. Tell the account owner to
-  contact Sift to enable the flag, then restart the MCP client.
+  an account setting and an MCP restart. Tell the account owner to contact Sift
+  to enable them, then restart the MCP client.
 - **Data:** `get_data` writes channel data to a Parquet file. `sql` queries
   Parquet files. `upload_dataset` streams a Parquet dataset into Sift.
 - **Links:** `explore_url`.
