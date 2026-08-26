@@ -31,6 +31,24 @@ pub struct Page<T> {
     pub has_more: bool,
 }
 
+/// Maximum channel names spelled out in a message before the tail is summarized.
+const MAX_NAMED_CHANNELS: usize = 20;
+
+/// Formats channel names for an error or a warning. A selection can hold up to
+/// [`PAGE_SIZE`] channels, so an uncapped list would bury the guidance that
+/// follows it under a wall of names.
+pub fn name_list(names: &[String]) -> String {
+    if names.len() <= MAX_NAMED_CHANNELS {
+        return names.join(", ");
+    }
+
+    format!(
+        "{}, and {} more",
+        names[..MAX_NAMED_CHANNELS].join(", "),
+        names.len() - MAX_NAMED_CHANNELS,
+    )
+}
+
 /// Returns page size and record limit. `limit` is clamped to `1..=PAGE_SIZE`;
 /// omitting it falls back to [`DEFAULT_LIMIT`]. No input yields an unbounded
 /// record limit.

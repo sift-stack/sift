@@ -47,6 +47,14 @@ fn raw_channel(channel_id: &str) -> ChannelInput {
     }))
 }
 
+fn named_raw_channel(channel_id: &str, name: &str) -> ChannelInput {
+    ChannelInput::Raw(Box::new(Channel {
+        channel_id: channel_id.into(),
+        name: name.into(),
+        ..Default::default()
+    }))
+}
+
 fn asset_range(start_nanos: i64, end_nanos: i64) -> TimeRange {
     TimeRange::Asset {
         start_time_unix_nanos: start_nanos,
@@ -305,6 +313,173 @@ async fn get_data_run_without_start_time_errors() {
         .expect_err("expected error for run with no start_time");
 
     assert!(err.to_string().contains("doesn't have a start time"));
+}
+
+#[tokio::test]
+async fn get_data_names_channels_that_returned_no_samples() {
+    // The server answers for one of the two requested channels. The other has no
+    // column in the Parquet at all, which is indistinguishable from never having
+    // been requested unless the service says so.
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data().times(1).returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![double_page("c1", "loud", vec![(1_000_000_000, 1.0)])],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    let output = service
+        .get_data(
+            &[
+                named_raw_channel("c1", "loud"),
+                named_raw_channel("c2", "quiet"),
+            ],
+            asset_range(0, 4_000_000_000),
+            0,
+            &mut buffer,
+        )
+        .await
+        .expect("get_data failed");
+
+    assert_eq!(output.empty_channels, vec!["quiet".to_string()]);
+
+    let batches = read_parquet(buffer);
+    let schema = batches[0].schema();
+    assert!(
+        !schema
+            .fields()
+            .iter()
+            .any(|f| f.name().starts_with("quiet ")),
+        "an empty channel should have no column, which is why it must be reported",
+    );
+}
+
+/// A calculated channel is identified in the response by the key the request
+/// sent, carried in `channel_id`. `Metadata.Channel.name` is not REQUIRED and
+/// comes back empty here, which is what makes matching on the name wrong.
+#[tokio::test]
+async fn get_data_does_not_report_a_calculated_channel_that_returned_data() {
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data().times(1).returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![double_page(
+                "derived_thrust",
+                "",
+                vec![(1_000_000_000, 9.0)],
+            )],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    let output = service
+        .get_data(
+            &[ChannelInput::Calculation {
+                name: "derived_thrust".into(),
+                input_channels: Vec::new(),
+                expression: "$1 * 2".into(),
+            }],
+            asset_range(0, 4_000_000_000),
+            0,
+            &mut buffer,
+        )
+        .await
+        .expect("get_data failed");
+
+    assert!(
+        output.empty_channels.is_empty(),
+        "a calculated channel that returned data must not be reported empty: {:?}",
+        output.empty_channels,
+    );
+}
+
+#[tokio::test]
+async fn get_data_reports_nothing_empty_when_every_channel_has_samples() {
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data().times(1).returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![
+                double_page("c1", "a", vec![(1_000_000_000, 1.0)]),
+                double_page("c2", "b", vec![(2_000_000_000, 2.0)]),
+            ],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    let output = service
+        .get_data(
+            &[named_raw_channel("c1", "a"), named_raw_channel("c2", "b")],
+            asset_range(0, 4_000_000_000),
+            0,
+            &mut buffer,
+        )
+        .await
+        .expect("get_data failed");
+
+    assert!(output.empty_channels.is_empty());
+}
+
+#[tokio::test]
+async fn get_data_no_samples_error_names_every_channel() {
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data().times(1).returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    let err = service
+        .get_data(
+            &[
+                named_raw_channel("c1", "pressure"),
+                named_raw_channel("c2", "temperature"),
+            ],
+            asset_range(0, 4_000_000_000),
+            0,
+            &mut buffer,
+        )
+        .await
+        .expect_err("expected an error when nothing returned samples");
+
+    let message = err.to_string();
+    // A count sends the caller bisecting; the names are what it needs.
+    assert!(message.contains("pressure"), "{message}");
+    assert!(message.contains("temperature"), "{message}");
+}
+
+#[tokio::test]
+async fn get_data_no_samples_error_caps_the_channel_list() {
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data().times(1).returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let inputs = (0..25)
+        .map(|i| named_raw_channel(&format!("c{i}"), &format!("ch{i}")))
+        .collect::<Vec<_>>();
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    let err = service
+        .get_data(&inputs, asset_range(0, 4_000_000_000), 0, &mut buffer)
+        .await
+        .expect_err("expected an error when nothing returned samples");
+
+    let message = err.to_string();
+    assert!(message.contains("ch0"), "{message}");
+    assert!(message.contains("and 5 more"), "{message}");
+    assert!(!message.contains("ch24"), "{message}");
 }
 
 // --- sql ---
