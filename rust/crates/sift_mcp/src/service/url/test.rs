@@ -16,6 +16,7 @@ fn full_url_with_all_params() {
             panel_type: Some(String::from("scatter-plot")),
             start_time_unix_nanos: Some(0),
             end_time_unix_nanos: Some(1_700_000_000_000_000_000),
+            include_assets_and_runs: true,
         })
         .unwrap();
     assert_eq!(
@@ -27,6 +28,71 @@ fn full_url_with_all_params() {
          &panelType=scatter-plot\
          &startTime=1970-01-01T00:00:00.000Z\
          &endTime=2023-11-14T22:13:20.000Z"
+    );
+}
+
+#[test]
+fn assets_and_runs_together_are_rejected_by_default() {
+    let err = service()
+        .build_explore_url(ExploreUrlRequest {
+            assets: Some(vec![String::from("Engine-7")]),
+            runs: Some(vec![String::from("2025-thrust-test")]),
+            ..Default::default()
+        })
+        .unwrap_err();
+    assert_eq!(err.code.0, -32602);
+    assert!(
+        err.message.contains("include_assets_and_runs"),
+        "the error should name the opt-in, got `{}`",
+        err.message
+    );
+}
+
+#[test]
+fn assets_and_runs_together_are_allowed_when_requested() {
+    let url = service()
+        .build_explore_url(ExploreUrlRequest {
+            assets: Some(vec![String::from("Engine-7")]),
+            runs: Some(vec![String::from("2025-thrust-test")]),
+            include_assets_and_runs: true,
+            ..Default::default()
+        })
+        .unwrap();
+    assert_eq!(
+        url,
+        "https://app.siftstack.com/explore?method=single\
+         &assets=Engine-7\
+         &runs=2025-thrust-test"
+    );
+}
+
+#[test]
+fn an_empty_asset_list_does_not_conflict_with_runs() {
+    let url = service()
+        .build_explore_url(ExploreUrlRequest {
+            assets: Some(vec![]),
+            runs: Some(vec![String::from("2025-thrust-test")]),
+            ..Default::default()
+        })
+        .unwrap();
+    assert_eq!(
+        url,
+        "https://app.siftstack.com/explore?method=single&runs=2025-thrust-test"
+    );
+}
+
+#[test]
+fn the_opt_in_is_ignored_for_a_single_source_type() {
+    let url = service()
+        .build_explore_url(ExploreUrlRequest {
+            runs: Some(vec![String::from("2025-thrust-test")]),
+            include_assets_and_runs: true,
+            ..Default::default()
+        })
+        .unwrap();
+    assert_eq!(
+        url,
+        "https://app.siftstack.com/explore?method=single&runs=2025-thrust-test"
     );
 }
 

@@ -28,6 +28,7 @@ pub struct ExploreUrlRequest {
     pub panel_type: Option<String>,
     pub start_time_unix_nanos: Option<i64>,
     pub end_time_unix_nanos: Option<i64>,
+    pub include_assets_and_runs: bool,
 }
 
 #[derive(Clone)]
@@ -48,10 +49,14 @@ impl UrlService {
             panel_type,
             start_time_unix_nanos,
             end_time_unix_nanos,
+            include_assets_and_runs,
         } = request;
 
-        let no_selection = assets.as_ref().is_none_or(|v| v.is_empty())
-            && runs.as_ref().is_none_or(|v| v.is_empty())
+        let has_assets = assets.as_ref().is_some_and(|v| !v.is_empty());
+        let has_runs = runs.as_ref().is_some_and(|v| !v.is_empty());
+
+        let no_selection = !has_assets
+            && !has_runs
             && channels.as_ref().is_none_or(|v| v.is_empty())
             && panel_type.is_none()
             && start_time_unix_nanos.is_none()
@@ -60,6 +65,17 @@ impl UrlService {
             return Err(ErrorData::invalid_params(
                 "at least one of `assets`, `runs`, `channels`, `panel_type`, \
                  `start_time_unix_nanos`, or `end_time_unix_nanos` must be set",
+                None,
+            ));
+        }
+
+        if has_assets && has_runs && !include_assets_and_runs {
+            return Err(ErrorData::invalid_params(
+                "`assets` and `runs` were both set. An Explore link that mixes asset-scoped \
+                 and run-scoped sources is not the default: pass `runs` alone when the request \
+                 names a run, or `assets` alone otherwise. Set `include_assets_and_runs` to \
+                 true only when the user explicitly asked to see runs and assets together in \
+                 one view.",
                 None,
             ));
         }

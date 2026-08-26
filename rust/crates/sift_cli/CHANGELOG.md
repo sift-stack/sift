@@ -7,6 +7,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- Explore links now carry one source type. The MCP `explore_url` tool rejects
+  `assets` and `runs` together with `INVALID_PARAMS` unless the new
+  `include_assets_and_runs` flag is set, so an agent no longer mixes an asset
+  and a run into one view on its own. `sift-cli import` links to the run it
+  imported into, and falls back to the asset only when there is no run.
+
 ## [v0.4.4] - August 24, 2026
 
 ### What's New

@@ -33,6 +33,7 @@ async fn handler_returns_structured_url_and_text_content() {
         panel_type: None,
         start_time_unix_nanos: None,
         end_time_unix_nanos: None,
+        include_assets_and_runs: None,
     };
 
     let result = server.explore_url(Parameters(params)).await.unwrap();
@@ -51,5 +52,49 @@ async fn handler_returns_structured_url_and_text_content() {
         result.content.len(),
         1,
         "expected one ContentBlock::text wrapping the next_step"
+    );
+}
+
+#[tokio::test]
+async fn handler_rejects_assets_and_runs_without_the_opt_in() {
+    let server = server_for_explore(APP_URI).await;
+    let params = ExploreUrlParams {
+        assets: Some(vec![String::from("Engine-7")]),
+        runs: Some(vec![String::from("2025-thrust-test")]),
+        channels: None,
+        panel_type: None,
+        start_time_unix_nanos: None,
+        end_time_unix_nanos: None,
+        include_assets_and_runs: None,
+    };
+
+    let err = server.explore_url(Parameters(params)).await.unwrap_err();
+    assert_eq!(err.code.0, -32602);
+    assert!(
+        err.message.contains("include_assets_and_runs"),
+        "the error should name the opt-in, got `{}`",
+        err.message
+    );
+}
+
+#[tokio::test]
+async fn handler_keeps_both_source_types_when_the_opt_in_is_set() {
+    let server = server_for_explore(APP_URI).await;
+    let params = ExploreUrlParams {
+        assets: Some(vec![String::from("Engine-7")]),
+        runs: Some(vec![String::from("2025-thrust-test")]),
+        channels: None,
+        panel_type: None,
+        start_time_unix_nanos: None,
+        end_time_unix_nanos: None,
+        include_assets_and_runs: Some(true),
+    };
+
+    let result = server.explore_url(Parameters(params)).await.unwrap();
+    assert_eq!(
+        structured_field(result, "url").as_str(),
+        Some(
+            "https://app.siftstack.com/explore?method=single&assets=Engine-7&runs=2025-thrust-test"
+        )
     );
 }

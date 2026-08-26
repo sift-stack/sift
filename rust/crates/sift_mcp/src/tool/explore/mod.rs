@@ -19,6 +19,7 @@ pub struct ExploreUrlParams {
     panel_type: Option<String>,
     start_time_unix_nanos: Option<i64>,
     end_time_unix_nanos: Option<i64>,
+    include_assets_and_runs: Option<bool>,
 }
 
 #[tool_router(router = explore_router, vis = "pub(crate)")]
@@ -37,6 +38,10 @@ impl SiftMcpServer {
             Parameters:
               - `assets`: optional list of asset names or UUIDs. The Explore service resolves either form.
               - `runs`: optional list of run names or UUIDs. Same resolution rules as `assets`.
+              - `include_assets_and_runs`: optional, defaults to false. A link carries one source type by
+                default: pass `runs` when the request names a run, `assets` otherwise. Setting both `assets` and
+                `runs` without this flag is rejected. Set it to true only when the user explicitly asked to see
+                runs and assets together in one view. Ignored unless both `assets` and `runs` are set.
               - `channels`: optional list of channel names, UUIDs, or prefixed forms. Axis prefixes (`L1:foo`,
                 `L2:bar`) bind a channel to a Y-axis for multi-axis plots. Role prefixes (`x:foo`, `y:foo`,
                 `color:foo` for scatter; `lat:foo`, `lon:foo`, `color:foo` for geo-map) bind a channel to a panel
@@ -46,13 +51,17 @@ impl SiftMcpServer {
               - `start_time_unix_nanos`, `end_time_unix_nanos`: optional time window. Provided as Unix nanoseconds
                 for parity with `get_data`; the tool converts to ISO 8601 UTC for the URL.
             Errors:
-              - `INVALID_PARAMS` if no selection or time parameter is set (the URL would be useless), if
-                `panel_type` is not in the known set, or if `end_time_unix_nanos < start_time_unix_nanos`.
+              - `INVALID_PARAMS` if no selection or time parameter is set (the URL would be useless), if both
+                `assets` and `runs` are set without `include_assets_and_runs`, if `panel_type` is not in the
+                known set, or if `end_time_unix_nanos < start_time_unix_nanos`.
 
             Guidance:
               - Reach for this tool when the user asks to \"see\", \"view\", \"graph\", \"plot\", \"visualize\", or
                 \"open\" data in Sift. Pair it with `get_data` only when the user also wants the data locally for
                 SQL or further processing.
+              - Do not add the asset alongside a run to be thorough. A run is already scoped to its asset, so
+                the asset adds a second, wider source to the view. Send both only on an explicit request for
+                both.
               - The tool does not validate that the named asset/run/channel exists — Explore resolves at page
                 load. Use names you have already retrieved from `list_*` tools to avoid 404s on click.
         ",
@@ -66,6 +75,7 @@ impl SiftMcpServer {
             panel_type,
             start_time_unix_nanos,
             end_time_unix_nanos,
+            include_assets_and_runs,
         }) = params;
 
         let url = self.url_service.build_explore_url(ExploreUrlRequest {
@@ -75,6 +85,7 @@ impl SiftMcpServer {
             panel_type,
             start_time_unix_nanos,
             end_time_unix_nanos,
+            include_assets_and_runs: include_assets_and_runs.unwrap_or(false),
         })?;
 
         let next_step = format!(
