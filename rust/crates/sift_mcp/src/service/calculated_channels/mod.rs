@@ -315,20 +315,47 @@ impl CalculatedChannelService {
             .join(", ");
         let stored = self
             .list_calculated_channels(
-                format!("is_archived == false && name in [{quoted}]"),
+                format!(
+                    "is_archived == false && asset_id == \"{}\" && name in [{quoted}]",
+                    common::cel_escape(&asset_id),
+                ),
                 None,
                 Some(common::PAGE_SIZE),
             )
             .await?;
 
+        if stored.has_more {
+            bail!(
+                "saved calculated channel lookup matched more than {} channels and is incomplete; \
+                 narrow the channel names or split the request",
+                common::PAGE_SIZE,
+            );
+        }
+
         // Keep the caller's order so the batch responses map back by index.
         let mut targets = Vec::new();
         for name in names {
-            match stored.items.iter().find(|channel| channel.name == name) {
-                Some(channel) => targets.push((name, channel.calculated_channel_id.clone())),
-                None => unresolved.push(UnresolvedCalculation {
+            let candidates = stored
+                .items
+                .iter()
+                .filter(|channel| channel.name == name)
+                .collect::<Vec<_>>();
+            match candidates.len() {
+                0 => unresolved.push(UnresolvedCalculation {
                     name,
                     reason: UNKNOWN_NAME_REASON.to_string(),
+                }),
+                1 => targets.push((name, candidates[0].calculated_channel_id.clone())),
+                _ => unresolved.push(UnresolvedCalculation {
+                    name,
+                    reason: format!(
+                        "ambiguous saved calculated channel name; matching calculated channel ids: {}",
+                        candidates
+                            .iter()
+                            .map(|channel| channel.calculated_channel_id.as_str())
+                            .collect::<Vec<_>>()
+                            .join(", "),
+                    ),
                 }),
             }
         }

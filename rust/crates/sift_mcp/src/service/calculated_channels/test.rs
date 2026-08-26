@@ -1078,13 +1078,14 @@ fn expression_request(expression: &str, channel_id: &str) -> ExpressionRequest {
 }
 
 #[tokio::test]
-async fn resolve_calculated_channels_builds_lookup_and_resolve_requests() {
+async fn resolve_calculated_channels_scopes_lookup_to_asset_and_builds_resolve_requests() {
     let mut mock = MockCalculatedChannelServiceImpl::new();
     mock.expect_list_calculated_channels()
         .times(1)
         .withf(|req| {
             let filter = &req.get_ref().filter;
             filter.contains("is_archived == false")
+                && filter.contains(r#"asset_id == "asset-1""#)
                 && filter.contains("name in [\"thrust_margin\", \"chamber_delta\"]")
         })
         .returning(|_| {
@@ -1361,6 +1362,74 @@ async fn resolve_calculated_channels_flags_unknown_name() {
         resolution.unresolved[0].reason.contains("no active saved"),
         "reason should say the name is unknown: {}",
         resolution.unresolved[0].reason,
+    );
+}
+
+/// Duplicate saved-calculated-channel names are unsafe to resolve because the
+/// caller could otherwise receive an arbitrary expression for the name.
+#[tokio::test]
+async fn resolve_calculated_channels_reports_ambiguous_name() {
+    let mut mock = MockCalculatedChannelServiceImpl::new();
+    mock.expect_list_calculated_channels().returning(|_| {
+        Ok(Response::new(ListCalculatedChannelsResponse {
+            calculated_channels: vec![
+                stored_channel("cc-asset", "thrust_margin"),
+                stored_channel("cc-all-assets", "thrust_margin"),
+            ],
+            next_page_token: String::new(),
+        }))
+    });
+    mock.expect_batch_resolve_calculated_channels().times(0);
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let resolution = service
+        .resolve_calculated_channels(
+            vec!["thrust_margin".to_string()],
+            "asset-1".to_string(),
+            None,
+        )
+        .await
+        .expect("ambiguous names should be reported, not resolved");
+
+    assert!(resolution.resolved.is_empty());
+    assert_eq!(resolution.unresolved.len(), 1);
+    assert_eq!(resolution.unresolved[0].name, "thrust_margin");
+    assert!(
+        resolution.unresolved[0].reason.contains("ambiguous")
+            && resolution.unresolved[0].reason.contains("cc-asset")
+            && resolution.unresolved[0].reason.contains("cc-all-assets"),
+        "reason should name each colliding calculated channel: {}",
+        resolution.unresolved[0].reason,
+    );
+}
+
+/// A capped lookup cannot safely classify names missing from the returned page
+/// as unknown, so resolution must fail before it builds any resolve request.
+#[tokio::test]
+async fn resolve_calculated_channels_rejects_truncated_lookup() {
+    let mut mock = MockCalculatedChannelServiceImpl::new();
+    mock.expect_list_calculated_channels().returning(|req| {
+        let page_size = req.get_ref().page_size as usize;
+        Ok(Response::new(ListCalculatedChannelsResponse {
+            calculated_channels: (0..page_size)
+                .map(|i| stored_channel(&format!("cc-{i}"), &format!("channel.{i}")))
+                .collect(),
+            next_page_token: "more-calculated-channels".into(),
+        }))
+    });
+    mock.expect_batch_resolve_calculated_channels().times(0);
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let err = service
+        .resolve_calculated_channels(vec!["channel.0".to_string()], "asset-1".to_string(), None)
+        .await
+        .expect_err("a truncated lookup must fail before resolving a partial result");
+
+    assert!(
+        err.to_string().contains(&PAGE_SIZE.to_string()) && err.to_string().contains("incomplete"),
+        "error should describe the capped lookup: {err}",
     );
 }
 

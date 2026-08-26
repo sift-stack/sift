@@ -324,7 +324,6 @@ impl SiftMcpServer {
             })
             .unwrap_or_default();
 
-
         if channels.is_empty() && unmatched_names.is_empty() {
             return Err(ErrorData::resource_not_found(
                 format!(
