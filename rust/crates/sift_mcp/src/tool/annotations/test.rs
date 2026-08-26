@@ -6,8 +6,7 @@ use std::sync::{
 use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
 use sift_rs::annotations::v1::{
     Annotation, BatchArchiveAnnotationsResponse, CreateAnnotationResponse, ListAnnotationsResponse,
-    UnarchiveAnnotationResponse, UpdateAnnotationResponse,
-    annotation_service_server::AnnotationServiceServer,
+    UpdateAnnotationResponse, annotation_service_server::AnnotationServiceServer,
 };
 use sift_test_util::{grpc::memory_sift_channel, mock::annotations::v1::MockAnnotationServiceImpl};
 use tokio::task::JoinHandle;
@@ -484,23 +483,26 @@ async fn update_annotation_reports_batch_archive_error() {
 }
 
 #[tokio::test]
+#[allow(deprecated)] // The backend requires this deprecated field to unarchive annotations.
 async fn update_annotation_reports_partial_unarchive_failures() {
     let mut mock = MockAnnotationServiceImpl::new();
-    mock.expect_unarchive_annotation()
-        .times(2)
-        .returning(|req| {
-            let annotation_id = req.into_inner().annotation_id;
-            if annotation_id == "ann2" {
-                return Err(Status::not_found("no such annotation"));
-            }
-            Ok(Response::new(UnarchiveAnnotationResponse {
-                annotation: Some(Annotation {
-                    annotation_id,
-                    is_archived: false,
-                    ..Default::default()
-                }),
-            }))
-        });
+    mock.expect_update_annotation().times(2).returning(|req| {
+        let req = req.into_inner();
+        assert_eq!(req.update_mask.unwrap().paths, ["deleted_date"]);
+        let annotation = req.annotation.unwrap();
+        assert_eq!(annotation.deleted_date, None);
+        let annotation_id = annotation.annotation_id;
+        if annotation_id == "ann2" {
+            return Err(Status::not_found("no such annotation"));
+        }
+        Ok(Response::new(UpdateAnnotationResponse {
+            annotation: Some(Annotation {
+                annotation_id,
+                is_archived: false,
+                ..Default::default()
+            }),
+        }))
+    });
 
     let (server, _h) = server_with_mock(mock).await;
 
@@ -526,20 +528,22 @@ async fn update_annotation_reports_partial_unarchive_failures() {
 }
 
 #[tokio::test]
+#[allow(deprecated)] // The backend requires this deprecated field to unarchive annotations.
 async fn update_annotation_batch_unarchives_annotations() {
     let mut mock = MockAnnotationServiceImpl::new();
-    mock.expect_unarchive_annotation()
-        .times(2)
-        .returning(|req| {
-            let annotation_id = req.into_inner().annotation_id;
-            Ok(Response::new(UnarchiveAnnotationResponse {
-                annotation: Some(Annotation {
-                    annotation_id,
-                    is_archived: false,
-                    ..Default::default()
-                }),
-            }))
-        });
+    mock.expect_update_annotation().times(2).returning(|req| {
+        let req = req.into_inner();
+        assert_eq!(req.update_mask.unwrap().paths, ["deleted_date"]);
+        let annotation = req.annotation.unwrap();
+        assert_eq!(annotation.deleted_date, None);
+        Ok(Response::new(UpdateAnnotationResponse {
+            annotation: Some(Annotation {
+                annotation_id: annotation.annotation_id,
+                is_archived: false,
+                ..Default::default()
+            }),
+        }))
+    });
 
     let (server, _h) = server_with_mock(mock).await;
 
@@ -559,11 +563,15 @@ async fn update_annotation_batch_unarchives_annotations() {
 }
 
 #[tokio::test]
+#[allow(deprecated)] // The backend requires this deprecated field to unarchive annotations.
 async fn update_annotation_reports_unarchive_ids_not_attempted_after_backend_wide_failure() {
     let mut mock = MockAnnotationServiceImpl::new();
-    mock.expect_unarchive_annotation()
-        .times(50)
-        .returning(|_| Err(Status::resource_exhausted("slow down")));
+    mock.expect_update_annotation().times(50).returning(|req| {
+        let req = req.into_inner();
+        assert_eq!(req.update_mask.unwrap().paths, ["deleted_date"]);
+        assert_eq!(req.annotation.unwrap().deleted_date, None);
+        Err(Status::resource_exhausted("slow down"))
+    });
 
     let (server, _h) = server_with_mock(mock).await;
 
@@ -586,33 +594,27 @@ async fn update_annotation_reports_unarchive_ids_not_attempted_after_backend_wid
 }
 
 #[tokio::test]
+#[allow(deprecated)] // The backend requires this deprecated field to unarchive annotations.
 async fn update_annotation_updates_fields_before_unarchiving() {
     let mut mock = MockAnnotationServiceImpl::new();
     let updated_count = Arc::new(AtomicUsize::new(0));
 
     let update_count = Arc::clone(&updated_count);
     mock.expect_update_annotation()
-        .times(2)
+        .times(4)
         .returning(move |req| {
-            update_count.fetch_add(1, Ordering::SeqCst);
-            let annotation = req.into_inner().annotation.unwrap();
+            let req = req.into_inner();
+            let paths = req.update_mask.unwrap().paths;
+            let annotation = req.annotation.unwrap();
+            if paths == ["deleted_date"] {
+                assert_eq!(update_count.load(Ordering::SeqCst), 2);
+                assert_eq!(annotation.deleted_date, None);
+            } else {
+                assert_eq!(paths, ["name"]);
+                update_count.fetch_add(1, Ordering::SeqCst);
+            }
             Ok(Response::new(UpdateAnnotationResponse {
                 annotation: Some(annotation),
-            }))
-        });
-
-    let unarchive_count = Arc::clone(&updated_count);
-    mock.expect_unarchive_annotation()
-        .times(2)
-        .withf(move |_| unarchive_count.load(Ordering::SeqCst) == 2)
-        .returning(|req| {
-            let annotation_id = req.into_inner().annotation_id;
-            Ok(Response::new(UnarchiveAnnotationResponse {
-                annotation: Some(Annotation {
-                    annotation_id,
-                    is_archived: false,
-                    ..Default::default()
-                }),
             }))
         });
 

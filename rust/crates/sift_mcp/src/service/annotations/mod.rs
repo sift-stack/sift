@@ -8,8 +8,8 @@ use sift_rs::{
     annotations::v1::{
         Annotation, AnnotationLinkedChannel, AnnotationState, AnnotationType,
         BatchArchiveAnnotationsRequest, CreateAnnotationRequest, ListAnnotationsRequest,
-        ListAnnotationsResponse, UnarchiveAnnotationRequest, UpdateAnnotationRequest,
-        annotation_linked_channel, annotation_service_client::AnnotationServiceClient,
+        ListAnnotationsResponse, UpdateAnnotationRequest, annotation_linked_channel,
+        annotation_service_client::AnnotationServiceClient,
     },
     metadata::v1::MetadataValue,
 };
@@ -493,6 +493,7 @@ impl AnnotationService {
             .ok_or_else(|| anyhow!("update_annotation response missing annotation"))
     }
 
+    #[allow(deprecated)] // The backend requires this deprecated field to unarchive annotations.
     pub async fn unarchive_annotation(&self, annotation_id: String) -> Result<Annotation> {
         let channel = self.channel.clone();
         let resp = with_retry(&self.policy, move || {
@@ -501,7 +502,16 @@ impl AnnotationService {
             async move {
                 let mut client = AnnotationServiceClient::new(channel);
                 client
-                    .unarchive_annotation(UnarchiveAnnotationRequest { annotation_id })
+                    .update_annotation(UpdateAnnotationRequest {
+                        annotation: Some(Annotation {
+                            annotation_id,
+                            deleted_date: None,
+                            ..Default::default()
+                        }),
+                        update_mask: Some(FieldMask {
+                            paths: vec!["deleted_date".into()],
+                        }),
+                    })
                     .await
                     .map(|resp| resp.into_inner())
             }

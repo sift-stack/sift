@@ -317,7 +317,7 @@ impl SiftMcpServer {
         name = "update_annotation",
         description = "
             Update one or more existing annotations. Uses `annotations/v1 BatchArchiveAnnotations` when archiving
-            and one `UnarchiveAnnotation` request per annotation when unarchiving.
+            and one `UpdateAnnotation` request per annotation when unarchiving.
 
             Output:
               - `{ \"annotations\": [Annotation, ...], \"failures\": [...], \"batch_archive_error\": object|null,
@@ -343,8 +343,8 @@ impl SiftMcpServer {
               - `metadata`: optional; REPLACES the full metadata list. Each entry is
                 `{ \"name\": \"<key>\", \"value\": <scalar> }`. Pass `[]` to clear.
               - `is_archived`: optional archive state. `true` uses one batch-archive request; `false` uses one
-                `UnarchiveAnnotation` request per annotation. When combined with other fields, annotations are
-                updated before their archive state changes.
+                per-annotation update request that clears the annotation's delete date. When combined with other
+                fields, annotations are updated before their archive state changes.
 
               At least one updatable field must be set; otherwise the tool returns `INVALID_PARAMS`.
 
