@@ -17,7 +17,7 @@ use super::{
 };
 use crate::{
     server::SiftMcpServer,
-    tool::common::test_support::{list_params, structured, structured_field},
+    tool::common::test_support::{list_params, list_params_with_fields, structured},
 };
 
 const REFERENCES_JSON: &str = r#"[
@@ -129,11 +129,14 @@ async fn list_calculated_channels_returns_single_page() {
         .await
         .expect("list_calculated_channels failed");
 
-    let channels = structured_field(resp, "calculated_channels");
-    let channels = channels.as_array().expect("expected an array");
+    let body = structured(resp);
+    let channels = body["calculated_channels"]
+        .as_array()
+        .expect("expected an array");
     assert_eq!(channels.len(), 2);
     assert_eq!(channels[0]["calculatedChannelId"], "cc1");
     assert_eq!(channels[1]["name"], "chamber_dp");
+    assert_eq!(body["count"], 2);
 }
 
 #[tokio::test]
@@ -177,6 +180,7 @@ async fn list_calculated_channel_versions_returns_versions() {
             filter: String::new(),
             order_by: None,
             limit: None,
+            fields: None,
         }))
         .await
         .expect("list_calculated_channel_versions failed");
@@ -187,6 +191,7 @@ async fn list_calculated_channel_versions_returns_versions() {
         .expect("expected an array");
     assert_eq!(versions.len(), 1);
     assert_eq!(versions[0]["version"], 2);
+    assert_eq!(body["count"], 1);
     assert!(body["next_step"].is_string());
 }
 
@@ -200,11 +205,79 @@ async fn list_calculated_channel_versions_rejects_empty_id() {
             filter: String::new(),
             order_by: None,
             limit: None,
+            fields: None,
         }))
         .await
         .expect_err("expected error");
 
     assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+}
+
+#[tokio::test]
+async fn list_calculated_channels_projects_requested_fields() {
+    let mut mock = MockCalculatedChannelServiceImpl::new();
+    mock.expect_list_calculated_channels().returning(|_| {
+        Ok(Response::new(ListCalculatedChannelsResponse {
+            calculated_channels: vec![CalculatedChannel {
+                calculated_channel_id: "cc1".into(),
+                name: "thrust_margin".into(),
+                description: "engine headroom".into(),
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (server, _h) = server_with_mock(mock).await;
+
+    let resp = server
+        .list_calculated_channels(list_params_with_fields("", &["name"]))
+        .await
+        .expect("list_calculated_channels failed");
+
+    let body = structured(resp);
+    assert_eq!(
+        body["calculated_channels"],
+        serde_json::json!([{ "name": "thrust_margin" }])
+    );
+    assert_eq!(body["count"], 1);
+}
+
+#[tokio::test]
+async fn list_calculated_channel_versions_projects_requested_fields() {
+    let mut mock = MockCalculatedChannelServiceImpl::new();
+    mock.expect_list_calculated_channel_versions()
+        .returning(|_| {
+            Ok(Response::new(ListCalculatedChannelVersionsResponse {
+                calculated_channel_versions: vec![CalculatedChannel {
+                    calculated_channel_id: "cc1".into(),
+                    version: 2,
+                    name: "thrust_margin".into(),
+                    ..Default::default()
+                }],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let (server, _h) = server_with_mock(mock).await;
+
+    let resp = server
+        .list_calculated_channel_versions(Parameters(CalculatedChannelVersionListParams {
+            calculated_channel_id: "cc1".into(),
+            filter: String::new(),
+            order_by: None,
+            limit: None,
+            fields: Some(vec!["version".into()]),
+        }))
+        .await
+        .expect("list_calculated_channel_versions failed");
+
+    let body = structured(resp);
+    assert_eq!(
+        body["calculated_channel_versions"],
+        serde_json::json!([{ "version": 2 }])
+    );
+    assert_eq!(body["count"], 1);
 }
 
 #[tokio::test]

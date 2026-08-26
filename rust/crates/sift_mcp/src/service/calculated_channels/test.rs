@@ -170,7 +170,8 @@ async fn list_calculated_channels_returns_single_page() {
             None,
         )
         .await
-        .expect("list_calculated_channels failed");
+        .expect("list_calculated_channels failed")
+        .items;
 
     assert_eq!(channels.len(), 2);
     assert_eq!(channels[0].calculated_channel_id, "cc1");
@@ -218,7 +219,8 @@ async fn list_calculated_channels_paginates_until_token_empty() {
     let channels = service
         .list_calculated_channels(String::new(), None, None)
         .await
-        .expect("list_calculated_channels failed");
+        .expect("list_calculated_channels failed")
+        .items;
 
     let ids: Vec<&str> = channels
         .iter()
@@ -255,7 +257,8 @@ async fn list_calculated_channels_respects_limit() {
     let channels = service
         .list_calculated_channels(String::new(), None, Some(2))
         .await
-        .expect("list_calculated_channels failed");
+        .expect("list_calculated_channels failed")
+        .items;
 
     assert_eq!(channels.len(), 2);
 }
@@ -282,7 +285,8 @@ async fn list_calculated_channels_clamps_limit_to_page_size() {
     let channels = service
         .list_calculated_channels(String::new(), None, Some(5_000))
         .await
-        .expect("list_calculated_channels failed");
+        .expect("list_calculated_channels failed")
+        .items;
 
     assert_eq!(channels.len(), 1);
 }
@@ -304,7 +308,8 @@ async fn list_calculated_channels_breaks_on_empty_page() {
     let channels = service
         .list_calculated_channels(String::new(), None, None)
         .await
-        .expect("list_calculated_channels failed");
+        .expect("list_calculated_channels failed")
+        .items;
 
     assert!(channels.is_empty());
 }
@@ -362,7 +367,8 @@ async fn list_calculated_channel_versions_builds_request() {
             Some(10),
         )
         .await
-        .expect("list_calculated_channel_versions failed");
+        .expect("list_calculated_channel_versions failed")
+        .items;
 
     assert_eq!(versions.len(), 1);
     assert_eq!(versions[0].version, 2);
@@ -402,7 +408,8 @@ async fn list_calculated_channel_versions_paginates_until_token_empty() {
     let versions = service
         .list_calculated_channel_versions("cc1".to_string(), String::new(), None, None)
         .await
-        .expect("list_calculated_channel_versions failed");
+        .expect("list_calculated_channel_versions failed")
+        .items;
 
     let numbers: Vec<u32> = versions.iter().map(|v| v.version).collect();
     assert_eq!(numbers, vec![1, 2]);

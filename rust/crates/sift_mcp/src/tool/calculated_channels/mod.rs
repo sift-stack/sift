@@ -16,7 +16,7 @@ use crate::{
     service::calculated_channels::{
         CalculatedChannelUpdate, CalculatedChannelWrite, NewCalculatedChannel,
     },
-    tool::common::{ListParams, MetadataEntry},
+    tool::common::{ListParams, MetadataEntry, list_body, to_values},
 };
 
 #[cfg(test)]
@@ -28,6 +28,7 @@ pub struct CalculatedChannelVersionListParams {
     filter: String,
     order_by: Option<String>,
     limit: Option<u32>,
+    fields: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -82,6 +83,12 @@ impl SiftMcpServer {
                 `archived_date`, and timestamps.
               - Fields at their proto3 default are OMITTED from the JSON: a missing `is_archived` key means
                 `false`, not \"unknown\".
+              - `count`: how many items THIS response carries — read it instead of
+                counting the array yourself. It is the size of the page you got back, not
+                how many items match `filter`.
+              - `has_more`: `true` when the service hit `limit` with matches left over, so
+                this page is not the whole set. Never report `count` as a total while
+                `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
@@ -100,6 +107,14 @@ impl SiftMcpServer {
                 `created_date desc` (newest first). Example: `\"created_date desc,modified_date\"`.
               - `limit`: max items to return. Start at 50 and only raise it if the result is capped
                 and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
+              - `fields`: optional array of field names to keep on each item, e.g.
+                `[\"name\"]`. Omit it for the full object. Names match case-insensitively
+                and ignore underscores and hyphens, so `asset_id`, `assetId` and
+                `asset-id` all work. Any name that matched nothing on any returned item
+                is listed in `unmatched_fields`; an empty page reports none, since it
+                says nothing about whether a name was spelled right.
+                Reach for this whenever you need only a few fields: full objects are wide,
+                and a large listing can exceed the response size limit without it.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an unknown field.
@@ -126,16 +141,23 @@ impl SiftMcpServer {
             filter,
             order_by,
             limit,
+            fields,
         }) = params;
 
-        let out = self
+        let page = self
             .calculated_channel_service
             .list_calculated_channels(filter, order_by, limit)
             .await
-            .map(|channels| serde_json::json!({ "calculated_channels": channels }))
             .map_err(from_anyhow)?;
 
-        Ok(CallToolResult::structured(out))
+        let channels = to_values(&page.items)?;
+
+        Ok(CallToolResult::structured(list_body(
+            "calculated_channels",
+            channels,
+            fields,
+            page.has_more,
+        )))
     }
 
     #[tool(
@@ -149,6 +171,12 @@ impl SiftMcpServer {
                 is a full `CalculatedChannel` snapshot of that version, including `version`, `version_id`,
                 `change_message`, `user_notes`, `calculated_channel_configuration`, and
                 `modified_by_user_id` — not a reduced version record.
+              - `count`: how many items THIS response carries — read it instead of
+                counting the array yourself. It is the size of the page you got back, not
+                how many items match `filter`.
+              - `has_more`: `true` when the service hit `limit` with matches left over, so
+                this page is not the whole set. Never report `count` as a total while
+                `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
 
             Parameters:
               - `calculated_channel_id`: required. The calculated channel whose versions to list. Resolve it with
@@ -165,6 +193,14 @@ impl SiftMcpServer {
                 `created_date` ascending (oldest first) — note this differs from `list_calculated_channels`.
               - `limit`: max items to return. Start at 50 and only raise it if the result is capped
                 and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
+              - `fields`: optional array of field names to keep on each item, e.g.
+                `[\"name\"]`. Omit it for the full object. Names match case-insensitively
+                and ignore underscores and hyphens, so `asset_id`, `assetId` and
+                `asset-id` all work. Any name that matched nothing on any returned item
+                is listed in `unmatched_fields`; an empty page reports none, since it
+                says nothing about whether a name was spelled right.
+                Reach for this whenever you need only a few fields: full objects are wide,
+                and a large listing can exceed the response size limit without it.
 
             Errors:
               - `INVALID_PARAMS` if `calculated_channel_id` is empty or `filter` is not a valid CEL expression.
@@ -190,11 +226,12 @@ impl SiftMcpServer {
             filter,
             order_by,
             limit,
+            fields,
         }) = params;
 
         require_id(&calculated_channel_id)?;
 
-        let versions = self
+        let page = self
             .calculated_channel_service
             .list_calculated_channel_versions(calculated_channel_id, filter, order_by, limit)
             .await
@@ -203,13 +240,19 @@ impl SiftMcpServer {
         let next_step = format!(
             "Listed {} calculated channel versions. Surface the version history to the user, \
              highlighting what changed between versions.",
-            versions.len(),
+            page.items.len(),
         );
 
-        let mut result = CallToolResult::structured(serde_json::json!({
-            "calculated_channel_versions": versions,
-            "next_step": next_step,
-        }));
+        let versions = to_values(&page.items)?;
+        let mut body = list_body(
+            "calculated_channel_versions",
+            versions,
+            fields,
+            page.has_more,
+        );
+        body["next_step"] = serde_json::Value::String(next_step.clone());
+
+        let mut result = CallToolResult::structured(body);
         result.content = vec![ContentBlock::text(next_step)];
         Ok(result)
     }
