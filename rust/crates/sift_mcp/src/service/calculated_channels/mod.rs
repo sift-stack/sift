@@ -324,7 +324,7 @@ impl CalculatedChannelService {
         // Keep the caller's order so the batch responses map back by index.
         let mut targets = Vec::new();
         for name in names {
-            match stored.iter().find(|channel| channel.name == name) {
+            match stored.items.iter().find(|channel| channel.name == name) {
                 Some(channel) => targets.push((name, channel.calculated_channel_id.clone())),
                 None => unresolved.push(UnresolvedCalculation {
                     name,
