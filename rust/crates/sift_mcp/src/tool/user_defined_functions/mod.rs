@@ -264,7 +264,8 @@ impl SiftMcpServer {
                 including the resolved `function_output_type` and `version` 1.
 
             Parameters:
-              - `name`: required. The name callers use to reference the function. Must be non-empty.
+              - `name`: required. The name callers use to reference the function. Must start and end
+                with a letter character and may contain only alphanumeric characters or `_`.
               - `expression`: required. The function body. Reference each declared input by its
                 `identifier`. Mirror an existing function retrieved with `list_user_defined_functions`
                 rather than authoring the syntax blind.
@@ -373,7 +374,8 @@ impl SiftMcpServer {
 
             Parameters:
               - `user_defined_function_id`: required. The function to update.
-              - `name`: optional. New name. The API applies a rename BY ITSELF and ignores any other
+              - `name`: optional. New name. Must start and end with a letter character and may contain
+                only alphanumeric characters or `_`. The API applies a rename BY ITSELF and ignores any other
                 field in the same call, so this tool rejects `name` combined with another field — send
                 the rename as its own call.
               - `description`: optional. New description.
