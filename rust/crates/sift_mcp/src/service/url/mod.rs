@@ -127,7 +127,6 @@ impl UrlService {
         Ok(format!("{host}/reports/{}", encode_value(report_id)))
     }
 
-    #[cfg(feature = "test-reports")]
     pub fn build_test_report_url(&self, test_report_id: &str) -> Result<String, ErrorData> {
         let host = self.app_host()?;
         Ok(format!(

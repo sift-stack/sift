@@ -638,25 +638,18 @@ and `derive_and_upload` are the reference implementations.
 
 ## Reference — feature flags
 
-The crate defines Cargo features to let downstream consumers strip individual tool domains from
-the built server. Feature-gated modules follow the same rules as everything else, plus these:
+The server resolves account feature flags at startup with the user's API key. It requests
+`GET {rest_uri}/api/v1/feature-flags/variants` with a 5-second timeout, then removes tools whose
+flag is disabled. Most tools are unflagged and always available. Flag changes apply after an MCP
+restart.
 
-- **`test-reports`** (default on). Gates `service::test_reports`, `tool::test_reports`, the
-  `test_report_service` field and its construction in `server/mod.rs`, the
-  `Self::test_reports_router()` merge, and `UrlService::build_test_report_url`. Building with
-  `--no-default-features` yields a server without the `list_test_reports`, `list_test_steps`,
-  `list_test_measurements`, `count_test_steps`, `count_test_measurements`, `create_test_report`,
-  and `append_test_measurements` tools. All other tools remain available.
-
-When gating a domain behind a feature:
-
-- Wrap every declaration and reference — `pub mod`, `use`, struct field, service construction,
-  router merge, `Self { ... }` init, and any helper on a cross-domain service (see
-  `UrlService::build_test_report_url`) that only that domain calls.
-- Verify both `cargo build -p sift_mcp` and `cargo build -p sift_mcp --no-default-features`
-  build clean, with no dead-code warnings from unused helpers left behind.
-- Update the tool inventory in `rust/crates/sift_cli/assets/skills/sift/SKILL.md` to name the
-  feature next to the affected tools, so agents know why a tool they expected may be missing.
+- To put a tool behind a flag, add its `(tool name, flag name)` pair to `TOOL_FEATURE_FLAGS` in
+  `feature_flags.rs`. The `test-reports` flag currently gates the seven test-report tools:
+  `list_test_reports`, `list_test_steps`, `list_test_measurements`, `count_test_steps`,
+  `count_test_measurements`, `create_test_report`, and `append_test_measurements`.
+- If fetching flags fails, the server starts normally with all flag-gated tools disabled.
+- Gated tools still need entries in `tool_events.json` and tests. The registry-drift and
+  event-invariant tests in `server/test.rs` cover gated tools through the all-flags-enabled path.
 
 ---
 

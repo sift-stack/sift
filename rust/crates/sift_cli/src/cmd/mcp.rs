@@ -48,6 +48,15 @@ pub async fn run(ctx: Context, args: McpArgs, app_uri: String) -> Result<ExitCod
     if client_event_config.is_none() {
         tracing::info!("non-essential traffic is disabled");
     }
+    let feature_flags = sift_mcp::FeatureFlags::fetch(&ctx.rest_uri, &ctx.api_key)
+        .await
+        .unwrap_or_else(|error| {
+            tracing::warn!(
+                error = format!("{error:#}"),
+                "failed to fetch feature flags; flag-gated tools are disabled"
+            );
+            sift_mcp::FeatureFlags::default()
+        });
 
     let credentials = Credentials::Config {
         uri: ctx.grpc_uri,
@@ -62,6 +71,7 @@ pub async fn run(ctx: Context, args: McpArgs, app_uri: String) -> Result<ExitCod
         cli_version,
         update_check,
         client_event_config,
+        feature_flags,
     )
     .await
     {
