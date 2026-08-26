@@ -383,7 +383,10 @@ impl SiftMcpServer {
         if channel_inputs.is_empty() {
             return Err(ErrorData::resource_not_found(
                 unresolved_report.unwrap_or_else(|| {
-                    format!("no channels matched the search criteria for asset '{}'", asset.name)
+                    format!(
+                        "no channels matched the search criteria for asset '{}'",
+                        asset.name
+                    )
                 }),
                 None,
             ));
