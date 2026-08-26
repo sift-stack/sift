@@ -526,8 +526,8 @@ impl SiftMcpServer {
             Reversible with `unarchive_calculated_channel`.
 
             Output:
-              - `{ \"archived\": true, \"calculated_channel\": CalculatedChannel, \"next_step\": string }`. The
-                returned channel carries the `archived_date` the server recorded.
+              - `{ \"archived\": boolean, \"calculated_channel\": CalculatedChannel, \"next_step\": string }`.
+                `archived` reflects the returned channel state.
 
             Parameters:
               - `calculated_channel_id`: required. The calculated channel to archive.
@@ -569,13 +569,26 @@ impl SiftMcpServer {
             .await
             .map_err(from_anyhow)?;
 
-        let next_step = format!(
-            "Archived calculated channel `{}`. Tell the user it is archived and no longer offered \
-             for plotting or querying, and that `unarchive_calculated_channel` restores it.",
-            written.calculated_channel.calculated_channel_id,
-        );
+        let archived = written.calculated_channel.is_archived;
+        let next_step = if archived {
+            format!(
+                "Archived calculated channel `{}`. Tell the user it is archived and no longer offered \
+                 for plotting or querying, and that `unarchive_calculated_channel` restores it.",
+                written.calculated_channel.calculated_channel_id,
+            )
+        } else {
+            format!(
+                "The server returned calculated channel `{}` as unarchived after the archive request. \
+                 Do not report it as archived; verify its state before continuing.",
+                written.calculated_channel.calculated_channel_id,
+            )
+        };
 
-        Ok(write_result(written, next_step, Some(("archived", true))))
+        Ok(write_result(
+            written,
+            next_step,
+            Some(("archived", archived)),
+        ))
     }
 
     #[tool(
@@ -584,8 +597,8 @@ impl SiftMcpServer {
             Restore a previously archived calculated channel so it is offered again. This is a WRITE.
 
             Output:
-              - `{ \"unarchived\": true, \"calculated_channel\": CalculatedChannel, \"next_step\": string }`. The
-                returned channel has no `archived_date`.
+              - `{ \"unarchived\": boolean, \"calculated_channel\": CalculatedChannel, \"next_step\": string }`.
+                `unarchived` reflects the returned channel state.
 
             Parameters:
               - `calculated_channel_id`: required. The calculated channel to restore.
@@ -625,12 +638,25 @@ impl SiftMcpServer {
             .await
             .map_err(from_anyhow)?;
 
-        let next_step = format!(
-            "Unarchived calculated channel `{}`. Tell the user it is restored and available again.",
-            written.calculated_channel.calculated_channel_id,
-        );
+        let unarchived = !written.calculated_channel.is_archived;
+        let next_step = if unarchived {
+            format!(
+                "Unarchived calculated channel `{}`. Tell the user it is restored and available again.",
+                written.calculated_channel.calculated_channel_id,
+            )
+        } else {
+            format!(
+                "The server returned calculated channel `{}` as archived after the unarchive request. \
+                 Do not report it as restored; verify its state before continuing.",
+                written.calculated_channel.calculated_channel_id,
+            )
+        };
 
-        Ok(write_result(written, next_step, Some(("unarchived", true))))
+        Ok(write_result(
+            written,
+            next_step,
+            Some(("unarchived", unarchived)),
+        ))
     }
 }
 

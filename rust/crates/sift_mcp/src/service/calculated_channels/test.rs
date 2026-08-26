@@ -1,4 +1,3 @@
-use pbjson_types::Timestamp;
 use sift_rs::{
     calculated_channels::v2::{
         CalculatedChannel, CalculatedChannelAbstractChannelReference,
@@ -902,7 +901,7 @@ async fn update_calculated_channel_propagates_grpc_error() {
 }
 
 #[tokio::test]
-async fn archive_calculated_channel_masks_archived_date_only() {
+async fn archive_calculated_channel_masks_is_archived_only() {
     let mut mock = MockCalculatedChannelServiceImpl::new();
     mock.expect_update_calculated_channel()
         .times(1)
@@ -911,9 +910,9 @@ async fn archive_calculated_channel_masks_archived_date_only() {
             let channel = req.calculated_channel.as_ref().expect("channel present");
             let mask = req.update_mask.as_ref().expect("mask present");
 
-            mask.paths == vec!["archived_date".to_string()]
+            mask.paths == vec!["is_archived".to_string()]
                 && channel.calculated_channel_id == "cc1"
-                && channel.archived_date.is_some()
+                && channel.is_archived
         })
         .returning(|req| {
             Ok(Response::new(UpdateCalculatedChannelResponse {
@@ -954,7 +953,7 @@ async fn archive_calculated_channel_does_not_read_first() {
 }
 
 #[tokio::test]
-async fn unarchive_calculated_channel_clears_archived_date_with_mask_set() {
+async fn unarchive_calculated_channel_masks_is_archived_false() {
     let mut mock = MockCalculatedChannelServiceImpl::new();
     mock.expect_update_calculated_channel()
         .times(1)
@@ -963,18 +962,13 @@ async fn unarchive_calculated_channel_clears_archived_date_with_mask_set() {
             let channel = req.calculated_channel.as_ref().expect("channel present");
             let mask = req.update_mask.as_ref().expect("mask present");
 
-            mask.paths == vec!["archived_date".to_string()]
+            mask.paths == vec!["is_archived".to_string()]
                 && channel.calculated_channel_id == "cc1"
-                && channel.archived_date.is_none()
+                && !channel.is_archived
         })
         .returning(|req| {
-            let mut channel = req
-                .into_inner()
-                .calculated_channel
-                .expect("channel present");
-            channel.archived_date = None;
             Ok(Response::new(UpdateCalculatedChannelResponse {
-                calculated_channel: Some(channel),
+                calculated_channel: req.into_inner().calculated_channel,
                 inapplicable_assets: vec![],
             }))
         });
@@ -986,7 +980,7 @@ async fn unarchive_calculated_channel_clears_archived_date_with_mask_set() {
         .await
         .expect("unarchive_calculated_channel failed");
 
-    assert!(written.calculated_channel.archived_date.is_none());
+    assert!(!written.calculated_channel.is_archived);
 }
 
 #[tokio::test]
@@ -1033,7 +1027,7 @@ async fn archive_calculated_channel_errors_when_response_missing_channel() {
 }
 
 #[tokio::test]
-async fn archive_calculated_channel_stamps_a_current_timestamp() {
+async fn archive_calculated_channel_sets_is_archived_true() {
     let mut mock = MockCalculatedChannelServiceImpl::new();
     mock.expect_update_calculated_channel().returning(|req| {
         Ok(Response::new(UpdateCalculatedChannelResponse {
@@ -1049,11 +1043,5 @@ async fn archive_calculated_channel_stamps_a_current_timestamp() {
         .await
         .expect("archive_calculated_channel failed");
 
-    let Timestamp { seconds, .. } = written
-        .calculated_channel
-        .archived_date
-        .expect("archived_date stamped");
-    // Sanity floor: 2020-01-01T00:00:00Z. Guards against a zero-valued default
-    // being sent as the archive timestamp.
-    assert!(seconds > 1_577_836_800);
+    assert!(written.calculated_channel.is_archived);
 }

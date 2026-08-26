@@ -583,6 +583,15 @@ async fn archive_calculated_channel_returns_structured_result() {
     let mut mock = MockCalculatedChannelServiceImpl::new();
     mock.expect_update_calculated_channel()
         .times(1)
+        .withf(|req| {
+            let req = req.get_ref();
+            let channel = req.calculated_channel.as_ref().expect("channel present");
+            let mask = req.update_mask.as_ref().expect("mask present");
+
+            mask.paths == vec!["is_archived".to_string()]
+                && channel.calculated_channel_id == "cc1"
+                && channel.is_archived
+        })
         .returning(|req| {
             Ok(Response::new(UpdateCalculatedChannelResponse {
                 calculated_channel: req.into_inner().calculated_channel,
@@ -610,6 +619,15 @@ async fn unarchive_calculated_channel_returns_structured_result() {
     let mut mock = MockCalculatedChannelServiceImpl::new();
     mock.expect_update_calculated_channel()
         .times(1)
+        .withf(|req| {
+            let req = req.get_ref();
+            let channel = req.calculated_channel.as_ref().expect("channel present");
+            let mask = req.update_mask.as_ref().expect("mask present");
+
+            mask.paths == vec!["is_archived".to_string()]
+                && channel.calculated_channel_id == "cc1"
+                && !channel.is_archived
+        })
         .returning(|req| {
             Ok(Response::new(UpdateCalculatedChannelResponse {
                 calculated_channel: req.into_inner().calculated_channel,
@@ -629,6 +647,64 @@ async fn unarchive_calculated_channel_returns_structured_result() {
     let body = structured(resp);
     assert_eq!(body["unarchived"], true);
     assert!(body["next_step"].is_string());
+}
+
+#[tokio::test]
+async fn archive_calculated_channel_surfaces_a_returned_unarchived_state() {
+    let mut mock = MockCalculatedChannelServiceImpl::new();
+    mock.expect_update_calculated_channel().returning(|req| {
+        let mut channel = req
+            .into_inner()
+            .calculated_channel
+            .expect("channel present");
+        channel.is_archived = false;
+        Ok(Response::new(UpdateCalculatedChannelResponse {
+            calculated_channel: Some(channel),
+            inapplicable_assets: vec![],
+        }))
+    });
+
+    let (server, _h) = server_with_mock(mock).await;
+
+    let resp = server
+        .archive_calculated_channel(Parameters(CalculatedChannelArchiveParams {
+            calculated_channel_id: "cc1".into(),
+        }))
+        .await
+        .expect("archive_calculated_channel failed");
+
+    let body = structured(resp);
+    assert_eq!(body["archived"], false);
+    assert!(body["next_step"].as_str().unwrap().contains("unarchived"));
+}
+
+#[tokio::test]
+async fn unarchive_calculated_channel_surfaces_a_returned_archived_state() {
+    let mut mock = MockCalculatedChannelServiceImpl::new();
+    mock.expect_update_calculated_channel().returning(|req| {
+        let mut channel = req
+            .into_inner()
+            .calculated_channel
+            .expect("channel present");
+        channel.is_archived = true;
+        Ok(Response::new(UpdateCalculatedChannelResponse {
+            calculated_channel: Some(channel),
+            inapplicable_assets: vec![],
+        }))
+    });
+
+    let (server, _h) = server_with_mock(mock).await;
+
+    let resp = server
+        .unarchive_calculated_channel(Parameters(CalculatedChannelArchiveParams {
+            calculated_channel_id: "cc1".into(),
+        }))
+        .await
+        .expect("unarchive_calculated_channel failed");
+
+    let body = structured(resp);
+    assert_eq!(body["unarchived"], false);
+    assert!(body["next_step"].as_str().unwrap().contains("archived"));
 }
 
 #[tokio::test]

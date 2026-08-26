@@ -1,9 +1,7 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use crate::policy::{RetryPolicy, with_retry};
 use crate::service::common;
 use anyhow::{Context, Result, anyhow};
-use pbjson_types::{FieldMask, Timestamp};
+use pbjson_types::FieldMask;
 use sift_rs::{
     SiftChannel,
     calculated_channels::v2::{
@@ -400,36 +398,34 @@ impl CalculatedChannelService {
         self.send_update(channel, paths, user_notes).await
     }
 
-    /// Archives a calculated channel by stamping `archived_date`. There is no
-    /// dedicated archive RPC; the API archives through the update mask.
+    /// Archives a calculated channel through the `is_archived` update mask.
     pub async fn archive_calculated_channel(
         &self,
         calculated_channel_id: String,
     ) -> Result<CalculatedChannelWrite> {
         let channel = CalculatedChannel {
             calculated_channel_id,
-            archived_date: Some(now_timestamp()),
+            is_archived: true,
             ..Default::default()
         };
 
-        self.send_update(channel, vec!["archived_date".to_string()], None)
+        self.send_update(channel, vec!["is_archived".to_string()], None)
             .await
             .context("failed to archive calculated channel")
     }
 
-    /// Unarchives a calculated channel by clearing `archived_date` through the
-    /// update mask. A masked field left at its default is cleared.
+    /// Unarchives a calculated channel through the `is_archived` update mask.
     pub async fn unarchive_calculated_channel(
         &self,
         calculated_channel_id: String,
     ) -> Result<CalculatedChannelWrite> {
         let channel = CalculatedChannel {
             calculated_channel_id,
-            archived_date: None,
+            is_archived: false,
             ..Default::default()
         };
 
-        self.send_update(channel, vec!["archived_date".to_string()], None)
+        self.send_update(channel, vec!["is_archived".to_string()], None)
             .await
             .context("failed to unarchive calculated channel")
     }
@@ -535,15 +531,5 @@ fn current_selection(configuration: &CalculatedChannelConfiguration) -> AssetSel
     {
         Some(AssetScope::Selection(selection)) => selection.clone(),
         _ => AssetSelection::default(),
-    }
-}
-
-fn now_timestamp() -> Timestamp {
-    let elapsed = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default();
-    Timestamp {
-        seconds: elapsed.as_secs() as i64,
-        nanos: elapsed.subsec_nanos() as i32,
     }
 }
