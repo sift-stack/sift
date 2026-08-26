@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Any
 # ``tomllib`` landed in 3.11; ``tomli`` is the same parser packaged for older
 # interpreters and is declared as a conditional install dep on 3.8-3.10.
 try:
-    import tomllib  # type: ignore[import-not-found,unused-ignore]
+    import tomllib  # type: ignore[import-not-found,import-untyped,unused-ignore]
 except ImportError:  # pragma: no cover - exercised on 3.8-3.10 only
     import tomli as tomllib  # type: ignore[no-redef,import-not-found,unused-ignore]
 

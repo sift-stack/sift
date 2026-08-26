@@ -5,6 +5,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [v0.20.0] - August 25, 2026
+
 ### What's New
 
 #### Interrupted test-result uploads resume
@@ -21,10 +23,27 @@ import-test-result-log --new-report ./offline-runs/a1b2c3/a1b2c3.jsonl
 
 `--new-report` moves the existing sidecar to `<log>.jsonl.tracking.bak` rather than overwriting it, so the abandoned report's ID stays recoverable. Resuming requires that report to still exist; if it was deleted, or the sidecar came from another environment, the command fails and names `--new-report` as the way forward.
 
-`client.test_results.import_log_file(...)` takes the matching `new_report` argument. The recovery hints printed by the pytest plugin drop the `--incremental` flag, which is no longer needed to avoid a duplicate report.
+`client.test_results.import_log_file(...)` takes the matching `new_report` argument. `import-test-result-log` no longer accepts `--incremental`: resuming is the default now, and the plugin's background worker moved to its own entry point. ([#745](https://github.com/sift-stack/sift/pull/745))
+
+#### New generated protos
+
+- Added the public `sift.automation.v1` package and refreshed the generated protobufs across common, data, data imports, external sync, families, filters, ingestion configs, metadata, notifications, panel configurations, remote files, reports, rule evaluation, runs, and saved searches. ([#753](https://github.com/sift-stack/sift/pull/753))
 
 ### Bugfixes
-- Fix `assets.archive` raising `AttributeError` by reading the correct response field, `archived_run_ids`.
+- Fix `assets.archive` raising `AttributeError` by reading the correct response field, `archived_run_ids`. ([#747](https://github.com/sift-stack/sift/pull/747))
+- Fix streaming ingestion failing to start when an ingestion config's flow schema exceeded the streaming client's 4 MiB decode limit. `sift-stream-bindings` 0.5.0 decodes up to 50 MiB. ([#751](https://github.com/sift-stack/sift/pull/751))
+- Fix the pytest plugin's upload worker failing to spawn when the venv's `bin/` was not on `PATH`, such as under `sudo` or `python -m pytest` against a non-activated venv. It now runs through the same interpreter as pytest. ([#748](https://github.com/sift-stack/sift/pull/748))
+- Fix `client.runs.list(is_stopped=False)` returning only stopped runs. `False` now applies no filter; `is_stopped=True` is unchanged. ([#728](https://github.com/sift-stack/sift/pull/728))
+
+### Full Changelog
+- [Replace bash dev script with justfile for task automation](https://github.com/sift-stack/sift/pull/679)
+- [Update company name and year in licenses](https://github.com/sift-stack/sift/pull/695)
+- [Use a normal truthy check for the is_stopped run filter](https://github.com/sift-stack/sift/pull/728)
+- [Resume incomplete test report upload](https://github.com/sift-stack/sift/pull/745)
+- [Fix assets.archive AttributeError](https://github.com/sift-stack/sift/pull/747)
+- [Spawn import process in same interpreter as pytest](https://github.com/sift-stack/sift/pull/748)
+- [Decode large flow schemas on stream build](https://github.com/sift-stack/sift/pull/751)
+- [Update public protos](https://github.com/sift-stack/sift/pull/753)
 
 ## [v0.19.1] - July 27, 2026
 

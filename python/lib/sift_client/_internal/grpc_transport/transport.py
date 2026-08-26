@@ -34,6 +34,9 @@ SiftAsyncChannel: TypeAlias = grpc_aio.Channel
 DEFAULT_REQUEST_TIMEOUT_SECONDS = 60.0
 """Default per-call deadline applied to unary RPCs that don't set their own."""
 
+MAX_DECODING_MESSAGE_SIZE = 50 * 1024 * 1024
+"""Largest gRPC response the client will decode, in bytes (50 MiB)."""
+
 
 def get_ssl_credentials(cert_via_openssl: bool) -> grpc.ChannelCredentials:
     """
@@ -165,10 +168,7 @@ def _compute_channel_options(opts: SiftChannelConfig) -> list[tuple[str, Any]]:
         # Primary cannot be overriden:
         #  https://github.com/grpc/grpc/blob/0498194240f55d7f4b12633ad01339fb690621bf/src/core/ext/filters/http/client/http_client_filter.cc#L97
         ("grpc.secondary_user_agent", _compute_user_agent()),
-        (
-            "grpc.max_receive_message_length",
-            50 * 1024 * 1024,
-        ),  # 50 MB — headroom for 1M-row GetData pages
+        ("grpc.max_receive_message_length", MAX_DECODING_MESSAGE_SIZE),
     ]
 
     enable_keepalive = opts.get("enable_keepalive", True)

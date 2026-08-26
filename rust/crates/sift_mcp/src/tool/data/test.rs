@@ -79,7 +79,8 @@ fn one_asset_mock() -> MockAssetServiceImpl {
 
 fn get_data_params(channel_regex: &str) -> Parameters<GetDataParams> {
     Parameters(GetDataParams {
-        asset_name: "bench".into(),
+        asset_name: Some("bench".into()),
+        asset_id: None,
         run_name: None,
         start_time_unix_nanos: Some(0),
         end_time_unix_nanos: Some(1),
@@ -88,6 +89,90 @@ fn get_data_params(channel_regex: &str) -> Parameters<GetDataParams> {
         channel_regex: Some(channel_regex.into()),
         output: std::env::temp_dir().join("sift-mcp-get-data-test-never-written.parquet"),
     })
+}
+
+/// `list_runs` hands the caller an `asset_id`, not an asset name, so `get_data`
+/// must accept the id directly. The withf below is the real assertion: the
+/// asset lookup must filter on `asset_id`, not `name`.
+#[tokio::test]
+async fn get_data_resolves_the_asset_by_id() {
+    let mut assets = MockAssetServiceImpl::new();
+    assets
+        .expect_list_assets()
+        .withf(|req| req.get_ref().filter == r#"asset_id == "asset-1""#)
+        .returning(|_| {
+            Ok(Response::new(ListAssetsResponse {
+                assets: vec![Asset {
+                    asset_id: "asset-1".into(),
+                    name: "bench".into(),
+                    ..Default::default()
+                }],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let mut channels = MockChannelServiceImpl::new();
+    channels.expect_list_channels().returning(|_| {
+        Ok(Response::new(ListChannelsResponse {
+            channels: Vec::new(),
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (server, _h) = server_with_mocks(assets, channels).await;
+
+    let mut params = get_data_params("channel\\..*");
+    params.0.asset_name = None;
+    params.0.asset_id = Some("asset-1".into());
+
+    // No channels are mocked to match, so the call still errs — but reaching
+    // RESOURCE_NOT_FOUND for channels proves the id-filtered asset lookup
+    // succeeded (a name-filtered lookup would have failed the withf).
+    let err = server
+        .get_data(params)
+        .await
+        .expect_err("no matching channels is an error");
+
+    assert_eq!(err.code, ErrorCode::RESOURCE_NOT_FOUND);
+    assert!(
+        err.message.contains("no channels matched"),
+        "should fail at channel resolution, not asset resolution: {}",
+        err.message
+    );
+}
+
+/// Exactly one of `asset_name` / `asset_id` must be provided; the error must
+/// name both fields so the caller knows how to recover.
+#[tokio::test]
+async fn get_data_requires_exactly_one_asset_identifier() {
+    let (server, _h) =
+        server_with_mocks(MockAssetServiceImpl::new(), MockChannelServiceImpl::new()).await;
+
+    let mut both = get_data_params("channel\\..*");
+    both.0.asset_id = Some("asset-1".into());
+    let err = server
+        .get_data(both)
+        .await
+        .expect_err("asset_name and asset_id together must be rejected");
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+    assert!(
+        err.message.contains("asset_name") && err.message.contains("asset_id"),
+        "error should name both fields: {}",
+        err.message
+    );
+
+    let mut neither = get_data_params("channel\\..*");
+    neither.0.asset_name = None;
+    let err = server
+        .get_data(neither)
+        .await
+        .expect_err("missing both asset_name and asset_id must be rejected");
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+    assert!(
+        err.message.contains("asset_name") && err.message.contains("asset_id"),
+        "error should name both fields: {}",
+        err.message
+    );
 }
 
 /// A truncated channel selection would produce a Parquet file that is missing
