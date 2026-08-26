@@ -529,4 +529,6 @@ def _to_rust_type(data_type: ChannelDataType) -> ChannelDataTypePy:
         return ChannelDataTypePy.Uint32
     elif data_type == ChannelDataType.UINT_64:
         return ChannelDataTypePy.Uint64
+    elif data_type == ChannelDataType.BYTES:
+        return ChannelDataTypePy.Bytes
     raise ValueError(f"Unknown data type: {data_type}")
