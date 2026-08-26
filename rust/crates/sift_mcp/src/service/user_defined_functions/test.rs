@@ -95,7 +95,8 @@ async fn list_user_defined_functions_returns_single_page() {
             None,
         )
         .await
-        .expect("list_user_defined_functions failed");
+        .expect("list_user_defined_functions failed")
+        .items;
 
     assert_eq!(functions.len(), 2);
     assert_eq!(functions[0].user_defined_function_id, "f1");
@@ -125,7 +126,8 @@ async fn list_user_defined_functions_paginates_until_token_empty() {
     let functions = service
         .list_user_defined_functions(String::new(), None, None)
         .await
-        .expect("list_user_defined_functions failed");
+        .expect("list_user_defined_functions failed")
+        .items;
 
     let ids: Vec<&str> = functions
         .iter()
@@ -156,7 +158,8 @@ async fn list_user_defined_functions_truncates_to_limit_across_pages() {
     let functions = service
         .list_user_defined_functions(String::new(), None, Some(3))
         .await
-        .expect("list_user_defined_functions failed");
+        .expect("list_user_defined_functions failed")
+        .items;
 
     let ids: Vec<&str> = functions
         .iter()
@@ -203,7 +206,8 @@ async fn list_user_defined_functions_breaks_on_empty_page() {
     let functions = service
         .list_user_defined_functions(String::new(), None, None)
         .await
-        .expect("list_user_defined_functions failed");
+        .expect("list_user_defined_functions failed")
+        .items;
 
     assert!(functions.is_empty());
 }
@@ -264,7 +268,8 @@ async fn list_versions_sends_id_filter_and_order_by() {
             None,
         )
         .await
-        .expect("list_user_defined_function_versions failed");
+        .expect("list_user_defined_function_versions failed")
+        .items;
 
     assert_eq!(versions.len(), 1);
     assert_eq!(versions[0].version, 2);
@@ -297,7 +302,8 @@ async fn list_versions_sends_name_when_id_is_empty() {
             None,
         )
         .await
-        .expect("list_user_defined_function_versions failed");
+        .expect("list_user_defined_function_versions failed")
+        .items;
 }
 
 #[tokio::test]
@@ -347,7 +353,8 @@ async fn list_versions_paginates_and_truncates_to_limit() {
             Some(2),
         )
         .await
-        .expect("list_user_defined_function_versions failed");
+        .expect("list_user_defined_function_versions failed")
+        .items;
 
     let numbers: Vec<u32> = versions.iter().map(|v| v.version).collect();
     assert_eq!(numbers, vec![1, 2]);

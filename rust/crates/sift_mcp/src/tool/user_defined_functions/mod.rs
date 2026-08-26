@@ -15,7 +15,7 @@ use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::user_defined_functions::UdfUpdate,
-    tool::common::{ListParams, MetadataEntry},
+    tool::common::{ListParams, MetadataEntry, list_body, to_values},
 };
 
 #[cfg(test)]
@@ -28,6 +28,7 @@ pub struct UserDefinedFunctionVersionListParams {
     pub(crate) filter: String,
     pub(crate) order_by: Option<String>,
     pub(crate) limit: Option<u32>,
+    pub(crate) fields: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -84,6 +85,12 @@ impl SiftMcpServer {
                 state.
               - Fields at their proto3 default are OMITTED from the JSON: a missing `is_archived` or
                 `version` key means `false` / `0`, not \"unknown\".
+              - `count`: how many items THIS response carries — read it instead of
+                counting the array yourself. It is the size of the page you got back, not
+                how many items match `filter`.
+              - `has_more`: `true` when the service hit `limit` with matches left over, so
+                this page is not the whole set. Never report `count` as a total while
+                `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
@@ -97,6 +104,14 @@ impl SiftMcpServer {
                 (newest first). Example: `\"name,modified_date desc\"`.
               - `limit`: max items to return. Start at 50 and only raise it if the result is capped
                 and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
+              - `fields`: optional array of field names to keep on each item, e.g.
+                `[\"name\"]`. Omit it for the full object. Names match case-insensitively
+                and ignore underscores and hyphens, so `asset_id`, `assetId` and
+                `asset-id` all work. Any name that matched nothing on any returned item
+                is listed in `unmatched_fields`; an empty page reports none, since it
+                says nothing about whether a name was spelled right.
+                Reach for this whenever you need only a few fields: full objects are wide,
+                and a large listing can exceed the response size limit without it.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an
@@ -123,17 +138,23 @@ impl SiftMcpServer {
             filter,
             order_by,
             limit,
+            fields,
         }) = params;
 
-        let functions = self
+        let page = self
             .user_defined_function_service
             .list_user_defined_functions(filter, order_by, limit)
             .await
             .map_err(from_anyhow)?;
 
-        Ok(CallToolResult::structured(
-            serde_json::json!({ "user_defined_functions": functions }),
-        ))
+        let functions = to_values(&page.items)?;
+
+        Ok(CallToolResult::structured(list_body(
+            "user_defined_functions",
+            functions,
+            fields,
+            page.has_more,
+        )))
     }
 
     #[tool(
@@ -148,6 +169,12 @@ impl SiftMcpServer {
                 `user_defined_function_version_id`, `version`, `expression`, `function_inputs`,
                 `change_message` (server-generated summary of the change), `user_notes`, and
                 `modified_by_user_id`.
+              - `count`: how many items THIS response carries — read it instead of
+                counting the array yourself. It is the size of the page you got back, not
+                how many items match `filter`.
+              - `has_more`: `true` when the service hit `limit` with matches left over, so
+                this page is not the whole set. Never report `count` as a total while
+                `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
 
             Parameters:
               - `user_defined_function_id`: optional. The id of the function whose versions to list.
@@ -164,6 +191,14 @@ impl SiftMcpServer {
                 by `name` ascending — pass `\"version desc\"` for newest-first.
               - `limit`: max items to return. Start at 50 and only raise it if the result is capped
                 and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
+              - `fields`: optional array of field names to keep on each item, e.g.
+                `[\"name\"]`. Omit it for the full object. Names match case-insensitively
+                and ignore underscores and hyphens, so `asset_id`, `assetId` and
+                `asset-id` all work. Any name that matched nothing on any returned item
+                is listed in `unmatched_fields`; an empty page reports none, since it
+                says nothing about whether a name was spelled right.
+                Reach for this whenever you need only a few fields: full objects are wide,
+                and a large listing can exceed the response size limit without it.
 
             Errors:
               - `INVALID_PARAMS` if neither or both of `user_defined_function_id` and `name` are set, or
@@ -190,11 +225,12 @@ impl SiftMcpServer {
             filter,
             order_by,
             limit,
+            fields,
         }) = params;
 
         let (user_defined_function_id, name) = function_identifier(user_defined_function_id, name)?;
 
-        let versions = self
+        let page = self
             .user_defined_function_service
             .list_user_defined_function_versions(
                 user_defined_function_id,
@@ -206,9 +242,14 @@ impl SiftMcpServer {
             .await
             .map_err(from_anyhow)?;
 
-        Ok(CallToolResult::structured(
-            serde_json::json!({ "user_defined_function_versions": versions }),
-        ))
+        let versions = to_values(&page.items)?;
+
+        Ok(CallToolResult::structured(list_body(
+            "user_defined_function_versions",
+            versions,
+            fields,
+            page.has_more,
+        )))
     }
 
     #[tool(

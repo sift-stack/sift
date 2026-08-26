@@ -16,7 +16,7 @@ use tonic::{Response, Status, transport::Server};
 use crate::{
     server::SiftMcpServer,
     tool::{
-        common::test_support::{list_params, structured, structured_field},
+        common::test_support::{list_params, list_params_with_fields, structured},
         user_defined_functions::{
             ArchiveUserDefinedFunctionParams, CreateUserDefinedFunctionParams,
             UpdateUserDefinedFunctionParams, UserDefinedFunctionVersionListParams,
@@ -69,6 +69,7 @@ fn version_list_params(
         filter: String::new(),
         order_by: None,
         limit: None,
+        fields: None,
     })
 }
 
@@ -128,11 +129,12 @@ async fn list_user_defined_functions_returns_structured_rows() {
         .await
         .expect("list_user_defined_functions failed");
 
-    let functions = structured_field(resp, "user_defined_functions");
-    let functions = functions.as_array().expect("array");
+    let body = structured(resp);
+    let functions = body["user_defined_functions"].as_array().expect("array");
     assert_eq!(functions.len(), 1);
     assert_eq!(functions[0]["userDefinedFunctionId"], "f1");
     assert_eq!(functions[0]["name"], "rms");
+    assert_eq!(body["count"], 1);
 }
 
 #[tokio::test]
@@ -150,6 +152,36 @@ async fn list_user_defined_functions_propagates_grpc_error() {
 
     assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
     assert!(err.message.contains("bad filter"));
+}
+
+#[tokio::test]
+async fn list_user_defined_functions_projects_requested_fields() {
+    let mut mock = MockUserDefinedFunctionServiceImpl::new();
+    mock.expect_list_user_defined_functions().returning(|_| {
+        Ok(Response::new(ListUserDefinedFunctionsResponse {
+            user_defined_functions: vec![UserDefinedFunction {
+                user_defined_function_id: "f1".into(),
+                name: "rms".into(),
+                description: "root mean square".into(),
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (server, _h) = server_with_mock(mock, false, false).await;
+
+    let resp = server
+        .list_user_defined_functions(list_params_with_fields("", &["name"]))
+        .await
+        .expect("list_user_defined_functions failed");
+
+    let body = structured(resp);
+    assert_eq!(
+        body["user_defined_functions"],
+        serde_json::json!([{ "name": "rms" }])
+    );
+    assert_eq!(body["count"], 1);
 }
 
 #[tokio::test]
@@ -180,10 +212,13 @@ async fn list_versions_returns_structured_rows() {
         .await
         .expect("list_user_defined_function_versions failed");
 
-    let versions = structured_field(resp, "user_defined_function_versions");
-    let versions = versions.as_array().expect("array");
+    let body = structured(resp);
+    let versions = body["user_defined_function_versions"]
+        .as_array()
+        .expect("array");
     assert_eq!(versions.len(), 1);
     assert_eq!(versions[0]["userDefinedFunctionVersionId"], "v2");
+    assert_eq!(body["count"], 1);
 }
 
 #[tokio::test]
@@ -211,9 +246,49 @@ async fn list_versions_forwards_the_required_filter() {
             filter: "version == 2".into(),
             order_by: None,
             limit: None,
+            fields: None,
         }))
         .await
         .expect("list_user_defined_function_versions failed");
+}
+
+#[tokio::test]
+async fn list_versions_projects_requested_fields() {
+    let mut mock = MockUserDefinedFunctionServiceImpl::new();
+    mock.expect_list_user_defined_function_versions()
+        .returning(|_| {
+            Ok(Response::new(ListUserDefinedFunctionVersionsResponse {
+                user_defined_functions: vec![UserDefinedFunction {
+                    user_defined_function_id: "f1".into(),
+                    user_defined_function_version_id: "v2".into(),
+                    version: 2,
+                    name: "rms".into(),
+                    ..Default::default()
+                }],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let (server, _h) = server_with_mock(mock, false, false).await;
+
+    let resp = server
+        .list_user_defined_function_versions(Parameters(UserDefinedFunctionVersionListParams {
+            user_defined_function_id: Some("f1".into()),
+            name: None,
+            filter: String::new(),
+            order_by: None,
+            limit: None,
+            fields: Some(vec!["version".into()]),
+        }))
+        .await
+        .expect("list_user_defined_function_versions failed");
+
+    let body = structured(resp);
+    assert_eq!(
+        body["user_defined_function_versions"],
+        serde_json::json!([{ "version": 2 }])
+    );
+    assert_eq!(body["count"], 1);
 }
 
 #[tokio::test]
