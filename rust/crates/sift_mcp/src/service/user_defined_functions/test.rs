@@ -302,8 +302,7 @@ async fn list_versions_sends_name_when_id_is_empty() {
             None,
         )
         .await
-        .expect("list_user_defined_function_versions failed")
-        .items;
+        .expect("list_user_defined_function_versions failed");
 }
 
 #[tokio::test]
