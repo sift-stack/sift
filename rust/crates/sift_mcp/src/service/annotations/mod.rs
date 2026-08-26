@@ -7,8 +7,8 @@ use sift_rs::{
     SiftChannel,
     annotations::v1::{
         Annotation, AnnotationLinkedChannel, AnnotationState, AnnotationType,
-        BatchArchiveAnnotationsRequest, BatchUnarchiveAnnotationsRequest, CreateAnnotationRequest,
-        ListAnnotationsRequest, ListAnnotationsResponse, UpdateAnnotationRequest,
+        BatchArchiveAnnotationsRequest, CreateAnnotationRequest, ListAnnotationsRequest,
+        ListAnnotationsResponse, UnarchiveAnnotationRequest, UpdateAnnotationRequest,
         annotation_linked_channel, annotation_service_client::AnnotationServiceClient,
     },
     metadata::v1::MetadataValue,
@@ -249,30 +249,6 @@ impl AnnotationService {
         Ok(resp.annotations)
     }
 
-    pub async fn batch_unarchive_annotations(
-        &self,
-        annotation_ids: Vec<String>,
-    ) -> Result<Vec<Annotation>> {
-        let channel = self.channel.clone();
-        let resp = with_retry(&self.policy, move || {
-            let channel = channel.clone();
-            let annotation_ids = annotation_ids.clone();
-            async move {
-                let mut client = AnnotationServiceClient::new(channel);
-                client
-                    .batch_unarchive_annotations(BatchUnarchiveAnnotationsRequest {
-                        annotation_ids,
-                    })
-                    .await
-                    .map(|resp| resp.into_inner())
-            }
-        })
-        .await
-        .context("failed to batch unarchive annotations")?;
-
-        Ok(resp.annotations)
-    }
-
     #[allow(clippy::too_many_arguments)]
     pub async fn update_annotations(
         &self,
@@ -368,13 +344,9 @@ impl AnnotationService {
 
         let mut batch_archive_error = None;
         let mut archive_skipped = false;
-        if is_archived.is_some() {
+        if is_archived == Some(true) {
             if failures.is_empty() && not_attempted.is_empty() {
-                let result = if is_archived == Some(true) {
-                    self.batch_archive_annotations(annotation_ids).await
-                } else {
-                    self.batch_unarchive_annotations(annotation_ids).await
-                };
+                let result = self.batch_archive_annotations(annotation_ids).await;
                 match result {
                     Ok(archived) => annotations = archived,
                     Err(error) => batch_archive_error = Some(error),
@@ -382,6 +354,47 @@ impl AnnotationService {
             } else {
                 archive_skipped = true;
             }
+        } else if is_archived == Some(false) && failures.is_empty() && not_attempted.is_empty() {
+            annotations.clear();
+            annotations.reserve(annotation_ids.len());
+            for chunk_start in (0..annotation_ids.len()).step_by(MAX_CONCURRENT_ANNOTATION_UPDATES)
+            {
+                let chunk_end =
+                    (chunk_start + MAX_CONCURRENT_ANNOTATION_UPDATES).min(annotation_ids.len());
+                let service = self.clone();
+                let unarchives = fan_out_bounded(
+                    annotation_ids[chunk_start..chunk_end].to_vec(),
+                    MAX_CONCURRENT_ANNOTATION_UPDATES,
+                    move |annotation_id| {
+                        let service = service.clone();
+                        async move {
+                            let result = service.unarchive_annotation(annotation_id.clone()).await;
+                            (annotation_id, result)
+                        }
+                    },
+                )
+                .await;
+                let stop_after_batch = unarchives
+                    .iter()
+                    .any(|(_, result)| result.as_ref().is_err_and(is_backend_wide_failure));
+
+                for (annotation_id, result) in unarchives {
+                    match result {
+                        Ok(annotation) => annotations.push(annotation),
+                        Err(error) => failures.push(AnnotationUpdateFailure {
+                            annotation_id,
+                            error,
+                        }),
+                    }
+                }
+
+                if stop_after_batch {
+                    not_attempted.extend_from_slice(&annotation_ids[chunk_end..]);
+                    break;
+                }
+            }
+        } else if is_archived == Some(false) {
+            archive_skipped = true;
         }
 
         Ok(UpdateAnnotationsResult {
@@ -478,5 +491,25 @@ impl AnnotationService {
 
         resp.annotation
             .ok_or_else(|| anyhow!("update_annotation response missing annotation"))
+    }
+
+    pub async fn unarchive_annotation(&self, annotation_id: String) -> Result<Annotation> {
+        let channel = self.channel.clone();
+        let resp = with_retry(&self.policy, move || {
+            let channel = channel.clone();
+            let annotation_id = annotation_id.clone();
+            async move {
+                let mut client = AnnotationServiceClient::new(channel);
+                client
+                    .unarchive_annotation(UnarchiveAnnotationRequest { annotation_id })
+                    .await
+                    .map(|resp| resp.into_inner())
+            }
+        })
+        .await
+        .context("failed to unarchive annotation")?;
+
+        resp.annotation
+            .ok_or_else(|| anyhow!("unarchive_annotation response missing annotation"))
     }
 }

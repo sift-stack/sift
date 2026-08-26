@@ -22,6 +22,14 @@ mod test;
 
 const MAX_UPDATE_ANNOTATIONS: usize = 1_000;
 
+fn upstream_error_message(error: &anyhow::Error) -> String {
+    if let Some(status) = error.downcast_ref::<tonic::Status>() {
+        format!("{}: {}", status.code(), status.message())
+    } else {
+        error.to_string()
+    }
+}
+
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct AnnotationListParams {
     pub(crate) filter: String,
@@ -309,14 +317,16 @@ impl SiftMcpServer {
         name = "update_annotation",
         description = "
             Update one or more existing annotations. Uses `annotations/v1 BatchArchiveAnnotations` when archiving
-            and `BatchUnarchiveAnnotations` when unarchiving.
+            and one `UnarchiveAnnotation` request per annotation when unarchiving.
 
             Output:
               - `{ \"annotations\": [Annotation, ...], \"failures\": [...], \"batch_archive_error\": object|null,
                 \"not_attempted\": [string, ...], \"archive_skipped\": bool, \"next_step\": string }`. Successful
                 annotations include a `url` field when the host can be derived. Each individual failure includes
-                `annotation_id`, MCP `code`, `message`, and optional `data`. Partial failures set the tool result's
-                `isError` flag.
+                `annotation_id` and an upstream `message`. `batch_archive_error` includes `annotation_ids` and an
+                upstream `message` only for a failed `BatchArchiveAnnotations` request. Partial failures set the tool result's
+                `isError` flag. `archive_skipped` is true when the requested archive-state change was not attempted
+                because field updates failed.
 
             Parameters:
               - `annotation_ids`: required list of 1 to 1000 annotation ids. The same changes are applied to every
@@ -333,27 +343,27 @@ impl SiftMcpServer {
               - `metadata`: optional; REPLACES the full metadata list. Each entry is
                 `{ \"name\": \"<key>\", \"value\": <scalar> }`. Pass `[]` to clear.
               - `is_archived`: optional archive state. `true` uses one batch-archive request; `false` uses one
-                batch-unarchive request. When combined with other fields, annotations are updated before their
-                archive state changes.
+                `UnarchiveAnnotation` request per annotation. When combined with other fields, annotations are
+                updated before their archive state changes.
 
               At least one updatable field must be set; otherwise the tool returns `INVALID_PARAMS`.
 
             Errors:
               - `INVALID_PARAMS` if `annotation_ids` is empty, contains an empty id, exceeds 1000 ids, `state` is
                 unrecognized, or no updatable field is set.
-              - Individual upstream failures are returned in `failures` next to successful results. Follow each
-                failure's guidance and retry only eligible failed ids.
+              - Individual upstream failures, including unarchive failures, are returned in `failures` next to
+                successful results. Follow each failure's guidance and retry only eligible failed ids.
               - Backend-wide failures stop later batches. Their ids are returned in `not_attempted` without an API
                 request.
-              - Batch archive or unarchive failures are returned in `batch_archive_error`. The archive outcome may
-                be unknown.
+              - Batch archive failures are returned in `batch_archive_error`. The archive outcome may be unknown.
 
             Guidance:
               - This is a write. CONFIRM every target and the full proposed values with the user before invoking —
                 `tags`, `linked_channel_ids`, and `metadata` are REPLACE operations, not merges.
-              - General field updates issue one API request per annotation and are not atomic. Requests run in
-                batches of up to 50. A backend-wide failure stops later batches. Archive and unarchive use a single
-                batch API request after all individual updates succeed; otherwise `archive_skipped` is true.
+              - General field updates and unarchive issue one API request per annotation and are not atomic. Requests
+                run in batches of up to 50. A backend-wide failure stops later batches. Archive uses one batch API
+                request. Requested archive-state changes begin only after all individual updates succeed; otherwise
+                `archive_skipped` is true.
               - For appends, read the current annotation via `list_annotations` filtered by
                 `annotation_id == \"<id>\"`, then send the union.
         ",
@@ -425,7 +435,6 @@ impl SiftMcpServer {
         let metadata = metadata.map(|m| m.into_iter().map(MetadataValue::from).collect::<Vec<_>>());
         let requested_ids = annotation_ids.clone();
         let requested_count = annotation_ids.len();
-
         let outcome = self
             .annotation_service
             .update_annotations(
@@ -449,12 +458,9 @@ impl SiftMcpServer {
             .failures
             .into_iter()
             .map(|failure| {
-                let error = from_anyhow(failure.error);
                 serde_json::json!({
                     "annotation_id": failure.annotation_id,
-                    "code": error.code.0,
-                    "message": error.message,
-                    "data": error.data,
+                    "message": upstream_error_message(&failure.error),
                 })
             })
             .collect::<Vec<_>>();
@@ -462,12 +468,9 @@ impl SiftMcpServer {
         let not_attempted = outcome.not_attempted;
         let not_attempted_count = not_attempted.len();
         let batch_archive_error = outcome.batch_archive_error.map(|error| {
-            let error = from_anyhow(error);
             serde_json::json!({
                 "annotation_ids": requested_ids,
-                "code": error.code.0,
-                "message": error.message,
-                "data": error.data,
+                "message": upstream_error_message(&error),
             })
         });
         let has_errors =
@@ -482,18 +485,18 @@ impl SiftMcpServer {
         let next_step = if batch_archive_error.is_some() {
             format!(
                 "Completed field updates for {updated_count} of {requested_count} annotation(s), but batch archive \
-                 failed. Archive state may be unknown. Verify the targets with `list_annotations` before retrying."
+                 failed. Archive state may be unknown. Verify the targets with `list_annotations` before retrying.",
             )
         } else if outcome.archive_skipped {
             if not_attempted_count > 0 {
                 format!(
                     "Updated {updated_count} of {requested_count} annotation(s); {failure_count} failed and \
-                     {not_attempted_count} were not attempted after a backend-wide failure. Archive was not \
+                     {not_attempted_count} were not attempted after a backend-wide failure. The archive state change was not \
                      attempted. Review `failures` before retrying eligible failed and not-attempted ids."
                 )
             } else {
                 format!(
-                    "Updated {updated_count} of {requested_count} annotation(s); {failure_count} failed. Archive was \
+                    "Updated {updated_count} of {requested_count} annotation(s); {failure_count} failed. The archive state change was \
                      not attempted because individual updates failed. Review `failures`, follow their guidance, and \
                      retry only eligible failed ids."
                 )
