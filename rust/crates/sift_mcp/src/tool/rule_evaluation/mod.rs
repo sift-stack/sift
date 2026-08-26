@@ -181,6 +181,7 @@ impl SiftMcpServer {
                     .list_rules(filter, None, Some(1))
                     .await
                     .map_err(from_anyhow)?
+                    .items
                     .into_iter()
                     .next()
                     .ok_or_else(|| {
