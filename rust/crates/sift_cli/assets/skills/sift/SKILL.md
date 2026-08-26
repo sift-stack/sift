@@ -3,8 +3,8 @@ name: sift
 description: >-
   Use when working with Sift: ingesting or importing time-series data,
   querying assets/runs/channels/users, managing calculated channels, rules,
-  user-defined functions, exporting data,
-  decimating or running SQL over data, opening a view in the Sift Explore web
+  user-defined functions, exporting data, decimating or running SQL over data,
+  opening a view in the Sift Explore web
   app, writing code that integrates with Sift, installing, updating, or
   diagnosing the Sift agent integration, or looking up how Sift works in its
   product and API documentation. Covers the Sift MCP server (started by
@@ -98,8 +98,10 @@ exists.
   `me: true`. Never guess which listed user is the caller.
 - **Update annotations.** `update_annotation` takes a required
   `annotation_ids` list of 1 to 1000 ids and applies the same changes to every
-  target. Check its per-id `failures`, `not_attempted` ids, and archive outcome
-  before reporting success; a partial failure sets `isError`.
+  target. Set `is_archived: true` to archive or `is_archived: false` to
+  unarchive; there is no separate archive tool. Check its per-id `failures`,
+  `not_attempted` ids, and archive outcome before reporting success; a partial
+  failure sets `isError`.
 - **Produce numbers.** `get_data` writes a Parquet file. `sql` then queries it.
   Add `upload_dataset` when the result belongs back in Sift. A successful
   `get_data` does not mean every requested channel is in the file: check
@@ -181,13 +183,12 @@ exists.
   Several creates happen as side effects of other MCP tools — an asset is
   created when `upload_dataset` names one that doesn't exist, a run is
   created when a `create_report`/`create_test_report`/`upload_dataset` names
-  one, and a tag is created when `update_asset` or `update_run` names one that
+  one, and a tag is created when `create_annotation` includes a name that
   doesn't exist (there is no `create_tag` tool). When the user asks for a create
   with no matching `create_*` tool, look for the tool that creates it as a side
   effect before falling out of MCP. If that side-effect tool is gated and
-  blocked, that IS the block —
-  surface it, do not treat "no `create_asset` tool" as license to shell out
-  to REST/gRPC/`sift-cli import`.
+  blocked, that IS the block — surface it, do not treat "no `create_asset` tool"
+  as license to shell out to REST/gRPC/`sift-cli import`.
 - **Choose one profile for the session and keep it.** Never switch profiles to
   recover from a failure. Surface the failure and ask the user.
 
