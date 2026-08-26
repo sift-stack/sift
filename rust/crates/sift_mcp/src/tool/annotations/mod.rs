@@ -308,8 +308,8 @@ impl SiftMcpServer {
     #[tool(
         name = "update_annotation",
         description = "
-            Update one or more existing annotations. Uses `annotations/v1 BatchArchiveAnnotations` when archiving.
-            Other changes, including unarchiving, use one `UpdateAnnotation` request per annotation.
+            Update one or more existing annotations. Uses `annotations/v1 BatchArchiveAnnotations` when archiving
+            and `BatchUnarchiveAnnotations` when unarchiving.
 
             Output:
               - `{ \"annotations\": [Annotation, ...], \"failures\": [...], \"batch_archive_error\": object|null,
@@ -320,7 +320,8 @@ impl SiftMcpServer {
 
             Parameters:
               - `annotation_ids`: required list of 1 to 1000 annotation ids. The same changes are applied to every
-                annotation.
+                annotation. This replaces the former `annotation_id` parameter; pass a single annotation as a
+                one-element list.
               - `name`: optional new name.
               - `description`: optional new description.
               - `start_time_unix_nanos` / `end_time_unix_nanos`: optional new time bounds in Unix nanoseconds.
@@ -331,9 +332,9 @@ impl SiftMcpServer {
                 Pass `[]` to clear. Bit-field and calculated-channel links are not exposed here.
               - `metadata`: optional; REPLACES the full metadata list. Each entry is
                 `{ \"name\": \"<key>\", \"value\": <scalar> }`. Pass `[]` to clear.
-              - `is_archived`: optional archive state. `true` uses one batch-archive request. `false` is included in
-                each annotation's individual update request. When `true` is combined with other fields, annotations
-                are updated before archiving.
+              - `is_archived`: optional archive state. `true` uses one batch-archive request; `false` uses one
+                batch-unarchive request. When combined with other fields, annotations are updated before their
+                archive state changes.
 
               At least one updatable field must be set; otherwise the tool returns `INVALID_PARAMS`.
 
@@ -344,14 +345,15 @@ impl SiftMcpServer {
                 failure's guidance and retry only eligible failed ids.
               - Backend-wide failures stop later batches. Their ids are returned in `not_attempted` without an API
                 request.
-              - Batch-archive failures are returned in `batch_archive_error`. The archive outcome may be unknown.
+              - Batch archive or unarchive failures are returned in `batch_archive_error`. The archive outcome may
+                be unknown.
 
             Guidance:
               - This is a write. CONFIRM every target and the full proposed values with the user before invoking —
                 `tags`, `linked_channel_ids`, and `metadata` are REPLACE operations, not merges.
-              - General field updates and unarchive operations issue one API request per annotation and are not
-                atomic. Requests run in batches of up to 50. A backend-wide failure stops later batches. Archive uses
-                a single batch API request after all individual updates succeed; otherwise `archive_skipped` is true.
+              - General field updates issue one API request per annotation and are not atomic. Requests run in
+                batches of up to 50. A backend-wide failure stops later batches. Archive and unarchive use a single
+                batch API request after all individual updates succeed; otherwise `archive_skipped` is true.
               - For appends, read the current annotation via `list_annotations` filtered by
                 `annotation_id == \"<id>\"`, then send the union.
         ",
@@ -528,11 +530,7 @@ impl SiftMcpServer {
         } else {
             CallToolResult::structured(structured)
         };
-        if has_errors {
-            result.content.push(ContentBlock::text(next_step));
-        } else {
-            result.content = vec![ContentBlock::text(next_step)];
-        }
+        result.content = vec![ContentBlock::text(next_step)];
         Ok(result)
     }
 }

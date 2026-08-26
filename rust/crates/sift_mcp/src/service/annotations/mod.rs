@@ -7,9 +7,9 @@ use sift_rs::{
     SiftChannel,
     annotations::v1::{
         Annotation, AnnotationLinkedChannel, AnnotationState, AnnotationType,
-        BatchArchiveAnnotationsRequest, CreateAnnotationRequest, ListAnnotationsRequest,
-        ListAnnotationsResponse, UpdateAnnotationRequest, annotation_linked_channel,
-        annotation_service_client::AnnotationServiceClient,
+        BatchArchiveAnnotationsRequest, BatchUnarchiveAnnotationsRequest, CreateAnnotationRequest,
+        ListAnnotationsRequest, ListAnnotationsResponse, UpdateAnnotationRequest,
+        annotation_linked_channel, annotation_service_client::AnnotationServiceClient,
     },
     metadata::v1::MetadataValue,
 };
@@ -249,6 +249,30 @@ impl AnnotationService {
         Ok(resp.annotations)
     }
 
+    pub async fn batch_unarchive_annotations(
+        &self,
+        annotation_ids: Vec<String>,
+    ) -> Result<Vec<Annotation>> {
+        let channel = self.channel.clone();
+        let resp = with_retry(&self.policy, move || {
+            let channel = channel.clone();
+            let annotation_ids = annotation_ids.clone();
+            async move {
+                let mut client = AnnotationServiceClient::new(channel);
+                client
+                    .batch_unarchive_annotations(BatchUnarchiveAnnotationsRequest {
+                        annotation_ids,
+                    })
+                    .await
+                    .map(|resp| resp.into_inner())
+            }
+        })
+        .await
+        .context("failed to batch unarchive annotations")?;
+
+        Ok(resp.annotations)
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub async fn update_annotations(
         &self,
@@ -273,14 +297,11 @@ impl AnnotationService {
             || tags.is_some()
             || linked_channel_ids.is_some()
             || metadata.is_some();
-        let unarchive = (is_archived == Some(false)).then_some(false);
-        let has_individual_update = has_field_update || unarchive.is_some();
-
         let mut annotations = Vec::new();
         let mut failures = Vec::new();
         let mut not_attempted = Vec::new();
 
-        if has_individual_update {
+        if has_field_update {
             annotations.reserve(annotation_ids.len());
             for chunk_start in (0..annotation_ids.len()).step_by(MAX_CONCURRENT_ANNOTATION_UPDATES)
             {
@@ -317,7 +338,6 @@ impl AnnotationService {
                                     tags,
                                     linked_channel_ids,
                                     metadata,
-                                    unarchive,
                                 )
                                 .await;
                             (annotation_id, result)
@@ -348,9 +368,14 @@ impl AnnotationService {
 
         let mut batch_archive_error = None;
         let mut archive_skipped = false;
-        if is_archived == Some(true) {
+        if is_archived.is_some() {
             if failures.is_empty() && not_attempted.is_empty() {
-                match self.batch_archive_annotations(annotation_ids).await {
+                let result = if is_archived == Some(true) {
+                    self.batch_archive_annotations(annotation_ids).await
+                } else {
+                    self.batch_unarchive_annotations(annotation_ids).await
+                };
+                match result {
                     Ok(archived) => annotations = archived,
                     Err(error) => batch_archive_error = Some(error),
                 }
@@ -372,7 +397,7 @@ impl AnnotationService {
     /// `protos/sift/annotations/v1/annotations.proto::UpdateAnnotationRequest` the
     /// updatable fields are `name`, `description`, `start_time`, `end_time`,
     /// `assigned_to_user_id`, `state`, `tags`, `legend_config`, `linked_channels`,
-    /// `metadata`, and `is_archived`. This service exposes all but `legend_config`.
+    /// and `metadata`. This service exposes all but `legend_config`.
     ///
     /// `tags`, `linked_channels`, and `metadata` use REPLACE semantics — passing
     /// `Some(vec![])` clears the field.
@@ -389,7 +414,6 @@ impl AnnotationService {
         tags: Option<Vec<String>>,
         linked_channel_ids: Option<Vec<String>>,
         metadata: Option<Vec<MetadataValue>>,
-        is_archived: Option<bool>,
     ) -> Result<Annotation> {
         let mut annotation = Annotation {
             annotation_id,
@@ -433,11 +457,6 @@ impl AnnotationService {
             annotation.metadata = v;
             paths.push("metadata".to_string());
         }
-        if let Some(v) = is_archived {
-            annotation.is_archived = v;
-            paths.push("is_archived".to_string());
-        }
-
         let channel = self.channel.clone();
         let resp = with_retry(&self.policy, move || {
             let channel = channel.clone();
