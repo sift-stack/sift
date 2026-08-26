@@ -371,8 +371,9 @@ async fn get_data_reports_channel_names_that_matched_nothing() {
         body["unmatched_channel_names"],
         serde_json::json!(["presure"])
     );
-    assert!(
-        body.get("empty_channels").is_none(),
+    assert_eq!(
+        body["empty_channels"],
+        serde_json::json!([]),
         "both matched channels returned samples: {body}"
     );
 
@@ -428,9 +429,15 @@ async fn get_data_reports_no_unmatched_names_for_a_regex_selection() {
         .await
         .expect("get_data failed");
 
+    // Both keys are present and empty rather than absent: a caller has to be
+    // able to tell "nothing missing" from "this tool never looked".
     let body = structured(resp);
-    assert!(body.get("unmatched_channel_names").is_none(), "{body}");
-    assert!(body.get("empty_channels").is_none(), "{body}");
+    assert_eq!(
+        body["unmatched_channel_names"],
+        serde_json::json!([]),
+        "{body}"
+    );
+    assert_eq!(body["empty_channels"], serde_json::json!([]), "{body}");
 }
 
 /// A channel that matched but returned nothing has no column in the file, so the
@@ -485,9 +492,69 @@ async fn get_data_reports_matched_channels_that_returned_no_samples() {
 
     let body = structured(resp);
     assert_eq!(body["empty_channels"], serde_json::json!(["temperature"]));
-    assert!(body.get("unmatched_channel_names").is_none(), "{body}");
+    assert_eq!(
+        body["unmatched_channel_names"],
+        serde_json::json!([]),
+        "{body}"
+    );
 
     let next_step = body["next_step"].as_str().expect("next_step");
     assert!(next_step.contains("temperature"), "{next_step}");
     assert!(next_step.contains("no samples"), "{next_step}");
+}
+
+/// The case that used to lose half its answer: one requested name matches
+/// nothing, and the name that does match returns no samples. The service
+/// errors before the tool builds a success body, so without the typed error
+/// the unmatched name would go unmentioned and a caller would retry with a
+/// wider window and the same typo.
+#[tokio::test]
+async fn no_data_error_reports_both_the_empty_and_the_unmatched_channels() {
+    let mut channels = MockChannelServiceImpl::new();
+    channels.expect_list_channels().returning(|_| {
+        Ok(Response::new(ListChannelsResponse {
+            channels: vec![Channel {
+                channel_id: "ch-1".into(),
+                name: "pressure".into(),
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data().returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let dir = TempDir::new("sift-mcp-get-data").expect("failed to create temp dir");
+    let (server, _h) = server_with_all_mocks(one_asset_mock(), channels, data).await;
+
+    let err = server
+        .get_data(Parameters(GetDataParams {
+            asset_name: Some("bench".into()),
+            asset_id: None,
+            run_name: None,
+            start_time_unix_nanos: Some(0),
+            end_time_unix_nanos: Some(2_000_000_000),
+            sample_ms: 0,
+            channel_names: Some(vec!["pressure".into(), "presure".into()]),
+            channel_regex: None,
+            output: dir.path().join("out.parquet"),
+        }))
+        .await
+        .expect_err("no channel returned samples, so the call fails");
+
+    assert_eq!(err.code, ErrorCode::INTERNAL_ERROR);
+    assert!(err.message.contains("pressure"), "{}", err.message);
+
+    let data = err.data.expect("error must carry the channel report");
+    assert_eq!(data["empty_channels"], serde_json::json!(["pressure"]));
+    assert_eq!(
+        data["unmatched_channel_names"],
+        serde_json::json!(["presure"])
+    );
 }

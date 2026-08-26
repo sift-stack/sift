@@ -18,7 +18,7 @@ use crate::{
     server::SiftMcpServer,
     service::{
         common,
-        data::{ChannelInput, DataService, TimeRange},
+        data::{ChannelInput, DataService, NoChannelData, TimeRange},
         ingest::RunForm,
     },
     tool::common::MetadataEntry,
@@ -59,6 +59,37 @@ pub struct UploadDatasetParams {
     input: PathBuf,
 }
 
+fn string_array(values: Vec<String>) -> Value {
+    Value::Array(values.into_iter().map(Value::String).collect())
+}
+
+/// `ErrorData.data` payload naming the channels a failed `get_data` did not
+/// return.
+///
+/// `empty_channels` is `Some` only for the no-data error, which is the only
+/// failure that knows which channels came back without samples; a transport
+/// failure never got far enough to tell. `unmatched_channel_names` is known
+/// from the request itself, so it rides along on any failure. Returns `None`
+/// when there is nothing to report, leaving `data` unset rather than carrying
+/// two empty arrays on every unrelated error.
+fn gap_report(empty_channels: Option<Vec<String>>, unmatched: &[String]) -> Option<Value> {
+    if empty_channels.is_none() && unmatched.is_empty() {
+        return None;
+    }
+
+    let mut payload = serde_json::Map::new();
+    if let Some(empty_channels) = empty_channels {
+        payload.insert("empty_channels".to_string(), string_array(empty_channels));
+    }
+    if !unmatched.is_empty() {
+        payload.insert(
+            "unmatched_channel_names".to_string(),
+            string_array(unmatched.to_vec()),
+        );
+    }
+    Some(Value::Object(payload))
+}
+
 #[tool_router(router = data_router, vis = "pub(crate)")]
 impl SiftMcpServer {
     #[tool(
@@ -77,8 +108,9 @@ impl SiftMcpServer {
                 result reports these so they never have to be inferred from the schema:
                 `unmatched_channel_names` lists requested names that matched no channel on the asset, and
                 `empty_channels` lists channels that matched but returned no samples in the window. Both keys are
-                omitted when empty. When either is present, name those channels to the user before presenting any
-                analysis — the file is a partial answer.
+                ALWAYS present; two empty arrays mean every requested channel is in the file. When either is
+                non-empty, name those channels to the user before presenting any analysis — the file is a partial
+                answer.
 
             Parameters:
               - `asset_name`: optional, exact asset name (not a pattern). Mutually exclusive with `asset_id`;
@@ -101,6 +133,9 @@ impl SiftMcpServer {
               - `RESOURCE_NOT_FOUND` if the asset or run is missing or there are no matching channels.
               - `INTERNAL_ERROR` if every matched channel returned no samples in the window. The message names the
                 channels; widen the time range or drop the run scope rather than concluding the asset has no data.
+                The error's `data` carries `empty_channels`, and `unmatched_channel_names` when the request also
+                held a name that matched nothing — a failed call still reports both, so a retry does not repeat a
+                typo the first call already detected.
               - `INVALID_PARAMS` if neither `asset_name` nor `asset_id` is set, or if both are set.
               - `INVALID_PARAMS` if `run_name` is absent and the full time range is not supplied, if neither
                 `channel_names` nor `channel_regex` is set, if both are set, or if `channel_names` is empty.
@@ -118,7 +153,8 @@ impl SiftMcpServer {
                 with disjoint `[start, end)` windows.
               - Use `sample_ms > 0` for overview/summary work; reserve `sample_ms = 0` for cases that need raw fidelity.
               - A successful call does NOT mean every requested channel is in the file. Check
-                `unmatched_channel_names` and `empty_channels` before reporting the result or aggregating over it.
+                `unmatched_channel_names` and `empty_channels` before reporting the result or aggregating over it,
+                and check the same two keys on the error's `data` when a call fails.
               - After a successful call, if the user hasn't already indicated a next step, offer to run a SQL query
                 against the resulting Parquet file using the `sql` tool.
         ",
@@ -316,12 +352,26 @@ impl SiftMcpServer {
             .context("failed to open output parquet file")
             .map_err(from_anyhow)?;
 
-        let data_output = self
+        let data_output = match self
             .data_service
             .get_data(&channel_inputs, time_range, sample_ms, &mut file)
             .await
-            .context("get data call failure - data_router")
-            .map_err(from_anyhow)?;
+        {
+            Ok(output) => output,
+            Err(err) => {
+                // The no-data error names the channels that came back empty, but
+                // the names that matched nothing were computed up here and would
+                // be lost with the early return. A caller told only "no samples
+                // for pressure" widens the window, retries, and is still
+                // carrying the typo nothing has mentioned.
+                let empty_channels = err
+                    .downcast_ref::<NoChannelData>()
+                    .map(|no_data| no_data.empty_channels.clone());
+                let mut error = from_anyhow(err.context("get data call failure - data_router"));
+                error.data = gap_report(empty_channels, &unmatched_channel_names);
+                return Err(error);
+            }
+        };
 
         let output_str = output.to_string_lossy().into_owned();
 
@@ -363,29 +413,19 @@ impl SiftMcpServer {
         let mut body = serde_json::Map::new();
         body.insert("output".to_string(), Value::from(output_str));
         body.insert("next_step".to_string(), Value::from(next_step.clone()));
-        if !unmatched_channel_names.is_empty() {
-            body.insert(
-                "unmatched_channel_names".to_string(),
-                Value::Array(
-                    unmatched_channel_names
-                        .into_iter()
-                        .map(Value::String)
-                        .collect(),
-                ),
-            );
-        }
-        if !data_output.empty_channels.is_empty() {
-            body.insert(
-                "empty_channels".to_string(),
-                Value::Array(
-                    data_output
-                        .empty_channels
-                        .into_iter()
-                        .map(Value::String)
-                        .collect(),
-                ),
-            );
-        }
+        // Always present, even when empty. Omitting them would leave "every
+        // channel arrived" and "this tool never checked" looking identical, and
+        // the first is the assurance a caller needs before trusting the file.
+        // Deliberately unlike `unmatched_fields` on the list tools, where
+        // silence costs nothing.
+        body.insert(
+            "unmatched_channel_names".to_string(),
+            string_array(unmatched_channel_names),
+        );
+        body.insert(
+            "empty_channels".to_string(),
+            string_array(data_output.empty_channels),
+        );
 
         let mut result = CallToolResult::structured(Value::Object(body));
         result.content = vec![ContentBlock::text(next_step)];

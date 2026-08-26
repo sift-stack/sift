@@ -356,6 +356,46 @@ async fn get_data_names_channels_that_returned_no_samples() {
     );
 }
 
+/// A calculated channel is identified in the response by the key the request
+/// sent, carried in `channel_id`. `Metadata.Channel.name` is not REQUIRED and
+/// comes back empty here, which is what makes matching on the name wrong.
+#[tokio::test]
+async fn get_data_does_not_report_a_calculated_channel_that_returned_data() {
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data().times(1).returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![double_page(
+                "derived_thrust",
+                "",
+                vec![(1_000_000_000, 9.0)],
+            )],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    let output = service
+        .get_data(
+            &[ChannelInput::Calculation {
+                name: "derived_thrust".into(),
+                input_channels: Vec::new(),
+                expression: "$1 * 2".into(),
+            }],
+            asset_range(0, 4_000_000_000),
+            0,
+            &mut buffer,
+        )
+        .await
+        .expect("get_data failed");
+
+    assert!(
+        output.empty_channels.is_empty(),
+        "a calculated channel that returned data must not be reported empty: {:?}",
+        output.empty_channels,
+    );
+}
+
 #[tokio::test]
 async fn get_data_reports_nothing_empty_when_every_channel_has_samples() {
     let mut mock = MockDataServiceImpl::new();

@@ -1,5 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
+    fmt,
     io::Write,
     mem,
     path::PathBuf,
@@ -54,6 +55,38 @@ pub struct DataService {
     channel: SiftChannel,
     policy: RetryPolicy,
 }
+
+/// Every matched channel returned no samples in the queried window.
+///
+/// Typed rather than a bare message so the tool layer can recover the channel
+/// names and hand them to the caller as data. The tool also knows which
+/// requested names matched nothing at all, and that half is computed before
+/// this error is raised — without a type to attach it to, the one response a
+/// caller most needs both halves from would carry neither.
+#[derive(Debug)]
+pub struct NoChannelData {
+    pub empty_channels: Vec<String>,
+    pub run_id: Option<String>,
+}
+
+impl fmt::Display for NoChannelData {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let run_note = self
+            .run_id
+            .as_ref()
+            .map(|id| format!(" scoped to run {id}"))
+            .unwrap_or_default();
+        write!(
+            f,
+            "no channel data for given input parameters: no samples in the queried \
+             window{run_note} for {}; the channels exist, so widen the time range or drop \
+             the run scope before concluding the asset has no data",
+            name_list(&self.empty_channels),
+        )
+    }
+}
+
+impl std::error::Error for NoChannelData {}
 
 /// What `get_data` wrote, beyond the Parquet file itself.
 #[derive(Debug)]
@@ -855,17 +888,19 @@ impl DataService {
             .map(ColumnName::channel_id)
             .collect::<HashSet<_>>();
 
+        // Both arms look up the identifier this request sent. `Metadata.Channel`
+        // documents `channel_id` as REQUIRED and carrying the backing channel id
+        // for a channel query and the requested channel key for a calculated
+        // one, while `name` carries no such guarantee — so matching on `name`
+        // would report a calculated channel as empty even when it returned data.
         let empty_channels = channel_inputs
             .iter()
-            .filter_map(|input| match input {
-                ChannelInput::Raw(channel) => {
-                    (!produced.contains(channel.channel_id.as_str())).then(|| channel.name.clone())
-                }
-                // Calculated channels are keyed by their channel key, not by an
-                // id the caller supplied, so fall back to matching on name.
-                ChannelInput::Calculation { name, .. } => {
-                    (!columns.keys().any(|column| column.name() == name)).then(|| name.clone())
-                }
+            .filter_map(|input| {
+                let (key, reported_as) = match input {
+                    ChannelInput::Raw(channel) => (&channel.channel_id, &channel.name),
+                    ChannelInput::Calculation { name, .. } => (name, name),
+                };
+                (!produced.contains(key.as_str())).then(|| reported_as.clone())
             })
             .collect::<Vec<_>>();
 
@@ -873,16 +908,10 @@ impl DataService {
             // "No data" is a plausible real answer, so spell out what was
             // actually queried; otherwise an empty window or a run scope that
             // excludes the data reads as "the asset has no data".
-            let run_note = run_id
-                .as_ref()
-                .map(|id| format!(" scoped to run {id}"))
-                .unwrap_or_default();
-            bail!(
-                "no channel data for given input parameters: no samples in the queried \
-                 window{run_note} for {}; the channels exist, so widen the time range or drop \
-                 the run scope before concluding the asset has no data",
-                name_list(&empty_channels),
-            )
+            bail!(NoChannelData {
+                empty_channels,
+                run_id,
+            })
         }
 
         let columns = columns.into_iter().collect::<Vec<_>>();
