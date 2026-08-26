@@ -2976,9 +2976,9 @@ explicit keys win on collision.</p>
             <td class="doc-param-details">
               <div class="doc-md-description">
                 <p>When True (the default) and <code>log_file</code> is set,
-spawn <code>import-test-result-log --incremental</code> to push log
-entries to Sift in the background during the session. When
-False, the log file is just a record and no worker is spawned.
+spawn the background replay worker to push log entries to Sift
+during the session. When False, the log file is just a record
+and no worker is spawned.
 Replay happens later via <code>import-test-result-log &lt;path&gt;</code>.
 Has no effect when <code>log_file</code> is None.</p>
               </div>

@@ -45657,8 +45657,10 @@ message size limits on responses. If None, uses the server default.</p>
 
 <a href="#sift_client.resources.TestResultsAPIAsync.import_log_file" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">import_log_file</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">log_file</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span><span class="p">,</span> <span class="n">incremental</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="sift_client._internal.low_level_wrappers.test_results.ReplayResult">ReplayResult</span></span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">log_file</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">incremental</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">new_report</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="sift_client._internal.low_level_wrappers.test_results.ReplayResult">ReplayResult</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -45667,6 +45669,11 @@ message size limits on responses. If None, uses the server default.</p>
 <p>This method reads a log file created by the simulation logging, reconstructs
 all the objects via simulation, and then creates them via the actual API.
 IDs are mapped from simulated to real during the creation process.</p>
+<p>There are three modes. By default the log is uploaded as a new report,
+or, if the tracking sidecar beside it records an upload that was
+interrupted partway, the report that upload created is reused and only
+the missing entries are sent. The third mode belongs to the plugin's
+background worker, which follows a log while it is still being written.</p>
 
 
 <table>
@@ -45699,7 +45706,28 @@ IDs are mapped from simulated to real during the creation process.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>(internal tooling) If True, goes line by line and calls API every event -- keeps track of last line sent so it can be called after some updates and be additive vs. replaying the entire log file each time(i.e. when False, reads the entire log file, building a test report in memory, then sends the calls for each step/measurement to the API).</p>
+                <p>(internal tooling) If True, goes line by line and calls the API for every event, tracking the last line sent so it can be called repeatedly against a log that is still growing and stay additive. This is the worker's follow mode during a test run, not the way to finish an interrupted upload.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="bool">bool</span></code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>False</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>new_report</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>If True, ignore any partial upload and create a new report.
+Mutually exclusive with incremental.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -69594,8 +69622,10 @@ raises an error.</p>
 
 <a href="#sift_client.resources.TestResultsAPI.import_log_file" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">import_log_file</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">log_file</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span><span class="p">,</span> <span class="n">incremental</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="sift_client._internal.low_level_wrappers.test_results.ReplayResult">ReplayResult</span></span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">log_file</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">incremental</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">new_report</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="sift_client._internal.low_level_wrappers.test_results.ReplayResult">ReplayResult</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -69604,6 +69634,11 @@ raises an error.</p>
 <p>This method reads a log file created by the simulation logging, reconstructs
 all the objects via simulation, and then creates them via the actual API.
 IDs are mapped from simulated to real during the creation process.</p>
+<p>There are three modes. By default the log is uploaded as a new report,
+or, if the tracking sidecar beside it records an upload that was
+interrupted partway, the report that upload created is reused and only
+the missing entries are sent. The third mode belongs to the plugin's
+background worker, which follows a log while it is still being written.</p>
 
 
 <table>
@@ -69636,7 +69671,28 @@ IDs are mapped from simulated to real during the creation process.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>(internal tooling) If True, goes line by line and calls API every event -- keeps track of last line sent so it can be called after some updates and be additive vs. replaying the entire log file each time(i.e. when False, reads the entire log file, building a test report in memory, then sends the calls for each step/measurement to the API).</p>
+                <p>(internal tooling) If True, goes line by line and calls the API for every event, tracking the last line sent so it can be called repeatedly against a log that is still growing and stay additive. This is the worker's follow mode during a test run, not the way to finish an interrupted upload.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="bool">bool</span></code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>False</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>new_report</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>If True, ignore any partial upload and create a new report.
+Mutually exclusive with incremental.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
