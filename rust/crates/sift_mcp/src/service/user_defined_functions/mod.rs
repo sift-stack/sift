@@ -48,11 +48,12 @@ impl UserDefinedFunctionService {
         filter: String,
         order_by: Option<String>,
         limit: Option<u32>,
-    ) -> Result<Vec<UserDefinedFunction>> {
+    ) -> Result<common::Page<UserDefinedFunction>> {
         let (page_size, record_limit) = common::paging(limit);
 
         let mut page_token = String::new();
         let mut results = Vec::new();
+        let mut has_more = false;
 
         let order_by = order_by.unwrap_or_default();
 
@@ -92,7 +93,13 @@ impl UserDefinedFunctionService {
             }
             results.extend(user_defined_functions);
 
-            if results.len() >= record_limit || next_page_token.is_empty() {
+            if results.len() >= record_limit {
+                // The cap, not the end of the data: report that more exist so the
+                // caller does not read this page's size as the match total.
+                has_more = results.len() > record_limit || !next_page_token.is_empty();
+                break;
+            }
+            if next_page_token.is_empty() {
                 break;
             }
             page_token = next_page_token;
@@ -100,7 +107,10 @@ impl UserDefinedFunctionService {
 
         results.truncate(record_limit);
 
-        Ok(results)
+        Ok(common::Page {
+            items: results,
+            has_more,
+        })
     }
 
     /// Lists the version history of one user defined function. The caller
@@ -113,11 +123,12 @@ impl UserDefinedFunctionService {
         filter: String,
         order_by: Option<String>,
         limit: Option<u32>,
-    ) -> Result<Vec<UserDefinedFunction>> {
+    ) -> Result<common::Page<UserDefinedFunction>> {
         let (page_size, record_limit) = common::paging(limit);
 
         let mut page_token = String::new();
         let mut results = Vec::new();
+        let mut has_more = false;
 
         let order_by = order_by.unwrap_or_default();
 
@@ -165,7 +176,13 @@ impl UserDefinedFunctionService {
             }
             results.extend(user_defined_functions);
 
-            if results.len() >= record_limit || next_page_token.is_empty() {
+            if results.len() >= record_limit {
+                // The cap, not the end of the data: report that more exist so the
+                // caller does not read this page's size as the match total.
+                has_more = results.len() > record_limit || !next_page_token.is_empty();
+                break;
+            }
+            if next_page_token.is_empty() {
                 break;
             }
             page_token = next_page_token;
@@ -173,7 +190,10 @@ impl UserDefinedFunctionService {
 
         results.truncate(record_limit);
 
-        Ok(results)
+        Ok(common::Page {
+            items: results,
+            has_more,
+        })
     }
 
     /// Creates a user defined function at version 1 and returns it.
