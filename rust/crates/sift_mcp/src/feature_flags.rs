@@ -24,6 +24,7 @@ pub struct FeatureFlags {
 
 #[derive(Clone, Debug, Deserialize)]
 struct FeatureFlagVariant {
+    #[serde(default)]
     value: String,
 }
 
@@ -90,12 +91,13 @@ mod tests {
     #[test]
     fn deserializes_feature_flag_response() {
         let flags: FeatureFlags = serde_json::from_str(
-            r#"{"variants":{"some-flag":{"value":"on"},"other":{"value":"off"}}}"#,
+            r#"{"variants":{"some-flag":{"value":"on"},"other":{"value":"off"},"bare":{}}}"#,
         )
         .unwrap();
 
         assert!(flags.enabled("some-flag"));
         assert!(!flags.enabled("other"));
+        assert!(!flags.enabled("bare"));
     }
 
     #[test]
