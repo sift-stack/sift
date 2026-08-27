@@ -15,4 +15,5 @@ pub mod runs;
 #[cfg(feature = "test-reports")]
 pub mod test_reports;
 pub mod update;
+pub mod user_defined_functions;
 pub mod users;
