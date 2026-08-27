@@ -1325,11 +1325,10 @@ session with <code>pytest.UsageError</code> and points at <code>--sift-offline</
 get noticed until somebody goes looking for the report, which is usually weeks
 later, which is usually too late.</p>
 <p>With the JSONL log on by default, create/update calls are written to a log file
-in the run's output directory during the run, and an
-<code>import-test-result-log --incremental</code> worker replays them against Sift in the
-background. If the worker crashes mid-session (connection failure, API error) or
-is still draining its backlog at session end, the failure is logged at session
-end with an <code>import-test-result-log</code> command for manual recovery. Test outcomes
+in the run's output directory during the run, and a background worker replays
+them against Sift as they are written. If the worker crashes mid-session
+(connection failure, API error) or is still draining its backlog at session
+end, the failure is logged at session end with an <code>import-test-result-log</code> command for manual recovery. Test outcomes
 are unaffected and the local log file is preserved. Pass <code>--no-sift-log-file</code> to
 make every create/update synchronous against the API instead.</p>
 <h3 id="overriding-the-connection-check">Overriding the connection check<a class="headerlink" href="#overriding-the-connection-check" title="Permanent link">&para;</a></h3>
@@ -1349,8 +1348,8 @@ token cache that's only warm when authenticated:</p>
 <p>Same fixtures, same <code>step.measure(...)</code> semantics as online. The difference is
 where the writes go: every create/update lands in a JSONL log file instead of
 hitting the Sift API. The session-start ping is skipped, missing <code>SIFT_*</code> env
-vars are tolerated (placeholders are filled), and the replay worker
-(<code>import-test-result-log --incremental</code>) does not get spawned at session end.</p>
+vars are tolerated (placeholders are filled), and the replay worker does not
+get spawned at session end.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>pytest<span class="w"> </span>--sift-offline<span class="w"> </span>--sift-output-dir<span class="o">=</span>./offline-runs
 </span></code></pre></div>
 <p>The summary panel prints the exact log path and the replay command. Once you
@@ -1358,8 +1357,8 @@ have connectivity, replay it:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>import-test-result-log<span class="w"> </span>./offline-runs/a1b2c3/a1b2c3.jsonl
 </span></code></pre></div>
 <p>That replay creates the report, steps, and measurements against Sift. See
-<a href="#replaying-a-saved-log-file">Replaying a saved log file</a> for cleanup and the
-incremental flag.</p>
+<a href="#replaying-a-saved-log-file">Replaying a saved log file</a> for cleanup and for
+what happens when a replay is interrupted.</p>
 <p><code>--no-sift-log-file</code> is rejected when offline is set, since the log is the only
 sink in offline mode and without it the results are gone.</p>
 <div class="admonition note">
@@ -1396,8 +1395,43 @@ stream, like a PR job re-running the same suite five times in a row.</p>
 <code>import-test-result-log</code>. To import:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>import-test-result-log<span class="w"> </span>&lt;path-to-log.jsonl&gt;
 </span></code></pre></div>
-<p>That replays the saved JSONL log as a single batch (no <code>--incremental</code>) and
-deletes the file when it lives under the system temp dir.</p>
+<p>That replays the saved JSONL log as a single batch and deletes the file when it
+lives under the system temp dir.</p>
+<p><code>import-test-result-log</code> runs in one of two modes:</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>How to get it</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>New upload</td>
+<td>the default, when nothing has been uploaded yet</td>
+<td>Uploads the whole log as a new report</td>
+</tr>
+<tr>
+<td>Resume</td>
+<td>the default, when a tracking sidecar records an interrupted upload</td>
+<td>Continues into the report that upload created, sending only what is missing</td>
+</tr>
+</tbody>
+</table>
+<p>Run the same command again if a replay is interrupted. Each upload records what
+it created in a tracking sidecar next to the log (<code>&lt;log&gt;.jsonl.tracking</code>), so a
+second run continues into the report the first one created and sends only what
+is missing, rather than leaving a duplicate report behind. A log that is already
+fully uploaded is a no-op.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># Upload as a new report instead, abandoning the partial one</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>import-test-result-log<span class="w"> </span>--new-report<span class="w"> </span>&lt;path-to-log.jsonl&gt;
+</span></code></pre></div>
+<p>The existing sidecar is moved to <code>&lt;log&gt;.jsonl.tracking.bak</code> rather than
+overwritten, so the abandoned report's ID can still be looked up and cleaned up.</p>
+<p>Resuming needs the report the earlier attempt created to still exist. If it was
+deleted, or the sidecar came from a different environment, the command fails and
+names <code>--new-report</code> as the way forward.</p>
 
 
 
