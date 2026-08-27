@@ -1036,6 +1036,10 @@ class McapParseErrorPolicy(Enum):
     """Import what decoded. Skipped topics and records surface as warnings."""
 
 
+# Suffix given to the JSON channel of a variable-cardinality field.
+MCAP_JSON_CHANNEL_SUFFIX = ".json"
+
+
 class McapComplexTypesImportMode(Enum):
     """Controls how variable-cardinality MCAP fields (dynamic and bounded
     arrays) are imported.
@@ -1106,6 +1110,8 @@ class McapImportConfig(ImportConfigBase):
             failing the import.
         complex_types_import_mode: How to import variable-cardinality fields.
             Defaults to importing them as both Arrow IPC bytes and JSON strings.
+            ``data`` lists one entry per field; the mode decides which channels
+            that entry becomes, so it can be changed on a detected config.
     """
 
     data: list[McapDataColumn] = []
@@ -1137,18 +1143,52 @@ class McapImportConfig(ImportConfigBase):
         )
         if self.relative_start_time is not None:
             proto.relative_start_time.CopyFrom(to_pb_timestamp(self.relative_start_time))
-        for dc in self.data:
+
+        mode = self.complex_types_import_mode
+        # Channel names are unique per asset and compare case-insensitively.
+        taken_names: dict[str, str] = {}
+
+        def add(dc: McapDataColumn, name: str, data_type: ChannelDataType) -> None:
+            source = taken_names.get(name.lower())
+            if source is not None:
+                raise ValueError(
+                    f"channels '{source}' and '{dc.name}' would both be imported as "
+                    f"'{name}'. Rename or remove one before importing."
+                )
+            taken_names[name.lower()] = dc.name
             proto.data.append(
                 McapDataConfigProto(
                     topic=dc.topic,
                     ros2=McapRos2SelectorProto(field_path=dc.field_path),
                     channel_config=ChannelConfigProto(
-                        name=dc.name,
-                        data_type=dc.data_type.value,
+                        name=name,
+                        data_type=data_type.value,
                         units=dc.units,
                         description=dc.description,
                     ),
                 )
+            )
+
+        for dc in self.data:
+            # Only variable-cardinality fields can be BYTES, and the mode
+            # decides which channels they become.
+            if dc.data_type != ChannelDataType.BYTES:
+                add(dc, dc.name, dc.data_type)
+                continue
+            if mode is McapComplexTypesImportMode.IGNORE:
+                continue
+            if mode in (McapComplexTypesImportMode.BYTES, McapComplexTypesImportMode.BOTH):
+                add(dc, dc.name, ChannelDataType.BYTES)
+            if mode in (McapComplexTypesImportMode.STRING, McapComplexTypesImportMode.BOTH):
+                add(dc, dc.name + MCAP_JSON_CHANNEL_SUFFIX, ChannelDataType.STRING)
+
+        if self.data and not proto.data:
+            # An empty list means "import everything", which is not what
+            # selecting channels and then dropping them all should do.
+            raise ValueError(
+                "complex_types_import_mode is IGNORE and every configured channel is "
+                "variable-cardinality, so nothing would be imported. Choose another mode "
+                "or clear 'data' to import the whole file."
             )
         return proto
 

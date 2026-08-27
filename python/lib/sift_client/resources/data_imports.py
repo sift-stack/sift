@@ -145,10 +145,7 @@ class DataImportAPIAsync(ResourceBase):
                 time_format=time_format,
             )
             if isinstance(config, (UlogImportConfig, McapImportConfig)):
-                # An empty channel list imports every channel. Keeping the
-                # detected list adds nothing and can fail the import when
-                # detection misreads a damaged file and lists channels the
-                # file does not contain.
+                # An empty channel list imports every channel
                 config.data = []
 
         if asset is not None:
@@ -252,14 +249,14 @@ class DataImportAPIAsync(ResourceBase):
         to exactly those channels; the import fails if a listed channel is
         not in the file. Clear ``data`` to import every channel.
 
-        For MCAP files, ``data`` lists the channels of each supported topic's
-        flattened fields, without decoding messages. A variable-cardinality
-        field expands to two channels: Arrow IPC bytes under the base name and
-        a JSON string under ``<base name>.json``. The same non-empty ``data``
-        semantics as ULog apply. Topics the importer does not support are
-        skipped with a warning; importing such a file fails under the default
-        parse error policy, so set ``McapParseErrorPolicy.IGNORE_ERROR`` to
-        import the rest.
+        For MCAP files, ``data`` lists one channel per flattened field of each
+        supported topic, without decoding messages. A variable-cardinality
+        field is one entry; ``complex_types_import_mode`` on the config decides
+        whether it imports as Arrow IPC bytes, a JSON string under
+        ``<name>.json``, both, or neither. The same non-empty ``data``
+        semantics as ULog apply. Topics that cannot be decoded are skipped with
+        a warning; importing such a file fails unless
+        ``McapParseErrorPolicy.IGNORE_ERROR`` is set.
 
         For file types with multiple supported layouts (Parquet, HDF5),
         ``data_type`` must be specified explicitly.

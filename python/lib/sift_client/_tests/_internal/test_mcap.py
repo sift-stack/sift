@@ -14,6 +14,7 @@ from sift_client._internal.util.mcap import (
     parse_schema_defs,
 )
 from sift_client.sift_types.channel import ChannelDataType
+from sift_client.sift_types.data_import import McapComplexTypesImportMode
 
 
 def _schema(data: str, schema_id: int = 1, name: str = "test_msgs/msg/Test") -> Schema:
@@ -231,6 +232,9 @@ class TestDetectMcapTopics:
         topics = detect_mcap_topics(schemas, channels, warnings)
         assert [t.topic for t in topics] == ["/imu"]
         assert any("by case only" in w for w in warnings)
+        # The importer rejects the collision unless the policy is IGNORE_ERROR,
+        # so the warning has to say so.
+        assert any("IGNORE_ERROR" in w for w in warnings)
 
     def test_same_topic_channels_merge_when_identical(self):
         schemas = {1: _schema(IMU_SCHEMA)}
@@ -270,14 +274,14 @@ class TestDetectMcapConfig:
             ("/imu/data", "temp", "/imu/data.temp", ChannelDataType.DOUBLE),
         }
 
-    def test_complex_field_expands_to_bytes_and_json(self, tmp_path):
+    def test_complex_field_is_one_bytes_channel(self, tmp_path):
+        # The mode turns this single entry into the channels that get imported.
         path = tmp_path / "log.mcap"
         _write_mcap(path, [("test_msgs/msg/Samples", "int32[] samples\n", "/samples")])
 
         config = detect_mcap_config(path)
         assert [(d.field_path, d.name, d.data_type) for d in config.data] == [
             ("samples", "/samples.samples", ChannelDataType.BYTES),
-            ("samples", "/samples.samples.json", ChannelDataType.STRING),
         ]
 
     def test_unsupported_topic_warns_and_keeps_supported(self, tmp_path):
@@ -360,10 +364,94 @@ class TestDetectMcapConfig:
         with pytest.raises(ValueError, match="unsupported chunk compression"):
             detect_mcap_config(path)
 
-    def test_duplicate_generated_names_raise(self, tmp_path):
-        # Topic '/a' with variable array field 'b' expands to '/a.b.json',
-        # colliding with topic '/a.b' scalar field 'json'. The importer
-        # rejects the file the same way.
+    def test_duplicate_channel_names_raise(self, tmp_path):
+        # Topic '/a' field 'b.c' and topic '/a.b' field 'c' both name a
+        # channel '/a.b.c'.
+        path = tmp_path / "log.mcap"
+        _write_mcap(
+            path,
+            [
+                ("pkg/msg/A", "pkg/B b\n" + "=" * 80 + "\nMSG: pkg/B\nint32 c\n", "/a"),
+                ("pkg/msg/C", "int32 c\n", "/a.b"),
+            ],
+        )
+        with pytest.raises(ValueError, match="both named '/a.b.c'"):
+            detect_mcap_config(path)
+
+
+class TestComplexTypesImportMode:
+    """A variable-cardinality field is one entry in ``data``; the mode decides
+    which channels it becomes when the config is sent.
+    """
+
+    SCHEMA = "int32 count\nint32[] samples\n"
+
+    def _config(self, tmp_path, mode):
+        path = tmp_path / "log.mcap"
+        _write_mcap(path, [("test_msgs/msg/Samples", self.SCHEMA, "/samples")])
+        config = detect_mcap_config(path)
+        config.complex_types_import_mode = mode
+        return config
+
+    @pytest.mark.parametrize(
+        ("mode", "expected"),
+        [
+            (
+                McapComplexTypesImportMode.BOTH,
+                [
+                    ("/samples.count", ChannelDataType.INT_32),
+                    ("/samples.samples", ChannelDataType.BYTES),
+                    ("/samples.samples.json", ChannelDataType.STRING),
+                ],
+            ),
+            (
+                McapComplexTypesImportMode.BYTES,
+                [
+                    ("/samples.count", ChannelDataType.INT_32),
+                    ("/samples.samples", ChannelDataType.BYTES),
+                ],
+            ),
+            (
+                McapComplexTypesImportMode.STRING,
+                [
+                    ("/samples.count", ChannelDataType.INT_32),
+                    ("/samples.samples.json", ChannelDataType.STRING),
+                ],
+            ),
+            (
+                McapComplexTypesImportMode.IGNORE,
+                [("/samples.count", ChannelDataType.INT_32)],
+            ),
+        ],
+    )
+    def test_mode_decides_the_channels_sent(self, tmp_path, mode, expected):
+        proto = self._config(tmp_path, mode)._to_proto()
+        assert [
+            (d.channel_config.name, ChannelDataType(d.channel_config.data_type)) for d in proto.data
+        ] == expected
+
+    def test_both_channels_share_the_field_selector(self, tmp_path):
+        proto = self._config(tmp_path, McapComplexTypesImportMode.BOTH)._to_proto()
+        selectors = [(d.topic, d.ros2.field_path) for d in proto.data]
+        assert selectors[1] == selectors[2] == ("/samples", "samples")
+
+    def test_default_is_both(self, tmp_path):
+        path = tmp_path / "log.mcap"
+        _write_mcap(path, [("test_msgs/msg/Samples", self.SCHEMA, "/samples")])
+        config = detect_mcap_config(path)
+        assert config.complex_types_import_mode is McapComplexTypesImportMode.BOTH
+        assert len(config._to_proto().data) == 3
+
+    def test_ignoring_every_configured_channel_raises(self, tmp_path):
+        # An empty list would mean "import the whole file", so refuse instead.
+        config = self._config(tmp_path, McapComplexTypesImportMode.IGNORE)
+        config.data = [d for d in config.data if d.data_type == ChannelDataType.BYTES]
+        with pytest.raises(ValueError, match="nothing would be imported"):
+            config._to_proto()
+
+    def test_generated_json_name_clash_raises(self, tmp_path):
+        # '/a' field 'b' generates '/a.b.json', which topic '/a.b' field
+        # 'json' already claims.
         path = tmp_path / "log.mcap"
         _write_mcap(
             path,
@@ -372,5 +460,103 @@ class TestDetectMcapConfig:
                 ("pkg/msg/B", "int32 json\n", "/a.b"),
             ],
         )
-        with pytest.raises(ValueError, match="conflicts with channel"):
+        config = detect_mcap_config(path)
+        assert {d.name for d in config.data} == {"/a.b", "/a.b.json"}
+        with pytest.raises(ValueError, match="would both be imported as '/a.b.json'"):
+            config._to_proto()
+
+    def test_clash_disappears_under_bytes_mode(self, tmp_path):
+        path = tmp_path / "log.mcap"
+        _write_mcap(
+            path,
+            [
+                ("pkg/msg/A", "int32[] b\n", "/a"),
+                ("pkg/msg/B", "int32 json\n", "/a.b"),
+            ],
+        )
+        config = detect_mcap_config(path)
+        config.complex_types_import_mode = McapComplexTypesImportMode.BYTES
+        assert {d.channel_config.name for d in config._to_proto().data} == {"/a.b", "/a.b.json"}
+
+
+class TestScanCompleteness:
+    def test_summary_without_statistics_falls_back_to_chunk_scan(self, tmp_path):
+        # A chunked file whose summary repeats neither schemas nor channels and
+        # carries no Statistics record: the summary yields nothing, so
+        # detection must read the records inside the chunks like the importer.
+        path = tmp_path / "log.mcap"
+        with open(path, "wb") as f:
+            writer = Writer(f, repeat_channels=False, repeat_schemas=False, use_statistics=False)
+            writer.start()
+            schema_id = writer.register_schema(
+                name="sensors/msg/Imu", encoding="ros2msg", data=IMU_SCHEMA.encode()
+            )
+            channel_id = writer.register_channel(
+                topic="/imu", message_encoding="cdr", schema_id=schema_id
+            )
+            for i in range(10):
+                writer.add_message(
+                    channel_id=channel_id,
+                    log_time=1_700_000_000_000_000_000 + i,
+                    publish_time=1_700_000_000_000_000_000 + i,
+                    data=b"\x00" * 32,
+                )
+            writer.finish()
+
+        config = detect_mcap_config(path)
+        assert {d.topic for d in config.data} == {"/imu"}
+
+    def test_attachments_warn(self, tmp_path):
+        path = tmp_path / "log.mcap"
+        with open(path, "wb") as f:
+            writer = Writer(f)
+            writer.start()
+            schema_id = writer.register_schema(
+                name="sensors/msg/Imu", encoding="ros2msg", data=IMU_SCHEMA.encode()
+            )
+            writer.register_channel(topic="/imu", message_encoding="cdr", schema_id=schema_id)
+            writer.add_attachment(
+                create_time=1, log_time=1, name="notes.txt", media_type="text/plain", data=b"hi"
+            )
+            writer.finish()
+
+        with pytest.warns(UserWarning, match="1 attachment"):
+            config = detect_mcap_config(path)
+        assert {d.topic for d in config.data} == {"/imu"}
+
+    def test_scan_warnings_survive_a_name_clash(self, tmp_path):
+        # The clash raises, but what the scan already found must still reach
+        # the caller instead of being discarded with the exception.
+        path = tmp_path / "log.mcap"
+        nested = "pkg/B b\n" + "=" * 80 + "\nMSG: pkg/B\nint32 c\n"
+        with open(path, "wb") as f:
+            writer = Writer(f)
+            writer.start()
+            a = writer.register_schema(name="pkg/msg/A", encoding="ros2msg", data=nested.encode())
+            writer.register_channel(topic="/a", message_encoding="cdr", schema_id=a)
+            b = writer.register_schema(name="pkg/msg/C", encoding="ros2msg", data=b"int32 c\n")
+            writer.register_channel(topic="/a.b", message_encoding="cdr", schema_id=b)
+            writer.add_attachment(
+                create_time=1, log_time=1, name="notes.txt", media_type="text/plain", data=b"hi"
+            )
+            writer.finish()
+
+        with pytest.warns(UserWarning, match="1 attachment"), pytest.raises(
+            ValueError, match="both named"
+        ):
             detect_mcap_config(path)
+
+    def test_clash_error_names_both_origins(self, tmp_path):
+        path = tmp_path / "log.mcap"
+        _write_mcap(
+            path,
+            [
+                ("pkg/msg/A", "pkg/B b\n" + "=" * 80 + "\nMSG: pkg/B\nint32 c\n", "/a"),
+                ("pkg/msg/C", "int32 c\n", "/a.b"),
+            ],
+        )
+        with pytest.raises(ValueError, match="both named") as excinfo:
+            detect_mcap_config(path)
+        message = str(excinfo.value)
+        assert "topic '/a' field 'b.c'" in message
+        assert "topic '/a.b' field 'c'" in message

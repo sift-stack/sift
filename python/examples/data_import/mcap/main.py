@@ -2,8 +2,9 @@
 
 MCAP files are self-describing, so the import needs no column mapping: every
 channel of every supported topic (ros2msg schemas with cdr messages) is
-imported. Channel names combine the topic and flattened field path, e.g.
-"/imu/data.orientation.x".
+imported. Channel names combine the topic and flattened field path; the
+bundled sample_data.mcap produces "/imu/data.angular_velocity.x",
+"/imu/data.linear_acceleration.x", "/battery.voltage", and their siblings.
 
 Swap sample_data.mcap for your own .mcap recording.
 """
@@ -45,10 +46,17 @@ if __name__ == "__main__":
     #
     # from datetime import datetime, timezone
     #
-    # from sift_client.sift_types.data_import import McapParseErrorPolicy
+    # from sift_client.sift_types.data_import import (
+    #     McapComplexTypesImportMode,
+    #     McapParseErrorPolicy,
+    # )
     #
     # config = client.data_import.detect_config("sample_data.mcap")
     # print(config)  # inspect every detected channel
+    #
+    # # Example: import array fields only as JSON strings, instead of the
+    # # default of both JSON and Arrow IPC bytes
+    # config.complex_types_import_mode = McapComplexTypesImportMode.STRING
     #
     # # Example: import only the IMU topic
     # config.data = [d for d in config.data if d.topic == "/imu/data"]

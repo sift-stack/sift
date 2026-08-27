@@ -1,11 +1,8 @@
 """Detect channels in MCAP (``.mcap``) files.
 
-Detection reads the file's schema and channel records without decoding
-message payloads, then flattens each topic's ros2msg schema into importable
-leaf fields, mirroring the server importer's rules.
-
-See ``detect_mcap_config`` for caveats on unsupported topics and empty
-``data`` behavior.
+Reads the file's schema and channel records without decoding message
+payloads, then flattens each topic's ros2msg schema into leaf fields, one
+channel per leaf.
 """
 
 from __future__ import annotations
@@ -25,7 +22,7 @@ from sift_client.sift_types.data_import import McapDataColumn, McapImportConfig
 
 MCAP_MAGIC = b"\x89MCAP0\r\n"
 
-# The importer rejects chunk compressions outside this set.
+# Chunk compressions Sift can read.
 SUPPORTED_COMPRESSIONS = frozenset(("", "zstd", "lz4"))
 
 # ROS 2 scalar types to Sift channel types. Narrow integers widen to 32-bit
@@ -52,21 +49,17 @@ ROS2_TO_SIFT_TYPE: dict[str, ChannelDataType] = {
 TIME_MESSAGE_TYPES = frozenset(("builtin_interfaces/Time", "builtin_interfaces/Duration"))
 ROS2_TIME_TYPE = "__time__"
 
-# Suffix of the JSON expansion of a variable-cardinality field.
-JSON_CHANNEL_SUFFIX = ".json"
-
 # Guards malformed schemas with self-referential fixed nesting.
 MAX_FIELD_DEPTH = 32
 
 
 class UnsupportedTopicError(Exception):
-    """The topic's schema cannot be decoded by the importer."""
+    """The topic's schema cannot be decoded."""
 
 
 class LeafField(NamedTuple):
     """A leaf field of a topic's message type. Scalar leaves carry one value
-    per message; complex leaves are variable-cardinality and expand per the
-    complex types import mode.
+    per message; complex leaves are variable-cardinality.
     """
 
     field_path: str
@@ -90,7 +83,7 @@ class TopicInfo(NamedTuple):
 
 def parse_schema_defs(schema: mcap_records.Schema):
     """Parse a ros2msg concatenated schema into (root msgdef, msgdefs by
-    name), using the same vendored parser the server importer uses."""
+    name)."""
     msgdefs: dict = {
         "builtin_interfaces/Time": ros2_dynamic.TimeDefinition,
         "builtin_interfaces/Duration": ros2_dynamic.TimeDefinition,
@@ -142,9 +135,9 @@ def _check_ftype_decodable(
 ) -> None:
     """Raise UnsupportedTopicError if the field type cannot be decoded.
 
-    Variable-cardinality fields do not expand into leaves, but the importer
-    still decodes every element, so wstring or unknown types anywhere in the
-    subtree make the whole topic unsupported.
+    Variable-cardinality fields do not expand into leaves, but every element
+    is still decoded on import, so a wstring or unknown type anywhere in the
+    subtree makes the whole topic unsupported.
     """
     if ftype.is_primitive_type():
         _check_primitive_supported(ftype.type, label)
@@ -181,8 +174,8 @@ def expand_message_fields(root_msgdef, msgdefs: dict) -> list[LeafField]:
             ftype = field.type
             path = f"{prefix}{field.name}"
             if _is_variable_array(ftype):
-                # The importer decodes every element even though the leaf is
-                # imported whole, so verify the element type decodes.
+                # The leaf imports whole, but its elements are still
+                # decoded, so check the element type.
                 _check_ftype_decodable(msgdefs, ftype, path)
                 leaves.append(LeafField(path, "complex", None))
                 continue
@@ -211,23 +204,31 @@ def _read_schemas_and_channels(
 ) -> tuple[dict[int, mcap_records.Schema], list[mcap_records.Channel], list[str]]:
     """Read schema and channel records without decoding message payloads.
 
-    Mirrors the server importer's scan: a top-level pass validates chunk
-    compression and collects the records of unchunked files, the summary
-    section supplies the records of chunked files, and a file without a
-    readable summary (e.g. truncated) is scanned through its decompressed
-    chunks instead, keeping what parsed with a warning.
+    A file can hold these records in three places, so this takes up to three
+    passes:
+
+    1. At the top level, where unchunked files keep them.
+    2. In the summary section, which usually repeats what the chunks hold.
+    3. Inside the chunks themselves, when the summary is missing or partial.
+
+    A file that stops parsing partway keeps what was read, with a warning.
     """
     parse_warnings: list[str] = []
     schemas: dict[int, mcap_records.Schema] = {}
     channels: list[mcap_records.Channel] = []
     seen_channel_ids: set[int] = set()
+    saw_chunks = False
+    saw_message = False
+    attachment_count = 0
+    statistics: mcap_records.Statistics | None = None
 
     def add_channel(channel: mcap_records.Channel) -> None:
         if channel.id not in seen_channel_ids:
             seen_channel_ids.add(channel.id)
             channels.append(channel)
 
-    def scan(stream: StreamReader) -> None:
+    def scan(stream: StreamReader, top_level: bool) -> None:
+        nonlocal saw_chunks, saw_message, attachment_count, statistics
         records = iter(stream.records)
         while True:
             try:
@@ -246,9 +247,9 @@ def _read_schemas_and_channels(
                     parse_warnings.append(message)
                 return
             if isinstance(record, mcap_records.Chunk):
-                # The importer rejects unsupported compression regardless of
-                # parse_error_policy; the mcap reader would silently treat it
-                # as uncompressed.
+                saw_chunks = True
+                # An unknown compression would be read as uncompressed
+                # garbage, so stop here instead.
                 if record.compression not in SUPPORTED_COMPRESSIONS:
                     raise ValueError(
                         f"unsupported chunk compression '{record.compression}'; "
@@ -258,19 +259,25 @@ def _read_schemas_and_channels(
                 schemas[record.id] = record
             elif isinstance(record, mcap_records.Channel):
                 add_channel(record)
+            elif isinstance(record, mcap_records.Message):
+                saw_message = True
+            elif top_level and isinstance(record, mcap_records.Attachment):
+                # Counted in this pass only, so a later pass cannot
+                # double the count.
+                attachment_count += 1
+            elif top_level and isinstance(record, mcap_records.Statistics):
+                statistics = record
 
     with open(path, "rb") as file:
         if file.read(len(MCAP_MAGIC)) != MCAP_MAGIC:
             raise ValueError(f"'{path.name}' is not an MCAP file (bad magic bytes)")
         file.seek(0)
 
-        # Top-level pass: chunks stay unopened, so this validates compression
-        # cheaply and picks up the records of unchunked files.
-        scan(StreamReader(file, emit_chunks=True))
+        # Chunks stay unopened here, so this pass is cheap: it checks
+        # compression and picks up the records of unchunked files.
+        scan(StreamReader(file, emit_chunks=True), top_level=True)
 
-        # Chunked files carry their records inside chunks; the summary section
-        # repeats them. Without a readable summary (e.g. a truncated file),
-        # scan through the decompressed chunks instead.
+        # The summary section usually repeats what the chunks hold.
         file.seek(0)
         try:
             summary = make_reader(file).get_summary()
@@ -280,9 +287,19 @@ def _read_schemas_and_channels(
             schemas.update(summary.schemas)
             for channel in sorted(summary.channels.values(), key=lambda c: c.id):
                 add_channel(channel)
-        else:
+
+        # Those repeats are optional, so what we have may be incomplete. A
+        # Statistics record covering at least one message means the summary is
+        # trustworthy; without one, read the chunks.
+        have_range = statistics is not None and statistics.message_count > 0
+        if summary is None or (not have_range and (saw_chunks or not saw_message)):
             file.seek(0)
-            scan(StreamReader(file, emit_chunks=False))
+            scan(StreamReader(file, emit_chunks=False), top_level=False)
+
+    if attachment_count:
+        parse_warnings.append(
+            f"the file has {attachment_count} attachment(s); attachments are not imported"
+        )
 
     return schemas, channels, parse_warnings
 
@@ -296,8 +313,7 @@ def detect_mcap_topics(
 
     Same-topic channels merge only when their schemas and message encodings
     match. Distinct topics colliding case-insensitively keep the first.
-    Unsupported topics are skipped with a warning; the import itself gates
-    them on ``parse_error_policy``.
+    Topics that cannot be decoded are skipped with a warning.
     """
     channels_by_topic: defaultdict[str, list[mcap_records.Channel]] = defaultdict(list)
     for channel in channels:
@@ -310,7 +326,9 @@ def detect_mcap_topics(
         first = kept_by_lower.setdefault(topic.lower(), topic)
         if first != topic:
             parse_warnings.append(
-                f"topic '{topic}' collides with topic '{first}' by case only; kept the first"
+                f"topic '{topic}' collides with topic '{first}' by case only; kept the "
+                "first. Set McapParseErrorPolicy.IGNORE_ERROR to import it and skip the "
+                "rest, otherwise the import fails"
             )
 
     topics: list[TopicInfo] = []
@@ -357,41 +375,36 @@ def detect_mcap_topics(
 
 
 def detect_mcap_fields(topics: list[TopicInfo]) -> list[McapDataColumn]:
-    """Return importable channels as ``McapDataColumn``s with default names
-    and data types.
+    """Return one ``McapDataColumn`` per leaf field, named ``<topic>.<field_path>``.
 
-    Scalar leaves become one channel named ``<topic>.<field_path>``. Complex
-    leaves expand like the default complex types import mode (``BOTH``): Arrow
-    IPC bytes under the base name and a JSON string under ``<base>.json``.
+    Variable-cardinality fields get ``BYTES``. Whether one of those imports as
+    bytes, as a JSON string, as both, or not at all is decided by the config's
+    ``complex_types_import_mode`` when the config is sent.
     """
     channels: list[McapDataColumn] = []
     # Sift channel names are unique per asset and compare case-insensitively.
-    taken_names: dict[str, str] = {}
+    # Values are the (name, topic, field path) that first claimed the key.
+    taken_names: dict[str, tuple[str, str, str]] = {}
     for topic in topics:
         for leaf in topic.leaves:
-            base_name = f"{topic.topic}.{leaf.field_path}"
-            if leaf.kind == "scalar":
-                expansions = [(base_name, leaf.sift_type())]
-            else:
-                expansions = [
-                    (base_name, ChannelDataType.BYTES),
-                    (base_name + JSON_CHANNEL_SUFFIX, ChannelDataType.STRING),
-                ]
-            for name, data_type in expansions:
-                existing = taken_names.get(name.lower())
-                if existing is not None:
-                    raise ValueError(
-                        f"the generated channel name '{name}' conflicts with channel '{existing}'"
-                    )
-                taken_names[name.lower()] = name
-                channels.append(
-                    McapDataColumn(
-                        topic=topic.topic,
-                        field_path=leaf.field_path,
-                        name=name,
-                        data_type=data_type,
-                    )
+            name = f"{topic.topic}.{leaf.field_path}"
+            data_type = ChannelDataType.BYTES if leaf.kind == "complex" else leaf.sift_type()
+            existing = taken_names.get(name.lower())
+            if existing is not None:
+                raise ValueError(
+                    f"two channels are both named '{name}': topic '{topic.topic}' field "
+                    f"'{leaf.field_path}' and topic '{existing[1]}' field '{existing[2]}'. "
+                    "Build an McapImportConfig by hand to give them distinct names."
                 )
+            taken_names[name.lower()] = (name, topic.topic, leaf.field_path)
+            channels.append(
+                McapDataColumn(
+                    topic=topic.topic,
+                    field_path=leaf.field_path,
+                    name=name,
+                    data_type=data_type,
+                )
+            )
     return channels
 
 
@@ -400,31 +413,29 @@ def detect_mcap_config(file_path: str | Path, asset_name: str = "") -> McapImpor
 
     Channels come from the file's schema and channel records; message payloads
     are not read, so a topic is listed even when it logged no messages. Topics
-    the importer does not support (non-cdr message encodings, non-ros2msg
-    schemas, undecodable schemas) are skipped with a warning; importing such a
-    file fails under the default parse error policy, so set
-    ``McapParseErrorPolicy.IGNORE_ERROR`` to import the rest.
+    that cannot be decoded (non-cdr message encodings, non-ros2msg schemas,
+    undecodable schemas) are skipped with a warning. Importing such a file
+    fails unless ``parse_error_policy`` is ``McapParseErrorPolicy.IGNORE_ERROR``.
 
     Args:
         file_path: Path to the ``.mcap`` file.
         asset_name: The asset name to set on the config.
 
     Returns:
-        A config whose ``data`` lists detected channels with default Sift names
-        and data types. Remove entries to skip channels, or edit entries before
-        importing. Leaving ``data`` empty imports all channels with the same
-        defaults.
+        A config whose ``data`` lists one channel per leaf field, with default
+        Sift names and data types. Remove entries to skip channels, or edit
+        them before importing. Leaving ``data`` empty imports all channels
+        with the same defaults.
 
     Raises:
         ValueError: If the file is not MCAP, uses an unsupported chunk
-            compression, or two detected channels generate the same Sift
-            channel name. The importer rejects all three regardless of
-            ``parse_error_policy``.
+            compression, or two channels share a name.
     """
     path = Path(file_path)
     schemas, channels, parse_warnings = _read_schemas_and_channels(path)
     topics = detect_mcap_topics(schemas, channels, parse_warnings)
-    data = detect_mcap_fields(topics)
+    # Emitted before the names are built so a name clash does not discard
+    # what the scan found.
     for message in parse_warnings:
         warnings.warn(f"'{path.name}': {message}", stacklevel=2)
-    return McapImportConfig(asset_name=asset_name, data=data)
+    return McapImportConfig(asset_name=asset_name, data=detect_mcap_fields(topics))
