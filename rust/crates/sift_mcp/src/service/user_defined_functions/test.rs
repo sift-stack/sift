@@ -4,8 +4,9 @@ use sift_rs::{
         MetadataKey, MetadataKeyType, MetadataValue, metadata_value::Value as MetadataValueInner,
     },
     user_defined_functions::v1::{
-        CreateUserDefinedFunctionResponse, ListUserDefinedFunctionVersionsResponse,
-        ListUserDefinedFunctionsResponse, UpdateUserDefinedFunctionResponse,
+        CreateUserDefinedFunctionResponse, GetUserDefinedFunctionResponse,
+        ListUserDefinedFunctionVersionsResponse, ListUserDefinedFunctionsResponse,
+        UpdateUserDefinedFunctionResponse,
         user_defined_function_service_server::UserDefinedFunctionServiceServer,
     },
 };
@@ -45,6 +46,27 @@ fn udf(id: &str, name: &str) -> UserDefinedFunction {
         name: name.into(),
         ..Default::default()
     }
+}
+
+fn expect_current_udf(mock: &mut MockUserDefinedFunctionServiceImpl, id: &str, user_notes: &str) {
+    let expected_id = id.to_string();
+    let response_id = id.to_string();
+    let user_notes = user_notes.to_string();
+    mock.expect_get_user_defined_function()
+        .times(1)
+        .withf(move |req| {
+            let req = req.get_ref();
+            req.user_defined_function_id == expected_id && req.name.is_empty()
+        })
+        .returning(move |_| {
+            Ok(Response::new(GetUserDefinedFunctionResponse {
+                user_defined_function: Some(UserDefinedFunction {
+                    user_defined_function_id: response_id.clone(),
+                    user_notes: user_notes.clone(),
+                    ..Default::default()
+                }),
+            }))
+        });
 }
 
 async fn service_with_mock(
@@ -521,6 +543,7 @@ async fn create_propagates_grpc_error() {
 #[tokio::test]
 async fn update_masks_only_the_provided_fields() {
     let mut mock = MockUserDefinedFunctionServiceImpl::new();
+    expect_current_udf(&mut mock, "f1", "existing notes");
     mock.expect_update_user_defined_function()
         .times(1)
         .withf(|req| {
@@ -532,6 +555,7 @@ async fn update_masks_only_the_provided_fields() {
             let mask = req.update_mask.as_ref().expect("mask present");
             function.user_defined_function_id == "f1"
                 && function.description == "updated"
+                && function.user_notes == "existing notes"
                 && function.expression.is_empty()
                 && function.function_inputs.is_empty()
                 && function.metadata.is_empty()
@@ -563,6 +587,7 @@ async fn update_masks_only_the_provided_fields() {
 #[tokio::test]
 async fn update_masks_every_provided_field_in_declaration_order() {
     let mut mock = MockUserDefinedFunctionServiceImpl::new();
+    expect_current_udf(&mut mock, "f1", "");
     mock.expect_update_user_defined_function()
         .times(1)
         .withf(|req| {
@@ -617,6 +642,7 @@ async fn update_sends_no_version_precondition() {
     // carries no stale version identifiers that could be mistaken for one, and
     // that the caller sees the new version from the response.
     let mut mock = MockUserDefinedFunctionServiceImpl::new();
+    expect_current_udf(&mut mock, "f1", "");
     mock.expect_update_user_defined_function()
         .times(1)
         .withf(|req| {
@@ -661,6 +687,7 @@ async fn update_with_no_fields_sends_an_empty_mask() {
     // The tool handler rejects this case; the service contract is to send
     // exactly what it was given.
     let mut mock = MockUserDefinedFunctionServiceImpl::new();
+    expect_current_udf(&mut mock, "f1", "");
     mock.expect_update_user_defined_function()
         .times(1)
         .withf(|req| {
@@ -690,6 +717,7 @@ async fn update_with_no_fields_sends_an_empty_mask() {
 #[tokio::test]
 async fn update_errors_when_response_missing_function() {
     let mut mock = MockUserDefinedFunctionServiceImpl::new();
+    expect_current_udf(&mut mock, "f1", "");
     mock.expect_update_user_defined_function().returning(|_| {
         Ok(Response::new(UpdateUserDefinedFunctionResponse {
             user_defined_function: None,
@@ -718,6 +746,7 @@ async fn update_errors_when_response_missing_function() {
 #[tokio::test]
 async fn update_propagates_grpc_error() {
     let mut mock = MockUserDefinedFunctionServiceImpl::new();
+    expect_current_udf(&mut mock, "f1", "");
     mock.expect_update_user_defined_function()
         .returning(|_| Err(Status::failed_precondition("function has dependents")));
 
@@ -743,6 +772,7 @@ async fn update_propagates_grpc_error() {
 #[tokio::test]
 async fn archive_sets_is_archived_true_through_the_mask() {
     let mut mock = MockUserDefinedFunctionServiceImpl::new();
+    expect_current_udf(&mut mock, "f1", "archived notes");
     mock.expect_update_user_defined_function()
         .times(1)
         .withf(|req| {
@@ -754,6 +784,7 @@ async fn archive_sets_is_archived_true_through_the_mask() {
             let mask = req.update_mask.as_ref().expect("mask present");
             function.user_defined_function_id == "f1"
                 && function.is_archived
+                && function.user_notes == "archived notes"
                 && function.archived_date.is_none()
                 && mask.paths == vec!["is_archived".to_string()]
         })
@@ -777,6 +808,7 @@ async fn archive_sets_is_archived_true_through_the_mask() {
 #[tokio::test]
 async fn unarchive_sets_is_archived_false_through_the_mask() {
     let mut mock = MockUserDefinedFunctionServiceImpl::new();
+    expect_current_udf(&mut mock, "f2", "");
     mock.expect_update_user_defined_function()
         .times(1)
         .withf(|req| {
@@ -810,6 +842,7 @@ async fn unarchive_sets_is_archived_false_through_the_mask() {
 #[tokio::test]
 async fn set_archived_propagates_grpc_error() {
     let mut mock = MockUserDefinedFunctionServiceImpl::new();
+    expect_current_udf(&mut mock, "missing", "");
     mock.expect_update_user_defined_function()
         .returning(|_| Err(Status::not_found("function missing")));
 

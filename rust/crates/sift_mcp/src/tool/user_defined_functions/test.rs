@@ -2,8 +2,9 @@ use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
 use sift_rs::{
     common::r#type::v1::{FunctionDataType, FunctionInput, UserDefinedFunction},
     user_defined_functions::v1::{
-        CreateUserDefinedFunctionResponse, ListUserDefinedFunctionVersionsResponse,
-        ListUserDefinedFunctionsResponse, UpdateUserDefinedFunctionResponse,
+        CreateUserDefinedFunctionResponse, GetUserDefinedFunctionResponse,
+        ListUserDefinedFunctionVersionsResponse, ListUserDefinedFunctionsResponse,
+        UpdateUserDefinedFunctionResponse,
         user_defined_function_service_server::UserDefinedFunctionServiceServer,
     },
 };
@@ -103,6 +104,20 @@ fn archive_params(id: &str) -> Parameters<ArchiveUserDefinedFunctionParams> {
     Parameters(ArchiveUserDefinedFunctionParams {
         user_defined_function_id: id.into(),
     })
+}
+
+fn expect_current_udf(mock: &mut MockUserDefinedFunctionServiceImpl, id: &str) {
+    let id = id.to_string();
+    mock.expect_get_user_defined_function()
+        .times(1)
+        .returning(move |_| {
+            Ok(Response::new(GetUserDefinedFunctionResponse {
+                user_defined_function: Some(UserDefinedFunction {
+                    user_defined_function_id: id.clone(),
+                    ..Default::default()
+                }),
+            }))
+        });
 }
 
 #[tokio::test]
@@ -373,6 +388,52 @@ async fn create_rejects_unknown_data_type() {
 }
 
 #[tokio::test]
+async fn create_rejects_a_name_that_starts_with_a_digit() {
+    let mock = MockUserDefinedFunctionServiceImpl::new();
+    let (server, _h) = server_with_mock(mock, true, false).await;
+    let mut params = create_params("[]");
+    params.0.name = "1udf".into();
+
+    let err = server
+        .create_user_defined_function(params)
+        .await
+        .expect_err("expected invalid name to be rejected");
+
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+    assert!(err.message.contains("start with a letter"));
+}
+
+#[tokio::test]
+async fn update_rejects_a_name_with_a_hyphen() {
+    let mock = MockUserDefinedFunctionServiceImpl::new();
+    let (server, _h) = server_with_mock(mock, true, true).await;
+
+    let err = server
+        .update_user_defined_function(update_params(Some("udf-name"), None, None))
+        .await
+        .expect_err("expected invalid name to be rejected");
+
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+    assert!(err.message.contains("alphanumeric characters"));
+}
+
+#[tokio::test]
+async fn create_rejects_a_name_longer_than_253_characters() {
+    let mock = MockUserDefinedFunctionServiceImpl::new();
+    let (server, _h) = server_with_mock(mock, true, false).await;
+    let mut params = create_params("[]");
+    params.0.name = format!("a{}", "b".repeat(253));
+
+    let err = server
+        .create_user_defined_function(params)
+        .await
+        .expect_err("expected invalid name to be rejected");
+
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+    assert!(err.message.contains("253 characters"));
+}
+
+#[tokio::test]
 async fn create_returns_the_new_function_and_next_step() {
     let mut mock = MockUserDefinedFunctionServiceImpl::new();
     mock.expect_create_user_defined_function()
@@ -471,6 +532,34 @@ async fn update_rejects_name_combined_with_other_fields() {
 }
 
 #[tokio::test]
+async fn update_accepts_a_name_with_a_trailing_digit() {
+    let mut mock = MockUserDefinedFunctionServiceImpl::new();
+    expect_current_udf(&mut mock, "f1");
+    mock.expect_update_user_defined_function()
+        .times(1)
+        .withf(|req| {
+            let function = req
+                .get_ref()
+                .user_defined_function
+                .as_ref()
+                .expect("function present");
+            function.name == "udf_1"
+        })
+        .returning(|req| {
+            Ok(Response::new(UpdateUserDefinedFunctionResponse {
+                user_defined_function: req.into_inner().user_defined_function,
+            }))
+        });
+
+    let (server, _h) = server_with_mock(mock, true, true).await;
+
+    server
+        .update_user_defined_function(update_params(Some("udf_1"), None, None))
+        .await
+        .expect("name with trailing digit should be accepted");
+}
+
+#[tokio::test]
 async fn update_rejects_malformed_function_inputs_json() {
     let mock = MockUserDefinedFunctionServiceImpl::new();
     let (server, _h) = server_with_mock(mock, true, true).await;
@@ -487,6 +576,7 @@ async fn update_rejects_malformed_function_inputs_json() {
 #[tokio::test]
 async fn update_returns_the_new_version() {
     let mut mock = MockUserDefinedFunctionServiceImpl::new();
+    expect_current_udf(&mut mock, "f1");
     mock.expect_update_user_defined_function()
         .times(1)
         .withf(|req| {
@@ -563,6 +653,7 @@ async fn archive_rejects_an_empty_id() {
 #[tokio::test]
 async fn archive_sets_the_archive_flag_and_reports_it() {
     let mut mock = MockUserDefinedFunctionServiceImpl::new();
+    expect_current_udf(&mut mock, "f1");
     mock.expect_update_user_defined_function()
         .times(1)
         .withf(|req| {
@@ -596,6 +687,7 @@ async fn archive_sets_the_archive_flag_and_reports_it() {
 #[tokio::test]
 async fn unarchive_clears_the_archive_flag_and_reports_it() {
     let mut mock = MockUserDefinedFunctionServiceImpl::new();
+    expect_current_udf(&mut mock, "f2");
     mock.expect_update_user_defined_function()
         .times(1)
         .withf(|req| {

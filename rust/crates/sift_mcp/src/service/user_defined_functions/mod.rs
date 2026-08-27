@@ -7,9 +7,10 @@ use sift_rs::{
     common::r#type::v1::{FunctionInput, UserDefinedFunction},
     metadata::v1::MetadataValue,
     user_defined_functions::v1::{
-        CreateUserDefinedFunctionRequest, ListUserDefinedFunctionVersionsRequest,
-        ListUserDefinedFunctionVersionsResponse, ListUserDefinedFunctionsRequest,
-        ListUserDefinedFunctionsResponse, UpdateUserDefinedFunctionRequest,
+        CreateUserDefinedFunctionRequest, GetUserDefinedFunctionRequest,
+        ListUserDefinedFunctionVersionsRequest, ListUserDefinedFunctionVersionsResponse,
+        ListUserDefinedFunctionsRequest, ListUserDefinedFunctionsResponse,
+        UpdateUserDefinedFunctionRequest,
         user_defined_function_service_client::UserDefinedFunctionServiceClient,
     },
 };
@@ -253,8 +254,13 @@ impl UserDefinedFunctionService {
         user_defined_function_id: String,
         changes: UdfUpdate,
     ) -> Result<UserDefinedFunction> {
+        let user_notes = self
+            .get_user_defined_function(user_defined_function_id.clone())
+            .await?
+            .user_notes;
         let mut function = UserDefinedFunction {
             user_defined_function_id,
+            user_notes,
             ..Default::default()
         };
         let mut paths = Vec::new();
@@ -298,14 +304,46 @@ impl UserDefinedFunctionService {
         user_defined_function_id: String,
         is_archived: bool,
     ) -> Result<UserDefinedFunction> {
+        let user_notes = self
+            .get_user_defined_function(user_defined_function_id.clone())
+            .await?
+            .user_notes;
         let function = UserDefinedFunction {
             user_defined_function_id,
             is_archived,
+            user_notes,
             ..Default::default()
         };
 
         self.send_update(function, vec!["is_archived".to_string()])
             .await
+    }
+
+    async fn get_user_defined_function(
+        &self,
+        user_defined_function_id: String,
+    ) -> Result<UserDefinedFunction> {
+        let channel = self.channel.clone();
+        let resp = with_retry(&self.policy, move || {
+            let channel = channel.clone();
+            let user_defined_function_id = user_defined_function_id.clone();
+            async move {
+                let mut client = UserDefinedFunctionServiceClient::new(channel);
+                client
+                    .get_user_defined_function(GetUserDefinedFunctionRequest {
+                        user_defined_function_id,
+                        name: String::new(),
+                    })
+                    .await
+                    .map(|resp| resp.into_inner())
+            }
+        })
+        .await
+        .context("failed to fetch user defined function")?;
+
+        resp.user_defined_function.ok_or_else(|| {
+            anyhow!("get_user_defined_function response missing user defined function")
+        })
     }
 
     async fn send_update(

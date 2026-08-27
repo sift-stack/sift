@@ -187,8 +187,8 @@ impl SiftMcpServer {
                 result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE: `contains(\"RMS\")`
                 silently misses `rms_window`.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields:
-                `created_date`, `modified_date`, `name`, `version`. When empty, items come back ordered
-                by `name` ascending — pass `\"version desc\"` for newest-first.
+                `created_date`, `modified_date`, `version`. Default sort is `version desc`
+                (newest version first). Example: `\"version desc,modified_date\"`.
               - `limit`: max items to return. Start at 50 and only raise it if the result is capped
                 and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
               - `fields`: optional array of field names to keep on each item, e.g.
@@ -264,8 +264,8 @@ impl SiftMcpServer {
                 including the resolved `function_output_type` and `version` 1.
 
             Parameters:
-              - `name`: required. The name callers use to reference the function. Must start and end
-                with a letter character and may contain only alphanumeric characters or `_`.
+              - `name`: required. The name callers use to reference the function. It must start with a
+                letter, then contain only alphanumeric characters or `_`, and be at most 253 characters.
               - `expression`: required. The function body. Reference each declared input by its
                 `identifier`. Mirror an existing function retrieved with `list_user_defined_functions`
                 rather than authoring the syntax blind.
@@ -321,6 +321,7 @@ impl SiftMcpServer {
         if name.trim().is_empty() {
             return Err(ErrorData::invalid_params("`name` must not be empty", None));
         }
+        validate_function_name(&name)?;
         if expression.trim().is_empty() {
             return Err(ErrorData::invalid_params(
                 "`expression` must not be empty",
@@ -374,10 +375,10 @@ impl SiftMcpServer {
 
             Parameters:
               - `user_defined_function_id`: required. The function to update.
-              - `name`: optional. New name. Must start and end with a letter character and may contain
-                only alphanumeric characters or `_`. The API applies a rename BY ITSELF and ignores any other
-                field in the same call, so this tool rejects `name` combined with another field — send
-                the rename as its own call.
+              - `name`: optional. New name. It must start with a letter, then contain only alphanumeric
+                characters or `_`, and be at most 253 characters. The API applies a rename BY ITSELF and
+                ignores any other field in the same call, so this tool rejects `name` combined with another
+                field — send the rename as its own call.
               - `description`: optional. New description.
               - `expression`: optional. New function body.
               - `function_inputs_json`: optional. REPLACES the declared input list. Same array shape as
@@ -433,6 +434,9 @@ impl SiftMcpServer {
                 "`user_defined_function_id` must not be empty",
                 None,
             ));
+        }
+        if let Some(name) = &name {
+            validate_function_name(name)?;
         }
 
         let function_inputs = function_inputs_json
@@ -645,6 +649,24 @@ fn function_identifier(
             "one of `user_defined_function_id` or `name` must be set",
             None,
         )),
+    }
+}
+
+fn validate_function_name(name: &str) -> Result<(), ErrorData> {
+    let valid = name.len() <= 253
+        && matches!(name.as_bytes().first(), Some(b'A'..=b'Z' | b'a'..=b'z'))
+        && name
+            .bytes()
+            .skip(1)
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_');
+
+    if valid {
+        Ok(())
+    } else {
+        Err(ErrorData::invalid_params(
+            "`name` must start with a letter, contain only alphanumeric characters or `_`, and be at most 253 characters",
+            None,
+        ))
     }
 }
 
