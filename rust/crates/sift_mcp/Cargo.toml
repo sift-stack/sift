@@ -23,6 +23,7 @@ tonic.workspace = true
 anyhow.workspace = true
 chrono.workspace = true
 clap = { workspace = true, features = ["cargo"] }
+futures.workspace = true
 pbjson-types.workspace = true
 percent-encoding.workspace = true
 prost.workspace = true

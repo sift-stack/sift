@@ -1,5 +1,6 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
+    fmt,
     io::Write,
     mem,
     path::PathBuf,
@@ -31,7 +32,7 @@ use sift_rs::{
         BytesValues, CalculatedChannelQuery, ChannelQuery, DoubleValue, DoubleValues, EnumValue,
         EnumValues, FloatValue, FloatValues, GetDataRequest, GetDataResponse, Int32Value,
         Int32Values, Int64Value, Int64Values, Query, StringValue, StringValues, Uint32Value,
-        Uint32Values, Uint64Value, Uint64Values, data_service_client::DataServiceClient,
+        Uint32Values, Uint64Value, Uint64Values, data_service_client::DataServiceClient, metadata,
         query::Query as QueryKind,
     },
     runs::v2::Run,
@@ -39,7 +40,7 @@ use sift_rs::{
 
 use crate::policy::{RetryPolicy, with_retry};
 use crate::service::common::{
-    BIT_FIELD_METADATA_KEY, ColumnName, ENUM_METADATA_KEY, PAGE_SIZE, TS_COLUMN_NAME,
+    BIT_FIELD_METADATA_KEY, ColumnName, ENUM_METADATA_KEY, PAGE_SIZE, TS_COLUMN_NAME, name_list,
     secs_and_subsec_nanos_to_unix_nanos, unix_nanos_to_secs_and_subsec_nanos,
 };
 
@@ -49,10 +50,63 @@ mod test;
 const ROW_FLUSH_THRESHOLD: usize = 1_000_000;
 const SIZE_FLUSH_THRESHOLD: usize = 64 << 20;
 
+/// The column label for a returned channel page. A calculated channel page
+/// carries no channel name and puts the query's channel key in `channel_id`, so
+/// fall back to that key rather than emitting an unlabelled column.
+fn column_label(channel: &metadata::Channel) -> &str {
+    if channel.name.is_empty() {
+        &channel.channel_id
+    } else {
+        &channel.name
+    }
+}
+
 #[derive(Clone)]
 pub struct DataService {
     channel: SiftChannel,
     policy: RetryPolicy,
+}
+
+/// Every matched channel returned no samples in the queried window.
+///
+/// Typed rather than a bare message so the tool layer can recover the channel
+/// names and hand them to the caller as data. The tool also knows which
+/// requested names matched nothing at all, and that half is computed before
+/// this error is raised — without a type to attach it to, the one response a
+/// caller most needs both halves from would carry neither.
+#[derive(Debug)]
+pub struct NoChannelData {
+    pub empty_channels: Vec<String>,
+    pub run_id: Option<String>,
+}
+
+impl fmt::Display for NoChannelData {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let run_note = self
+            .run_id
+            .as_ref()
+            .map(|id| format!(" scoped to run {id}"))
+            .unwrap_or_default();
+        write!(
+            f,
+            "no channel data for given input parameters: no samples in the queried \
+             window{run_note} for {}; the channels exist, so widen the time range or drop \
+             the run scope before concluding the asset has no data",
+            name_list(&self.empty_channels),
+        )
+    }
+}
+
+impl std::error::Error for NoChannelData {}
+
+/// What `get_data` wrote, beyond the Parquet file itself.
+#[derive(Debug)]
+pub struct DataOutput {
+    /// Requested channels that matched the selection but returned no samples in
+    /// the queried window. These have no column in the output at all, so a
+    /// caller diffing the Parquet schema against its request is the only way to
+    /// notice them otherwise.
+    pub empty_channels: Vec<String>,
 }
 
 pub enum ChannelInput {
@@ -62,6 +116,13 @@ pub enum ChannelInput {
         name: String,
         input_channels: Vec<(String, Channel)>,
         expression: String,
+    },
+    /// A saved calculated channel already resolved against the target asset.
+    /// The expression and its references come from the API's resolution, so
+    /// references to other calculated channels survive intact.
+    SavedCalculation {
+        channel_key: String,
+        expression_request: Box<ExpressionRequest>,
     },
 }
 
@@ -156,7 +217,7 @@ impl DataService {
         time_range: TimeRange,
         sample_ms: u32,
         buffer: &mut W,
-    ) -> Result<()> {
+    ) -> Result<DataOutput> {
         if channel_inputs.is_empty() {
             bail!("channel inputs cannot be empty");
         }
@@ -252,6 +313,18 @@ impl DataService {
                         })),
                     }
                 }
+                ChannelInput::SavedCalculation {
+                    channel_key,
+                    expression_request,
+                } => Query {
+                    query: Some(QueryKind::CalculatedChannel(CalculatedChannelQuery {
+                        channel_key: channel_key.clone(),
+                        expression: Some((**expression_request).clone()),
+                        run_id: run_id.clone(),
+                        mode: Some(ExpressionMode::CalculatedChannels.into()),
+                        combine_run_data: Some(false),
+                    })),
+                },
             })
             .collect::<Vec<_>>();
 
@@ -309,10 +382,11 @@ impl DataService {
                             bail!("unexpected missing channel from metadata");
                         };
 
-                        let column_name = ColumnName::builder(&channel.name, &channel.channel_id)
-                            .run(run_id.as_deref())
-                            .units(channel.unit.as_ref().map(|u| u.name.as_str()))
-                            .build();
+                        let column_name =
+                            ColumnName::builder(column_label(&channel), &channel.channel_id)
+                                .run(run_id.as_deref())
+                                .units(channel.unit.as_ref().map(|u| u.name.as_str()))
+                                .build();
 
                         let values = values
                             .into_iter()
@@ -365,10 +439,11 @@ impl DataService {
                         let enum_config_md = serde_json::to_string(&channel.enum_types)
                             .context("failed to serialize enum config to JSON")?;
 
-                        let column_name = ColumnName::builder(&channel.name, &channel.channel_id)
-                            .run(run_id.as_deref())
-                            .units(channel.unit.as_ref().map(|u| u.name.as_str()))
-                            .build();
+                        let column_name =
+                            ColumnName::builder(column_label(&channel), &channel.channel_id)
+                                .run(run_id.as_deref())
+                                .units(channel.unit.as_ref().map(|u| u.name.as_str()))
+                                .build();
 
                         let values = values
                             .into_iter()
@@ -425,7 +500,7 @@ impl DataService {
 
                         for BitFieldElementValues { name, values } in values {
                             let column_name =
-                                ColumnName::builder(&channel.name, &channel.channel_id)
+                                ColumnName::builder(column_label(&channel), &channel.channel_id)
                                     .bit_field_element(Some(&name))
                                     .run(run_id.as_deref())
                                     .units(channel.unit.as_ref().map(|u| u.name.as_str()))
@@ -473,10 +548,11 @@ impl DataService {
                             bail!("unexpected missing channel from metadata");
                         };
 
-                        let column_name = ColumnName::builder(&channel.name, &channel.channel_id)
-                            .run(run_id.as_deref())
-                            .units(channel.unit.as_ref().map(|u| u.name.as_str()))
-                            .build();
+                        let column_name =
+                            ColumnName::builder(column_label(&channel), &channel.channel_id)
+                                .run(run_id.as_deref())
+                                .units(channel.unit.as_ref().map(|u| u.name.as_str()))
+                                .build();
 
                         let values = values
                             .into_iter()
@@ -519,10 +595,11 @@ impl DataService {
                             bail!("unexpected missing channel from metadata");
                         };
 
-                        let column_name = ColumnName::builder(&channel.name, &channel.channel_id)
-                            .run(run_id.as_deref())
-                            .units(channel.unit.as_ref().map(|u| u.name.as_str()))
-                            .build();
+                        let column_name =
+                            ColumnName::builder(column_label(&channel), &channel.channel_id)
+                                .run(run_id.as_deref())
+                                .units(channel.unit.as_ref().map(|u| u.name.as_str()))
+                                .build();
 
                         let values = values
                             .into_iter()
@@ -565,10 +642,11 @@ impl DataService {
                             bail!("unexpected missing channel from metadata");
                         };
 
-                        let column_name = ColumnName::builder(&channel.name, &channel.channel_id)
-                            .run(run_id.as_deref())
-                            .units(channel.unit.as_ref().map(|u| u.name.as_str()))
-                            .build();
+                        let column_name =
+                            ColumnName::builder(column_label(&channel), &channel.channel_id)
+                                .run(run_id.as_deref())
+                                .units(channel.unit.as_ref().map(|u| u.name.as_str()))
+                                .build();
 
                         let values = values
                             .into_iter()
@@ -611,10 +689,11 @@ impl DataService {
                             bail!("unexpected missing channel from metadata");
                         };
 
-                        let column_name = ColumnName::builder(&channel.name, &channel.channel_id)
-                            .run(run_id.as_deref())
-                            .units(channel.unit.as_ref().map(|u| u.name.as_str()))
-                            .build();
+                        let column_name =
+                            ColumnName::builder(column_label(&channel), &channel.channel_id)
+                                .run(run_id.as_deref())
+                                .units(channel.unit.as_ref().map(|u| u.name.as_str()))
+                                .build();
 
                         let values = values
                             .into_iter()
@@ -657,10 +736,11 @@ impl DataService {
                             bail!("unexpected missing channel from metadata");
                         };
 
-                        let column_name = ColumnName::builder(&channel.name, &channel.channel_id)
-                            .run(run_id.as_deref())
-                            .units(channel.unit.as_ref().map(|u| u.name.as_str()))
-                            .build();
+                        let column_name =
+                            ColumnName::builder(column_label(&channel), &channel.channel_id)
+                                .run(run_id.as_deref())
+                                .units(channel.unit.as_ref().map(|u| u.name.as_str()))
+                                .build();
 
                         let values = values
                             .into_iter()
@@ -703,10 +783,11 @@ impl DataService {
                             bail!("unexpected missing channel from metadata");
                         };
 
-                        let column_name = ColumnName::builder(&channel.name, &channel.channel_id)
-                            .run(run_id.as_deref())
-                            .units(channel.unit.as_ref().map(|u| u.name.as_str()))
-                            .build();
+                        let column_name =
+                            ColumnName::builder(column_label(&channel), &channel.channel_id)
+                                .run(run_id.as_deref())
+                                .units(channel.unit.as_ref().map(|u| u.name.as_str()))
+                                .build();
 
                         let values = values
                             .into_iter()
@@ -749,10 +830,11 @@ impl DataService {
                             bail!("unexpected missing channel from metadata");
                         };
 
-                        let column_name = ColumnName::builder(&channel.name, &channel.channel_id)
-                            .run(run_id.as_deref())
-                            .units(channel.unit.as_ref().map(|u| u.name.as_str()))
-                            .build();
+                        let column_name =
+                            ColumnName::builder(column_label(&channel), &channel.channel_id)
+                                .run(run_id.as_deref())
+                                .units(channel.unit.as_ref().map(|u| u.name.as_str()))
+                                .build();
 
                         let values = values
                             .into_iter()
@@ -795,10 +877,11 @@ impl DataService {
                             bail!("unexpected missing channel from metadata");
                         };
 
-                        let column_name = ColumnName::builder(&channel.name, &channel.channel_id)
-                            .run(run_id.as_deref())
-                            .units(channel.unit.as_ref().map(|u| u.name.as_str()))
-                            .build();
+                        let column_name =
+                            ColumnName::builder(column_label(&channel), &channel.channel_id)
+                                .run(run_id.as_deref())
+                                .units(channel.unit.as_ref().map(|u| u.name.as_str()))
+                                .build();
 
                         let values = values
                             .into_iter()
@@ -835,20 +918,43 @@ impl DataService {
             page_token = next_page_token;
         }
 
+        // A channel that matched the selection but returned nothing never
+        // reaches `columns`, so it is absent from the Parquet schema rather than
+        // present and null. Nothing downstream can recover the difference
+        // between "asked for and empty" and "never asked for", so name them here
+        // while the request is still in scope.
+        let produced = columns
+            .keys()
+            .map(ColumnName::channel_id)
+            .collect::<HashSet<_>>();
+
+        // Both arms look up the identifier this request sent. `Metadata.Channel`
+        // documents `channel_id` as REQUIRED and carrying the backing channel id
+        // for a channel query and the requested channel key for a calculated
+        // one, while `name` carries no such guarantee — so matching on `name`
+        // would report a calculated channel as empty even when it returned data.
+        let empty_channels = channel_inputs
+            .iter()
+            .filter_map(|input| {
+                let (key, reported_as) = match input {
+                    ChannelInput::Raw(channel) => (&channel.channel_id, &channel.name),
+                    ChannelInput::Calculation { name, .. } => (name, name),
+                    ChannelInput::SavedCalculation { channel_key, .. } => {
+                        (channel_key, channel_key)
+                    }
+                };
+                (!produced.contains(key.as_str())).then(|| reported_as.clone())
+            })
+            .collect::<Vec<_>>();
+
         if columns.is_empty() {
             // "No data" is a plausible real answer, so spell out what was
             // actually queried; otherwise an empty window or a run scope that
             // excludes the data reads as "the asset has no data".
-            let run_note = run_id
-                .as_ref()
-                .map(|id| format!(" scoped to run {id}"))
-                .unwrap_or_default();
-            bail!(
-                "no channel data for given input parameters: {} matched channel(s) returned no \
-                 samples in the queried window{run_note}; the channels exist, so widen the time \
-                 range or drop the run scope before concluding the asset has no data",
-                channel_inputs.len(),
-            )
+            bail!(NoChannelData {
+                empty_channels,
+                run_id,
+            })
         }
 
         let columns = columns.into_iter().collect::<Vec<_>>();
@@ -976,7 +1082,7 @@ impl DataService {
             .close()
             .context("failed to finalize arrow writer")?;
 
-        Ok(())
+        Ok(DataOutput { empty_channels })
     }
 
     fn append_null_to_builder(

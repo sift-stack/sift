@@ -7,10 +7,11 @@ use parquet::arrow::{ArrowWriter, arrow_reader::ParquetRecordBatchReaderBuilder}
 use pbjson_types::{Any, Timestamp};
 use prost::Message;
 use sift_rs::{
+    calculated_channels::v1::{ExpressionChannelReference, ExpressionRequest},
     channels::v3::Channel,
     data::v2::{
         DoubleValue, DoubleValues, GetDataResponse, Metadata,
-        data_service_server::DataServiceServer, metadata,
+        data_service_server::DataServiceServer, metadata, query::Query as QueryKind,
     },
     runs::v2::Run,
 };
@@ -45,6 +46,29 @@ fn raw_channel(channel_id: &str) -> ChannelInput {
         channel_id: channel_id.into(),
         ..Default::default()
     }))
+}
+
+fn named_raw_channel(channel_id: &str, name: &str) -> ChannelInput {
+    ChannelInput::Raw(Box::new(Channel {
+        channel_id: channel_id.into(),
+        name: name.into(),
+        ..Default::default()
+    }))
+}
+
+fn saved_calculation(name: &str, expression: &str, input_channel_id: &str) -> ChannelInput {
+    ChannelInput::SavedCalculation {
+        channel_key: name.into(),
+        expression_request: Box::new(ExpressionRequest {
+            expression: expression.into(),
+            expression_channel_references: vec![ExpressionChannelReference {
+                channel_reference: "$1".into(),
+                channel_id: input_channel_id.into(),
+                calculated_channel_reference: None,
+            }],
+            ..Default::default()
+        }),
+    }
 }
 
 fn asset_range(start_nanos: i64, end_nanos: i64) -> TimeRange {
@@ -307,6 +331,173 @@ async fn get_data_run_without_start_time_errors() {
     assert!(err.to_string().contains("doesn't have a start time"));
 }
 
+#[tokio::test]
+async fn get_data_names_channels_that_returned_no_samples() {
+    // The server answers for one of the two requested channels. The other has no
+    // column in the Parquet at all, which is indistinguishable from never having
+    // been requested unless the service says so.
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data().times(1).returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![double_page("c1", "loud", vec![(1_000_000_000, 1.0)])],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    let output = service
+        .get_data(
+            &[
+                named_raw_channel("c1", "loud"),
+                named_raw_channel("c2", "quiet"),
+            ],
+            asset_range(0, 4_000_000_000),
+            0,
+            &mut buffer,
+        )
+        .await
+        .expect("get_data failed");
+
+    assert_eq!(output.empty_channels, vec!["quiet".to_string()]);
+
+    let batches = read_parquet(buffer);
+    let schema = batches[0].schema();
+    assert!(
+        !schema
+            .fields()
+            .iter()
+            .any(|f| f.name().starts_with("quiet ")),
+        "an empty channel should have no column, which is why it must be reported",
+    );
+}
+
+/// A calculated channel is identified in the response by the key the request
+/// sent, carried in `channel_id`. `Metadata.Channel.name` is not REQUIRED and
+/// comes back empty here, which is what makes matching on the name wrong.
+#[tokio::test]
+async fn get_data_does_not_report_a_calculated_channel_that_returned_data() {
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data().times(1).returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![double_page(
+                "derived_thrust",
+                "",
+                vec![(1_000_000_000, 9.0)],
+            )],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    let output = service
+        .get_data(
+            &[ChannelInput::Calculation {
+                name: "derived_thrust".into(),
+                input_channels: Vec::new(),
+                expression: "$1 * 2".into(),
+            }],
+            asset_range(0, 4_000_000_000),
+            0,
+            &mut buffer,
+        )
+        .await
+        .expect("get_data failed");
+
+    assert!(
+        output.empty_channels.is_empty(),
+        "a calculated channel that returned data must not be reported empty: {:?}",
+        output.empty_channels,
+    );
+}
+
+#[tokio::test]
+async fn get_data_reports_nothing_empty_when_every_channel_has_samples() {
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data().times(1).returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![
+                double_page("c1", "a", vec![(1_000_000_000, 1.0)]),
+                double_page("c2", "b", vec![(2_000_000_000, 2.0)]),
+            ],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    let output = service
+        .get_data(
+            &[named_raw_channel("c1", "a"), named_raw_channel("c2", "b")],
+            asset_range(0, 4_000_000_000),
+            0,
+            &mut buffer,
+        )
+        .await
+        .expect("get_data failed");
+
+    assert!(output.empty_channels.is_empty());
+}
+
+#[tokio::test]
+async fn get_data_no_samples_error_names_every_channel() {
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data().times(1).returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    let err = service
+        .get_data(
+            &[
+                named_raw_channel("c1", "pressure"),
+                named_raw_channel("c2", "temperature"),
+            ],
+            asset_range(0, 4_000_000_000),
+            0,
+            &mut buffer,
+        )
+        .await
+        .expect_err("expected an error when nothing returned samples");
+
+    let message = err.to_string();
+    // A count sends the caller bisecting; the names are what it needs.
+    assert!(message.contains("pressure"), "{message}");
+    assert!(message.contains("temperature"), "{message}");
+}
+
+#[tokio::test]
+async fn get_data_no_samples_error_caps_the_channel_list() {
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data().times(1).returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let inputs = (0..25)
+        .map(|i| named_raw_channel(&format!("c{i}"), &format!("ch{i}")))
+        .collect::<Vec<_>>();
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    let err = service
+        .get_data(&inputs, asset_range(0, 4_000_000_000), 0, &mut buffer)
+        .await
+        .expect_err("expected an error when nothing returned samples");
+
+    let message = err.to_string();
+    assert!(message.contains("ch0"), "{message}");
+    assert!(message.contains("and 5 more"), "{message}");
+    assert!(!message.contains("ch24"), "{message}");
+}
+
 // --- sql ---
 
 fn sample_schema() -> SchemaRef {
@@ -439,5 +630,62 @@ async fn sql_missing_input_file_errors() {
             || msg.contains("failed to apply SQL query")
             || msg.contains("failed to execute query"),
         "unexpected error: {msg}"
+    );
+}
+
+/// A saved calculated channel query sends the resolved expression and keys the
+/// result on the channel name.
+#[tokio::test]
+async fn get_data_sends_saved_calculation_query() {
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data()
+        .times(1)
+        .withf(|req| {
+            let queries = &req.get_ref().queries;
+            queries.len() == 1
+                && match queries[0].query.as_ref() {
+                    Some(QueryKind::CalculatedChannel(query)) => {
+                        query.channel_key == "thrust_margin"
+                            && query.combine_run_data == Some(false)
+                            && query.expression.as_ref().is_some_and(|expression| {
+                                expression.expression == "$1 * 2"
+                                    && expression.expression_channel_references[0].channel_id
+                                        == "c1"
+                            })
+                    }
+                    _ => false,
+                }
+        })
+        .returning(|_| {
+            Ok(Response::new(GetDataResponse {
+                // A calculated channel page carries the query's channel key in
+                // `channel_id` and no channel name.
+                data: vec![double_page(
+                    "thrust_margin",
+                    "",
+                    vec![(1_000_000_000, 42.0)],
+                )],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    service
+        .get_data(
+            &[saved_calculation("thrust_margin", "$1 * 2", "c1")],
+            asset_range(0, 3_000_000_000),
+            0,
+            &mut buffer,
+        )
+        .await
+        .expect("get_data failed");
+
+    let batches = read_parquet(buffer);
+    let schema = batches[0].schema();
+    assert!(
+        schema.field(1).name().starts_with("thrust_margin {"),
+        "a nameless calculated channel column must fall back to its key: {}",
+        schema.field(1).name(),
     );
 }

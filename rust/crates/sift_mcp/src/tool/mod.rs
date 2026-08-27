@@ -1,5 +1,6 @@
 pub mod annotations;
 pub mod assets;
+pub mod calculated_channels;
 pub mod channels;
 pub mod common;
 pub mod data;
@@ -8,8 +9,10 @@ pub mod explore;
 pub mod ping;
 pub mod report_templates;
 pub mod reports;
+pub mod rule_evaluation;
 pub mod rules;
 pub mod runs;
 pub mod test_reports;
 pub mod update;
+pub mod user_defined_functions;
 pub mod users;

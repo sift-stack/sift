@@ -31,12 +31,35 @@ pub struct Page<T> {
     pub has_more: bool,
 }
 
+/// Maximum channel names spelled out in a message before the tail is summarized.
+const MAX_NAMED_CHANNELS: usize = 20;
+
+/// Formats channel names for an error or a warning. A selection can hold up to
+/// [`PAGE_SIZE`] channels, so an uncapped list would bury the guidance that
+/// follows it under a wall of names.
+pub fn name_list(names: &[String]) -> String {
+    if names.len() <= MAX_NAMED_CHANNELS {
+        return names.join(", ");
+    }
+
+    format!(
+        "{}, and {} more",
+        names[..MAX_NAMED_CHANNELS].join(", "),
+        names.len() - MAX_NAMED_CHANNELS,
+    )
+}
+
 /// Returns page size and record limit. `limit` is clamped to `1..=PAGE_SIZE`;
 /// omitting it falls back to [`DEFAULT_LIMIT`]. No input yields an unbounded
 /// record limit.
 pub fn paging(limit: Option<u32>) -> (u32, usize) {
     let limit = limit.unwrap_or(DEFAULT_LIMIT).clamp(1, PAGE_SIZE);
     (limit, limit as usize)
+}
+
+/// Escapes a value for interpolation into a double-quoted CEL string literal.
+pub fn cel_escape(s: &str) -> String {
+    s.replace('\\', "\\\\").replace('"', "\\\"")
 }
 
 pub fn unix_nanos_to_secs_and_subsec_nanos(nanos: i64) -> (i64, i32) {

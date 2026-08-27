@@ -41,10 +41,12 @@ pub(crate) const BASE_INSTRUCTIONS: &str = concat!(
 );
 use crate::service::test_reports::TestReportService;
 use crate::service::{
-    annotations::AnnotationService, assets::AssetService, channels::ChannelService,
-    data::DataService, docs::DocsService, ingest::IngestService, ping::PingService,
-    report_templates::ReportTemplateService, reports::ReportService, rules::RuleService,
-    runs::RunService, url::UrlService, users::UserService,
+    annotations::AnnotationService, assets::AssetService,
+    calculated_channels::CalculatedChannelService, channels::ChannelService, data::DataService,
+    docs::DocsService, ingest::IngestService, ping::PingService,
+    report_templates::ReportTemplateService, reports::ReportService,
+    rule_evaluation::RuleEvaluationService, rules::RuleService, runs::RunService, url::UrlService,
+    user_defined_functions::UserDefinedFunctionService, users::UserService,
 };
 
 #[derive(Clone)]
@@ -54,6 +56,7 @@ pub struct SiftMcpServer {
 
     pub annotation_service: AnnotationService,
     pub asset_service: AssetService,
+    pub calculated_channel_service: CalculatedChannelService,
     pub channel_service: ChannelService,
     pub data_service: DataService,
     pub url_service: UrlService,
@@ -63,8 +66,10 @@ pub struct SiftMcpServer {
     pub report_service: ReportService,
     pub report_template_service: ReportTemplateService,
     pub rule_service: RuleService,
+    pub rule_evaluation_service: RuleEvaluationService,
     pub test_report_service: TestReportService,
     pub docs_service: DocsService,
+    pub user_defined_function_service: UserDefinedFunctionService,
     pub user_service: UserService,
 
     pub allow_create: bool,
@@ -183,15 +188,18 @@ impl SiftMcpServer {
         let mut tool_router = Self::assets_router();
         tool_router.merge(Self::runs_router());
         tool_router.merge(Self::channels_router());
+        tool_router.merge(Self::calculated_channels_router());
         tool_router.merge(Self::reports_router());
         tool_router.merge(Self::report_templates_router());
         tool_router.merge(Self::data_router());
         tool_router.merge(Self::explore_router());
         tool_router.merge(Self::ping_router());
         tool_router.merge(Self::rules_router());
+        tool_router.merge(Self::rule_evaluation_router());
         tool_router.merge(Self::annotations_router());
         tool_router.merge(Self::test_reports_router());
         tool_router.merge(Self::docs_router());
+        tool_router.merge(Self::user_defined_functions_router());
         tool_router.merge(Self::users_router());
         if update_check.is_some() {
             tool_router.merge(Self::update_router());
@@ -208,6 +216,8 @@ impl SiftMcpServer {
 
         let annotation_service = AnnotationService::new(channel.clone(), retry_policy.clone());
         let asset_service = AssetService::new(channel.clone(), retry_policy.clone());
+        let calculated_channel_service =
+            CalculatedChannelService::new(channel.clone(), retry_policy.clone());
         let data_service = DataService::new(channel.clone(), retry_policy.clone());
         let channel_service = ChannelService::new(channel.clone(), retry_policy.clone());
         let url_service = UrlService::new(app_uri);
@@ -218,13 +228,18 @@ impl SiftMcpServer {
         let report_template_service =
             ReportTemplateService::new(channel.clone(), retry_policy.clone());
         let rule_service = RuleService::new(channel.clone(), retry_policy.clone());
+        let rule_evaluation_service =
+            RuleEvaluationService::new(channel.clone(), retry_policy.clone());
         let test_report_service = TestReportService::new(channel.clone(), retry_policy.clone());
         let docs_service = DocsService::new(channel.clone(), retry_policy.clone());
+        let user_defined_function_service =
+            UserDefinedFunctionService::new(channel.clone(), retry_policy.clone());
         let user_service = UserService::new(channel.clone(), retry_policy);
 
         Self {
             annotation_service,
             asset_service,
+            calculated_channel_service,
             channel_service,
             data_service,
             url_service,
@@ -234,8 +249,10 @@ impl SiftMcpServer {
             report_service,
             report_template_service,
             rule_service,
+            rule_evaluation_service,
             test_report_service,
             docs_service,
+            user_defined_function_service,
             user_service,
             tool_router,
             prompt_router,
