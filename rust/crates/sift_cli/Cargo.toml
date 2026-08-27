@@ -3,7 +3,7 @@ test-reports = ["sift_mcp/test-reports"]
 
 [package]
 name = "sift_cli"
-version = "0.4.4"
+version = "0.5.0"
 authors.workspace = true
 edition.workspace = true
 categories.workspace = true

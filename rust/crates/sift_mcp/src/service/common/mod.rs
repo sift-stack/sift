@@ -57,6 +57,11 @@ pub fn paging(limit: Option<u32>) -> (u32, usize) {
     (limit, limit as usize)
 }
 
+/// Escapes a value for interpolation into a double-quoted CEL string literal.
+pub fn cel_escape(s: &str) -> String {
+    s.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
 pub fn unix_nanos_to_secs_and_subsec_nanos(nanos: i64) -> (i64, i32) {
     let secs = nanos.div_euclid(NANOS_PER_SEC);
     let subsec_nanos = nanos.rem_euclid(NANOS_PER_SEC) as i32;
