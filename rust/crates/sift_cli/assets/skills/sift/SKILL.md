@@ -115,7 +115,7 @@ exists.
   carries `unresolved_calculated_channels`, the file is missing those columns:
   tell the user which channels did not resolve rather than reporting the file as
   complete.
-- **Author or change a calculated channel.** A calculated channel is a SEL
+- **Author or change a calculated channel.** A calculated channel is a CEL
   expression plus an asset scope. `create_calculated_channel` and
   `update_calculated_channel` take the expression with `$1`, `$2`, …
   placeholders plus `expression_channel_references_json`, a JSON string array
