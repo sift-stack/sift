@@ -103,7 +103,7 @@ impl SiftMcpServer {
                 `contains(\"Thrust\")` silently misses `thrust_margin`. Calculated channel names can embed `.`,
                 a regex wildcard, so match a full literal name with `contains`, not `matches`.
               - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `created_date`,
-                `modified_date`, `name`, `description`, `units`, `archived_date`. Default sort is
+                `modified_date`. Default sort is
                 `created_date desc` (newest first). Example: `\"created_date desc,modified_date\"`.
               - `limit`: max items to return. Start at 50 and only raise it if the result is capped
                 and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
@@ -188,9 +188,9 @@ impl SiftMcpServer {
                 versions. When filtering or searching text, use `name.matches(\"(?i)thrust\")`, not `==`. Use `==`
                 only for an exact value from a prior result. `contains`/`startsWith`/`endsWith` are
                 case-SENSITIVE: `contains(\"Thrust\")` silently misses `thrust_margin`.
-              - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `version`,
-                `created_date`, `modified_date`, `name`, `description`, `units`, `archived_date`. Default sort is
-                `created_date` ascending (oldest first) — note this differs from `list_calculated_channels`.
+              - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `created_date`,
+                `modified_date`, `version`. Default sort is `version` ascending (oldest first) — note this
+                differs from `list_calculated_channels`. Example: `\"version desc,created_date\"`.
               - `limit`: max items to return. Start at 50 and only raise it if the result is capped
                 and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
               - `fields`: optional array of field names to keep on each item, e.g.
