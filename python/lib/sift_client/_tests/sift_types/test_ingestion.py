@@ -10,6 +10,7 @@ from sift_client.sift_types.ingestion import (
     ChannelConfig,
     FlowConfig,
     IngestionConfig,
+    _to_rust_type,
 )
 
 
@@ -71,6 +72,16 @@ class TestChannelConfig:
             data_type=ChannelDataType.DOUBLE,
         )
         assert channel.data_type == ChannelDataType.DOUBLE
+
+    def test_to_rust_type_covers_every_channel_data_type(self):
+        """Test _to_rust_type has a branch for every ChannelDataType, including BYTES."""
+        # Importing here to match the lazy import convention in sift_types.ingestion
+        from sift_stream_bindings import ChannelDataTypePy
+
+        for data_type in ChannelDataType:
+            # Raises ValueError("Unknown data type: ...") if a variant is missing.
+            assert _to_rust_type(data_type) is not None
+        assert _to_rust_type(ChannelDataType.BYTES) == ChannelDataTypePy.Bytes
 
 
 class TestFlowConfig:

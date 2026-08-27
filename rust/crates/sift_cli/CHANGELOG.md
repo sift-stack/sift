@@ -13,6 +13,27 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   prevents ambiguous name resolution and stops an agent from mixing an asset
   and run into one view on its own. `sift-cli import` links to the run it
   imported into, and falls back to the asset only when there is no run.
+- Added MCP tools for managing calculated channels: `list_calculated_channels`,
+  `list_calculated_channel_versions`, `create_calculated_channel`,
+  `update_calculated_channel`, `archive_calculated_channel`, and
+  `unarchive_calculated_channel`.
+- `get_data` now serves saved calculated channels. A name in `channel_names`
+  with no raw-channel match resolves as an active saved calculated channel for
+  the asset and run; unresolvable names are reported explicitly.
+- `get_data` now accepts `asset_id` as an alternative to `asset_name`; exactly
+  one must be set.
+- Added `preview_rule`, which dry-runs a saved rule or an ad-hoc draft rule
+  config against a run without persisting anything.
+- Added MCP tools for managing user-defined functions:
+  `list_user_defined_functions`, `list_user_defined_function_versions`,
+  `create_user_defined_function`, `update_user_defined_function`,
+  `archive_user_defined_function`, and `unarchive_user_defined_function`.
+- `update_annotation` now requires `annotation_ids` instead of `annotation_id`,
+  a breaking change for existing callers; pass a one-element list for one
+  annotation. It updates 1 to 1000 annotations per call with per-ID failure
+  reporting, and its new `is_archived` parameter archives or unarchives
+  annotations.
+- Refreshed the bundled Sift agent skill to cover the expanded MCP tool surface.
 
 ## [v0.4.4] - August 24, 2026
 
