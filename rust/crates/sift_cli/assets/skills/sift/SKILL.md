@@ -1,20 +1,19 @@
 ---
 name: sift
 description: >-
-  Use when working with Sift: ingesting or importing time-series data,
-  querying assets/runs/channels/users, managing calculated channels, rules,
-  user-defined functions, exporting data, decimating or running SQL over data,
-  opening a view in the Sift Explore web
-  app, writing code that integrates with Sift, installing, updating, or
-  diagnosing the Sift agent integration, or looking up how Sift works in its
-  product and API documentation. Covers the Sift MCP server (started by
-  `sift-cli mcp`), the `sift-cli` itself, the Sift REST API over cURL, the Sift
-  Python library (`sift_client`), and the Sift Rust streaming library
+  Use for Sift tasks: ingesting or importing time-series data, querying
+  assets/runs/channels/users, managing calculated channels, rules, and
+  user-defined functions, exporting or decimating data, running SQL over data,
+  opening a view in Sift Explore, writing code that integrates with Sift,
+  installing, updating, or diagnosing the Sift agent integration, or looking
+  up how Sift works in its product and API documentation. Covers the Sift MCP
+  server (started by `sift-cli mcp`), `sift-cli`, the Sift REST API over cURL,
+  the Sift Python library (`sift_client`), and the Sift Rust streaming library
   (`sift_stream`).
   Triggers include phrases like "import this file into Sift", "stream data to
   Sift", "list assets/runs/channels", "runs I created", "runs a teammate
-  created", "export a run", "query Sift", "graph", "plot", "visualize", "open
-  in Explore", "write code to integrate with Sift", "how does X work in Sift",
+  created", "export a run", "query Sift", "graph", "plot", "visualize", "open in
+  Explore", "write code to integrate with Sift", "how does X work in Sift",
   "what does this endpoint do", "list calculated channels", "preview a rule",
   or "look up the Sift API reference".
 ---
@@ -121,9 +120,10 @@ exists.
   `update_calculated_channel` take the expression with `$1`, `$2`, …
   placeholders plus `expression_channel_references_json`, a JSON string array
   mapping each placeholder to a channel. Resolve those channel names with
-  `list_channels` first. Update and archive both create a new version instead of
-  replacing or deleting anything, and `list_calculated_channel_versions` shows
-  the history.
+  `list_channels` first. An update creates a new version and leaves earlier
+  versions intact; `list_calculated_channel_versions` shows that history.
+  Archiving sets an archived state, which `unarchive_calculated_channel` clears;
+  it is not a versioned, history-visible change.
 - **Use or change a user-defined function.** Call
   `list_user_defined_functions` before writing an expression that calls a UDF:
   it gives the exact name, input order, and output type the expression must
