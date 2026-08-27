@@ -10,8 +10,8 @@ fn service() -> UrlService {
 fn full_url_with_all_params() {
     let url = service()
         .build_explore_url(ExploreUrlRequest {
-            assets: Some(vec![String::from("Engine-7")]),
-            runs: Some(vec![String::from("2025-thrust-test")]),
+            asset_ids: Some(vec![String::from("asset-id")]),
+            run_ids: Some(vec![String::from("run-id")]),
             channels: Some(vec![String::from("temperature"), String::from("pressure")]),
             panel_type: Some(String::from("scatter-plot")),
             start_time_unix_nanos: Some(0),
@@ -22,8 +22,8 @@ fn full_url_with_all_params() {
     assert_eq!(
         url,
         "https://app.siftstack.com/explore?method=single\
-         &assets=Engine-7\
-         &runs=2025-thrust-test\
+         &assets=asset-id\
+         &runs=run-id\
          &channels=temperature,pressure\
          &panelType=scatter-plot\
          &startTime=1970-01-01T00:00:00.000Z\
@@ -35,8 +35,8 @@ fn full_url_with_all_params() {
 fn assets_and_runs_together_are_rejected_by_default() {
     let err = service()
         .build_explore_url(ExploreUrlRequest {
-            assets: Some(vec![String::from("Engine-7")]),
-            runs: Some(vec![String::from("2025-thrust-test")]),
+            asset_ids: Some(vec![String::from("asset-id")]),
+            run_ids: Some(vec![String::from("run-id")]),
             ..Default::default()
         })
         .unwrap_err();
@@ -52,8 +52,8 @@ fn assets_and_runs_together_are_rejected_by_default() {
 fn assets_and_runs_together_are_allowed_when_requested() {
     let url = service()
         .build_explore_url(ExploreUrlRequest {
-            assets: Some(vec![String::from("Engine-7")]),
-            runs: Some(vec![String::from("2025-thrust-test")]),
+            asset_ids: Some(vec![String::from("asset-id")]),
+            run_ids: Some(vec![String::from("run-id")]),
             include_assets_and_runs: true,
             ..Default::default()
         })
@@ -61,8 +61,8 @@ fn assets_and_runs_together_are_allowed_when_requested() {
     assert_eq!(
         url,
         "https://app.siftstack.com/explore?method=single\
-         &assets=Engine-7\
-         &runs=2025-thrust-test"
+         &assets=asset-id\
+         &runs=run-id"
     );
 }
 
@@ -70,14 +70,14 @@ fn assets_and_runs_together_are_allowed_when_requested() {
 fn an_empty_asset_list_does_not_conflict_with_runs() {
     let url = service()
         .build_explore_url(ExploreUrlRequest {
-            assets: Some(vec![]),
-            runs: Some(vec![String::from("2025-thrust-test")]),
+            asset_ids: Some(vec![]),
+            run_ids: Some(vec![String::from("run-id")]),
             ..Default::default()
         })
         .unwrap();
     assert_eq!(
         url,
-        "https://app.siftstack.com/explore?method=single&runs=2025-thrust-test"
+        "https://app.siftstack.com/explore?method=single&runs=run-id"
     );
 }
 
@@ -85,14 +85,14 @@ fn an_empty_asset_list_does_not_conflict_with_runs() {
 fn the_opt_in_is_ignored_for_a_single_source_type() {
     let url = service()
         .build_explore_url(ExploreUrlRequest {
-            runs: Some(vec![String::from("2025-thrust-test")]),
+            run_ids: Some(vec![String::from("run-id")]),
             include_assets_and_runs: true,
             ..Default::default()
         })
         .unwrap();
     assert_eq!(
         url,
-        "https://app.siftstack.com/explore?method=single&runs=2025-thrust-test"
+        "https://app.siftstack.com/explore?method=single&runs=run-id"
     );
 }
 
@@ -128,7 +128,7 @@ fn comma_inside_single_value_is_encoded() {
 fn unknown_panel_type_is_rejected() {
     let err = service()
         .build_explore_url(ExploreUrlRequest {
-            assets: Some(vec![String::from("a")]),
+            asset_ids: Some(vec![String::from("asset-id")]),
             panel_type: Some(String::from("bogus")),
             ..Default::default()
         })
@@ -149,8 +149,8 @@ fn empty_request_is_rejected() {
 fn empty_vecs_are_treated_as_missing() {
     let err = service()
         .build_explore_url(ExploreUrlRequest {
-            assets: Some(vec![]),
-            runs: Some(vec![]),
+            asset_ids: Some(vec![]),
+            run_ids: Some(vec![]),
             channels: Some(vec![]),
             ..Default::default()
         })
@@ -163,7 +163,7 @@ fn configured_app_uri_trims_a_trailing_slash() {
     let svc = UrlService::new(String::from("https://sift.example.net/"));
     let url = svc
         .build_explore_url(ExploreUrlRequest {
-            assets: Some(vec![String::from("a")]),
+            asset_ids: Some(vec![String::from("asset-id")]),
             ..Default::default()
         })
         .unwrap();

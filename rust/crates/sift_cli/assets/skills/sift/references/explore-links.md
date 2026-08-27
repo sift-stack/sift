@@ -3,9 +3,10 @@
 Build the link with `explore_url`, then surface the URL to the user as plain
 text, in full.
 
-Send one source type. Pass `runs` when the request names a run, `assets`
-otherwise. A run is already scoped to its asset, so adding the asset opens the
-view on a second, wider source. `explore_url` rejects both with
+Send one source type. Pass `run_ids` when the request names a run and
+`asset_ids` otherwise. Use IDs returned by `list_runs` and `list_assets`; the
+tool does not accept names. A run is already scoped to its asset, so adding the
+asset opens the view on a second, wider source. `explore_url` rejects both with
 `INVALID_PARAMS`; set `include_assets_and_runs` to true only when the user asked
 to see runs and assets together in one view.
 
