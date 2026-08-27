@@ -15,18 +15,18 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 job = client.data_import.import_from_path("recording.mcap", asset=my_asset)
 ```
 
-Importing without a config ingests every supported channel; a file with topics that cannot be decoded fails unless `McapParseErrorPolicy.IGNORE_ERROR` is set. Call `detect_config` to enumerate the file's channels locally, then edit the returned `McapImportConfig` (channel selection, names, types, metadata records, parse error policy) before importing.
+Importing without a config ingests every supported channel. Topics that cannot be decoded fail the import unless `McapParseErrorPolicy.IGNORE_ERROR` is set.
 
-`data` lists one entry per field. Variable-cardinality fields (dynamic and bounded arrays) are typed `BYTES`, and `complex_types_import_mode` decides what each becomes: Arrow IPC bytes, a JSON string under `<name>.json`, both (the default), or neither. As with Parquet, set it on the config:
+`detect_config` reads the file's channels locally without decoding messages, returning an `McapImportConfig` whose `data` holds one entry per field. Edit it to select, rename, or retype channels before importing.
 
 ```python
-from sift_client.sift_types.data_import import McapComplexTypesImportMode
-
 config = client.data_import.detect_config("recording.mcap")
 config.complex_types_import_mode = McapComplexTypesImportMode.STRING
 ```
 
-MCAP files are read locally to detect their channels, so both `detect_config` and importing without a config require the new `mcap` extra: `pip install sift-stack-py[mcap]`. Passing an `McapImportConfig` explicitly does not.
+Variable-cardinality fields (dynamic and bounded arrays) are typed `BYTES`. As with Parquet, `complex_types_import_mode` on the config decides what each becomes: Arrow IPC bytes, a JSON string under `<name>.json`, both (the default), or neither.
+
+Reading a file locally needs the new `mcap` extra (`pip install sift-stack-py[mcap]`), so both `detect_config` and importing without a config require it.
 
 ## [v0.20.0] - August 25, 2026
 
