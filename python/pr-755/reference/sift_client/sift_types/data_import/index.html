@@ -1065,6 +1065,17 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
+  <a href="#sift_client.sift_types.data_import.MCAP_JSON_CHANNEL_SUFFIX" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;MCAP_JSON_CHANNEL_SUFFIX
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#sift_client.sift_types.data_import.ImportConfig" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4009,6 +4020,17 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
+  <a href="#sift_client.sift_types.data_import.MCAP_JSON_CHANNEL_SUFFIX" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;MCAP_JSON_CHANNEL_SUFFIX
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#sift_client.sift_types.data_import.ImportConfig" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -6657,6 +6679,21 @@ You're not viewing the latest version.
             </td>
           </tr>
           <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            MCAP_JSON_CHANNEL_SUFFIX
+
+
+  
+      module-attribute
+   (sift_client.sift_types.data_import.MCAP_JSON_CHANNEL_SUFFIX)" href="#sift_client.sift_types.data_import.MCAP_JSON_CHANNEL_SUFFIX">MCAP_JSON_CHANNEL_SUFFIX</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                
+              </div>
+              <p>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
             <td><code><a class="autorefs autorefs-internal" title="            ImportConfig
 
 
@@ -6813,6 +6850,28 @@ You're not viewing the latest version.
       instance-attribute
    (sift_client.sift_types.data_import.DataTypeKey.MCAP)" href="#sift_client.sift_types.data_import.DataTypeKey.MCAP">MCAP</a></span><span class="p">,</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">}</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h2 id="sift_client.sift_types.data_import.MCAP_JSON_CHANNEL_SUFFIX" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">MCAP_JSON_CHANNEL_SUFFIX</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
+  </span>
+
+<a href="#sift_client.sift_types.data_import.MCAP_JSON_CHANNEL_SUFFIX" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">MCAP_JSON_CHANNEL_SUFFIX</span> <span class="o">=</span> <span class="s1">'.json'</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -15233,7 +15292,9 @@ failing the import.</p>
             <td class="doc-attribute-details">
               <div class="doc-md-description">
                 <p>How to import variable-cardinality fields.
-Defaults to importing them as both Arrow IPC bytes and JSON strings.</p>
+Defaults to importing them as both Arrow IPC bytes and JSON strings.
+<code>data</code> lists one entry per field; the mode decides which channels
+that entry becomes, so it can be changed on a detected config.</p>
               </div>
               <p>
                   <span class="doc-attribute-annotation">

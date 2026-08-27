@@ -11182,14 +11182,14 @@ but are not included in the returned config.</p>
 file. When imported, a non-empty <code>data</code> list restricts the import
 to exactly those channels; the import fails if a listed channel is
 not in the file. Clear <code>data</code> to import every channel.</p>
-<p>For MCAP files, <code>data</code> lists the channels of each supported topic's
-flattened fields, without decoding messages. A variable-cardinality
-field expands to two channels: Arrow IPC bytes under the base name and
-a JSON string under <code>&lt;base name&gt;.json</code>. The same non-empty <code>data</code>
-semantics as ULog apply. Topics the importer does not support are
-skipped with a warning; importing such a file fails under the default
-parse error policy, so set <code>McapParseErrorPolicy.IGNORE_ERROR</code> to
-import the rest.</p>
+<p>For MCAP files, <code>data</code> lists one channel per flattened field of each
+supported topic, without decoding messages. A variable-cardinality
+field is one entry; <code>complex_types_import_mode</code> on the config decides
+whether it imports as Arrow IPC bytes, a JSON string under
+<code>&lt;name&gt;.json</code>, both, or neither. The same non-empty <code>data</code>
+semantics as ULog apply. Topics that cannot be decoded are skipped with
+a warning; importing such a file fails unless
+<code>McapParseErrorPolicy.IGNORE_ERROR</code> is set.</p>
 <p>For file types with multiple supported layouts (Parquet, HDF5),
 <code>data_type</code> must be specified explicitly.</p>
 
