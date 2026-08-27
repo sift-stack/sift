@@ -52,6 +52,7 @@ hyper-util = { version = "0.1.20", features = ["service", "server", "tokio"] }
 include_dir = "0.7"
 indicatif = "0.18"
 indoc = "2.0"
+mcap = "0.25"
 parquet = "58.3.0"
 percent-encoding = "2"
 prost = "^0.14"

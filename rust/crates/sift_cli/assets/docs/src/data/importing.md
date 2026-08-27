@@ -13,6 +13,7 @@ named window of activity, such as a single test).
 | TDMS    | `import tdms`                    | [TDMS](./import-tdms.md)         |
 | HDF5    | `import hdf5`                    | [HDF5](./import-hdf5.md)         |
 | ULog    | `import ulog`                    | [ULog](./import-ulog.md)         |
+| MCAP    | `import mcap`                    | [MCAP](./import-mcap.md)         |
 | Backups | `import backups`                | [Backups](./import-backups.md)   |
 
 If your data is in a format not listed here, convert it to CSV or Parquet first

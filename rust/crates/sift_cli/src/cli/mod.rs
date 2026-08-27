@@ -2,9 +2,11 @@ use clap::{Parser, Subcommand, ValueEnum, crate_version};
 use clap_complete::Shell;
 use parquet::{ChannelMode, ComplexTypesMode};
 pub mod hdf5;
+pub mod mcap;
 pub mod tdms;
 pub mod ulog;
 use hdf5::Hdf5Schema;
+use mcap::{McapComplexTypesMode, McapParseErrorPolicy};
 use std::{net::SocketAddr, path::PathBuf};
 use tdms::TdmsFallbackMethod;
 use ulog::UlogParseErrorPolicy;
@@ -317,6 +319,18 @@ pub enum ImportCmd {
         after_help = "Example:\n  sift-cli import ulog data.ulg --asset engine"
     )]
     Ulog(ImportUlogArgs),
+
+    /// MCAP file
+    ///
+    /// Imports every decodable topic, one channel per flattened field, named
+    /// `<topic>.<field path>`. Only ROS 2 topics (`cdr` messages with
+    /// `ros2msg` schemas) are supported.
+    #[command(
+        arg_required_else_help = true,
+        override_usage = "sift-cli import mcap <PATH> --asset <ASSET> [OPTIONS]",
+        after_help = "Example:\n  sift-cli import mcap recording.mcap --asset rover"
+    )]
+    Mcap(ImportMcapArgs),
 
     /// Backup files from sift_stream
     ///
@@ -881,6 +895,31 @@ pub struct ImportUlogArgs {
     /// Handling for recoverable parse errors, such as truncated records.
     #[arg(long, default_value = "fail-on-error", help_heading = "Advanced")]
     pub parse_error_policy: UlogParseErrorPolicy,
+}
+
+#[derive(clap::Args)]
+pub struct ImportMcapArgs {
+    #[command(flatten)]
+    pub common: CommonImportArgs,
+
+    /// Log start time (RFC3339), only for logs on a non-Unix epoch. When set,
+    /// each message's log time is read as nanoseconds elapsed from this start.
+    #[arg(short = 's', long, help_heading = "Time")]
+    pub relative_start_time: Option<String>,
+
+    /// Metadata record to import as run metadata; every key of the record is
+    /// stored as `<record>.<key>`. Repeatable. Requires --run or --run-id.
+    #[arg(long, help_heading = "Metadata")]
+    pub metadata_record: Vec<String>,
+
+    /// Handling for recoverable parse errors, such as undecodable topics.
+    #[arg(long, default_value = "fail-on-error", help_heading = "Advanced")]
+    pub parse_error_policy: McapParseErrorPolicy,
+
+    /// Handling for variable-cardinality fields i.e. dynamic and bounded
+    /// arrays. JSON strings are imported as a `<channel>.json` channel.
+    #[arg(long, default_value = "both", help_heading = "Advanced")]
+    pub complex_types_import_mode: McapComplexTypesMode,
 }
 
 impl DocArgs {
