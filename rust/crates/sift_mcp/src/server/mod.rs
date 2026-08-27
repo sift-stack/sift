@@ -42,8 +42,9 @@ use crate::service::{
     annotations::AnnotationService, assets::AssetService,
     calculated_channels::CalculatedChannelService, channels::ChannelService, data::DataService,
     docs::DocsService, ingest::IngestService, ping::PingService,
-    report_templates::ReportTemplateService, reports::ReportService, rules::RuleService,
-    runs::RunService, url::UrlService, users::UserService,
+    report_templates::ReportTemplateService, reports::ReportService,
+    rule_evaluation::RuleEvaluationService, rules::RuleService, runs::RunService, url::UrlService,
+    user_defined_functions::UserDefinedFunctionService, users::UserService,
 };
 
 #[derive(Clone)]
@@ -63,9 +64,11 @@ pub struct SiftMcpServer {
     pub report_service: ReportService,
     pub report_template_service: ReportTemplateService,
     pub rule_service: RuleService,
+    pub rule_evaluation_service: RuleEvaluationService,
     #[cfg(feature = "test-reports")]
     pub test_report_service: TestReportService,
     pub docs_service: DocsService,
+    pub user_defined_function_service: UserDefinedFunctionService,
     pub user_service: UserService,
 
     pub allow_create: bool,
@@ -188,10 +191,12 @@ impl SiftMcpServer {
         tool_router.merge(Self::explore_router());
         tool_router.merge(Self::ping_router());
         tool_router.merge(Self::rules_router());
+        tool_router.merge(Self::rule_evaluation_router());
         tool_router.merge(Self::annotations_router());
         #[cfg(feature = "test-reports")]
         tool_router.merge(Self::test_reports_router());
         tool_router.merge(Self::docs_router());
+        tool_router.merge(Self::user_defined_functions_router());
         tool_router.merge(Self::users_router());
         if update_check.is_some() {
             tool_router.merge(Self::update_router());
@@ -215,9 +220,13 @@ impl SiftMcpServer {
         let report_template_service =
             ReportTemplateService::new(channel.clone(), retry_policy.clone());
         let rule_service = RuleService::new(channel.clone(), retry_policy.clone());
+        let rule_evaluation_service =
+            RuleEvaluationService::new(channel.clone(), retry_policy.clone());
         #[cfg(feature = "test-reports")]
         let test_report_service = TestReportService::new(channel.clone(), retry_policy.clone());
         let docs_service = DocsService::new(channel.clone(), retry_policy.clone());
+        let user_defined_function_service =
+            UserDefinedFunctionService::new(channel.clone(), retry_policy.clone());
         let user_service = UserService::new(channel.clone(), retry_policy);
 
         Self {
@@ -233,9 +242,11 @@ impl SiftMcpServer {
             report_service,
             report_template_service,
             rule_service,
+            rule_evaluation_service,
             #[cfg(feature = "test-reports")]
             test_report_service,
             docs_service,
+            user_defined_function_service,
             user_service,
             tool_router,
             prompt_router,
