@@ -7,10 +7,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
-## [v0.5.0] - August 26, 2026
-
-### What's New
-
+- Explore links now carry one source type. The MCP `explore_url` tool accepts
+  only `asset_ids` and `run_ids`, and rejects them together with
+  `INVALID_PARAMS` unless the new `include_assets_and_runs` flag is set. This
+  prevents ambiguous name resolution and stops an agent from mixing an asset
+  and run into one view on its own. `sift-cli import` links to the run it
+  imported into, and falls back to the asset only when there is no run.
 - Added MCP tools for managing calculated channels: `list_calculated_channels`,
   `list_calculated_channel_versions`, `create_calculated_channel`,
   `update_calculated_channel`, `archive_calculated_channel`, and

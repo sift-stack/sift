@@ -22,12 +22,13 @@ const VALUE_ENCODE_SET: &percent_encoding::AsciiSet = &percent_encoding::NON_ALP
 
 #[derive(Debug, Default)]
 pub struct ExploreUrlRequest {
-    pub assets: Option<Vec<String>>,
-    pub runs: Option<Vec<String>>,
+    pub asset_ids: Option<Vec<String>>,
+    pub run_ids: Option<Vec<String>>,
     pub channels: Option<Vec<String>>,
     pub panel_type: Option<String>,
     pub start_time_unix_nanos: Option<i64>,
     pub end_time_unix_nanos: Option<i64>,
+    pub include_assets_and_runs: bool,
 }
 
 #[derive(Clone)]
@@ -42,16 +43,20 @@ impl UrlService {
 
     pub fn build_explore_url(&self, request: ExploreUrlRequest) -> Result<String, ErrorData> {
         let ExploreUrlRequest {
-            assets,
-            runs,
+            asset_ids,
+            run_ids,
             channels,
             panel_type,
             start_time_unix_nanos,
             end_time_unix_nanos,
+            include_assets_and_runs,
         } = request;
 
-        let no_selection = assets.as_ref().is_none_or(|v| v.is_empty())
-            && runs.as_ref().is_none_or(|v| v.is_empty())
+        let has_assets = asset_ids.as_ref().is_some_and(|v| !v.is_empty());
+        let has_runs = run_ids.as_ref().is_some_and(|v| !v.is_empty());
+
+        let no_selection = !has_assets
+            && !has_runs
             && channels.as_ref().is_none_or(|v| v.is_empty())
             && panel_type.is_none()
             && start_time_unix_nanos.is_none()
@@ -60,6 +65,17 @@ impl UrlService {
             return Err(ErrorData::invalid_params(
                 "at least one of `assets`, `runs`, `channels`, `panel_type`, \
                  `start_time_unix_nanos`, or `end_time_unix_nanos` must be set",
+                None,
+            ));
+        }
+
+        if has_assets && has_runs && !include_assets_and_runs {
+            return Err(ErrorData::invalid_params(
+                "`asset_ids` and `run_ids` were both set. An Explore link that mixes \
+                 asset-scoped and run-scoped sources is not the default: pass `run_ids` alone \
+                 when the request names a run, or `asset_ids` alone otherwise. Set \
+                 `include_assets_and_runs` to true only when the user explicitly asked to see \
+                 runs and assets together in one view.",
                 None,
             ));
         }
@@ -88,11 +104,11 @@ impl UrlService {
         let host = self.app_host()?;
 
         let mut query = String::from("method=single");
-        if let Some(v) = assets.as_ref().filter(|v| !v.is_empty()) {
+        if let Some(v) = asset_ids.as_ref().filter(|v| !v.is_empty()) {
             query.push_str("&assets=");
             query.push_str(&join_encoded(v));
         }
-        if let Some(v) = runs.as_ref().filter(|v| !v.is_empty()) {
+        if let Some(v) = run_ids.as_ref().filter(|v| !v.is_empty()) {
             query.push_str("&runs=");
             query.push_str(&join_encoded(v));
         }
