@@ -60,7 +60,6 @@ class ListRolesRequest(google.protobuf.message.Message):
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are `role_id`, `name`, and `description`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-    For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/channels#channel). Optional.
     """
     order_by: builtins.str
     """How to order the retrieved channels. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".

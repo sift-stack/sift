@@ -54,11 +54,6 @@ class FamilyServiceStub(object):
                 request_serializer=sift_dot_families_dot_v1_dot_families__pb2.ListFamilyCandidateRunsRequest.SerializeToString,
                 response_deserializer=sift_dot_families_dot_v1_dot_families__pb2.ListFamilyCandidateRunsResponse.FromString,
                 )
-        self.GetFamilyCandidateRunFilterFields = channel.unary_unary(
-                '/sift.families.v1.FamilyService/GetFamilyCandidateRunFilterFields',
-                request_serializer=sift_dot_families_dot_v1_dot_families__pb2.GetFamilyCandidateRunFilterFieldsRequest.SerializeToString,
-                response_deserializer=sift_dot_families_dot_v1_dot_families__pb2.GetFamilyCandidateRunFilterFieldsResponse.FromString,
-                )
         self.ListFamilies = channel.unary_unary(
                 '/sift.families.v1.FamilyService/ListFamilies',
                 request_serializer=sift_dot_families_dot_v1_dot_families__pb2.ListFamiliesRequest.SerializeToString,
@@ -182,12 +177,6 @@ class FamilyServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def ListFamilyCandidateRuns(self, request, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def GetFamilyCandidateRunFilterFields(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -325,11 +314,6 @@ def add_FamilyServiceServicer_to_server(servicer, server):
                     servicer.ListFamilyCandidateRuns,
                     request_deserializer=sift_dot_families_dot_v1_dot_families__pb2.ListFamilyCandidateRunsRequest.FromString,
                     response_serializer=sift_dot_families_dot_v1_dot_families__pb2.ListFamilyCandidateRunsResponse.SerializeToString,
-            ),
-            'GetFamilyCandidateRunFilterFields': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetFamilyCandidateRunFilterFields,
-                    request_deserializer=sift_dot_families_dot_v1_dot_families__pb2.GetFamilyCandidateRunFilterFieldsRequest.FromString,
-                    response_serializer=sift_dot_families_dot_v1_dot_families__pb2.GetFamilyCandidateRunFilterFieldsResponse.SerializeToString,
             ),
             'ListFamilies': grpc.unary_unary_rpc_method_handler(
                     servicer.ListFamilies,
@@ -549,23 +533,6 @@ class FamilyService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.families.v1.FamilyService/ListFamilyCandidateRuns',
             sift_dot_families_dot_v1_dot_families__pb2.ListFamilyCandidateRunsRequest.SerializeToString,
             sift_dot_families_dot_v1_dot_families__pb2.ListFamilyCandidateRunsResponse.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-
-    @staticmethod
-    def GetFamilyCandidateRunFilterFields(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/sift.families.v1.FamilyService/GetFamilyCandidateRunFilterFields',
-            sift_dot_families_dot_v1_dot_families__pb2.GetFamilyCandidateRunFilterFieldsRequest.SerializeToString,
-            sift_dot_families_dot_v1_dot_families__pb2.GetFamilyCandidateRunFilterFieldsResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

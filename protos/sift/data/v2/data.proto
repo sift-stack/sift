@@ -53,7 +53,7 @@ message GetDataRequest {
   // The maximum number of channel values to return.
   // The service may return fewer than this value.
   // If unspecified, at most 10,000 values will be returned.
-  // The maximum value is 100,000; values above 100,000 will be coerced to 100,000.
+  // The maximum value is 1,000,000; values above 1,000,000 will be coerced to 1,000,000.
   // For variable data types (i.e. string channels), at most page_size elements
   // will be read, or 1MB, whichever occurs first.
   uint32 page_size = 5;
@@ -66,6 +66,7 @@ message GetDataRequest {
 
   // Optional flag to enable inclusion of "sift_received_at" timestamps
   // in GetDataResponse.data.extras field.
+  optional bool include_received_at = 51;
 }
 
 message Query {
@@ -171,6 +172,7 @@ message DoubleValue {
 message DoubleValues {
   Metadata metadata = 1 [(google.api.field_behavior) = REQUIRED];
   repeated DoubleValue values = 2 [(google.api.field_behavior) = REQUIRED];
+  repeated DimensionIndividualWrapper extras = 3;
 }
 
 message StringValue {
@@ -181,6 +183,7 @@ message StringValue {
 message StringValues {
   Metadata metadata = 1 [(google.api.field_behavior) = REQUIRED];
   repeated StringValue values = 2 [(google.api.field_behavior) = REQUIRED];
+  repeated DimensionIndividualWrapper extras = 3;
 }
 
 message EnumValue {
@@ -216,6 +219,7 @@ message BoolValue {
 message BoolValues {
   Metadata metadata = 1 [(google.api.field_behavior) = REQUIRED];
   repeated BoolValue values = 2 [(google.api.field_behavior) = REQUIRED];
+  repeated DimensionIndividualWrapper extras = 3;
 }
 
 message FloatValue {
@@ -226,6 +230,7 @@ message FloatValue {
 message FloatValues {
   Metadata metadata = 1 [(google.api.field_behavior) = REQUIRED];
   repeated FloatValue values = 2 [(google.api.field_behavior) = REQUIRED];
+  repeated DimensionIndividualWrapper extras = 3;
 }
 
 message Int32Value {
@@ -236,6 +241,7 @@ message Int32Value {
 message Int32Values {
   Metadata metadata = 1 [(google.api.field_behavior) = REQUIRED];
   repeated Int32Value values = 2 [(google.api.field_behavior) = REQUIRED];
+  repeated DimensionIndividualWrapper extras = 3;
 }
 
 message Uint32Value {
@@ -246,6 +252,7 @@ message Uint32Value {
 message Uint32Values {
   Metadata metadata = 1 [(google.api.field_behavior) = REQUIRED];
   repeated Uint32Value values = 2 [(google.api.field_behavior) = REQUIRED];
+  repeated DimensionIndividualWrapper extras = 3;
 }
 
 message Int64Value {
@@ -256,6 +263,7 @@ message Int64Value {
 message Int64Values {
   Metadata metadata = 1 [(google.api.field_behavior) = REQUIRED];
   repeated Int64Value values = 2 [(google.api.field_behavior) = REQUIRED];
+  repeated DimensionIndividualWrapper extras = 3;
 }
 
 message Uint64Value {
@@ -266,6 +274,37 @@ message Uint64Value {
 message Uint64Values {
   Metadata metadata = 1 [(google.api.field_behavior) = REQUIRED];
   repeated Uint64Value values = 2 [(google.api.field_behavior) = REQUIRED];
+  repeated DimensionIndividualWrapper extras = 3;
+}
+
+message DimensionIndividualWrapper {
+  string label = 1 [(google.api.field_behavior) = REQUIRED];
+  enum Type {
+    TYPE_UNSPECIFIED = 0;
+    TYPE_IDENTIFIER = 1;
+    TYPE_ADDITIONAL_TIMESTAMP_NANOS = 2;
+  }
+  Type type = 2 [(google.api.field_behavior) = REQUIRED];
+  oneof value_wrapper {
+    DimensionStringValues dimension_string_values = 3;
+    DimensionProtoTimestampValues dimension_proto_timestamp_values = 4;
+  }
+}
+
+message DimensionStringValues {
+  message DimensionStringValue {
+    optional string value = 1;
+  }
+
+  repeated DimensionStringValue values = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message DimensionProtoTimestampValues {
+  message DimensionProtoTimestampValue {
+    optional google.protobuf.Timestamp value = 1;
+  }
+
+  repeated DimensionProtoTimestampValue values = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message BytesValue {
@@ -276,4 +315,5 @@ message BytesValue {
 message BytesValues {
   Metadata metadata = 1 [(google.api.field_behavior) = REQUIRED];
   repeated BytesValue values = 2 [(google.api.field_behavior) = REQUIRED];
+  repeated DimensionIndividualWrapper extras = 3;
 }

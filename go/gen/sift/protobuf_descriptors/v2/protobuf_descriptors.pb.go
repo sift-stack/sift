@@ -551,7 +551,6 @@ type ListProtobufDescriptorsRequest struct {
 	// A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
 	// Available fields to filter by are `protobuf_descriptor_id`, `proto_file_name`, `namespace`, and `message_type_full_name`.
 	// For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-	// For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#protobufdescriptor). Optional.
 	Filter string `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
 	// How to order the retrieved protobuf descriptors. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
 	// Available fields to order_by are `created_date`, `modified_date`, and `message_type_full_name` and `namespace`.

@@ -5,6 +5,7 @@ import logging
 import os
 import socket
 import subprocess
+import sys
 import traceback
 import warnings
 from collections import Counter
@@ -88,7 +89,8 @@ def log_replay_instructions(log_file: str | Path | None) -> None:
         return
     warnings.warn(
         f"Sift log file was not fully replayed: {log_file}. "
-        f"Re-run with `import-test-result-log --incremental {log_file}` to complete the upload.",
+        f"Re-run `import-test-result-log {log_file}` to complete the upload; it resumes "
+        f"into the report the interrupted run created rather than starting a new one.",
         SiftWarning,
         stacklevel=2,
     )
@@ -257,9 +259,9 @@ class ReportContext(AbstractContextManager):
                 on top of git metadata when ``include_git_metadata`` is True, so
                 explicit keys win on collision.
             replay_log_file: When True (the default) and ``log_file`` is set,
-                spawn ``import-test-result-log --incremental`` to push log
-                entries to Sift in the background during the session. When
-                False, the log file is just a record and no worker is spawned.
+                spawn the background replay worker to push log entries to Sift
+                during the session. When False, the log file is just a record
+                and no worker is spawned.
                 Replay happens later via ``import-test-result-log <path>``.
                 Has no effect when ``log_file`` is None.
             audit_log: When set, the path of a DEBUG audit log. The replay worker
@@ -318,15 +320,22 @@ class ReportContext(AbstractContextManager):
         self.report = client.test_results.create(create, log_file=self.log_file)
 
     def _build_replay_command(self) -> list[str]:
-        """Build the argv for the import-test-result-log replay subprocess.
+        """Build the argv for the background replay worker subprocess.
 
         Factored out for testability: tests substitute commands that exit
         with controlled returncodes / stderr to exercise the ``__exit__``
-        branches without depending on the real replay binary.
+        branches without depending on the real replay worker.
         """
         cmd = [
-            "import-test-result-log",
-            "--incremental",
+            # Invoked through the running interpreter so the worker imports the
+            # same sift_client the session is using. Spawning by a bare command
+            # name would instead resolve through PATH, which raises
+            # FileNotFoundError wherever the venv's bin/ isn't on it: under
+            # ``sudo`` (sudoers' secure_path replaces PATH even with ``-E``), or
+            # running ``python -m pytest`` against a non-activated venv.
+            sys.executable,
+            "-m",
+            "sift_client._internal.pytest_plugin.replay_worker",
             str(self.log_file),
             "--grpc-url",
             self.client.grpc_client._config.uri,
@@ -361,7 +370,7 @@ class ReportContext(AbstractContextManager):
                     stderr=subprocess.PIPE,
                 )
         except OSError as exc:
-            # e.g. the ``import-test-result-log`` entry point isn't on PATH.
+            # e.g. the interpreter can't import the replay module.
             # Surface it; the JSONL log is still on disk for a manual replay.
             log_event(
                 logger, logging.WARNING, "replay.spawn_failed", error=repr(exc), log=self.log_file

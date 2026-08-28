@@ -34,6 +34,9 @@ impl serde::Serialize for ChannelConfigurations {
         if self.data_type.is_some() {
             len += 1;
         }
+        if self.calculated_channel_id.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.panel_configurations.v1.ChannelConfigurations", len)?;
         if !self.name.is_empty() {
             struct_ser.serialize_field("name", &self.name)?;
@@ -66,6 +69,9 @@ impl serde::Serialize for ChannelConfigurations {
                 .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", *v)))?;
             struct_ser.serialize_field("dataType", &v)?;
         }
+        if let Some(v) = self.calculated_channel_id.as_ref() {
+            struct_ser.serialize_field("calculatedChannelId", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -90,6 +96,8 @@ impl<'de> serde::Deserialize<'de> for ChannelConfigurations {
             "expressionChannelReferences",
             "data_type",
             "dataType",
+            "calculated_channel_id",
+            "calculatedChannelId",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -103,6 +111,7 @@ impl<'de> serde::Deserialize<'de> for ChannelConfigurations {
             Expression,
             ExpressionChannelReferences,
             DataType,
+            CalculatedChannelId,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -133,6 +142,7 @@ impl<'de> serde::Deserialize<'de> for ChannelConfigurations {
                             "expression" => Ok(GeneratedField::Expression),
                             "expressionChannelReferences" | "expression_channel_references" => Ok(GeneratedField::ExpressionChannelReferences),
                             "dataType" | "data_type" => Ok(GeneratedField::DataType),
+                            "calculatedChannelId" | "calculated_channel_id" => Ok(GeneratedField::CalculatedChannelId),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -161,6 +171,7 @@ impl<'de> serde::Deserialize<'de> for ChannelConfigurations {
                 let mut expression__ = None;
                 let mut expression_channel_references__ = None;
                 let mut data_type__ = None;
+                let mut calculated_channel_id__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Name => {
@@ -191,7 +202,7 @@ impl<'de> serde::Deserialize<'de> for ChannelConfigurations {
                             if bit_field_index__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("bitFieldIndex"));
                             }
-                            bit_field_index__ = 
+                            bit_field_index__ =
                                 map_.next_value::<::std::option::Option<::pbjson::private::NumberDeserialize<_>>>()?.map(|x| x.0)
                             ;
                         }
@@ -219,6 +230,12 @@ impl<'de> serde::Deserialize<'de> for ChannelConfigurations {
                             }
                             data_type__ = map_.next_value::<::std::option::Option<super::super::common::r#type::v1::ChannelDataType>>()?.map(|x| x as i32);
                         }
+                        GeneratedField::CalculatedChannelId => {
+                            if calculated_channel_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("calculatedChannelId"));
+                            }
+                            calculated_channel_id__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(ChannelConfigurations {
@@ -231,6 +248,7 @@ impl<'de> serde::Deserialize<'de> for ChannelConfigurations {
                     expression: expression__,
                     expression_channel_references: expression_channel_references__.unwrap_or_default(),
                     data_type: data_type__,
+                    calculated_channel_id: calculated_channel_id__,
                 })
             }
         }
@@ -791,7 +809,7 @@ impl<'de> serde::Deserialize<'de> for ListPanelConfigurationsRequest {
                             if page_size__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("pageSize"));
                             }
-                            page_size__ = 
+                            page_size__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1193,7 +1211,7 @@ impl<'de> serde::Deserialize<'de> for PanelConfiguration {
                             if version__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("version"));
                             }
-                            version__ = 
+                            version__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }

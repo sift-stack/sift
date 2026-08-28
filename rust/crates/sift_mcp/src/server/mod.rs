@@ -1,23 +1,52 @@
 use rmcp::{
     ErrorData, RoleServer, ServerHandler,
     handler::server::router::prompt::PromptRouter,
-    handler::server::tool::ToolRouter,
-    model::{ListToolsResult, PaginatedRequestParams},
+    handler::server::tool::{ToolCallContext, ToolRouter},
+    model::{
+        CacheScope, CallToolRequestParams, CallToolResponse, Implementation, ListToolsResult,
+        PaginatedRequestParams, ProtocolVersion, ServerCapabilities, ServerInfo,
+    },
     prompt_handler,
     service::RequestContext,
     tool_handler,
 };
 use sift_rs::SiftChannel;
+#[cfg(test)]
+use tokio::sync::watch;
 
-use crate::policy::RetryPolicy;
-use crate::service::artifacts::ArtifactService;
-#[cfg(feature = "test-reports")]
-use crate::service::test_reports::TestReportService;
+#[cfg(test)]
+use crate::UpdateCheck;
+use crate::{
+    FeatureFlags, UpdateCheckReceiver, client_event::ClientEventReporter,
+    feature_flags::TOOL_FEATURE_FLAGS, policy::RetryPolicy,
+};
+
+#[cfg(test)]
+mod test;
+
+const UPDATE_CHECK_INSTRUCTIONS: &str = concat!(
+    "Call `check_for_updates` once at the start of each session, before you call any other Sift tool. ",
+    "If it reports `update_available`, relay its `message` and exact ",
+    "`install_command` to the user. If the check is unavailable, continue with ",
+    "the requested Sift task. "
+);
+pub(crate) const BASE_INSTRUCTIONS: &str = concat!(
+    "Use Sift tools for telemetry discovery, analysis, ",
+    "and ingestion. Run `sift-cli agent doctor` for read-only integration ",
+    "diagnosis, `sift-cli agent install` for first setup, and `sift-cli agent ",
+    "update` to refresh every detected client together. Never enable destructive ",
+    "tools without explicit user approval. Result objects follow proto3 JSON ",
+    "rules: fields at their default value (false, 0, empty string/list) are ",
+    "omitted, so a missing boolean key means false, not unknown."
+);
 use crate::service::{
-    annotations::AnnotationService, assets::AssetService, channels::ChannelService,
-    data::DataService, docs::DocsService, ingest::IngestService, ping::PingService,
-    report_templates::ReportTemplateService, reports::ReportService, rules::RuleService,
-    runs::RunService, url::UrlService, users::UserService,
+    annotations::AnnotationService, artifacts::ArtifactService, assets::AssetService,
+    calculated_channels::CalculatedChannelService, channels::ChannelService, data::DataService,
+    docs::DocsService, ingest::IngestService, ping::PingService,
+    report_templates::ReportTemplateService, reports::ReportService,
+    rule_evaluation::RuleEvaluationService, rules::RuleService, runs::RunService,
+    test_reports::TestReportService, url::UrlService,
+    user_defined_functions::UserDefinedFunctionService, users::UserService,
 };
 
 #[derive(Clone)]
@@ -28,6 +57,7 @@ pub struct SiftMcpServer {
     pub annotation_service: AnnotationService,
     pub artifact_service: ArtifactService,
     pub asset_service: AssetService,
+    pub calculated_channel_service: CalculatedChannelService,
     pub channel_service: ChannelService,
     pub data_service: DataService,
     pub url_service: UrlService,
@@ -37,35 +67,37 @@ pub struct SiftMcpServer {
     pub report_service: ReportService,
     pub report_template_service: ReportTemplateService,
     pub rule_service: RuleService,
-    #[cfg(feature = "test-reports")]
+    pub rule_evaluation_service: RuleEvaluationService,
     pub test_report_service: TestReportService,
     pub docs_service: DocsService,
+    pub user_defined_function_service: UserDefinedFunctionService,
     pub user_service: UserService,
 
     pub allow_create: bool,
     pub allow_destructive: bool,
+    cli_version: String,
+    pub update_check: Option<UpdateCheckReceiver>,
+    client_event_reporter: ClientEventReporter,
 }
 
-#[tool_handler(
-    router = self.tool_router,
-    name = "SiftMcp",
-    version = "0.1.0",
-    instructions = "Use Sift tools for telemetry discovery, analysis, and \
-    ingestion. Run `sift-cli agent doctor` for read-only integration \
-    diagnosis, `sift-cli agent install` for first setup, and \
-    `sift-cli agent update` to refresh every detected client together. If the \
-    CLI is outdated, relay the exact curl or PowerShell installer it prints. \
-    Never enable destructive tools without explicit user approval. Result \
-    objects follow proto3 JSON rules: fields at their default value (false, \
-    0, empty string/list) are omitted, so a missing boolean key means false, \
-    not unknown.",
-)]
+#[tool_handler(router = self.tool_router)]
 #[prompt_handler(router = self.prompt_router)]
 impl ServerHandler for SiftMcpServer {
+    async fn call_tool(
+        &self,
+        request: CallToolRequestParams,
+        context: RequestContext<RoleServer>,
+    ) -> Result<CallToolResponse, ErrorData> {
+        let _ = self.client_event_reporter.send(request.name.as_ref()).await;
+
+        let context = ToolCallContext::new(self, request, context);
+        self.tool_router.call(context).await
+    }
+
     async fn list_tools(
         &self,
         _request: Option<PaginatedRequestParams>,
-        _context: RequestContext<RoleServer>,
+        context: RequestContext<RoleServer>,
     ) -> Result<ListToolsResult, ErrorData> {
         let mut tools = self.tool_router.list_all();
         tools.sort_by(|a, b| {
@@ -81,34 +113,104 @@ impl ServerHandler for SiftMcpServer {
                 .unwrap_or(b.name.as_ref());
             a_key.cmp(b_key)
         });
-        Ok(ListToolsResult::with_all_items(tools))
+        let mut result = ListToolsResult::with_all_items(tools);
+        if context
+            .protocol_version()
+            .is_some_and(|version| version >= ProtocolVersion::V_2026_07_28)
+        {
+            result = result.with_ttl_ms(0).with_cache_scope(CacheScope::Public);
+        }
+        Ok(result)
+    }
+
+    fn get_info(&self) -> ServerInfo {
+        let instructions = match &self.update_check {
+            Some(receiver) => {
+                let update_check = receiver.borrow();
+                let base = format!("{UPDATE_CHECK_INSTRUCTIONS}{BASE_INSTRUCTIONS}");
+                match update_check.update_message() {
+                    Some(message) => format!("{message}\n\n{base}"),
+                    None => base,
+                }
+            }
+            None => BASE_INSTRUCTIONS.to_string(),
+        };
+
+        ServerInfo::new(
+            ServerCapabilities::builder()
+                .enable_tools()
+                .enable_prompts()
+                .build(),
+        )
+        .with_server_info(Implementation::new("SiftMcp", self.cli_version.clone()))
+        .with_instructions(instructions)
     }
 }
 
 impl SiftMcpServer {
+    #[cfg(test)]
     pub fn new(
         channel: SiftChannel,
         app_uri: String,
         allow_create: bool,
         allow_destructive: bool,
     ) -> Self {
+        let version = env!("CARGO_PKG_VERSION").to_string();
+        let update_check = watch::channel(UpdateCheck::Current {
+            current_version: version.clone(),
+            latest_version: version.clone(),
+        })
+        .1;
+        Self::new_with_client_events(
+            channel,
+            app_uri,
+            allow_create,
+            allow_destructive,
+            version,
+            Some(update_check),
+            ClientEventReporter::default(),
+            FeatureFlags::default(),
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn new_with_client_events(
+        channel: SiftChannel,
+        app_uri: String,
+        allow_create: bool,
+        allow_destructive: bool,
+        cli_version: String,
+        update_check: Option<UpdateCheckReceiver>,
+        client_event_reporter: ClientEventReporter,
+        feature_flags: FeatureFlags,
+    ) -> Self {
         // Add more routers here as new tool groups are introduced, e.g.
         //   tool_router.merge(Self::ingestion_router())
         let mut tool_router = Self::assets_router();
         tool_router.merge(Self::runs_router());
         tool_router.merge(Self::channels_router());
+        tool_router.merge(Self::calculated_channels_router());
         tool_router.merge(Self::reports_router());
         tool_router.merge(Self::report_templates_router());
         tool_router.merge(Self::data_router());
         tool_router.merge(Self::explore_router());
         tool_router.merge(Self::ping_router());
         tool_router.merge(Self::rules_router());
+        tool_router.merge(Self::rule_evaluation_router());
         tool_router.merge(Self::annotations_router());
         tool_router.merge(Self::artifacts_router());
-        #[cfg(feature = "test-reports")]
         tool_router.merge(Self::test_reports_router());
         tool_router.merge(Self::docs_router());
+        tool_router.merge(Self::user_defined_functions_router());
         tool_router.merge(Self::users_router());
+        if update_check.is_some() {
+            tool_router.merge(Self::update_router());
+        }
+        for &(tool_name, flag) in TOOL_FEATURE_FLAGS {
+            if !feature_flags.enabled(flag) {
+                tool_router.remove_route(tool_name);
+            }
+        }
 
         let prompt_router = Self::prompt_router();
 
@@ -117,6 +219,8 @@ impl SiftMcpServer {
         let annotation_service = AnnotationService::new(channel.clone(), retry_policy.clone());
         let artifact_service = ArtifactService::new(channel.clone(), retry_policy.clone());
         let asset_service = AssetService::new(channel.clone(), retry_policy.clone());
+        let calculated_channel_service =
+            CalculatedChannelService::new(channel.clone(), retry_policy.clone());
         let data_service = DataService::new(channel.clone(), retry_policy.clone());
         let channel_service = ChannelService::new(channel.clone(), retry_policy.clone());
         let url_service = UrlService::new(app_uri);
@@ -127,15 +231,19 @@ impl SiftMcpServer {
         let report_template_service =
             ReportTemplateService::new(channel.clone(), retry_policy.clone());
         let rule_service = RuleService::new(channel.clone(), retry_policy.clone());
-        #[cfg(feature = "test-reports")]
+        let rule_evaluation_service =
+            RuleEvaluationService::new(channel.clone(), retry_policy.clone());
         let test_report_service = TestReportService::new(channel.clone(), retry_policy.clone());
         let docs_service = DocsService::new(channel.clone(), retry_policy.clone());
+        let user_defined_function_service =
+            UserDefinedFunctionService::new(channel.clone(), retry_policy.clone());
         let user_service = UserService::new(channel.clone(), retry_policy);
 
         Self {
             annotation_service,
             artifact_service,
             asset_service,
+            calculated_channel_service,
             channel_service,
             data_service,
             url_service,
@@ -145,14 +253,18 @@ impl SiftMcpServer {
             report_service,
             report_template_service,
             rule_service,
-            #[cfg(feature = "test-reports")]
+            rule_evaluation_service,
             test_report_service,
             docs_service,
+            user_defined_function_service,
             user_service,
             tool_router,
             prompt_router,
             allow_create,
             allow_destructive,
+            cli_version,
+            update_check,
+            client_event_reporter,
         }
     }
 

@@ -305,37 +305,6 @@ pub mod family_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn get_family_candidate_run_filter_fields(
-            &mut self,
-            request: impl tonic::IntoRequest<
-                super::GetFamilyCandidateRunFilterFieldsRequest,
-            >,
-        ) -> std::result::Result<
-            tonic::Response<super::GetFamilyCandidateRunFilterFieldsResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/sift.families.v1.FamilyService/GetFamilyCandidateRunFilterFields",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "sift.families.v1.FamilyService",
-                        "GetFamilyCandidateRunFilterFields",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
         pub async fn list_families(
             &mut self,
             request: impl tonic::IntoRequest<super::ListFamiliesRequest>,
@@ -825,13 +794,6 @@ pub mod family_service_server {
             request: tonic::Request<super::ListFamilyCandidateRunsRequest>,
         ) -> std::result::Result<
             tonic::Response<super::ListFamilyCandidateRunsResponse>,
-            tonic::Status,
-        >;
-        async fn get_family_candidate_run_filter_fields(
-            &self,
-            request: tonic::Request<super::GetFamilyCandidateRunFilterFieldsRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::GetFamilyCandidateRunFilterFieldsResponse>,
             tonic::Status,
         >;
         async fn list_families(
@@ -1379,60 +1341,6 @@ pub mod family_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListFamilyCandidateRunsSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            )
-                            .apply_max_message_size_config(
-                                max_decoding_message_size,
-                                max_encoding_message_size,
-                            );
-                        let res = grpc.unary(method, req).await;
-                        Ok(res)
-                    };
-                    Box::pin(fut)
-                }
-                "/sift.families.v1.FamilyService/GetFamilyCandidateRunFilterFields" => {
-                    #[allow(non_camel_case_types)]
-                    struct GetFamilyCandidateRunFilterFieldsSvc<T: FamilyService>(
-                        pub Arc<T>,
-                    );
-                    impl<
-                        T: FamilyService,
-                    > tonic::server::UnaryService<
-                        super::GetFamilyCandidateRunFilterFieldsRequest,
-                    > for GetFamilyCandidateRunFilterFieldsSvc<T> {
-                        type Response = super::GetFamilyCandidateRunFilterFieldsResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<
-                                super::GetFamilyCandidateRunFilterFieldsRequest,
-                            >,
-                        ) -> Self::Future {
-                            let inner = Arc::clone(&self.0);
-                            let fut = async move {
-                                <T as FamilyService>::get_family_candidate_run_filter_fields(
-                                        &inner,
-                                        request,
-                                    )
-                                    .await
-                            };
-                            Box::pin(fut)
-                        }
-                    }
-                    let accept_compression_encodings = self.accept_compression_encodings;
-                    let send_compression_encodings = self.send_compression_encodings;
-                    let max_decoding_message_size = self.max_decoding_message_size;
-                    let max_encoding_message_size = self.max_encoding_message_size;
-                    let inner = self.inner.clone();
-                    let fut = async move {
-                        let method = GetFamilyCandidateRunFilterFieldsSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

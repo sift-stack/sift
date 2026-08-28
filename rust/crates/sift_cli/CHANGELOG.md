@@ -11,6 +11,72 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   `create_artifact`, backed by public `sift.artifacts.v1.ArtifactService`.
   `create_artifact` writes artifact metadata (and can link a new artifact to a
   conversation). Create calls require `--allow-create`.
+- Some MCP tools are now enabled per account by feature flags resolved at server
+  startup. A tool absent from the tool list needs its account flag enabled and an
+  MCP restart.
+- Explore links now carry one source type. The MCP `explore_url` tool accepts
+  only `asset_ids` and `run_ids`, and rejects them together with
+  `INVALID_PARAMS` unless the new `include_assets_and_runs` flag is set. This
+  prevents ambiguous name resolution and stops an agent from mixing an asset
+  and run into one view on its own. `sift-cli import` links to the run it
+  imported into, and falls back to the asset only when there is no run.
+- Added MCP tools for managing calculated channels: `list_calculated_channels`,
+  `list_calculated_channel_versions`, `create_calculated_channel`,
+  `update_calculated_channel`, `archive_calculated_channel`, and
+  `unarchive_calculated_channel`.
+- `get_data` now serves saved calculated channels. A name in `channel_names`
+  with no raw-channel match resolves as an active saved calculated channel for
+  the asset and run; unresolvable names are reported explicitly.
+- `get_data` now accepts `asset_id` as an alternative to `asset_name`; exactly
+  one must be set.
+- Added `preview_rule`, which dry-runs a saved rule or an ad-hoc draft rule
+  config against a run without persisting anything.
+- Added MCP tools for managing user-defined functions:
+  `list_user_defined_functions`, `list_user_defined_function_versions`,
+  `create_user_defined_function`, `update_user_defined_function`,
+  `archive_user_defined_function`, and `unarchive_user_defined_function`.
+- `update_annotation` now requires `annotation_ids` instead of `annotation_id`,
+  a breaking change for existing callers; pass a one-element list for one
+  annotation. It updates 1 to 1000 annotations per call with per-ID failure
+  reporting, and its new `is_archived` parameter archives or unarchives
+  annotations.
+- Refreshed the bundled Sift agent skill to cover the expanded MCP tool surface.
+
+## [v0.4.4] - August 24, 2026
+
+### What's New
+
+- Added `sift-cli get asset`, the first of the new `get` subcommands for
+  discovering data in Sift from the terminal. It takes `--filter` with a CEL
+  expression, `--limit` (default 50), and `--output-format` (`text` or
+  `json`).
+- MCP `list_*` tools now accept an optional `fields` projection that keeps
+  only the named fields on each item, cutting response size for wide objects.
+  Names match case-insensitively and ignore underscores and hyphens; names
+  that match nothing are reported back in `unmatched_fields`.
+- MCP `list_*` responses now report `count` (items in the returned page) and
+  `has_more` (whether results were truncated at `limit`), so agents can tell
+  a complete listing from a capped one.
+- Added a `--disable-nonessential-traffic` flag to `sift-cli mcp` that stops
+  the MCP server from making non-essential network requests. Release checks
+  stay under `--disable-update-check`.
+- `sift-cli agent install` now works in headless environments (container
+  builds, CI). A client's config directory counts as detection even when its
+  binary is not on PATH, the skill always installs (it is plain file IO), and
+  a client-CLI-backed MCP registration that cannot run is skipped with a
+  warning instead of failing the install. `agent doctor` reports such a
+  registration as a warning rather than an error.
+- Added an optional `--path <DIR>` to `sift-cli agent install` that installs
+  the agent skill into the named directory in addition to every detected
+  client, for image builds and other environments that package the skill at a
+  fixed location. The directory receives `SKILL.md` and `references/`
+  directly; rerun with the same `--path` to refresh it. Without `--path`, the
+  skill installs only to the default locations for detected clients.
+
+## [v0.4.1] - August 10, 2026
+
+### What's New
+
 - Added an `--allow-create` MCP access tier alongside `--allow-destructive`.
   The server now recognizes three tiers: read-only (default), create (enables
   `create_*`, `upload_dataset`, `append_test_measurements`), and destructive
@@ -18,6 +84,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   available on `sift-cli mcp`, `sift-cli agent install`, and
   `sift-cli agent update`; blocked calls now name the exact remediation command
   for the tier they need.
+- Add in `check_for_updates` tool into MCP that proactively checks to see if
+  the current `sift-cli` version is out of date. Token optimized. If outdated,
+  provides a clear installation path for the latest version.
 
 ## [v0.4.0] - August 5, 2026
 

@@ -67,6 +67,7 @@ async fn list_artifacts_returns_rows() {
             conversation_id: Some("conv-1".into()),
             include_archived: None,
             limit: None,
+            fields: None,
         }))
         .await
         .expect("list");
@@ -83,6 +84,7 @@ async fn list_artifacts_rejects_empty_conversation_id() {
             conversation_id: Some("  ".into()),
             include_archived: None,
             limit: None,
+            fields: None,
         }))
         .await
         .expect_err("empty conversation");

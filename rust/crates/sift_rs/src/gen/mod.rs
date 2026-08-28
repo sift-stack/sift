@@ -35,6 +35,13 @@ pub mod sift {
             // @@protoc_insertion_point(sift.assets.v1)
         }
     }
+    pub mod automation {
+        // @@protoc_insertion_point(attribute:sift.automation.v1)
+        pub mod v1 {
+            include!("sift/automation/v1/sift.automation.v1.rs");
+            // @@protoc_insertion_point(sift.automation.v1)
+        }
+    }
     pub mod calculated_channels {
         // @@protoc_insertion_point(attribute:sift.calculated_channels.v1)
         pub mod v1 {
@@ -158,13 +165,6 @@ pub mod sift {
         pub mod v1 {
             include!("sift/families/v1/sift.families.v1.rs");
             // @@protoc_insertion_point(sift.families.v1)
-        }
-    }
-    pub mod filters {
-        // @@protoc_insertion_point(attribute:sift.filters.v1)
-        pub mod v1 {
-            include!("sift/filters/v1/sift.filters.v1.rs");
-            // @@protoc_insertion_point(sift.filters.v1)
         }
     }
     pub mod ingest {

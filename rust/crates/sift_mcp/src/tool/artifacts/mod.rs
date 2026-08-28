@@ -11,6 +11,7 @@ use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::artifacts::AuthoringKind,
+    tool::common::{list_body, to_values},
 };
 
 #[cfg(test)]
@@ -21,6 +22,7 @@ pub struct ArtifactListParams {
     conversation_id: Option<String>,
     include_archived: Option<bool>,
     limit: Option<u32>,
+    fields: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -64,6 +66,12 @@ impl SiftMcpServer {
               - `{ \"artifacts\": [Artifact, ...] }`. Each item includes `artifact_id`, `artifact_version_id`,
                 `version`, `title`, `summary`, `authoring_kind`, `file_name`, `file_mime_type`, `remote_file_id`,
                 `created_date`, and `archived_date` when set.
+              - `count`: how many items THIS response carries — read it instead of
+                counting the array yourself. It is the size of the page you got back, not
+                how many artifacts exist in the organization.
+              - `has_more`: `true` when the service hit `limit` with matches left over, so
+                this page is not the whole set. Never report `count` as a total while
+                `has_more` is `true` — raise `limit` or scope with `conversation_id` and ask again.
 
             Parameters:
               - `conversation_id`: optional. When set, only artifacts linked to that conversation. When omitted,
@@ -72,6 +80,14 @@ impl SiftMcpServer {
                 user asks for archived ones.
               - `limit`: max items to return. Start at 50 and only raise it if the result is capped
                 and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
+              - `fields`: optional array of field names to keep on each item, e.g.
+                `[\"title\"]`. Omit it for the full object. Names match case-insensitively
+                and ignore underscores and hyphens, so `artifact_id`, `artifactId` and
+                `artifact-id` all work. Any name that matched nothing on any returned item
+                is listed in `unmatched_fields`; an empty page reports none, since it
+                says nothing about whether a name was spelled right.
+                Reach for this whenever you need only a few fields: full objects are wide,
+                and a large listing can exceed the response size limit without it.
 
             Errors:
               - `INVALID_PARAMS` if `conversation_id` is empty when set.
@@ -89,6 +105,7 @@ impl SiftMcpServer {
             conversation_id,
             include_archived,
             limit,
+            fields,
         }) = params;
 
         if let Some(id) = conversation_id.as_deref()
@@ -100,15 +117,20 @@ impl SiftMcpServer {
             ));
         }
 
-        let artifacts = self
+        let page = self
             .artifact_service
             .list_artifacts(conversation_id, include_archived.unwrap_or(false), limit)
             .await
             .map_err(from_anyhow)?;
 
-        Ok(CallToolResult::structured(
-            serde_json::json!({ "artifacts": artifacts }),
-        ))
+        let artifacts = to_values(&page.items)?;
+
+        Ok(CallToolResult::structured(list_body(
+            "artifacts",
+            artifacts,
+            fields,
+            page.has_more,
+        )))
     }
 
     #[tool(

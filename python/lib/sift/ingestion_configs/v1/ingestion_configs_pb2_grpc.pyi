@@ -41,13 +41,13 @@ class IngestionConfigServiceStub:
         sift.ingestion_configs.v1.ingestion_configs_pb2.CreateIngestionConfigFlowsRequest,
         sift.ingestion_configs.v1.ingestion_configs_pb2.CreateIngestionConfigFlowsResponse,
     ]
-    """Create ingestion config [flows](/glossary#flow)."""
+    """Create ingestion config flows."""
 
     ListIngestionConfigFlows: grpc.UnaryUnaryMultiCallable[
         sift.ingestion_configs.v1.ingestion_configs_pb2.ListIngestionConfigFlowsRequest,
         sift.ingestion_configs.v1.ingestion_configs_pb2.ListIngestionConfigFlowsResponse,
     ]
-    """List ingestion config [flows](/glossary#flow) using an optional filter."""
+    """List ingestion config flows using an optional filter."""
 
 class IngestionConfigServiceAsyncStub:
     GetIngestionConfig: grpc.aio.UnaryUnaryMultiCallable[
@@ -72,13 +72,13 @@ class IngestionConfigServiceAsyncStub:
         sift.ingestion_configs.v1.ingestion_configs_pb2.CreateIngestionConfigFlowsRequest,
         sift.ingestion_configs.v1.ingestion_configs_pb2.CreateIngestionConfigFlowsResponse,
     ]
-    """Create ingestion config [flows](/glossary#flow)."""
+    """Create ingestion config flows."""
 
     ListIngestionConfigFlows: grpc.aio.UnaryUnaryMultiCallable[
         sift.ingestion_configs.v1.ingestion_configs_pb2.ListIngestionConfigFlowsRequest,
         sift.ingestion_configs.v1.ingestion_configs_pb2.ListIngestionConfigFlowsResponse,
     ]
-    """List ingestion config [flows](/glossary#flow) using an optional filter."""
+    """List ingestion config flows using an optional filter."""
 
 class IngestionConfigServiceServicer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
@@ -111,7 +111,7 @@ class IngestionConfigServiceServicer(metaclass=abc.ABCMeta):
         request: sift.ingestion_configs.v1.ingestion_configs_pb2.CreateIngestionConfigFlowsRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.ingestion_configs.v1.ingestion_configs_pb2.CreateIngestionConfigFlowsResponse, collections.abc.Awaitable[sift.ingestion_configs.v1.ingestion_configs_pb2.CreateIngestionConfigFlowsResponse]]:
-        """Create ingestion config [flows](/glossary#flow)."""
+        """Create ingestion config flows."""
 
     @abc.abstractmethod
     def ListIngestionConfigFlows(
@@ -119,6 +119,6 @@ class IngestionConfigServiceServicer(metaclass=abc.ABCMeta):
         request: sift.ingestion_configs.v1.ingestion_configs_pb2.ListIngestionConfigFlowsRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.ingestion_configs.v1.ingestion_configs_pb2.ListIngestionConfigFlowsResponse, collections.abc.Awaitable[sift.ingestion_configs.v1.ingestion_configs_pb2.ListIngestionConfigFlowsResponse]]:
-        """List ingestion config [flows](/glossary#flow) using an optional filter."""
+        """List ingestion config flows using an optional filter."""
 
 def add_IngestionConfigServiceServicer_to_server(servicer: IngestionConfigServiceServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...

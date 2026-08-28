@@ -52,11 +52,22 @@ class ExternalSync(google.protobuf.message.Message):
     TOKEN_CREATED_DATE_FIELD_NUMBER: builtins.int
     TOKEN_LIFETIME_SECONDS_FIELD_NUMBER: builtins.int
     MOST_RECENT_TOKEN_BY_USER_ID_FIELD_NUMBER: builtins.int
+    REALM_FIELD_NUMBER: builtins.int
+    CLIENT_FIELD_NUMBER: builtins.int
     organization_id: builtins.str
     most_recent_sync_by_user_id: builtins.str
     scim_server_url: builtins.str
     token_lifetime_seconds: builtins.int
     most_recent_token_by_user_id: builtins.str
+    realm: builtins.str
+    """The Keycloak realm the sync reads from. Already stored alongside the sync;
+    returned here so customer admins can reference it.
+    """
+    client: builtins.str
+    """The Keycloak client id the sync authenticates as. Already stored alongside
+    the sync; returned here so customer admins can reference it. The
+    corresponding client secret stays write-only and is never returned.
+    """
     @property
     def most_recent_sync_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -71,9 +82,11 @@ class ExternalSync(google.protobuf.message.Message):
         token_created_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         token_lifetime_seconds: builtins.int = ...,
         most_recent_token_by_user_id: builtins.str | None = ...,
+        realm: builtins.str = ...,
+        client: builtins.str = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_most_recent_sync_by_user_id", b"_most_recent_sync_by_user_id", "_most_recent_sync_date", b"_most_recent_sync_date", "_most_recent_token_by_user_id", b"_most_recent_token_by_user_id", "_token_created_date", b"_token_created_date", "most_recent_sync_by_user_id", b"most_recent_sync_by_user_id", "most_recent_sync_date", b"most_recent_sync_date", "most_recent_token_by_user_id", b"most_recent_token_by_user_id", "token_created_date", b"token_created_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_most_recent_sync_by_user_id", b"_most_recent_sync_by_user_id", "_most_recent_sync_date", b"_most_recent_sync_date", "_most_recent_token_by_user_id", b"_most_recent_token_by_user_id", "_token_created_date", b"_token_created_date", "most_recent_sync_by_user_id", b"most_recent_sync_by_user_id", "most_recent_sync_date", b"most_recent_sync_date", "most_recent_token_by_user_id", b"most_recent_token_by_user_id", "organization_id", b"organization_id", "scim_server_url", b"scim_server_url", "token_created_date", b"token_created_date", "token_lifetime_seconds", b"token_lifetime_seconds"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_most_recent_sync_by_user_id", b"_most_recent_sync_by_user_id", "_most_recent_sync_date", b"_most_recent_sync_date", "_most_recent_token_by_user_id", b"_most_recent_token_by_user_id", "_token_created_date", b"_token_created_date", "client", b"client", "most_recent_sync_by_user_id", b"most_recent_sync_by_user_id", "most_recent_sync_date", b"most_recent_sync_date", "most_recent_token_by_user_id", b"most_recent_token_by_user_id", "organization_id", b"organization_id", "realm", b"realm", "scim_server_url", b"scim_server_url", "token_created_date", b"token_created_date", "token_lifetime_seconds", b"token_lifetime_seconds"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_most_recent_sync_by_user_id", b"_most_recent_sync_by_user_id"]) -> typing.Literal["most_recent_sync_by_user_id"] | None: ...
     @typing.overload

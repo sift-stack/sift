@@ -1304,7 +1304,6 @@ type ListTestReportsRequest struct {
 	// `part_number`, `system_operator`, `run_id`, `archived_date`, and `metadata`.
 	// Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
 	// For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-	// For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/test-results#testreport). Optional.
 	Filter string `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
 	// How to order the retrieved test reports. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
 	// Available fields to order_by are `test_report_id`, `name`, `test_system_name`, `test_case`, `start_time`, `end_time`,
@@ -1750,7 +1749,6 @@ type ListTestStepsRequest struct {
 	// `error_code`, `error_message`, `created_date`, `modified_date`, and `metadata`.
 	// Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
 	// For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-	// For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/test-results#teststep). Optional.
 	Filter string `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
 	// How to order the retrieved test steps. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
 	// Available fields to order_by are `test_step_id`, `name`, `step_type`, `step_path`, `status`,
@@ -2305,7 +2303,6 @@ type ListTestMeasurementsRequest struct {
 	// `created_date`, `modified_date`, and `metadata`.
 	// Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
 	// For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-	// For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/test-results#testmeasurement). Optional.
 	Filter string `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
 	// How to order the retrieved test measurements. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
 	// Available fields to order_by are `measurement_id`, `name`, `measurement_type`, `test_step_id`, `test_report_id`,
@@ -2446,7 +2443,6 @@ type CountTestStepsRequest struct {
 	// `error_code`, `error_message`, `created_date`, `modified_date`, and `metadata`.
 	// Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
 	// For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-	// For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/test-results#teststep). Optional.
 	Filter string `protobuf:"bytes,1,opt,name=filter,proto3" json:"filter,omitempty"`
 }
 
@@ -2550,7 +2546,6 @@ type CountTestMeasurementsRequest struct {
 	// `created_date`, `modified_date`, and `metadata`.
 	// Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
 	// For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-	// For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/test-results#testmeasurement). Optional.
 	Filter string `protobuf:"bytes,1,opt,name=filter,proto3" json:"filter,omitempty"`
 }
 

@@ -59,11 +59,6 @@ class FamilyServiceStub:
         sift.families.v1.families_pb2.ListFamilyCandidateRunsResponse,
     ]
 
-    GetFamilyCandidateRunFilterFields: grpc.UnaryUnaryMultiCallable[
-        sift.families.v1.families_pb2.GetFamilyCandidateRunFilterFieldsRequest,
-        sift.families.v1.families_pb2.GetFamilyCandidateRunFilterFieldsResponse,
-    ]
-
     ListFamilies: grpc.UnaryUnaryMultiCallable[
         sift.families.v1.families_pb2.ListFamiliesRequest,
         sift.families.v1.families_pb2.ListFamiliesResponse,
@@ -178,11 +173,6 @@ class FamilyServiceAsyncStub:
     ListFamilyCandidateRuns: grpc.aio.UnaryUnaryMultiCallable[
         sift.families.v1.families_pb2.ListFamilyCandidateRunsRequest,
         sift.families.v1.families_pb2.ListFamilyCandidateRunsResponse,
-    ]
-
-    GetFamilyCandidateRunFilterFields: grpc.aio.UnaryUnaryMultiCallable[
-        sift.families.v1.families_pb2.GetFamilyCandidateRunFilterFieldsRequest,
-        sift.families.v1.families_pb2.GetFamilyCandidateRunFilterFieldsResponse,
     ]
 
     ListFamilies: grpc.aio.UnaryUnaryMultiCallable[
@@ -316,13 +306,6 @@ class FamilyServiceServicer(metaclass=abc.ABCMeta):
         request: sift.families.v1.families_pb2.ListFamilyCandidateRunsRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.families.v1.families_pb2.ListFamilyCandidateRunsResponse, collections.abc.Awaitable[sift.families.v1.families_pb2.ListFamilyCandidateRunsResponse]]: ...
-
-    @abc.abstractmethod
-    def GetFamilyCandidateRunFilterFields(
-        self,
-        request: sift.families.v1.families_pb2.GetFamilyCandidateRunFilterFieldsRequest,
-        context: _ServicerContext,
-    ) -> typing.Union[sift.families.v1.families_pb2.GetFamilyCandidateRunFilterFieldsResponse, collections.abc.Awaitable[sift.families.v1.families_pb2.GetFamilyCandidateRunFilterFieldsResponse]]: ...
 
     @abc.abstractmethod
     def ListFamilies(

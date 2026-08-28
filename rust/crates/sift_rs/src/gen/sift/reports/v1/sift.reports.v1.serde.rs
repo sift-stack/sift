@@ -1280,7 +1280,7 @@ impl<'de> serde::Deserialize<'de> for ListReportMetadataValuesRequest {
                             if page_size__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("pageSize"));
                             }
-                            page_size__ = 
+                            page_size__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1548,7 +1548,7 @@ impl<'de> serde::Deserialize<'de> for ListReportRuleSummariesRequest {
                             if page_size__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("pageSize"));
                             }
-                            page_size__ = 
+                            page_size__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1817,7 +1817,7 @@ impl<'de> serde::Deserialize<'de> for ListReportsRequest {
                             if page_size__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("pageSize"));
                             }
-                            page_size__ = 
+                            page_size__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2091,7 +2091,7 @@ impl<'de> serde::Deserialize<'de> for ListReportsWithCumulativeSummaryRequest {
                             if page_size__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("pageSize"));
                             }
-                            page_size__ = 
+                            page_size__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2310,6 +2310,12 @@ impl serde::Serialize for Report {
         if self.canvas_status.is_some() {
             len += 1;
         }
+        if self.canvas_version_id.is_some() {
+            len += 1;
+        }
+        if self.canvas_id.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.reports.v1.Report", len)?;
         if !self.report_id.is_empty() {
             struct_ser.serialize_field("reportId", &self.report_id)?;
@@ -2375,6 +2381,12 @@ impl serde::Serialize for Report {
                 .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", *v)))?;
             struct_ser.serialize_field("canvasStatus", &v)?;
         }
+        if let Some(v) = self.canvas_version_id.as_ref() {
+            struct_ser.serialize_field("canvasVersionId", v)?;
+        }
+        if let Some(v) = self.canvas_id.as_ref() {
+            struct_ser.serialize_field("canvasId", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -2420,6 +2432,10 @@ impl<'de> serde::Deserialize<'de> for Report {
             "canvasExecutionId",
             "canvas_status",
             "canvasStatus",
+            "canvas_version_id",
+            "canvasVersionId",
+            "canvas_id",
+            "canvasId",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -2444,6 +2460,8 @@ impl<'de> serde::Deserialize<'de> for Report {
             ReportType,
             CanvasExecutionId,
             CanvasStatus,
+            CanvasVersionId,
+            CanvasId,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -2485,6 +2503,8 @@ impl<'de> serde::Deserialize<'de> for Report {
                             "reportType" | "report_type" => Ok(GeneratedField::ReportType),
                             "canvasExecutionId" | "canvas_execution_id" => Ok(GeneratedField::CanvasExecutionId),
                             "canvasStatus" | "canvas_status" => Ok(GeneratedField::CanvasStatus),
+                            "canvasVersionId" | "canvas_version_id" => Ok(GeneratedField::CanvasVersionId),
+                            "canvasId" | "canvas_id" => Ok(GeneratedField::CanvasId),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -2524,6 +2544,8 @@ impl<'de> serde::Deserialize<'de> for Report {
                 let mut report_type__ = None;
                 let mut canvas_execution_id__ = None;
                 let mut canvas_status__ = None;
+                let mut canvas_version_id__ = None;
+                let mut canvas_id__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ReportId => {
@@ -2646,6 +2668,18 @@ impl<'de> serde::Deserialize<'de> for Report {
                             }
                             canvas_status__ = map_.next_value::<::std::option::Option<super::super::canvas::v1::CanvasCellExecutionStatus>>()?.map(|x| x as i32);
                         }
+                        GeneratedField::CanvasVersionId => {
+                            if canvas_version_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("canvasVersionId"));
+                            }
+                            canvas_version_id__ = map_.next_value()?;
+                        }
+                        GeneratedField::CanvasId => {
+                            if canvas_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("canvasId"));
+                            }
+                            canvas_id__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(Report {
@@ -2669,6 +2703,8 @@ impl<'de> serde::Deserialize<'de> for Report {
                     report_type: report_type__.unwrap_or_default(),
                     canvas_execution_id: canvas_execution_id__,
                     canvas_status: canvas_status__,
+                    canvas_version_id: canvas_version_id__,
+                    canvas_id: canvas_id__,
                 })
             }
         }
@@ -2876,7 +2912,7 @@ impl<'de> serde::Deserialize<'de> for ReportCumulativeRuleSummary {
                             if num_annotations_open__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("numAnnotationsOpen"));
                             }
-                            num_annotations_open__ = 
+                            num_annotations_open__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2884,7 +2920,7 @@ impl<'de> serde::Deserialize<'de> for ReportCumulativeRuleSummary {
                             if num_annotations_failed__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("numAnnotationsFailed"));
                             }
-                            num_annotations_failed__ = 
+                            num_annotations_failed__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2892,7 +2928,7 @@ impl<'de> serde::Deserialize<'de> for ReportCumulativeRuleSummary {
                             if num_annotations_passed__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("numAnnotationsPassed"));
                             }
-                            num_annotations_passed__ = 
+                            num_annotations_passed__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2900,7 +2936,7 @@ impl<'de> serde::Deserialize<'de> for ReportCumulativeRuleSummary {
                             if num_annotations_total__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("numAnnotationsTotal"));
                             }
-                            num_annotations_total__ = 
+                            num_annotations_total__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2908,7 +2944,7 @@ impl<'de> serde::Deserialize<'de> for ReportCumulativeRuleSummary {
                             if num_rules_created__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("numRulesCreated"));
                             }
-                            num_rules_created__ = 
+                            num_rules_created__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2916,7 +2952,7 @@ impl<'de> serde::Deserialize<'de> for ReportCumulativeRuleSummary {
                             if num_rules_live__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("numRulesLive"));
                             }
-                            num_rules_live__ = 
+                            num_rules_live__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2924,7 +2960,7 @@ impl<'de> serde::Deserialize<'de> for ReportCumulativeRuleSummary {
                             if num_rules_finished__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("numRulesFinished"));
                             }
-                            num_rules_finished__ = 
+                            num_rules_finished__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2932,7 +2968,7 @@ impl<'de> serde::Deserialize<'de> for ReportCumulativeRuleSummary {
                             if num_rules_failed__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("numRulesFailed"));
                             }
-                            num_rules_failed__ = 
+                            num_rules_failed__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2940,7 +2976,7 @@ impl<'de> serde::Deserialize<'de> for ReportCumulativeRuleSummary {
                             if num_rules_canceled__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("numRulesCanceled"));
                             }
-                            num_rules_canceled__ = 
+                            num_rules_canceled__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2948,7 +2984,7 @@ impl<'de> serde::Deserialize<'de> for ReportCumulativeRuleSummary {
                             if num_rules_error__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("numRulesError"));
                             }
-                            num_rules_error__ = 
+                            num_rules_error__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2956,7 +2992,7 @@ impl<'de> serde::Deserialize<'de> for ReportCumulativeRuleSummary {
                             if num_rules_total__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("numRulesTotal"));
                             }
-                            num_rules_total__ = 
+                            num_rules_total__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2964,7 +3000,7 @@ impl<'de> serde::Deserialize<'de> for ReportCumulativeRuleSummary {
                             if num_of_rules_without_annotations__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("numOfRulesWithoutAnnotations"));
                             }
-                            num_of_rules_without_annotations__ = 
+                            num_of_rules_without_annotations__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -3495,7 +3531,7 @@ impl<'de> serde::Deserialize<'de> for ReportRuleStatusDetailsError {
                             if exit_code__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("exitCode"));
                             }
-                            exit_code__ = 
+                            exit_code__ =
                                 map_.next_value::<::std::option::Option<::pbjson::private::NumberDeserialize<_>>>()?.map(|x| x.0)
                             ;
                         }
@@ -3641,7 +3677,7 @@ impl<'de> serde::Deserialize<'de> for ReportRuleStatusDetailsFailed {
                             if exit_code__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("exitCode"));
                             }
-                            exit_code__ = 
+                            exit_code__ =
                                 map_.next_value::<::std::option::Option<::pbjson::private::NumberDeserialize<_>>>()?.map(|x| x.0)
                             ;
                         }
@@ -4124,7 +4160,7 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
                             if rule_version_number__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("ruleVersionNumber"));
                             }
-                            rule_version_number__ = 
+                            rule_version_number__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -4138,7 +4174,7 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
                             if num_open__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("numOpen"));
                             }
-                            num_open__ = 
+                            num_open__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -4146,7 +4182,7 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
                             if num_failed__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("numFailed"));
                             }
-                            num_failed__ = 
+                            num_failed__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -4154,7 +4190,7 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
                             if num_passed__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("numPassed"));
                             }
-                            num_passed__ = 
+                            num_passed__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -4210,7 +4246,7 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
                             if display_order__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("displayOrder"));
                             }
-                            display_order__ = 
+                            display_order__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -4471,6 +4507,12 @@ impl serde::Serialize for ReportWithCumulativeSummary {
         if self.canvas_status.is_some() {
             len += 1;
         }
+        if self.canvas_version_id.is_some() {
+            len += 1;
+        }
+        if self.canvas_id.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.reports.v1.ReportWithCumulativeSummary", len)?;
         if !self.report_id.is_empty() {
             struct_ser.serialize_field("reportId", &self.report_id)?;
@@ -4533,6 +4575,12 @@ impl serde::Serialize for ReportWithCumulativeSummary {
                 .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", *v)))?;
             struct_ser.serialize_field("canvasStatus", &v)?;
         }
+        if let Some(v) = self.canvas_version_id.as_ref() {
+            struct_ser.serialize_field("canvasVersionId", v)?;
+        }
+        if let Some(v) = self.canvas_id.as_ref() {
+            struct_ser.serialize_field("canvasId", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -4578,6 +4626,10 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
             "canvasExecutionId",
             "canvas_status",
             "canvasStatus",
+            "canvas_version_id",
+            "canvasVersionId",
+            "canvas_id",
+            "canvasId",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -4601,6 +4653,8 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
             ReportType,
             CanvasExecutionId,
             CanvasStatus,
+            CanvasVersionId,
+            CanvasId,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -4641,6 +4695,8 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
                             "reportType" | "report_type" => Ok(GeneratedField::ReportType),
                             "canvasExecutionId" | "canvas_execution_id" => Ok(GeneratedField::CanvasExecutionId),
                             "canvasStatus" | "canvas_status" => Ok(GeneratedField::CanvasStatus),
+                            "canvasVersionId" | "canvas_version_id" => Ok(GeneratedField::CanvasVersionId),
+                            "canvasId" | "canvas_id" => Ok(GeneratedField::CanvasId),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -4679,6 +4735,8 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
                 let mut report_type__ = None;
                 let mut canvas_execution_id__ = None;
                 let mut canvas_status__ = None;
+                let mut canvas_version_id__ = None;
+                let mut canvas_id__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ReportId => {
@@ -4795,6 +4853,18 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
                             }
                             canvas_status__ = map_.next_value::<::std::option::Option<super::super::canvas::v1::CanvasCellExecutionStatus>>()?.map(|x| x as i32);
                         }
+                        GeneratedField::CanvasVersionId => {
+                            if canvas_version_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("canvasVersionId"));
+                            }
+                            canvas_version_id__ = map_.next_value()?;
+                        }
+                        GeneratedField::CanvasId => {
+                            if canvas_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("canvasId"));
+                            }
+                            canvas_id__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(ReportWithCumulativeSummary {
@@ -4817,6 +4887,8 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
                     report_type: report_type__.unwrap_or_default(),
                     canvas_execution_id: canvas_execution_id__,
                     canvas_status: canvas_status__,
+                    canvas_version_id: canvas_version_id__,
+                    canvas_id: canvas_id__,
                 })
             }
         }

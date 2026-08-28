@@ -15,7 +15,7 @@ members = [
 
 [workspace.package]
 authors = ["Sift Software Engineers <engineering@siftstack.com>"]
-version = "0.10.1"
+version = "0.11.0"
 edition = "2024"
 categories = ["aerospace", "science::robotics"]
 homepage = "https://github.com/sift-stack/sift"
@@ -64,7 +64,7 @@ pyo3-async-runtimes = { version = "0.28", features = ["tokio-runtime"] }
 pyo3-stub-gen = "0.10"
 rand = "0.10"
 reqwest = "0.13"
-rmcp = "3.0.0"
+rmcp = "3.1.2"
 semver = "1.0"
 serde = "^1.0"
 serde_json = "^1.0"
@@ -85,15 +85,15 @@ tracing-test = { version = "0.2", features = ["no-env-filter"] }
 uuid = { version = "1.22", features = ["v4"] }
 zip = "8.2"
 
-sift_connect = { version = "0.10.1", path = "rust/crates/sift_connect" }
-sift_rs = { version = "0.10.1", path = "rust/crates/sift_rs" }
-sift_error = { version = "0.10.1", path = "rust/crates/sift_error" }
-sift_stream = { version = "0.10.1", path = "rust/crates/sift_stream" }
-sift_pbfs = { version = "0.10.1", path = "rust/crates/sift_pbfs" }
-sift_mcp = { version = "0.10.1", path = "rust/crates/sift_mcp" }
-sift_test_util = { version = "0.10.1", path = "rust/crates/sift_test_util" }
+sift_connect = { version = "0.11.0", path = "rust/crates/sift_connect" }
+sift_rs = { version = "0.11.0", path = "rust/crates/sift_rs" }
+sift_error = { version = "0.11.0", path = "rust/crates/sift_error" }
+sift_stream = { version = "0.11.0", path = "rust/crates/sift_stream" }
+sift_pbfs = { version = "0.11.0", path = "rust/crates/sift_pbfs" }
+sift_mcp = { version = "0.11.0", path = "rust/crates/sift_mcp" }
+sift_test_util = { version = "0.11.0", path = "rust/crates/sift_test_util" }
 
-sift_stream_bindings = { version = "0.4.1", path = "rust/crates/sift_stream_bindings" }
+sift_stream_bindings = { version = "0.5.0", path = "rust/crates/sift_stream_bindings" }
 
 # The profile that 'dist' will build with
 [profile.dist]

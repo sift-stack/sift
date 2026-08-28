@@ -1,21 +1,56 @@
+use std::path::PathBuf;
+
+use bytes::Bytes;
+use pbjson_types::{Any, Timestamp};
+use prost::Message;
 use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
 use sift_rs::{
     assets::v1::{Asset, ListAssetsResponse, asset_service_server::AssetServiceServer},
+    calculated_channels::{
+        v1::{ExpressionChannelReference, ExpressionRequest},
+        v2::{
+            BatchResolveCalculatedChannelsResponse, CalculatedChannel,
+            ListCalculatedChannelsResponse, ResolveCalculatedChannelResponse,
+            ResolvedCalculatedChannel, UnresolvedCalculatedChannel,
+            calculated_channel_service_server::CalculatedChannelServiceServer,
+        },
+    },
     channels::v3::{Channel, ListChannelsResponse, channel_service_server::ChannelServiceServer},
+    data::v2::{
+        DoubleValue, DoubleValues, GetDataResponse, Metadata,
+        data_service_server::DataServiceServer, metadata, query::Query as QueryKind,
+    },
+    runs::v2::{ListRunsResponse, Run, run_service_server::RunServiceServer},
 };
 use sift_test_util::{
     grpc::memory_sift_channel,
-    mock::{assets::v1::MockAssetServiceImpl, channels::v3::MockChannelServiceImpl},
+    mock::{
+        assets::v1::MockAssetServiceImpl,
+        calculated_channels::v2::MockCalculatedChannelServiceImpl,
+        channels::v3::MockChannelServiceImpl, data::v2::MockDataServiceImpl,
+        runs::v2::MockRunServiceImpl,
+    },
 };
+use tempdir::TempDir;
 use tokio::task::JoinHandle;
 use tonic::{Response, transport::Server};
 
 use super::GetDataParams;
-use crate::{server::SiftMcpServer, service::common::PAGE_SIZE};
+use crate::{
+    server::SiftMcpServer, service::common::PAGE_SIZE, tool::common::test_support::structured,
+};
 
 async fn server_with_mocks(
     assets: MockAssetServiceImpl,
     channels: MockChannelServiceImpl,
+) -> (SiftMcpServer, JoinHandle<()>) {
+    server_with_all_mocks(assets, channels, MockDataServiceImpl::new()).await
+}
+
+async fn server_with_all_mocks(
+    assets: MockAssetServiceImpl,
+    channels: MockChannelServiceImpl,
+    data: MockDataServiceImpl,
 ) -> (SiftMcpServer, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
     let channel = memory_sift_channel(client).await;
@@ -24,6 +59,7 @@ async fn server_with_mocks(
         Server::builder()
             .add_service(AssetServiceServer::new(assets))
             .add_service(ChannelServiceServer::new(channels))
+            .add_service(DataServiceServer::new(data))
             .serve_with_incoming(tokio_stream::once(Ok::<_, std::io::Error>(server)))
             .await
             .unwrap();
@@ -57,7 +93,8 @@ fn one_asset_mock() -> MockAssetServiceImpl {
 
 fn get_data_params(channel_regex: &str) -> Parameters<GetDataParams> {
     Parameters(GetDataParams {
-        asset_name: "bench".into(),
+        asset_name: Some("bench".into()),
+        asset_id: None,
         run_name: None,
         start_time_unix_nanos: Some(0),
         end_time_unix_nanos: Some(1),
@@ -68,11 +105,96 @@ fn get_data_params(channel_regex: &str) -> Parameters<GetDataParams> {
     })
 }
 
-/// A channel selection that fills the service's record cap may have been
-/// silently truncated, which would produce a Parquet file that is missing
-/// channels with no warning. The tool must refuse loudly instead.
+/// `list_runs` hands the caller an `asset_id`, not an asset name, so `get_data`
+/// must accept the id directly. The withf below is the real assertion: the
+/// asset lookup must filter on `asset_id`, not `name`.
 #[tokio::test]
-async fn get_data_rejects_channel_selection_at_cap() {
+async fn get_data_resolves_the_asset_by_id() {
+    let mut assets = MockAssetServiceImpl::new();
+    assets
+        .expect_list_assets()
+        .withf(|req| req.get_ref().filter == r#"asset_id == "asset-1""#)
+        .returning(|_| {
+            Ok(Response::new(ListAssetsResponse {
+                assets: vec![Asset {
+                    asset_id: "asset-1".into(),
+                    name: "bench".into(),
+                    ..Default::default()
+                }],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let mut channels = MockChannelServiceImpl::new();
+    channels.expect_list_channels().returning(|_| {
+        Ok(Response::new(ListChannelsResponse {
+            channels: Vec::new(),
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (server, _h) = server_with_mocks(assets, channels).await;
+
+    let mut params = get_data_params("channel\\..*");
+    params.0.asset_name = None;
+    params.0.asset_id = Some("asset-1".into());
+
+    // No channels are mocked to match, so the call still errs — but reaching
+    // RESOURCE_NOT_FOUND for channels proves the id-filtered asset lookup
+    // succeeded (a name-filtered lookup would have failed the withf).
+    let err = server
+        .get_data(params)
+        .await
+        .expect_err("no matching channels is an error");
+
+    assert_eq!(err.code, ErrorCode::RESOURCE_NOT_FOUND);
+    assert!(
+        err.message.contains("no channels matched"),
+        "should fail at channel resolution, not asset resolution: {}",
+        err.message
+    );
+}
+
+/// Exactly one of `asset_name` / `asset_id` must be provided; the error must
+/// name both fields so the caller knows how to recover.
+#[tokio::test]
+async fn get_data_requires_exactly_one_asset_identifier() {
+    let (server, _h) =
+        server_with_mocks(MockAssetServiceImpl::new(), MockChannelServiceImpl::new()).await;
+
+    let mut both = get_data_params("channel\\..*");
+    both.0.asset_id = Some("asset-1".into());
+    let err = server
+        .get_data(both)
+        .await
+        .expect_err("asset_name and asset_id together must be rejected");
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+    assert!(
+        err.message.contains("asset_name") && err.message.contains("asset_id"),
+        "error should name both fields: {}",
+        err.message
+    );
+
+    let mut neither = get_data_params("channel\\..*");
+    neither.0.asset_name = None;
+    let err = server
+        .get_data(neither)
+        .await
+        .expect_err("missing both asset_name and asset_id must be rejected");
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+    assert!(
+        err.message.contains("asset_name") && err.message.contains("asset_id"),
+        "error should name both fields: {}",
+        err.message
+    );
+}
+
+/// A truncated channel selection would produce a Parquet file that is missing
+/// channels with no warning. The tool must refuse loudly instead. Truncation is
+/// the service reporting more matches beyond the cap, not the result merely
+/// reaching it — see the companion test below.
+#[tokio::test]
+async fn get_data_rejects_a_truncated_channel_selection() {
     let mut channels = MockChannelServiceImpl::new();
     channels.expect_list_channels().returning(|req| {
         let page_size = req.into_inner().page_size as usize;
@@ -84,7 +206,7 @@ async fn get_data_rejects_channel_selection_at_cap() {
                     ..Default::default()
                 })
                 .collect(),
-            next_page_token: String::new(),
+            next_page_token: "more-channels".into(),
         }))
     });
 
@@ -93,7 +215,7 @@ async fn get_data_rejects_channel_selection_at_cap() {
     let err = server
         .get_data(get_data_params("channel\\..*"))
         .await
-        .expect_err("a capped channel selection must be rejected");
+        .expect_err("a truncated channel selection must be rejected");
 
     assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
     assert!(
@@ -135,4 +257,871 @@ async fn get_data_channel_resolution_requests_service_maximum() {
     // page_size fails the mock expectation. Reaching RESOURCE_NOT_FOUND
     // proves the request passed the filter.
     assert_eq!(err.code, ErrorCode::RESOURCE_NOT_FOUND);
+}
+
+/// The old guard inferred truncation from the result reaching the cap, so a
+/// selection that matched exactly that many channels — with nothing left
+/// upstream — was rejected as incomplete when it was whole. The service reports
+/// the cut directly now, so this case must get through.
+#[tokio::test]
+async fn get_data_accepts_a_full_page_with_nothing_left() {
+    let mut channels = MockChannelServiceImpl::new();
+    channels.expect_list_channels().returning(|req| {
+        let page_size = req.into_inner().page_size as usize;
+        Ok(Response::new(ListChannelsResponse {
+            channels: (0..page_size)
+                .map(|i| Channel {
+                    channel_id: format!("ch-{i}"),
+                    name: format!("channel.{i}"),
+                    ..Default::default()
+                })
+                .collect(),
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (server, _h) = server_with_mocks(one_asset_mock(), channels).await;
+
+    // Data retrieval is not mocked here, so the call still fails — but it must
+    // get past channel selection rather than being turned away as truncated.
+    let err = server
+        .get_data(get_data_params("channel\\..*"))
+        .await
+        .expect_err("no data service is wired in this test");
+
+    assert!(
+        !err.message.contains("incomplete") && !err.message.contains("narrow"),
+        "a complete selection must not be rejected as truncated: {}",
+        err.message
+    );
+}
+
+/// Server wired to every service `get_data` touches, including the calculated
+/// channel and data services the saved-calculation path needs.
+async fn server_with_calculation_mocks(
+    assets: MockAssetServiceImpl,
+    channels: MockChannelServiceImpl,
+    runs: MockRunServiceImpl,
+    calculated: MockCalculatedChannelServiceImpl,
+    data: MockDataServiceImpl,
+) -> (SiftMcpServer, JoinHandle<()>) {
+    let (client, server) = tokio::io::duplex(1024);
+    let channel = memory_sift_channel(client).await;
+
+    let handle = tokio::spawn(async move {
+        Server::builder()
+            .add_service(AssetServiceServer::new(assets))
+            .add_service(ChannelServiceServer::new(channels))
+            .add_service(RunServiceServer::new(runs))
+            .add_service(CalculatedChannelServiceServer::new(calculated))
+            .add_service(DataServiceServer::new(data))
+            .serve_with_incoming(tokio_stream::once(Ok::<_, std::io::Error>(server)))
+            .await
+            .unwrap();
+    });
+
+    (
+        SiftMcpServer::new(
+            channel,
+            String::from("https://api.test.local"),
+            false,
+            false,
+        ),
+        handle,
+    )
+}
+
+fn named_params(
+    names: &[&str],
+    run_name: Option<&str>,
+    output: PathBuf,
+) -> Parameters<GetDataParams> {
+    Parameters(GetDataParams {
+        asset_name: Some("bench".into()),
+        asset_id: None,
+        run_name: run_name.map(String::from),
+        start_time_unix_nanos: Some(0),
+        end_time_unix_nanos: Some(3_000_000_000),
+        sample_ms: 0,
+        channel_names: Some(names.iter().map(|n| (*n).to_string()).collect()),
+        channel_regex: None,
+        output,
+    })
+}
+
+fn raw_channel_mock(names: &[&str]) -> MockChannelServiceImpl {
+    let channels = names
+        .iter()
+        .enumerate()
+        .map(|(i, name)| Channel {
+            channel_id: format!("ch-{i}"),
+            name: (*name).to_string(),
+            ..Default::default()
+        })
+        .collect::<Vec<_>>();
+
+    let mut mock = MockChannelServiceImpl::new();
+    mock.expect_list_channels().returning(move |_| {
+        Ok(Response::new(ListChannelsResponse {
+            channels: channels.clone(),
+            next_page_token: String::new(),
+        }))
+    });
+    mock
+}
+
+fn one_run_mock() -> MockRunServiceImpl {
+    let mut runs = MockRunServiceImpl::new();
+    runs.expect_list_runs().returning(|_| {
+        Ok(Response::new(ListRunsResponse {
+            runs: vec![Run {
+                run_id: "run-1".into(),
+                name: "hotfire-3".into(),
+                start_time: Some(Timestamp {
+                    seconds: 0,
+                    nanos: 0,
+                }),
+                stop_time: Some(Timestamp {
+                    seconds: 3,
+                    nanos: 0,
+                }),
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+    runs
+}
+
+/// A calculated channel service that finds `name` and resolves it for the
+/// asset.
+fn resolving_calculation_mock(name: &'static str) -> MockCalculatedChannelServiceImpl {
+    let mut mock = MockCalculatedChannelServiceImpl::new();
+    mock.expect_list_calculated_channels().returning(move |_| {
+        Ok(Response::new(ListCalculatedChannelsResponse {
+            calculated_channels: vec![CalculatedChannel {
+                calculated_channel_id: "cc1".into(),
+                name: name.into(),
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+    mock.expect_batch_resolve_calculated_channels()
+        .returning(|_| {
+            Ok(Response::new(BatchResolveCalculatedChannelsResponse {
+                responses: vec![ResolveCalculatedChannelResponse {
+                    calculated_channel_id: None,
+                    resolved: vec![ResolvedCalculatedChannel {
+                        asset_name: "bench".into(),
+                        asset_id: "asset-1".into(),
+                        expression_request: Some(ExpressionRequest {
+                            expression: "$1 * 2".into(),
+                            expression_channel_references: vec![ExpressionChannelReference {
+                                channel_reference: "$1".into(),
+                                channel_id: "ch-9".into(),
+                                calculated_channel_reference: None,
+                            }],
+                            ..Default::default()
+                        }),
+                        output_data_type: 0,
+                    }],
+                    unresolved: vec![],
+                }],
+            }))
+        });
+    mock
+}
+
+fn double_page(channel_id: &str, channel_name: &str, samples: Vec<(i64, f64)>) -> Any {
+    let payload = DoubleValues {
+        metadata: Some(Metadata {
+            channel: Some(metadata::Channel {
+                channel_id: channel_id.into(),
+                name: channel_name.into(),
+                ..Default::default()
+            }),
+            ..Default::default()
+        }),
+        values: samples
+            .into_iter()
+            .map(|(ts_nanos, value)| DoubleValue {
+                timestamp: Some(Timestamp {
+                    seconds: ts_nanos / 1_000_000_000,
+                    nanos: (ts_nanos % 1_000_000_000) as i32,
+                }),
+                value,
+            })
+            .collect(),
+        ..Default::default()
+    };
+
+    Any {
+        type_url: "sift.data.v2.DoubleValues".into(),
+        value: Bytes::from(payload.encode_to_vec()),
+    }
+}
+
+/// A channel name with no raw channel on the asset is served as a saved
+/// calculated channel: the query carries the resolved expression, not a
+/// channel id.
+#[tokio::test]
+async fn get_data_queries_saved_calculated_channel() {
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data()
+        .times(1)
+        .withf(|req| {
+            let queries = &req.get_ref().queries;
+            queries.len() == 1
+                && match queries[0].query.as_ref() {
+                    Some(QueryKind::CalculatedChannel(query)) => {
+                        let expression = query.expression.as_ref();
+                        query.channel_key == "thrust_margin"
+                            && expression.is_some_and(|e| {
+                                e.expression == "$1 * 2"
+                                    && e.expression_channel_references
+                                        .first()
+                                        .is_some_and(|r| r.channel_id == "ch-9")
+                            })
+                    }
+                    _ => false,
+                }
+        })
+        .returning(|_| {
+            Ok(Response::new(GetDataResponse {
+                data: vec![double_page("", "thrust_margin", vec![(1_000_000_000, 4.0)])],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let dir = TempDir::new("sift-mcp-cc-data").expect("temp dir");
+    let output = dir.path().join("out.parquet");
+
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        raw_channel_mock(&[]),
+        MockRunServiceImpl::new(),
+        resolving_calculation_mock("thrust_margin"),
+        data,
+    )
+    .await;
+
+    let result = server
+        .get_data(named_params(&["thrust_margin"], None, output.clone()))
+        .await
+        .expect("get_data should serve a saved calculated channel");
+
+    let body = structured(result);
+    assert_eq!(
+        body.get("output").and_then(|v| v.as_str()),
+        Some(output.to_string_lossy().as_ref()),
+    );
+    assert!(
+        body.get("unresolved_calculated_channels").is_none(),
+        "nothing should be reported as unresolved: {body}",
+    );
+    assert!(output.exists(), "parquet file should be written");
+}
+
+/// One requested name resolves and one does not. The file is still written, but
+/// the response must name the channel that did not resolve along with the asset
+/// and run it was requested for.
+#[tokio::test]
+async fn get_data_reports_unresolved_calculated_channel() {
+    let mut calculated = MockCalculatedChannelServiceImpl::new();
+    calculated.expect_list_calculated_channels().returning(|_| {
+        Ok(Response::new(ListCalculatedChannelsResponse {
+            calculated_channels: vec![CalculatedChannel {
+                calculated_channel_id: "cc1".into(),
+                name: "chamber_delta".into(),
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+    calculated
+        .expect_batch_resolve_calculated_channels()
+        .returning(|_| {
+            Ok(Response::new(BatchResolveCalculatedChannelsResponse {
+                responses: vec![ResolveCalculatedChannelResponse {
+                    calculated_channel_id: None,
+                    resolved: vec![],
+                    unresolved: vec![UnresolvedCalculatedChannel {
+                        asset_name: "bench".into(),
+                        error_message: "asset is missing channel chamber_pressure".into(),
+                    }],
+                }],
+            }))
+        });
+
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data().times(1).returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![double_page(
+                "ch-0",
+                "temperature_c",
+                vec![(1_000_000_000, 20.0)],
+            )],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let dir = TempDir::new("sift-mcp-cc-partial").expect("temp dir");
+    let output = dir.path().join("out.parquet");
+
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        raw_channel_mock(&["temperature_c"]),
+        one_run_mock(),
+        calculated,
+        data,
+    )
+    .await;
+
+    let result = server
+        .get_data(named_params(
+            &["temperature_c", "chamber_delta"],
+            Some("hotfire-3"),
+            output.clone(),
+        ))
+        .await
+        .expect("a partial resolution should still return the resolved data");
+
+    let body = structured(result);
+    let reported = body
+        .get("unresolved_calculated_channels")
+        .expect("partial resolution must be reported")
+        .to_string();
+    assert!(
+        reported.contains("chamber_delta") && reported.contains("chamber_pressure"),
+        "report should name the channel and the reason: {reported}",
+    );
+
+    let next_step = body
+        .get("next_step")
+        .and_then(|v| v.as_str())
+        .expect("next_step")
+        .to_string();
+    assert!(
+        next_step.contains("calculated channel data was not resolved for asset 'bench'")
+            && next_step.contains("hotfire-3")
+            && next_step.contains("chamber_delta"),
+        "next_step must name what did not resolve, and for which asset and run: {next_step}",
+    );
+}
+
+/// When nothing the caller named can be served, the call fails and the error
+/// names every channel that did not resolve.
+#[tokio::test]
+async fn get_data_errors_when_no_channel_resolves() {
+    let mut calculated = MockCalculatedChannelServiceImpl::new();
+    calculated.expect_list_calculated_channels().returning(|_| {
+        Ok(Response::new(ListCalculatedChannelsResponse {
+            calculated_channels: vec![],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data().times(0);
+
+    let dir = TempDir::new("sift-mcp-cc-none").expect("temp dir");
+    let output = dir.path().join("out.parquet");
+
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        raw_channel_mock(&[]),
+        MockRunServiceImpl::new(),
+        calculated,
+        data,
+    )
+    .await;
+
+    let err = server
+        .get_data(named_params(&["chamber_delta"], None, output))
+        .await
+        .expect_err("a request where nothing resolves must fail");
+
+    assert_eq!(err.code, ErrorCode::RESOURCE_NOT_FOUND);
+    assert!(
+        err.message
+            .contains("calculated channel data was not resolved for asset 'bench'")
+            && err.message.contains("chamber_delta"),
+        "error must name what did not resolve: {}",
+        err.message,
+    );
+}
+
+/// A name that exists as both a raw channel and a saved calculated channel is
+/// served as the raw channel; the calculated channel service is never consulted.
+#[tokio::test]
+async fn get_data_prefers_raw_channel_over_calculated_channel() {
+    let mut calculated = MockCalculatedChannelServiceImpl::new();
+    calculated.expect_list_calculated_channels().times(0);
+    calculated
+        .expect_batch_resolve_calculated_channels()
+        .times(0);
+
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data()
+        .times(1)
+        .withf(|req| {
+            let queries = &req.get_ref().queries;
+            queries.len() == 1
+                && matches!(
+                    queries[0].query.as_ref(),
+                    Some(QueryKind::Channel(query)) if query.channel_id == "ch-0"
+                )
+        })
+        .returning(|_| {
+            Ok(Response::new(GetDataResponse {
+                data: vec![double_page(
+                    "ch-0",
+                    "thrust_margin",
+                    vec![(1_000_000_000, 1.0)],
+                )],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let dir = TempDir::new("sift-mcp-cc-precedence").expect("temp dir");
+    let output = dir.path().join("out.parquet");
+
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        raw_channel_mock(&["thrust_margin"]),
+        MockRunServiceImpl::new(),
+        calculated,
+        data,
+    )
+    .await;
+
+    server
+        .get_data(named_params(&["thrust_margin"], None, output))
+        .await
+        .expect("the raw channel should be served without any calculated lookup");
+}
+
+/// A window with no samples still has to tell the caller which calculated
+/// channels never resolved; otherwise the failure reads as "the asset has no
+/// data" when part of the request was never queried at all.
+#[tokio::test]
+async fn get_data_reports_unresolved_calculated_channel_when_no_samples() {
+    let mut calculated = MockCalculatedChannelServiceImpl::new();
+    calculated.expect_list_calculated_channels().returning(|_| {
+        Ok(Response::new(ListCalculatedChannelsResponse {
+            calculated_channels: vec![CalculatedChannel {
+                calculated_channel_id: "cc1".into(),
+                name: "chamber_delta".into(),
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+    calculated
+        .expect_batch_resolve_calculated_channels()
+        .returning(|_| {
+            Ok(Response::new(BatchResolveCalculatedChannelsResponse {
+                responses: vec![ResolveCalculatedChannelResponse {
+                    calculated_channel_id: Some("cc1".into()),
+                    resolved: vec![],
+                    unresolved: vec![UnresolvedCalculatedChannel {
+                        asset_name: "bench".into(),
+                        error_message: "asset is missing channel chamber_pressure".into(),
+                    }],
+                }],
+            }))
+        });
+
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data().times(1).returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let dir = TempDir::new("sift-mcp-cc-nodata").expect("temp dir");
+    let output = dir.path().join("out.parquet");
+
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        raw_channel_mock(&["temperature_c"]),
+        MockRunServiceImpl::new(),
+        calculated,
+        data,
+    )
+    .await;
+
+    let err = server
+        .get_data(named_params(
+            &["temperature_c", "chamber_delta"],
+            None,
+            output,
+        ))
+        .await
+        .expect_err("an empty window is still an error");
+
+    assert!(
+        err.message
+            .contains("calculated channel data was not resolved for asset 'bench'")
+            && err.message.contains("chamber_delta"),
+        "the empty-window error must still name what did not resolve: {}",
+        err.message,
+    );
+}
+
+/// The same calculated channel named twice must be queried once. Two identical
+/// queries share a channel key, so their pages merge into one column and repeat
+/// timestamps in the output file.
+#[tokio::test]
+async fn get_data_deduplicates_repeated_calculated_channel_name() {
+    let mut calculated = MockCalculatedChannelServiceImpl::new();
+    calculated.expect_list_calculated_channels().returning(|_| {
+        Ok(Response::new(ListCalculatedChannelsResponse {
+            calculated_channels: vec![CalculatedChannel {
+                calculated_channel_id: "cc1".into(),
+                name: "thrust_margin".into(),
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+    calculated
+        .expect_batch_resolve_calculated_channels()
+        .times(1)
+        .withf(|req| req.get_ref().requests.len() == 1)
+        .returning(|_| {
+            Ok(Response::new(BatchResolveCalculatedChannelsResponse {
+                responses: vec![ResolveCalculatedChannelResponse {
+                    calculated_channel_id: Some("cc1".into()),
+                    resolved: vec![ResolvedCalculatedChannel {
+                        asset_name: "bench".into(),
+                        asset_id: "asset-1".into(),
+                        expression_request: Some(ExpressionRequest {
+                            expression: "$1 * 2".into(),
+                            expression_channel_references: vec![ExpressionChannelReference {
+                                channel_reference: "$1".into(),
+                                channel_id: "ch-9".into(),
+                                calculated_channel_reference: None,
+                            }],
+                            ..Default::default()
+                        }),
+                        output_data_type: 0,
+                    }],
+                    unresolved: vec![],
+                }],
+            }))
+        });
+
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data()
+        .times(1)
+        .withf(|req| req.get_ref().queries.len() == 1)
+        .returning(|_| {
+            Ok(Response::new(GetDataResponse {
+                data: vec![double_page("thrust_margin", "", vec![(1_000_000_000, 4.0)])],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let dir = TempDir::new("sift-mcp-cc-dedupe").expect("temp dir");
+    let output = dir.path().join("out.parquet");
+
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        raw_channel_mock(&[]),
+        MockRunServiceImpl::new(),
+        calculated,
+        data,
+    )
+    .await;
+
+    server
+        .get_data(named_params(
+            &["thrust_margin", "thrust_margin"],
+            None,
+            output,
+        ))
+        .await
+        .expect("a repeated name must resolve and query once");
+}
+
+/// A calculated channel service that knows no calculated channels, so a name
+/// with no raw channel comes back unresolved rather than served.
+fn no_calculation_mock() -> MockCalculatedChannelServiceImpl {
+    let mut mock = MockCalculatedChannelServiceImpl::new();
+    mock.expect_list_calculated_channels().returning(|_| {
+        Ok(Response::new(ListCalculatedChannelsResponse {
+            calculated_channels: vec![],
+            next_page_token: String::new(),
+        }))
+    });
+    mock.expect_batch_resolve_calculated_channels().times(0);
+    mock
+}
+
+/// `name in [...]` matches what it can and says nothing about the rest, so a
+/// misspelled channel used to come back as a narrower table reported as a
+/// complete fetch.
+#[tokio::test]
+async fn get_data_reports_channel_names_that_matched_nothing() {
+    let mut channels = MockChannelServiceImpl::new();
+    channels.expect_list_channels().returning(|_| {
+        // Only two of the three requested names exist on this asset.
+        Ok(Response::new(ListChannelsResponse {
+            channels: vec![
+                Channel {
+                    channel_id: "ch-1".into(),
+                    name: "pressure".into(),
+                    ..Default::default()
+                },
+                Channel {
+                    channel_id: "ch-2".into(),
+                    name: "temperature".into(),
+                    ..Default::default()
+                },
+            ],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data().returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![
+                double_page("ch-1", "pressure", vec![(1_000_000_000, 1.0)]),
+                double_page("ch-2", "temperature", vec![(1_000_000_000, 2.0)]),
+            ],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let dir = TempDir::new("sift-mcp-get-data").expect("failed to create temp dir");
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        channels,
+        MockRunServiceImpl::new(),
+        no_calculation_mock(),
+        data,
+    )
+    .await;
+
+    let resp = server
+        .get_data(Parameters(GetDataParams {
+            asset_name: Some("bench".into()),
+            asset_id: None,
+            run_name: None,
+            start_time_unix_nanos: Some(0),
+            end_time_unix_nanos: Some(2_000_000_000),
+            sample_ms: 0,
+            channel_names: Some(vec![
+                "pressure".into(),
+                "temperature".into(),
+                "presure".into(),
+            ]),
+            channel_regex: None,
+            output: dir.path().join("out.parquet"),
+        }))
+        .await
+        .expect("get_data should still succeed for the channels that matched");
+
+    let body = structured(resp);
+    assert_eq!(
+        body["unmatched_channel_names"],
+        serde_json::json!(["presure"])
+    );
+    assert_eq!(
+        body["empty_channels"],
+        serde_json::json!([]),
+        "both matched channels returned samples: {body}"
+    );
+
+    // The structured field alone is not enough. `next_step` is what the calling
+    // model reads before it answers, so the miss has to appear there too.
+    let next_step = body["next_step"].as_str().expect("next_step");
+    assert!(next_step.contains("presure"), "{next_step}");
+    assert!(
+        !next_step.starts_with("Wrote channel data to") || next_step.contains("does NOT"),
+        "a partial fetch must not read as a clean success: {next_step}"
+    );
+}
+
+/// A regex selection carries no per-name expectation, so there is nothing to
+/// report as unmatched.
+#[tokio::test]
+async fn get_data_reports_no_unmatched_names_for_a_regex_selection() {
+    let mut channels = MockChannelServiceImpl::new();
+    channels.expect_list_channels().returning(|_| {
+        Ok(Response::new(ListChannelsResponse {
+            channels: vec![Channel {
+                channel_id: "ch-1".into(),
+                name: "pressure".into(),
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data().returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![double_page("ch-1", "pressure", vec![(1_000_000_000, 1.0)])],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let dir = TempDir::new("sift-mcp-get-data").expect("failed to create temp dir");
+    let (server, _h) = server_with_all_mocks(one_asset_mock(), channels, data).await;
+
+    let resp = server
+        .get_data(Parameters(GetDataParams {
+            asset_name: Some("bench".into()),
+            asset_id: None,
+            run_name: None,
+            start_time_unix_nanos: Some(0),
+            end_time_unix_nanos: Some(2_000_000_000),
+            sample_ms: 0,
+            channel_names: None,
+            channel_regex: Some("press.*".into()),
+            output: dir.path().join("out.parquet"),
+        }))
+        .await
+        .expect("get_data failed");
+
+    // Both keys are present and empty rather than absent: a caller has to be
+    // able to tell "nothing missing" from "this tool never looked".
+    let body = structured(resp);
+    assert_eq!(
+        body["unmatched_channel_names"],
+        serde_json::json!([]),
+        "{body}"
+    );
+    assert_eq!(body["empty_channels"], serde_json::json!([]), "{body}");
+}
+
+/// A channel that matched but returned nothing has no column in the file, so the
+/// tool has to name it or the caller cannot tell it was ever requested.
+#[tokio::test]
+async fn get_data_reports_matched_channels_that_returned_no_samples() {
+    let mut channels = MockChannelServiceImpl::new();
+    channels.expect_list_channels().returning(|_| {
+        Ok(Response::new(ListChannelsResponse {
+            channels: vec![
+                Channel {
+                    channel_id: "ch-1".into(),
+                    name: "pressure".into(),
+                    ..Default::default()
+                },
+                Channel {
+                    channel_id: "ch-2".into(),
+                    name: "temperature".into(),
+                    ..Default::default()
+                },
+            ],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data().returning(|_| {
+        // Only one of the two matched channels has samples in this window.
+        Ok(Response::new(GetDataResponse {
+            data: vec![double_page("ch-1", "pressure", vec![(1_000_000_000, 1.0)])],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let dir = TempDir::new("sift-mcp-get-data").expect("failed to create temp dir");
+    let (server, _h) = server_with_all_mocks(one_asset_mock(), channels, data).await;
+
+    let resp = server
+        .get_data(Parameters(GetDataParams {
+            asset_name: Some("bench".into()),
+            asset_id: None,
+            run_name: None,
+            start_time_unix_nanos: Some(0),
+            end_time_unix_nanos: Some(2_000_000_000),
+            sample_ms: 0,
+            channel_names: Some(vec!["pressure".into(), "temperature".into()]),
+            channel_regex: None,
+            output: dir.path().join("out.parquet"),
+        }))
+        .await
+        .expect("a partially empty window is still a successful fetch");
+
+    let body = structured(resp);
+    assert_eq!(body["empty_channels"], serde_json::json!(["temperature"]));
+    assert_eq!(
+        body["unmatched_channel_names"],
+        serde_json::json!([]),
+        "{body}"
+    );
+
+    let next_step = body["next_step"].as_str().expect("next_step");
+    assert!(next_step.contains("temperature"), "{next_step}");
+    assert!(next_step.contains("no samples"), "{next_step}");
+}
+
+/// The case that used to lose half its answer: one requested name matches
+/// nothing, and the name that does match returns no samples. The service
+/// errors before the tool builds a success body, so without the typed error
+/// the unmatched name would go unmentioned and a caller would retry with a
+/// wider window and the same typo.
+#[tokio::test]
+async fn no_data_error_reports_both_the_empty_and_the_unmatched_channels() {
+    let mut channels = MockChannelServiceImpl::new();
+    channels.expect_list_channels().returning(|_| {
+        Ok(Response::new(ListChannelsResponse {
+            channels: vec![Channel {
+                channel_id: "ch-1".into(),
+                name: "pressure".into(),
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data().returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let dir = TempDir::new("sift-mcp-get-data").expect("failed to create temp dir");
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        channels,
+        MockRunServiceImpl::new(),
+        no_calculation_mock(),
+        data,
+    )
+    .await;
+
+    let err = server
+        .get_data(Parameters(GetDataParams {
+            asset_name: Some("bench".into()),
+            asset_id: None,
+            run_name: None,
+            start_time_unix_nanos: Some(0),
+            end_time_unix_nanos: Some(2_000_000_000),
+            sample_ms: 0,
+            channel_names: Some(vec!["pressure".into(), "presure".into()]),
+            channel_regex: None,
+            output: dir.path().join("out.parquet"),
+        }))
+        .await
+        .expect_err("no channel returned samples, so the call fails");
+
+    assert_eq!(err.code, ErrorCode::INTERNAL_ERROR);
+    assert!(err.message.contains("pressure"), "{}", err.message);
+
+    let data = err.data.expect("error must carry the channel report");
+    assert_eq!(data["empty_channels"], serde_json::json!(["pressure"]));
+    assert_eq!(
+        data["unmatched_channel_names"],
+        serde_json::json!(["presure"])
+    );
 }

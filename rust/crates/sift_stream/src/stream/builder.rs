@@ -30,6 +30,7 @@ use sift_rs::{
     metadata::v1::MetadataValue,
     ping::v1::{PingRequest, ping_service_client::PingServiceClient},
     runs::v2::Run,
+    wrappers::ServiceOptions,
 };
 use std::{sync::Arc, time::Duration};
 use uuid::Uuid;
@@ -95,6 +96,7 @@ pub struct SiftStreamBuilder {
     credentials: Option<Credentials>,
     channel: Option<SiftChannel>,
     enable_tls: bool,
+    service_options: ServiceOptions,
 }
 
 impl SiftStreamBuilder {
@@ -104,6 +106,7 @@ impl SiftStreamBuilder {
             credentials: Some(credentials),
             channel: None,
             enable_tls: true,
+            service_options: ServiceOptions::default(),
         }
     }
 
@@ -120,12 +123,19 @@ impl SiftStreamBuilder {
             credentials: None,
             channel: Some(channel),
             enable_tls: true,
+            service_options: ServiceOptions::default(),
         }
     }
 
     /// Disables TLS. Useful for testing. Ignored if [SiftStreamBuilder::from_channel] is used.
     pub fn disable_tls(mut self) -> Self {
         self.enable_tls = false;
+        self
+    }
+
+    /// Largest response, in bytes, to decode when fetching this config's flow schema.
+    pub fn max_decoding_message_size(mut self, bytes: usize) -> Self {
+        self.service_options = self.service_options.with_max_decoding_message_size(bytes);
         self
     }
 
@@ -136,6 +146,7 @@ impl SiftStreamBuilder {
             credentials: self.credentials,
             channel: self.channel,
             enable_tls: self.enable_tls,
+            service_options: self.service_options,
             ingestion_config: form,
             asset_tags: None,
             asset_metadata: None,
@@ -161,6 +172,7 @@ pub struct StreamConfigBuilder {
     pub(crate) credentials: Option<Credentials>,
     pub(crate) channel: Option<SiftChannel>,
     pub(crate) enable_tls: bool,
+    pub(crate) service_options: ServiceOptions,
     pub(crate) ingestion_config: IngestionConfigForm,
     pub(crate) asset_tags: Option<Vec<String>>,
     pub(crate) asset_metadata: Option<Vec<MetadataValue>>,
@@ -676,8 +688,12 @@ async fn setup_common(base: StreamConfigBuilder) -> Result<CommonSetup> {
             .help("ensure that your API key and Sift gRPC API URL is correct and TLS is configured properly")?;
     }
 
-    let (ingestion_config, flows, asset) =
-        load_ingestion_config(setup_channel.clone(), base.ingestion_config).await?;
+    let (ingestion_config, flows, asset) = load_ingestion_config(
+        setup_channel.clone(),
+        base.ingestion_config,
+        base.service_options,
+    )
+    .await?;
 
     let run = {
         if let Some(run_id) = base.run_id.as_ref() {

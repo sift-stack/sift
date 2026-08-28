@@ -296,7 +296,11 @@ impl Transport for LiveStreamingWithBackups {
     /// delivery confirmation from Sift for all data up to this point.
     ///
     /// Always call `finish` when done sending — dropping a [`SiftStream`](crate::SiftStream)
-    /// without calling it may result in tail-end data not reaching Sift.
+    /// without calling it may result in tail-end data not reaching Sift. A returned `Ok` means
+    /// every message was either delivered to Sift or durably written to a disk backup for later
+    /// reingestion; it is not a synchronous receipt that all data reached Sift, since
+    /// reingestion from backups happens in the background. An `Err` means a shutdown or backup
+    /// task failed.
     async fn finish(self, stream_id: &Uuid) -> Result<()> {
         drop(self.ingestion_tx);
         drop(self.backup_tx);
@@ -306,7 +310,10 @@ impl Transport for LiveStreamingWithBackups {
             .map_err(|e| Error::new(ErrorKind::StreamError, e))
             .context("failed to send shutdown signal to task-based architecture")?;
 
-        let _ = tokio::try_join!(
+        // try_join! short-circuits if any task panics, so a panic surfaces as an error
+        // instead of leaving finish() blocked on a sibling task that can no longer make
+        // progress. On success it yields each task's own Result for propagation below.
+        let joined = tokio::try_join!(
             self.ingestion_task,
             self.backup_manager,
             self.reingestion_task,
@@ -315,6 +322,16 @@ impl Transport for LiveStreamingWithBackups {
         if let Some(metrics_streaming) = self.metrics_streaming {
             let _ = metrics_streaming.await;
         }
+
+        let (ingestion_res, backup_res, reingestion_res) = joined.map_err(|e| {
+            Error::new_msg(
+                ErrorKind::StreamError,
+                format!("streaming task panicked: {e}"),
+            )
+        })?;
+        ingestion_res?;
+        backup_res?;
+        reingestion_res?;
 
         #[cfg(feature = "tracing")]
         tracing::info!(
@@ -698,5 +715,54 @@ mod tests {
             3,
             "finish() must await all three internal tasks before returning"
         );
+    }
+
+    #[tokio::test]
+    async fn test_finish_propagates_ingestion_task_error() {
+        let (control_tx, _ctrl_rx) = broadcast::channel::<ControlMessage>(10);
+        let (ingestion_tx, _) = async_channel::bounded::<DataMessage>(10);
+        let (backup_tx, _) = async_channel::bounded::<DataMessage>(10);
+
+        let transport = LiveStreamingWithBackups {
+            message_id_counter: 0,
+            backup_tx,
+            ingestion_tx,
+            control_tx,
+            ingestion_task: tokio::spawn(async {
+                Err(Error::new_msg(ErrorKind::StreamError, "delivery failed"))
+            }),
+            backup_manager: tokio::spawn(async { Ok(()) }),
+            reingestion_task: tokio::spawn(async { Ok(()) }),
+            metrics_streaming: None,
+            flows_seen: std::collections::HashSet::new(),
+            metrics: Arc::new(crate::metrics::SiftStreamMetrics::default()),
+        };
+
+        let stream_id = uuid::Uuid::new_v4();
+        let err = transport.finish(&stream_id).await.unwrap_err();
+        assert_eq!(err.kind(), ErrorKind::StreamError);
+    }
+
+    #[tokio::test]
+    async fn test_finish_propagates_ingestion_task_panic() {
+        let (control_tx, _ctrl_rx) = broadcast::channel::<ControlMessage>(10);
+        let (ingestion_tx, _) = async_channel::bounded::<DataMessage>(10);
+        let (backup_tx, _) = async_channel::bounded::<DataMessage>(10);
+
+        let transport = LiveStreamingWithBackups {
+            message_id_counter: 0,
+            backup_tx,
+            ingestion_tx,
+            control_tx,
+            ingestion_task: tokio::spawn(async { panic!("boom") }),
+            backup_manager: tokio::spawn(async { Ok(()) }),
+            reingestion_task: tokio::spawn(async { Ok(()) }),
+            metrics_streaming: None,
+            flows_seen: std::collections::HashSet::new(),
+            metrics: Arc::new(crate::metrics::SiftStreamMetrics::default()),
+        };
+
+        let stream_id = uuid::Uuid::new_v4();
+        assert!(transport.finish(&stream_id).await.is_err());
     }
 }

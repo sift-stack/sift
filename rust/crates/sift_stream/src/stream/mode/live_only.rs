@@ -164,14 +164,24 @@ impl Transport for LiveStreamingOnly {
     /// Closes the ingestion channel, sends the shutdown signal, and awaits task completion.
     ///
     /// The ingestion task drains any messages already queued before acting on the shutdown
-    /// signal, so all messages sent before `finish` is called will be delivered.
+    /// signal, so all messages sent before `finish` is called are delivered. An `Err` means the
+    /// stream carrying that tail-end data failed and Sift never acknowledged it; since live-only
+    /// mode keeps no disk backup, that data is unrecoverable. An `Ok` means shutdown completed
+    /// with an acknowledged stream. Note that `Ok` does not account for data lost to earlier
+    /// mid-stream failures that the retry loop recovered from.
     async fn finish(self, stream_id: &Uuid) -> Result<()> {
         self.ingestion_tx.close();
         let _ = self.control_tx.send(ControlMessage::Shutdown);
-        let _ = self.ingestion_task.await;
+        let joined = self.ingestion_task.await;
         if let Some(t) = self.metrics_streaming {
             let _ = t.await;
         }
+        joined.map_err(|e| {
+            Error::new_msg(
+                ErrorKind::StreamError,
+                format!("ingestion task panicked: {e}"),
+            )
+        })??;
 
         #[cfg(feature = "tracing")]
         tracing::info!(
@@ -383,6 +393,47 @@ mod tests {
 
         let stream_id = uuid::Uuid::new_v4();
         transport.finish(&stream_id).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_finish_propagates_ingestion_task_error() {
+        let (control_tx, _) = broadcast::channel(10);
+        let (ingestion_tx, _ingestion_rx) = async_channel::bounded::<DataMessage>(10);
+
+        let transport = LiveStreamingOnly {
+            message_id_counter: 0,
+            ingestion_tx,
+            control_tx,
+            ingestion_task: tokio::spawn(async {
+                Err(Error::new_msg(ErrorKind::StreamError, "delivery failed"))
+            }),
+            metrics_streaming: None,
+            flows_seen: HashSet::new(),
+            metrics: Arc::new(crate::metrics::SiftStreamMetrics::default()),
+        };
+
+        let stream_id = uuid::Uuid::new_v4();
+        let err = transport.finish(&stream_id).await.unwrap_err();
+        assert_eq!(err.kind(), ErrorKind::StreamError);
+    }
+
+    #[tokio::test]
+    async fn test_finish_propagates_ingestion_task_panic() {
+        let (control_tx, _) = broadcast::channel(10);
+        let (ingestion_tx, _ingestion_rx) = async_channel::bounded::<DataMessage>(10);
+
+        let transport = LiveStreamingOnly {
+            message_id_counter: 0,
+            ingestion_tx,
+            control_tx,
+            ingestion_task: tokio::spawn(async { panic!("boom") }),
+            metrics_streaming: None,
+            flows_seen: HashSet::new(),
+            metrics: Arc::new(crate::metrics::SiftStreamMetrics::default()),
+        };
+
+        let stream_id = uuid::Uuid::new_v4();
+        assert!(transport.finish(&stream_id).await.is_err());
     }
 
     #[tokio::test]

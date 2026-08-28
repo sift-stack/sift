@@ -2,6 +2,7 @@
 name = "sift_mcp"
 authors.workspace = true
 version.workspace = true
+publish = false
 edition.workspace = true
 categories.workspace = true
 homepage.workspace = true
@@ -22,6 +23,7 @@ tonic.workspace = true
 anyhow.workspace = true
 chrono.workspace = true
 clap = { workspace = true, features = ["cargo"] }
+futures.workspace = true
 pbjson-types.workspace = true
 percent-encoding.workspace = true
 prost.workspace = true
@@ -30,9 +32,7 @@ arrow.workspace = true
 parquet.workspace = true
 polars = { workspace = true, features = ["lazy", "parquet", "sql"] }
 tokio-stream.workspace = true
-
-[features]
-test-reports = []
+reqwest = { workspace = true, features = ["json"] }
 
 [dev-dependencies]
 sift_test_util.workspace = true

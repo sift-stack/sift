@@ -55,12 +55,13 @@ async fn list_artifacts_returns_single_page() {
         });
 
     let (service, _h) = service_with_mock(mock).await;
-    let artifacts = service
+    let page = service
         .list_artifacts(Some("conv-1".into()), false, None)
         .await
         .expect("list");
-    assert_eq!(artifacts.len(), 1);
-    assert_eq!(artifacts[0].artifact_id, "art-1");
+    assert_eq!(page.items.len(), 1);
+    assert_eq!(page.items[0].artifact_id, "art-1");
+    assert!(!page.has_more);
 }
 
 #[tokio::test]
@@ -97,17 +98,18 @@ async fn list_artifacts_paginates_until_token_empty() {
     });
 
     let (service, _h) = service_with_mock(mock).await;
-    let artifacts = service
+    let page = service
         .list_artifacts(None, false, Some(200))
         .await
         .expect("list");
     assert_eq!(
-        artifacts
+        page.items
             .iter()
             .map(|a| a.artifact_id.as_str())
             .collect::<Vec<_>>(),
         ["a1", "a2"]
     );
+    assert!(!page.has_more);
 }
 
 #[tokio::test]
@@ -134,11 +136,12 @@ async fn list_artifacts_limit_truncates() {
     });
 
     let (service, _h) = service_with_mock(mock).await;
-    let artifacts = service
+    let page = service
         .list_artifacts(None, false, Some(2))
         .await
         .expect("list");
-    assert_eq!(artifacts.len(), 2);
+    assert_eq!(page.items.len(), 2);
+    assert!(page.has_more);
 }
 
 #[tokio::test]

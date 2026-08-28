@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand, crate_version};
+use clap::{Parser, Subcommand, ValueEnum, crate_version};
 use clap_complete::Shell;
 use parquet::{ChannelMode, ComplexTypesMode};
 pub mod hdf5;
@@ -51,6 +51,10 @@ pub enum Cmd {
     #[command(subcommand)]
     Export(ExportCmd),
 
+    /// Get commands to discover and pull data from Sift
+    #[command(subcommand)]
+    Get(GetCmd),
+
     /// Ping the Sift API to verify credentials and connectivity
     Ping,
 
@@ -85,6 +89,16 @@ pub struct McpArgs {
     /// relaunch the server with this flag. Also enables create tools.
     #[arg(long)]
     pub allow_destructive: bool,
+
+    /// Disable the MCP update tool and all automatic release checks
+    #[arg(long)]
+    pub disable_update_check: bool,
+
+    /// Disable non-essential network traffic. Feature-flag resolution at startup
+    /// is essential traffic and remains enabled. Release checks are controlled
+    /// separately by `--disable-update-check`.
+    #[arg(long)]
+    pub disable_nonessential_traffic: bool,
 }
 
 /// Serve the bundled Sift CLI user documentation over HTTP.
@@ -109,10 +123,10 @@ pub enum AgentCmd {
     /// Install every detected client in safe mode using the default profile unless selected
     Install(AgentInstallArgs),
 
-    /// Refresh every detected client while preserving its profile and access mode
+    /// Refresh every client while preserving its profile, access, and update-check settings
     Update(AgentUpdateArgs),
 
-    /// Check the CLI version, skill files, MCP profiles, and access modes
+    /// Check the CLI version, skill files, MCP profiles, access, and update-check settings
     Doctor,
 
     /// Remove Sift-owned agent files and registrations
@@ -129,6 +143,15 @@ pub struct AgentInstallArgs {
     /// Also enables create tools.
     #[arg(long)]
     pub allow_destructive: bool,
+
+    /// Disable release checks in every installed MCP server
+    #[arg(long)]
+    pub disable_update_check: bool,
+
+    /// Install the agent skill into this directory too, even when no clients
+    /// are detected. Rerun with the same --path to refresh it.
+    #[arg(long, value_name = "DIR")]
+    pub path: Option<std::path::PathBuf>,
 }
 
 #[derive(clap::Args)]
@@ -149,6 +172,14 @@ pub struct AgentUpdateArgs {
     /// Switch every detected MCP client back to the default profile
     #[arg(long, conflicts_with = "profile")]
     pub default_profile: bool,
+
+    /// Disable release checks in every detected MCP server
+    #[arg(long, conflicts_with = "enable_update_check")]
+    pub disable_update_check: bool,
+
+    /// Enable release checks in every detected MCP server
+    #[arg(long, conflicts_with = "disable_update_check")]
+    pub enable_update_check: bool,
 }
 
 #[derive(Subcommand)]
@@ -293,6 +324,12 @@ pub enum ImportCmd {
     /// Run without a subcommand to import; use `ls` to list files without importing.
     #[command(name = "backups")]
     Backup(BackupArgs),
+}
+
+#[derive(Subcommand)]
+pub enum GetCmd {
+    /// Get assets
+    Asset(GetAssetArgs),
 }
 
 #[derive(Subcommand)]
@@ -851,4 +888,26 @@ impl DocArgs {
     fn default_addr() -> SocketAddr {
         "0.0.0.0:3000".parse().unwrap()
     }
+}
+
+#[derive(Clone, Copy, ValueEnum, Debug, PartialEq, Eq)]
+#[value(rename_all = "lowercase")]
+pub enum OutputFormats {
+    Text,
+    Json,
+}
+
+#[derive(clap::Args)]
+pub struct GetAssetArgs {
+    /// Filter option for filtering search with CEL expression
+    #[arg(long)]
+    pub filter: Option<String>,
+
+    /// Caps returned results to set number
+    #[arg(long, default_value = "50")]
+    pub limit: Option<u32>,
+
+    /// Determines the output format
+    #[arg(long, value_enum)]
+    pub output_format: Option<OutputFormats>,
 }

@@ -3,10 +3,9 @@ use mockall::mock;
 use sift_rs::runs::v2::{
     CreateAdhocRunRequest, CreateAdhocRunResponse, CreateAutomaticRunAssociationForAssetsRequest,
     CreateAutomaticRunAssociationForAssetsResponse, CreateRunRequest, CreateRunResponse,
-    DeleteRunRequest, DeleteRunResponse, GetFilterFieldsRequest, GetFilterFieldsResponse,
-    GetRunRequest, GetRunResponse, ListRunsRequest, ListRunsResponse, StopRunRequest,
-    StopRunResponse, UpdateRunRequest, UpdateRunResponse, ValidateRunFilterRequest,
-    ValidateRunFilterResponse, run_service_server::RunService,
+    DeleteRunRequest, DeleteRunResponse, GetRunRequest, GetRunResponse, ListRunsRequest,
+    ListRunsResponse, StopRunRequest, StopRunResponse, UpdateRunRequest, UpdateRunResponse,
+    ValidateRunFilterRequest, ValidateRunFilterResponse, run_service_server::RunService,
 };
 use tonic::{Request, Response, Status};
 
@@ -62,13 +61,6 @@ mock! {
             request: Request<StopRunRequest>,
         ) -> std::result::Result<
             Response<StopRunResponse>,
-            Status,
-        >;
-        async fn get_filter_fields(
-            &self,
-            request: Request<GetFilterFieldsRequest>,
-        ) -> std::result::Result<
-            Response<GetFilterFieldsResponse>,
             Status,
         >;
         async fn validate_run_filter(

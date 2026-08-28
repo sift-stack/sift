@@ -67,7 +67,7 @@ message DocHit {
   // Total line count of the page.
   int32 total_lines = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
   // Window of the 10 lines above and below match_line, clamped to the page.
-  // Each line is prefixed with "<line_number>\t", aligned with ReadDoc.
+  // Each line is prefixed with "{line_number}\t", aligned with ReadDoc.
   string content = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
@@ -90,7 +90,7 @@ message ReadDocResponse {
   int32 total_lines = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
   // 1-indexed line number of the first returned line.
   int32 start_line = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
-  // Page markdown. Each line is prefixed with "<line_number>\t" so follow-up
+  // Page markdown. Each line is prefixed with "{line_number}\t" so follow-up
   // reads can target specific ranges. MDX/JSX tags are stripped; fenced code
   // blocks are preserved.
   string content = 5 [(google.api.field_behavior) = OUTPUT_ONLY];

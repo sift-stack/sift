@@ -961,7 +961,6 @@ type ListCalculatedChannelsRequest struct {
 	// return calculated channels in the given folder, and `size(activeFolders) == 0` to return uncategorized calculated
 	// channels (calculated channels whose only memberships are in archived folders count as uncategorized).
 	// For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-	// For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/calculated_channels#calculated_channel). Optional.
 	Filter string `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
 	// This field is only required if your user belongs to multiple organizations.
 	OrganizationId string `protobuf:"bytes,4,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
@@ -1247,7 +1246,6 @@ type ListCalculatedChannelVersionsRequest struct {
 	// `asset_id`, `asset_name`, `tag_id`, `tag_name`, `version`, `units`, `calculated_channel_version_id`,
 	// `created_date`, `modified_date`, `created_by_user_id`, `modified_by_user_id`, `is_archived`, and `archived_date`.
 	// For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-	// For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/calculated_channels#calculated_channel). Optional.
 	Filter string `protobuf:"bytes,5,opt,name=filter,proto3" json:"filter,omitempty"`
 	// This field is only required if your user belongs to multiple organizations.
 	OrganizationId string `protobuf:"bytes,6,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
@@ -1834,7 +1832,6 @@ type ListResolvedCalculatedChannelsRequest struct {
 	// `asset_id`, `asset_name`, `tag_id`, `tag_name`, `version`, `units`, `calculated_channel_version_id`,
 	// `created_date`, `modified_date`, `created_by_user_id`, `modified_by_user_id`, `is_archived`, and `archived_date`.
 	// For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-	// For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/calculated_channels#calculated_channel). Optional.
 	Filter string `protobuf:"bytes,5,opt,name=filter,proto3" json:"filter,omitempty"`
 	// How to order the retrieved calculated channels. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
 	// Available fields to order_by are `created_date` and `modified_date`.

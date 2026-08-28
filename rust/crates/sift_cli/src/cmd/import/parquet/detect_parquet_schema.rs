@@ -264,6 +264,7 @@ pub fn detect_channel_per_row_config<R: ChunkReader>(
             ChannelPerRowInnerConfig::MultiChannel(ParquetSingleChannelPerRowMultiChannelConfig {
                 name_path: name_path.clone(),
                 data_path: args.data_path.clone(),
+                channels: Default::default(),
             })
         }
     };

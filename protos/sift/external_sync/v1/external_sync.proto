@@ -84,6 +84,13 @@ message ExternalSync {
   optional google.protobuf.Timestamp token_created_date = 5 [(google.api.field_behavior) = OPTIONAL];
   uint32 token_lifetime_seconds = 6 [(google.api.field_behavior) = REQUIRED];
   optional string most_recent_token_by_user_id = 7 [(google.api.field_behavior) = OPTIONAL];
+  // The Keycloak realm the sync reads from. Already stored alongside the sync;
+  // returned here so customer admins can reference it.
+  string realm = 8 [(google.api.field_behavior) = OPTIONAL];
+  // The Keycloak client id the sync authenticates as. Already stored alongside
+  // the sync; returned here so customer admins can reference it. The
+  // corresponding client secret stays write-only and is never returned.
+  string client = 9 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // The actual token value is not returned after it is first generated.

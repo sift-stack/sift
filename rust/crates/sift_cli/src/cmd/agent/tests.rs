@@ -7,7 +7,7 @@ use tempdir::TempDir;
 
 use super::{
     AccessInference, AccessMode, Environment, Harness, Profile, ProfileInference, Registration,
-    config, skill,
+    UpdateCheckInference, config, skill,
 };
 
 fn environment(harnesses: Vec<Harness>) -> (TempDir, Environment) {
@@ -35,7 +35,7 @@ fn status_tags_use_expected_colors() {
 }
 
 #[test]
-fn stale_native_config_directories_are_not_detected_as_installed_clients() {
+fn native_config_directories_detect_clients_without_binaries() {
     let directory = TempDir::new("sift-cli-agent-detection").unwrap();
     fs::create_dir_all(directory.path().join(".claude")).unwrap();
     fs::create_dir_all(directory.path().join(".codex")).unwrap();
@@ -45,7 +45,123 @@ fn stale_native_config_directories_are_not_detected_as_installed_clients() {
         Vec::new(),
     );
 
-    assert!(environment.detect_harnesses().is_empty());
+    assert_eq!(
+        environment.detect_harnesses(),
+        vec![Harness::Claude, Harness::Codex]
+    );
+}
+
+#[test]
+fn install_without_client_binaries_installs_the_skill_and_skips_registration() {
+    let directory = TempDir::new("sift-cli-agent-headless-install").unwrap();
+    fs::create_dir_all(directory.path().join(".claude")).unwrap();
+    let environment = Environment::for_test(
+        directory.path().to_path_buf(),
+        directory.path().join("bin/sift-cli"),
+        vec![Harness::Claude],
+    );
+
+    let exit = super::install_environment(
+        &environment,
+        "Installed",
+        &default_registration(AccessMode::ReadOnly),
+        None,
+    )
+    .unwrap();
+
+    // ExitCode has no PartialEq; its Debug form distinguishes SUCCESS/FAILURE.
+    assert_eq!(
+        format!("{exit:?}"),
+        format!("{:?}", std::process::ExitCode::SUCCESS)
+    );
+    let skill_path = directory.path().join(".claude/skills/sift/SKILL.md");
+    assert_eq!(fs::read_to_string(skill_path).unwrap(), skill::CONTENT);
+    assert!(!directory.path().join(".claude.json").exists());
+}
+
+#[test]
+fn install_with_path_and_no_clients_installs_only_there() {
+    let directory = TempDir::new("sift-cli-agent-path-only").unwrap();
+    let skill_dir = directory.path().join("resources/skills/sift");
+    let environment = Environment::for_test(
+        directory.path().to_path_buf(),
+        directory.path().join("bin/sift-cli"),
+        Vec::new(),
+    );
+
+    let exit = super::install_environment(
+        &environment,
+        "Installed",
+        &default_registration(AccessMode::ReadOnly),
+        Some(&skill_dir),
+    )
+    .unwrap();
+
+    assert_eq!(
+        format!("{exit:?}"),
+        format!("{:?}", std::process::ExitCode::SUCCESS)
+    );
+    assert_eq!(
+        fs::read_to_string(skill_dir.join("SKILL.md")).unwrap(),
+        skill::CONTENT
+    );
+    assert_eq!(skill::inspect(&skill_dir).unwrap(), skill::State::Current);
+}
+
+#[test]
+fn install_with_path_accepts_an_existing_empty_directory() {
+    let directory = TempDir::new("sift-cli-agent-empty-path").unwrap();
+    let skill_dir = directory.path().join("resources/skills/sift");
+    fs::create_dir_all(&skill_dir).unwrap();
+    let environment = Environment::for_test(
+        directory.path().to_path_buf(),
+        directory.path().join("bin/sift-cli"),
+        Vec::new(),
+    );
+
+    assert_eq!(skill::inspect(&skill_dir).unwrap(), skill::State::Missing);
+    let exit = super::install_environment(
+        &environment,
+        "Installed",
+        &default_registration(AccessMode::ReadOnly),
+        Some(&skill_dir),
+    )
+    .unwrap();
+
+    assert_eq!(
+        format!("{exit:?}"),
+        format!("{:?}", std::process::ExitCode::SUCCESS)
+    );
+    assert_eq!(skill::inspect(&skill_dir).unwrap(), skill::State::Current);
+}
+
+#[test]
+fn install_with_path_adds_to_detected_clients() {
+    let directory = TempDir::new("sift-cli-agent-path-extra").unwrap();
+    let skill_dir = directory.path().join("bundle/skills/sift");
+    let environment = Environment::for_test(
+        directory.path().to_path_buf(),
+        directory.path().join("bin/sift-cli"),
+        vec![Harness::Cursor],
+    );
+
+    super::install_environment(
+        &environment,
+        "Installed",
+        &default_registration(AccessMode::ReadOnly),
+        Some(&skill_dir),
+    )
+    .unwrap();
+
+    assert_eq!(skill::inspect(&skill_dir).unwrap(), skill::State::Current);
+    assert_eq!(
+        skill::inspect(&directory.path().join(".agents/skills/sift")).unwrap(),
+        skill::State::Current
+    );
+    assert_eq!(
+        config::inspect(Harness::Cursor, &environment).unwrap(),
+        config::State::Current(default_registration(AccessMode::ReadOnly))
+    );
 }
 
 #[test]
@@ -345,6 +461,7 @@ fn malformed_config_container_is_caught_during_preflight() {
         &environment,
         "Installed",
         &default_registration(AccessMode::ReadOnly),
+        None,
     )
     .unwrap();
 
@@ -353,6 +470,34 @@ fn malformed_config_container_is_caught_during_preflight() {
         fs::read_to_string(config_path).unwrap(),
         r#"{"mcpServers":[]}"#
     );
+}
+
+#[test]
+fn invalid_json_is_not_skipped_during_install_preflight() {
+    let directory = TempDir::new("sift-cli-agent-invalid-json").unwrap();
+    let environment = Environment::for_test(
+        directory.path().to_path_buf(),
+        directory.path().join("bin/sift-cli"),
+        vec![Harness::Cursor],
+    );
+    let config_path = directory.path().join(".cursor/mcp.json");
+    fs::create_dir_all(config_path.parent().unwrap()).unwrap();
+    fs::write(&config_path, "not JSON").unwrap();
+
+    let exit = super::install_environment(
+        &environment,
+        "Installed",
+        &default_registration(AccessMode::ReadOnly),
+        None,
+    )
+    .unwrap();
+
+    assert_eq!(
+        format!("{exit:?}"),
+        format!("{:?}", std::process::ExitCode::FAILURE)
+    );
+    assert!(!directory.path().join(".agents/skills/sift").exists());
+    assert_eq!(fs::read_to_string(config_path).unwrap(), "not JSON");
 }
 
 #[cfg(unix)]
@@ -455,6 +600,36 @@ fn update_profile_inference_preserves_one_profile_and_rejects_mixed_profiles() {
 }
 
 #[test]
+fn update_check_inference_preserves_one_mode_and_rejects_mixed_modes() {
+    assert_eq!(
+        super::infer_update_checks(&[]),
+        UpdateCheckInference::Resolved(false)
+    );
+    assert_eq!(
+        super::infer_update_checks(&[true, true]),
+        UpdateCheckInference::Resolved(true)
+    );
+    assert_eq!(
+        super::infer_update_checks(&[false, true]),
+        UpdateCheckInference::Mixed
+    );
+}
+
+#[test]
+fn update_check_flags_are_mutually_exclusive() {
+    assert!(
+        crate::cli::Args::try_parse_from([
+            "sift-cli",
+            "agent",
+            "update",
+            "--disable-update-check",
+            "--enable-update-check",
+        ])
+        .is_err()
+    );
+}
+
+#[test]
 fn update_access_flags_are_mutually_exclusive() {
     assert!(
         crate::cli::Args::try_parse_from([
@@ -541,6 +716,7 @@ fn install_preflight_keeps_every_target_unchanged_on_conflict() {
         &environment,
         "Installed",
         &default_registration(AccessMode::ReadOnly),
+        None,
     )
     .unwrap();
 
@@ -571,6 +747,7 @@ fn failed_later_client_install_rolls_back_earlier_clients_and_skills() {
         &environment,
         "Installed",
         &default_registration(AccessMode::ReadOnly),
+        None,
     );
 
     fs::set_permissions(&opencode_dir, fs::Permissions::from_mode(0o755)).unwrap();
@@ -605,4 +782,24 @@ fn uninstall_preflight_keeps_every_target_unchanged_on_conflict() {
     super::uninstall_environment(&environment).unwrap();
 
     assert!(skill_path.exists());
+}
+
+#[test]
+fn uninstall_without_client_binary_removes_the_skill() {
+    let directory = TempDir::new("sift-cli-agent-headless-uninstall").unwrap();
+    let environment = Environment::for_test(
+        directory.path().to_path_buf(),
+        directory.path().join("bin/sift-cli"),
+        vec![Harness::Claude],
+    );
+    let skill_path = directory.path().join(".claude/skills/sift");
+    skill::install(&skill_path).unwrap();
+
+    let exit = super::uninstall_environment(&environment).unwrap();
+
+    assert_eq!(
+        format!("{exit:?}"),
+        format!("{:?}", std::process::ExitCode::SUCCESS)
+    );
+    assert!(!skill_path.exists());
 }

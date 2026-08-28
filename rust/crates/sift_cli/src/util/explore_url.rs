@@ -54,6 +54,9 @@ pub fn pending_import_tip(location: &str, explore_url: Option<&str>) -> String {
     tip
 }
 
+/// Builds a link to a single Explore data source: the run when the import targets one, and the
+/// asset otherwise. A run is already scoped to its asset, so naming both would open the view on
+/// two sources instead of the one the caller imported into.
 pub fn build_explore_url(
     app_uri: Option<&str>,
     asset_name: &str,
@@ -61,11 +64,11 @@ pub fn build_explore_url(
 ) -> Option<String> {
     let host = app_uri.and_then(normalize_app_uri)?;
 
-    let mut url = format!("{host}/explore?method=single&assets={}", encode(asset_name));
-    if let Some(run) = run {
-        url.push_str(&format!("&runs={}", encode(run)));
-    }
-    Some(url)
+    let source = match run {
+        Some(run) => format!("runs={}", encode(run)),
+        None => format!("assets={}", encode(asset_name)),
+    };
+    Some(format!("{host}/explore?method=single&{source}"))
 }
 
 #[cfg(test)]
@@ -82,9 +85,16 @@ mod tests {
         );
         assert_eq!(
             target.explore_url.as_deref(),
-            Some(
-                "https://sift.example.net/explore?method=single&assets=Engine%20%2F%207&runs=Test%20Run"
-            )
+            Some("https://sift.example.net/explore?method=single&runs=Test%20Run")
+        );
+    }
+
+    #[test]
+    fn an_import_without_a_run_links_to_the_asset() {
+        let target = import_target("Engine / 7", None, None, Some("https://sift.example.net"));
+        assert_eq!(
+            target.explore_url.as_deref(),
+            Some("https://sift.example.net/explore?method=single&assets=Engine%20%2F%207")
         );
     }
 
@@ -96,12 +106,9 @@ mod tests {
             Some("run-id"),
             Some("https://app.siftstack.com"),
         );
-        assert!(
-            target
-                .explore_url
-                .as_deref()
-                .unwrap()
-                .ends_with("&runs=run-id")
+        assert_eq!(
+            target.explore_url.as_deref(),
+            Some("https://app.siftstack.com/explore?method=single&runs=run-id")
         );
     }
 

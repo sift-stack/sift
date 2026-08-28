@@ -176,7 +176,6 @@ class ListPoliciesRequest(google.protobuf.message.Message):
     `created_by_user_id`, `modified_by_user_id`, `created_date`, and `modified_date`.
     Archive state is controlled via the `include_archived` field below, not via filter.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-    For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/policies#policy). Optional.
     """
     order_by: builtins.str
     """How to order the retrieved policies. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".

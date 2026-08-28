@@ -62,6 +62,7 @@ enum NotificationKind {
   NOTIFICATION_KIND_REPORT_READY = 6;
   NOTIFICATION_KIND_DATA_EXPORT_READY = 7;
   NOTIFICATION_KIND_MENTIONED_IN_COMMENT = 8;
+  NOTIFICATION_KIND_AUTOMATION_TRIGGER_DISPATCHED = 9;
 }
 
 // The request for a call to `NotificationService_ListNotifications` to retrieve notifications.
@@ -82,7 +83,6 @@ message ListNotificationsRequest {
   // Available fields to filter by are `notification_id`, `created_by_user_id`, `recipient_user_id`,
   // `created_date`, `notification_type`, and `is_read`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-  // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/notifications#notification). Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
 }
 

@@ -9,7 +9,9 @@ use tonic::{Response, Status, transport::Server};
 use crate::{
     server::SiftMcpServer,
     service::common::DEFAULT_LIMIT,
-    tool::common::test_support::{list_params, structured_field},
+    tool::common::test_support::{
+        list_params, list_params_with_fields, structured, structured_field,
+    },
 };
 
 async fn server_with_mock(mock: MockChannelServiceImpl) -> (SiftMcpServer, JoinHandle<()>) {
@@ -189,4 +191,59 @@ async fn list_channels_propagates_grpc_error() {
 
     assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
     assert!(err.message.contains("bad filter"));
+}
+
+#[tokio::test]
+async fn list_channels_projects_requested_fields() {
+    let mut channel_mock = MockChannelServiceImpl::new();
+    channel_mock.expect_list_channels().returning(|_| {
+        Ok(Response::new(ListChannelsResponse {
+            channels: vec![Channel {
+                channel_id: "c1".into(),
+                name: "throttle".into(),
+                description: "main throttle".into(),
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (server, _h) = server_with_mock(channel_mock).await;
+
+    let resp = server
+        .list_channels(list_params_with_fields("", &["name"]))
+        .await
+        .expect("list_channels failed");
+
+    let channels = structured_field(resp, "channels");
+    assert_eq!(channels, serde_json::json!([{ "name": "throttle" }]));
+}
+
+#[tokio::test]
+async fn list_channels_reports_a_field_that_matched_nothing() {
+    let mut channel_mock = MockChannelServiceImpl::new();
+    channel_mock.expect_list_channels().returning(|_| {
+        Ok(Response::new(ListChannelsResponse {
+            channels: vec![Channel {
+                channel_id: "c1".into(),
+                name: "throttle".into(),
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (server, _h) = server_with_mock(channel_mock).await;
+
+    let resp = server
+        .list_channels(list_params_with_fields("", &["name", "nmae"]))
+        .await
+        .expect("list_channels failed");
+
+    let body = structured(resp);
+    assert_eq!(
+        body["channels"],
+        serde_json::json!([{ "name": "throttle" }])
+    );
+    assert_eq!(body["unmatched_fields"], serde_json::json!(["nmae"]));
 }

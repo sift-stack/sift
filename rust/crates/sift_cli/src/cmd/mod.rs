@@ -9,6 +9,7 @@ pub mod agent;
 pub mod config;
 pub mod doc;
 pub mod export;
+pub mod get;
 pub mod import;
 pub mod install;
 pub mod mcp;

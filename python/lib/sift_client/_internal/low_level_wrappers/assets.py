@@ -102,4 +102,4 @@ class AssetsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         request = ArchiveAssetRequest(asset_id=asset_id, archive_runs=archive_runs)
         response = await self._grpc_client.get_stub(AssetServiceStub).ArchiveAsset(request)
         response = cast("ArchiveAssetResponse", response)
-        return response.archived_runs
+        return list(response.archived_run_ids)

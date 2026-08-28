@@ -12,7 +12,7 @@ use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::rules::RuleUpdate,
-    tool::common::{ListParams, url_clause, with_urls},
+    tool::common::{ListParams, list_body, url_clause, with_urls},
 };
 
 #[cfg(test)]
@@ -66,6 +66,12 @@ impl SiftMcpServer {
               - Fields at their proto3 default are OMITTED from the JSON: a missing `is_external`,
                 `is_live_evaluation_enabled`, `is_enabled`, or `is_archived` key means `false`, not \"unknown\".
                 Do not fall back to another API to read these; absence IS the value.
+              - `count`: how many items THIS response carries — read it instead of
+                counting the array yourself. It is the size of the page you got back, not
+                how many items match `filter`.
+              - `has_more`: `true` when the service hit `limit` with matches left over, so
+                this page is not the whole set. Never report `count` as a total while
+                `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
@@ -84,6 +90,14 @@ impl SiftMcpServer {
                 Example: `\"created_date desc,modified_date\"`.
               - `limit`: max items to return. Start at 50 and only raise it if the result is capped
                 and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
+              - `fields`: optional array of field names to keep on each item, e.g.
+                `[\"name\"]`. Omit it for the full object. Names match case-insensitively
+                and ignore underscores and hyphens, so `asset_id`, `assetId` and
+                `asset-id` all work. Any name that matched nothing on any returned item
+                is listed in `unmatched_fields`; an empty page reports none, since it
+                says nothing about whether a name was spelled right.
+                Reach for this whenever you need only a few fields: full objects are wide,
+                and a large listing can exceed the response size limit without it.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an unknown field.
@@ -103,19 +117,25 @@ impl SiftMcpServer {
             filter,
             order_by,
             limit,
+            fields,
         }) = params;
 
-        let rules = self
+        let page = self
             .rule_service
             .list_rules(filter, order_by, limit)
             .await
             .map_err(from_anyhow)?;
 
-        let rules = with_urls(&rules, |r| self.url_service.build_rule_url(&r.rule_id).ok())?;
+        let rules = with_urls(&page.items, |r| {
+            self.url_service.build_rule_url(&r.rule_id).ok()
+        })?;
 
-        Ok(CallToolResult::structured(
-            serde_json::json!({ "rules": rules }),
-        ))
+        Ok(CallToolResult::structured(list_body(
+            "rules",
+            rules,
+            fields,
+            page.has_more,
+        )))
     }
 
     #[tool(

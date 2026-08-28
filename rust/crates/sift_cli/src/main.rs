@@ -80,7 +80,9 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
             },
         },
         Cmd::Agent(cmd) => match cmd {
-            AgentCmd::Install(args) => return cmd::agent::install(clargs.profile, args),
+            AgentCmd::Install(args) => {
+                return run_future(cmd::agent::install(clargs.profile, args));
+            }
             AgentCmd::Update(args) => {
                 return run_future(cmd::agent::update(clargs.profile, args));
             }
@@ -151,6 +153,9 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
         Cmd::Export(cmd) => match cmd {
             cli::ExportCmd::Run(args) => run_future(cmd::export::run(ctx, args)),
             cli::ExportCmd::Asset(args) => run_future(cmd::export::asset(ctx, args)),
+        },
+        Cmd::Get(cmd) => match cmd {
+            cli::GetCmd::Asset(args) => run_future(cmd::get::assets::run(ctx, args)),
         },
         Cmd::Ping => run_future(cmd::ping::run(ctx)),
         _ => Ok(ExitCode::SUCCESS),

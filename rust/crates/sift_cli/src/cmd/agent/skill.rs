@@ -109,6 +109,17 @@ pub(super) fn inspect(path: &Path) -> Result<State> {
         }
     }
 
+    let mut entries =
+        fs::read_dir(path).with_context(|| format!("failed to read {}", path.display()))?;
+    if entries
+        .next()
+        .transpose()
+        .with_context(|| format!("failed to read {}", path.display()))?
+        .is_none()
+    {
+        return Ok(State::Missing);
+    }
+
     if directory_matches(&BUNDLE, path)? {
         return Ok(State::Current);
     }

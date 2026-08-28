@@ -79,7 +79,7 @@ class DocHit(google.protobuf.message.Message):
     """Total line count of the page."""
     content: builtins.str
     """Window of the 10 lines above and below match_line, clamped to the page.
-    Each line is prefixed with "<line_number>\\t", aligned with ReadDoc.
+    Each line is prefixed with "{line_number}\\t", aligned with ReadDoc.
     """
     def __init__(
         self,
@@ -137,7 +137,7 @@ class ReadDocResponse(google.protobuf.message.Message):
     start_line: builtins.int
     """1-indexed line number of the first returned line."""
     content: builtins.str
-    """Page markdown. Each line is prefixed with "<line_number>\\t" so follow-up
+    """Page markdown. Each line is prefixed with "{line_number}\\t" so follow-up
     reads can target specific ranges. MDX/JSX tags are stripped; fenced code
     blocks are preserved.
     """

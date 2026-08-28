@@ -77,10 +77,11 @@ impl ArtifactService {
         conversation_id: Option<String>,
         include_archived: bool,
         limit: Option<u32>,
-    ) -> Result<Vec<Artifact>> {
+    ) -> Result<common::Page<Artifact>> {
         let (page_size, record_limit) = common::paging(limit);
         let mut page_token = String::new();
         let mut results = Vec::new();
+        let mut has_more = false;
 
         loop {
             let channel = self.channel.clone();
@@ -115,14 +116,21 @@ impl ArtifactService {
                 break;
             }
             results.extend(artifacts);
-            if results.len() >= record_limit || next_page_token.is_empty() {
+            if results.len() >= record_limit {
+                has_more = results.len() > record_limit || !next_page_token.is_empty();
+                break;
+            }
+            if next_page_token.is_empty() {
                 break;
             }
             page_token = next_page_token;
         }
 
         results.truncate(record_limit);
-        Ok(results)
+        Ok(common::Page {
+            items: results,
+            has_more,
+        })
     }
 
     pub async fn get_artifact(
