@@ -62,14 +62,14 @@ impl SiftMcpServer {
     #[tool(
         name = "list_artifacts",
         description = "
-            List artifacts in the caller's organization, optionally restricted to those linked to one conversation.
+            List artifacts created by the caller, optionally restricted to those linked to one conversation.
 
             Artifacts are first-class versioned documents. Each list entry is the latest version of one
             artifact. Bytes are not returned; use `download_artifact` for a download URL when a version has
             uploaded files.
 
             Results are returned oldest first. There is no `order_by` or `filter`, so when `has_more` is
-            still `true` at `limit: 200`, the newest artifacts are not reachable from an organization-wide
+            still `true` at `limit: 200`, the newest artifacts are not reachable from an unscoped
             listing; scope with `conversation_id` instead.
 
             Output:
@@ -78,7 +78,7 @@ impl SiftMcpServer {
                 `created_date`, and `archived_date` when set.
               - `count`: how many items THIS response carries — read it instead of
                 counting the array yourself. It is the size of the page you got back, not
-                how many artifacts exist in the organization.
+                how many artifacts the caller has.
               - `has_more`: `true` when the service hit `limit` with matches left over, so
                 this page is not the whole set. Never report `count` as a total while
                 `has_more` is `true` — raise `limit` or scope with `conversation_id` and ask again.
@@ -87,7 +87,7 @@ impl SiftMcpServer {
 
             Parameters:
               - `conversation_id`: optional. When set, only artifacts linked to that conversation. When omitted,
-                every artifact in the caller's organization.
+                every artifact the caller created.
               - `include_archived`: optional. Default `false` omits archived artifacts. Set `true` only when the
                 user asks for archived ones.
               - `limit`: max items to return. Start at 50 and only raise it if the result is capped
@@ -103,7 +103,7 @@ impl SiftMcpServer {
 
             Errors:
               - `INVALID_PARAMS` if `conversation_id` is empty when set.
-              - `RESOURCE_NOT_FOUND` if `conversation_id` does not exist in the caller's organization.
+              - `RESOURCE_NOT_FOUND` if `conversation_id` does not exist or is not visible to the caller.
               - `INTERNAL_ERROR` for upstream failures.
 
             Guidance:
@@ -162,7 +162,7 @@ impl SiftMcpServer {
 
             Errors:
               - `INVALID_PARAMS` if `artifact_id` is empty, or `artifact_version_id` is empty when set.
-              - `RESOURCE_NOT_FOUND` if the artifact (or pinned version) does not exist in the caller's organization.
+              - `RESOURCE_NOT_FOUND` if the artifact (or pinned version) does not exist or is not visible to the caller.
               - `INTERNAL_ERROR` for upstream failures, including a failure to mint the download URL for a
                 version that has uploaded bytes. The tool does not return a partial artifact in that case.
 

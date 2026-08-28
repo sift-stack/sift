@@ -48,12 +48,12 @@ service ArtifactService {
 
   // One entry per artifact, resolved to its latest version, oldest first.
   // With conversation_id set, only artifacts linked to that conversation;
-  // otherwise every artifact in the caller's organization.
+  // otherwise every artifact created by the caller.
   rpc ListArtifacts(ListArtifactsRequest) returns (ListArtifactsResponse) {
     option (google.api.http) = {get: "/api/v1/artifacts"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "ListArtifacts"
-      description: "List artifacts in the caller's organization, optionally filtered to one conversation."
+      description: "List artifacts created by the caller, optionally filtered to one conversation."
       operation_id: "ArtifactService_ListArtifactsV1"
     };
   }
@@ -195,7 +195,7 @@ message GetArtifactResponse {
 }
 
 message ListArtifactsRequest {
-  // Unset lists every artifact in the caller's organization.
+  // Unset lists every artifact created by the caller.
   optional string conversation_id = 1;
   uint32 page_size = 2;
   string page_token = 3;
