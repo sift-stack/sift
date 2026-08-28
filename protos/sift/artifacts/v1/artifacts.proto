@@ -1,0 +1,246 @@
+syntax = "proto3";
+
+package sift.artifacts.v1;
+
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "Artifact Service"}
+};
+
+// ArtifactService manages artifacts: independent, org-scoped, versioned
+// documents. An artifact is not owned by a conversation. A conversation may
+// reference an artifact through a link, any number of conversations may link
+// the same artifact, and an artifact may exist with no link at all (for
+// example, created over MCP outside an agent session).
+//
+// The service carries artifact metadata only. Version bytes live in
+// remote_files (entity_type 'artifact_versions', entity_id =
+// artifact_version_id): upload via the remote-files multipart endpoint,
+// download via RemoteFileService.GetRemoteFileDownloadUrl.
+service ArtifactService {
+  // Creates an artifact plus its version-1 row, or appends a version when
+  // artifact_id is set. When conversation_id is set on create, the new
+  // artifact is also linked to that conversation.
+  rpc CreateArtifact(CreateArtifactRequest) returns (CreateArtifactResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/artifacts"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateArtifact"
+      description: "Create a new artifact or append a version to an existing one."
+      operation_id: "ArtifactService_CreateArtifactV1"
+    };
+  }
+
+  // Resolves to the latest version unless artifact_version_id pins one.
+  rpc GetArtifact(GetArtifactRequest) returns (GetArtifactResponse) {
+    option (google.api.http) = {get: "/api/v1/artifacts/{artifact_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetArtifact"
+      description: "Get one artifact, resolved to the latest version unless artifact_version_id pins one."
+      operation_id: "ArtifactService_GetArtifactV1"
+    };
+  }
+
+  // One entry per artifact, resolved to its latest version, oldest first.
+  // With conversation_id set, only artifacts linked to that conversation;
+  // otherwise every artifact created by the caller.
+  rpc ListArtifacts(ListArtifactsRequest) returns (ListArtifactsResponse) {
+    option (google.api.http) = {get: "/api/v1/artifacts"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListArtifacts"
+      description: "List artifacts created by the caller, optionally filtered to one conversation."
+      operation_id: "ArtifactService_ListArtifactsV1"
+    };
+  }
+
+  // Full version history of one artifact, newest first.
+  rpc ListArtifactVersions(ListArtifactVersionsRequest) returns (ListArtifactVersionsResponse) {
+    option (google.api.http) = {get: "/api/v1/artifacts/{artifact_id}/versions"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListArtifactVersions"
+      description: "List the version history of one artifact, newest first."
+      operation_id: "ArtifactService_ListArtifactVersionsV1"
+    };
+  }
+
+  // Links an existing artifact to a conversation. Idempotent: linking an
+  // already-linked pair succeeds without effect.
+  rpc LinkArtifactToConversation(LinkArtifactToConversationRequest) returns (LinkArtifactToConversationResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/artifacts/{artifact_id}/conversations/{conversation_id}:link"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "LinkArtifactToConversation"
+      description: "Link an existing artifact to a conversation."
+      operation_id: "ArtifactService_LinkArtifactToConversationV1"
+    };
+  }
+
+  // Removes one conversation's link to an artifact. The artifact itself is
+  // untouched. Idempotent: unlinking a missing link succeeds.
+  rpc UnlinkArtifactFromConversation(UnlinkArtifactFromConversationRequest) returns (UnlinkArtifactFromConversationResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/artifacts/{artifact_id}/conversations/{conversation_id}:unlink"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UnlinkArtifactFromConversation"
+      description: "Remove a conversation's link to an artifact."
+      operation_id: "ArtifactService_UnlinkArtifactFromConversationV1"
+    };
+  }
+
+  // Sets archived_date. Versions, stored bytes, and conversation links are
+  // left in place. Idempotent: archiving an already-archived artifact
+  // succeeds without changing archived_date.
+  rpc ArchiveArtifact(ArchiveArtifactRequest) returns (ArchiveArtifactResponse) {
+    option (google.api.http) = {post: "/api/v1/artifacts/{artifact_id}/archive"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ArchiveArtifact"
+      description: "Archive an artifact. Versions, stored bytes, and conversation links are left in place."
+      operation_id: "ArtifactService_ArchiveArtifactV1"
+    };
+  }
+
+  // Clears archived_date. Idempotent: unarchiving an active artifact
+  // succeeds without effect.
+  rpc UnarchiveArtifact(UnarchiveArtifactRequest) returns (UnarchiveArtifactResponse) {
+    option (google.api.http) = {post: "/api/v1/artifacts/{artifact_id}/unarchive"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UnarchiveArtifact"
+      description: "Unarchive an artifact."
+      operation_id: "ArtifactService_UnarchiveArtifactV1"
+    };
+  }
+}
+
+enum ArtifactAuthoringKind {
+  ARTIFACT_AUTHORING_KIND_UNSPECIFIED = 0;
+  ARTIFACT_AUTHORING_KIND_AGENT = 1;
+  ARTIFACT_AUTHORING_KIND_USER = 2;
+}
+
+// Container fields flattened together with one resolved version.
+message Artifact {
+  string artifact_id = 1;
+  string organization_id = 2;
+  string created_by_user_id = 3;
+  ArtifactAuthoringKind authoring_kind = 5;
+  google.protobuf.Timestamp created_date = 6;
+  string artifact_version_id = 7;
+  uint32 version = 8;
+  optional string title = 9;
+  optional string summary = 10;
+  // Set only for versions authored inside a conversation, and there only
+  // after the introducing message persists: uploads attach before the user
+  // sends, and agent turns persist messages only at end of turn.
+  optional string authoring_message_id = 11;
+  repeated string source_tool_use_ids = 12;
+  // Unset until bytes are uploaded.
+  optional string remote_file_id = 13;
+  google.protobuf.Timestamp version_created_date = 14;
+  // From the version's remote_files row. Unset until bytes are uploaded.
+  // Clients infer preview behavior from file_name / file_mime_type.
+  optional string file_name = 15;
+  optional string file_mime_type = 16;
+  // Unset while the artifact is active.
+  optional google.protobuf.Timestamp archived_date = 17;
+}
+
+message ArtifactVersion {
+  string artifact_version_id = 1;
+  string artifact_id = 2;
+  uint32 version = 3;
+  optional string title = 4;
+  optional string summary = 5;
+  optional string authoring_message_id = 6;
+  repeated string source_tool_use_ids = 7;
+  optional string remote_file_id = 8;
+  google.protobuf.Timestamp created_date = 9;
+  // From the version's remote_files row. Unset until bytes are uploaded.
+  optional string file_name = 10;
+  optional string file_mime_type = 11;
+}
+
+message CreateArtifactRequest {
+  // Set to append a version to an existing artifact; unset to create one.
+  optional string artifact_id = 1;
+  // Set to link the new artifact to a conversation at create time. Legal
+  // only on create (not on append), and only for the conversation's author.
+  optional string conversation_id = 2;
+  optional string title = 4;
+  optional string summary = 5;
+  // Defaults to USER. AGENT is self-reported: the agent pod authenticates
+  // with the requesting user's transient key, so until scoped pod
+  // credentials land (ENG-12831) authorship attribution rides on the same
+  // trust as the pod's message persistence path.
+  optional ArtifactAuthoringKind authoring_kind = 6;
+}
+
+message CreateArtifactResponse {
+  Artifact artifact = 1;
+}
+
+message GetArtifactRequest {
+  string artifact_id = 1;
+  optional string artifact_version_id = 2;
+}
+
+message GetArtifactResponse {
+  Artifact artifact = 1;
+}
+
+message ListArtifactsRequest {
+  // Unset lists every artifact created by the caller.
+  optional string conversation_id = 1;
+  uint32 page_size = 2;
+  string page_token = 3;
+  // When false (the default), archived artifacts are omitted.
+  bool include_archived = 4;
+}
+
+message ListArtifactsResponse {
+  repeated Artifact artifacts = 1;
+  string next_page_token = 2;
+}
+
+message ListArtifactVersionsRequest {
+  string artifact_id = 1;
+  uint32 page_size = 2;
+  string page_token = 3;
+}
+
+message ListArtifactVersionsResponse {
+  repeated ArtifactVersion versions = 1;
+  string next_page_token = 2;
+}
+
+message LinkArtifactToConversationRequest {
+  string artifact_id = 1;
+  string conversation_id = 2;
+}
+
+message LinkArtifactToConversationResponse {}
+
+message UnlinkArtifactFromConversationRequest {
+  string artifact_id = 1;
+  string conversation_id = 2;
+}
+
+message UnlinkArtifactFromConversationResponse {}
+
+message ArchiveArtifactRequest {
+  string artifact_id = 1;
+}
+
+message ArchiveArtifactResponse {}
+
+message UnarchiveArtifactRequest {
+  string artifact_id = 1;
+}
+
+message UnarchiveArtifactResponse {}

@@ -173,6 +173,27 @@ async fn feature_flag_gates_test_report_tools() {
     enabled_handle.abort();
 }
 
+#[tokio::test]
+async fn each_feature_flag_gates_only_its_own_tools() {
+    for &(_, flag) in TOOL_FEATURE_FLAGS {
+        let flags: FeatureFlags =
+            serde_json::from_value(serde_json::json!({ "variants": { flag: { "value": "on" } } }))
+                .unwrap();
+        let (server, handle) =
+            server_with_feature_flags(None, 0, ClientEventReporter::default(), flags).await;
+        let routed = server.tool_router.list_all();
+        for &(tool_name, tool_flag) in TOOL_FEATURE_FLAGS {
+            let is_routed = routed.iter().any(|tool| tool.name == tool_name);
+            assert_eq!(
+                is_routed,
+                tool_flag == flag,
+                "with only `{flag}` enabled, `{tool_name}` routed = {is_routed}"
+            );
+        }
+        handle.abort();
+    }
+}
+
 async fn initialized_client_with_feature_flags(
     feature_flags: FeatureFlags,
 ) -> (
