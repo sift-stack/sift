@@ -40,9 +40,7 @@ pub struct CreateArtifactParams {
     authoring_kind: Option<String>,
 }
 
-/// Accepts the short names `user` / `agent` in any case, plus the proto enum
-/// names that `list_artifacts` and `get_artifact` emit, so an agent can echo a
-/// value it read back into `create_artifact`.
+/// Also accepts the proto enum names so an agent can echo a value it read from `list_artifacts`.
 fn parse_authoring_kind(value: Option<String>) -> Result<ArtifactAuthoringKind, ErrorData> {
     let lowered = value
         .as_deref()
@@ -264,9 +262,7 @@ impl SiftMcpServer {
             authoring_kind,
         }) = params;
 
-        // Creating is additive. Appending rewrites what every linked conversation
-        // resolves to for an artifact the caller may not own, so it also takes
-        // the stronger gate, matching the other version-appending update tools.
+        // Appending rewrites what every linked conversation resolves to, so it takes the stronger gate.
         if artifact_id.is_some() {
             self.require_destructive()?;
         }

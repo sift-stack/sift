@@ -18,13 +18,6 @@ use crate::service::common;
 #[cfg(test)]
 mod test;
 
-/// Proto `Artifact` plus an optional signed download URL attached by
-/// [`ArtifactService::get_artifact`] when `remote_file_id` is set.
-///
-/// Serializes as the proto JSON object with one extra `download_url` key, which
-/// is omitted when there is no URL. Serialization errors propagate instead of
-/// degrading to an empty object, so a proto enum the CLI does not know yet
-/// surfaces as an error rather than a silently blank artifact.
 #[derive(Clone, Debug, Serialize)]
 pub struct ArtifactView {
     #[serde(flatten)]
