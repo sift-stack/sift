@@ -176,7 +176,7 @@ async fn list_artifacts_propagates_not_found() {
 }
 
 #[tokio::test]
-async fn get_artifact_returns_latest() {
+async fn download_artifact_returns_latest() {
     let mut mock = MockArtifactServiceImpl::new();
     mock.expect_get_artifact()
         .withf(|req| {
@@ -191,7 +191,7 @@ async fn get_artifact_returns_latest() {
 
     let (service, _h) = service_with_mock(mock).await;
     let artifact = service
-        .get_artifact("art-1".into(), None)
+        .download_artifact("art-1".into(), None)
         .await
         .expect("get");
     assert_eq!(artifact.inner.artifact_id, "art-1");
@@ -217,7 +217,7 @@ fn get_returns_uploaded() -> MockArtifactServiceImpl {
 }
 
 #[tokio::test]
-async fn get_artifact_attaches_download_url_when_bytes_uploaded() {
+async fn download_artifact_attaches_download_url_when_bytes_uploaded() {
     let mut remote_files = MockRemoteFileServiceImpl::new();
     remote_files
         .expect_get_remote_file_download_url()
@@ -231,7 +231,7 @@ async fn get_artifact_attaches_download_url_when_bytes_uploaded() {
 
     let (service, _h) = service_with_mocks(get_returns_uploaded(), remote_files).await;
     let artifact = service
-        .get_artifact("art-1".into(), None)
+        .download_artifact("art-1".into(), None)
         .await
         .expect("get");
     assert_eq!(artifact.inner.remote_file_id.as_deref(), Some("rf-1"));
@@ -242,7 +242,7 @@ async fn get_artifact_attaches_download_url_when_bytes_uploaded() {
 }
 
 #[tokio::test]
-async fn get_artifact_propagates_download_url_error() {
+async fn download_artifact_propagates_download_url_error() {
     let mut remote_files = MockRemoteFileServiceImpl::new();
     remote_files
         .expect_get_remote_file_download_url()
@@ -250,7 +250,7 @@ async fn get_artifact_propagates_download_url_error() {
 
     let (service, _h) = service_with_mocks(get_returns_uploaded(), remote_files).await;
     let err = service
-        .get_artifact("art-1".into(), None)
+        .download_artifact("art-1".into(), None)
         .await
         .expect_err("download url failure must not be swallowed");
     let status = err.downcast_ref::<tonic::Status>().expect("status");
@@ -258,7 +258,7 @@ async fn get_artifact_propagates_download_url_error() {
 }
 
 #[tokio::test]
-async fn get_artifact_rejects_empty_download_url() {
+async fn download_artifact_rejects_empty_download_url() {
     let mut remote_files = MockRemoteFileServiceImpl::new();
     remote_files
         .expect_get_remote_file_download_url()
@@ -270,7 +270,7 @@ async fn get_artifact_rejects_empty_download_url() {
 
     let (service, _h) = service_with_mocks(get_returns_uploaded(), remote_files).await;
     let err = service
-        .get_artifact("art-1".into(), None)
+        .download_artifact("art-1".into(), None)
         .await
         .expect_err("empty url is an error");
     assert!(err.to_string().contains("download url response was empty"));

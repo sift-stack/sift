@@ -15,7 +15,7 @@ use sift_test_util::{
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
-use super::{CreateArtifactParams, GetArtifactParams};
+use super::{CreateArtifactParams, DownloadArtifactParams};
 use crate::{
     server::SiftMcpServer,
     tool::{artifacts::ArtifactListParams, common::test_support::structured_field},
@@ -129,7 +129,7 @@ async fn list_artifacts_rejects_empty_conversation_id() {
 async fn get_artifact_rejects_empty_id() {
     let (server, _h) = server_with_mock(MockArtifactServiceImpl::new(), true).await;
     let err = server
-        .get_artifact(Parameters(GetArtifactParams {
+        .download_artifact(Parameters(DownloadArtifactParams {
             artifact_id: String::new(),
             artifact_version_id: None,
         }))
@@ -155,7 +155,7 @@ async fn get_artifact_returns_snake_case_download_url() {
 
     let (server, _h) = server_with_mocks(get_returns(uploaded), remote_files, false, false).await;
     let resp = server
-        .get_artifact(Parameters(GetArtifactParams {
+        .download_artifact(Parameters(DownloadArtifactParams {
             artifact_id: "art-1".into(),
             artifact_version_id: None,
         }))
@@ -171,7 +171,7 @@ async fn get_artifact_returns_snake_case_download_url() {
 async fn get_artifact_omits_download_url_without_bytes() {
     let (server, _h) = server_with_mock(get_returns(sample_artifact()), false).await;
     let resp = server
-        .get_artifact(Parameters(GetArtifactParams {
+        .download_artifact(Parameters(DownloadArtifactParams {
             artifact_id: "art-1".into(),
             artifact_version_id: None,
         }))
@@ -194,7 +194,7 @@ async fn get_artifact_surfaces_download_url_failure() {
 
     let (server, _h) = server_with_mocks(get_returns(uploaded), remote_files, false, false).await;
     let err = server
-        .get_artifact(Parameters(GetArtifactParams {
+        .download_artifact(Parameters(DownloadArtifactParams {
             artifact_id: "art-1".into(),
             artifact_version_id: None,
         }))

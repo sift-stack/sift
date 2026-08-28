@@ -98,14 +98,12 @@ impl ArtifactService {
         })
     }
 
-    pub async fn get_artifact(
+    pub async fn download_artifact(
         &self,
         artifact_id: String,
         artifact_version_id: Option<String>,
     ) -> Result<ArtifactView> {
-        let artifact = self
-            .get_artifact_inner(artifact_id, artifact_version_id)
-            .await?;
+        let artifact = self.get_artifact(artifact_id, artifact_version_id).await?;
         let download_url = match artifact.remote_file_id.clone() {
             Some(remote_file_id) => Some(self.download_url(remote_file_id).await?),
             None => None,
@@ -156,7 +154,7 @@ impl ArtifactService {
         })
     }
 
-    async fn get_artifact_inner(
+    async fn get_artifact(
         &self,
         artifact_id: String,
         artifact_version_id: Option<String>,

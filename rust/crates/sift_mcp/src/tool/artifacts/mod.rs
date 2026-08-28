@@ -26,7 +26,7 @@ pub struct ArtifactListParams {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-pub struct GetArtifactParams {
+pub struct DownloadArtifactParams {
     artifact_id: String,
     artifact_version_id: Option<String>,
 }
@@ -65,7 +65,7 @@ impl SiftMcpServer {
             List artifacts in the caller's organization, optionally restricted to those linked to one conversation.
 
             Artifacts are first-class versioned documents. Each list entry is the latest version of one
-            artifact. Bytes are not returned; use `get_artifact` for a download URL when a version has
+            artifact. Bytes are not returned; use `download_artifact` for a download URL when a version has
             uploaded files.
 
             Results are returned oldest first. There is no `order_by` or `filter`, so when `has_more` is
@@ -108,7 +108,7 @@ impl SiftMcpServer {
 
             Guidance:
               - Prefer scoping by `conversation_id` when the user is talking about one chat.
-              - This list has no CEL `filter`; narrow with `conversation_id` or follow up with `get_artifact`.
+              - This list has no CEL `filter`; narrow with `conversation_id` or follow up with `download_artifact`.
         ",
         annotations(title = "artifacts/list_artifacts", read_only_hint = true)
     )]
@@ -146,7 +146,7 @@ impl SiftMcpServer {
     }
 
     #[tool(
-        name = "get_artifact",
+        name = "download_artifact",
         description = "
             Get one artifact by `artifact_id`, resolved to the latest version unless `artifact_version_id` pins one.
 
@@ -169,10 +169,13 @@ impl SiftMcpServer {
             Guidance:
               - Use this when you need a specific version or a download URL. Use `list_artifacts` to discover ids.
         ",
-        annotations(title = "artifacts/get_artifact", read_only_hint = true)
+        annotations(title = "artifacts/download_artifact", read_only_hint = true)
     )]
-    pub async fn get_artifact(&self, params: Parameters<GetArtifactParams>) -> error::McpResult {
-        let Parameters(GetArtifactParams {
+    pub async fn download_artifact(
+        &self,
+        params: Parameters<DownloadArtifactParams>,
+    ) -> error::McpResult {
+        let Parameters(DownloadArtifactParams {
             artifact_id,
             artifact_version_id,
         }) = params;
@@ -194,7 +197,7 @@ impl SiftMcpServer {
 
         let artifact = self
             .artifact_service
-            .get_artifact(artifact_id, artifact_version_id)
+            .download_artifact(artifact_id, artifact_version_id)
             .await
             .map_err(from_anyhow)?;
 
@@ -221,7 +224,7 @@ impl SiftMcpServer {
               - `artifact_id`: optional. Set to append a new version to an existing artifact. Omit to create
                 a new artifact. `conversation_id` must be omitted when this is set.
               - `authoring_kind`: optional; `user` (default) or `agent`, matched case-insensitively. The
-                proto names that `list_artifacts` / `get_artifact` emit (`ARTIFACT_AUTHORING_KIND_USER`,
+                proto names that `list_artifacts` / `download_artifact` emit (`ARTIFACT_AUTHORING_KIND_USER`,
                 `ARTIFACT_AUTHORING_KIND_AGENT`) are also accepted. Use `agent` when a Sift agent is
                 producing the artifact during a turn.
 

@@ -55,7 +55,7 @@ exists.
 - **Discovery:** `list_assets`, `list_runs`, `list_channels`, `list_reports`,
   `list_report_templates`, `list_rules`, `list_rule_versions`, `list_annotations`,
   `list_artifacts`.
-- **Artifacts:** `get_artifact` (latest version, or pin `artifact_version_id`).
+- **Artifacts:** `download_artifact` (latest version, or pin `artifact_version_id`).
   The artifact tools, including `list_artifacts` and the `create_artifact`
   write below, are enabled per account by the agents feature flag resolved when
   the MCP server starts, so they may be absent from the tool list. Enabling
@@ -146,7 +146,7 @@ exists.
   `artifact_id`. Creating is gated by `--allow-create`; appending a version to
   an existing artifact also needs `--allow-destructive`. Discover artifacts
   with `list_artifacts` (oldest first, no `order_by`); fetch a version or its
-  `download_url` with `get_artifact`.
+  `download_url` with `download_artifact`.
 - **Produce a chart.** Build a link with `explore_url`. When the user wants a
   chart and numbers, do both and give the user both.
 - **Answer a question about how Sift works.** Call `search_docs`. Do not answer
