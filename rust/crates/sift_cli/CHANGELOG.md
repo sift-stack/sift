@@ -7,6 +7,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- Some MCP tools are now enabled per account by feature flags resolved at server
+  startup. A tool absent from the tool list needs its account flag enabled and an
+  MCP restart.
 - Explore links now carry one source type. The MCP `explore_url` tool accepts
   only `asset_ids` and `run_ids`, and rejects them together with
   `INVALID_PARAMS` unless the new `include_assets_and_runs` flag is set. This

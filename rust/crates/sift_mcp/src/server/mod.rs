@@ -16,7 +16,10 @@ use tokio::sync::watch;
 
 #[cfg(test)]
 use crate::UpdateCheck;
-use crate::{UpdateCheckReceiver, client_event::ClientEventReporter, policy::RetryPolicy};
+use crate::{
+    FeatureFlags, UpdateCheckReceiver, client_event::ClientEventReporter,
+    feature_flags::TOOL_FEATURE_FLAGS, policy::RetryPolicy,
+};
 
 #[cfg(test)]
 mod test;
@@ -36,7 +39,6 @@ pub(crate) const BASE_INSTRUCTIONS: &str = concat!(
     "rules: fields at their default value (false, 0, empty string/list) are ",
     "omitted, so a missing boolean key means false, not unknown."
 );
-#[cfg(feature = "test-reports")]
 use crate::service::test_reports::TestReportService;
 use crate::service::{
     annotations::AnnotationService, assets::AssetService,
@@ -65,7 +67,6 @@ pub struct SiftMcpServer {
     pub report_template_service: ReportTemplateService,
     pub rule_service: RuleService,
     pub rule_evaluation_service: RuleEvaluationService,
-    #[cfg(feature = "test-reports")]
     pub test_report_service: TestReportService,
     pub docs_service: DocsService,
     pub user_defined_function_service: UserDefinedFunctionService,
@@ -167,9 +168,11 @@ impl SiftMcpServer {
             version,
             Some(update_check),
             ClientEventReporter::default(),
+            FeatureFlags::default(),
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new_with_client_events(
         channel: SiftChannel,
         app_uri: String,
@@ -178,6 +181,7 @@ impl SiftMcpServer {
         cli_version: String,
         update_check: Option<UpdateCheckReceiver>,
         client_event_reporter: ClientEventReporter,
+        feature_flags: FeatureFlags,
     ) -> Self {
         // Add more routers here as new tool groups are introduced, e.g.
         //   tool_router.merge(Self::ingestion_router())
@@ -193,13 +197,17 @@ impl SiftMcpServer {
         tool_router.merge(Self::rules_router());
         tool_router.merge(Self::rule_evaluation_router());
         tool_router.merge(Self::annotations_router());
-        #[cfg(feature = "test-reports")]
         tool_router.merge(Self::test_reports_router());
         tool_router.merge(Self::docs_router());
         tool_router.merge(Self::user_defined_functions_router());
         tool_router.merge(Self::users_router());
         if update_check.is_some() {
             tool_router.merge(Self::update_router());
+        }
+        for &(tool_name, flag) in TOOL_FEATURE_FLAGS {
+            if !feature_flags.enabled(flag) {
+                tool_router.remove_route(tool_name);
+            }
         }
 
         let prompt_router = Self::prompt_router();
@@ -222,7 +230,6 @@ impl SiftMcpServer {
         let rule_service = RuleService::new(channel.clone(), retry_policy.clone());
         let rule_evaluation_service =
             RuleEvaluationService::new(channel.clone(), retry_policy.clone());
-        #[cfg(feature = "test-reports")]
         let test_report_service = TestReportService::new(channel.clone(), retry_policy.clone());
         let docs_service = DocsService::new(channel.clone(), retry_policy.clone());
         let user_defined_function_service =
@@ -243,7 +250,6 @@ impl SiftMcpServer {
             report_template_service,
             rule_service,
             rule_evaluation_service,
-            #[cfg(feature = "test-reports")]
             test_report_service,
             docs_service,
             user_defined_function_service,

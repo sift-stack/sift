@@ -65,8 +65,10 @@ exists.
 - **Test results:** `list_test_reports`, `list_test_steps`,
   `list_test_measurements`, `count_test_steps`, `count_test_measurements`.
   These, along with the `create_test_report` and `append_test_measurements`
-  writes below, are gated behind the `test-reports` Cargo feature (default on).
-  A server built with `--no-default-features` will not expose them.
+  writes below, are enabled per account by feature flags resolved when the MCP
+  server starts, so they may be absent from the tool list. Enabling them requires
+  an account setting and an MCP restart. Tell the account owner to contact Sift
+  to enable them, then restart the MCP client.
 - **Data:** `get_data` writes channel data to a Parquet file. `sql` queries
   Parquet files. `upload_dataset` streams a Parquet dataset into Sift.
 - **Links:** `explore_url`.
