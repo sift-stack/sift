@@ -1,4 +1,5 @@
 pub mod annotations;
+pub mod artifacts;
 pub mod assets;
 pub mod channels;
 pub mod data;

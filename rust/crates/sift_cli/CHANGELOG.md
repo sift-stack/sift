@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- Added artifact MCP tools: `list_artifacts`, `get_artifact`, and
+  `create_artifact`, backed by public `sift.artifacts.v1.ArtifactService`.
+  `create_artifact` writes artifact metadata (and can link a new artifact to a
+  conversation). Create calls require `--allow-create`.
 - Added an `--allow-create` MCP access tier alongside `--allow-destructive`.
   The server now recognizes three tiers: read-only (default), create (enables
   `create_*`, `upload_dataset`, `append_test_measurements`), and destructive

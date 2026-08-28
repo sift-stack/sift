@@ -47,7 +47,9 @@ errors. Read the tool schema instead of guessing. This map only tells you what
 exists.
 
 - **Discovery:** `list_assets`, `list_runs`, `list_channels`, `list_reports`,
-  `list_report_templates`, `list_rules`, `list_rule_versions`, `list_annotations`.
+  `list_report_templates`, `list_rules`, `list_rule_versions`, `list_annotations`,
+  `list_artifacts`.
+- **Artifacts:** `get_artifact` (latest version, or pin `artifact_version_id`).
 - **People:** `list_users`.
 - **Report detail:** `list_report_rule_summaries`.
 - **Test results:** `list_test_reports`, `list_test_steps`,
@@ -62,7 +64,7 @@ exists.
 - **Writes:** `create_rule`, `update_rule`, `archive_rule`, `unarchive_rule`,
   `create_annotation`, `update_annotation`, `create_report`, `update_report`,
   `create_report_template`, `update_report_template`, `create_test_report`,
-  `append_test_measurements`, `update_asset`, `update_run`.
+  `append_test_measurements`, `update_asset`, `update_run`, `create_artifact`.
 
 ## Workflows that span tools
 
@@ -75,8 +77,12 @@ exists.
   `me: true`. Never guess which listed user is the caller.
 - **Produce numbers.** `get_data` writes a Parquet file. `sql` then queries it.
   Add `upload_dataset` when the result belongs back in Sift.
-- **Produce a chart.** Build a link with `explore_url`. When the user wants a
-  chart and numbers, do both and give the user both.
+- **Create an artifact.** `create_artifact` with a `title` / `summary`.
+  Pass `conversation_id` to link it to a chat, and `authoring_kind=agent` when
+  a Sift agent produced it. Append a version by passing the existing
+  `artifact_id`. `create_artifact` is a create tool, gated by `--allow-create`.
+  Discover artifacts with `list_artifacts`; fetch a version or download URL
+  with `get_artifact`.
 - **Answer a question about how Sift works.** Call `search_docs`. Do not answer
   from memory, and cite the page you used.
 - **Create an asset.** There is no `create_asset` MCP tool because Sift creates

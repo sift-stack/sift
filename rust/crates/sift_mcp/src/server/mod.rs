@@ -10,6 +10,7 @@ use rmcp::{
 use sift_rs::SiftChannel;
 
 use crate::policy::RetryPolicy;
+use crate::service::artifacts::ArtifactService;
 #[cfg(feature = "test-reports")]
 use crate::service::test_reports::TestReportService;
 use crate::service::{
@@ -25,6 +26,7 @@ pub struct SiftMcpServer {
     pub prompt_router: PromptRouter<Self>,
 
     pub annotation_service: AnnotationService,
+    pub artifact_service: ArtifactService,
     pub asset_service: AssetService,
     pub channel_service: ChannelService,
     pub data_service: DataService,
@@ -102,6 +104,7 @@ impl SiftMcpServer {
         tool_router.merge(Self::ping_router());
         tool_router.merge(Self::rules_router());
         tool_router.merge(Self::annotations_router());
+        tool_router.merge(Self::artifacts_router());
         #[cfg(feature = "test-reports")]
         tool_router.merge(Self::test_reports_router());
         tool_router.merge(Self::docs_router());
@@ -112,6 +115,7 @@ impl SiftMcpServer {
         let retry_policy = RetryPolicy::default();
 
         let annotation_service = AnnotationService::new(channel.clone(), retry_policy.clone());
+        let artifact_service = ArtifactService::new(channel.clone(), retry_policy.clone());
         let asset_service = AssetService::new(channel.clone(), retry_policy.clone());
         let data_service = DataService::new(channel.clone(), retry_policy.clone());
         let channel_service = ChannelService::new(channel.clone(), retry_policy.clone());
@@ -130,6 +134,7 @@ impl SiftMcpServer {
 
         Self {
             annotation_service,
+            artifact_service,
             asset_service,
             channel_service,
             data_service,
