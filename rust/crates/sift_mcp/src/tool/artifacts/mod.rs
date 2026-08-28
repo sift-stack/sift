@@ -6,11 +6,11 @@ use rmcp::{
     tool, tool_router,
 };
 use serde::Deserialize;
+use sift_rs::artifacts::v1::ArtifactAuthoringKind;
 
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
-    service::artifacts::AuthoringKind,
     tool::common::{list_body, to_values},
 };
 
@@ -40,10 +40,18 @@ pub struct CreateArtifactParams {
     authoring_kind: Option<String>,
 }
 
-fn parse_authoring_kind(value: Option<String>) -> Result<AuthoringKind, ErrorData> {
-    match value.as_deref().map(str::trim).unwrap_or("user") {
-        "" | "user" => Ok(AuthoringKind::User),
-        "agent" => Ok(AuthoringKind::Agent),
+/// Accepts the short names `user` / `agent` in any case, plus the proto enum
+/// names that `list_artifacts` and `get_artifact` emit, so an agent can echo a
+/// value it read back into `create_artifact`.
+fn parse_authoring_kind(value: Option<String>) -> Result<ArtifactAuthoringKind, ErrorData> {
+    let lowered = value
+        .as_deref()
+        .map(str::trim)
+        .unwrap_or("user")
+        .to_ascii_lowercase();
+    match lowered.as_str() {
+        "" | "user" | "artifact_authoring_kind_user" => Ok(ArtifactAuthoringKind::User),
+        "agent" | "artifact_authoring_kind_agent" => Ok(ArtifactAuthoringKind::Agent),
         other => Err(ErrorData::invalid_params(
             format!("unknown `authoring_kind` `{other}`; expected `user` or `agent`"),
             None,
@@ -62,6 +70,10 @@ impl SiftMcpServer {
             artifact. Bytes are not returned; use `get_artifact` for a download URL when a version has
             uploaded files.
 
+            Results are returned oldest first. There is no `order_by` or `filter`, so when `has_more` is
+            still `true` at `limit: 200`, the newest artifacts are not reachable from an organization-wide
+            listing; scope with `conversation_id` instead.
+
             Output:
               - `{ \"artifacts\": [Artifact, ...] }`. Each item includes `artifact_id`, `artifact_version_id`,
                 `version`, `title`, `summary`, `authoring_kind`, `file_name`, `file_mime_type`, `remote_file_id`,
@@ -72,6 +84,8 @@ impl SiftMcpServer {
               - `has_more`: `true` when the service hit `limit` with matches left over, so
                 this page is not the whole set. Never report `count` as a total while
                 `has_more` is `true` — raise `limit` or scope with `conversation_id` and ask again.
+                Because results are oldest first, a capped page holds the oldest artifacts, not
+                the newest.
 
             Parameters:
               - `conversation_id`: optional. When set, only artifacts linked to that conversation. When omitted,
@@ -140,8 +154,9 @@ impl SiftMcpServer {
 
             Output:
               - `{ \"artifact\": Artifact }`. Same chrome as `list_artifacts`, plus `download_url` when the
-                version has uploaded bytes. `download_url` is a short-lived signed URL; fetch it only when the
-                user needs the body.
+                version has uploaded bytes (`remote_file_id` is set). `download_url` is a short-lived signed
+                URL; fetch it only when the user needs the body. When `remote_file_id` is absent, the version
+                has no uploaded bytes and `download_url` is omitted.
 
             Parameters:
               - `artifact_id`: required stable container id.
@@ -150,7 +165,8 @@ impl SiftMcpServer {
             Errors:
               - `INVALID_PARAMS` if `artifact_id` is empty, or `artifact_version_id` is empty when set.
               - `RESOURCE_NOT_FOUND` if the artifact (or pinned version) does not exist in the caller's organization.
-              - `INTERNAL_ERROR` for upstream failures.
+              - `INTERNAL_ERROR` for upstream failures, including a failure to mint the download URL for a
+                version that has uploaded bytes. The tool does not return a partial artifact in that case.
 
             Guidance:
               - Use this when you need a specific version or a download URL. Use `list_artifacts` to discover ids.
@@ -206,12 +222,20 @@ impl SiftMcpServer {
                 Links the new artifact to that conversation. The caller must be the conversation's author.
               - `artifact_id`: optional. Set to append a new version to an existing artifact. Omit to create
                 a new artifact. `conversation_id` must be omitted when this is set.
-              - `authoring_kind`: optional; `user` (default) or `agent`. Use `agent` when a Sift agent is
+              - `authoring_kind`: optional; `user` (default) or `agent`, matched case-insensitively. The
+                proto names that `list_artifacts` / `get_artifact` emit (`ARTIFACT_AUTHORING_KIND_USER`,
+                `ARTIFACT_AUTHORING_KIND_AGENT`) are also accepted. Use `agent` when a Sift agent is
                 producing the artifact during a turn.
+
+            Access:
+              - Creating a new artifact needs `--allow-create`.
+              - Appending a version to an existing artifact changes what every linked conversation
+                resolves to, so it needs `--allow-destructive`.
 
             Errors:
               - `INVALID_PARAMS` if `authoring_kind` is not `user` or `agent`, if `conversation_id` is set
                 while appending, or if `artifact_id` / `conversation_id` is empty when set.
+              - `INVALID_REQUEST` if the server was launched without the flag the call needs (see Access).
               - `RESOURCE_NOT_FOUND` if the conversation or existing artifact is not visible to the caller.
               - `INTERNAL_ERROR` for upstream failures.
 
@@ -240,6 +264,13 @@ impl SiftMcpServer {
             authoring_kind,
         }) = params;
 
+        // Creating is additive. Appending rewrites what every linked conversation
+        // resolves to for an artifact the caller may not own, so it also takes
+        // the stronger gate, matching the other version-appending update tools.
+        if artifact_id.is_some() {
+            self.require_destructive()?;
+        }
+
         if let Some(id) = artifact_id.as_deref()
             && id.trim().is_empty()
         {
@@ -264,16 +295,26 @@ impl SiftMcpServer {
         }
 
         let authoring_kind = parse_authoring_kind(authoring_kind)?;
+        let appending = artifact_id.is_some();
         let artifact = self
             .artifact_service
             .create_artifact(title, summary, conversation_id, artifact_id, authoring_kind)
             .await
             .map_err(from_anyhow)?;
 
-        let next_step = format!(
-            "Created artifact {} version {}. Confirm the title and destination with the user before further edits.",
-            artifact.inner.artifact_id, artifact.inner.version
-        );
+        let next_step = if appending {
+            format!(
+                "Appended version {} to artifact {}. Surface the new version to the user and confirm it \
+                 matches their intent.",
+                artifact.inner.version, artifact.inner.artifact_id
+            )
+        } else {
+            format!(
+                "Created artifact {} version {}. Surface the title and destination to the user and confirm \
+                 they match their intent before further edits.",
+                artifact.inner.artifact_id, artifact.inner.version
+            )
+        };
         let mut result = CallToolResult::structured(serde_json::json!({
             "artifact": artifact,
             "next_step": next_step,

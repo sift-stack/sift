@@ -139,9 +139,10 @@ exists.
 - **Create an artifact.** `create_artifact` with a `title` / `summary`.
   Pass `conversation_id` to link it to a chat, and `authoring_kind=agent` when
   a Sift agent produced it. Append a version by passing the existing
-  `artifact_id`. `create_artifact` is a create tool, gated by `--allow-create`.
-  Discover artifacts with `list_artifacts`; fetch a version or download URL
-  with `get_artifact`.
+  `artifact_id`. Creating is gated by `--allow-create`; appending a version to
+  an existing artifact also needs `--allow-destructive`. Discover artifacts
+  with `list_artifacts` (oldest first, no `order_by`); fetch a version or its
+  `download_url` with `get_artifact`.
 - **Produce a chart.** Build a link with `explore_url`. When the user wants a
   chart and numbers, do both and give the user both.
 - **Answer a question about how Sift works.** Call `search_docs`. Do not answer

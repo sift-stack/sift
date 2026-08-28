@@ -1,11 +1,19 @@
 use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
-use sift_rs::artifacts::v1::{
-    Artifact, ArtifactAuthoringKind, CreateArtifactResponse, ListArtifactsResponse,
-    artifact_service_server::ArtifactServiceServer,
+use sift_rs::{
+    artifacts::v1::{
+        Artifact, ArtifactAuthoringKind, CreateArtifactResponse, GetArtifactResponse,
+        ListArtifactsResponse, artifact_service_server::ArtifactServiceServer,
+    },
+    remote_files::v1::{
+        GetRemoteFileDownloadUrlResponse, remote_file_service_server::RemoteFileServiceServer,
+    },
 };
-use sift_test_util::{grpc::memory_sift_channel, mock::artifacts::v1::MockArtifactServiceImpl};
+use sift_test_util::{
+    grpc::memory_sift_channel,
+    mock::{artifacts::v1::MockArtifactServiceImpl, remote_files::v1::MockRemoteFileServiceImpl},
+};
 use tokio::task::JoinHandle;
-use tonic::{Response, transport::Server};
+use tonic::{Response, Status, transport::Server};
 
 use super::{CreateArtifactParams, GetArtifactParams};
 use crate::{
@@ -29,12 +37,28 @@ async fn server_with_mock(
     mock: MockArtifactServiceImpl,
     allow_create: bool,
 ) -> (SiftMcpServer, JoinHandle<()>) {
+    server_with_mocks(
+        mock,
+        MockRemoteFileServiceImpl::new(),
+        allow_create,
+        allow_create,
+    )
+    .await
+}
+
+async fn server_with_mocks(
+    artifacts: MockArtifactServiceImpl,
+    remote_files: MockRemoteFileServiceImpl,
+    allow_create: bool,
+    allow_destructive: bool,
+) -> (SiftMcpServer, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
     let channel = memory_sift_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()
-            .add_service(ArtifactServiceServer::new(mock))
+            .add_service(ArtifactServiceServer::new(artifacts))
+            .add_service(RemoteFileServiceServer::new(remote_files))
             .serve_with_incoming(tokio_stream::once(Ok::<_, std::io::Error>(server)))
             .await
             .unwrap();
@@ -45,10 +69,20 @@ async fn server_with_mock(
             channel,
             String::from("https://app.test.local"),
             allow_create,
-            allow_create,
+            allow_destructive,
         ),
         handle,
     )
+}
+
+fn get_returns(artifact: Artifact) -> MockArtifactServiceImpl {
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_get_artifact().returning(move |_| {
+        Ok(Response::new(GetArtifactResponse {
+            artifact: Some(artifact.clone()),
+        }))
+    });
+    mock
 }
 
 #[tokio::test]
@@ -105,6 +139,71 @@ async fn get_artifact_rejects_empty_id() {
 }
 
 #[tokio::test]
+async fn get_artifact_returns_snake_case_download_url() {
+    let uploaded = Artifact {
+        remote_file_id: Some("rf-1".into()),
+        ..sample_artifact()
+    };
+    let mut remote_files = MockRemoteFileServiceImpl::new();
+    remote_files
+        .expect_get_remote_file_download_url()
+        .returning(|_| {
+            Ok(Response::new(GetRemoteFileDownloadUrlResponse {
+                download_url: "https://files.test.local/rf-1".into(),
+            }))
+        });
+
+    let (server, _h) = server_with_mocks(get_returns(uploaded), remote_files, false, false).await;
+    let resp = server
+        .get_artifact(Parameters(GetArtifactParams {
+            artifact_id: "art-1".into(),
+            artifact_version_id: None,
+        }))
+        .await
+        .expect("get");
+    let artifact = structured_field(resp, "artifact");
+    assert_eq!(artifact["artifactId"], "art-1");
+    assert_eq!(artifact["download_url"], "https://files.test.local/rf-1");
+    assert!(artifact.get("downloadUrl").is_none());
+}
+
+#[tokio::test]
+async fn get_artifact_omits_download_url_without_bytes() {
+    let (server, _h) = server_with_mock(get_returns(sample_artifact()), false).await;
+    let resp = server
+        .get_artifact(Parameters(GetArtifactParams {
+            artifact_id: "art-1".into(),
+            artifact_version_id: None,
+        }))
+        .await
+        .expect("get");
+    let artifact = structured_field(resp, "artifact");
+    assert!(artifact.get("download_url").is_none());
+}
+
+#[tokio::test]
+async fn get_artifact_surfaces_download_url_failure() {
+    let uploaded = Artifact {
+        remote_file_id: Some("rf-1".into()),
+        ..sample_artifact()
+    };
+    let mut remote_files = MockRemoteFileServiceImpl::new();
+    remote_files
+        .expect_get_remote_file_download_url()
+        .returning(|_| Err(Status::not_found("remote file gone")));
+
+    let (server, _h) = server_with_mocks(get_returns(uploaded), remote_files, false, false).await;
+    let err = server
+        .get_artifact(Parameters(GetArtifactParams {
+            artifact_id: "art-1".into(),
+            artifact_version_id: None,
+        }))
+        .await
+        .expect_err("download failure is an error, not a partial artifact");
+    assert_eq!(err.code, ErrorCode::RESOURCE_NOT_FOUND);
+}
+
+#[tokio::test]
 async fn create_artifact_blocked_without_allow_create() {
     let (server, _h) = server_with_mock(MockArtifactServiceImpl::new(), false).await;
     let err = server
@@ -119,6 +218,117 @@ async fn create_artifact_blocked_without_allow_create() {
         .expect_err("gated");
     assert_eq!(err.code, ErrorCode::INVALID_REQUEST);
     assert!(err.message.contains("--allow-create"));
+}
+
+#[tokio::test]
+async fn create_artifact_append_blocked_without_allow_destructive() {
+    let (server, _h) = server_with_mocks(
+        MockArtifactServiceImpl::new(),
+        MockRemoteFileServiceImpl::new(),
+        true,
+        false,
+    )
+    .await;
+    let err = server
+        .create_artifact(Parameters(CreateArtifactParams {
+            title: Some("v2".into()),
+            summary: None,
+            conversation_id: None,
+            artifact_id: Some("art-1".into()),
+            authoring_kind: None,
+        }))
+        .await
+        .expect_err("append gated");
+    assert_eq!(err.code, ErrorCode::INVALID_REQUEST);
+    assert!(err.message.contains("--allow-destructive"));
+}
+
+#[tokio::test]
+async fn create_artifact_append_reports_appended_version() {
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_create_artifact()
+        .withf(|req| {
+            let req = req.get_ref();
+            req.artifact_id.as_deref() == Some("art-1") && req.conversation_id.is_none()
+        })
+        .returning(|_| {
+            Ok(Response::new(CreateArtifactResponse {
+                artifact: Some(Artifact {
+                    artifact_version_id: "ver-2".into(),
+                    version: 2,
+                    ..sample_artifact()
+                }),
+            }))
+        });
+
+    let (server, _h) = server_with_mock(mock, true).await;
+    let resp = server
+        .create_artifact(Parameters(CreateArtifactParams {
+            title: Some("v2".into()),
+            summary: None,
+            conversation_id: None,
+            artifact_id: Some("art-1".into()),
+            authoring_kind: None,
+        }))
+        .await
+        .expect("append");
+    let next_step = structured_field(resp, "next_step");
+    let next_step = next_step.as_str().unwrap();
+    assert!(
+        next_step.starts_with("Appended version 2 to artifact art-1"),
+        "{next_step}"
+    );
+    assert!(!next_step.contains("Created"), "{next_step}");
+}
+
+#[tokio::test]
+async fn create_artifact_accepts_authoring_kind_in_any_case() {
+    for (input, expected) in [
+        ("Agent", ArtifactAuthoringKind::Agent),
+        ("AGENT", ArtifactAuthoringKind::Agent),
+        (
+            "ARTIFACT_AUTHORING_KIND_AGENT",
+            ArtifactAuthoringKind::Agent,
+        ),
+        ("User", ArtifactAuthoringKind::User),
+        ("artifact_authoring_kind_user", ArtifactAuthoringKind::User),
+    ] {
+        let mut mock = MockArtifactServiceImpl::new();
+        mock.expect_create_artifact()
+            .withf(move |req| req.get_ref().authoring_kind == Some(expected as i32))
+            .returning(|_| {
+                Ok(Response::new(CreateArtifactResponse {
+                    artifact: Some(sample_artifact()),
+                }))
+            });
+        let (server, _h) = server_with_mock(mock, true).await;
+        server
+            .create_artifact(Parameters(CreateArtifactParams {
+                title: None,
+                summary: None,
+                conversation_id: None,
+                artifact_id: None,
+                authoring_kind: Some(input.into()),
+            }))
+            .await
+            .unwrap_or_else(|err| panic!("{input}: {err:?}"));
+    }
+}
+
+#[tokio::test]
+async fn create_artifact_rejects_unknown_authoring_kind() {
+    let (server, _h) = server_with_mock(MockArtifactServiceImpl::new(), true).await;
+    let err = server
+        .create_artifact(Parameters(CreateArtifactParams {
+            title: None,
+            summary: None,
+            conversation_id: None,
+            artifact_id: None,
+            authoring_kind: Some("robot".into()),
+        }))
+        .await
+        .expect_err("unknown kind");
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
 }
 
 #[tokio::test]
@@ -159,4 +369,5 @@ async fn create_artifact_happy_path() {
         .expect("create");
     let artifact = structured_field(resp, "artifact");
     assert_eq!(artifact["artifactId"], "art-1");
+    assert!(artifact.get("download_url").is_none());
 }

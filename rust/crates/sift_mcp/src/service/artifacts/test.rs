@@ -1,12 +1,20 @@
-use sift_rs::artifacts::v1::{
-    Artifact, ArtifactAuthoringKind, CreateArtifactResponse, GetArtifactResponse,
-    ListArtifactsResponse, artifact_service_server::ArtifactServiceServer,
+use sift_rs::{
+    artifacts::v1::{
+        Artifact, ArtifactAuthoringKind, CreateArtifactResponse, GetArtifactResponse,
+        ListArtifactsResponse, artifact_service_server::ArtifactServiceServer,
+    },
+    remote_files::v1::{
+        GetRemoteFileDownloadUrlResponse, remote_file_service_server::RemoteFileServiceServer,
+    },
 };
-use sift_test_util::{grpc::memory_sift_channel, mock::artifacts::v1::MockArtifactServiceImpl};
+use sift_test_util::{
+    grpc::memory_sift_channel,
+    mock::{artifacts::v1::MockArtifactServiceImpl, remote_files::v1::MockRemoteFileServiceImpl},
+};
 use tokio::task::JoinHandle;
 use tonic::{Code, Response, Status, transport::Server};
 
-use super::{ArtifactService, AuthoringKind};
+use super::ArtifactService;
 use crate::policy::RetryPolicy;
 
 fn sample_artifact() -> Artifact {
@@ -25,12 +33,20 @@ fn sample_artifact() -> Artifact {
 }
 
 async fn service_with_mock(mock: MockArtifactServiceImpl) -> (ArtifactService, JoinHandle<()>) {
+    service_with_mocks(mock, MockRemoteFileServiceImpl::new()).await
+}
+
+async fn service_with_mocks(
+    artifacts: MockArtifactServiceImpl,
+    remote_files: MockRemoteFileServiceImpl,
+) -> (ArtifactService, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
     let channel = memory_sift_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()
-            .add_service(ArtifactServiceServer::new(mock))
+            .add_service(ArtifactServiceServer::new(artifacts))
+            .add_service(RemoteFileServiceServer::new(remote_files))
             .serve_with_incoming(tokio_stream::once(Ok::<_, std::io::Error>(server)))
             .await
             .unwrap();
@@ -183,6 +199,118 @@ async fn get_artifact_returns_latest() {
     assert!(artifact.download_url.is_none());
 }
 
+fn uploaded_artifact() -> Artifact {
+    Artifact {
+        remote_file_id: Some("rf-1".into()),
+        ..sample_artifact()
+    }
+}
+
+fn get_returns_uploaded() -> MockArtifactServiceImpl {
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_get_artifact().returning(|_| {
+        Ok(Response::new(GetArtifactResponse {
+            artifact: Some(uploaded_artifact()),
+        }))
+    });
+    mock
+}
+
+#[tokio::test]
+async fn get_artifact_attaches_download_url_when_bytes_uploaded() {
+    let mut remote_files = MockRemoteFileServiceImpl::new();
+    remote_files
+        .expect_get_remote_file_download_url()
+        .withf(|req| req.get_ref().remote_file_id == "rf-1")
+        .times(1)
+        .returning(|_| {
+            Ok(Response::new(GetRemoteFileDownloadUrlResponse {
+                download_url: "https://files.test.local/rf-1?sig=abc".into(),
+            }))
+        });
+
+    let (service, _h) = service_with_mocks(get_returns_uploaded(), remote_files).await;
+    let artifact = service
+        .get_artifact("art-1".into(), None)
+        .await
+        .expect("get");
+    assert_eq!(artifact.inner.remote_file_id.as_deref(), Some("rf-1"));
+    assert_eq!(
+        artifact.download_url.as_deref(),
+        Some("https://files.test.local/rf-1?sig=abc")
+    );
+}
+
+#[tokio::test]
+async fn get_artifact_propagates_download_url_error() {
+    let mut remote_files = MockRemoteFileServiceImpl::new();
+    remote_files
+        .expect_get_remote_file_download_url()
+        .returning(|_| Err(Status::permission_denied("no access to remote file")));
+
+    let (service, _h) = service_with_mocks(get_returns_uploaded(), remote_files).await;
+    let err = service
+        .get_artifact("art-1".into(), None)
+        .await
+        .expect_err("download url failure must not be swallowed");
+    let status = err.downcast_ref::<tonic::Status>().expect("status");
+    assert_eq!(status.code(), Code::PermissionDenied);
+}
+
+#[tokio::test]
+async fn get_artifact_rejects_empty_download_url() {
+    let mut remote_files = MockRemoteFileServiceImpl::new();
+    remote_files
+        .expect_get_remote_file_download_url()
+        .returning(|_| {
+            Ok(Response::new(GetRemoteFileDownloadUrlResponse {
+                download_url: String::new(),
+            }))
+        });
+
+    let (service, _h) = service_with_mocks(get_returns_uploaded(), remote_files).await;
+    let err = service
+        .get_artifact("art-1".into(), None)
+        .await
+        .expect_err("empty url is an error");
+    assert!(err.to_string().contains("download url response was empty"));
+}
+
+#[test]
+fn artifact_view_serializes_flat_with_snake_case_download_url() {
+    let with_url = super::ArtifactView {
+        inner: uploaded_artifact(),
+        download_url: Some("https://files.test.local/rf-1".into()),
+    };
+    let value = serde_json::to_value(&with_url).expect("serialize");
+    assert_eq!(value["artifactId"], "art-1");
+    assert_eq!(value["remoteFileId"], "rf-1");
+    assert_eq!(value["download_url"], "https://files.test.local/rf-1");
+    assert!(value.get("downloadUrl").is_none());
+    assert!(value.get("inner").is_none());
+
+    let without_url = super::ArtifactView {
+        inner: sample_artifact(),
+        download_url: None,
+    };
+    let value = serde_json::to_value(&without_url).expect("serialize");
+    assert_eq!(value["artifactId"], "art-1");
+    assert!(value.get("download_url").is_none());
+}
+
+#[test]
+fn artifact_view_serialization_error_propagates() {
+    let unknown_kind = super::ArtifactView {
+        inner: Artifact {
+            authoring_kind: 999,
+            ..sample_artifact()
+        },
+        download_url: None,
+    };
+    let err = serde_json::to_value(&unknown_kind).expect_err("unknown enum variant is an error");
+    assert!(err.to_string().contains("999"), "{err}");
+}
+
 #[tokio::test]
 async fn create_artifact_returns_created_row() {
     let mut mock = MockArtifactServiceImpl::new();
@@ -207,7 +335,7 @@ async fn create_artifact_returns_created_row() {
             Some("summary".into()),
             Some("conv-1".into()),
             None,
-            AuthoringKind::Agent,
+            ArtifactAuthoringKind::Agent,
         )
         .await
         .expect("create");

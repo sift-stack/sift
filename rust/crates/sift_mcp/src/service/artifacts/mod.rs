@@ -1,6 +1,5 @@
 use anyhow::{Context, Result, anyhow, bail};
 use serde::Serialize;
-use serde_json::{Value, json};
 use sift_rs::{
     SiftChannel,
     artifacts::v1::{
@@ -21,44 +20,17 @@ mod test;
 
 /// Proto `Artifact` plus an optional signed download URL attached by
 /// [`ArtifactService::get_artifact`] when `remote_file_id` is set.
-#[derive(Clone, Debug)]
+///
+/// Serializes as the proto JSON object with one extra `download_url` key, which
+/// is omitted when there is no URL. Serialization errors propagate instead of
+/// degrading to an empty object, so a proto enum the CLI does not know yet
+/// surfaces as an error rather than a silently blank artifact.
+#[derive(Clone, Debug, Serialize)]
 pub struct ArtifactView {
+    #[serde(flatten)]
     pub inner: Artifact,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub download_url: Option<String>,
-}
-
-impl Serialize for ArtifactView {
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        artifact_json(&self.inner, self.download_url.clone()).serialize(serializer)
-    }
-}
-
-fn artifact_json(artifact: &Artifact, download_url: Option<String>) -> Value {
-    let mut value = serde_json::to_value(artifact).unwrap_or_else(|_| json!({}));
-    if let Some(url) = download_url
-        && let Some(obj) = value.as_object_mut()
-    {
-        obj.insert("downloadUrl".into(), json!(url));
-    }
-    value
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AuthoringKind {
-    Agent,
-    User,
-}
-
-impl AuthoringKind {
-    fn as_proto(self) -> i32 {
-        match self {
-            Self::Agent => ArtifactAuthoringKind::Agent as i32,
-            Self::User => ArtifactAuthoringKind::User as i32,
-        }
-    }
 }
 
 #[derive(Clone)]
@@ -142,7 +114,7 @@ impl ArtifactService {
             .get_artifact_inner(artifact_id, artifact_version_id)
             .await?;
         let download_url = match artifact.remote_file_id.clone() {
-            Some(remote_file_id) => self.download_url(remote_file_id).await.ok(),
+            Some(remote_file_id) => Some(self.download_url(remote_file_id).await?),
             None => None,
         };
         Ok(ArtifactView {
@@ -157,7 +129,7 @@ impl ArtifactService {
         summary: Option<String>,
         conversation_id: Option<String>,
         artifact_id: Option<String>,
-        authoring_kind: AuthoringKind,
+        authoring_kind: ArtifactAuthoringKind,
     ) -> Result<ArtifactView> {
         let channel = self.channel.clone();
         let created = with_retry(&self.policy, move || {
@@ -174,7 +146,7 @@ impl ArtifactService {
                         conversation_id,
                         title,
                         summary,
-                        authoring_kind: Some(authoring_kind.as_proto()),
+                        authoring_kind: Some(authoring_kind as i32),
                     })
                     .await
                     .map(|resp| resp.into_inner())
