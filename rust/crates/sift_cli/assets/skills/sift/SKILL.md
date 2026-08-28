@@ -56,6 +56,10 @@ exists.
   `list_report_templates`, `list_rules`, `list_rule_versions`, `list_annotations`,
   `list_artifacts`.
 - **Artifacts:** `get_artifact` (latest version, or pin `artifact_version_id`).
+  The artifact tools, including `list_artifacts` and the `create_artifact`
+  write below, are enabled per account by the agents feature flag resolved when
+  the MCP server starts, so they may be absent from the tool list. Enabling
+  them requires an account setting and an MCP restart.
 - **Derived channels:** `list_calculated_channels`,
   `list_calculated_channel_versions`, `list_user_defined_functions`,
   `list_user_defined_function_versions`.

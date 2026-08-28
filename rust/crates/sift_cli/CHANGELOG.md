@@ -13,7 +13,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   conversation). Creating requires `--allow-create`; appending a version to an
   existing artifact also requires `--allow-destructive`. `get_artifact` returns
   a `download_url` when the version has uploaded bytes and fails instead of
-  returning a partial artifact when that URL cannot be minted.
+  returning a partial artifact when that URL cannot be minted. These tools are
+  enabled per account by the agents feature flag, resolved at server startup.
 - Some MCP tools are now enabled per account by feature flags resolved at server
   startup. A tool absent from the tool list needs its account flag enabled and an
   MCP restart.
