@@ -22,7 +22,9 @@ from sift_client.sift_types.data_import import McapDataColumn, McapImportConfig
 
 MCAP_MAGIC = b"\x89MCAP0\r\n"
 
-# Chunk compressions Sift can read.
+# Chunk compressions Sift can read. The reader skips a chunk it cannot
+# decompress without complaining, hiding every channel inside it, so anything
+# else has to be rejected explicitly.
 SUPPORTED_COMPRESSIONS = frozenset(("", "zstd", "lz4"))
 
 # ROS 2 scalar types to Sift channel types. Narrow integers widen to 32-bit
@@ -204,12 +206,10 @@ def _read_schemas_and_channels(
 ) -> tuple[dict[int, mcap_records.Schema], list[mcap_records.Channel], list[str]]:
     """Read schema and channel records without decoding message payloads.
 
-    A file can hold these records in three places, so this takes up to three
-    passes:
-
-    1. At the top level, where unchunked files keep them.
-    2. In the summary section, which usually repeats what the chunks hold.
-    3. Inside the chunks themselves, when the summary is missing or partial.
+    A well-formed file repeats them in its summary section, a few kilobytes at
+    the end, and that is all we need. Otherwise they only exist in the data
+    section and the whole file has to be read: unchunked files keep them at the
+    top level, chunked files keep them inside the chunks.
 
     A file that stops parsing partway keeps what was read, with a warning.
     """
@@ -217,18 +217,15 @@ def _read_schemas_and_channels(
     schemas: dict[int, mcap_records.Schema] = {}
     channels: list[mcap_records.Channel] = []
     seen_channel_ids: set[int] = set()
-    saw_chunks = False
-    saw_message = False
     attachment_count = 0
-    statistics: mcap_records.Statistics | None = None
 
     def add_channel(channel: mcap_records.Channel) -> None:
         if channel.id not in seen_channel_ids:
             seen_channel_ids.add(channel.id)
             channels.append(channel)
 
-    def scan(stream: StreamReader, top_level: bool) -> None:
-        nonlocal saw_chunks, saw_message, attachment_count, statistics
+    def scan(stream: StreamReader) -> None:
+        nonlocal attachment_count
         records = iter(stream.records)
         while True:
             try:
@@ -247,9 +244,6 @@ def _read_schemas_and_channels(
                     parse_warnings.append(message)
                 return
             if isinstance(record, mcap_records.Chunk):
-                saw_chunks = True
-                # An unknown compression would be read as uncompressed
-                # garbage, so stop here instead.
                 if record.compression not in SUPPORTED_COMPRESSIONS:
                     raise ValueError(
                         f"unsupported chunk compression '{record.compression}'; "
@@ -259,42 +253,44 @@ def _read_schemas_and_channels(
                 schemas[record.id] = record
             elif isinstance(record, mcap_records.Channel):
                 add_channel(record)
-            elif isinstance(record, mcap_records.Message):
-                saw_message = True
-            elif top_level and isinstance(record, mcap_records.Attachment):
-                # Counted in this pass only, so a later pass cannot
-                # double the count.
+            elif isinstance(record, mcap_records.Attachment):
                 attachment_count += 1
-            elif top_level and isinstance(record, mcap_records.Statistics):
-                statistics = record
 
     with open(path, "rb") as file:
         if file.read(len(MCAP_MAGIC)) != MCAP_MAGIC:
             raise ValueError(f"'{path.name}' is not an MCAP file (bad magic bytes)")
-        file.seek(0)
 
-        # Chunks stay unopened here, so this pass is cheap: it checks
-        # compression and picks up the records of unchunked files.
-        scan(StreamReader(file, emit_chunks=True), top_level=True)
-
-        # The summary section usually repeats what the chunks hold.
         file.seek(0)
         try:
             summary = make_reader(file).get_summary()
         except Exception:
             summary = None
+
         if summary is not None:
+            for chunk_index in summary.chunk_indexes:
+                if chunk_index.compression not in SUPPORTED_COMPRESSIONS:
+                    raise ValueError(
+                        f"unsupported chunk compression '{chunk_index.compression}'; "
+                        "supported compressions are none, zstd, and lz4"
+                    )
             schemas.update(summary.schemas)
             for channel in sorted(summary.channels.values(), key=lambda c: c.id):
                 add_channel(channel)
+            attachment_count = len(summary.attachment_indexes)
 
-        # Those repeats are optional, so what we have may be incomplete. A
-        # Statistics record covering at least one message means the summary is
-        # trustworthy; without one, read the chunks.
-        have_range = statistics is not None and statistics.message_count > 0
-        if summary is None or (not have_range and (saw_chunks or not saw_message)):
+        if not channels:
+            # Repeating the records in the summary is optional, so fall back to
+            # reading the data section. Anything counted above gets counted
+            # again there, so start over.
+            attachment_count = 0
+            if summary is None:
+                # Chunk records carry the only copy of the compression strings
+                # when there are no chunk indexes to read them from, and they
+                # are visible only while the chunks stay unopened.
+                file.seek(0)
+                scan(StreamReader(file, emit_chunks=True))
             file.seek(0)
-            scan(StreamReader(file, emit_chunks=False), top_level=False)
+            scan(StreamReader(file, emit_chunks=False))
 
     if attachment_count:
         parse_warnings.append(

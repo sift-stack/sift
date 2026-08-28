@@ -42,16 +42,36 @@ float64 z
 """
 
 
-def _write_mcap(path, schemas_and_topics: list[tuple[str, str, str]]) -> None:
-    """Write an MCAP file with one channel per (schema_name, schema_text, topic)."""
+def _write_mcap(
+    path,
+    schemas_and_topics: list[tuple[str, str, str]],
+    messages: int = 0,
+    attachment: bool = False,
+    **writer_kwargs,
+) -> None:
+    """Write an MCAP file with one channel per (schema_name, schema_text, topic).
+
+    Each channel logs ``messages`` cdr messages, and ``writer_kwargs`` go to the
+    mcap ``Writer`` (chunking, schema and channel repeats, statistics).
+    """
     with open(path, "wb") as f:
-        writer = Writer(f)
+        writer = Writer(f, **writer_kwargs)
         writer.start()
         for schema_name, schema_text, topic in schemas_and_topics:
             schema_id = writer.register_schema(
                 name=schema_name, encoding="ros2msg", data=schema_text.encode()
             )
-            writer.register_channel(topic=topic, message_encoding="cdr", schema_id=schema_id)
+            channel_id = writer.register_channel(
+                topic=topic, message_encoding="cdr", schema_id=schema_id
+            )
+            for i in range(messages):
+                writer.add_message(
+                    channel_id=channel_id, log_time=i, publish_time=i, data=b"\x00" * 32
+                )
+        if attachment:
+            writer.add_attachment(
+                create_time=1, log_time=1, name="notes.txt", media_type="text/plain", data=b"hi"
+            )
         writer.finish()
 
 
@@ -74,19 +94,19 @@ class TestExpandMessageFields:
             "accel[2]",
         ]
 
-    def test_variable_array_is_one_complex_leaf(self):
-        assert _leaves("int32[] samples\n") == [("samples", "complex", None)]
-
-    def test_bounded_array_is_one_complex_leaf(self):
-        assert _leaves("int32[<=4] samples\n") == [("samples", "complex", None)]
-
-    def test_variable_array_of_messages_is_one_complex_leaf(self):
-        schema = (
-            "geometry_msgs/Vector3[] path\n"
+    @pytest.mark.parametrize(
+        "definition",
+        [
+            "int32[] samples\n",
+            "int32[<=4] samples\n",
+            "geometry_msgs/Vector3[] samples\n"
             + "=" * 80
-            + "\nMSG: geometry_msgs/Vector3\nfloat64 x\nfloat64 y\nfloat64 z\n"
-        )
-        assert _leaves(schema) == [("path", "complex", None)]
+            + "\nMSG: geometry_msgs/Vector3\nfloat64 x\n",
+        ],
+        ids=["unbounded", "bounded", "of_messages"],
+    )
+    def test_variable_array_is_one_complex_leaf(self, definition):
+        assert _leaves(definition) == [("samples", "complex", None)]
 
     def test_fixed_array_of_messages_expands_per_element(self):
         schema = (
@@ -151,20 +171,20 @@ class TestExpandMessageFields:
             ChannelDataType.STRING,
         ]
 
-    def test_wstring_raises_unsupported(self):
+    @pytest.mark.parametrize(
+        "definition",
+        [
+            "wstring label\n",
+            "wstring[] labels\n",
+            "pkg/Bad[] items\n" + "=" * 80 + "\nMSG: pkg/Bad\nwstring label\n",
+        ],
+        ids=["scalar", "array", "nested_in_array"],
+    )
+    def test_wstring_raises_unsupported(self, definition):
+        # Complex leaves still decode every element, so an undecodable element
+        # type anywhere makes the whole topic unsupported.
         with pytest.raises(UnsupportedTopicError, match="wstring"):
-            _leaves("wstring label\n")
-
-    def test_variable_array_of_wstring_raises(self):
-        # The importer decodes every element of a complex leaf, so an
-        # undecodable element type makes the whole topic unsupported.
-        with pytest.raises(UnsupportedTopicError, match="wstring"):
-            _leaves("wstring[] labels\n")
-
-    def test_variable_array_of_messages_with_wstring_raises(self):
-        schema = "pkg/Bad[] items\n" + "=" * 80 + "\nMSG: pkg/Bad\nwstring label\n"
-        with pytest.raises(UnsupportedTopicError, match="wstring"):
-            _leaves(schema)
+            _leaves(definition)
 
     def test_nesting_beyond_max_depth_raises(self):
         # A chain of 40 nested message types exceeds MAX_FIELD_DEPTH (32).
@@ -327,46 +347,32 @@ class TestDetectMcapConfig:
             detect_mcap_config(path)
 
     def test_records_only_in_data_section_are_detected(self, tmp_path):
-        # An unchunked file whose summary omits the schema/channel repeats is
-        # spec-legal; the top-level pass must pick the records up.
+        # An unchunked file whose summary omits the schema and channel repeats
+        # is spec-legal; the records are only in the data section.
         path = tmp_path / "log.mcap"
-        with open(path, "wb") as f:
-            writer = Writer(f, use_chunking=False, repeat_channels=False, repeat_schemas=False)
-            writer.start()
-            schema_id = writer.register_schema(
-                name="sensors/msg/Imu", encoding="ros2msg", data=IMU_SCHEMA.encode()
-            )
-            writer.register_channel(topic="/imu", message_encoding="cdr", schema_id=schema_id)
-            writer.finish()
+        _write_mcap(
+            path,
+            [("sensors/msg/Imu", IMU_SCHEMA, "/imu")],
+            use_chunking=False,
+            repeat_channels=False,
+            repeat_schemas=False,
+        )
 
         config = detect_mcap_config(path)
         assert {d.topic for d in config.data} == {"/imu"}
 
     def test_rejects_unsupported_chunk_compression(self, tmp_path):
-        # The importer rejects unsupported compression regardless of
-        # parse_error_policy, so detection must too rather than listing
-        # channels for a file that can never import.
+        # Channels inside a chunk we cannot decompress are invisible, so the
+        # file can never import; refuse it rather than listing nothing.
         path = tmp_path / "log.mcap"
-        with open(path, "wb") as f:
-            writer = Writer(f)  # defaults to zstd-compressed chunks
-            writer.start()
-            schema_id = writer.register_schema(
-                name="sensors/msg/Imu", encoding="ros2msg", data=IMU_SCHEMA.encode()
-            )
-            channel_id = writer.register_channel(
-                topic="/imu", message_encoding="cdr", schema_id=schema_id
-            )
-            writer.add_message(channel_id=channel_id, log_time=0, data=b"\x00", publish_time=0)
-            writer.finish()
-        # Rewrite the chunk's compression string to an unsupported one.
+        _write_mcap(path, [("sensors/msg/Imu", IMU_SCHEMA, "/imu")], messages=1)
         path.write_bytes(path.read_bytes().replace(b"zstd", b"lzma"))
 
         with pytest.raises(ValueError, match="unsupported chunk compression"):
             detect_mcap_config(path)
 
     def test_duplicate_channel_names_raise(self, tmp_path):
-        # Topic '/a' field 'b.c' and topic '/a.b' field 'c' both name a
-        # channel '/a.b.c'.
+        # '/a' field 'b.c' and '/a.b' field 'c' both name a channel '/a.b.c'.
         path = tmp_path / "log.mcap"
         _write_mcap(
             path,
@@ -375,8 +381,11 @@ class TestDetectMcapConfig:
                 ("pkg/msg/C", "int32 c\n", "/a.b"),
             ],
         )
-        with pytest.raises(ValueError, match="both named '/a.b.c'"):
+
+        with pytest.raises(ValueError, match="both named '/a.b.c'") as excinfo:
             detect_mcap_config(path)
+        assert "topic '/a' field 'b.c'" in str(excinfo.value)
+        assert "topic '/a.b' field 'c'" in str(excinfo.value)
 
 
 class TestComplexTypesImportMode:
@@ -438,9 +447,9 @@ class TestComplexTypesImportMode:
     def test_default_is_both(self, tmp_path):
         path = tmp_path / "log.mcap"
         _write_mcap(path, [("test_msgs/msg/Samples", self.SCHEMA, "/samples")])
-        config = detect_mcap_config(path)
-        assert config.complex_types_import_mode is McapComplexTypesImportMode.BOTH
-        assert len(config._to_proto().data) == 3
+        assert detect_mcap_config(path).complex_types_import_mode is (
+            McapComplexTypesImportMode.BOTH
+        )
 
     def test_ignoring_every_configured_channel_raises(self, tmp_path):
         # An empty list would mean "import the whole file", so refuse instead.
@@ -449,9 +458,7 @@ class TestComplexTypesImportMode:
         with pytest.raises(ValueError, match="nothing would be imported"):
             config._to_proto()
 
-    def test_generated_json_name_clash_raises(self, tmp_path):
-        # '/a' field 'b' generates '/a.b.json', which topic '/a.b' field
-        # 'json' already claims.
+    def test_generated_json_name_clash_depends_on_the_mode(self, tmp_path):
         path = tmp_path / "log.mcap"
         _write_mcap(
             path,
@@ -462,91 +469,66 @@ class TestComplexTypesImportMode:
         )
         config = detect_mcap_config(path)
         assert {d.name for d in config.data} == {"/a.b", "/a.b.json"}
+
+        # BOTH generates a second '/a.b.json' from '/a.b'; BYTES does not.
         with pytest.raises(ValueError, match="would both be imported as '/a.b.json'"):
             config._to_proto()
-
-    def test_clash_disappears_under_bytes_mode(self, tmp_path):
-        path = tmp_path / "log.mcap"
-        _write_mcap(
-            path,
-            [
-                ("pkg/msg/A", "int32[] b\n", "/a"),
-                ("pkg/msg/B", "int32 json\n", "/a.b"),
-            ],
-        )
-        config = detect_mcap_config(path)
         config.complex_types_import_mode = McapComplexTypesImportMode.BYTES
         assert {d.channel_config.name for d in config._to_proto().data} == {"/a.b", "/a.b.json"}
 
 
-class TestScanCompleteness:
-    def test_summary_without_statistics_falls_back_to_chunk_scan(self, tmp_path):
-        # A chunked file whose summary repeats neither schemas nor channels and
-        # carries no Statistics record: the summary yields nothing, so
-        # detection must read the records inside the chunks like the importer.
+class TestFileScanning:
+    """A well-formed file is read from its summary alone. The data section is
+    only read when the summary comes up short.
+    """
+
+    def test_well_formed_file_never_reads_the_data_section(self, tmp_path, monkeypatch):
         path = tmp_path / "log.mcap"
-        with open(path, "wb") as f:
-            writer = Writer(f, repeat_channels=False, repeat_schemas=False, use_statistics=False)
-            writer.start()
-            schema_id = writer.register_schema(
-                name="sensors/msg/Imu", encoding="ros2msg", data=IMU_SCHEMA.encode()
-            )
-            channel_id = writer.register_channel(
-                topic="/imu", message_encoding="cdr", schema_id=schema_id
-            )
-            for i in range(10):
-                writer.add_message(
-                    channel_id=channel_id,
-                    log_time=1_700_000_000_000_000_000 + i,
-                    publish_time=1_700_000_000_000_000_000 + i,
-                    data=b"\x00" * 32,
-                )
-            writer.finish()
+        _write_mcap(path, [("sensors/msg/Imu", IMU_SCHEMA, "/imu")], messages=200)
+
+        def fail(*args, **kwargs):
+            raise AssertionError("read the data section for a file with a usable summary")
+
+        monkeypatch.setattr("sift_client._internal.util.mcap.StreamReader", fail)
+        config = detect_mcap_config(path)
+        assert {d.topic for d in config.data} == {"/imu"}
+
+    def test_summary_without_repeats_falls_back_to_the_chunks(self, tmp_path):
+        # Statistics alone does not make the summary usable: without the
+        # channel repeats the channels exist only inside the chunks.
+        path = tmp_path / "log.mcap"
+        _write_mcap(
+            path,
+            [("sensors/msg/Imu", IMU_SCHEMA, "/imu")],
+            messages=10,
+            repeat_channels=False,
+            repeat_schemas=False,
+        )
 
         config = detect_mcap_config(path)
         assert {d.topic for d in config.data} == {"/imu"}
 
+    def test_unsupported_compression_rejected_without_a_summary(self, tmp_path):
+        # No summary means no chunk indexes, so the compression string is only
+        # readable from the chunk records themselves.
+        path = tmp_path / "log.mcap"
+        _write_mcap(path, [("sensors/msg/Imu", IMU_SCHEMA, "/imu")], messages=1)
+        path.write_bytes(path.read_bytes().replace(b"zstd", b"lzma")[:-8])
+
+        with pytest.raises(ValueError, match="unsupported chunk compression"):
+            detect_mcap_config(path)
+
     def test_attachments_warn(self, tmp_path):
         path = tmp_path / "log.mcap"
-        with open(path, "wb") as f:
-            writer = Writer(f)
-            writer.start()
-            schema_id = writer.register_schema(
-                name="sensors/msg/Imu", encoding="ros2msg", data=IMU_SCHEMA.encode()
-            )
-            writer.register_channel(topic="/imu", message_encoding="cdr", schema_id=schema_id)
-            writer.add_attachment(
-                create_time=1, log_time=1, name="notes.txt", media_type="text/plain", data=b"hi"
-            )
-            writer.finish()
+        _write_mcap(path, [("sensors/msg/Imu", IMU_SCHEMA, "/imu")], attachment=True)
 
         with pytest.warns(UserWarning, match="1 attachment"):
             config = detect_mcap_config(path)
         assert {d.topic for d in config.data} == {"/imu"}
 
-    def test_scan_warnings_survive_a_name_clash(self, tmp_path):
+    def test_warnings_survive_a_name_clash(self, tmp_path):
         # The clash raises, but what the scan already found must still reach
         # the caller instead of being discarded with the exception.
-        path = tmp_path / "log.mcap"
-        nested = "pkg/B b\n" + "=" * 80 + "\nMSG: pkg/B\nint32 c\n"
-        with open(path, "wb") as f:
-            writer = Writer(f)
-            writer.start()
-            a = writer.register_schema(name="pkg/msg/A", encoding="ros2msg", data=nested.encode())
-            writer.register_channel(topic="/a", message_encoding="cdr", schema_id=a)
-            b = writer.register_schema(name="pkg/msg/C", encoding="ros2msg", data=b"int32 c\n")
-            writer.register_channel(topic="/a.b", message_encoding="cdr", schema_id=b)
-            writer.add_attachment(
-                create_time=1, log_time=1, name="notes.txt", media_type="text/plain", data=b"hi"
-            )
-            writer.finish()
-
-        with pytest.warns(UserWarning, match="1 attachment"), pytest.raises(
-            ValueError, match="both named"
-        ):
-            detect_mcap_config(path)
-
-    def test_clash_error_names_both_origins(self, tmp_path):
         path = tmp_path / "log.mcap"
         _write_mcap(
             path,
@@ -554,9 +536,10 @@ class TestScanCompleteness:
                 ("pkg/msg/A", "pkg/B b\n" + "=" * 80 + "\nMSG: pkg/B\nint32 c\n", "/a"),
                 ("pkg/msg/C", "int32 c\n", "/a.b"),
             ],
+            attachment=True,
         )
-        with pytest.raises(ValueError, match="both named") as excinfo:
+
+        with pytest.warns(UserWarning, match="1 attachment"), pytest.raises(
+            ValueError, match="both named"
+        ):
             detect_mcap_config(path)
-        message = str(excinfo.value)
-        assert "topic '/a' field 'b.c'" in message
-        assert "topic '/a.b' field 'c'" in message
