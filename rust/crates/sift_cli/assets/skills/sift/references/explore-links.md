@@ -3,6 +3,13 @@
 Build the link with `explore_url`, then surface the URL to the user as plain
 text, in full.
 
+Send one source type. Pass `run_ids` when the request names a run and
+`asset_ids` otherwise. Use IDs returned by `list_runs` and `list_assets`; the
+tool does not accept names. A run is already scoped to its asset, so adding the
+asset opens the view on a second, wider source. `explore_url` rejects both with
+`INVALID_PARAMS`; set `include_assets_and_runs` to true only when the user asked
+to see runs and assets together in one view.
+
 Pick the `panel_type` that fits the request: `timeseries` (the default),
 `histogram`, `table`, `fft`, `metrics`, `scatter-plot`, or `geo-map`. The tool
 rejects an unknown value with `INVALID_PARAMS` and names the accepted set in
