@@ -1027,6 +1027,7 @@ ImportConfig = Union[
 class DataImportStatus(str, Enum):
     """Status of a data import."""
 
+    UNSPECIFIED = "UNSPECIFIED"
     PENDING = "PENDING"
     IN_PROGRESS = "IN_PROGRESS"
     SUCCEEDED = "SUCCEEDED"
@@ -1038,16 +1039,14 @@ class DataImportStatus(str, Enum):
 
     @classmethod
     def from_proto(cls, proto_value: int) -> DataImportStatus:
-        """Create from proto enum value."""
+        """Create from proto enum value. Unknown values map to UNSPECIFIED."""
         mapping: dict[int, DataImportStatus] = {
             DataImportStatusProto.DATA_IMPORT_STATUS_PENDING: DataImportStatus.PENDING,
             DataImportStatusProto.DATA_IMPORT_STATUS_IN_PROGRESS: DataImportStatus.IN_PROGRESS,
             DataImportStatusProto.DATA_IMPORT_STATUS_SUCCEEDED: DataImportStatus.SUCCEEDED,
             DataImportStatusProto.DATA_IMPORT_STATUS_FAILED: DataImportStatus.FAILED,
         }
-        if proto_value not in mapping:
-            raise ValueError(f"Unknown DataImportStatus proto value: {proto_value}")
-        return mapping[proto_value]
+        return mapping.get(proto_value, DataImportStatus.UNSPECIFIED)
 
 
 class DataImport(BaseType[DataImportProto, "DataImport"]):

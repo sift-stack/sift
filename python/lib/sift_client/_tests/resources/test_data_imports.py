@@ -726,9 +726,15 @@ def _data_imports_api(mock_client) -> DataImportAPIAsync:
 
 
 class TestDataImportStatus:
-    def test_from_proto_unspecified_raises(self):
-        with pytest.raises(ValueError, match="Unknown DataImportStatus"):
+    def test_unspecified_maps_instead_of_raising(self):
+        # A status the server never set must not break list_() parsing.
+        assert (
             DataImportStatus.from_proto(DATA_IMPORT_STATUS_UNSPECIFIED)
+            == DataImportStatus.UNSPECIFIED
+        )
+
+    def test_unknown_future_value_falls_back_to_unspecified(self):
+        assert DataImportStatus.from_proto(100) == DataImportStatus.UNSPECIFIED
 
 
 class TestDataImportFromProto:
