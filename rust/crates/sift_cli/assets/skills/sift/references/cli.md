@@ -52,6 +52,13 @@ per session. The rest apply to each subcommand invocation.
    - `--preview`: parse the source file and print the inferred schema
      without uploading. Offer this when the user is unsure about column
      types or the time column.
+   - Column types, units, and descriptions: repeated `-c/-d/-u/-n` flags on
+     `import csv` set a column's index, data type, unit, and description
+     together. Without them every column is inferred as a double carrying no
+     unit. Only `display_description`, `display_units`, `metadata`, and
+     `active` can be changed on a channel afterwards, so the data type in
+     particular has to be right at import. Ask for units the source file
+     does not state.
    - Per-format layout flags surfaced by `--help` (e.g. CSV's
      `--header-row`, `--time-column`, `--time-format`; HDF5's schema
      subcommand `one-d`/`two-d`/`compound`; Parquet's `cpr single`
@@ -89,6 +96,16 @@ per session. The rest apply to each subcommand invocation.
    bad flag combination or missing required argument; the CLI's stderr
    names the exact issue. Adjust the command and run again rather than
    treating the failure as terminal.
+
+   **`import` is the exception — check before you retry.** It is not
+   idempotent: every invocation creates a run, so re-running after a failure
+   that had already uploaded leaves two runs with the same name holding
+   duplicate data. This is the case to watch when a shell loop dies partway
+   through a batch. Before retrying an import, check `list_runs` for the run
+   name. A duplicate is easy to miss afterwards, because Explore resolves a
+   name matching several runs to the most recently created one. Streaming
+   ingest behaves the opposite way — it upserts on
+   (channel, run, timestamp) — so only file imports need this check.
 
 ## Importing data
 
