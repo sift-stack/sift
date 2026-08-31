@@ -268,6 +268,7 @@ class ChannelsAPIAsync(ResourceBase):
         page_size: int | None = None,
         ignore_cache: bool = False,
         show_progress: bool | None = None,
+        include_received_at: bool = False,
     ) -> dict[str, pd.DataFrame]:
         """Get data for one or more channels.
 
@@ -284,6 +285,10 @@ class ChannelsAPIAsync(ResourceBase):
             show_progress: If True, display a progress bar naming each channel as
                 its data is fetched. Defaults to True for sync, False for async.
                 Use ``sift_client.config.show_progress = False`` to disable globally.
+            include_received_at: If True, each DataFrame gains a
+                "<channel_name>.sift_received_at" column with the time each
+                point was received by Sift. Not available for enum or bitfield
+                channels. Implies ignore_cache (received-at is never cached).
 
         Returns:
             A dictionary mapping channel names to pandas DataFrames containing the channel data.
@@ -303,6 +308,7 @@ class ChannelsAPIAsync(ResourceBase):
             page_size=page_size,
             ignore_cache=ignore_cache,
             show_progress=show_progress,
+            include_received_at=include_received_at,
         )
 
     async def get_data_as_arrow(
@@ -316,6 +322,7 @@ class ChannelsAPIAsync(ResourceBase):
         page_size: int | None = None,
         ignore_cache: bool = False,
         show_progress: bool | None = None,
+        include_received_at: bool = False,
     ) -> dict[str, pa.Table]:
         """Get data for one or more channels as pyarrow tables."""
         from pyarrow import Table as ArrowTable
@@ -330,5 +337,6 @@ class ChannelsAPIAsync(ResourceBase):
             page_size=page_size,
             ignore_cache=ignore_cache,
             show_progress=show_progress,
+            include_received_at=include_received_at,
         )
         return {k: ArrowTable.from_pandas(v) for k, v in data.items()}

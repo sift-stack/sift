@@ -91,6 +91,7 @@ class TestChannel:
             start_time=datetime(2024, 1, 1, tzinfo=timezone.utc),
             end_time=datetime(2024, 1, 2, tzinfo=timezone.utc),
             limit=100,
+            include_received_at=False,
         )
         assert result == mock_data
 
@@ -112,9 +113,23 @@ class TestChannel:
             start_time=None,
             end_time=None,
             limit=None,
+            include_received_at=False,
         )
         mock_client.channels.get_data.assert_not_called()
         assert result == mock_data
+
+    def test_data_method_forwards_include_received_at(self, mock_channel, mock_client):
+        """data(include_received_at=True) forwards the flag to get_data."""
+        mock_channel.data(include_received_at=True)
+
+        assert mock_client.channels.get_data.call_args.kwargs["include_received_at"] is True
+
+    def test_data_method_as_arrow_forwards_include_received_at(self, mock_channel, mock_client):
+        """data(as_arrow=True, include_received_at=True) forwards the flag to get_data_as_arrow."""
+        mock_channel.data(as_arrow=True, include_received_at=True)
+
+        kwargs = mock_client.channels.get_data_as_arrow.call_args.kwargs
+        assert kwargs["include_received_at"] is True
 
     def test_channel_reference_requires_one_target(self):
         """ChannelReference must specify exactly one of identifier or calculated_channel."""
@@ -225,6 +240,7 @@ class TestChannel:
             start_time=None,
             end_time=None,
             limit=None,
+            include_received_at=False,
         )
         assert result == mock_data
 

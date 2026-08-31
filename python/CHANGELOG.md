@@ -5,6 +5,20 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### What's New
+
+#### `include_received_at` on `get_data`
+
+`client.channels.get_data(...)`, `get_data_as_arrow(...)`, and `Channel.data(...)` now take `include_received_at`. When set, each returned DataFrame gains a `"<channel_name>.sift_received_at"` column with the time each point was received by Sift, alongside the measurement timestamps. Not available for enum or bitfield channels.
+
+```python
+data = client.channels.get_data(
+    channels=channels,
+    run=run,
+    include_received_at=True,
+)
+```
+
 ## [v0.20.0] - August 25, 2026
 
 ### What's New

@@ -312,6 +312,7 @@ class Channel(BaseType[ChannelProto, "Channel"]):
         end_time: datetime | None = None,
         limit: int | None = None,
         as_arrow: bool = False,
+        include_received_at: bool = False,
     ):
         """Retrieve channel data for this channel during the specified run.
 
@@ -321,6 +322,10 @@ class Channel(BaseType[ChannelProto, "Channel"]):
             end_time: The end time to get data for.
             limit: The maximum number of data points to return.
             as_arrow: Whether to return the data as an Arrow table.
+            include_received_at: If True, include a "<channel_name>.sift_received_at"
+                column with the time each point was received by Sift. Not
+                available for enum or bitfield channels. Received-at data is
+                never cached, so these calls always fetch from the server.
 
         Returns:
             A dict of channel name to pandas DataFrame or Arrow Table object.
@@ -332,6 +337,7 @@ class Channel(BaseType[ChannelProto, "Channel"]):
                 start_time=start_time,
                 end_time=end_time,
                 limit=limit,  # type: ignore
+                include_received_at=include_received_at,
             )
         else:
             data = self.client.channels.get_data(
@@ -340,6 +346,7 @@ class Channel(BaseType[ChannelProto, "Channel"]):
                 start_time=start_time,
                 end_time=end_time,
                 limit=limit,  # type: ignore
+                include_received_at=include_received_at,
             )
         return data
 
