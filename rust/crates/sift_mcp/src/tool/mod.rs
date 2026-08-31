@@ -1,4 +1,5 @@
 pub mod annotations;
+pub mod artifacts;
 pub mod assets;
 pub mod calculated_channels;
 pub mod channels;
@@ -12,7 +13,6 @@ pub mod reports;
 pub mod rule_evaluation;
 pub mod rules;
 pub mod runs;
-#[cfg(feature = "test-reports")]
 pub mod test_reports;
 pub mod update;
 pub mod user_defined_functions;

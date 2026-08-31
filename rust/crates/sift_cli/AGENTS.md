@@ -54,6 +54,8 @@ Keep the skill accurate to the CLI and `sift_mcp` tool surfaces. In particular:
 - Teach agents to use `agent doctor`, `install`, and `update` instead of editing
   one client. They must obtain explicit user approval before running
   `agent update --allow-destructive` and tell the user to reload the client.
+- Do not cite flag names or enumerate flag-gated tools in prose docs; the registry
+  is the source of truth and prose copies go stale.
 
 Write in direct voice and keep it concise. The skill is loaded under context
 pressure, so every line should change what the agent does.

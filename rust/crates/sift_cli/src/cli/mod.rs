@@ -96,7 +96,8 @@ pub struct McpArgs {
     #[arg(long)]
     pub disable_update_check: bool,
 
-    /// Disable non-essential network traffic. Release checks are controlled
+    /// Disable non-essential network traffic. Feature-flag resolution at startup
+    /// is essential traffic and remains enabled. Release checks are controlled
     /// separately by `--disable-update-check`.
     #[arg(long)]
     pub disable_nonessential_traffic: bool,

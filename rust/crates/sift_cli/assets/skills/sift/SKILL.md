@@ -53,7 +53,13 @@ exists.
   started with `--disable-update-check` omit this tool. `ping` is a
   connectivity check; when it fails, expect every other Sift tool to fail too.
 - **Discovery:** `list_assets`, `list_runs`, `list_channels`, `list_reports`,
-  `list_report_templates`, `list_rules`, `list_rule_versions`, `list_annotations`.
+  `list_report_templates`, `list_rules`, `list_rule_versions`, `list_annotations`,
+  `list_artifacts`.
+- **Artifacts:** `download_artifact` (latest version, or pin `artifact_version_id`).
+  The artifact tools, including `list_artifacts` and the `create_artifact`
+  write below, are enabled per account by the agents feature flag resolved when
+  the MCP server starts, so they may be absent from the tool list. Enabling
+  them requires an account setting and an MCP restart.
 - **Derived channels:** `list_calculated_channels`,
   `list_calculated_channel_versions`, `list_user_defined_functions`,
   `list_user_defined_function_versions`.
@@ -65,8 +71,10 @@ exists.
 - **Test results:** `list_test_reports`, `list_test_steps`,
   `list_test_measurements`, `count_test_steps`, `count_test_measurements`.
   These, along with the `create_test_report` and `append_test_measurements`
-  writes below, are gated behind the `test-reports` Cargo feature (default on).
-  A server built with `--no-default-features` will not expose them.
+  writes below, are enabled per account by feature flags resolved when the MCP
+  server starts, so they may be absent from the tool list. Enabling them requires
+  an account setting and an MCP restart. Tell the account owner to contact Sift
+  to enable them, then restart the MCP client.
 - **Data:** `get_data` writes channel data to a Parquet file. `sql` queries
   Parquet files. `upload_dataset` streams a Parquet dataset into Sift.
 - **Links:** `explore_url`.
@@ -79,7 +87,7 @@ exists.
   `create_user_defined_function`, `update_user_defined_function`,
   `archive_user_defined_function`, `unarchive_user_defined_function`,
   `create_test_report`, `append_test_measurements`, `update_asset`,
-  `update_run`.
+  `update_run`, `create_artifact`.
 
 ## Workflows that span tools
 
@@ -132,6 +140,13 @@ exists.
   Send a rename on its own. The API applies a `name` change by itself and
   ignores every other field, so `update_user_defined_function` rejects `name`
   combined with anything else.
+- **Create an artifact.** `create_artifact` with a `title` / `summary`.
+  Pass `conversation_id` to link it to a chat, and `authoring_kind=agent` when
+  a Sift agent produced it. Append a version by passing the existing
+  `artifact_id`. Creating is gated by `--allow-create`; appending a version to
+  an existing artifact also needs `--allow-destructive`. Discover artifacts
+  with `list_artifacts` (oldest first, no `order_by`); fetch a version or its
+  `download_url` with `download_artifact`.
 - **Produce a chart.** Build a link with `explore_url`. When the user wants a
   chart and numbers, do both and give the user both.
 - **Answer a question about how Sift works.** Call `search_docs`. Do not answer
