@@ -128,6 +128,7 @@ async fn server_with_feature_flags(
             update_check,
             client_event_reporter,
             feature_flags,
+            None,
         ),
         handle,
     )

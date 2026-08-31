@@ -12,8 +12,11 @@ use sift_rs::{
     },
 };
 
+use std::path::Path;
+
 use crate::policy::{RetryPolicy, with_retry};
 use crate::service::common;
+use crate::service::remote_files::RemoteFileUploader;
 
 #[cfg(test)]
 mod test;
@@ -30,11 +33,23 @@ pub struct ArtifactView {
 pub struct ArtifactService {
     channel: SiftChannel,
     policy: RetryPolicy,
+    // Absent only when the server runs without a REST endpoint (some tests);
+    // creating an artifact with a file requires it.
+    uploader: Option<RemoteFileUploader>,
 }
 
 impl ArtifactService {
     pub fn new(channel: SiftChannel, policy: RetryPolicy) -> Self {
-        Self { channel, policy }
+        Self {
+            channel,
+            policy,
+            uploader: None,
+        }
+    }
+
+    pub fn with_uploader(mut self, uploader: RemoteFileUploader) -> Self {
+        self.uploader = Some(uploader);
+        self
     }
 
     pub async fn list_artifacts(
@@ -121,7 +136,17 @@ impl ArtifactService {
         conversation_id: Option<String>,
         artifact_id: Option<String>,
         authoring_kind: ArtifactAuthoringKind,
+        file_path: Option<&Path>,
     ) -> Result<ArtifactView> {
+        // Refuse before creating any rows, so a misconfigured server does not
+        // leave a byteless version behind.
+        let uploader = match file_path {
+            Some(_) => Some(self.uploader.as_ref().context(
+                "this server was started without a REST endpoint, so `file_path` is not supported",
+            )?),
+            None => None,
+        };
+
         let channel = self.channel.clone();
         let created = with_retry(&self.policy, move || {
             let channel = channel.clone();
@@ -148,9 +173,46 @@ impl ArtifactService {
         .artifact
         .ok_or_else(|| anyhow!("create artifact response missing artifact"))?;
 
+        let (Some(uploader), Some(path)) = (uploader, file_path) else {
+            return Ok(ArtifactView {
+                inner: created,
+                download_url: None,
+            });
+        };
+
+        // The version row exists from here on: a failed upload must say so,
+        // or the agent will retry the create and mint a duplicate artifact.
+        let upload_context = format!(
+            "artifact {} version {} was created, but uploading `{}` failed; do NOT create the artifact again",
+            created.artifact_id,
+            created.version,
+            path.display()
+        );
+        uploader
+            .upload_artifact_version_file(
+                &created.organization_id,
+                &created.artifact_version_id,
+                path,
+            )
+            .await
+            .context(upload_context)?;
+
+        // Refresh so the returned artifact carries the uploaded file's name,
+        // mime type, and remote_file_id, and mint the download link.
+        let refreshed = self
+            .get_artifact(
+                created.artifact_id.clone(),
+                Some(created.artifact_version_id.clone()),
+            )
+            .await
+            .unwrap_or(created);
+        let download_url = match refreshed.remote_file_id.clone() {
+            Some(remote_file_id) => self.download_url(remote_file_id).await.ok(),
+            None => None,
+        };
         Ok(ArtifactView {
-            inner: created,
-            download_url: None,
+            inner: refreshed,
+            download_url,
         })
     }
 

@@ -16,6 +16,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   importing metadata records as run metadata (`--metadata-record`),
   recoverable-error handling (`--parse-error-policy`), and how
   variable-cardinality fields are imported (`--complex-types-import-mode`).
+- `create_artifact` accepts a `file_path` and uploads the file as the new
+  version's content (streamed to Sift's file store, up to 1 GiB). The response
+  then carries the file's name, mime type, `remote_file_id`, and a signed
+  `download_url`.
 - Added artifact MCP tools: `list_artifacts`, `download_artifact`, and
   `create_artifact`, backed by public `sift.artifacts.v1.ArtifactService`.
   `create_artifact` writes artifact metadata (and can link a new artifact to a
