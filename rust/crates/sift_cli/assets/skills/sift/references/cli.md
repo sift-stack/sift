@@ -6,7 +6,7 @@ Covers every `sift-cli` invocation: `import`, `export`, `config`, `ping`, and
 Key subcommands:
 
 - `import`: `csv`, `parquet flat-dataset`, `parquet cpr`, `tdms`, `hdf5`,
-  `ulog`, `backups`.
+  `ulog`, `mcap`, `backups`.
 - `export`: `run`, `asset` (to CSV and other formats).
 - `mcp`: start the MCP server.
 - `ping`: verify credentials and connectivity.
@@ -98,7 +98,7 @@ There are two ways to get data into Sift: importing a file, or streaming.
 
 `sift-cli` and the Python library import several file types directly. The CLI
 supports CSV, Parquet (flat-dataset and channel-per-row), TDMS, HDF5, ULog,
-and `sift_stream` backups.
+MCAP, and `sift_stream` backups.
 
 If the CLI does not support the user's file type:
 

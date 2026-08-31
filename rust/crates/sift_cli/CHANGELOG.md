@@ -7,6 +7,15 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- MCAP (`.mcap`) files can now be imported with `sift-cli import mcap`. Every
+  decodable topic is imported one channel per flattened field, named
+  `<topic>.<field path>`. Only ROS 2 topics (`cdr` messages with `ros2msg`
+  schemas) are supported. `--preview` lists the detected channels client-side
+  before any upload, and reports the topics it had to skip. Flags cover
+  timestamp anchoring for logs on a non-Unix epoch (`--relative-start-time`),
+  importing metadata records as run metadata (`--metadata-record`),
+  recoverable-error handling (`--parse-error-policy`), and how
+  variable-cardinality fields are imported (`--complex-types-import-mode`).
 - Added artifact MCP tools: `list_artifacts`, `download_artifact`, and
   `create_artifact`, backed by public `sift.artifacts.v1.ArtifactService`.
   `create_artifact` writes artifact metadata (and can link a new artifact to a

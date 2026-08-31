@@ -31,6 +31,7 @@ csv = { workspace = true }
 dirs = { workspace = true }
 flate2 = { workspace = true }
 indicatif = { workspace = true }
+mcap = { workspace = true }
 parquet = { workspace = true }
 pbjson-types = { workspace = true }
 percent-encoding = { workspace = true }
