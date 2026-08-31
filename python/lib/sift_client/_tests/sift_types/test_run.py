@@ -144,6 +144,14 @@ class TestRun:
         # Verify client method was called with correct asset_ids
         mock_client.assets.list_.assert_called_once_with(asset_ids=["asset1", "asset2"])
 
+    def test_data_imports_property_calls_client(self, mock_run, mock_client):
+        """Test that data_imports property filters by this run's ID."""
+        mock_client.data_import.list_.return_value = []
+
+        _ = mock_run.data_imports
+
+        mock_client.data_import.list_.assert_called_once_with(runs=["test_run_id"])
+
     def test_archive_calls_client_and_updates_self(self, mock_run, mock_client):
         """Test that archive() calls client.runs.archive and calls _update."""
         archived_run = MagicMock()

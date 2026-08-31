@@ -144,6 +144,7 @@ from sift_client.sift_types.channel import (
     ChannelReference,
     ChannelUpdate,
 )
+from sift_client.sift_types.data_import import DataImport, DataImportStatus
 from sift_client.sift_types.ingestion import (
     ChannelConfig,
     Flow,
@@ -246,7 +247,9 @@ __all__ = [
     "ChannelUpdate",
     "DataExportDetails",
     "DataExportStatusDetails",
+    "DataImport",
     "DataImportDetails",
+    "DataImportStatus",
     "DataImportStatusDetails",
     "Flow",
     "FlowConfig",

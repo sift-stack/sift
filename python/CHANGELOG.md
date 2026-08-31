@@ -5,6 +5,23 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### What's New
+
+#### List and get data imports
+
+New in `client.data_import`: `list_` and `get` (plus `find`), and a `run.data_imports` property.
+
+```python
+# Imports for a run, e.g. to check on a batch
+imports = client.data_import.list_(runs=[run])
+imports = run.data_imports  # same query, keyed off the run
+
+# One import by ID
+data_import = client.data_import.get("data-import-id")
+```
+
+Each `DataImport` carries the import's `status`, `error_message`, and `warning_messages`. `job.get_data_import()` returns it for the `Job` that `import_from_path` hands back.
+
 ## [v0.20.0] - August 25, 2026
 
 ### What's New

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from sift.data_imports.v2.data_imports_pb2 import (
     CreateDataImportFromUploadRequest,
@@ -9,12 +9,15 @@ from sift.data_imports.v2.data_imports_pb2 import (
     DetectConfigResponse,
     GetDataImportRequest,
     GetDataImportResponse,
+    ListDataImportsRequest,
+    ListDataImportsResponse,
 )
 from sift.data_imports.v2.data_imports_pb2_grpc import DataImportServiceStub
 
-from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
+from sift_client._internal.low_level_wrappers.base import DEFAULT_PAGE_SIZE, LowLevelClientBase
 from sift_client.sift_types.data_import import (
     CsvImportConfig,
+    DataImport,
     Hdf5ImportConfig,
     ImportConfig,
     ParquetFlatDatasetImportConfig,
@@ -77,18 +80,82 @@ class DataImportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = cast("CreateDataImportFromUploadResponse", response)
         return response.data_import_id, response.upload_url
 
-    async def get(self, data_import_id: str) -> GetDataImportResponse:
+    async def get(self, data_import_id: str) -> DataImport:
         """Get a data import by ID.
 
         Args:
             data_import_id: The ID of the data import.
 
         Returns:
-            The GetDataImportResponse proto.
+            The DataImport.
         """
         request = GetDataImportRequest(data_import_id=data_import_id)
         response = await self._grpc_client.get_stub(DataImportServiceStub).GetDataImport(request)
-        return cast("GetDataImportResponse", response)
+        response = cast("GetDataImportResponse", response)
+        return DataImport._from_proto(response.data_import)
+
+    async def list_data_imports(
+        self,
+        *,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
+        page_token: str | None = None,
+        query_filter: str | None = None,
+        order_by: str | None = None,
+    ) -> tuple[list[DataImport], str]:
+        """List data imports with optional filtering and pagination.
+
+        Args:
+            page_size: The maximum number of data imports to return.
+            page_token: A page token from a previous list call.
+            query_filter: A CEL filter string.
+            order_by: How to order the retrieved data imports.
+
+        Returns:
+            A tuple of (data_imports, next_page_token).
+        """
+        request_kwargs: dict[str, Any] = {}
+        if page_size is not None:
+            request_kwargs["page_size"] = page_size
+        if page_token is not None:
+            request_kwargs["page_token"] = page_token
+        if query_filter is not None:
+            request_kwargs["filter"] = query_filter
+        if order_by is not None:
+            request_kwargs["order_by"] = order_by
+
+        request = ListDataImportsRequest(**request_kwargs)
+        response = await self._grpc_client.get_stub(DataImportServiceStub).ListDataImports(request)
+        response = cast("ListDataImportsResponse", response)
+
+        data_imports = [DataImport._from_proto(di) for di in response.data_imports]
+        return data_imports, response.next_page_token
+
+    async def list_all_data_imports(
+        self,
+        *,
+        query_filter: str | None = None,
+        order_by: str | None = None,
+        page_size: int | None = DEFAULT_PAGE_SIZE,
+        max_results: int | None = None,
+    ) -> list[DataImport]:
+        """List all data imports, handling pagination automatically.
+
+        Args:
+            query_filter: A CEL filter string.
+            order_by: How to order the retrieved data imports.
+            page_size: The number of results to fetch per request.
+            max_results: Maximum number of results to return across all pages.
+
+        Returns:
+            A list of all matching data imports.
+        """
+        return await self._handle_pagination(
+            self.list_data_imports,
+            kwargs={"query_filter": query_filter},
+            order_by=order_by,
+            max_results=max_results,
+            page_size=page_size,
+        )
 
     async def detect_config(
         self, data: bytes, data_type_key: DataTypeKey.ValueType

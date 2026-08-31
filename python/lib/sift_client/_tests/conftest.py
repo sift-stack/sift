@@ -74,6 +74,8 @@ def mock_client():
     client.test_results = MagicMock()
     client.file_attachments = MagicMock()
     client.jobs = MagicMock()
+    client.data_import = MagicMock()
+    client.data_export = MagicMock()
     client.async_ = MagicMock(spec=AsyncAPIs)
     client.async_.ingestion = MagicMock()
     return client

@@ -214,6 +214,84 @@ class TestJobInstanceMethods:
             assert result is mock_failed_job
 
 
+class TestJobDataImportAccessors:
+    """Unit tests for the data-import accessors on Job."""
+
+    def test_get_data_import_calls_client(self, mock_job, mock_client):
+        """get_data_import() looks the import up by the ID in job_details."""
+        data_import = MagicMock()
+        mock_client.data_import.get.return_value = data_import
+
+        assert mock_job.get_data_import() is data_import
+        mock_client.data_import.get.assert_called_once_with("import123")
+
+    def test_get_import_run_calls_client(self, mock_job, mock_client):
+        """get_import_run() resolves the run through the data import API."""
+        run = MagicMock()
+        mock_client.data_import.get_run.return_value = run
+
+        assert mock_job.get_import_run() is run
+        mock_client.data_import.get_run.assert_called_once_with("import123")
+
+    @pytest.mark.parametrize("method", ["get_data_import", "get_import_run"])
+    def test_rejects_non_import_jobs(self, mock_job, method):
+        """Both accessors refuse jobs that are not data imports."""
+        object.__setattr__(mock_job, "job_type", JobType.DATA_EXPORT)
+
+        with pytest.raises(ValueError, match=f"{method}\\(\\) is only valid for data import"):
+            getattr(mock_job, method)()
+
+    @pytest.mark.parametrize("method", ["get_data_import", "get_import_run"])
+    def test_rejects_missing_details(self, mock_job, method):
+        """Both accessors refuse a data import job with no import details."""
+        object.__setattr__(mock_job, "job_details", None)
+
+        with pytest.raises(ValueError, match="does not have data import details"):
+            getattr(mock_job, method)()
+
+    def test_falls_back_to_recorded_id_when_details_unset(self, mock_job, mock_client):
+        """The ID recorded at import time covers a job whose details aren't set yet."""
+        object.__setattr__(mock_job, "job_details", None)
+        mock_job._set_data_import_id("import-from-create")
+
+        mock_job.get_data_import()
+
+        mock_client.data_import.get.assert_called_once_with("import-from-create")
+
+    def test_server_details_win_over_recorded_id(self, mock_job, mock_client):
+        """Once the server reports the import details, they are authoritative."""
+        mock_job._set_data_import_id("import-from-create")
+
+        mock_job.get_data_import()
+
+        mock_client.data_import.get.assert_called_once_with("import123")
+
+    def test_recorded_id_survives_update(self, mock_job, mock_client):
+        """A refresh that still lacks details must not lose the recorded ID."""
+        mock_job._set_data_import_id("import-from-create")
+        refreshed = Job(
+            proto=MagicMock(),
+            id_=mock_job.id_,
+            organization_id="org1",
+            created_by_user_id="user1",
+            modified_by_user_id="user1",
+            created_date=mock_job.created_date,
+            modified_date=datetime.now(timezone.utc),
+            started_date=None,
+            completed_date=None,
+            job_type=JobType.DATA_IMPORT,
+            job_status=JobStatus.RUNNING,
+            job_status_details=None,
+            job_details=None,
+        )
+
+        mock_job._update(refreshed)
+
+        assert mock_job.job_details is None
+        mock_job.get_data_import()
+        mock_client.data_import.get.assert_called_once_with("import-from-create")
+
+
 class TestJobType:
     """Unit tests for JobType enum."""
 
