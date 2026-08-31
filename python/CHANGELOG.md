@@ -22,6 +22,21 @@ data_import = client.data_import.get("data-import-id")
 
 Each `DataImport` carries the import's `status`, `error_message`, and `warning_messages`. `job.get_data_import()` returns it for the `Job` that `import_from_path` hands back.
 
+#### Import enum channels from any file format
+
+Data columns on all import configs now accept `enum_types`, a mapping of enum name to key.
+
+```python
+CsvDataColumn(
+    column=2,
+    name="state",
+    data_type=ChannelDataType.ENUM,
+    enum_types={"IDLE": 0, "ARMED": 1},
+)
+```
+
+Setting `enum_types` on a non-enum data type raises a validation error. Multi-channel Parquet single-channel-per-row imports don't support enums, since channel configs there are derived per row.
+
 ## [v0.20.0] - August 25, 2026
 
 ### What's New

@@ -43,8 +43,10 @@ from sift_client.sift_types.data_import import (
     Hdf5ImportConfig,
     ParquetDataColumn,
     ParquetFlatDatasetImportConfig,
+    ParquetSingleChannelConfig,
     ParquetSingleChannelPerRowImportConfig,
     ParquetTimeColumn,
+    TdmsDataColumn,
     TdmsImportConfig,
     TimeFormat,
     UlogDataColumn,
@@ -959,3 +961,116 @@ class TestImportFromPathDataImportId:
         with patch("sift_client.resources.data_imports.upload_file", return_value={}):
             with pytest.raises(RuntimeError, match="did not include a job ID"):
                 await api.import_from_path(csv_path, config=config, show_progress=False)
+
+
+ENUMS = {"IDLE": 0, "ARMED": 1}
+
+
+def _enum_dict(channel_config: ChannelConfigProto) -> dict[str, int]:
+    return {e.name: e.key for e in channel_config.enum_types}
+
+
+class TestEnumTypes:
+    def test_csv_round_trip(self):
+        config = CsvImportConfig(
+            asset_name="a",
+            time_column=CsvTimeColumn(column=1, format=TimeFormat.ABSOLUTE_RFC3339),
+            data_columns=[
+                CsvDataColumn(
+                    column=2, name="state", data_type=ChannelDataType.ENUM, enum_types=ENUMS
+                )
+            ],
+        )
+        proto = config._to_proto()
+        assert _enum_dict(proto.data_columns[2]) == ENUMS
+        assert CsvImportConfig._from_proto(proto)["state"].enum_types == ENUMS
+
+    def test_parquet_flat_dataset_round_trip(self):
+        config = ParquetFlatDatasetImportConfig(
+            asset_name="a",
+            time_column=ParquetTimeColumn(path="ts", format=TimeFormat.ABSOLUTE_UNIX_NANOSECONDS),
+            data_columns=[
+                ParquetDataColumn(
+                    path="state", name="state", data_type=ChannelDataType.ENUM, enum_types=ENUMS
+                )
+            ],
+        )
+        proto = config._to_proto()
+        assert _enum_dict(proto.flat_dataset.data_columns[0].channel_config) == ENUMS
+        round_tripped = ParquetFlatDatasetImportConfig._from_proto(proto)
+        assert round_tripped["state"].enum_types == ENUMS
+
+    def test_parquet_single_channel_per_row_round_trip(self):
+        config = ParquetSingleChannelPerRowImportConfig(
+            asset_name="a",
+            time_column=ParquetTimeColumn(path="ts", format=TimeFormat.ABSOLUTE_UNIX_NANOSECONDS),
+            single_channel=ParquetSingleChannelConfig(
+                data_path="value", name="state", data_type=ChannelDataType.ENUM, enum_types=ENUMS
+            ),
+        )
+        proto = config._to_proto()
+        assert _enum_dict(proto.single_channel_per_row.single_channel.channel) == ENUMS
+        round_tripped = ParquetSingleChannelPerRowImportConfig._from_proto(proto)
+        assert round_tripped.single_channel is not None
+        assert round_tripped.single_channel.enum_types == ENUMS
+
+    def test_tdms_round_trip(self):
+        config = TdmsImportConfig(
+            asset_name="a",
+            data=[
+                TdmsDataColumn(
+                    group_name="g",
+                    channel_name="state",
+                    name="state",
+                    data_type=ChannelDataType.ENUM,
+                    enum_types=ENUMS,
+                )
+            ],
+        )
+        proto = config._to_proto()
+        assert _enum_dict(proto.data[0].channel_config) == ENUMS
+        assert TdmsImportConfig._from_proto(proto)["state"].enum_types == ENUMS
+
+    def test_hdf5_to_proto(self):
+        config = Hdf5ImportConfig(
+            asset_name="a",
+            time_format=TimeFormat.ABSOLUTE_UNIX_NANOSECONDS,
+            data=[
+                Hdf5DataColumn(
+                    time_dataset="/time",
+                    value_dataset="/state",
+                    name="state",
+                    data_type=ChannelDataType.ENUM,
+                    enum_types=ENUMS,
+                )
+            ],
+        )
+        proto = config._to_proto()
+        assert _enum_dict(proto.data[0].channel_config) == ENUMS
+
+    def test_ulog_round_trip(self):
+        config = UlogImportConfig(
+            asset_name="a",
+            data=[
+                UlogDataColumn(
+                    message_name="vehicle_status",
+                    field_name="arming_state",
+                    data_type=ChannelDataType.ENUM,
+                    enum_types=ENUMS,
+                )
+            ],
+        )
+        proto = config._to_proto()
+        assert _enum_dict(proto.data[0].channel_config) == ENUMS
+        round_tripped = UlogImportConfig._from_proto(proto)
+        assert round_tripped["vehicle_status_0.arming_state"].enum_types == ENUMS
+
+    def test_enum_types_require_enum_data_type(self):
+        with pytest.raises(ValueError, match="ENUM"):
+            CsvDataColumn(
+                column=2, name="state", data_type=ChannelDataType.DOUBLE, enum_types=ENUMS
+            )
+
+    def test_no_enum_types_from_proto_is_none(self, csv_config):
+        round_tripped = CsvImportConfig._from_proto(csv_config._to_proto())
+        assert round_tripped["cpu_util"].enum_types is None
