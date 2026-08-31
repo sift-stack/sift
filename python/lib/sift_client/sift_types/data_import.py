@@ -156,11 +156,14 @@ class DataColumnBase(BaseModel, ABC):
 
     @model_validator(mode="after")
     def _check_enum_types(self) -> DataColumnBase:
-        if self.enum_types and self.data_type != ChannelDataType.ENUM:
-            raise ValueError(
-                f"'enum_types' requires data_type ChannelDataType.ENUM "
-                f"({self.name} is {self.data_type.name})."
-            )
+        if self.enum_types:
+            if self.data_type != ChannelDataType.ENUM:
+                raise ValueError(
+                    f"'enum_types' requires data_type ChannelDataType.ENUM "
+                    f"({self.name} is {self.data_type.name})."
+                )
+            if len(set(self.enum_types.values())) != len(self.enum_types):
+                raise ValueError(f"'enum_types' contains duplicate keys ({self.name}).")
         return self
 
     def _channel_config_proto(self) -> ChannelConfigProto:

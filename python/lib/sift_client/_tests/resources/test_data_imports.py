@@ -1071,6 +1071,15 @@ class TestEnumTypes:
                 column=2, name="state", data_type=ChannelDataType.DOUBLE, enum_types=ENUMS
             )
 
+    def test_enum_types_reject_duplicate_keys(self):
+        with pytest.raises(ValueError, match="[Dd]uplicate"):
+            CsvDataColumn(
+                column=2,
+                name="state",
+                data_type=ChannelDataType.ENUM,
+                enum_types={"IDLE": 0, "ARMED": 0},
+            )
+
     def test_no_enum_types_from_proto_is_none(self, csv_config):
         round_tripped = CsvImportConfig._from_proto(csv_config._to_proto())
         assert round_tripped["cpu_util"].enum_types is None
