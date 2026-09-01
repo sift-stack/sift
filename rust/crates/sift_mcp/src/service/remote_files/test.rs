@@ -118,7 +118,10 @@ fn mime_type_comes_from_the_extension_with_a_binary_fallback() {
     assert_eq!(mime_type_for("export.csv"), "text/csv");
     assert_eq!(mime_type_for("plot.png"), "image/png");
     assert_eq!(mime_type_for("analysis.py"), "text/plain");
-    assert_eq!(mime_type_for("data.parquet"), "application/vnd.apache.parquet");
+    assert_eq!(
+        mime_type_for("data.parquet"),
+        "application/vnd.apache.parquet"
+    );
     assert_eq!(mime_type_for("frames.sift"), "application/octet-stream");
     assert_eq!(mime_type_for("no_extension"), "application/octet-stream");
 }
