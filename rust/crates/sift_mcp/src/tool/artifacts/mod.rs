@@ -329,8 +329,13 @@ impl SiftMcpServer {
             .await
             .map_err(from_anyhow)?;
 
-        let content_note = if uploaded {
+        // The refresh and download-link steps after an upload are best-effort, so
+        // say only what the returned artifact actually carries.
+        let content_note = if uploaded && artifact.download_url.is_some() {
             " Its file content was uploaded and the user can preview and download it."
+        } else if uploaded {
+            " Its file content was uploaded, but the refreshed artifact or its download link \
+             could not be fetched; call `download_artifact` for the link."
         } else {
             " It has no file content; the user has nothing to preview or download."
         };

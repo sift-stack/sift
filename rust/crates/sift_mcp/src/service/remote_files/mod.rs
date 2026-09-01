@@ -12,6 +12,10 @@ const CLIENT_NAME: &str = "sift_mcp";
 pub const MAX_UPLOAD_BYTES: u64 = 1 << 30;
 /// Matches the server's file-name length cap on remote files.
 const MAX_FILE_NAME_BYTES: usize = 255;
+/// Sent when the file extension maps to no known mime type. The server stores
+/// whatever the part declares, and the UI needs a non-empty type to decide
+/// how to present the file.
+const FALLBACK_MIME: &str = "application/octet-stream";
 /// Uploads stream from disk and can be large, so the request timeout is far
 /// looser than the interactive-call default.
 const UPLOAD_TIMEOUT: Duration = Duration::from_secs(10 * 60);
@@ -53,8 +57,9 @@ impl RemoteFileUploader {
     }
 
     /// Streams one local file into remote_files as the bytes of an artifact
-    /// version. The server derives the mime type from the file extension and
-    /// binds the row to the version in the same transaction as the upload.
+    /// version. The part declares a mime type derived from the file extension
+    /// (the server's own extension table is small and misses `.md`, `.py`,
+    /// `.parquet`, ...), and the server binds the row to the version.
     pub async fn upload_artifact_version_file(
         &self,
         organization_id: &str,
@@ -72,8 +77,11 @@ impl RemoteFileUploader {
             .with_context(|| format!("failed to stat `{}`", path.display()))?
             .len();
 
+        let mime_type = mime_type_for(&file_name);
         let part = reqwest::multipart::Part::stream_with_length(reqwest::Body::from(file), size)
-            .file_name(file_name);
+            .file_name(file_name)
+            .mime_str(&mime_type)
+            .with_context(|| format!("invalid mime type `{mime_type}`"))?;
         let form = reqwest::multipart::Form::new()
             .text("organizationId", organization_id.to_string())
             .text("entityId", artifact_version_id.to_string())
@@ -99,6 +107,15 @@ impl RemoteFileUploader {
         }
         Ok(())
     }
+}
+
+/// Mime type to declare for a file name, from its extension. Unknown or
+/// missing extensions get [`FALLBACK_MIME`] rather than an empty type.
+pub fn mime_type_for(file_name: &str) -> String {
+    mime_guess::from_path(file_name)
+        .first_raw()
+        .unwrap_or(FALLBACK_MIME)
+        .to_owned()
 }
 
 /// Checks the path points at a regular, non-empty-named, size-capped file and

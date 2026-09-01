@@ -2,7 +2,7 @@ use std::io::Write;
 
 use tempdir::TempDir;
 
-use super::{RemoteFileUploader, RestConfig};
+use super::{RemoteFileUploader, RestConfig, mime_type_for};
 use crate::client_event::start_http_server;
 
 fn write_file(dir: &TempDir, name: &str, contents: &[u8]) -> std::path::PathBuf {
@@ -51,6 +51,13 @@ async fn uploads_the_file_as_one_multipart_request() {
     assert!(body.contains("name=\"entityType\""));
     assert!(body.contains("artifact_versions"));
     assert!(body.contains("name=\"file\"; filename=\"report.md\""));
+    // The server's own extension table does not know `.md`, so the part must
+    // declare the type itself.
+    assert!(
+        body.to_ascii_lowercase()
+            .contains("content-type: text/markdown"),
+        "{body}"
+    );
     assert!(body.contains("# Battery Report"));
 }
 
@@ -103,4 +110,15 @@ async fn rejects_missing_empty_and_directory_paths() {
         .await
         .unwrap_err();
     assert!(format!("{error:#}").contains("not a regular file"));
+}
+
+#[test]
+fn mime_type_comes_from_the_extension_with_a_binary_fallback() {
+    assert_eq!(mime_type_for("report.md"), "text/markdown");
+    assert_eq!(mime_type_for("export.csv"), "text/csv");
+    assert_eq!(mime_type_for("plot.png"), "image/png");
+    assert_eq!(mime_type_for("analysis.py"), "text/plain");
+    assert_eq!(mime_type_for("data.parquet"), "application/vnd.apache.parquet");
+    assert_eq!(mime_type_for("frames.sift"), "application/octet-stream");
+    assert_eq!(mime_type_for("no_extension"), "application/octet-stream");
 }

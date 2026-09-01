@@ -530,3 +530,66 @@ async fn create_artifact_names_the_created_artifact_when_the_upload_fails() {
         "{message}"
     );
 }
+
+#[tokio::test]
+async fn create_artifact_with_file_path_says_so_when_the_download_link_is_missing() {
+    use std::io::Write as _;
+
+    use crate::client_event::start_http_server;
+    use crate::service::remote_files::{RemoteFileUploader, RestConfig};
+
+    let dir = tempdir::TempDir::new("artifact-tool-upload-nolink").unwrap();
+    let path = dir.path().join("report.md");
+    std::fs::File::create(&path)
+        .unwrap()
+        .write_all(b"# Battery Report\n")
+        .unwrap();
+
+    let (rest_uri, rest_server) = start_http_server(
+        b"HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: 2\r\nconnection: close\r\n\r\n{}"
+            .to_vec(),
+    )
+    .await;
+
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_create_artifact().returning(|_| {
+        Ok(Response::new(CreateArtifactResponse {
+            artifact: Some(sample_artifact()),
+        }))
+    });
+    // The post-upload refresh fails, so the response has no file fields or link.
+    mock.expect_get_artifact()
+        .returning(|_| Err(tonic::Status::not_found("gone")));
+
+    let (server, _h) = server_with_mocks(mock, MockRemoteFileServiceImpl::new(), true, true).await;
+    let server = server.with_artifact_uploader(RemoteFileUploader::new(
+        RestConfig::new(rest_uri, "test-key".into()),
+        "1.2.3",
+    ));
+
+    let resp = server
+        .create_artifact(Parameters(CreateArtifactParams {
+            title: Some("report".into()),
+            summary: None,
+            conversation_id: None,
+            artifact_id: None,
+            authoring_kind: Some("agent".into()),
+            file_path: Some(path.to_string_lossy().into_owned()),
+        }))
+        .await
+        .expect("upload succeeded even though the refresh failed");
+    rest_server.await.unwrap();
+
+    let artifact = structured_field(resp.clone(), "artifact");
+    assert!(artifact.get("download_url").is_none());
+    let next_step = structured_field(resp, "next_step");
+    let next_step = next_step.as_str().unwrap();
+    assert!(
+        next_step.contains("call `download_artifact`"),
+        "{next_step}"
+    );
+    assert!(
+        !next_step.contains("can preview and download"),
+        "{next_step}"
+    );
+}
