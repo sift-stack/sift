@@ -1071,6 +1071,10 @@ class TestEnumTypes:
                 column=2, name="state", data_type=ChannelDataType.DOUBLE, enum_types=ENUMS
             )
 
+    def test_enum_data_type_requires_enum_types(self):
+        with pytest.raises(ValueError, match="requires 'enum_types'"):
+            CsvDataColumn(column=2, name="state", data_type=ChannelDataType.ENUM)
+
     def test_enum_types_reject_duplicate_keys(self):
         with pytest.raises(ValueError, match="[Dd]uplicate"):
             CsvDataColumn(
