@@ -937,16 +937,26 @@ pub enum OutputFormats {
 }
 
 #[derive(clap::Args)]
-pub struct GetAssetArgs {
+pub struct GetArgs {
     /// Filter option for filtering search with CEL expression
     #[arg(long)]
     pub filter: Option<String>,
 
     /// Caps returned results to set number
-    #[arg(long, default_value = "50")]
-    pub limit: Option<u32>,
+    #[arg(long, default_value_t = 50)]
+    pub limit: u32,
+
+    /// Orders results as a comma-separated list of "FIELD_NAME[ desc]"
+    #[arg(long, default_value = "modified_date desc")]
+    pub order_by: String,
 
     /// Determines the output format
     #[arg(long, value_enum)]
     pub output_format: Option<OutputFormats>,
+}
+
+#[derive(clap::Args)]
+pub struct GetAssetArgs {
+    #[command(flatten)]
+    pub common: GetArgs,
 }
