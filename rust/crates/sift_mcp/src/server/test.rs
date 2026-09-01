@@ -393,6 +393,15 @@ fn modern_request(id: u64, method: &str) -> Value {
     })
 }
 
+/// A pre-2026 list result: a plain item array with none of the 2026 result
+/// envelope fields.
+fn assert_legacy_list_result<'a>(response: &'a Value, item_key: &str) -> &'a [Value] {
+    assert!(response["result"].get("resultType").is_none(), "{response}");
+    assert!(response["result"].get("ttlMs").is_none(), "{response}");
+    assert!(response["result"].get("cacheScope").is_none(), "{response}");
+    response["result"][item_key].as_array().unwrap()
+}
+
 fn assert_modern_list_result<'a>(response: &'a Value, item_key: &str) -> &'a [Value] {
     assert_eq!(response["result"]["resultType"], "complete");
     assert_eq!(response["result"]["ttlMs"], 0);
@@ -739,8 +748,12 @@ async fn disabled_update_check_is_not_advertised() {
     finish(reader, writer, server).await;
 }
 
+/// `2026-07-28` has no `initialize` handshake, so rmcp (3.2.0+) answers a
+/// client that names it over `initialize` with the newest legacy version and
+/// serves the session in that shape. Stateless 2026 clients carry the version
+/// in per-request `_meta` instead; see the `stateless_2026_*` tests.
 #[tokio::test]
-async fn claude_legacy_handshake_gets_complete_2026_list_results() {
+async fn claude_legacy_handshake_naming_2026_is_negotiated_down() {
     let current = UpdateCheck::Current {
         current_version: "0.4.0".to_string(),
         latest_version: "0.4.0".to_string(),
@@ -750,7 +763,7 @@ async fn claude_legacy_handshake_gets_complete_2026_list_results() {
             .await;
 
     let initialize = read_json(&mut reader).await;
-    assert_eq!(initialize["result"]["protocolVersion"], "2026-07-28");
+    assert_eq!(initialize["result"]["protocolVersion"], "2025-11-25");
 
     writer
         .write_all(b"{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}\n")
@@ -761,7 +774,7 @@ async fn claude_legacy_handshake_gets_complete_2026_list_results() {
         .await
         .unwrap();
     let tools = read_json(&mut reader).await;
-    let tools = assert_modern_list_result(&tools, "tools");
+    let tools = assert_legacy_list_result(&tools, "tools");
     assert!(tools.iter().any(|tool| tool["name"] == "list_assets"));
     assert!(tools.iter().any(|tool| tool["name"] == "check_for_updates"));
 
@@ -770,7 +783,7 @@ async fn claude_legacy_handshake_gets_complete_2026_list_results() {
         .await
         .unwrap();
     let prompts = read_json(&mut reader).await;
-    let prompts = assert_modern_list_result(&prompts, "prompts");
+    let prompts = assert_legacy_list_result(&prompts, "prompts");
     assert!(
         prompts
             .iter()

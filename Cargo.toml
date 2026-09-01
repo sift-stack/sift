@@ -66,7 +66,7 @@ pyo3-async-runtimes = { version = "0.28", features = ["tokio-runtime"] }
 pyo3-stub-gen = "0.10"
 rand = "0.10"
 reqwest = "0.13"
-rmcp = "3.1.2"
+rmcp = "3.2.0"
 semver = "1.0"
 serde = "^1.0"
 serde_json = "^1.0"
