@@ -16,10 +16,12 @@ from urllib.parse import urlparse
 
 from sift_client._internal.grpc_transport.transport import (
     DEFAULT_REQUEST_TIMEOUT_SECONDS,
-    MAX_DECODING_MESSAGE_SIZE,
     SiftChannelConfig,
     use_sift_async_channel,
 )
+
+MAX_DECODING_MESSAGE_SIZE = 50 * 1024 * 1024
+"""Largest gRPC message the client will accept or send, in bytes (50 MiB)."""
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -64,9 +66,9 @@ class GrpcConfig:
             request_timeout: Default deadline in seconds applied to unary RPCs that don't set
                 their own. Defaults to 60s. Set to None to disable the default deadline.
             max_receive_message_length: Maximum gRPC message size the client will accept (bytes).
-                Defaults to :data:`~sift_client._internal.grpc_transport.transport.MAX_DECODING_MESSAGE_SIZE`.
+                Defaults to [MAX_DECODING_MESSAGE_SIZE][].
             max_send_message_length: Maximum gRPC message size the client will send (bytes).
-                Defaults to :data:`~sift_client._internal.grpc_transport.transport.MAX_DECODING_MESSAGE_SIZE`.
+                Defaults to [MAX_DECODING_MESSAGE_SIZE][].
         """
         parsed_url = urlparse(url)
         normalized_url = url
