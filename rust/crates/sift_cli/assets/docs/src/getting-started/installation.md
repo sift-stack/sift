@@ -23,15 +23,14 @@ irm https://api.siftstack.com/install/sift-cli.ps1 | iex
 
 The installer places the `sift-cli` binary on your `PATH`.
 
-For a version-pinned install, replace `<version>` with a stable release
-version:
+To install a specific version, append the version number without a `v` prefix:
 
 ```sh
-curl -fsSL https://api.siftstack.com/install/sift-cli/<version> | sh
+curl -fsSL https://api.siftstack.com/install/sift-cli/0.5.0 | sh
 ```
 
 ```powershell
-irm https://api.siftstack.com/install/sift-cli.ps1/<version> | iex
+irm https://api.siftstack.com/install/sift-cli.ps1/0.5.0 | iex
 ```
 
 ## Build from source
