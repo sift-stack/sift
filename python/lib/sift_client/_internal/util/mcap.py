@@ -109,12 +109,12 @@ def parse_schema_defs(schema: mcap_records.Schema):
     return root, msgdefs
 
 
-def _is_variable_array(ftype) -> bool:
+def is_variable_array(ftype) -> bool:
     """Unbounded and bounded ([<=N]) arrays decode with a dynamic length."""
     return ftype.is_array and (ftype.array_size is None or ftype.is_upper_bound)
 
 
-def _check_primitive_supported(type_name: str, label: str) -> None:
+def check_primitive_supported(type_name: str, label: str) -> None:
     if type_name == "wstring":
         raise UnsupportedTopicError(
             f"field '{label}' uses wstring, which the decoder does not implement"
@@ -123,7 +123,7 @@ def _check_primitive_supported(type_name: str, label: str) -> None:
         raise UnsupportedTopicError(f"field '{label}' has unsupported type '{type_name}'")
 
 
-def _resolve_or_raise(msgdefs: dict, ftype, label: str):
+def resolve_or_raise(msgdefs: dict, ftype, label: str):
     nested = msgdefs.get(f"{ftype.pkg_name}/{ftype.type}")
     if nested is None:
         raise UnsupportedTopicError(
@@ -132,7 +132,7 @@ def _resolve_or_raise(msgdefs: dict, ftype, label: str):
     return nested
 
 
-def _check_ftype_decodable(
+def check_ftype_decodable(
     msgdefs: dict, ftype, label: str, visited: frozenset = frozenset(), depth: int = 0
 ) -> None:
     """Raise UnsupportedTopicError if the field type cannot be decoded.
@@ -142,14 +142,14 @@ def _check_ftype_decodable(
     subtree makes the whole topic unsupported.
     """
     if ftype.is_primitive_type():
-        _check_primitive_supported(ftype.type, label)
+        check_primitive_supported(ftype.type, label)
         return
     if f"{ftype.pkg_name}/{ftype.type}" in TIME_MESSAGE_TYPES:
         return
-    _check_subtree_decodable(msgdefs, _resolve_or_raise(msgdefs, ftype, label), visited, depth)
+    check_subtree_decodable(msgdefs, resolve_or_raise(msgdefs, ftype, label), visited, depth)
 
 
-def _check_subtree_decodable(msgdefs: dict, msgdef, visited: frozenset, depth: int) -> None:
+def check_subtree_decodable(msgdefs: dict, msgdef, visited: frozenset, depth: int) -> None:
     if depth > MAX_FIELD_DEPTH:
         raise UnsupportedTopicError(f"its schema nests deeper than {MAX_FIELD_DEPTH} levels")
     name = f"{msgdef.base_type.pkg_name}/{msgdef.msg_name}"
@@ -157,7 +157,7 @@ def _check_subtree_decodable(msgdefs: dict, msgdef, visited: frozenset, depth: i
         return
     visited = visited | {name}
     for field in msgdef.fields:
-        _check_ftype_decodable(msgdefs, field.type, field.name, visited, depth + 1)
+        check_ftype_decodable(msgdefs, field.type, field.name, visited, depth + 1)
 
 
 def expand_message_fields(root_msgdef, msgdefs: dict) -> list[LeafField]:
@@ -175,16 +175,16 @@ def expand_message_fields(root_msgdef, msgdefs: dict) -> list[LeafField]:
         for field in msgdef.fields:
             ftype = field.type
             path = f"{prefix}{field.name}"
-            if _is_variable_array(ftype):
+            if is_variable_array(ftype):
                 # The leaf imports whole, but its elements are still
                 # decoded, so check the element type.
-                _check_ftype_decodable(msgdefs, ftype, path)
+                check_ftype_decodable(msgdefs, ftype, path)
                 leaves.append(LeafField(path, "complex", None))
                 continue
 
             indexes = [f"[{i}]" for i in range(ftype.array_size)] if ftype.is_array else [""]
             if ftype.is_primitive_type():
-                _check_primitive_supported(ftype.type, path)
+                check_primitive_supported(ftype.type, path)
                 leaves.extend(
                     LeafField(f"{path}{index}", "scalar", ftype.type) for index in indexes
                 )
@@ -193,7 +193,7 @@ def expand_message_fields(root_msgdef, msgdefs: dict) -> list[LeafField]:
                     LeafField(f"{path}{index}", "scalar", ROS2_TIME_TYPE) for index in indexes
                 )
             else:
-                nested = _resolve_or_raise(msgdefs, ftype, path)
+                nested = resolve_or_raise(msgdefs, ftype, path)
                 for index in indexes:
                     walk(f"{path}{index}.", nested, depth + 1)
 
@@ -201,7 +201,7 @@ def expand_message_fields(root_msgdef, msgdefs: dict) -> list[LeafField]:
     return leaves
 
 
-def _read_schemas_and_channels(
+def read_schemas_and_channels(
     path: Path,
 ) -> tuple[dict[int, mcap_records.Schema], list[mcap_records.Channel], list[str]]:
     """Read schema and channel records without decoding message payloads.
@@ -233,7 +233,8 @@ def _read_schemas_and_channels(
             except StopIteration:
                 return
             except Exception as e:
-                # Truncation errors often stringify empty, so always say something.
+                # Damaged files raise McapError, struct.error, decompression and
+                # decode errors. EndOfFile stringifies empty, so name the type.
                 detail = str(e) or type(e).__name__
                 message = (
                     "stopped reading at an unparseable record; the detected "
@@ -264,6 +265,8 @@ def _read_schemas_and_channels(
         try:
             summary = make_reader(file).get_summary()
         except Exception:
+            # A damaged footer or summary raises McapError, struct.error or
+            # UnicodeDecodeError; fall back to a linear scan either way.
             summary = None
 
         if summary is not None:
@@ -427,7 +430,7 @@ def detect_mcap_config(file_path: str | Path, asset_name: str = "") -> McapImpor
             compression, or two channels share a name.
     """
     path = Path(file_path)
-    schemas, channels, parse_warnings = _read_schemas_and_channels(path)
+    schemas, channels, parse_warnings = read_schemas_and_channels(path)
     topics = detect_mcap_topics(schemas, channels, parse_warnings)
     # Emitted before the names are built so a name clash does not discard
     # what the scan found.
