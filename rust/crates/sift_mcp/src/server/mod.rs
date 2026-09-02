@@ -30,6 +30,10 @@ const UPDATE_CHECK_INSTRUCTIONS: &str = concat!(
     "`install_command` to the user. If the check is unavailable, continue with ",
     "the requested Sift task. "
 );
+const UPDATE_AVAILABLE_INSTRUCTIONS: &str = concat!(
+    "Tell the user about this update before doing any other Sift work. ",
+    "Repeat the notice in every session until the installed version is current. "
+);
 pub(crate) const BASE_INSTRUCTIONS: &str = concat!(
     "Use Sift tools for telemetry discovery, analysis, ",
     "and ingestion. Run `sift-cli agent doctor` for read-only integration ",
@@ -129,7 +133,9 @@ impl ServerHandler for SiftMcpServer {
                 let update_check = receiver.borrow();
                 let base = format!("{UPDATE_CHECK_INSTRUCTIONS}{BASE_INSTRUCTIONS}");
                 match update_check.update_message() {
-                    Some(message) => format!("{message}\n\n{base}"),
+                    Some(message) => {
+                        format!("{message}\n\n{UPDATE_AVAILABLE_INSTRUCTIONS}{base}")
+                    }
                     None => base,
                 }
             }

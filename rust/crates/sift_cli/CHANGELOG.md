@@ -61,6 +61,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   reporting, and its new `is_archived` parameter archives or unarchives
   annotations.
 - Refreshed the bundled Sift agent skill to cover the expanded MCP tool surface.
+- `sift-cli` update messages now use the stable installers at
+  `api.siftstack.com/install/sift-cli` instead of version-specific GitHub
+  release URLs.
+- MCP startup now waits for its initial release check and tells agents to repeat
+  an available update notice in every session.
 
 ## [v0.4.4] - August 24, 2026
 

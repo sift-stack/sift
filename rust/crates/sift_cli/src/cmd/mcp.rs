@@ -40,7 +40,11 @@ pub async fn run(ctx: Context, args: McpArgs, app_uri: String) -> Result<ExitCod
         "starting Sift MCP server"
     );
 
-    let update_check = select_update_check(args.disable_update_check, start_update_check);
+    let update_check = wait_for_initial_update_check(select_update_check(
+        args.disable_update_check,
+        start_update_check,
+    ))
+    .await;
     let cli_version = env!("CARGO_PKG_VERSION").to_string();
     let client_event_config = select_client_event_config(args.disable_nonessential_traffic, || {
         sift_mcp::ClientEventConfig::new(ctx.rest_uri.clone(), ctx.api_key.clone())
@@ -96,6 +100,16 @@ where
     F: FnOnce() -> sift_mcp::UpdateCheckReceiver,
 {
     (!disable_update_check).then(start)
+}
+
+async fn wait_for_initial_update_check(
+    update_check: Option<sift_mcp::UpdateCheckReceiver>,
+) -> Option<sift_mcp::UpdateCheckReceiver> {
+    let mut receiver = update_check?;
+    if matches!(&*receiver.borrow(), sift_mcp::UpdateCheck::Checking { .. }) {
+        let _ = receiver.changed().await;
+    }
+    Some(receiver)
 }
 
 fn select_client_event_config<F>(
@@ -171,7 +185,7 @@ fn update_check_from_versions(current: &Version, latest: &Version) -> sift_mcp::
         Some(message) => sift_mcp::UpdateCheck::UpdateAvailable {
             current_version: current.to_string(),
             latest_version: latest.to_string(),
-            install_command: version::install_command(latest),
+            install_command: version::install_command(),
             message,
         },
         None => sift_mcp::UpdateCheck::Current {
@@ -199,7 +213,10 @@ mod tests {
     use semver::Version;
     use tokio::sync::watch;
 
-    use super::{select_client_event_config, select_update_check, update_check_from_versions};
+    use super::{
+        select_client_event_config, select_update_check, update_check_from_versions,
+        wait_for_initial_update_check,
+    };
 
     #[test]
     fn disable_update_check_flag_is_accepted() {
@@ -226,6 +243,31 @@ mod tests {
 
         assert!(update_check.is_none());
         assert!(!called.get());
+    }
+
+    #[tokio::test]
+    async fn initial_update_check_finishes_before_the_server_starts() {
+        let (sender, receiver) = watch::channel(sift_mcp::UpdateCheck::Checking {
+            current_version: "0.3.0".to_string(),
+        });
+        tokio::spawn(async move {
+            tokio::task::yield_now().await;
+            sender
+                .send(sift_mcp::UpdateCheck::UpdateAvailable {
+                    current_version: "0.3.0".to_string(),
+                    latest_version: "0.4.0".to_string(),
+                    install_command: "install".to_string(),
+                    message: "update available".to_string(),
+                })
+                .unwrap();
+        });
+
+        let update_check = wait_for_initial_update_check(Some(receiver)).await.unwrap();
+
+        assert!(matches!(
+            &*update_check.borrow(),
+            sift_mcp::UpdateCheck::UpdateAvailable { .. }
+        ));
     }
 
     #[test]
@@ -286,7 +328,7 @@ mod tests {
                 assert_eq!(current_version, "0.3.0");
                 assert_eq!(latest_version, "0.4.0");
                 assert!(message.ends_with(&format!("  {install_command}")));
-                assert!(install_command.contains("sift_cli-v0.4.0/sift_cli-installer"));
+                assert!(install_command.contains("https://api.siftstack.com/install/sift-cli"));
             }
             update_check => panic!("expected an available update, got {update_check:?}"),
         }

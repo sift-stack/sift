@@ -254,7 +254,7 @@ pub async fn update(profile: Option<String>, args: AgentUpdateArgs) -> Result<Ex
         Ok(Some(latest)) if latest > current => {
             println!("sift-cli {current} is outdated; the current agent bundle was not installed.");
             println!("Update the CLI and its embedded bundle with:");
-            println!("\n  {}\n", version::install_command(&latest));
+            println!("\n  {}\n", version::install_command());
             println!("Then run `sift-cli agent update` again.");
             return Ok(ExitCode::FAILURE);
         }
@@ -1011,7 +1011,7 @@ async fn check_release() -> bool {
                 "{} sift-cli {current} is outdated; latest is {latest}",
                 error_status()
             );
-            println!("Update with:\n\n  {}\n", version::install_command(&latest));
+            println!("Update with:\n\n  {}\n", version::install_command());
             true
         }
         Ok(Some(_)) => {
