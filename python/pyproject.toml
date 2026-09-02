@@ -63,6 +63,8 @@ import-test-result-log = "sift_client.scripts.import_test_result_log:main"
 all = [
     'cffi~=1.14',
     'h5py~=3.11',
+    'mcap-ros2-support~=0.5.7',
+    'mcap~=1.4',
     'npTDMS~=1.9',
     'polars~=1.8',
     'pyOpenSSL<24.0.0',
@@ -98,6 +100,8 @@ dev-all = [
     'cffi~=1.14',
     'grpcio-testing~=1.13',
     'h5py~=3.11',
+    'mcap-ros2-support~=0.5.7',
+    'mcap~=1.4',
     'mypy==1.10.0',
     'npTDMS~=1.9',
     'pdoc==14.5.0',
@@ -149,6 +153,8 @@ docs-build = [
     "griffe-pydantic==1.3.1 ; python_version >= '3.10'",
     'grpcio-testing~=1.13',
     'h5py~=3.11',
+    'mcap-ros2-support~=0.5.7',
+    'mcap~=1.4',
     "mike==2.1.3 ; python_version >= '3.10'",
     "mkdocs-api-autonav==0.4.0 ; python_version >= '3.10'",
     "mkdocs-include-markdown-plugin==7.1.6 ; python_version >= '3.10'",
@@ -179,6 +185,8 @@ docs-build = [
 ]
 file-imports = [
     'h5py~=3.11',
+    'mcap-ros2-support~=0.5.7',
+    'mcap~=1.4',
     'npTDMS~=1.9',
     'polars~=1.8',
     'pyulog~=1.2.2',
@@ -187,6 +195,10 @@ file-imports = [
 hdf5 = [
     'h5py~=3.11',
     'polars~=1.8',
+]
+mcap = [
+    'mcap-ros2-support~=0.5.7',
+    'mcap~=1.4',
 ]
 openssl = [
     'cffi~=1.14',
@@ -251,6 +263,7 @@ rosbags = ["rosbags~=0.0 ; python_full_version >= '3.8.2'"]
 sift-stream = ["sift-stream-bindings==0.5.0"]
 hdf5 = ["h5py~=3.11", "polars~=1.8"]  # polars is only used by sift_py; remove once sift_py is fully deprecated
 ulog = ["pyulog~=1.2.2"]
+mcap = ["mcap~=1.4", "mcap-ros2-support~=0.5.7"]
 data-review = ["pyarrow>=17.0.0"]
 
 [tool.sift.extras.combine]
@@ -261,7 +274,7 @@ dev = ["development"]
 sift-stream-bindings = ["sift-stream"]
 
 # combinations
-file-imports = ["tdms", "rosbags", "hdf5", "ulog"]
+file-imports = ["tdms", "rosbags", "hdf5", "ulog", "mcap"]
 all = ["openssl", "sift-stream", "file-imports", "data-review"]
 
 dev-all = ["development", "all", "build"]
@@ -393,6 +406,13 @@ ignore_errors = true
 module = "alive_progress"
 follow_imports = "skip"
 ignore_errors = true
+
+# mcap's writer does `from .__init__ import __version__`, which makes mypy
+# discover mcap/__init__.py under two module names and abort. Only the MCAP
+# detection tests import the writer.
+[[tool.mypy.overrides]]
+module = "mcap.writer"
+follow_imports = "skip"
 
 [tool.setuptools.packages.find]
 where = ["lib"]

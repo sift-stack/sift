@@ -7,6 +7,26 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+#### MCAP imports
+
+`client.data_import` now supports MCAP (`.mcap`) files with ROS 2 (`ros2msg`/`cdr`) topics.
+
+```python
+job = client.data_import.import_from_path("recording.mcap", asset=my_asset)
+```
+
+Importing without a config ingests every supported channel. Topics that cannot be decoded fail the import unless `McapParseErrorPolicy.IGNORE_ERROR` is set.
+
+`detect_config` reads the file's channels locally without decoding messages, returning an `McapImportConfig` whose `data` holds one entry per field. Edit it to select, rename, or retype channels before importing.
+
+```python
+config = client.data_import.detect_config("recording.mcap")
+config.complex_types_import_mode = McapComplexTypesImportMode.STRING
+```
+
+Variable-cardinality fields (dynamic and bounded arrays) are typed `BYTES`. As with Parquet, `complex_types_import_mode` on the config decides what each becomes: Arrow IPC bytes, a JSON string under `<name>.json`, both (the default), or neither.
+
+Reading a file locally needs the new `mcap` extra (`pip install sift-stack-py[mcap]`), so both `detect_config` and importing without a config require it.
 #### List and get data imports
 
 New in `client.data_import`: `list_` and `get` (plus `find`), and a `run.data_imports` property.

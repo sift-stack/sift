@@ -1480,6 +1480,7 @@ version = "4.3.3"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.8.2' and python_full_version < '3.9'",
+    "python_full_version < '3.8.2'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a4/31/ec1259ca8ad11568abaf090a7da719616ca96b60d097ccc5799cd0ff599c/lz4-4.3.3.tar.gz", hash = "sha256:01fe674ef2889dbb9899d8a67361e0c4a2c833af5aeb37dd505727cf5d2a131e", size = 171509, upload-time = "2024-01-01T23:03:13.535Z" }
 wheels = [
@@ -1793,6 +1794,33 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/bd/c0/9f7c9a46090390368a4d7bcb76bb87a4a36c421e4c0792cdb53486ffac7a/matplotlib_inline-0.2.2.tar.gz", hash = "sha256:72f3fe8fce36b70d4a5b612f899090cd0401deddc4ea90e1572b9f4bfb058c79", size = 8150, upload-time = "2026-05-08T17:33:33.49Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/41/09/5b161152e2d90f7b87f781c2e1267494aef9c32498df793f73ad0a0a494a/matplotlib_inline-0.2.2-py3-none-any.whl", hash = "sha256:3c821cf1c209f59fb2d2d64abbf5b23b67bcb2210d663f9918dd851c6da1fcf6", size = 9534, upload-time = "2026-05-08T17:33:32.055Z" },
+]
+
+[[package]]
+name = "mcap"
+version = "1.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "lz4", version = "4.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
+    { name = "lz4", version = "4.4.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
+    { name = "zstandard", version = "0.23.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
+    { name = "zstandard", version = "0.25.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f8/d7/0f17e59733a71bd4d5b38afc8484531c2cd7648b08c79863ee95fc42b002/mcap-1.4.0.tar.gz", hash = "sha256:0528e2f86a61bfec73779e0628e6cf27af83d01d89e20b27d5ec9f0b556a63ac", size = 22155, upload-time = "2026-06-18T21:50:07.965Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/48/14/7e0b2a74b67e16e5f40ab78cc3e5aa4e7bdd55e0aec963d573edc07a15cd/mcap-1.4.0-py3-none-any.whl", hash = "sha256:0b48b1cc951b8d5aabd2599e60d410bae4f1be1819094f54117b7cbf6b3ee2e9", size = 20826, upload-time = "2026-06-18T21:50:06.704Z" },
+]
+
+[[package]]
+name = "mcap-ros2-support"
+version = "0.5.7"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "mcap" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/84/0d/f6da01d8e4b73861dba17fd2ebd9a78d2fd4fa582ad348cf18d16a79a7e1/mcap_ros2_support-0.5.7.tar.gz", hash = "sha256:8ddb67e452a6e2963664e29bc8868e61d7011b72feb2b62832ed444e27ca3ab8", size = 23295, upload-time = "2025-12-24T21:25:37.614Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/92/c5/8e8636099c180031436a011908a22216c25e6cb7790ba748212e203317c4/mcap_ros2_support-0.5.7-py3-none-any.whl", hash = "sha256:349f0e0f7af8ebeb516003e801ea5c5de5b4b65359ce4a17a8d98b25a9cea260", size = 22086, upload-time = "2025-12-24T21:25:36.425Z" },
 ]
 
 [[package]]
@@ -4486,6 +4514,8 @@ all = [
     { name = "h5py", version = "3.11.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "h5py", version = "3.14.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
     { name = "h5py", version = "3.16.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+    { name = "mcap" },
+    { name = "mcap-ros2-support" },
     { name = "nptdms" },
     { name = "polars", version = "1.8.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "polars", version = "1.36.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
@@ -4532,6 +4562,8 @@ dev-all = [
     { name = "h5py", version = "3.11.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "h5py", version = "3.14.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
     { name = "h5py", version = "3.16.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+    { name = "mcap" },
+    { name = "mcap-ros2-support" },
     { name = "mypy" },
     { name = "nptdms" },
     { name = "pdoc" },
@@ -4592,6 +4624,8 @@ docs-build = [
     { name = "h5py", version = "3.11.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "h5py", version = "3.14.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
     { name = "h5py", version = "3.16.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+    { name = "mcap" },
+    { name = "mcap-ros2-support" },
     { name = "mike", marker = "python_full_version >= '3.10'" },
     { name = "mkdocs", marker = "python_full_version >= '3.10'" },
     { name = "mkdocs-api-autonav", marker = "python_full_version >= '3.10'" },
@@ -4629,6 +4663,8 @@ file-imports = [
     { name = "h5py", version = "3.11.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "h5py", version = "3.14.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
     { name = "h5py", version = "3.16.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+    { name = "mcap" },
+    { name = "mcap-ros2-support" },
     { name = "nptdms" },
     { name = "polars", version = "1.8.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "polars", version = "1.36.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
@@ -4644,6 +4680,10 @@ hdf5 = [
     { name = "polars", version = "1.8.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "polars", version = "1.36.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
     { name = "polars", version = "1.40.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+]
+mcap = [
+    { name = "mcap" },
+    { name = "mcap-ros2-support" },
 ]
 openssl = [
     { name = "cffi" },
@@ -4693,6 +4733,16 @@ requires-dist = [
     { name = "h5py", marker = "extra == 'docs-build'", specifier = "~=3.11" },
     { name = "h5py", marker = "extra == 'file-imports'", specifier = "~=3.11" },
     { name = "h5py", marker = "extra == 'hdf5'", specifier = "~=3.11" },
+    { name = "mcap", marker = "extra == 'all'", specifier = "~=1.4" },
+    { name = "mcap", marker = "extra == 'dev-all'", specifier = "~=1.4" },
+    { name = "mcap", marker = "extra == 'docs-build'", specifier = "~=1.4" },
+    { name = "mcap", marker = "extra == 'file-imports'", specifier = "~=1.4" },
+    { name = "mcap", marker = "extra == 'mcap'", specifier = "~=1.4" },
+    { name = "mcap-ros2-support", marker = "extra == 'all'", specifier = "~=0.5.7" },
+    { name = "mcap-ros2-support", marker = "extra == 'dev-all'", specifier = "~=0.5.7" },
+    { name = "mcap-ros2-support", marker = "extra == 'docs-build'", specifier = "~=0.5.7" },
+    { name = "mcap-ros2-support", marker = "extra == 'file-imports'", specifier = "~=0.5.7" },
+    { name = "mcap-ros2-support", marker = "extra == 'mcap'", specifier = "~=0.5.7" },
     { name = "mike", marker = "python_full_version >= '3.10' and extra == 'docs'", specifier = "==2.1.3" },
     { name = "mike", marker = "python_full_version >= '3.10' and extra == 'docs-build'", specifier = "==2.1.3" },
     { name = "mkdocs", marker = "python_full_version >= '3.10' and extra == 'docs'", specifier = "==1.6.1" },
@@ -4807,7 +4857,7 @@ requires-dist = [
     { name = "types-requests", specifier = "~=2.25" },
     { name = "typing-extensions", specifier = "~=4.6" },
 ]
-provides-extras = ["all", "build", "data-review", "dev", "dev-all", "development", "docs", "docs-build", "file-imports", "hdf5", "openssl", "rosbags", "sift-stream", "sift-stream-bindings", "tdms", "ulog"]
+provides-extras = ["all", "build", "data-review", "dev", "dev-all", "development", "docs", "docs-build", "file-imports", "hdf5", "mcap", "openssl", "rosbags", "sift-stream", "sift-stream-bindings", "tdms", "ulog"]
 
 [[package]]
 name = "sift-stream-bindings"
@@ -5433,9 +5483,10 @@ version = "0.23.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.8.2' and python_full_version < '3.9'",
+    "python_full_version < '3.8.2'",
 ]
 dependencies = [
-    { name = "cffi", marker = "python_full_version >= '3.8.2' and python_full_version < '3.9' and platform_python_implementation == 'PyPy'" },
+    { name = "cffi", marker = "python_full_version < '3.9' and platform_python_implementation == 'PyPy'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ed/f6/2ac0287b442160a89d726b17a9184a4c615bb5237db763791a7fd16d9df1/zstandard-0.23.0.tar.gz", hash = "sha256:b2d8c62d08e7255f68f7a740bae85b3c9b8e5466baa9cbf7f57f1cde0ac6bc09", size = 681701, upload-time = "2024-07-15T00:18:06.141Z" }
 wheels = [
