@@ -16,6 +16,7 @@ from urllib.parse import urlparse
 
 from sift_client._internal.grpc_transport.transport import (
     DEFAULT_REQUEST_TIMEOUT_SECONDS,
+    MAX_DECODING_MESSAGE_SIZE,
     SiftChannelConfig,
     use_sift_async_channel,
 )
@@ -48,8 +49,8 @@ class GrpcConfig:
         cert_via_openssl: bool = False,
         metadata: dict[str, str] | None = None,
         request_timeout: float | None = DEFAULT_REQUEST_TIMEOUT_SECONDS,
-        max_receive_message_length: int = 50 * 1024 * 1024,
-        max_send_message_length: int = 50 * 1024 * 1024,
+        max_receive_message_length: int = MAX_DECODING_MESSAGE_SIZE,
+        max_send_message_length: int = MAX_DECODING_MESSAGE_SIZE,
     ):
         """Initialize the gRPC configuration.
 
