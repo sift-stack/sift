@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 # Configure logging
 logger = logging.getLogger(__name__)
 
-CHANNELS_DEFAULT_PAGE_SIZE = 10_000
+CHANNELS_DEFAULT_PAGE_SIZE = 100_000
 # TODO: There is a pagination issue API side when requesting multiple channels in single request.
 # If all data points for all channels in a single request don't fit into a single page, then
 # paging seems to omit all but a single channel. We can increase this batch size once that issue
