@@ -170,7 +170,18 @@ impl SiftMcpServer {
             Some(update_check),
             ClientEventReporter::default(),
             FeatureFlags::default(),
+            None,
         )
+    }
+
+    /// Test-only: route artifact file uploads at a mock REST endpoint.
+    #[cfg(test)]
+    pub fn with_artifact_uploader(
+        mut self,
+        uploader: crate::service::remote_files::RemoteFileUploader,
+    ) -> Self {
+        self.artifact_service = self.artifact_service.with_uploader(uploader);
+        self
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -183,6 +194,7 @@ impl SiftMcpServer {
         update_check: Option<UpdateCheckReceiver>,
         client_event_reporter: ClientEventReporter,
         feature_flags: FeatureFlags,
+        rest_config: Option<crate::service::remote_files::RestConfig>,
     ) -> Self {
         // Add more routers here as new tool groups are introduced, e.g.
         //   tool_router.merge(Self::ingestion_router())
@@ -217,7 +229,12 @@ impl SiftMcpServer {
         let retry_policy = RetryPolicy::default();
 
         let annotation_service = AnnotationService::new(channel.clone(), retry_policy.clone());
-        let artifact_service = ArtifactService::new(channel.clone(), retry_policy.clone());
+        let mut artifact_service = ArtifactService::new(channel.clone(), retry_policy.clone());
+        if let Some(rest_config) = rest_config {
+            artifact_service = artifact_service.with_uploader(
+                crate::service::remote_files::RemoteFileUploader::new(rest_config, &cli_version),
+            );
+        }
         let asset_service = AssetService::new(channel.clone(), retry_policy.clone());
         let calculated_channel_service =
             CalculatedChannelService::new(channel.clone(), retry_policy.clone());

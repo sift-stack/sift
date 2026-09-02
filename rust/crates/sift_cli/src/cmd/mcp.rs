@@ -58,6 +58,7 @@ pub async fn run(ctx: Context, args: McpArgs, app_uri: String) -> Result<ExitCod
             sift_mcp::FeatureFlags::default()
         });
 
+    let rest_config = sift_mcp::RestConfig::new(ctx.rest_uri.clone(), ctx.api_key.clone());
     let credentials = Credentials::Config {
         uri: ctx.grpc_uri,
         apikey: ctx.api_key,
@@ -72,6 +73,7 @@ pub async fn run(ctx: Context, args: McpArgs, app_uri: String) -> Result<ExitCod
         update_check,
         client_event_config,
         feature_flags,
+        Some(rest_config),
     )
     .await
     {

@@ -10,6 +10,7 @@ pub use client_event::ClientEventConfig;
 
 mod feature_flags;
 pub use feature_flags::FeatureFlags;
+pub use service::remote_files::RestConfig;
 
 mod server;
 use server::SiftMcpServer;
@@ -113,6 +114,7 @@ pub async fn run_with_update_check(
         update_check,
         None,
         FeatureFlags::default(),
+        None,
     )
     .await
 }
@@ -131,6 +133,7 @@ pub async fn run_with_client_events(
     update_check: Option<UpdateCheckReceiver>,
     client_event_config: Option<ClientEventConfig>,
     feature_flags: FeatureFlags,
+    rest_config: Option<RestConfig>,
 ) -> Result<()> {
     let client_event_reporter =
         client_event::ClientEventReporter::from_config(client_event_config, &cli_version);
@@ -145,6 +148,7 @@ pub async fn run_with_client_events(
             update_check,
             client_event_reporter,
             feature_flags,
+            rest_config,
         },
     )
     .await
@@ -158,6 +162,7 @@ struct RunConfig {
     update_check: Option<UpdateCheckReceiver>,
     client_event_reporter: client_event::ClientEventReporter,
     feature_flags: FeatureFlags,
+    rest_config: Option<RestConfig>,
 }
 
 async fn run_server(credentials: Credentials, use_tls: bool, config: RunConfig) -> Result<()> {
@@ -176,6 +181,7 @@ async fn run_server(credentials: Credentials, use_tls: bool, config: RunConfig) 
         config.update_check,
         config.client_event_reporter,
         config.feature_flags,
+        config.rest_config,
     )
     .serve(stdio())
     .await
