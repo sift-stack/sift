@@ -436,6 +436,7 @@ async fn initialize_prepends_a_cached_update_notice() {
 
     assert!(instructions.starts_with(&expected_message));
     assert!(instructions[..instructions.len().min(512)].contains(INSTALL_COMMAND));
+    assert!(instructions.contains("Repeat the notice in every session"));
     assert!(instructions.ends_with(EXPECTED_BASE_INSTRUCTIONS));
     assert!(instructions.len() < 2048);
 

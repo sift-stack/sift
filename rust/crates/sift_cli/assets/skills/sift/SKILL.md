@@ -93,9 +93,9 @@ exists.
 
 - **Start a Sift session.** If `check_for_updates` is available, call it once at
   the start of each session. Call it before any other Sift tool. If it reports
-  `update_available`, relay its
-  `message` and exact `install_command`. If it reports `unavailable`, continue
-  with the requested Sift task.
+  `update_available`, relay its `message` and exact `install_command`. Repeat
+  the notice even if an earlier session reported the same version. If it
+  reports `unavailable`, continue with the requested Sift task.
 - **Search a list.** Filter with a pattern rather than an exact match. Each
   tool's description names its own filterable fields. When the request is too
   vague to filter on, sample with a small `limit` and ask the user to narrow
