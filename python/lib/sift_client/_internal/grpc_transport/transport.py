@@ -34,7 +34,7 @@ SiftAsyncChannel: TypeAlias = grpc_aio.Channel
 DEFAULT_REQUEST_TIMEOUT_SECONDS = 60.0
 """Default per-call deadline applied to unary RPCs that don't set their own."""
 
-_MAX_DECODING_MESSAGE_SIZE = 50 * 1024 * 1024
+MAX_DECODING_MESSAGE_SIZE = 50 * 1024 * 1024
 """Largest gRPC response the client will decode, in bytes (50 MiB)."""
 
 
@@ -170,11 +170,11 @@ def _compute_channel_options(opts: SiftChannelConfig) -> list[tuple[str, Any]]:
         ("grpc.secondary_user_agent", _compute_user_agent()),
         (
             "grpc.max_receive_message_length",
-            opts.get("max_receive_message_length", _MAX_DECODING_MESSAGE_SIZE),
+            opts.get("max_receive_message_length", MAX_DECODING_MESSAGE_SIZE),
         ),
         (
             "grpc.max_send_message_length",
-            opts.get("max_send_message_length", _MAX_DECODING_MESSAGE_SIZE),
+            opts.get("max_send_message_length", MAX_DECODING_MESSAGE_SIZE),
         ),
     ]
 
