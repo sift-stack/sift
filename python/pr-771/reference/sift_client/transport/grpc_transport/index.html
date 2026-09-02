@@ -1877,8 +1877,8 @@ It just stores the channel and the stubs, without any additional functionality.<
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">metadata</span><span class="p">:</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="str">str</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">request_timeout</span><span class="p">:</span> <span class="n"><span title="float">float</span></span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n"><span title="sift_client._internal.grpc_transport.transport.DEFAULT_REQUEST_TIMEOUT_SECONDS">DEFAULT_REQUEST_TIMEOUT_SECONDS</span></span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">max_receive_message_length</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">50</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">max_send_message_length</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">50</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">max_receive_message_length</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="n"><span title="sift_client._internal.grpc_transport.transport.MAX_DECODING_MESSAGE_SIZE">MAX_DECODING_MESSAGE_SIZE</span></span><span class="p">,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">max_send_message_length</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="n"><span title="sift_client._internal.grpc_transport.transport.MAX_DECODING_MESSAGE_SIZE">MAX_DECODING_MESSAGE_SIZE</span></span><span class="p">,</span>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">)</span>
 </span></code></pre></div>
 
@@ -2040,7 +2040,7 @@ Defaults to 50 MiB to match the server-side ceiling.</p>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
-                      <code>50 * 1024 * 1024</code>
+                      <code><span title="sift_client._internal.grpc_transport.transport.MAX_DECODING_MESSAGE_SIZE">MAX_DECODING_MESSAGE_SIZE</span></code>
                   </span>
               </p>
             </td>
@@ -2061,7 +2061,7 @@ Defaults to 50 MiB to match the server-side ceiling.</p>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
-                      <code>50 * 1024 * 1024</code>
+                      <code><span title="sift_client._internal.grpc_transport.transport.MAX_DECODING_MESSAGE_SIZE">MAX_DECODING_MESSAGE_SIZE</span></code>
                   </span>
               </p>
             </td>
