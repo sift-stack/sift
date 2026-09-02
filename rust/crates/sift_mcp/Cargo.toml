@@ -23,6 +23,7 @@ tonic.workspace = true
 anyhow.workspace = true
 chrono.workspace = true
 clap = { workspace = true, features = ["cargo"] }
+futures.workspace = true
 pbjson-types.workspace = true
 percent-encoding.workspace = true
 prost.workspace = true
@@ -32,9 +33,6 @@ parquet.workspace = true
 polars = { workspace = true, features = ["lazy", "parquet", "sql"] }
 tokio-stream.workspace = true
 reqwest = { workspace = true, features = ["json"] }
-
-[features]
-test-reports = []
 
 [dev-dependencies]
 sift_test_util.workspace = true

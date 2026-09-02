@@ -21,6 +21,13 @@ pub mod sift {
             // @@protoc_insertion_point(sift.api_keys.v2)
         }
     }
+    pub mod artifacts {
+        // @@protoc_insertion_point(attribute:sift.artifacts.v1)
+        pub mod v1 {
+            include!("sift/artifacts/v1/sift.artifacts.v1.rs");
+            // @@protoc_insertion_point(sift.artifacts.v1)
+        }
+    }
     pub mod assets {
         // @@protoc_insertion_point(attribute:sift.assets.v1)
         pub mod v1 {

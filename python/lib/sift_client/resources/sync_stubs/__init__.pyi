@@ -25,6 +25,8 @@ if TYPE_CHECKING:
     )
     from sift_client.sift_types.channel import Channel, ChannelUpdate
     from sift_client.sift_types.data_import import (
+        DataImport,
+        DataImportStatus,
         DataTypeKey,
         ImportConfig,
         TimeFormat,
@@ -779,13 +781,42 @@ class DataImportAPI:
         """
         ...
 
+    def find(self, **kwargs) -> DataImport | None:
+        """Find a single data import matching the given query. Takes the same arguments as
+        `list_`. If more than one data import is found, raises an error.
+
+        Args:
+            **kwargs: Keyword arguments to pass to `list_`.
+
+        Returns:
+            The DataImport found or None.
+        """
+        ...
+
+    def get(self, data_import_id: str) -> DataImport:
+        """Get a data import by ID.
+
+        The ``data_import_id`` is available on the job returned by
+        ``import_from_path`` via ``job.job_details.data_import_id``.
+        For a more ergonomic approach, use ``job.get_data_import()``
+        which calls this method internally.
+
+        Args:
+            data_import_id: The ID of the data import.
+
+        Returns:
+            The DataImport.
+        """
+        ...
+
     def get_run(self, data_import_id: str) -> Run:
         """Get the run associated with a data import.
 
         The ``data_import_id`` is available on the job returned by
         ``import_from_path`` via ``job.job_details.data_import_id``.
         For a more ergonomic approach, use ``job.get_import_run()``
-        which calls this method internally.
+        which calls this method internally, or ``job.get_data_import()``
+        followed by the import's ``run_id``.
 
         Args:
             data_import_id: The ID of the data import.
@@ -828,14 +859,14 @@ class DataImportAPI:
         Examples:
             Import a CSV file with auto-detected config:
 
-                job = client.data_imports.import_from_path(
+                job = client.data_import.import_from_path(
                     "data.csv",
                     asset=my_asset,
                 )
 
             Auto-detect config, inspect and patch before importing:
 
-                config = client.data_imports.detect_config("data.csv")
+                config = client.data_import.detect_config("data.csv")
 
                 # Fix a column data type
                 config["temperature"].data_type = ChannelDataType.FLOAT
@@ -845,7 +876,7 @@ class DataImportAPI:
                     dc for dc in config.data_columns if dc.name != "internal_id"
                 ]
 
-                job = client.data_imports.import_from_path(
+                job = client.data_import.import_from_path(
                     "data.csv",
                     asset=my_asset,
                     config=config,
@@ -880,10 +911,53 @@ class DataImportAPI:
                 Defaults to True for sync, False for async.
 
         Returns:
-            A ``Job`` handle for the pending import.
+            A ``Job`` handle for the pending import. Call
+            ``job.get_data_import()`` on it for the import's status, error
+            message, and warnings, which are not on the job.
 
         Raises:
             FileNotFoundError: If the file does not exist.
+        """
+        ...
+
+    def list_(
+        self,
+        *,
+        data_import_ids: list[str] | None = None,
+        source_url: str | None = None,
+        source_url_contains: str | None = None,
+        status: DataImportStatus | None = None,
+        runs: list[Run | str] | None = None,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[DataImport]:
+        """List data imports with optional filtering.
+
+        The server only supports filtering on ``data_import_id``,
+        ``source_url``, ``status``, and ``run_id``, and only supports
+        ordering by ``created_date`` and ``modified_date``.
+
+        Args:
+            data_import_ids: Filter to data imports with any of these IDs.
+            source_url: Filter to data imports with exactly this source url.
+            source_url_contains: Filter to data imports whose source url
+                contains this substring.
+            status: Filter to data imports with this status.
+            runs: Filter to data imports that ingested into any of these Runs
+                or run IDs.
+            filter_query: Explicit CEL query to filter data imports.
+            order_by: Field and direction to order results by, e.g.
+                ``"created_date desc"``. Defaults to oldest-first by
+                ``created_date``.
+            limit: Maximum number of data imports to return. If None, returns
+                all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
+
+        Returns:
+            A list of DataImport objects that match the filter criteria.
         """
         ...
 

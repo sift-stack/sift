@@ -3,7 +3,13 @@ use std::time::Duration;
 use rmcp::{ServerHandler, ServiceExt, model::ProtocolVersion};
 use serde_json::Value;
 use sift_rs::assets::v1::{ListAssetsResponse, asset_service_server::AssetServiceServer};
-use sift_test_util::{grpc::memory_sift_channel, mock::assets::v1::MockAssetServiceImpl};
+use sift_rs::test_reports::v1::{
+    ListTestReportsResponse, test_report_service_server::TestReportServiceServer,
+};
+use sift_test_util::{
+    grpc::memory_sift_channel,
+    mock::{assets::v1::MockAssetServiceImpl, test_reports::v1::MockTestReportServiceImpl},
+};
 use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader, DuplexStream},
     sync::watch,
@@ -12,8 +18,9 @@ use tokio::{
 use tonic::{Response, transport::Server};
 
 use crate::{
-    ClientEventConfig, UpdateCheck,
+    ClientEventConfig, FeatureFlags, UpdateCheck,
     client_event::{ClientEventReporter, event_for_tool, start_event_server},
+    feature_flags::TOOL_FEATURE_FLAGS,
 };
 
 use super::SiftMcpServer;
@@ -33,6 +40,14 @@ const EXPECTED_BASE_INSTRUCTIONS: &str = concat!(
     "rules: fields at their default value (false, 0, empty string/list) are ",
     "omitted, so a missing boolean key means false, not unknown."
 );
+
+fn all_feature_flags() -> FeatureFlags {
+    let variants = TOOL_FEATURE_FLAGS
+        .iter()
+        .map(|&(_, flag)| (flag.to_string(), serde_json::json!({ "value": "on" })))
+        .collect::<serde_json::Map<_, _>>();
+    serde_json::from_value(serde_json::json!({ "variants": variants })).unwrap()
+}
 
 fn update_available() -> UpdateCheck {
     UpdateCheck::UpdateAvailable {
@@ -66,16 +81,38 @@ async fn server_with_client_events(
     asset_tool_calls: usize,
     client_event_reporter: ClientEventReporter,
 ) -> (SiftMcpServer, JoinHandle<()>) {
+    server_with_feature_flags(
+        update_check,
+        asset_tool_calls,
+        client_event_reporter,
+        FeatureFlags::default(),
+    )
+    .await
+}
+
+async fn server_with_feature_flags(
+    update_check: Option<watch::Receiver<UpdateCheck>>,
+    asset_tool_calls: usize,
+    client_event_reporter: ClientEventReporter,
+    feature_flags: FeatureFlags,
+) -> (SiftMcpServer, JoinHandle<()>) {
     let mut mock = MockAssetServiceImpl::new();
     mock.expect_list_assets()
         .times(asset_tool_calls)
         .returning(|_| Ok(Response::new(ListAssetsResponse::default())));
+
+    let mut test_report_mock = MockTestReportServiceImpl::new();
+    test_report_mock
+        .expect_list_test_reports()
+        .times(0..)
+        .returning(|_| Ok(Response::new(ListTestReportsResponse::default())));
 
     let (client, server) = tokio::io::duplex(1024);
     let channel = memory_sift_channel(client).await;
     let handle = tokio::spawn(async move {
         Server::builder()
             .add_service(AssetServiceServer::new(mock))
+            .add_service(TestReportServiceServer::new(test_report_mock))
             .serve_with_incoming(tokio_stream::once(Ok::<_, std::io::Error>(server)))
             .await
             .unwrap();
@@ -90,9 +127,160 @@ async fn server_with_client_events(
             CLI_VERSION.to_string(),
             update_check,
             client_event_reporter,
+            feature_flags,
         ),
         handle,
     )
+}
+
+#[tokio::test]
+async fn feature_flag_gates_test_report_tools() {
+    let (disabled, disabled_handle) = server_with_feature_flags(
+        None,
+        0,
+        ClientEventReporter::default(),
+        FeatureFlags::default(),
+    )
+    .await;
+    assert!(disabled.tool_router.list_all().iter().all(|tool| {
+        !TOOL_FEATURE_FLAGS
+            .iter()
+            .any(|&(name, _)| tool.name == name)
+    }));
+    assert!(
+        disabled
+            .tool_router
+            .list_all()
+            .iter()
+            .any(|tool| tool.name == "list_assets")
+    );
+    disabled_handle.abort();
+
+    let enabled_flags = all_feature_flags();
+    let (enabled, enabled_handle) =
+        server_with_feature_flags(None, 0, ClientEventReporter::default(), enabled_flags).await;
+    let routed_tools = enabled.tool_router.list_all();
+    let missing: Vec<_> = TOOL_FEATURE_FLAGS
+        .iter()
+        .filter_map(|&(name, _)| {
+            (!routed_tools.iter().any(|tool| tool.name == name)).then_some(name)
+        })
+        .collect();
+    assert!(
+        missing.is_empty(),
+        "feature-flagged tools not routed: {missing:?}"
+    );
+    enabled_handle.abort();
+}
+
+#[tokio::test]
+async fn each_feature_flag_gates_only_its_own_tools() {
+    for &(_, flag) in TOOL_FEATURE_FLAGS {
+        let flags: FeatureFlags =
+            serde_json::from_value(serde_json::json!({ "variants": { flag: { "value": "on" } } }))
+                .unwrap();
+        let (server, handle) =
+            server_with_feature_flags(None, 0, ClientEventReporter::default(), flags).await;
+        let routed = server.tool_router.list_all();
+        for &(tool_name, tool_flag) in TOOL_FEATURE_FLAGS {
+            let is_routed = routed.iter().any(|tool| tool.name == tool_name);
+            assert_eq!(
+                is_routed,
+                tool_flag == flag,
+                "with only `{flag}` enabled, `{tool_name}` routed = {is_routed}"
+            );
+        }
+        handle.abort();
+    }
+}
+
+async fn initialized_client_with_feature_flags(
+    feature_flags: FeatureFlags,
+) -> (
+    BufReader<tokio::io::ReadHalf<DuplexStream>>,
+    tokio::io::WriteHalf<DuplexStream>,
+    JoinHandle<()>,
+) {
+    let (server, grpc_handle) =
+        server_with_feature_flags(None, 0, ClientEventReporter::default(), feature_flags).await;
+    let (reader, mut writer, mcp_handle) = connect_server(server, grpc_handle).await;
+
+    let request = serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize",
+        "params": {
+            "protocolVersion": "2025-11-25",
+            "capabilities": {},
+            "clientInfo": { "name": "test-client", "version": "0.0.1" }
+        }
+    });
+    writer
+        .write_all(format!("{request}\n").as_bytes())
+        .await
+        .unwrap();
+
+    (reader, writer, mcp_handle)
+}
+
+#[tokio::test]
+async fn feature_flagged_tool_calls_require_the_flag() {
+    let (mut reader, mut writer, server) =
+        initialized_client_with_feature_flags(FeatureFlags::default()).await;
+    let _initialize = read_json(&mut reader).await;
+    writer
+        .write_all(b"{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}\n")
+        .await
+        .unwrap();
+    writer
+        .write_all(b"{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}\n")
+        .await
+        .unwrap();
+    let tools = read_json(&mut reader).await;
+    let tools = tools["result"]["tools"].as_array().unwrap();
+    assert!(tools.iter().all(|tool| {
+        !TOOL_FEATURE_FLAGS
+            .iter()
+            .any(|&(name, _)| tool["name"] == name)
+    }));
+    assert!(tools.iter().any(|tool| tool["name"] == "list_assets"));
+    writer
+        .write_all(
+            b"{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"list_test_reports\",\"arguments\":{\"filter\":\"\"}}}\n",
+        )
+        .await
+        .unwrap();
+    let response = read_json(&mut reader).await;
+    assert!(response["error"].is_object());
+    assert!(
+        response["error"]["message"]
+            .as_str()
+            .unwrap()
+            .to_ascii_lowercase()
+            .contains("not found"),
+        "unexpected response: {response}"
+    );
+    finish(reader, writer, server).await;
+
+    let (mut reader, mut writer, server) =
+        initialized_client_with_feature_flags(all_feature_flags()).await;
+    let _initialize = read_json(&mut reader).await;
+    writer
+        .write_all(b"{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}\n")
+        .await
+        .unwrap();
+    writer
+        .write_all(
+            b"{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"list_test_reports\",\"arguments\":{\"filter\":\"\"}}}\n",
+        )
+        .await
+        .unwrap();
+    let response = read_json(&mut reader).await;
+    assert_eq!(
+        response["result"]["structuredContent"],
+        serde_json::json!({ "test_reports": [], "count": 0, "has_more": false })
+    );
+    finish(reader, writer, server).await;
 }
 
 async fn connected_client_with_events(
@@ -284,7 +472,13 @@ async fn every_registered_tool_has_a_client_event() {
         current_version: "0.4.0".to_string(),
         latest_version: "0.4.0".to_string(),
     };
-    let (server, grpc_handle) = server_with_update_check(Some(receiver(current)), 0).await;
+    let (server, grpc_handle) = server_with_feature_flags(
+        Some(receiver(current)),
+        0,
+        ClientEventReporter::default(),
+        all_feature_flags(),
+    )
+    .await;
     let missing: Vec<_> = server
         .tool_router
         .list_all()

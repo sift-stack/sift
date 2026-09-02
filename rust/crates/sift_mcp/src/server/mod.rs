@@ -16,7 +16,10 @@ use tokio::sync::watch;
 
 #[cfg(test)]
 use crate::UpdateCheck;
-use crate::{UpdateCheckReceiver, client_event::ClientEventReporter, policy::RetryPolicy};
+use crate::{
+    FeatureFlags, UpdateCheckReceiver, client_event::ClientEventReporter,
+    feature_flags::TOOL_FEATURE_FLAGS, policy::RetryPolicy,
+};
 
 #[cfg(test)]
 mod test;
@@ -36,13 +39,14 @@ pub(crate) const BASE_INSTRUCTIONS: &str = concat!(
     "rules: fields at their default value (false, 0, empty string/list) are ",
     "omitted, so a missing boolean key means false, not unknown."
 );
-#[cfg(feature = "test-reports")]
-use crate::service::test_reports::TestReportService;
 use crate::service::{
-    annotations::AnnotationService, assets::AssetService, channels::ChannelService,
-    data::DataService, docs::DocsService, ingest::IngestService, ping::PingService,
-    report_templates::ReportTemplateService, reports::ReportService, rules::RuleService,
-    runs::RunService, url::UrlService, users::UserService,
+    annotations::AnnotationService, artifacts::ArtifactService, assets::AssetService,
+    calculated_channels::CalculatedChannelService, channels::ChannelService, data::DataService,
+    docs::DocsService, ingest::IngestService, ping::PingService,
+    report_templates::ReportTemplateService, reports::ReportService,
+    rule_evaluation::RuleEvaluationService, rules::RuleService, runs::RunService,
+    test_reports::TestReportService, url::UrlService,
+    user_defined_functions::UserDefinedFunctionService, users::UserService,
 };
 
 #[derive(Clone)]
@@ -51,7 +55,9 @@ pub struct SiftMcpServer {
     pub prompt_router: PromptRouter<Self>,
 
     pub annotation_service: AnnotationService,
+    pub artifact_service: ArtifactService,
     pub asset_service: AssetService,
+    pub calculated_channel_service: CalculatedChannelService,
     pub channel_service: ChannelService,
     pub data_service: DataService,
     pub url_service: UrlService,
@@ -61,9 +67,10 @@ pub struct SiftMcpServer {
     pub report_service: ReportService,
     pub report_template_service: ReportTemplateService,
     pub rule_service: RuleService,
-    #[cfg(feature = "test-reports")]
+    pub rule_evaluation_service: RuleEvaluationService,
     pub test_report_service: TestReportService,
     pub docs_service: DocsService,
+    pub user_defined_function_service: UserDefinedFunctionService,
     pub user_service: UserService,
 
     pub allow_create: bool,
@@ -162,9 +169,11 @@ impl SiftMcpServer {
             version,
             Some(update_check),
             ClientEventReporter::default(),
+            FeatureFlags::default(),
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new_with_client_events(
         channel: SiftChannel,
         app_uri: String,
@@ -173,25 +182,34 @@ impl SiftMcpServer {
         cli_version: String,
         update_check: Option<UpdateCheckReceiver>,
         client_event_reporter: ClientEventReporter,
+        feature_flags: FeatureFlags,
     ) -> Self {
         // Add more routers here as new tool groups are introduced, e.g.
         //   tool_router.merge(Self::ingestion_router())
         let mut tool_router = Self::assets_router();
         tool_router.merge(Self::runs_router());
         tool_router.merge(Self::channels_router());
+        tool_router.merge(Self::calculated_channels_router());
         tool_router.merge(Self::reports_router());
         tool_router.merge(Self::report_templates_router());
         tool_router.merge(Self::data_router());
         tool_router.merge(Self::explore_router());
         tool_router.merge(Self::ping_router());
         tool_router.merge(Self::rules_router());
+        tool_router.merge(Self::rule_evaluation_router());
         tool_router.merge(Self::annotations_router());
-        #[cfg(feature = "test-reports")]
+        tool_router.merge(Self::artifacts_router());
         tool_router.merge(Self::test_reports_router());
         tool_router.merge(Self::docs_router());
+        tool_router.merge(Self::user_defined_functions_router());
         tool_router.merge(Self::users_router());
         if update_check.is_some() {
             tool_router.merge(Self::update_router());
+        }
+        for &(tool_name, flag) in TOOL_FEATURE_FLAGS {
+            if !feature_flags.enabled(flag) {
+                tool_router.remove_route(tool_name);
+            }
         }
 
         let prompt_router = Self::prompt_router();
@@ -199,7 +217,10 @@ impl SiftMcpServer {
         let retry_policy = RetryPolicy::default();
 
         let annotation_service = AnnotationService::new(channel.clone(), retry_policy.clone());
+        let artifact_service = ArtifactService::new(channel.clone(), retry_policy.clone());
         let asset_service = AssetService::new(channel.clone(), retry_policy.clone());
+        let calculated_channel_service =
+            CalculatedChannelService::new(channel.clone(), retry_policy.clone());
         let data_service = DataService::new(channel.clone(), retry_policy.clone());
         let channel_service = ChannelService::new(channel.clone(), retry_policy.clone());
         let url_service = UrlService::new(app_uri);
@@ -210,14 +231,19 @@ impl SiftMcpServer {
         let report_template_service =
             ReportTemplateService::new(channel.clone(), retry_policy.clone());
         let rule_service = RuleService::new(channel.clone(), retry_policy.clone());
-        #[cfg(feature = "test-reports")]
+        let rule_evaluation_service =
+            RuleEvaluationService::new(channel.clone(), retry_policy.clone());
         let test_report_service = TestReportService::new(channel.clone(), retry_policy.clone());
         let docs_service = DocsService::new(channel.clone(), retry_policy.clone());
+        let user_defined_function_service =
+            UserDefinedFunctionService::new(channel.clone(), retry_policy.clone());
         let user_service = UserService::new(channel.clone(), retry_policy);
 
         Self {
             annotation_service,
+            artifact_service,
             asset_service,
+            calculated_channel_service,
             channel_service,
             data_service,
             url_service,
@@ -227,9 +253,10 @@ impl SiftMcpServer {
             report_service,
             report_template_service,
             rule_service,
-            #[cfg(feature = "test-reports")]
+            rule_evaluation_service,
             test_report_service,
             docs_service,
+            user_defined_function_service,
             user_service,
             tool_router,
             prompt_router,

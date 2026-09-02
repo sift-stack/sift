@@ -96,24 +96,29 @@ pub(crate) fn event_for_tool(tool_name: &str) -> Option<&'static str> {
 }
 
 #[cfg(test)]
-pub(crate) async fn start_event_server() -> (String, tokio::task::JoinHandle<Vec<u8>>) {
+pub(crate) async fn start_http_server(
+    response: Vec<u8>,
+) -> (String, tokio::task::JoinHandle<Vec<u8>>) {
     use tokio::{
         io::{AsyncReadExt, AsyncWriteExt},
         net::TcpListener,
     };
 
-    fn request_length(request: &[u8]) -> Option<usize> {
-        let header_end = request
-            .windows(4)
-            .position(|window| window == b"\r\n\r\n")?;
-        let headers = std::str::from_utf8(&request[..header_end]).ok()?;
+    fn request_complete(request: &[u8]) -> bool {
+        let header_end = request.windows(4).position(|window| window == b"\r\n\r\n");
+        let Some(header_end) = header_end else {
+            return false;
+        };
+        let Ok(headers) = std::str::from_utf8(&request[..header_end]) else {
+            return false;
+        };
         let content_length = headers.lines().find_map(|line| {
             let (name, value) = line.split_once(':')?;
             name.eq_ignore_ascii_case("content-length")
                 .then(|| value.trim().parse::<usize>().ok())
                 .flatten()
-        })?;
-        Some(header_end + 4 + content_length)
+        });
+        content_length.is_none_or(|length| request.len() >= header_end + 4 + length)
     }
 
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -129,20 +134,24 @@ pub(crate) async fn start_event_server() -> (String, tokio::task::JoinHandle<Vec
                 "the client closed before the request was complete"
             );
             request.extend_from_slice(&buffer[..count]);
-            if request_length(&request).is_some_and(|length| request.len() >= length) {
+            if request_complete(&request) {
                 break;
             }
         }
-        stream
-            .write_all(
-                b"HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: 2\r\nconnection: close\r\n\r\n{}",
-            )
-            .await
-            .unwrap();
+        stream.write_all(&response).await.unwrap();
         request
     });
 
     (format!("http://{address}"), server)
+}
+
+#[cfg(test)]
+pub(crate) async fn start_event_server() -> (String, tokio::task::JoinHandle<Vec<u8>>) {
+    start_http_server(
+        b"HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: 2\r\nconnection: close\r\n\r\n{}"
+            .to_vec(),
+    )
+    .await
 }
 
 #[cfg(test)]

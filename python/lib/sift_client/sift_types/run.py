@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
     from sift_client.client import SiftClient
     from sift_client.sift_types.asset import Asset
-    from sift_client.sift_types.data_import import DataTypeKey, ImportConfig
+    from sift_client.sift_types.data_import import DataImport, DataTypeKey, ImportConfig
     from sift_client.sift_types.job import Job
 
 
@@ -101,6 +101,11 @@ class Run(BaseType[RunProto, "Run"], FileAttachmentsMixin):
             return []
         return self.client.assets.list_(asset_ids=self.asset_ids)
 
+    @property
+    def data_imports(self) -> list[DataImport]:
+        """Return all data imports that ingested into this run."""
+        return self.client.data_import.list_(runs=[self._id_or_error])
+
     def archive(self) -> Run:
         """Archive the run."""
         updated_run = self.client.runs.archive(run=self)
@@ -144,7 +149,7 @@ class Run(BaseType[RunProto, "Run"], FileAttachmentsMixin):
     ) -> Job:
         """Import data from a file into this run.
 
-        Convenience method that calls ``client.data_imports.import_from_path``
+        Convenience method that calls ``client.data_import.import_from_path``
         with this run pre-filled. If the run has exactly one asset,
         ``asset`` is inferred automatically.
 

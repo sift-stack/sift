@@ -7,10 +7,11 @@ use parquet::arrow::{ArrowWriter, arrow_reader::ParquetRecordBatchReaderBuilder}
 use pbjson_types::{Any, Timestamp};
 use prost::Message;
 use sift_rs::{
+    calculated_channels::v1::{ExpressionChannelReference, ExpressionRequest},
     channels::v3::Channel,
     data::v2::{
         DoubleValue, DoubleValues, GetDataResponse, Metadata,
-        data_service_server::DataServiceServer, metadata,
+        data_service_server::DataServiceServer, metadata, query::Query as QueryKind,
     },
     runs::v2::Run,
 };
@@ -53,6 +54,21 @@ fn named_raw_channel(channel_id: &str, name: &str) -> ChannelInput {
         name: name.into(),
         ..Default::default()
     }))
+}
+
+fn saved_calculation(name: &str, expression: &str, input_channel_id: &str) -> ChannelInput {
+    ChannelInput::SavedCalculation {
+        channel_key: name.into(),
+        expression_request: Box::new(ExpressionRequest {
+            expression: expression.into(),
+            expression_channel_references: vec![ExpressionChannelReference {
+                channel_reference: "$1".into(),
+                channel_id: input_channel_id.into(),
+                calculated_channel_reference: None,
+            }],
+            ..Default::default()
+        }),
+    }
 }
 
 fn asset_range(start_nanos: i64, end_nanos: i64) -> TimeRange {
@@ -614,5 +630,62 @@ async fn sql_missing_input_file_errors() {
             || msg.contains("failed to apply SQL query")
             || msg.contains("failed to execute query"),
         "unexpected error: {msg}"
+    );
+}
+
+/// A saved calculated channel query sends the resolved expression and keys the
+/// result on the channel name.
+#[tokio::test]
+async fn get_data_sends_saved_calculation_query() {
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data()
+        .times(1)
+        .withf(|req| {
+            let queries = &req.get_ref().queries;
+            queries.len() == 1
+                && match queries[0].query.as_ref() {
+                    Some(QueryKind::CalculatedChannel(query)) => {
+                        query.channel_key == "thrust_margin"
+                            && query.combine_run_data == Some(false)
+                            && query.expression.as_ref().is_some_and(|expression| {
+                                expression.expression == "$1 * 2"
+                                    && expression.expression_channel_references[0].channel_id
+                                        == "c1"
+                            })
+                    }
+                    _ => false,
+                }
+        })
+        .returning(|_| {
+            Ok(Response::new(GetDataResponse {
+                // A calculated channel page carries the query's channel key in
+                // `channel_id` and no channel name.
+                data: vec![double_page(
+                    "thrust_margin",
+                    "",
+                    vec![(1_000_000_000, 42.0)],
+                )],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    service
+        .get_data(
+            &[saved_calculation("thrust_margin", "$1 * 2", "c1")],
+            asset_range(0, 3_000_000_000),
+            0,
+            &mut buffer,
+        )
+        .await
+        .expect("get_data failed");
+
+    let batches = read_parquet(buffer);
+    let schema = batches[0].schema();
+    assert!(
+        schema.field(1).name().starts_with("thrust_margin {"),
+        "a nameless calculated channel column must fall back to its key: {}",
+        schema.field(1).name(),
     );
 }

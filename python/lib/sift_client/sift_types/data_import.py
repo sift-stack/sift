@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from abc import ABC
-from datetime import datetime  # noqa: TC003
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Union
+from typing import TYPE_CHECKING, Union
 
 from pydantic import BaseModel, model_validator
 from sift.common.type.v1.channel_config_pb2 import ChannelConfig as ChannelConfigProto
@@ -37,6 +37,8 @@ from sift.data_imports.v2.data_imports_pb2 import (
 )
 from sift.data_imports.v2.data_imports_pb2 import CsvConfig as CsvConfigProto
 from sift.data_imports.v2.data_imports_pb2 import CsvTimeColumn as CsvTimeColumnProto
+from sift.data_imports.v2.data_imports_pb2 import DataImport as DataImportProto
+from sift.data_imports.v2.data_imports_pb2 import DataImportStatus as DataImportStatusProto
 from sift.data_imports.v2.data_imports_pb2 import Hdf5Config as Hdf5ConfigProto
 from sift.data_imports.v2.data_imports_pb2 import Hdf5DataConfig as Hdf5DataConfigProto
 from sift.data_imports.v2.data_imports_pb2 import McapConfig as McapConfigProto
@@ -64,7 +66,11 @@ from sift.data_imports.v2.data_imports_pb2 import UlogConfig as UlogConfigProto
 from sift.data_imports.v2.data_imports_pb2 import UlogDataConfig as UlogDataConfigProto
 
 from sift_client._internal.util.timestamp import to_pb_timestamp
+from sift_client.sift_types._base import BaseType
 from sift_client.sift_types.channel import ChannelDataType
+
+if TYPE_CHECKING:
+    from sift_client.client import SiftClient
 
 
 class TimeFormat(Enum):
@@ -151,12 +157,48 @@ class DataColumnBase(BaseModel, ABC):
         data_type: The data type of the channel values.
         units: Optional units string.
         description: Optional channel description.
+        enum_types: Mapping of enum name to key. Only valid when ``data_type``
+            is ``ChannelDataType.ENUM``.
     """
 
     name: str
     data_type: ChannelDataType
     units: str = ""
     description: str = ""
+    enum_types: dict[str, int] | None = None
+
+    @model_validator(mode="after")
+    def _check_enum_types(self) -> DataColumnBase:
+        if self.data_type == ChannelDataType.ENUM or self.enum_types:
+            if self.data_type != ChannelDataType.ENUM:
+                raise ValueError(
+                    f"'enum_types' requires data_type ChannelDataType.ENUM "
+                    f"({self.name} is {self.data_type.name})."
+                )
+            if not self.enum_types:
+                raise ValueError(
+                    f"data_type ChannelDataType.ENUM requires 'enum_types' ({self.name})."
+                )
+            if len(set(self.enum_types.values())) != len(self.enum_types):
+                raise ValueError(f"'enum_types' contains duplicate keys ({self.name}).")
+        return self
+
+    def _channel_config_proto(self) -> ChannelConfigProto:
+        proto = ChannelConfigProto(
+            name=self.name,
+            data_type=self.data_type.value,
+            units=self.units,
+            description=self.description,
+        )
+        if self.enum_types:
+            proto.enum_types.extend(
+                ChannelEnumTypeProto(name=name, key=key) for name, key in self.enum_types.items()
+            )
+        return proto
+
+
+def _enum_types_from_proto(channel_config: ChannelConfigProto) -> dict[str, int] | None:
+    return {e.name: e.key for e in channel_config.enum_types} or None
 
 
 class ImportConfigBase(BaseModel, ABC):
@@ -236,15 +278,7 @@ class CsvImportConfig(ImportConfigBase):
             run_id=self.run_id or "",
             first_data_row=self.first_data_row,
             time_column=self.time_column._to_proto(),
-            data_columns={
-                dc.column: ChannelConfigProto(
-                    name=dc.name,
-                    data_type=dc.data_type.value,
-                    units=dc.units,
-                    description=dc.description,
-                )
-                for dc in self.data_columns
-            },
+            data_columns={dc.column: dc._channel_config_proto() for dc in self.data_columns},
         )
 
     @classmethod
@@ -269,6 +303,7 @@ class CsvImportConfig(ImportConfigBase):
                 data_type=ChannelDataType(ch_cfg.data_type),
                 units=ch_cfg.units,
                 description=ch_cfg.description,
+                enum_types=_enum_types_from_proto(ch_cfg),
             )
             for col_num, ch_cfg in proto.data_columns.items()
         ]
@@ -390,12 +425,7 @@ class ParquetFlatDatasetImportConfig(ImportConfigBase):
             data_columns=[
                 ParquetDataColumnProto(
                     path=dc.path,
-                    channel_config=ChannelConfigProto(
-                        name=dc.name,
-                        data_type=dc.data_type.value,
-                        units=dc.units,
-                        description=dc.description,
-                    ),
+                    channel_config=dc._channel_config_proto(),
                 )
                 for dc in self.data_columns
             ],
@@ -427,6 +457,7 @@ class ParquetFlatDatasetImportConfig(ImportConfigBase):
                 data_type=ChannelDataType(dc.channel_config.data_type),
                 units=dc.channel_config.units,
                 description=dc.channel_config.description,
+                enum_types=_enum_types_from_proto(dc.channel_config),
             )
             for dc in fd.data_columns
         ]
@@ -516,12 +547,7 @@ class ParquetSingleChannelPerRowImportConfig(ImportConfigBase):
             scpr.single_channel.CopyFrom(
                 ParquetSingleChannelPerRowSingleChannelConfigProto(
                     data_path=sc.data_path,
-                    channel=ChannelConfigProto(
-                        name=sc.name,
-                        data_type=sc.data_type.value,
-                        units=sc.units,
-                        description=sc.description,
-                    ),
+                    channel=sc._channel_config_proto(),
                 )
             )
         elif self.multi_channel is not None:
@@ -563,6 +589,7 @@ class ParquetSingleChannelPerRowImportConfig(ImportConfigBase):
                 data_type=ChannelDataType(sc.channel.data_type),
                 units=sc.channel.units,
                 description=sc.channel.description,
+                enum_types=_enum_types_from_proto(sc.channel),
             )
         elif scpr.HasField("multi_channel"):
             mc = scpr.multi_channel
@@ -636,7 +663,6 @@ class TdmsDataColumn(DataColumnBase):
     time_channel_name: str | None = None
     scaled: bool | None = None
     complex_component: TdmsComplexComponent | None = None
-    enum_types: dict[str, int] | None = None
 
 
 class TdmsImportConfig(ImportConfigBase):
@@ -681,20 +707,10 @@ class TdmsImportConfig(ImportConfigBase):
         if self.relative_start_time is not None:
             proto.relative_start_time.CopyFrom(to_pb_timestamp(self.relative_start_time))
         for d in self.data:
-            channel_config = ChannelConfigProto(
-                name=d.name,
-                data_type=d.data_type.value,
-                units=d.units,
-                description=d.description,
-            )
-            if d.enum_types:
-                channel_config.enum_types.extend(
-                    ChannelEnumTypeProto(name=name, key=key) for name, key in d.enum_types.items()
-                )
             entry = TdmsDataConfigProto(
                 group_name=d.group_name,
                 channel_name=d.channel_name,
-                channel_config=channel_config,
+                channel_config=d._channel_config_proto(),
             )
             if d.time_channel_name is not None:
                 entry.time_channel_name = d.time_channel_name
@@ -726,7 +742,6 @@ class TdmsImportConfig(ImportConfigBase):
             complex_component = None
             if d.complex_component and d.complex_component != TDMS_COMPLEX_COMPONENT_UNSPECIFIED:
                 complex_component = TdmsComplexComponent(d.complex_component)
-            enum_types = {e.name: e.key for e in ch.enum_types} if ch.enum_types else None
             data.append(
                 TdmsDataColumn(
                     group_name=d.group_name,
@@ -740,7 +755,7 @@ class TdmsImportConfig(ImportConfigBase):
                     else None,
                     scaled=d.scaled if d.HasField("scaled") else None,
                     complex_component=complex_component,
-                    enum_types=enum_types,
+                    enum_types=_enum_types_from_proto(ch),
                 )
             )
 
@@ -845,12 +860,7 @@ class Hdf5ImportConfig(ImportConfigBase):
                     time_index=d.time_index,
                     value_dataset=d.value_dataset,
                     value_index=d.value_index,
-                    channel_config=ChannelConfigProto(
-                        name=d.name,
-                        data_type=d.data_type.value,
-                        units=d.units,
-                        description=d.description,
-                    ),
+                    channel_config=d._channel_config_proto(),
                     time_field=d.time_field,
                     value_field=d.value_field,
                 )
@@ -974,12 +984,7 @@ class UlogImportConfig(ImportConfigBase):
                     message_name=dc.message_name,
                     instance=dc.instance,
                     field_name=dc.field_name,
-                    channel_config=ChannelConfigProto(
-                        name=dc.name,
-                        data_type=dc.data_type.value,
-                        units=dc.units,
-                        description=dc.description,
-                    ),
+                    channel_config=dc._channel_config_proto(),
                 )
             )
         return proto
@@ -1006,6 +1011,7 @@ class UlogImportConfig(ImportConfigBase):
                 data_type=ChannelDataType(d.channel_config.data_type),
                 units=d.channel_config.units,
                 description=d.channel_config.description,
+                enum_types=_enum_types_from_proto(d.channel_config),
             )
             for d in proto.data
         ]
@@ -1240,3 +1246,91 @@ ImportConfig = Union[
     UlogImportConfig,
     McapImportConfig,
 ]
+
+
+class DataImportStatus(str, Enum):
+    """Status of a data import."""
+
+    UNSPECIFIED = "UNSPECIFIED"
+    PENDING = "PENDING"
+    IN_PROGRESS = "IN_PROGRESS"
+    SUCCEEDED = "SUCCEEDED"
+    FAILED = "FAILED"
+
+    def to_filter_str(self) -> str:
+        """Convert to the string used in CEL filters."""
+        return f"DATA_IMPORT_STATUS_{self.value}"
+
+    @classmethod
+    def from_proto(cls, proto_value: int) -> DataImportStatus:
+        """Create from proto enum value. Unknown values map to UNSPECIFIED."""
+        mapping: dict[int, DataImportStatus] = {
+            DataImportStatusProto.DATA_IMPORT_STATUS_PENDING: DataImportStatus.PENDING,
+            DataImportStatusProto.DATA_IMPORT_STATUS_IN_PROGRESS: DataImportStatus.IN_PROGRESS,
+            DataImportStatusProto.DATA_IMPORT_STATUS_SUCCEEDED: DataImportStatus.SUCCEEDED,
+            DataImportStatusProto.DATA_IMPORT_STATUS_FAILED: DataImportStatus.FAILED,
+        }
+        return mapping.get(proto_value, DataImportStatus.UNSPECIFIED)
+
+
+class DataImport(BaseType[DataImportProto, "DataImport"]):
+    """Model of a Sift data import.
+
+    The format-specific import config is not modeled here; read it off
+    ``data_import.proto`` (e.g. ``data_import.proto.csv_config``).
+    """
+
+    source_url: str | None
+    status: DataImportStatus
+    error_message: str | None
+    # What the import skipped. A succeeding import can still have warnings.
+    warning_messages: list[str]
+    created_date: datetime
+    modified_date: datetime
+    # Set once the run, report, and asset exist.
+    run_id: str | None
+    report_id: str | None
+    asset_id: str | None
+    # Time range of the imported data, not of the import itself.
+    data_start_time: datetime | None
+    data_stop_time: datetime | None
+
+    @classmethod
+    def _from_proto(
+        cls, proto: DataImportProto, sift_client: SiftClient | None = None
+    ) -> DataImport:
+        """Create from proto."""
+        return cls(
+            proto=proto,
+            id_=proto.data_import_id,
+            source_url=proto.source_url or None,
+            status=DataImportStatus.from_proto(proto.status),
+            error_message=proto.error_message or None,
+            warning_messages=list(proto.warning_messages),
+            created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
+            modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
+            run_id=proto.run_id or None,
+            report_id=proto.report_id or None,
+            asset_id=proto.asset_id or None,
+            data_start_time=(
+                proto.data_start_time.ToDatetime(tzinfo=timezone.utc)
+                if proto.HasField("data_start_time")
+                else None
+            ),
+            data_stop_time=(
+                proto.data_stop_time.ToDatetime(tzinfo=timezone.utc)
+                if proto.HasField("data_stop_time")
+                else None
+            ),
+            _client=sift_client,
+        )
+
+    def refresh(self) -> DataImport:
+        """Refresh this data import with the latest data from the API.
+
+        Returns:
+            The updated DataImport object.
+        """
+        updated = self.client.data_import.get(self._id_or_error)
+        self._update(updated)
+        return self

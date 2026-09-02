@@ -13,6 +13,7 @@ from sift_client.sift_types.data_import import (
     DATA_TYPE_KEY_TO_PROTO,
     EXTENSION_TO_DATA_TYPE_KEY,
     CsvImportConfig,
+    DataImport,
     DataTypeKey,
     Hdf5ImportConfig,
     ImportConfig,
@@ -25,11 +26,13 @@ from sift_client.sift_types.data_import import (
     UlogImportConfig,
 )
 from sift_client.sift_types.run import Run
+from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
     from sift_client.client import SiftClient
+    from sift_client.sift_types.data_import import DataImportStatus
     from sift_client.sift_types.job import Job
 
 
@@ -77,14 +80,14 @@ class DataImportAPIAsync(ResourceBase):
         Examples:
             Import a CSV file with auto-detected config:
 
-                job = client.data_imports.import_from_path(
+                job = client.data_import.import_from_path(
                     "data.csv",
                     asset=my_asset,
                 )
 
             Auto-detect config, inspect and patch before importing:
 
-                config = client.data_imports.detect_config("data.csv")
+                config = client.data_import.detect_config("data.csv")
 
                 # Fix a column data type
                 config["temperature"].data_type = ChannelDataType.FLOAT
@@ -94,7 +97,7 @@ class DataImportAPIAsync(ResourceBase):
                     dc for dc in config.data_columns if dc.name != "internal_id"
                 ]
 
-                job = client.data_imports.import_from_path(
+                job = client.data_import.import_from_path(
                     "data.csv",
                     asset=my_asset,
                     config=config,
@@ -129,7 +132,9 @@ class DataImportAPIAsync(ResourceBase):
                 Defaults to True for sync, False for async.
 
         Returns:
-            A ``Job`` handle for the pending import.
+            A ``Job`` handle for the pending import. Call
+            ``job.get_data_import()`` on it for the import's status, error
+            message, and warnings, which are not on the job.
 
         Raises:
             FileNotFoundError: If the file does not exist.
@@ -169,7 +174,7 @@ class DataImportAPIAsync(ResourceBase):
         if show_progress is None:
             show_progress = self._show_progress()
 
-        _, upload_url = await self._low_level_client.create_from_upload(config)
+        data_import_id, upload_url = await self._low_level_client.create_from_upload(config)
 
         response = await run_sync_function(
             lambda: upload_file(
@@ -183,7 +188,110 @@ class DataImportAPIAsync(ResourceBase):
         if not job_id:
             raise RuntimeError("Upload succeeded but server response did not include a job ID.")
 
-        return await self.client.async_.jobs.get(job_id=job_id)
+        job = await self.client.async_.jobs.get(job_id=job_id)
+        # The job's details are filled in server-side and may not be set yet.
+        job._set_data_import_id(data_import_id)
+        return job
+
+    async def get(self, data_import_id: str) -> DataImport:
+        """Get a data import by ID.
+
+        The ``data_import_id`` is available on the job returned by
+        ``import_from_path`` via ``job.job_details.data_import_id``.
+        For a more ergonomic approach, use ``job.get_data_import()``
+        which calls this method internally.
+
+        Args:
+            data_import_id: The ID of the data import.
+
+        Returns:
+            The DataImport.
+        """
+        data_import = await self._low_level_client.get(data_import_id)
+        return self._apply_client_to_instance(data_import)
+
+    async def list_(
+        self,
+        *,
+        # Self ids
+        data_import_ids: list[str] | None = None,
+        # Resource-specific filters
+        source_url: str | None = None,
+        source_url_contains: str | None = None,
+        status: DataImportStatus | None = None,
+        runs: list[Run | str] | None = None,
+        # Common filters
+        filter_query: str | None = None,
+        # Ordering and pagination
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[DataImport]:
+        """List data imports with optional filtering.
+
+        The server only supports filtering on ``data_import_id``,
+        ``source_url``, ``status``, and ``run_id``, and only supports
+        ordering by ``created_date`` and ``modified_date``.
+
+        Args:
+            data_import_ids: Filter to data imports with any of these IDs.
+            source_url: Filter to data imports with exactly this source url.
+            source_url_contains: Filter to data imports whose source url
+                contains this substring.
+            status: Filter to data imports with this status.
+            runs: Filter to data imports that ingested into any of these Runs
+                or run IDs.
+            filter_query: Explicit CEL query to filter data imports.
+            order_by: Field and direction to order results by, e.g.
+                ``"created_date desc"``. Defaults to oldest-first by
+                ``created_date``.
+            limit: Maximum number of data imports to return. If None, returns
+                all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
+
+        Returns:
+            A list of DataImport objects that match the filter criteria.
+        """
+        filter_parts = [*self._build_common_cel_filters(filter_query=filter_query)]
+        if data_import_ids:
+            filter_parts.append(cel.in_("data_import_id", data_import_ids))
+        if source_url:
+            filter_parts.append(cel.equals("source_url", source_url))
+        if source_url_contains:
+            filter_parts.append(cel.contains("source_url", source_url_contains))
+        if status:
+            filter_parts.append(cel.equals("status", status.to_filter_str()))
+        if runs:
+            run_ids = [r._id_or_error if isinstance(r, Run) else r for r in runs]
+            filter_parts.append(cel.in_("run_id", run_ids))
+
+        query_filter = cel.and_(*filter_parts)
+
+        data_imports = await self._low_level_client.list_all_data_imports(
+            query_filter=query_filter or None,
+            order_by=order_by,
+            max_results=limit,
+            **({"page_size": page_size} if page_size is not None else {}),
+        )
+        return self._apply_client_to_instances(data_imports)
+
+    async def find(self, **kwargs) -> DataImport | None:
+        """Find a single data import matching the given query. Takes the same arguments as
+        `list_`. If more than one data import is found, raises an error.
+
+        Args:
+            **kwargs: Keyword arguments to pass to `list_`.
+
+        Returns:
+            The DataImport found or None.
+        """
+        data_imports = await self.list_(**kwargs)
+        if len(data_imports) > 1:
+            raise ValueError("Multiple data imports found for query")
+        elif len(data_imports) == 1:
+            return data_imports[0]
+        return None
 
     async def get_run(self, data_import_id: str) -> Run:
         """Get the run associated with a data import.
@@ -191,7 +299,8 @@ class DataImportAPIAsync(ResourceBase):
         The ``data_import_id`` is available on the job returned by
         ``import_from_path`` via ``job.job_details.data_import_id``.
         For a more ergonomic approach, use ``job.get_import_run()``
-        which calls this method internally.
+        which calls this method internally, or ``job.get_data_import()``
+        followed by the import's ``run_id``.
 
         Args:
             data_import_id: The ID of the data import.
@@ -202,11 +311,10 @@ class DataImportAPIAsync(ResourceBase):
         Raises:
             ValueError: If the data import has no associated run.
         """
-        response = await self._low_level_client.get(data_import_id)
-        run_id = response.data_import.run_id
-        if not run_id:
+        data_import = await self._low_level_client.get(data_import_id)
+        if not data_import.run_id:
             raise ValueError("Data import does not have an associated run.")
-        return await self.client.async_.runs.get(run_id=run_id)
+        return await self.client.async_.runs.get(run_id=data_import.run_id)
 
     async def detect_config(
         self,

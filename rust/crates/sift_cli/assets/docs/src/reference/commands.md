@@ -34,6 +34,7 @@ Import time-series files. See [Importing Data](../data/importing.md).
 | `import tdms`                  | Import a TDMS file.          |
 | `import hdf5`                  | Import an HDF5 file.         |
 | `import ulog`                  | Import a PX4 ULog file.      |
+| `import mcap`                  | Import an MCAP file.         |
 | `import backups`              | Replay `sift_stream` backups.|
 | `import backups ls`           | List backup files.           |
 

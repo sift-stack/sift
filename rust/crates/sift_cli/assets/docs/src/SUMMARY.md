@@ -17,6 +17,7 @@
   - [TDMS](./data/import-tdms.md)
   - [HDF5](./data/import-hdf5.md)
   - [ULog](./data/import-ulog.md)
+  - [MCAP](./data/import-mcap.md)
   - [Backups](./data/import-backups.md)
 - [Exporting Data](./data/exporting.md)
 

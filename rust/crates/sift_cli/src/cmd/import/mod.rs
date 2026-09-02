@@ -16,6 +16,7 @@ use crate::util::{
 pub mod backup;
 pub mod csv;
 pub mod hdf5;
+pub mod mcap;
 pub mod parquet;
 pub mod tdms;
 pub mod ulog;

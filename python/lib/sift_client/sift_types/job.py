@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from sift_client.client import SiftClient
+    from sift_client.sift_types.data_import import DataImport
     from sift_client.sift_types.run import Run
 
 
@@ -187,6 +188,9 @@ class Job(BaseType[JobProto, "Job"]):
     job_status_details: JobStatusDetails | None
     job_details: JobDetails | None
 
+    # Import ID recorded at create time. Not a model field, so _update keeps it.
+    _data_import_id: str | None = None
+
     @classmethod
     def _from_proto(cls, proto: JobProto, sift_client: SiftClient | None = None) -> Job:
         """Create from proto."""
@@ -316,6 +320,19 @@ class Job(BaseType[JobProto, "Job"]):
         self._update(completed_job)
         return self
 
+    def get_data_import(self) -> DataImport:
+        """Get the data import this job ran.
+
+        The import's error message and warnings live there, not on the job.
+
+        Returns:
+            The DataImport this job ran.
+
+        Raises:
+            ValueError: If this is not a data import job.
+        """
+        return self.client.data_import.get(self._data_import_id_or_error("get_data_import()"))
+
     def get_import_run(self) -> Run:
         """Get the run created by this data import job.
 
@@ -326,11 +343,22 @@ class Job(BaseType[JobProto, "Job"]):
             ValueError: If this is not a data import job or the import
                 has no associated run.
         """
+        return self.client.data_import.get_run(self._data_import_id_or_error("get_import_run()"))
+
+    def _data_import_id_or_error(self, method: str) -> str:
+        """Get the data import ID off this job, or raise if it is not an import job."""
         if self.job_type != JobType.DATA_IMPORT:
-            raise ValueError("get_import_run() is only valid for data import jobs.")
-        if not isinstance(self.job_details, DataImportDetails):
-            raise ValueError("Job does not have data import details.")
-        return self.client.data_import.get_run(self.job_details.data_import_id)
+            raise ValueError(f"{method} is only valid for data import jobs.")
+        if isinstance(self.job_details, DataImportDetails):
+            return self.job_details.data_import_id
+        if self._data_import_id:
+            return self._data_import_id
+        raise ValueError("Job does not have data import details.")
+
+    def _set_data_import_id(self, data_import_id: str) -> None:
+        """Record the import ID, covering a job whose details aren't set yet."""
+        # This bypasses the frozen status of the model.
+        self.__dict__["_data_import_id"] = data_import_id
 
     def wait_and_download(
         self,

@@ -8,6 +8,9 @@ use tokio::sync::watch;
 mod client_event;
 pub use client_event::ClientEventConfig;
 
+mod feature_flags;
+pub use feature_flags::FeatureFlags;
+
 mod server;
 use server::SiftMcpServer;
 
@@ -109,6 +112,7 @@ pub async fn run_with_update_check(
         cli_version,
         update_check,
         None,
+        FeatureFlags::default(),
     )
     .await
 }
@@ -116,6 +120,7 @@ pub async fn run_with_update_check(
 /// Runs the server, reporting anonymous tool-call events only when a client
 /// event config is supplied. `None` leaves the server silent, which is what
 /// `sift-cli mcp --disable-nonessential-traffic` passes.
+#[allow(clippy::too_many_arguments)]
 pub async fn run_with_client_events(
     credentials: Credentials,
     use_tls: bool,
@@ -125,6 +130,7 @@ pub async fn run_with_client_events(
     cli_version: String,
     update_check: Option<UpdateCheckReceiver>,
     client_event_config: Option<ClientEventConfig>,
+    feature_flags: FeatureFlags,
 ) -> Result<()> {
     let client_event_reporter =
         client_event::ClientEventReporter::from_config(client_event_config, &cli_version);
@@ -138,6 +144,7 @@ pub async fn run_with_client_events(
             cli_version,
             update_check,
             client_event_reporter,
+            feature_flags,
         },
     )
     .await
@@ -150,6 +157,7 @@ struct RunConfig {
     cli_version: String,
     update_check: Option<UpdateCheckReceiver>,
     client_event_reporter: client_event::ClientEventReporter,
+    feature_flags: FeatureFlags,
 }
 
 async fn run_server(credentials: Credentials, use_tls: bool, config: RunConfig) -> Result<()> {
@@ -167,6 +175,7 @@ async fn run_server(credentials: Credentials, use_tls: bool, config: RunConfig) 
         config.cli_version,
         config.update_check,
         config.client_event_reporter,
+        config.feature_flags,
     )
     .serve(stdio())
     .await

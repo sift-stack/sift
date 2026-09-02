@@ -27,6 +27,35 @@ config.complex_types_import_mode = McapComplexTypesImportMode.STRING
 Variable-cardinality fields (dynamic and bounded arrays) are typed `BYTES`. As with Parquet, `complex_types_import_mode` on the config decides what each becomes: Arrow IPC bytes, a JSON string under `<name>.json`, both (the default), or neither.
 
 Reading a file locally needs the new `mcap` extra (`pip install sift-stack-py[mcap]`), so both `detect_config` and importing without a config require it.
+#### List and get data imports
+
+New in `client.data_import`: `list_` and `get` (plus `find`), and a `run.data_imports` property.
+
+```python
+# Imports for a run, e.g. to check on a batch
+imports = client.data_import.list_(runs=[run])
+imports = run.data_imports  # same query, keyed off the run
+
+# One import by ID
+data_import = client.data_import.get("data-import-id")
+```
+
+Each `DataImport` carries the import's `status`, `error_message`, and `warning_messages`. `job.get_data_import()` returns it for the `Job` that `import_from_path` hands back.
+
+#### Import enum channels from any file format
+
+Data columns on all import configs now accept `enum_types`, a mapping of enum name to key.
+
+```python
+CsvDataColumn(
+    column=2,
+    name="state",
+    data_type=ChannelDataType.ENUM,
+    enum_types={"IDLE": 0, "ARMED": 1},
+)
+```
+
+Setting `enum_types` on a non-enum data type raises a validation error. Multi-channel Parquet single-channel-per-row imports don't support enums, since channel configs there are derived per row.
 
 ## [v0.20.0] - August 25, 2026
 

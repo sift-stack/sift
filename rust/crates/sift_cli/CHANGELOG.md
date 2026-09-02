@@ -7,6 +7,54 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- MCAP (`.mcap`) files can now be imported with `sift-cli import mcap`. Every
+  decodable topic is imported one channel per flattened field, named
+  `<topic>.<field path>`. Only ROS 2 topics (`cdr` messages with `ros2msg`
+  schemas) are supported. `--preview` lists the detected channels client-side
+  before any upload, and reports the topics it had to skip. Flags cover
+  timestamp anchoring for logs on a non-Unix epoch (`--relative-start-time`),
+  importing metadata records as run metadata (`--metadata-record`),
+  recoverable-error handling (`--parse-error-policy`), and how
+  variable-cardinality fields are imported (`--complex-types-import-mode`).
+- Added artifact MCP tools: `list_artifacts`, `download_artifact`, and
+  `create_artifact`, backed by public `sift.artifacts.v1.ArtifactService`.
+  `create_artifact` writes artifact metadata (and can link a new artifact to a
+  conversation). Creating requires `--allow-create`; appending a version to an
+  existing artifact also requires `--allow-destructive`. `download_artifact` returns
+  a `download_url` when the version has uploaded bytes and fails instead of
+  returning a partial artifact when that URL cannot be minted. These tools are
+  enabled per account by the agents feature flag, resolved at server startup.
+- Some MCP tools are now enabled per account by feature flags resolved at server
+  startup. A tool absent from the tool list needs its account flag enabled and an
+  MCP restart.
+- Explore links now carry one source type. The MCP `explore_url` tool accepts
+  only `asset_ids` and `run_ids`, and rejects them together with
+  `INVALID_PARAMS` unless the new `include_assets_and_runs` flag is set. This
+  prevents ambiguous name resolution and stops an agent from mixing an asset
+  and run into one view on its own. `sift-cli import` links to the run it
+  imported into, and falls back to the asset only when there is no run.
+- Added MCP tools for managing calculated channels: `list_calculated_channels`,
+  `list_calculated_channel_versions`, `create_calculated_channel`,
+  `update_calculated_channel`, `archive_calculated_channel`, and
+  `unarchive_calculated_channel`.
+- `get_data` now serves saved calculated channels. A name in `channel_names`
+  with no raw-channel match resolves as an active saved calculated channel for
+  the asset and run; unresolvable names are reported explicitly.
+- `get_data` now accepts `asset_id` as an alternative to `asset_name`; exactly
+  one must be set.
+- Added `preview_rule`, which dry-runs a saved rule or an ad-hoc draft rule
+  config against a run without persisting anything.
+- Added MCP tools for managing user-defined functions:
+  `list_user_defined_functions`, `list_user_defined_function_versions`,
+  `create_user_defined_function`, `update_user_defined_function`,
+  `archive_user_defined_function`, and `unarchive_user_defined_function`.
+- `update_annotation` now requires `annotation_ids` instead of `annotation_id`,
+  a breaking change for existing callers; pass a one-element list for one
+  annotation. It updates 1 to 1000 annotations per call with per-ID failure
+  reporting, and its new `is_archived` parameter archives or unarchives
+  annotations.
+- Refreshed the bundled Sift agent skill to cover the expanded MCP tool surface.
+
 ## [v0.4.4] - August 24, 2026
 
 ### What's New
