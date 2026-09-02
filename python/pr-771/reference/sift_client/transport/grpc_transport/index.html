@@ -2031,7 +2031,7 @@ their own. Defaults to 60s. Set to None to disable the default deadline.</p>
             <td class="doc-param-details">
               <div class="doc-md-description">
                 <p>Maximum gRPC message size the client will accept (bytes).
-Defaults to 50 MiB to match the server-side ceiling.</p>
+Defaults to :data:<code>~sift_client._internal.grpc_transport.transport.MAX_DECODING_MESSAGE_SIZE</code>.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -2052,7 +2052,7 @@ Defaults to 50 MiB to match the server-side ceiling.</p>
             <td class="doc-param-details">
               <div class="doc-md-description">
                 <p>Maximum gRPC message size the client will send (bytes).
-Defaults to 50 MiB to match the server-side ceiling.</p>
+Defaults to :data:<code>~sift_client._internal.grpc_transport.transport.MAX_DECODING_MESSAGE_SIZE</code>.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
