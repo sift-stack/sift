@@ -109,6 +109,45 @@ fn double_page(channel_id: &str, channel_name: &str, samples: Vec<(i64, f64)>) -
     }
 }
 
+/// Like `double_page`, but sets `Metadata.sampled_ms` — the rate the service
+/// says it actually applied, which is what the caller is told about.
+fn double_page_sampled(
+    channel_id: &str,
+    channel_name: &str,
+    sampled_ms: u32,
+    samples: Vec<(i64, f64)>,
+) -> Any {
+    let values = samples
+        .into_iter()
+        .map(|(ts_nanos, value)| {
+            let (seconds, nanos) = unix_nanos_to_secs_and_subsec_nanos(ts_nanos);
+            DoubleValue {
+                timestamp: Some(Timestamp { seconds, nanos }),
+                value,
+            }
+        })
+        .collect();
+
+    let payload = DoubleValues {
+        metadata: Some(Metadata {
+            channel: Some(metadata::Channel {
+                channel_id: channel_id.into(),
+                name: channel_name.into(),
+                ..Default::default()
+            }),
+            sampled_ms,
+            ..Default::default()
+        }),
+        values,
+        extras: vec![],
+    };
+
+    Any {
+        type_url: "sift.data.v2.DoubleValues".into(),
+        value: Bytes::from(payload.encode_to_vec()),
+    }
+}
+
 fn read_parquet(buffer: Vec<u8>) -> Vec<arrow::array::RecordBatch> {
     let reader = ParquetRecordBatchReaderBuilder::try_new(Bytes::from(buffer))
         .expect("failed to open parquet")
@@ -688,4 +727,110 @@ async fn get_data_sends_saved_calculation_query() {
         "a nameless calculated channel column must fall back to its key: {}",
         schema.field(1).name(),
     );
+}
+
+
+/// The service reports the rate it applied on every page. A caller that is not
+/// told it holds decimated data has no way to know a mean drawn from the file is
+/// wrong, so the rate has to survive out of `get_data` rather than be discarded.
+#[tokio::test]
+async fn get_data_reports_the_applied_sample_rate() {
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data().times(1).returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![double_page_sampled(
+                "c1",
+                "temp",
+                100,
+                vec![(1_000_000_000, 10.0), (2_000_000_000, 11.0)],
+            )],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    let output = service
+        .get_data(
+            &[raw_channel("c1")],
+            asset_range(0, 3_000_000_000),
+            100,
+            &mut buffer,
+        )
+        .await
+        .expect("get_data failed");
+
+    assert_eq!(output.applied_sample_ms.highest(), Some(100));
+    assert!(output.applied_sample_ms.decimated());
+    assert!(!output.applied_sample_ms.mixed());
+}
+
+/// A raw pull must report itself as raw, not merely as "no rate reported".
+/// `decimated` false is the assurance a caller needs before quoting a statistic.
+#[tokio::test]
+async fn get_data_reports_raw_when_nothing_was_decimated() {
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data().times(1).returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![double_page_sampled(
+                "c1",
+                "temp",
+                0,
+                vec![(1_000_000_000, 10.0)],
+            )],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    let output = service
+        .get_data(
+            &[raw_channel("c1")],
+            asset_range(0, 3_000_000_000),
+            0,
+            &mut buffer,
+        )
+        .await
+        .expect("get_data failed");
+
+    assert_eq!(output.applied_sample_ms.highest(), Some(0));
+    assert!(!output.applied_sample_ms.decimated());
+    assert!(!output.applied_sample_ms.mixed());
+}
+
+/// The API ignores `sample_ms` for data types it cannot sample, so one request
+/// can come back decimated for one channel and raw for another. Reporting a
+/// single rate would describe half the file; `mixed` is what keeps the other
+/// half from being quoted as if it matched.
+#[tokio::test]
+async fn get_data_flags_a_file_that_mixes_decimated_and_raw_channels() {
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data().times(1).returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![
+                double_page_sampled("c1", "sampled", 100, vec![(1_000_000_000, 10.0)]),
+                double_page_sampled("c2", "untouched", 0, vec![(1_000_000_000, 20.0)]),
+            ],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    let output = service
+        .get_data(
+            &[raw_channel("c1"), raw_channel("c2")],
+            asset_range(0, 3_000_000_000),
+            100,
+            &mut buffer,
+        )
+        .await
+        .expect("get_data failed");
+
+    // The highest rate is the one that decides whether the file can be trusted,
+    // so a mixed result reports the decimated half rather than the raw one.
+    assert_eq!(output.applied_sample_ms.highest(), Some(100));
+    assert!(output.applied_sample_ms.decimated());
+    assert!(output.applied_sample_ms.mixed());
 }
