@@ -608,9 +608,10 @@ class TestImportFromPathClearsDetectedChannels:
         api.detect_config = AsyncMock(return_value=detected)
         api._low_level_client = MagicMock()
         api._low_level_client.create_from_upload = AsyncMock(return_value=("import_1", "url"))
-        api.client.async_.jobs.get = AsyncMock(return_value="job")
+        job = MagicMock()
+        api.client.async_.jobs.get = AsyncMock(return_value=job)
 
-        return await api.import_from_path(path, asset="my_asset", show_progress=False)
+        assert await api.import_from_path(path, asset="my_asset", show_progress=False) is job
 
     @pytest.mark.asyncio
     async def test_mcap_data_cleared(self, tmp_path, monkeypatch):
@@ -622,9 +623,8 @@ class TestImportFromPathClearsDetectedChannels:
             data=[McapDataColumn(topic="/imu", field_path="x", data_type=ChannelDataType.DOUBLE)],
         )
 
-        job = await self._import(tmp_path, "log.mcap", detected)
+        await self._import(tmp_path, "log.mcap", detected)
 
-        assert job == "job"
         assert detected.data == []
         assert detected.asset_name == "my_asset"
 
@@ -642,9 +642,8 @@ class TestImportFromPathClearsDetectedChannels:
             ],
         )
 
-        job = await self._import(tmp_path, "log.ulg", detected)
+        await self._import(tmp_path, "log.ulg", detected)
 
-        assert job == "job"
         assert detected.data == []
 
 
