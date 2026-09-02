@@ -1041,6 +1041,17 @@ You're not viewing the latest version.
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#sift_client.transport.grpc_transport.MAX_DECODING_MESSAGE_SIZE" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;MAX_DECODING_MESSAGE_SIZE
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.logger" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1536,6 +1547,17 @@ You're not viewing the latest version.
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#sift_client.transport.grpc_transport.MAX_DECODING_MESSAGE_SIZE" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;MAX_DECODING_MESSAGE_SIZE
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.logger" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1809,6 +1831,21 @@ It just stores the channel and the stubs, without any additional functionality.<
       </thead>
       <tbody>
           <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            MAX_DECODING_MESSAGE_SIZE
+
+
+  
+      module-attribute
+   (sift_client.transport.grpc_transport.MAX_DECODING_MESSAGE_SIZE)" href="#sift_client.transport.grpc_transport.MAX_DECODING_MESSAGE_SIZE">MAX_DECODING_MESSAGE_SIZE</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                <p>Largest gRPC message the client will accept or send, in bytes (50 MiB).</p>
+              </div>
+              <p>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
             <td><code><a class="autorefs autorefs-internal" title="            logger
 
 
@@ -1835,6 +1872,30 @@ It just stores the channel and the stubs, without any additional functionality.<
 
 
 
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h2 id="sift_client.transport.grpc_transport.MAX_DECODING_MESSAGE_SIZE" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">MAX_DECODING_MESSAGE_SIZE</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
+  </span>
+
+<a href="#sift_client.transport.grpc_transport.MAX_DECODING_MESSAGE_SIZE" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">MAX_DECODING_MESSAGE_SIZE</span> <span class="o">=</span> <span class="mi">50</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Largest gRPC message the client will accept or send, in bytes (50 MiB).</p>
+
+    </div>
+
+</div>
 
 <div class="doc doc-object doc-attribute">
 
@@ -1877,8 +1938,18 @@ It just stores the channel and the stubs, without any additional functionality.<
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">metadata</span><span class="p">:</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="str">str</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">request_timeout</span><span class="p">:</span> <span class="n"><span title="float">float</span></span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n"><span title="sift_client._internal.grpc_transport.transport.DEFAULT_REQUEST_TIMEOUT_SECONDS">DEFAULT_REQUEST_TIMEOUT_SECONDS</span></span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">max_receive_message_length</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="n"><span title="sift_client._internal.grpc_transport.transport.MAX_DECODING_MESSAGE_SIZE">MAX_DECODING_MESSAGE_SIZE</span></span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">max_send_message_length</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="n"><span title="sift_client._internal.grpc_transport.transport.MAX_DECODING_MESSAGE_SIZE">MAX_DECODING_MESSAGE_SIZE</span></span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">max_receive_message_length</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            MAX_DECODING_MESSAGE_SIZE
+
+
+  
+      module-attribute
+   (sift_client.transport.grpc_transport.MAX_DECODING_MESSAGE_SIZE)" href="#sift_client.transport.grpc_transport.MAX_DECODING_MESSAGE_SIZE">MAX_DECODING_MESSAGE_SIZE</a></span><span class="p">,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">max_send_message_length</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            MAX_DECODING_MESSAGE_SIZE
+
+
+  
+      module-attribute
+   (sift_client.transport.grpc_transport.MAX_DECODING_MESSAGE_SIZE)" href="#sift_client.transport.grpc_transport.MAX_DECODING_MESSAGE_SIZE">MAX_DECODING_MESSAGE_SIZE</a></span><span class="p">,</span>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">)</span>
 </span></code></pre></div>
 
@@ -2031,7 +2102,7 @@ their own. Defaults to 60s. Set to None to disable the default deadline.</p>
             <td class="doc-param-details">
               <div class="doc-md-description">
                 <p>Maximum gRPC message size the client will accept (bytes).
-Defaults to :data:<code>~sift_client._internal.grpc_transport.transport.MAX_DECODING_MESSAGE_SIZE</code>.</p>
+Defaults to [MAX_DECODING_MESSAGE_SIZE][].</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -2040,7 +2111,12 @@ Defaults to :data:<code>~sift_client._internal.grpc_transport.transport.MAX_DECO
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
-                      <code><span title="sift_client._internal.grpc_transport.transport.MAX_DECODING_MESSAGE_SIZE">MAX_DECODING_MESSAGE_SIZE</span></code>
+                      <code><a class="autorefs autorefs-internal" title="            MAX_DECODING_MESSAGE_SIZE
+
+
+  
+      module-attribute
+   (sift_client.transport.grpc_transport.MAX_DECODING_MESSAGE_SIZE)" href="#sift_client.transport.grpc_transport.MAX_DECODING_MESSAGE_SIZE">MAX_DECODING_MESSAGE_SIZE</a></code>
                   </span>
               </p>
             </td>
@@ -2052,7 +2128,7 @@ Defaults to :data:<code>~sift_client._internal.grpc_transport.transport.MAX_DECO
             <td class="doc-param-details">
               <div class="doc-md-description">
                 <p>Maximum gRPC message size the client will send (bytes).
-Defaults to :data:<code>~sift_client._internal.grpc_transport.transport.MAX_DECODING_MESSAGE_SIZE</code>.</p>
+Defaults to [MAX_DECODING_MESSAGE_SIZE][].</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -2061,7 +2137,12 @@ Defaults to :data:<code>~sift_client._internal.grpc_transport.transport.MAX_DECO
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
-                      <code><span title="sift_client._internal.grpc_transport.transport.MAX_DECODING_MESSAGE_SIZE">MAX_DECODING_MESSAGE_SIZE</span></code>
+                      <code><a class="autorefs autorefs-internal" title="            MAX_DECODING_MESSAGE_SIZE
+
+
+  
+      module-attribute
+   (sift_client.transport.grpc_transport.MAX_DECODING_MESSAGE_SIZE)" href="#sift_client.transport.grpc_transport.MAX_DECODING_MESSAGE_SIZE">MAX_DECODING_MESSAGE_SIZE</a></code>
                   </span>
               </p>
             </td>
