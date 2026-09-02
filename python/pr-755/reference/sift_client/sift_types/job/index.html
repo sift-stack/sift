@@ -1792,6 +1792,17 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.sift_types.job.Job.get_data_import" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;get_data_import
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.sift_types.job.Job.get_import_run" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3034,6 +3045,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;wait_until_complete
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.job.Job.get_data_import" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;get_data_import
       
     </span>
   </a>
@@ -4648,6 +4670,10 @@ You're not viewing the latest version.
       module-attribute
    (sift_client.sift_types.job.JobDetails)" href="#sift_client.sift_types.job.JobDetails">JobDetails</a> | None</code>)
             </li>
+            <li>
+              <code><span title="sift_client.sift_types.job.Job._data_import_id">_data_import_id</span></code>
+                (<code><span title="str">str</span> | None</code>)
+            </li>
         </ul>
 
 
@@ -5350,6 +5376,85 @@ Defaults to None (indefinite).</p>
             <td class="doc-returns-details">
               <div class="doc-md-description">
                 <p>The Job in the completed state.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="sift_client.sift_types.job.Job.get_data_import" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">get_data_import</span>
+
+
+<a href="#sift_client.sift_types.job.Job.get_data_import" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_data_import</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            DataImport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.data_import.DataImport)" href="../data_import/#sift_client.sift_types.data_import.DataImport">DataImport</a></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Get the data import this job ran.</p>
+<p>The import's error message and warnings live there, not on the job.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><a class="autorefs autorefs-internal" title="            DataImport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.data_import.DataImport)" href="../data_import/#sift_client.sift_types.data_import.DataImport">DataImport</a></code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>The DataImport this job ran.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RAISES</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+              <span class="doc-raises-annotation">
+                  <code><span title="ValueError">ValueError</span></code>
+              </span>
+            </td>
+            <td class="doc-raises-details">
+              <div class="doc-md-description">
+                <p>If this is not a data import job.</p>
               </div>
             </td>
           </tr>

@@ -1544,6 +1544,17 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.sift_types.run.Run.data_imports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;data_imports
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.sift_types.run.Run.attachments" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2693,6 +2704,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;assets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.run.Run.data_imports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;data_imports
       
     </span>
   </a>
@@ -3988,6 +4010,35 @@ You're not viewing the latest version.
 
 
 
+<h3 id="sift_client.sift_types.run.Run.data_imports" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">data_imports</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#sift_client.sift_types.run.Run.data_imports" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">data_imports</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            DataImport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.data_import.DataImport)" href="../data_import/#sift_client.sift_types.data_import.DataImport">DataImport</a></span><span class="p">]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return all data imports that ingested into this run.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
 <h3 id="sift_client.sift_types.run.Run.attachments" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">attachments</span>
 
@@ -4337,7 +4388,7 @@ You're not viewing the latest version.
     <div class="doc doc-contents ">
 
         <p>Import data from a file into this run.</p>
-<p>Convenience method that calls <code>client.data_imports.import_from_path</code>
+<p>Convenience method that calls <code>client.data_import.import_from_path</code>
 with this run pre-filled. If the run has exactly one asset,
 <code>asset</code> is inferred automatically.</p>
 
