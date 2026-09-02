@@ -66,9 +66,9 @@ class GrpcConfig:
             request_timeout: Default deadline in seconds applied to unary RPCs that don't set
                 their own. Defaults to 60s. Set to None to disable the default deadline.
             max_receive_message_length: Maximum gRPC message size the client will accept (bytes).
-                Defaults to [MAX_DECODING_MESSAGE_SIZE][].
+                Defaults to `MAX_DECODING_MESSAGE_SIZE`.
             max_send_message_length: Maximum gRPC message size the client will send (bytes).
-                Defaults to [MAX_DECODING_MESSAGE_SIZE][].
+                Defaults to `MAX_DECODING_MESSAGE_SIZE`.
         """
         parsed_url = urlparse(url)
         normalized_url = url
