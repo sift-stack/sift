@@ -39,14 +39,51 @@ pub struct AnnotationListParams {
     pub(crate) fields: Option<Vec<String>>,
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, JsonSchema)]
+enum AnnotationTypeParam {
+    #[serde(rename = "ANNOTATION_TYPE_DATA_REVIEW", alias = "data_review")]
+    DataReview,
+    #[serde(rename = "ANNOTATION_TYPE_PHASE", alias = "phase")]
+    Phase,
+}
+
+impl From<AnnotationTypeParam> for AnnotationType {
+    fn from(value: AnnotationTypeParam) -> Self {
+        match value {
+            AnnotationTypeParam::DataReview => Self::DataReview,
+            AnnotationTypeParam::Phase => Self::Phase,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, JsonSchema)]
+enum AnnotationStateParam {
+    #[serde(rename = "ANNOTATION_STATE_OPEN", alias = "open")]
+    Open,
+    #[serde(rename = "ANNOTATION_STATE_FLAGGED", alias = "flagged")]
+    Flagged,
+    #[serde(rename = "ANNOTATION_STATE_RESOLVED", alias = "resolved")]
+    Resolved,
+}
+
+impl From<AnnotationStateParam> for AnnotationState {
+    fn from(value: AnnotationStateParam) -> Self {
+        match value {
+            AnnotationStateParam::Open => Self::Open,
+            AnnotationStateParam::Flagged => Self::Flagged,
+            AnnotationStateParam::Resolved => Self::Resolved,
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct CreateAnnotationParams {
     name: String,
     description: Option<String>,
     start_time_unix_nanos: i64,
     end_time_unix_nanos: i64,
-    annotation_type: String,
-    state: Option<String>,
+    annotation_type: AnnotationTypeParam,
+    state: Option<AnnotationStateParam>,
     assets: Option<Vec<String>>,
     tags: Option<Vec<String>>,
     linked_channel_ids: Option<Vec<String>>,
@@ -64,34 +101,11 @@ pub struct UpdateAnnotationParams {
     start_time_unix_nanos: Option<i64>,
     end_time_unix_nanos: Option<i64>,
     assigned_to_user_id: Option<String>,
-    state: Option<String>,
+    state: Option<AnnotationStateParam>,
     tags: Option<Vec<String>>,
     linked_channel_ids: Option<Vec<String>>,
     metadata: Option<Vec<MetadataEntry>>,
     is_archived: Option<bool>,
-}
-
-fn parse_annotation_type(s: &str) -> Result<AnnotationType, ErrorData> {
-    match s.to_ascii_lowercase().as_str() {
-        "data_review" => Ok(AnnotationType::DataReview),
-        "phase" => Ok(AnnotationType::Phase),
-        other => Err(ErrorData::invalid_params(
-            format!("unknown `annotation_type` `{other}`; expected `data_review` or `phase`"),
-            None,
-        )),
-    }
-}
-
-fn parse_annotation_state(s: &str) -> Result<AnnotationState, ErrorData> {
-    match s.to_ascii_lowercase().as_str() {
-        "open" => Ok(AnnotationState::Open),
-        "flagged" => Ok(AnnotationState::Flagged),
-        "resolved" => Ok(AnnotationState::Resolved),
-        other => Err(ErrorData::invalid_params(
-            format!("unknown `state` `{other}`; expected `open`, `flagged`, or `resolved`"),
-            None,
-        )),
-    }
 }
 
 #[tool_router(router = annotations_router, vis = "pub(crate)")]
@@ -122,6 +136,9 @@ impl SiftMcpServer {
                 `annotation_type`, `tag_name`, `report_id`, `asset_id`, `asset_name`, `pending`, `assignee`,
                 `campaign_reports`, `metadata`, `archived_date`, `is_archived`. Reference metadata entries as
                 `metadata.{key}` (e.g. `metadata.severity == \"high\"`).
+                Compare `state` with `ANNOTATION_STATE_OPEN`, `ANNOTATION_STATE_FLAGGED`, or
+                `ANNOTATION_STATE_RESOLVED`. Compare `annotation_type` with `ANNOTATION_TYPE_DATA_REVIEW` or
+                `ANNOTATION_TYPE_PHASE`. Use these exact string enum values in quoted filter operands.
                 When filtering or searching, use `name.matches(\"(?i)vibration\")`, not `==`. Use `==` only for an
                 exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
                 `contains(\"Vibration\")` silently misses `vibration-check`.
@@ -197,9 +214,10 @@ impl SiftMcpServer {
               - `description`: optional free-text description.
               - `start_time_unix_nanos` / `end_time_unix_nanos`: required time bounds in Unix nanoseconds.
                 `end_time_unix_nanos` must be >= `start_time_unix_nanos`.
-              - `annotation_type`: required; one of `data_review` or `phase`.
-              - `state`: optional; one of `open`, `flagged`, `resolved`. MUST be omitted when `annotation_type`
-                is `phase` (the server rejects a phase annotation with a state).
+              - `annotation_type`: required; `ANNOTATION_TYPE_DATA_REVIEW` or `ANNOTATION_TYPE_PHASE`.
+              - `state`: optional; `ANNOTATION_STATE_OPEN`, `ANNOTATION_STATE_FLAGGED`, or
+                `ANNOTATION_STATE_RESOLVED`. MUST be omitted when `annotation_type` is `ANNOTATION_TYPE_PHASE`
+                (the server rejects a phase annotation with a state).
               - `assets`: optional list of asset NAMES to associate.
               - `tags`: optional list of tag names to associate. Names that do not yet exist are created.
               - `linked_channel_ids`: optional list of channel ids to link. Only plain channels are supported;
@@ -260,12 +278,12 @@ impl SiftMcpServer {
             ));
         }
 
-        let annotation_type = parse_annotation_type(&annotation_type)?;
-        let state = state.map(|s| parse_annotation_state(&s)).transpose()?;
+        let annotation_type = AnnotationType::from(annotation_type);
+        let state = state.map(AnnotationState::from);
 
         if annotation_type == AnnotationType::Phase && state.is_some() {
             return Err(ErrorData::invalid_params(
-                "`state` must be omitted when `annotation_type` is `phase`",
+                "`state` must be omitted when `annotation_type` is `ANNOTATION_TYPE_PHASE`",
                 None,
             ));
         }
@@ -336,7 +354,8 @@ impl SiftMcpServer {
               - `description`: optional new description.
               - `start_time_unix_nanos` / `end_time_unix_nanos`: optional new time bounds in Unix nanoseconds.
               - `assigned_to_user_id`: optional new assignee user id.
-              - `state`: optional; one of `open`, `flagged`, `resolved`.
+              - `state`: optional; `ANNOTATION_STATE_OPEN`, `ANNOTATION_STATE_FLAGGED`, or
+                `ANNOTATION_STATE_RESOLVED`.
               - `tags`: optional; REPLACES the full tag list. Pass `[]` to clear all tags.
               - `linked_channel_ids`: optional; REPLACES the full linked-channel list with plain channel links.
                 Pass `[]` to clear. Bit-field and calculated-channel links are not exposed here.
@@ -431,7 +450,7 @@ impl SiftMcpServer {
             ));
         }
 
-        let state = state.map(|s| parse_annotation_state(&s)).transpose()?;
+        let state = state.map(AnnotationState::from);
         let metadata = metadata.map(|m| m.into_iter().map(MetadataValue::from).collect::<Vec<_>>());
         let requested_ids = annotation_ids.clone();
         let requested_count = annotation_ids.len();
