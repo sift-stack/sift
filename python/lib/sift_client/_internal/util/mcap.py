@@ -418,10 +418,9 @@ def detect_mcap_config(file_path: str | Path, asset_name: str = "") -> McapImpor
         asset_name: The asset name to set on the config.
 
     Returns:
-        A config whose ``data`` lists one channel per leaf field, with default
-        Sift names and data types. Remove entries to skip channels, or edit
-        them before importing. Leaving ``data`` empty imports all channels
-        with the same defaults.
+        A config whose ``data`` is a flattened list of fields with default
+        Sift names and types. Edit or remove entries before importing.
+        Leaving ``data`` empty imports every field with the defaults.
 
     Raises:
         ValueError: If the file is not MCAP, uses an unsupported chunk
