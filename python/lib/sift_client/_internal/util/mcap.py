@@ -373,9 +373,8 @@ def detect_mcap_topics(
 def detect_mcap_fields(topics: list[TopicInfo]) -> list[McapDataColumn]:
     """Return one ``McapDataColumn`` per leaf field, named ``<topic>.<field_path>``.
 
-    Variable-cardinality fields get ``BYTES``. Whether one of those imports as
-    bytes, as a JSON string, as both, or not at all is decided by the config's
-    ``complex_types_import_mode`` when the config is sent.
+    Variable-cardinality fields are marked ``BYTES``; the config's
+    ``complex_types_import_mode`` (default ``BOTH``) decides what they import as.
     """
     channels: list[McapDataColumn] = []
     # Sift channel names are unique per asset and compare case-insensitively.
@@ -384,6 +383,7 @@ def detect_mcap_fields(topics: list[TopicInfo]) -> list[McapDataColumn]:
     for topic in topics:
         for leaf in topic.leaves:
             name = f"{topic.topic}.{leaf.field_path}"
+            # BYTES marks a complex field; complex_types_import_mode expands it.
             data_type = ChannelDataType.BYTES if leaf.kind == "complex" else leaf.sift_type()
             existing = taken_names.get(name.lower())
             if existing is not None:
