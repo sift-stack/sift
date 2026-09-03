@@ -13,6 +13,10 @@ class TestFrontendOriginForApi:
         ("api_base_url", "expected"),
         [
             ("https://api.siftstack.com", "https://app.siftstack.com"),
+            (
+                "https://api.development.siftstack.com",
+                "https://app.development.siftstack.com",
+            ),
             ("https://gov.api.siftstack.com", "https://gov.siftstack.com"),
             # Bare host (no scheme) resolves the same as the full URL.
             ("api.siftstack.com", "https://app.siftstack.com"),

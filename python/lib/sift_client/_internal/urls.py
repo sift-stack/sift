@@ -15,6 +15,7 @@ from urllib.parse import urlparse
 # API host (host[:port], no scheme) -> frontend origin (with scheme).
 _API_HOST_TO_FRONTEND_ORIGIN: dict[str, str] = {
     "api.siftstack.com": "https://app.siftstack.com",
+    "api.development.siftstack.com": "https://app.development.siftstack.com",
     "gov.api.siftstack.com": "https://gov.siftstack.com",
 }
 
