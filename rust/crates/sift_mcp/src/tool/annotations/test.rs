@@ -313,6 +313,26 @@ fn annotation_params_accept_published_enum_values() {
     assert!(matches!(update.state, Some(AnnotationStateParam::Resolved)));
 }
 
+#[test]
+fn annotation_params_accept_state_aliases() {
+    let failed = serde_json::from_value::<UpdateAnnotationParams>(serde_json::json!({
+        "annotation_ids": ["ann1"],
+        "state": "failed",
+    }))
+    .expect("`failed` must alias the flagged state");
+    assert!(matches!(failed.state, Some(AnnotationStateParam::Flagged)));
+
+    let accepted = serde_json::from_value::<UpdateAnnotationParams>(serde_json::json!({
+        "annotation_ids": ["ann1"],
+        "state": "accepted",
+    }))
+    .expect("`accepted` must alias the resolved state");
+    assert!(matches!(
+        accepted.state,
+        Some(AnnotationStateParam::Resolved)
+    ));
+}
+
 #[tokio::test]
 async fn create_annotation_rejects_state_on_phase() {
     let (server, _h) = server_with_mock(MockAnnotationServiceImpl::new()).await;

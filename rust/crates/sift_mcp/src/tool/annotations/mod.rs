@@ -60,9 +60,17 @@ impl From<AnnotationTypeParam> for AnnotationType {
 enum AnnotationStateParam {
     #[serde(rename = "ANNOTATION_STATE_OPEN", alias = "open")]
     Open,
-    #[serde(rename = "ANNOTATION_STATE_FLAGGED", alias = "flagged")]
+    #[serde(
+        rename = "ANNOTATION_STATE_FLAGGED",
+        alias = "flagged",
+        alias = "failed"
+    )]
     Flagged,
-    #[serde(rename = "ANNOTATION_STATE_RESOLVED", alias = "resolved")]
+    #[serde(
+        rename = "ANNOTATION_STATE_RESOLVED",
+        alias = "resolved",
+        alias = "accepted"
+    )]
     Resolved,
 }
 
