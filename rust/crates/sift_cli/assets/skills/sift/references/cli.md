@@ -54,11 +54,13 @@ per session. The rest apply to each subcommand invocation.
      types or the time column.
    - Column types, units, and descriptions: repeated `-c/-d/-u/-n` flags on
      `import csv` set a column's index, data type, unit, and description
-     together. Without them every column is inferred as a double carrying no
-     unit. Only `display_description`, `display_units`, `metadata`, and
-     `active` can be changed on a channel afterwards, so the data type in
-     particular has to be right at import. Ask for units the source file
-     does not state.
+     together. Pass one `-d`, `-u`, and `-n` for every `-c`: the counts have
+     to match or the command is rejected, and `-n ""` is accepted for a
+     column with no description. Without these flags every column is
+     inferred as a double carrying no unit. Only `display_description`,
+     `display_units`, `metadata`, and `active` can be changed on a channel
+     afterwards, so the data type in particular has to be right at import.
+     Ask for units the source file does not state.
    - Per-format layout flags surfaced by `--help` (e.g. CSV's
      `--header-row`, `--time-column`, `--time-format`; HDF5's schema
      subcommand `one-d`/`two-d`/`compound`; Parquet's `cpr single`
