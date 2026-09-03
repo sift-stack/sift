@@ -22,6 +22,24 @@ data_import = client.data_import.get("data-import-id")
 
 Each `DataImport` carries the import's `status`, `error_message`, and `warning_messages`. `job.get_data_import()` returns it for the `Job` that `import_from_path` hands back.
 
+#### Import enum channels from any file format
+
+Data columns on all import configs now accept `enum_types`, a mapping of enum name to key.
+
+```python
+CsvDataColumn(
+    column=2,
+    name="state",
+    data_type=ChannelDataType.ENUM,
+    enum_types={"IDLE": 0, "ARMED": 1},
+)
+```
+
+Setting `enum_types` on a non-enum data type raises a validation error. Multi-channel Parquet single-channel-per-row imports don't support enums, since channel configs there are derived per row.
+
+### Bugfixes
+- Fix `channels.get_data` printing a `UserWarning: Discarding nonzero nanoseconds in conversion` once per channel on each run-scoped fetch. The channel data cache stored segment bounds as `datetime`, which truncated the nanosecond timestamps the data already carries; they are now `pd.Timestamp`. `start_time` and `end_time` on `get_data` and `get_data_as_arrow` also accept a `pd.Timestamp` now, and its nanoseconds survive to the wire, where the service filters on them.
+
 ## [v0.20.0] - August 25, 2026
 
 ### What's New

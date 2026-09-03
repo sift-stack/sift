@@ -58,10 +58,10 @@ pub async fn run() -> Result<ExitCode> {
                     current_str.yellow(),
                     latest.to_string().green(),
                 ));
-                out.tip(format!("`{}`", install_command(&latest)).cyan().to_string());
+                out.tip(format!("`{}`", install_command()).cyan().to_string());
             } else if current_str.contains("alpha") {
                 out.line("You are on an alpha release.".to_string());
-                out.tip(format!("`{}`", install_command(&latest)).cyan().to_string());
+                out.tip(format!("`{}`", install_command()).cyan().to_string());
             } else {
                 out.line("You're on the latest release.".to_string());
             }
@@ -194,30 +194,19 @@ fn latest_stable(releases: Vec<GithubRelease>) -> Option<Version> {
         .max()
 }
 
-pub(crate) fn install_command(latest: &Version) -> String {
-    let (asset, cmd_tmpl) = if cfg!(windows) {
-        (
-            "sift_cli-installer.ps1",
-            "powershell -ExecutionPolicy ByPass -c \"irm {url} | iex\"",
-        )
+pub(crate) fn install_command() -> String {
+    if cfg!(windows) {
+        r#"powershell -c "irm https://api.siftstack.com/install/sift-cli.ps1 | iex""#.to_string()
     } else {
-        (
-            "sift_cli-installer.sh",
-            "curl --proto '=https' --tlsv1.2 -LsSf {url} | sh",
-        )
-    };
-
-    let url = format!(
-        "https://github.com/sift-stack/sift/releases/download/{TAG_PREFIX}{latest}/{asset}"
-    );
-    cmd_tmpl.replace("{url}", &url)
+        "curl -fsSL https://api.siftstack.com/install/sift-cli | sh".to_string()
+    }
 }
 
 pub(crate) fn outdated_warning(current: &Version, latest: &Version) -> Option<String> {
     (latest > current).then(|| {
         format!(
             "sift-cli {current} is outdated; latest is {latest}\nUpdate with:\n\n  {}",
-            install_command(latest)
+            install_command()
         )
     })
 }
@@ -434,11 +423,22 @@ mod tests {
         let latest = Version::parse("0.4.0").unwrap();
 
         let warning = outdated_warning(&current, &latest).unwrap();
-        let command = install_command(&latest);
+        let command = install_command();
 
         assert!(warning.contains("sift-cli 0.3.0 is outdated; latest is 0.4.0"));
         assert!(warning.ends_with(&format!("  {command}")));
         assert!(warning[..warning.len().min(512)].contains(&command));
+    }
+
+    #[test]
+    fn install_command_uses_the_stable_endpoint() {
+        let expected = if cfg!(windows) {
+            r#"powershell -c "irm https://api.siftstack.com/install/sift-cli.ps1 | iex""#
+        } else {
+            "curl -fsSL https://api.siftstack.com/install/sift-cli | sh"
+        };
+
+        assert_eq!(install_command(), expected);
     }
 
     #[test]

@@ -16,6 +16,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   importing metadata records as run metadata (`--metadata-record`),
   recoverable-error handling (`--parse-error-policy`), and how
   variable-cardinality fields are imported (`--complex-types-import-mode`).
+- `create_artifact` accepts a `file_path` and uploads the file as the new
+  version's content (streamed to Sift's file store, up to 1 GiB). The response
+  then carries the file's name, mime type, `remote_file_id`, and a signed
+  `download_url`.
+- Updated `rmcp` to 3.2.0. A client that names protocol version `2026-07-28`
+  over a legacy `initialize` handshake is now answered with `2025-11-25`, as
+  that revision has no handshake; stateless 2026 clients are unaffected.
 - Added artifact MCP tools: `list_artifacts`, `download_artifact`, and
   `create_artifact`, backed by public `sift.artifacts.v1.ArtifactService`.
   `create_artifact` writes artifact metadata (and can link a new artifact to a
@@ -54,6 +61,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   reporting, and its new `is_archived` parameter archives or unarchives
   annotations.
 - Refreshed the bundled Sift agent skill to cover the expanded MCP tool surface.
+- `sift-cli` update messages now use the stable installers at
+  `api.siftstack.com/install/sift-cli` instead of version-specific GitHub
+  release URLs.
+- MCP startup now waits for its initial release check and tells agents to repeat
+  an available update notice in every session.
 
 ## [v0.4.4] - August 24, 2026
 

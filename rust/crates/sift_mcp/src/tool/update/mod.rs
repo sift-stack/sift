@@ -28,6 +28,7 @@ impl SiftMcpServer {
             Guidance:
               - Call once at the start of each session, before any other Sift tool.
               - If `status = update_available`, relay `message` and `install_command` exactly.
+              - Repeat an available update notice even if an earlier session reported it.
               - If `status = unavailable`, continue with the user's requested Sift task.
         ",
         annotations(title = "system/check_for_updates", read_only_hint = true)

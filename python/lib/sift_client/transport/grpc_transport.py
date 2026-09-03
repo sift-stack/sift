@@ -20,6 +20,9 @@ from sift_client._internal.grpc_transport.transport import (
     use_sift_async_channel,
 )
 
+MAX_DECODING_MESSAGE_SIZE = 50 * 1024 * 1024
+"""Largest gRPC message the client will accept or send, in bytes (50 MiB)."""
+
 # Configure logging
 logger = logging.getLogger(__name__)
 
@@ -48,6 +51,8 @@ class GrpcConfig:
         cert_via_openssl: bool = False,
         metadata: dict[str, str] | None = None,
         request_timeout: float | None = DEFAULT_REQUEST_TIMEOUT_SECONDS,
+        max_receive_message_length: int = MAX_DECODING_MESSAGE_SIZE,
+        max_send_message_length: int = MAX_DECODING_MESSAGE_SIZE,
     ):
         """Initialize the gRPC configuration.
 
@@ -60,6 +65,10 @@ class GrpcConfig:
             metadata: Additional metadata to include in all requests.
             request_timeout: Default deadline in seconds applied to unary RPCs that don't set
                 their own. Defaults to 60s. Set to None to disable the default deadline.
+            max_receive_message_length: Maximum gRPC message size the client will accept (bytes).
+                Defaults to `MAX_DECODING_MESSAGE_SIZE`.
+            max_send_message_length: Maximum gRPC message size the client will send (bytes).
+                Defaults to `MAX_DECODING_MESSAGE_SIZE`.
         """
         parsed_url = urlparse(url)
         normalized_url = url
@@ -77,6 +86,8 @@ class GrpcConfig:
         self.cert_via_openssl = cert_via_openssl
         self.metadata = metadata or {}
         self.request_timeout = request_timeout
+        self.max_receive_message_length = max_receive_message_length
+        self.max_send_message_length = max_send_message_length
 
     def _to_sift_channel_config(self) -> SiftChannelConfig:
         """Convert to a SiftChannelConfig.
@@ -90,6 +101,8 @@ class GrpcConfig:
             "use_ssl": self.use_ssl,
             "cert_via_openssl": self.cert_via_openssl,
             "request_timeout": self.request_timeout,
+            "max_receive_message_length": self.max_receive_message_length,
+            "max_send_message_length": self.max_send_message_length,
         }
 
 

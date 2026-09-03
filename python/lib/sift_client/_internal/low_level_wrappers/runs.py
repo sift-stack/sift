@@ -19,7 +19,7 @@ from sift.runs.v2.runs_pb2 import (
 from sift.runs.v2.runs_pb2_grpc import RunServiceStub
 
 from sift_client._internal.low_level_wrappers.base import DEFAULT_PAGE_SIZE, LowLevelClientBase
-from sift_client._internal.util.timestamp import to_pb_timestamp
+from sift_client._internal.time import to_timestamp_pb
 from sift_client.sift_types.run import Run, RunCreate, RunUpdate
 from sift_client.transport import WithGrpcClient
 
@@ -212,8 +212,8 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         request = CreateAdhocRunRequest(
             name=name,
             description=description or "",
-            start_time=to_pb_timestamp(start_time) if start_time else None,
-            stop_time=to_pb_timestamp(stop_time) if stop_time else None,
+            start_time=to_timestamp_pb(start_time) if start_time else None,
+            stop_time=to_timestamp_pb(stop_time) if stop_time else None,
             asset_ids=asset_ids,
             tags=tag_names,
             metadata=metadata_dict_to_proto(metadata) if metadata else None,

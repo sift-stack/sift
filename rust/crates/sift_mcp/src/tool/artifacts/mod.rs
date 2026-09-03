@@ -38,6 +38,7 @@ pub struct CreateArtifactParams {
     conversation_id: Option<String>,
     artifact_id: Option<String>,
     authoring_kind: Option<String>,
+    file_path: Option<String>,
 }
 
 /// Also accepts the proto enum names so an agent can echo a value it read from `list_artifacts`.
@@ -209,12 +210,14 @@ impl SiftMcpServer {
     #[tool(
         name = "create_artifact",
         description = "
-            Create a new artifact, or append a version to an existing one. This writes artifact metadata
-            only; version bytes live in remote_files and are not uploaded by this tool.
+            Create a new artifact, or append a version to an existing one, optionally uploading a local
+            file as the version's content.
 
             Output:
               - `{ \"artifact\": Artifact, \"next_step\": string }`. The returned artifact is the created or
-                appended version, including `artifact_id`, `artifact_version_id`, and `version`.
+                appended version, including `artifact_id`, `artifact_version_id`, and `version`. When a
+                file was uploaded it also carries `file_name`, `file_mime_type`, `remote_file_id`, and a
+                short-lived signed `download_url`.
 
             Parameters:
               - `title`: optional display title stored on the version.
@@ -227,6 +230,10 @@ impl SiftMcpServer {
                 proto names that `list_artifacts` / `download_artifact` emit (`ARTIFACT_AUTHORING_KIND_USER`,
                 `ARTIFACT_AUTHORING_KIND_AGENT`) are also accepted. Use `agent` when a Sift agent is
                 producing the artifact during a turn.
+              - `file_path`: optional absolute or relative path of a local file to upload as this
+                version's content. The file streams to Sift's file store; its name and extension drive
+                the mime type and how the UI previews it. Regular, non-empty files up to 1 GiB.
+                Omit it to record metadata only (content can not be attached later to the same version).
 
             Access:
               - Creating a new artifact needs `--allow-create`.
@@ -235,14 +242,18 @@ impl SiftMcpServer {
 
             Errors:
               - `INVALID_PARAMS` if `authoring_kind` is not `user` or `agent`, if `conversation_id` is set
-                while appending, or if `artifact_id` / `conversation_id` is empty when set.
+                while appending, or if `artifact_id` / `conversation_id` / `file_path` is empty when set.
               - `INVALID_REQUEST` if the server was launched without the flag the call needs (see Access).
               - `RESOURCE_NOT_FOUND` if the conversation or existing artifact is not visible to the caller.
-              - `INTERNAL_ERROR` for upstream failures.
+              - `INTERNAL_ERROR` for upstream failures. When the message says the artifact was created but
+                the upload failed, the version exists without content — report that to the user instead of
+                calling `create_artifact` again, which would mint a duplicate.
 
             Guidance:
               - This is a write. CONFIRM the title and destination conversation with the user before invoking.
               - Edits always create a new version; there is no edit-in-place path.
+              - Prefer passing `file_path`: an artifact without content has nothing to preview or download.
+              - One artifact per real deliverable. Do not create artifacts for intermediate scratch files.
         ",
         annotations(
             title = "artifacts/create_artifact",
@@ -263,6 +274,7 @@ impl SiftMcpServer {
             conversation_id,
             artifact_id,
             authoring_kind,
+            file_path,
         }) = params;
 
         // Appending rewrites what every linked conversation resolves to, so it takes the stronger gate.
@@ -292,25 +304,51 @@ impl SiftMcpServer {
                 None,
             ));
         }
+        if let Some(path) = file_path.as_deref()
+            && path.trim().is_empty()
+        {
+            return Err(ErrorData::invalid_params(
+                "`file_path` must not be empty when set",
+                None,
+            ));
+        }
 
         let authoring_kind = parse_authoring_kind(authoring_kind)?;
         let appending = artifact_id.is_some();
+        let uploaded = file_path.is_some();
         let artifact = self
             .artifact_service
-            .create_artifact(title, summary, conversation_id, artifact_id, authoring_kind)
+            .create_artifact(
+                title,
+                summary,
+                conversation_id,
+                artifact_id,
+                authoring_kind,
+                file_path.as_deref().map(std::path::Path::new),
+            )
             .await
             .map_err(from_anyhow)?;
 
+        // The refresh and download-link steps after an upload are best-effort, so
+        // say only what the returned artifact actually carries.
+        let content_note = if uploaded && artifact.download_url.is_some() {
+            " Its file content was uploaded and the user can preview and download it."
+        } else if uploaded {
+            " Its file content was uploaded, but the refreshed artifact or its download link \
+             could not be fetched; call `download_artifact` for the link."
+        } else {
+            " It has no file content; the user has nothing to preview or download."
+        };
         let next_step = if appending {
             format!(
-                "Appended version {} to artifact {}. Surface the new version to the user and confirm it \
-                 matches their intent.",
+                "Appended version {} to artifact {}.{content_note} Surface the new version to the user \
+                 and confirm it matches their intent.",
                 artifact.inner.version, artifact.inner.artifact_id
             )
         } else {
             format!(
-                "Created artifact {} version {}. Surface the title and destination to the user and confirm \
-                 they match their intent before further edits.",
+                "Created artifact {} version {}.{content_note} Surface the title and destination to the \
+                 user and confirm they match their intent before further edits.",
                 artifact.inner.artifact_id, artifact.inner.version
             )
         };

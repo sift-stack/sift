@@ -336,6 +336,7 @@ async fn create_artifact_returns_created_row() {
             Some("conv-1".into()),
             None,
             ArtifactAuthoringKind::Agent,
+            None,
         )
         .await
         .expect("create");

@@ -7,6 +7,7 @@ pub mod data;
 pub mod docs;
 pub mod ingest;
 pub mod ping;
+pub mod remote_files;
 pub mod report_templates;
 pub mod reports;
 pub mod rule_evaluation;

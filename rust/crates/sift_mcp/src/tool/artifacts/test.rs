@@ -213,6 +213,7 @@ async fn create_artifact_blocked_without_allow_create() {
             conversation_id: None,
             artifact_id: None,
             authoring_kind: None,
+            file_path: None,
         }))
         .await
         .expect_err("gated");
@@ -236,6 +237,7 @@ async fn create_artifact_append_blocked_without_allow_destructive() {
             conversation_id: None,
             artifact_id: Some("art-1".into()),
             authoring_kind: None,
+            file_path: None,
         }))
         .await
         .expect_err("append gated");
@@ -269,6 +271,7 @@ async fn create_artifact_append_reports_appended_version() {
             conversation_id: None,
             artifact_id: Some("art-1".into()),
             authoring_kind: None,
+            file_path: None,
         }))
         .await
         .expect("append");
@@ -309,6 +312,7 @@ async fn create_artifact_accepts_authoring_kind_in_any_case() {
                 conversation_id: None,
                 artifact_id: None,
                 authoring_kind: Some(input.into()),
+                file_path: None,
             }))
             .await
             .unwrap_or_else(|err| panic!("{input}: {err:?}"));
@@ -325,6 +329,7 @@ async fn create_artifact_rejects_unknown_authoring_kind() {
             conversation_id: None,
             artifact_id: None,
             authoring_kind: Some("robot".into()),
+            file_path: None,
         }))
         .await
         .expect_err("unknown kind");
@@ -341,6 +346,7 @@ async fn create_artifact_rejects_append_with_conversation() {
             conversation_id: Some("conv-1".into()),
             artifact_id: Some("art-1".into()),
             authoring_kind: None,
+            file_path: None,
         }))
         .await
         .expect_err("illegal combo");
@@ -364,10 +370,226 @@ async fn create_artifact_happy_path() {
             conversation_id: Some("conv-1".into()),
             artifact_id: None,
             authoring_kind: Some("agent".into()),
+            file_path: None,
         }))
         .await
         .expect("create");
     let artifact = structured_field(resp, "artifact");
     assert_eq!(artifact["artifactId"], "art-1");
     assert!(artifact.get("download_url").is_none());
+}
+
+#[tokio::test]
+async fn create_artifact_with_file_path_uploads_and_returns_the_refreshed_artifact() {
+    use std::io::Write as _;
+
+    use crate::client_event::start_http_server;
+    use crate::service::remote_files::{RemoteFileUploader, RestConfig};
+
+    let dir = tempdir::TempDir::new("artifact-tool-upload").unwrap();
+    let path = dir.path().join("report.md");
+    std::fs::File::create(&path)
+        .unwrap()
+        .write_all(b"# Battery Report\n")
+        .unwrap();
+
+    let (rest_uri, rest_server) = start_http_server(
+        b"HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: 2\r\nconnection: close\r\n\r\n{}"
+            .to_vec(),
+    )
+    .await;
+
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_create_artifact().returning(|_| {
+        Ok(Response::new(CreateArtifactResponse {
+            artifact: Some(sample_artifact()),
+        }))
+    });
+    // The refresh after the upload returns the version with its file fields.
+    mock.expect_get_artifact().returning(|_| {
+        let mut uploaded = sample_artifact();
+        uploaded.remote_file_id = Some("rf-1".into());
+        uploaded.file_name = Some("report.md".into());
+        Ok(Response::new(GetArtifactResponse {
+            artifact: Some(uploaded),
+        }))
+    });
+    let mut remote_files = MockRemoteFileServiceImpl::new();
+    remote_files
+        .expect_get_remote_file_download_url()
+        .returning(|_| {
+            Ok(Response::new(GetRemoteFileDownloadUrlResponse {
+                download_url: "https://files.test.local/rf-1".into(),
+            }))
+        });
+
+    let (server, _h) = server_with_mocks(mock, remote_files, true, true).await;
+    let server = server.with_artifact_uploader(RemoteFileUploader::new(
+        RestConfig::new(rest_uri, "test-key".into()),
+        "1.2.3",
+    ));
+
+    let resp = server
+        .create_artifact(Parameters(CreateArtifactParams {
+            title: Some("report".into()),
+            summary: None,
+            conversation_id: None,
+            artifact_id: None,
+            authoring_kind: Some("agent".into()),
+            file_path: Some(path.to_string_lossy().into_owned()),
+        }))
+        .await
+        .expect("create with file");
+
+    let request = String::from_utf8(rest_server.await.unwrap()).unwrap();
+    assert!(request.contains("name=\"entityId\""));
+    assert!(request.contains("ver-1"));
+    assert!(request.contains("# Battery Report"));
+
+    let artifact = structured_field(resp.clone(), "artifact");
+    assert_eq!(artifact["remoteFileId"], "rf-1");
+    assert_eq!(artifact["fileName"], "report.md");
+    assert_eq!(artifact["download_url"], "https://files.test.local/rf-1");
+    let next_step = structured_field(resp, "next_step");
+    assert!(
+        next_step
+            .as_str()
+            .unwrap()
+            .contains("file content was uploaded"),
+        "{next_step}"
+    );
+}
+
+#[tokio::test]
+async fn create_artifact_rejects_an_empty_file_path() {
+    let (server, _h) = server_with_mock(MockArtifactServiceImpl::new(), true).await;
+    let err = server
+        .create_artifact(Parameters(CreateArtifactParams {
+            title: None,
+            summary: None,
+            conversation_id: None,
+            artifact_id: None,
+            authoring_kind: None,
+            file_path: Some("   ".into()),
+        }))
+        .await
+        .expect_err("empty file_path");
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+}
+
+#[tokio::test]
+async fn create_artifact_names_the_created_artifact_when_the_upload_fails() {
+    use std::io::Write as _;
+
+    use crate::client_event::start_http_server;
+    use crate::service::remote_files::{RemoteFileUploader, RestConfig};
+
+    let dir = tempdir::TempDir::new("artifact-tool-upload-fail").unwrap();
+    let path = dir.path().join("report.md");
+    std::fs::File::create(&path)
+        .unwrap()
+        .write_all(b"# Battery Report\n")
+        .unwrap();
+
+    let (rest_uri, rest_server) = start_http_server(
+        b"HTTP/1.1 500 Internal Server Error\r\ncontent-length: 0\r\nconnection: close\r\n\r\n"
+            .to_vec(),
+    )
+    .await;
+
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_create_artifact().returning(|_| {
+        Ok(Response::new(CreateArtifactResponse {
+            artifact: Some(sample_artifact()),
+        }))
+    });
+
+    let (server, _h) = server_with_mocks(mock, MockRemoteFileServiceImpl::new(), true, true).await;
+    let server = server.with_artifact_uploader(RemoteFileUploader::new(
+        RestConfig::new(rest_uri, "test-key".into()),
+        "1.2.3",
+    ));
+
+    let err = server
+        .create_artifact(Parameters(CreateArtifactParams {
+            title: None,
+            summary: None,
+            conversation_id: None,
+            artifact_id: None,
+            authoring_kind: Some("agent".into()),
+            file_path: Some(path.to_string_lossy().into_owned()),
+        }))
+        .await
+        .expect_err("upload failed");
+    rest_server.await.unwrap();
+
+    let message = format!("{err:?}");
+    assert!(message.contains("art-1"), "{message}");
+    assert!(
+        message.contains("do NOT create the artifact again"),
+        "{message}"
+    );
+}
+
+#[tokio::test]
+async fn create_artifact_with_file_path_says_so_when_the_download_link_is_missing() {
+    use std::io::Write as _;
+
+    use crate::client_event::start_http_server;
+    use crate::service::remote_files::{RemoteFileUploader, RestConfig};
+
+    let dir = tempdir::TempDir::new("artifact-tool-upload-nolink").unwrap();
+    let path = dir.path().join("report.md");
+    std::fs::File::create(&path)
+        .unwrap()
+        .write_all(b"# Battery Report\n")
+        .unwrap();
+
+    let (rest_uri, rest_server) = start_http_server(
+        b"HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: 2\r\nconnection: close\r\n\r\n{}"
+            .to_vec(),
+    )
+    .await;
+
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_create_artifact().returning(|_| {
+        Ok(Response::new(CreateArtifactResponse {
+            artifact: Some(sample_artifact()),
+        }))
+    });
+    // The post-upload refresh fails, so the response has no file fields or link.
+    mock.expect_get_artifact()
+        .returning(|_| Err(tonic::Status::not_found("gone")));
+
+    let (server, _h) = server_with_mocks(mock, MockRemoteFileServiceImpl::new(), true, true).await;
+    let server = server.with_artifact_uploader(RemoteFileUploader::new(
+        RestConfig::new(rest_uri, "test-key".into()),
+        "1.2.3",
+    ));
+
+    let resp = server
+        .create_artifact(Parameters(CreateArtifactParams {
+            title: Some("report".into()),
+            summary: None,
+            conversation_id: None,
+            artifact_id: None,
+            authoring_kind: Some("agent".into()),
+            file_path: Some(path.to_string_lossy().into_owned()),
+        }))
+        .await
+        .expect("upload succeeded even though the refresh failed");
+    rest_server.await.unwrap();
+
+    let artifact = structured_field(resp.clone(), "artifact");
+    assert!(artifact.get("download_url").is_none());
+    let next_step = structured_field(resp, "next_step");
+    let next_step = next_step.as_str().unwrap();
+    assert!(
+        next_step.contains("call `download_artifact`"),
+        "{next_step}"
+    );
+    assert!(
+        !next_step.contains("can preview and download"),
+        "{next_step}"
+    );
 }
