@@ -22,7 +22,7 @@ from typing_extensions import TypeAlias
 
 from sift_py._internal.cel import cel_in
 from sift_py._internal.channel import channel_fqn
-from sift_py._internal.time import to_timestamp_pb
+from sift_py._internal.convert.timestamp import to_pb_timestamp
 from sift_py.data._channel import ChannelTimeSeries
 from sift_py.data._deserialize import try_deserialize_channel_data
 from sift_py.data._validate import validate_channel_reference
@@ -197,8 +197,8 @@ class DataService:
 
         await self._validate_queries(queries)
 
-        start_time = to_timestamp_pb(query.start_time)
-        end_time = to_timestamp_pb(query.end_time)
+        start_time = to_pb_timestamp(query.start_time)
+        end_time = to_pb_timestamp(query.end_time)
         sample_ms = query.sample_ms
         page_size = query.page_size
 
