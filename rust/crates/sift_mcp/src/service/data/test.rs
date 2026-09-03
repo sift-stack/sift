@@ -729,7 +729,6 @@ async fn get_data_sends_saved_calculation_query() {
     );
 }
 
-
 /// The service reports the rate it applied on every page. A caller that is not
 /// told it holds decimated data has no way to know a mean drawn from the file is
 /// wrong, so the rate has to survive out of `get_data` rather than be discarded.
