@@ -3,6 +3,40 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+### What's New
+
+#### Live-only retries can be disabled
+
+[`LiveOnlyBuilder::retry_policy`](crates/sift_stream/src/stream/builder.rs) now accepts `None`:
+
+```rust
+let mut sift_stream = SiftStreamBuilder::new(credentials)
+    .ingestion_config(ingestion_config)
+    .live_only()
+    .retry_policy(None)
+    .build()
+    .await?;
+```
+
+The method takes `impl Into<Option<RetryPolicy>>`, so existing calls that pass a `RetryPolicy`
+still compile.
+
+With retries disabled, the ingestion task still makes the first attempt but does not open a
+replacement stream after a failure. It stops, closes the ingestion channel, and reports the
+failure. `send` and `try_send` then report a closed channel, and `finish` returns
+`ErrorKind::StreamError`.
+
+This closes a gap in live-only mode. Retries there recover the connection but not the data:
+messages already handed to the failed stream are dropped, and live-only mode keeps no disk
+backup to replay them from. `finish` could therefore return `Ok` after a mid-stream failure
+that lost samples. With retries disabled, every stream failure is reported, so an `Ok` from
+`finish` means Sift acknowledged every message that was sent. Callers that keep their own
+durable copy of the data can use that verdict to decide whether to resend a range.
+
+`live_with_backups()` mode is unchanged and always retries. Recovery there depends on the
+ingestion task staying alive to drive checkpoints and reingestion from disk.
+
 ## [v0.11.0] - August 20, 2026
 ### What's New
 

@@ -25,7 +25,9 @@ pub(crate) struct LiveOnlyTaskConfig {
     pub(crate) enable_compression_for_ingestion: bool,
     pub(crate) ingestion_data_channel_capacity: usize,
     pub(crate) control_channel_capacity: usize,
-    pub(crate) retry_policy: RetryPolicy,
+    /// `None` disables stream retries. See
+    /// [`LiveOnlyBuilder::retry_policy`](crate::LiveOnlyBuilder::retry_policy).
+    pub(crate) retry_policy: Option<RetryPolicy>,
     pub(crate) metrics_streaming_interval: Option<Duration>,
     /// Scoped dispatch to wrap spawned futures. `None` disables scoped dispatch.
     #[cfg(feature = "tracing")]
@@ -213,7 +215,7 @@ impl TaskBuilder {
             ingestion_channel: config.ingestion_channel,
             enable_compression_for_ingestion: config.enable_compression_for_ingestion,
             metrics: config.metrics.clone(),
-            retry_policy: config.retry_policy,
+            retry_policy: Some(config.retry_policy),
             checkpoint_interval: Some(config.checkpoint_interval),
         };
         let mut ingestion_task = IngestionTask::new(
