@@ -54,7 +54,10 @@ pub(crate) struct IngestionTaskConfig {
     pub(crate) ingestion_channel: SiftChannel,
     pub(crate) enable_compression_for_ingestion: bool,
     pub(crate) metrics: Arc<SiftStreamMetrics>,
-    pub(crate) retry_policy: RetryPolicy,
+    /// `None` disables stream retries: the task does not reconnect after a stream
+    /// failure and instead returns the failure to the caller. See
+    /// [`LiveOnlyBuilder::retry_policy`](crate::LiveOnlyBuilder::retry_policy).
+    pub(crate) retry_policy: Option<RetryPolicy>,
     /// Present only in LiveStreamingWithBackups mode. When None, the task
     /// never sets up a checkpoint timer and ignores all checkpoint control messages.
     pub(crate) checkpoint_interval: Option<Duration>,
@@ -185,6 +188,21 @@ impl IngestionTask {
                                 return Err(Error::new(ErrorKind::StreamError, e))
                                     .context("stream to Sift failed during shutdown");
                             }
+
+                            // Retries are disabled, so no new stream will be created to carry
+                            // what this one was holding. Report the failure rather than
+                            // reconnecting and letting the caller believe the data landed.
+                            if self.config.retry_policy.is_none() {
+                                #[cfg(feature = "tracing")]
+                                tracing::error!(
+                                    sift_stream_id = %self.config.sift_stream_id,
+                                    error = %e,
+                                    "stream failed and retries are disabled"
+                                );
+
+                                return Err(Error::new(ErrorKind::StreamError, e))
+                                    .context("stream to Sift failed and retries are disabled");
+                            }
                         }
                     }
 
@@ -206,7 +224,7 @@ impl IngestionTask {
                     self.config.metrics.checkpoint.checkpoint_timer_reached_cnt.increment();
 
                     // Timeout if Sift doesn't respond to the checkpoint signal quickly.
-                    match tokio::time::timeout(CHECKPOINT_TIMEOUT, stream.as_mut().unwrap()).await {
+                    let checkpoint_failure = match tokio::time::timeout(CHECKPOINT_TIMEOUT, stream.as_mut().unwrap()).await {
                         Ok(Ok(_)) => {
                             #[cfg(feature = "tracing")]
                             tracing::info!(
@@ -215,13 +233,26 @@ impl IngestionTask {
                             );
                             self.config.metrics.grpc_status_counts[0].increment();
                             self.config.metrics.cur_retry_count.set(0);
+                            None
                         }
-                        Ok(Err(e)) => {
-                            current_wait = self.handle_failed_stream(&e, stream_created_at, current_wait, first_message_id.load(Ordering::Relaxed), last_message_id.load(Ordering::Relaxed))?;
-                        }
-                        Err(_elapsed) => {
-                            let timeout_status = GrpcStatus::deadline_exceeded("checkpoint timed out waiting for Sift");
-                            current_wait = self.handle_failed_stream(&timeout_status, stream_created_at, current_wait, first_message_id.load(Ordering::Relaxed), last_message_id.load(Ordering::Relaxed))?;
+                        Ok(Err(e)) => Some(e),
+                        Err(_elapsed) => Some(GrpcStatus::deadline_exceeded("checkpoint timed out waiting for Sift")),
+                    };
+
+                    if let Some(status) = checkpoint_failure {
+                        current_wait = self.handle_failed_stream(&status, stream_created_at, current_wait, first_message_id.load(Ordering::Relaxed), last_message_id.load(Ordering::Relaxed))?;
+
+                        // Retries are disabled, so the checkpoint will not be reattempted.
+                        if self.config.retry_policy.is_none() {
+                            #[cfg(feature = "tracing")]
+                            tracing::error!(
+                                sift_stream_id = %self.config.sift_stream_id,
+                                error = %status,
+                                "checkpoint failed and retries are disabled"
+                            );
+
+                            return Err(Error::new(ErrorKind::StreamError, status))
+                                .context("checkpoint to Sift failed and retries are disabled");
                         }
                     }
 
@@ -303,13 +334,19 @@ impl IngestionTask {
                 .map_err(|e| Error::new(ErrorKind::StreamError, e))?;
         }
 
+        // With retries disabled the caller reports the failure instead of reconnecting, so
+        // there is no backoff to compute and no retry to count.
+        let Some(retry_policy) = self.config.retry_policy.as_ref() else {
+            return Ok(Duration::ZERO);
+        };
+
         // If the stream was healthy for sufficiently long, reset the wait time used for exponential backoff.
-        let backoff = if stream_created_at.elapsed() > self.config.retry_policy.max_backoff * 2 {
+        let backoff = if stream_created_at.elapsed() > retry_policy.max_backoff * 2 {
             self.config.metrics.cur_retry_count.set(0);
             Duration::ZERO
         } else {
             self.config.metrics.cur_retry_count.add(1);
-            self.config.retry_policy.backoff(current_wait)
+            retry_policy.backoff(current_wait)
         };
 
         Ok(backoff)
@@ -398,7 +435,7 @@ mod tests {
             ingestion_channel,
             enable_compression_for_ingestion: false,
             metrics,
-            retry_policy: RetryPolicy::default(),
+            retry_policy: Some(RetryPolicy::default()),
             checkpoint_interval: Some(checkpoint_interval),
         }
     }
@@ -676,23 +713,24 @@ mod tests {
         let (data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let checkpoint_interval = Duration::from_millis(100);
+        let retry_policy = RetryPolicy {
+            max_attempts: 3,
+            initial_backoff: Duration::from_millis(1),
+            max_backoff: Duration::from_millis(100),
+            backoff_multiplier: 5,
+        };
+        let max_attempts = retry_policy.max_attempts as usize;
         let config = IngestionTaskConfig {
             session_name: "test-session".to_string(),
             sift_stream_id: Uuid::new_v4(),
             ingestion_channel,
             enable_compression_for_ingestion: false,
             metrics: metrics.clone(),
-            retry_policy: RetryPolicy {
-                max_attempts: 3,
-                initial_backoff: Duration::from_millis(1),
-                max_backoff: Duration::from_millis(100),
-                backoff_multiplier: 5,
-            },
+            retry_policy: Some(retry_policy),
             checkpoint_interval: Some(checkpoint_interval),
         };
 
         // Ingestion is continuously retried, limited by the max retry duration only.
-        let max_attempts = config.retry_policy.max_attempts as usize;
         mock_service.set_num_errors_to_return(max_attempts + 1);
 
         let control_rx_task = control_tx.subscribe();
@@ -899,7 +937,7 @@ mod tests {
             ingestion_channel,
             enable_compression_for_ingestion: false,
             metrics,
-            retry_policy: RetryPolicy::default(),
+            retry_policy: Some(RetryPolicy::default()),
             checkpoint_interval: None,
         }
     }
@@ -1066,12 +1104,12 @@ mod tests {
         let (data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let mut config = make_live_only_ingestion_task_config(ingestion_channel, metrics);
-        config.retry_policy = RetryPolicy {
+        config.retry_policy = Some(RetryPolicy {
             max_attempts: 3,
             initial_backoff: Duration::from_millis(1),
             max_backoff: Duration::from_millis(10),
             backoff_multiplier: 2,
-        };
+        });
 
         // Every stream attempt fails, so nothing is ever acknowledged by Sift.
         mock_service.set_num_errors_to_return(usize::MAX);
@@ -1093,5 +1131,55 @@ mod tests {
 
         let err = res.expect_err("live-only mode must not report Ok for undelivered data");
         assert_eq!(err.kind(), ErrorKind::StreamError);
+    }
+
+    /// With retries disabled the task must not open a replacement stream after a failure. The
+    /// mock fails only the first attempt, so a retrying task would reconnect and capture the
+    /// data; a non-retrying task must instead report the failure and capture nothing.
+    #[tokio::test]
+    async fn test_live_only_retries_disabled_reports_first_failure() {
+        let (ingestion_channel, mock_service) =
+            crate::test::create_mock_grpc_channel_with_service().await;
+        let (control_tx, _control_rx) = broadcast::channel(1024);
+        let (data_tx, data_rx) = async_channel::bounded(1024);
+        let metrics = Arc::new(SiftStreamMetrics::default());
+        let mut config = make_live_only_ingestion_task_config(ingestion_channel, metrics.clone());
+        config.retry_policy = None;
+
+        // Only the first stream attempt fails.
+        mock_service.set_num_errors_to_return(1);
+
+        let control_rx_task = control_tx.subscribe();
+        let mut ingestion_task = IngestionTask::new(control_tx, control_rx_task, data_rx, config);
+
+        // Queue the data before the task starts so the failure is observed while the channel
+        // is still open. That exercises the mid-stream path rather than the shutdown path.
+        send_messages_for_ingestion(&data_tx, 10).await;
+
+        let handle = tokio::spawn(async move { ingestion_task.run().await });
+
+        let res = tokio::time::timeout(Duration::from_secs(10), handle)
+            .await
+            .expect("ingestion task should not hang")
+            .expect("ingestion task should not panic");
+
+        let err = res.expect_err("a stream failure with retries disabled must be reported");
+        assert_eq!(err.kind(), ErrorKind::StreamError);
+
+        assert!(
+            mock_service.get_captured_data().is_empty(),
+            "the task must not open a replacement stream when retries are disabled"
+        );
+        assert_eq!(
+            metrics.cur_retry_count.get(),
+            0,
+            "a disabled retry policy should not count retries"
+        );
+
+        // Dropping the task drops every receiver, which closes the channel for the caller.
+        assert!(
+            data_tx.is_closed(),
+            "the ingestion channel should close once the task stops"
+        );
     }
 }

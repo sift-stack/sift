@@ -81,8 +81,8 @@
 //! the channel architecture, backpressure behavior, and durability guarantees:
 //!
 //! | Builder method | Transport type | Backpressure source | Checkpointing | Disk backup | Retries |
-//! |---|---|---|---|---|
-//! | `.live_only()` | [`LiveStreamingOnly`] | ingestion channel | No | No | Yes |
+//! |---|---|---|---|---|---|
+//! | `.live_only()` | [`LiveStreamingOnly`] | ingestion channel | No | No | Optional |
 //! | `.live_with_backups()` | [`LiveStreamingWithBackups`] | backup channel | Yes | Yes | Yes |
 //! | `.file_backup()` | [`FileBackup`] | write channel | No | Yes | N/A |
 //!
@@ -90,7 +90,8 @@
 //!
 //! Streams to Sift in real-time over a single bounded ingestion channel. Backpressure is applied
 //! directly when that channel is full: [`send`](stream::SiftStream::send) awaits until the
-//! ingestion task drains capacity. Supports retries.
+//! ingestion task drains capacity. Retries are on by default and can be disabled with
+//! [`LiveOnlyBuilder::retry_policy(None)`](LiveOnlyBuilder::retry_policy).
 //!
 //! ```ignore
 //! let stream = SiftStreamBuilder::new(credentials)
@@ -383,7 +384,28 @@
 //!     .await?;
 //! ```
 //!
-//! For more information see [LiveWithBackupsBuilder::retry_policy], [RetryPolicy], and [DiskBackupPolicy].
+//! `live_only()` mode also retries by default, and [LiveOnlyBuilder::retry_policy] accepts
+//! `None` to turn retries off:
+//!
+//! ```ignore
+//! let mut sift_stream = SiftStreamBuilder::new(credentials)
+//!     .ingestion_config(ingestion_config)
+//!     .live_only()
+//!     .retry_policy(None)
+//!     .build()
+//!     .await?;
+//! ```
+//!
+//! With retries disabled, the ingestion task still makes the first attempt but does not open a
+//! replacement stream after a failure. It stops, closes the ingestion channel, and reports the
+//! failure from [`finish`](stream::SiftStream::finish). This trades availability for an
+//! unambiguous delivery verdict: an `Ok` from `finish` then means Sift acknowledged every
+//! message that was sent. It suits callers that keep their own durable copy of the data and
+//! resend a range themselves rather than lose it. Live-only mode has no disk backup, so a
+//! retried mid-stream failure silently drops whatever that stream was carrying.
+//!
+//! For more information see [LiveOnlyBuilder::retry_policy],
+//! [LiveWithBackupsBuilder::retry_policy], [RetryPolicy], and [DiskBackupPolicy].
 //!
 //! ## Checkpoints
 //!
