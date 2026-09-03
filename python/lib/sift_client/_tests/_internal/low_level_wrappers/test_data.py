@@ -58,10 +58,14 @@ from sift_client.sift_types.channel import (
 
 _NOW = datetime(2025, 1, 1, tzinfo=timezone.utc)
 _WINDOW_END = _NOW + timedelta(days=1)
+# ``_update_cache`` is called only by ``get_channel_data``, which
+# normalizes its window first, so its bounds arrive as ``pd.Timestamp``.
+_NOW_TS = pd.Timestamp(_NOW)
+_WINDOW_END_TS = pd.Timestamp(_WINDOW_END)
 # A start that falls off a whole microsecond, the way real sample
 # timestamps do. Anything derived from it keeps its 789 ns tail only if
 # every hop is nanosecond-capable.
-_NS_START = pd.Timestamp(_NOW) + pd.Timedelta(123456789, unit="ns")
+_NS_START = _NOW_TS + pd.Timedelta(123456789, unit="ns")
 
 
 # ---------- shared helpers -----------
@@ -811,9 +815,9 @@ class TestNanosecondPrecision:
                 warnings.simplefilter("always")
                 client._update_cache(
                     channel_data={"c1": df},
-                    fetched_ranges_per_channel={"c1": [(_NOW, _WINDOW_END)]},
-                    start_time=_NOW,
-                    end_time=_WINDOW_END,
+                    fetched_ranges_per_channel={"c1": [(_NOW_TS, _WINDOW_END_TS)]},
+                    start_time=_NOW_TS,
+                    end_time=_WINDOW_END_TS,
                     run_id="r1",
                 )
             assert [str(w.message) for w in caught] == []
@@ -1725,9 +1729,9 @@ class TestBitFieldChannels:
         try:
             client._update_cache(
                 channel_data={"ch1.lo": df_lo, "ch1.hi": df_hi},
-                fetched_ranges_per_channel={"abc": [(_NOW, _WINDOW_END)]},
-                start_time=_NOW,
-                end_time=_WINDOW_END,
+                fetched_ranges_per_channel={"abc": [(_NOW_TS, _WINDOW_END_TS)]},
+                start_time=_NOW_TS,
+                end_time=_WINDOW_END_TS,
             )
             assert client.channel_cache.has_any("abc")
             assert not client.channel_cache.has_any("ch1.lo")
@@ -1764,9 +1768,9 @@ class TestBitFieldChannels:
                     "ch1.lo": _frame("ch1.lo", rows=5),
                     "ch1.hi": _frame("ch1.hi", rows=5),
                 },
-                fetched_ranges_per_channel={"abc": [(_NOW, _WINDOW_END)]},
-                start_time=_NOW,
-                end_time=_WINDOW_END,
+                fetched_ranges_per_channel={"abc": [(_NOW_TS, _WINDOW_END_TS)]},
+                start_time=_NOW_TS,
+                end_time=_WINDOW_END_TS,
             )
             data, gaps = client.channel_cache.get_range("abc", None, _NOW, _WINDOW_END)
             assert data is not None
