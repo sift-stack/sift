@@ -31,15 +31,26 @@ def to_timestamp_nanos(arg: TimestampPb | pd.Timestamp | datetime | str | int) -
         return cast("pd.Timestamp", pd.Timestamp(arg))
 
 
-def to_timestamp_pb(arg: datetime | str | int | float) -> TimestampPb:
+def to_timestamp_pb(arg: pd.Timestamp | datetime | str | int | float) -> TimestampPb:
     """
-    Mainly used for testing at the moment. If using this for non-testing purposes
-    should probably make this more robust and support nano-second precision.
+    Converts a variety of time-types to a protobuf timestamp.
+
+    A ``pd.Timestamp`` keeps its nanoseconds. Every other input has
+    microsecond resolution at best, since ``TimestampPb.FromDatetime``
+    reads ``microsecond`` and nothing finer. A naive input is read as
+    UTC on either path.
     """
 
     ts = TimestampPb()
 
-    if isinstance(arg, datetime):
+    if isinstance(arg, pd.Timestamp) and arg.nanosecond:
+        # A nonzero sub-microsecond remainder is exactly what
+        # ``FromDatetime`` drops, and it implies nanosecond units, so
+        # ``value`` can't overflow here. Coarser units reach dates
+        # outside the ns range where it would.
+        ts.FromNanoseconds(arg.value)
+        return ts
+    elif isinstance(arg, datetime):
         ts.FromDatetime(arg)
         return ts
     elif isinstance(arg, (int, float)):
