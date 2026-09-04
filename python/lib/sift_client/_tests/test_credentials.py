@@ -149,6 +149,39 @@ class TestPrecedence:
         assert creds.sources["api_key"] == "default"
 
 
+class TestApiKeySpelling:
+    """``api_key`` is canonical; ``apikey`` stays accepted for existing files."""
+
+    def test_canonical_api_key(self, tmp_path):
+        path = tmp_path / "sift.toml"
+        path.write_text(
+            'grpc_uri = "https://g.example"\n'
+            'rest_uri = "https://r.example"\n'
+            'api_key = "canonical"\n'
+        )
+        assert resolve(str(path)).api_key == "canonical"
+
+    def test_legacy_apikey_still_accepted(self, config_file):
+        """The shared fixture uses `apikey`, so this is the migration path."""
+        assert resolve(config_file).api_key == "default-key"
+
+    def test_canonical_wins_when_a_file_carries_both(self, tmp_path):
+        """`sift-cli config update` drops the legacy key, but a hand-edited
+        file can hold both; the canonical spelling decides.
+        """
+        path = tmp_path / "sift.toml"
+        path.write_text(
+            'grpc_uri = "https://g.example"\n'
+            'rest_uri = "https://r.example"\n'
+            'api_key = "canonical"\n'
+            'apikey = "legacy"\n'
+        )
+        assert resolve(str(path)).api_key == "canonical"
+
+    def test_legacy_key_in_a_named_profile(self, config_file):
+        assert resolve(config_file, profile="staging").api_key == "staging-key"
+
+
 class TestUseSsl:
     def test_https_profile_uses_tls(self, config_file):
         assert resolve(config_file, profile="staging").use_ssl is True

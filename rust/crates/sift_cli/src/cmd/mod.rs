@@ -25,6 +25,22 @@ pub struct Context {
     pub app_uri: Option<String>,
 }
 
+/// The canonical TOML key for the API key, matching the `api_key` spelling the
+/// Sift API itself uses.
+pub(super) const API_KEY_KEY: &str = "api_key";
+
+/// The original spelling, still accepted so configs written by older releases
+/// keep working. Never written back.
+pub(super) const API_KEY_KEY_LEGACY: &str = "apikey";
+
+/// The profile's API key under either spelling, canonical first.
+fn profile_api_key(profile: &Table) -> Option<Value> {
+    profile
+        .get(API_KEY_KEY)
+        .or_else(|| profile.get(API_KEY_KEY_LEGACY))
+        .cloned()
+}
+
 impl Context {
     pub fn new(profile: Option<String>, disable_tls: bool) -> Result<Self> {
         let config_path = config::get_config_file_path()?;
@@ -100,16 +116,16 @@ impl Context {
             .and_then(normalize_app_uri)
             .map(str::to_string);
 
-        let Some(Value::String(api_key)) = target_profile.get("apikey").cloned() else {
+        let Some(Value::String(api_key)) = profile_api_key(target_profile) else {
             return Err(anyhow!(
                 "Expected value of '{}' to be a string",
-                "apikey".yellow()
+                API_KEY_KEY.yellow()
             ));
         };
         if api_key.is_empty() {
             return Err(anyhow!(
                 "Expected value of '{}' to be present",
-                "apikey".yellow()
+                API_KEY_KEY.yellow()
             ));
         }
 
@@ -157,7 +173,7 @@ mod tests {
 grpc_uri = "https://grpc-api.siftstack.com"
 rest_uri = "https://api.siftstack.com"
 app_uri = "https://app.siftstack.com"
-apikey = "default-key"
+api_key = "default-key"
 
 [mission]
 grpc_uri = "https://grpc.example.net"
@@ -211,7 +227,7 @@ apikey = "key"
 "#,
             ),
             (
-                "apikey",
+                "api_key",
                 r#"
 grpc_uri = "https://grpc-api.siftstack.com"
 rest_uri = "https://api.siftstack.com"
@@ -222,6 +238,30 @@ app_uri = "https://app.siftstack.com"
             let message = format!("{:#}", context(config, None).err().unwrap());
             assert!(message.contains(field), "field: {field}, error: {message}");
         }
+    }
+
+    #[test]
+    fn accepts_either_api_key_spelling() {
+        // COMPLETE_CONFIG uses `api_key` at the top level and the legacy
+        // `apikey` under [mission], so one load covers both.
+        assert_eq!(
+            context(COMPLETE_CONFIG, None).unwrap().api_key,
+            "default-key"
+        );
+        assert_eq!(
+            context(COMPLETE_CONFIG, Some("mission")).unwrap().api_key,
+            "mission-key"
+        );
+
+        // `config update` never writes both, but a hand-edited file can hold
+        // both; the canonical spelling decides.
+        let both = r#"
+grpc_uri = "https://grpc-api.siftstack.com"
+rest_uri = "https://api.siftstack.com"
+api_key = "canonical"
+apikey = "legacy"
+"#;
+        assert_eq!(context(both, None).unwrap().api_key, "canonical");
     }
 
     #[test]

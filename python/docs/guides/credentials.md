@@ -37,27 +37,32 @@ named table is a profile:
 grpc_uri = "https://api.siftstack.com"
 rest_uri = "https://api.siftstack.com"
 app_uri  = "https://app.siftstack.com"
-apikey   = "..."
+api_key  = "..."
 
 [staging]
 grpc_uri = "https://api.staging.siftstack.com"
 rest_uri = "https://api.staging.siftstack.com"
 app_uri  = "https://app.staging.siftstack.com"
-apikey   = "..."
+api_key  = "..."
 
 [localdev]
 grpc_uri = "http://localhost:50051"
 rest_uri = "http://localhost:8080"
-apikey   = "local"
+api_key  = "local"
 ```
 
 A profile does not inherit from the default profile. If `[staging]` has no
-`apikey`, that is an error rather than a silent fall back to the default
+`api_key`, that is an error rather than a silent fall back to the default
 profile's key, which would otherwise point your tests at one environment using
 another environment's credentials.
 
 Use an `http://` scheme for a plaintext endpoint, as `[localdev]` does above.
 The client reads the scheme to decide whether to use TLS.
+
+Older files spell the key `apikey`, which is still accepted everywhere and needs
+no migration. `api_key` is canonical, matches the rest of Sift's API, and is what
+`sift-cli config update` writes; when a profile somehow carries both, `api_key`
+wins.
 
 ## Resolution order
 

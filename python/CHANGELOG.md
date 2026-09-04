@@ -23,6 +23,8 @@ The pytest plugin gains `--sift-profile`, the `sift_profile` ini key, and `SIFT_
 
 Passing an `http://` URL now connects without TLS instead of failing: transport security follows the gRPC URL's scheme. `https://` and bare host names are unaffected.
 
+In the config file the API key is spelled `api_key`, matching the rest of Sift's API. The older `apikey` is still accepted everywhere and needs no migration; `api_key` wins if a profile carries both.
+
 #### List and get data imports
 
 New in `client.data_import`: `list_` and `get` (plus `find`), and a `run.data_imports` property.

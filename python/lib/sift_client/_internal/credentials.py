@@ -21,7 +21,7 @@ does not, so per-field environment overrides still work in CI.
 
 At most one profile table is ever consulted. A named profile does not inherit
 missing fields from the top-level table, matching ``sift-cli``: a profile that
-omits ``apikey`` is an error rather than a silent fall back to the default
+omits ``api_key`` is an error rather than a silent fall back to the default
 profile's key.
 """
 
@@ -49,14 +49,15 @@ ENV_GRPC_URI = "SIFT_GRPC_URI"
 ENV_REST_URI = "SIFT_REST_URI"
 ENV_APP_URL = "SIFT_APP_URL"
 
-# TOML key -> (public field name, environment variable). The TOML spellings are
-# the ones ``sift-cli`` writes; the env spellings are the ones the pytest plugin
-# already ships. They differ for the app URL and both are kept.
+# Accepted TOML keys -> (public field name, environment variable). The first
+# TOML key is canonical, the rest are accepted spellings kept so files written by
+# earlier releases keep working. The env spellings are the ones the pytest plugin
+# already ships; they differ from the TOML keys for the app URL and both stay.
 _FIELDS = (
-    ("grpc_uri", "grpc_url", ENV_GRPC_URI),
-    ("rest_uri", "rest_url", ENV_REST_URI),
-    ("app_uri", "app_url", ENV_APP_URL),
-    ("apikey", "api_key", ENV_API_KEY),
+    (("grpc_uri",), "grpc_url", ENV_GRPC_URI),
+    (("rest_uri",), "rest_url", ENV_REST_URI),
+    (("app_uri",), "app_url", ENV_APP_URL),
+    (("api_key", "apikey"), "api_key", ENV_API_KEY),
 )
 
 #: Every ``SIFT_*`` variable this module reads. The pytest plugin unions this
@@ -200,6 +201,15 @@ def _profile_table(
     )
 
 
+def _first_present(table: Mapping[str, Any], keys: tuple[str, ...]) -> Any:
+    """The value of the first of ``keys`` set in ``table``, canonical spelling first."""
+    for key in keys:
+        value = table.get(key)
+        if _str_or_none(value) is not None:
+            return value
+    return None
+
+
 def _str_or_none(value: Any) -> str | None:
     """Coerce a layer's value, treating empty and non-string values as absent."""
     if isinstance(value, str) and value:
@@ -290,7 +300,7 @@ def resolve_credentials(
     # which layer it came from.
     arg_layer = {"grpc_url": grpc_url, "rest_url": rest_url, "app_url": app_url, "api_key": api_key}
     env_layer = {field: environ.get(env_key) for _, field, env_key in _FIELDS}
-    file_layer = {field: table.get(toml_key) for toml_key, field, _ in _FIELDS}
+    file_layer = {field: _first_present(table, toml_keys) for toml_keys, field, _ in _FIELDS}
 
     # Highest precedence first. A profile named explicitly outranks the ambient
     # environment; one named by SIFT_PROFILE does not.
