@@ -5,6 +5,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [v0.21.0] - September 4, 2026
+
 ### What's New
 
 #### List and get data imports
@@ -38,6 +40,7 @@ CsvDataColumn(
 Setting `enum_types` on a non-enum data type raises a validation error. Multi-channel Parquet single-channel-per-row imports don't support enums, since channel configs there are derived per row.
 
 ### Bugfixes
+- Fix ingesting `ChannelDataType.BYTES` channels. Registering a flow with a bytes channel raised `ValueError: Unknown data type: bytes`, and sending a value on one raised `ValueError: Invalid data type: bytes`. Both paths now map to the bytes type in `sift-stream-bindings`. Values may be `bytes`, `bytearray`, `memoryview`, or an iterable of ints. Requires `sift-stream-bindings` 0.5.1.
 - Fix `channels.get_data` printing a `UserWarning: Discarding nonzero nanoseconds in conversion` once per channel on each run-scoped fetch. The channel data cache stored segment bounds as `datetime`, which truncated the nanosecond timestamps the data already carries; they are now `pd.Timestamp`. `start_time` and `end_time` on `get_data` and `get_data_as_arrow` also accept a `pd.Timestamp` now, and its nanoseconds survive to the wire, where the service filters on them.
 
 ## [v0.20.0] - August 25, 2026

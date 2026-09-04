@@ -386,6 +386,9 @@ class ChannelValue(BaseModel):
             value_py = ValuePy.Uint64(self.value)
         elif self.ty == ChannelDataType.STRING:
             value_py = ValuePy.String(self.value)
+        elif self.ty == ChannelDataType.BYTES:
+            # Accept bytes, bytearray, memoryview, or any iterable of ints.
+            value_py = ValuePy.Bytes(None if self.value is None else bytes(self.value))
         else:
             raise ValueError(f"Invalid data type: {self.ty}")
 
@@ -501,6 +504,10 @@ def _to_rust_value(channel: ChannelConfig, value: Any) -> IngestWithConfigDataCh
         return IngestWithConfigDataChannelValuePy.uint32(value)
     elif channel.data_type == ChannelDataType.UINT_64:
         return IngestWithConfigDataChannelValuePy.uint64(value)
+    elif channel.data_type == ChannelDataType.STRING:
+        return IngestWithConfigDataChannelValuePy.string(value)
+    elif channel.data_type == ChannelDataType.BYTES:
+        return IngestWithConfigDataChannelValuePy.bytes(bytes(value))
     else:
         raise ValueError(f"Invalid data type: {channel.data_type}")
 
