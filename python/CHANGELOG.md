@@ -5,6 +5,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [v0.21.0] - September 4, 2026
+
 ### What's New
 
 #### List and get data imports

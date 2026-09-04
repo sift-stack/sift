@@ -4432,7 +4432,7 @@ wheels = [
 
 [[package]]
 name = "sift-stack-py"
-version = "0.20.0"
+version = "0.21.0"
 source = { editable = "." }
 dependencies = [
     { name = "alive-progress", version = "3.1.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
