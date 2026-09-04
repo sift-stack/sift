@@ -8,9 +8,11 @@ import pytest
 from sift_client.sift_types.channel import ChannelBitFieldElement, ChannelDataType
 from sift_client.sift_types.ingestion import (
     ChannelConfig,
+    ChannelValue,
     FlowConfig,
     IngestionConfig,
     _to_rust_type,
+    _to_rust_value,
 )
 
 
@@ -82,6 +84,50 @@ class TestChannelConfig:
             # Raises ValueError("Unknown data type: ...") if a variant is missing.
             assert _to_rust_type(data_type) is not None
         assert _to_rust_type(ChannelDataType.BYTES) == ChannelDataTypePy.Bytes
+
+
+class TestChannelValue:
+    """Unit tests for ChannelValue conversion to the Rust bindings."""
+
+    @pytest.mark.parametrize(
+        "value",
+        [b"\xde\xad", bytearray(b"\xde\xad"), memoryview(b"\xde\xad"), [0xDE, 0xAD]],
+    )
+    def test_to_rust_form_bytes(self, value):
+        """Test BYTES channel values reach the Rust Bytes variant, not BitField."""
+        channel_value = ChannelValue(name="payload", ty=ChannelDataType.BYTES, value=value)
+
+        value_py = channel_value._to_rust_form().value
+
+        assert value_py.is_bytes()
+        assert not value_py.is_bitfield()
+        assert bytes(value_py.as_bytes()) == b"\xde\xad"
+
+    def test_to_rust_form_bytes_none_is_empty(self):
+        """Test a None BYTES value becomes an empty value."""
+        channel_value = ChannelValue(name="payload", ty=ChannelDataType.BYTES, value=None)
+
+        assert channel_value._to_rust_form().value.is_empty()
+
+    def test_to_rust_form_covers_every_channel_data_type(self):
+        """Test _to_rust_form has a branch for every ChannelDataType."""
+        for data_type in ChannelDataType:
+            # A None value takes the Empty path but still exercises the data type branch.
+            channel_value = ChannelValue(name="c", ty=data_type, value=None)
+            assert channel_value._to_rust_form().value.is_empty()
+
+    def test_to_rust_value_bytes(self):
+        """Test the flow-config value converter accepts BYTES channels."""
+        channel = ChannelConfig(name="payload", data_type=ChannelDataType.BYTES)
+
+        # Raises ValueError("Invalid data type: bytes") if the branch is missing.
+        assert _to_rust_value(channel, b"\xde\xad") is not None
+
+    def test_to_rust_value_string(self):
+        """Test the flow-config value converter accepts STRING channels."""
+        channel = ChannelConfig(name="label", data_type=ChannelDataType.STRING)
+
+        assert _to_rust_value(channel, "hello") is not None
 
 
 class TestFlowConfig:
