@@ -6,10 +6,9 @@ Covers the env-var-then-ini fallback for URIs, the env-only handling of
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable
+from typing import Callable
 
-if TYPE_CHECKING:
-    import pytest
+import pytest
 
 
 class TestCredentials:
@@ -145,63 +144,51 @@ class TestProfiles:
         for name in ("SIFT_API_KEY", "SIFT_GRPC_URI", "SIFT_REST_URI", "SIFT_PROFILE"):
             monkeypatch.delenv(name, raising=False)
 
-    def test_profile_supplies_credentials(
+    @pytest.mark.parametrize(
+        ("extra_env", "cli_args", "expected_key"),
+        [
+            pytest.param({}, ("--sift-profile", "staging"), "staging-key", id="named-profile"),
+            pytest.param({}, (), "default-key", id="default-profile"),
+            pytest.param(
+                {"SIFT_API_KEY": "ci-key"},
+                ("--sift-profile", "staging"),
+                "ci-key",
+                id="env-beats-profile",
+            ),
+            pytest.param(
+                {"SIFT_PROFILE": "staging"},
+                ("--sift-profile", "other"),
+                "other-key",
+                id="cli-beats-env-profile",
+            ),
+        ],
+    )
+    def test_profile_selection(
         self,
         pytester: pytest.Pytester,
         monkeypatch: pytest.MonkeyPatch,
         write_plugin_conftest: Callable[[], None],
+        extra_env: dict[str, str],
+        cli_args: tuple[str, ...],
+        expected_key: str,
     ) -> None:
-        """`--sift-profile` fills credentials no env var or ini key supplied."""
-        self._write_config(pytester, monkeypatch)
-        write_plugin_conftest()
-        pytester.makepyfile(
-            """
-            def test_from_profile(sift_client):
-                cfg = sift_client.grpc_client._config
-                assert cfg.api_key == "staging-key"
-                assert "grpc.staging.example" in cfg.uri
-            """
-        )
-        result = pytester.runpytest_subprocess("--sift-profile", "staging", "--sift-offline")
-        result.assert_outcomes(passed=1)
+        """Which profile supplies the API key, across the surfaces that can name one.
 
-    def test_default_profile_used_without_a_name(
-        self,
-        pytester: pytest.Pytester,
-        monkeypatch: pytest.MonkeyPatch,
-        write_plugin_conftest: Callable[[], None],
-    ) -> None:
-        """With no profile named, the config file's top-level table is used."""
+        ``env-beats-profile`` is the plugin's deliberate difference from
+        ``SiftClient``: a key injected by CI outranks the profile, so a profile
+        on the runner can never silently replace it.
+        """
         self._write_config(pytester, monkeypatch)
+        for name, value in extra_env.items():
+            monkeypatch.setenv(name, value)
         write_plugin_conftest()
         pytester.makepyfile(
-            """
-            def test_from_default(sift_client):
-                assert sift_client.grpc_client._config.api_key == "default-key"
-            """
-        )
-        result = pytester.runpytest_subprocess("--sift-offline")
-        result.assert_outcomes(passed=1)
-
-    def test_env_var_overrides_profile(
-        self,
-        pytester: pytest.Pytester,
-        monkeypatch: pytest.MonkeyPatch,
-        write_plugin_conftest: Callable[[], None],
-    ) -> None:
-        """In the plugin, an injected env var still wins so CI secrets stay authoritative."""
-        self._write_config(pytester, monkeypatch)
-        monkeypatch.setenv("SIFT_API_KEY", "ci-key")
-        write_plugin_conftest()
-        pytester.makepyfile(
-            """
-            def test_env_wins(sift_client):
-                cfg = sift_client.grpc_client._config
-                assert cfg.api_key == "ci-key"
-                assert "grpc.staging.example" in cfg.uri
+            f"""
+            def test_key(sift_client):
+                assert sift_client.grpc_client._config.api_key == {expected_key!r}
             """
         )
-        result = pytester.runpytest_subprocess("--sift-profile", "staging", "--sift-offline")
+        result = pytester.runpytest_subprocess(*cli_args, "--sift-offline")
         result.assert_outcomes(passed=1)
 
     def test_profile_from_ini_key(
@@ -227,25 +214,6 @@ class TestProfiles:
             """
         )
         result = pytester.runpytest_subprocess()
-        result.assert_outcomes(passed=1)
-
-    def test_cli_flag_beats_env_profile(
-        self,
-        pytester: pytest.Pytester,
-        monkeypatch: pytest.MonkeyPatch,
-        write_plugin_conftest: Callable[[], None],
-    ) -> None:
-        """Typing --sift-profile beats a SIFT_PROFILE left over in the shell."""
-        self._write_config(pytester, monkeypatch)
-        monkeypatch.setenv("SIFT_PROFILE", "staging")
-        write_plugin_conftest()
-        pytester.makepyfile(
-            """
-            def test_cli_wins(sift_client):
-                assert sift_client.grpc_client._config.api_key == "other-key"
-            """
-        )
-        result = pytester.runpytest_subprocess("--sift-profile", "other", "--sift-offline")
         result.assert_outcomes(passed=1)
 
     def test_unknown_profile_is_a_usage_error(

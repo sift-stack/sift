@@ -6,11 +6,8 @@ import sys
 
 import pytest
 
-from sift_client._internal.credentials import (
-    config_file_path,
-    resolve_credentials,
-    user_config_dir,
-)
+from sift_client._internal.credentials import config_file_path, user_config_dir
+from sift_client.credentials import resolve_credentials
 from sift_client.errors import SiftCredentialsError
 
 CONFIG = """\

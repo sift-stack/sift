@@ -35,29 +35,34 @@ from pathlib import Path
 from typing import Any, Mapping
 from urllib.parse import urlparse
 
-# ``tomllib`` landed in 3.11; ``tomli`` is the same parser packaged for older
-# interpreters and is declared as a conditional install dep on 3.8-3.10.
-try:
-    import tomllib  # type: ignore[import-not-found,import-untyped,unused-ignore]
-except ImportError:  # pragma: no cover - exercised on 3.8-3.10 only
-    import tomli as tomllib  # type: ignore[no-redef,import-not-found,unused-ignore]
-
+# Shared with the ``[tool.sift]`` loader so the 3.8-3.10 ``tomli`` fallback is
+# declared once.
+from sift_client._internal.pyproject_config import tomllib
 from sift_client.errors import SiftCredentialsError, SiftWarning
 
 CONFIG_FILE_NAME = "sift.toml"
 
 ENV_PROFILE = "SIFT_PROFILE"
 ENV_CONFIG_FILE = "SIFT_CONFIG_FILE"
+ENV_API_KEY = "SIFT_API_KEY"
+ENV_GRPC_URI = "SIFT_GRPC_URI"
+ENV_REST_URI = "SIFT_REST_URI"
+ENV_APP_URL = "SIFT_APP_URL"
 
 # TOML key -> (public field name, environment variable). The TOML spellings are
 # the ones ``sift-cli`` writes; the env spellings are the ones the pytest plugin
 # already ships. They differ for the app URL and both are kept.
 _FIELDS = (
-    ("grpc_uri", "grpc_url", "SIFT_GRPC_URI"),
-    ("rest_uri", "rest_url", "SIFT_REST_URI"),
-    ("app_uri", "app_url", "SIFT_APP_URL"),
-    ("apikey", "api_key", "SIFT_API_KEY"),
+    ("grpc_uri", "grpc_url", ENV_GRPC_URI),
+    ("rest_uri", "rest_url", ENV_REST_URI),
+    ("app_uri", "app_url", ENV_APP_URL),
+    ("apikey", "api_key", ENV_API_KEY),
 )
+
+#: Every ``SIFT_*`` variable this module reads. The pytest plugin unions this
+#: with its own registry so its unknown-variable warning doesn't flag one of
+#: these as a typo.
+CREDENTIAL_ENV_VARS = (ENV_PROFILE, ENV_CONFIG_FILE, *(env for _, _, env in _FIELDS))
 
 _REQUIRED = ("grpc_url", "rest_url", "api_key")
 
@@ -80,7 +85,6 @@ class ResolvedCredentials:
     app_url: str | None
     use_ssl: bool
     profile: str | None
-    config_path: str | None
     sources: Mapping[str, str]
 
 
@@ -229,14 +233,11 @@ def _derive_use_ssl(grpc_url: str, rest_url: str) -> bool:
 def _select_profile(
     profile: str | None,
     environ: Mapping[str, str],
-) -> tuple[str | None, str | None]:
-    """The profile to read and where its name came from (``"arg"`` or ``"env"``)."""
+) -> tuple[str | None, bool]:
+    """The profile to read, and whether it was named explicitly rather than by env."""
     if profile:
-        return profile, "arg"
-    from_env = environ.get(ENV_PROFILE)
-    if from_env:
-        return from_env, "env"
-    return None, None
+        return profile, True
+    return environ.get(ENV_PROFILE) or None, False
 
 
 def resolve_credentials(
@@ -273,40 +274,36 @@ def resolve_credentials(
             field could not be resolved.
     """
     environ = os.environ if env is None else env
-    profile_name, profile_origin = _select_profile(profile, environ)
+    profile_name, profile_is_explicit = _select_profile(profile, environ)
 
     path = config_file_path(config_path, environ)
     config = _load_config(path)
 
     if profile_name is not None:
-        file_layer: Mapping[str, Any] = _profile_table(config, profile_name, path)
+        table: Mapping[str, Any] = _profile_table(config, profile_name, path)
         file_source = f"profile:{profile_name}"
     else:
-        file_layer = config
+        table = config
         file_source = "default"
 
-    args = {"grpc_url": grpc_url, "rest_url": rest_url, "app_url": app_url, "api_key": api_key}
+    # Every layer is keyed by field name, so picking a value never depends on
+    # which layer it came from.
+    arg_layer = {"grpc_url": grpc_url, "rest_url": rest_url, "app_url": app_url, "api_key": api_key}
+    env_layer = {field: environ.get(env_key) for _, field, env_key in _FIELDS}
+    file_layer = {field: table.get(toml_key) for toml_key, field, _ in _FIELDS}
 
-    # Ordered highest precedence first. The file layer appears exactly once:
-    # above the environment when its profile was named explicitly, below it
-    # otherwise.
-    layers: list[tuple[str, Mapping[str, Any]]] = [("arg", args)]
-    if profile_origin == "arg":
-        layers.append((file_source, file_layer))
-    layers.append(("env", environ))
-    if profile_origin != "arg":
-        layers.append((file_source, file_layer))
+    # Highest precedence first. A profile named explicitly outranks the ambient
+    # environment; one named by SIFT_PROFILE does not.
+    if profile_is_explicit:
+        layers = [("arg", arg_layer), (file_source, file_layer), ("env", env_layer)]
+    else:
+        layers = [("arg", arg_layer), ("env", env_layer), (file_source, file_layer)]
 
     resolved: dict[str, str] = {}
     sources: dict[str, str] = {}
-    for toml_key, field_name, env_key in _FIELDS:
+    for _, field_name, _ in _FIELDS:
         for source, layer in layers:
-            if source == "arg":
-                value = _str_or_none(layer.get(field_name))
-            elif source == "env":
-                value = _str_or_none(layer.get(env_key))
-            else:
-                value = _str_or_none(layer.get(toml_key))
+            value = _str_or_none(layer.get(field_name))
             if value is not None:
                 resolved[field_name] = value
                 sources[field_name] = source
@@ -319,7 +316,7 @@ def resolve_credentials(
         missing = [name for name in _REQUIRED if not resolved[name]]
         if missing:
             raise SiftCredentialsError(
-                _missing_message(missing, profile_name, profile_origin, path, config)
+                _missing_message(missing, profile_name, profile_is_explicit, path, config)
             )
 
     return ResolvedCredentials(
@@ -329,7 +326,6 @@ def resolve_credentials(
         app_url=resolved["app_url"] or None,
         use_ssl=_derive_use_ssl(resolved["grpc_url"], resolved["rest_url"]),
         profile=profile_name,
-        config_path=str(path) if path else None,
         sources=sources,
     )
 
@@ -337,7 +333,7 @@ def resolve_credentials(
 def _missing_message(
     missing: list[str],
     profile_name: str | None,
-    profile_origin: str | None,
+    profile_is_explicit: bool,
     path: Path | None,
     config: Mapping[str, Any],
 ) -> str:
@@ -346,7 +342,7 @@ def _missing_message(
     wanted = ", ".join(env_names[name] for name in missing)
 
     if profile_name is not None:
-        origin = "--profile/profile=" if profile_origin == "arg" else ENV_PROFILE
+        origin = "--profile/profile=" if profile_is_explicit else ENV_PROFILE
         looked = f"profile '{profile_name}' (from {origin}) in '{path}'"
         fix = f"`{_CLI_NAME} config update --profile {profile_name}`"
     elif path is not None:
@@ -360,13 +356,11 @@ def _missing_message(
         f"Sift credentials incomplete. Missing: {wanted}.",
         f"Looked in: {looked}, then the environment.",
     ]
-    if profile_name is None and config:
-        available = _profile_names(config)
-        if available:
-            lines.append(
-                f"Named profiles in that file: {', '.join(available)}. "
-                "Select one with profile=<name> or SIFT_PROFILE=<name>."
-            )
+    if profile_name is None and (available := _profile_names(config)):
+        lines.append(
+            f"Named profiles in that file: {', '.join(available)}. "
+            "Select one with profile=<name> or SIFT_PROFILE=<name>."
+        )
     lines.append(
         f"Set them with {fix}, export {wanted}, "
         "or pass api_key/grpc_url/rest_url to SiftClient directly."

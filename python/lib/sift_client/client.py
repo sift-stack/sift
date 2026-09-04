@@ -4,9 +4,9 @@ import logging
 import warnings
 from typing import TYPE_CHECKING, Mapping
 
-from sift_client._internal.credentials import ResolvedCredentials, resolve_credentials
 from sift_client._internal.disk_cache_config import DiskCacheConfig
 from sift_client._internal.urls import frontend_origin_for_api
+from sift_client.credentials import ResolvedCredentials, resolve_credentials
 from sift_client.errors import SiftWarning
 from sift_client.resources import (
     AssetsAPI,
@@ -46,9 +46,7 @@ from sift_client.resources import (
 from sift_client.resources.access_control import AccessControlAPI, AccessControlAPIAsync
 from sift_client.transport import (
     GrpcClient,
-    GrpcConfig,
     RestClient,
-    RestConfig,
     SiftConnectionConfig,
     WithGrpcClient,
     WithRestClient,
@@ -192,10 +190,7 @@ class SiftClient(
         """
         self._credentials: ResolvedCredentials | None = None
 
-        if connection_config:
-            grpc_client = GrpcClient(connection_config.get_grpc_config())
-            rest_client = RestClient(connection_config.get_rest_config())
-        else:
+        if connection_config is None:
             creds = resolve_credentials(
                 api_key=api_key,
                 grpc_url=grpc_url,
@@ -207,22 +202,23 @@ class SiftClient(
             # ``use_ssl`` comes from the gRPC URL's scheme: the transport strips
             # the scheme off and would otherwise dial an ``http://`` endpoint
             # over TLS.
-            grpc_client = GrpcClient(
-                GrpcConfig(creds.grpc_url, creds.api_key, use_ssl=creds.use_ssl)
+            connection_config = SiftConnectionConfig(
+                grpc_url=creds.grpc_url,
+                rest_url=creds.rest_url,
+                api_key=creds.api_key,
+                use_ssl=creds.use_ssl,
+                app_url=creds.app_url,
             )
-            rest_client = RestClient(
-                RestConfig(creds.rest_url, creds.api_key, use_ssl=creds.use_ssl)
-            )
-            app_url = creds.app_url
+
+        grpc_client = GrpcClient(connection_config.get_grpc_config())
+        rest_client = RestClient(connection_config.get_rest_config())
 
         WithGrpcClient.__init__(self, grpc_client=grpc_client)
         WithRestClient.__init__(self, rest_client=rest_client)
 
         # Explicit web-app origin override; falls back to the connection config's
         # value, then to host-based derivation in the ``app_url`` property.
-        self._app_url: str | None = app_url or (
-            connection_config.app_url if connection_config else None
-        )
+        self._app_url: str | None = app_url or connection_config.app_url
 
         # When set, test-results writes return synthesized responses without
         # contacting Sift. Read by `TestResultsAPIAsync._simulate`. Used by the

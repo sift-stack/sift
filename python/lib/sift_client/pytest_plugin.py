@@ -23,7 +23,6 @@ from typing import Any, Generator, NoReturn
 import pytest
 
 from sift_client import SiftClient, SiftConnectionConfig
-from sift_client._internal.credentials import resolve_credentials
 from sift_client._internal.pytest_plugin.audit_log import (
     _make_session_dir,
     configure_audit_logging,
@@ -82,6 +81,7 @@ from sift_client._internal.pytest_plugin.terminal import (
     write_disabled_summary,
     write_report_summary,
 )
+from sift_client.credentials import resolve_credentials
 from sift_client.errors import SiftCredentialsError, SiftWarning
 from sift_client.sift_types.test_report import TestStatus
 from sift_client.util.test_results import ReportContext
@@ -226,7 +226,7 @@ def sift_client(pytestconfig: pytest.Config) -> SiftClient:
             grpc_url=GRPC_URI_OPTION.resolve(pytestconfig),
             rest_url=REST_URI_OPTION.resolve(pytestconfig),
             app_url=APP_URL_OPTION.resolve(pytestconfig),
-            profile=_resolve_profile(pytestconfig),
+            profile=PROFILE_OPTION.resolve(pytestconfig),
             require=False,
         )
     except SiftCredentialsError as exc:
@@ -266,20 +266,6 @@ def sift_client(pytestconfig: pytest.Config) -> SiftClient:
             use_ssl=creds.use_ssl,
         )
     )
-
-
-def _resolve_profile(pytestconfig: pytest.Config) -> str | None:
-    """The sift.toml profile for this run, preferring the CLI flag over SIFT_PROFILE.
-
-    ``Option.resolve`` walks env before cli, which is right for the credential
-    options but wrong for a profile: typing ``--sift-profile staging`` should
-    beat a ``SIFT_PROFILE`` left over in the shell. Only this option declares
-    both surfaces, so the reordering stays local.
-    """
-    from_cli = pytestconfig.getoption(PROFILE_OPTION.cli_dest, default=None)
-    if from_cli:
-        return str(from_cli)
-    return PROFILE_OPTION.resolve(pytestconfig)
 
 
 @pytest.fixture(scope="session")

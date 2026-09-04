@@ -53,19 +53,6 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
         item.add_marker("plugin_compat")
 
 
-@pytest.fixture(autouse=True)
-def _isolate_sift_config_file(monkeypatch: pytest.MonkeyPatch, tmp_path_factory) -> None:
-    """Point credential resolution at a config file that does not exist.
-
-    Inner sessions inherit this environment, so without it a developer's real
-    ``~/.config/sift.toml`` would supply credentials the test never set and the
-    missing-credential assertions would pass locally but not in CI.
-    """
-    absent = tmp_path_factory.mktemp("sift-config") / "absent.toml"
-    monkeypatch.setenv("SIFT_CONFIG_FILE", str(absent))
-    monkeypatch.delenv("SIFT_PROFILE", raising=False)
-
-
 @pytest.fixture
 def clear_sift_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """Unset all ``SIFT_*`` environment variables for the duration of the test."""

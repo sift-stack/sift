@@ -111,3 +111,23 @@ class TestTypoDetector:
         result = pytester.runpytest_subprocess("--sift-disabled")
         combined = "\n".join(result.outlines + result.errlines)
         assert "Unknown sift config key" not in combined, combined
+
+    def test_credential_resolver_env_vars_are_known(
+        self,
+        pytester: pytest.Pytester,
+        clear_sift_env: None,
+        monkeypatch: pytest.MonkeyPatch,
+        write_plugin_conftest: Callable[[], None],
+    ) -> None:
+        """``SIFT_CONFIG_FILE`` is honored by the resolver, so it must not read as a typo.
+
+        The registry does not declare it; the known set unions the credential
+        resolver's own variables so the warning can't tell a user that a
+        variable the run obeyed was ignored.
+        """
+        monkeypatch.setenv("SIFT_CONFIG_FILE", str(pytester.path / "absent.toml"))
+        write_plugin_conftest()
+        pytester.makepyfile("def test_runs(): pass")
+        result = pytester.runpytest_subprocess("--sift-disabled")
+        combined = "\n".join(result.outlines + result.errlines)
+        assert "SIFT_CONFIG_FILE" not in combined, combined

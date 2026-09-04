@@ -20,6 +20,14 @@ from sift_client._internal.pytest_plugin.audit_log import log_event
 
 logger = logging.getLogger(__name__)
 
+from sift_client._internal.credentials import (
+    CREDENTIAL_ENV_VARS,
+    ENV_API_KEY,
+    ENV_APP_URL,
+    ENV_GRPC_URI,
+    ENV_PROFILE,
+    ENV_REST_URI,
+)
 from sift_client._internal.pyproject_config import load_tool_sift
 
 # Settings-reference categories. Each maps to a docs subsection and, in the
@@ -55,7 +63,7 @@ class Option:
 
     A setting may come from an env var, a CLI flag, a pytest ini key, or a
     ``[tool.sift...]`` TOML path. :meth:`resolve` walks the declared surfaces in
-    env > cli > ini > toml order; ``metadata`` (``merge=True``) is the one
+    ``surfaces`` order; ``metadata`` (``merge=True``) is the one
     free-form table, resolved by :meth:`resolve_merged`. The single ``PLUGIN_OPTIONS``
     registry of these drives ``pytest_addoption``, the resolvers, the docs
     settings-reference table, and the typo detector.
@@ -67,6 +75,8 @@ class Option:
     - ``toml``: tuple path under ``[tool.sift...]``, e.g.
       ``("pytest", "report", "name")`` -> ``tool.sift.pytest.report.name``.
     - ``env``: full env var name, e.g. ``"SIFT_API_KEY"``.
+    - ``surfaces``: precedence order, defaulting to env before cli. Override it
+      where a typed flag should beat an ambient env var, as ``profile`` does.
 
     ``category`` groups the option in the docs reference (one of ``CATEGORIES``).
     """
@@ -82,6 +92,7 @@ class Option:
     toml: tuple[str, ...] | None = None
     env: str | None = None
     merge: bool = False
+    surfaces: tuple[str, ...] = ("env", "cli", "ini", "toml")
 
     @property
     def cli_dest(self) -> str:
@@ -109,14 +120,16 @@ class Option:
             raise ValueError(f"Option({self.name!r}): declares no surfaces")
         if self.category not in CATEGORIES:
             raise ValueError(f"Option({self.name!r}): category must be one of {CATEGORIES}")
+        if set(self.surfaces) != {"env", "cli", "ini", "toml"}:
+            raise ValueError(
+                f"Option({self.name!r}): surfaces must be a permutation of "
+                "('env', 'cli', 'ini', 'toml')"
+            )
 
     def resolve(self, config: pytest.Config | None) -> Any:
         """First set value from declared surfaces; ``None`` when unset everywhere.
 
-        Walk order is env > cli > ini > toml. ``profile`` is the only option
-        declaring both env and cli, and env-before-cli is the wrong order for
-        it, so the ``sift_client`` fixture reads its CLI flag first rather than
-        calling this; see ``_resolve_profile``.
+        Walk order is :attr:`surfaces`, env before cli by default.
         ``getini`` returns the typed default for unset bool/list keys, so this
         only returns ini values for booleans (always meaningful), non-empty
         strings, and non-empty lists.
@@ -128,34 +141,42 @@ class Option:
 
         Returns ``(value, source)`` where ``source`` is one of
         ``env``/``cli``/``ini``/``toml``, or ``default`` when nothing set it
-        (``value`` is then ``None``). Used by the audit log's settings snapshot.
+        (``value`` is then ``None``). Used by the audit log's settings snapshot,
+        which therefore always reports the surface the run actually used.
         """
-        if self.env:
+        for surface in self.surfaces:
+            value = self._read_surface(surface, config)
+            if value is not None:
+                return value, surface
+        return None, "default"
+
+    def _read_surface(self, surface: str, config: pytest.Config | None) -> Any:
+        """This option's value from one surface, or ``None`` when unset there."""
+        if surface == "env":
+            if not self.env:
+                return None
             env_value = os.getenv(self.env)
-            if env_value not in (None, ""):
-                return env_value, "env"
+            return env_value if env_value else None
         if config is None:
-            return None, "default"
-        if self.cli:
-            cli_value = config.getoption(self.cli_dest, default=None)
-            if cli_value is not None:
-                return cli_value, "cli"
-        if self.ini:
+            return None
+        if surface == "cli":
+            return config.getoption(self.cli_dest, default=None) if self.cli else None
+        if surface == "ini":
+            if not self.ini:
+                return None
             try:
                 ini_value = config.getini(self.ini)
             except (KeyError, ValueError):
-                ini_value = None
+                return None
             if isinstance(ini_value, bool):
-                return ini_value, "ini"
-            if isinstance(ini_value, str) and ini_value:
-                return ini_value, "ini"
-            if isinstance(ini_value, list) and ini_value:
-                return ini_value, "ini"
-        if self.toml:
-            toml_value = _walk_toml(tool_sift(config), self.toml)
-            if toml_value not in (None, ""):
-                return toml_value, "toml"
-        return None, "default"
+                return ini_value
+            if isinstance(ini_value, (str, list)) and ini_value:
+                return ini_value
+            return None
+        if not self.toml:
+            return None
+        toml_value = _walk_toml(tool_sift(config), self.toml)
+        return toml_value if toml_value not in (None, "") else None
 
     def resolve_merged(self, config: pytest.Config | None) -> dict[str, str | float | bool]:
         """For ``merge=True`` dict-shape settings: the free-form TOML table.
@@ -345,27 +366,28 @@ PROFILE_OPTION = Option(
     category=CAT_CONNECTION,
     help="Named sift.toml profile to draw credentials from, as used by `sift-cli --profile`.",
     cli="--sift-profile",
-    env="SIFT_PROFILE",
+    env=ENV_PROFILE,
     ini="sift_profile",
+    surfaces=("cli", "env", "ini", "toml"),
 )
 API_KEY_OPTION = Option(
     name="api_key",
     category=CAT_CONNECTION,
     help="Sift API key (secret, env-only).",
-    env="SIFT_API_KEY",
+    env=ENV_API_KEY,
 )
 GRPC_URI_OPTION = Option(
     name="grpc_uri",
     category=CAT_CONNECTION,
     help="Sift gRPC endpoint URI.",
-    env="SIFT_GRPC_URI",
+    env=ENV_GRPC_URI,
     ini="sift_grpc_uri",
 )
 REST_URI_OPTION = Option(
     name="rest_uri",
     category=CAT_CONNECTION,
     help="Sift REST endpoint URI.",
-    env="SIFT_REST_URI",
+    env=ENV_REST_URI,
     ini="sift_rest_uri",
 )
 APP_URL_OPTION = Option(
@@ -374,7 +396,7 @@ APP_URL_OPTION = Option(
     help="Sift web-app origin for the report link in the terminal footer (e.g. "
     "https://app.siftstack.com). When unset, the link is derived from the REST URI "
     "for known Sift hosts.",
-    env="SIFT_APP_URL",
+    env=ENV_APP_URL,
     ini="sift_app_url",
 )
 
@@ -573,16 +595,18 @@ def render_settings_reference() -> str:
 
 
 def warn_on_unknown_env_vars() -> None:
-    """Emit a warning for any ``SIFT_*`` env var not declared in the registry.
+    """Emit a warning for any ``SIFT_*`` env var this plugin doesn't read.
 
-    The registry declares each env var by its full name (``opt.env``); a
-    ``SIFT_*`` var that matches none of them is almost always a typo.
+    Known names are the registry's (``opt.env``) plus the credential resolver's
+    ``CREDENTIAL_ENV_VARS``, which includes variables like ``SIFT_CONFIG_FILE``
+    that the resolver honors without the registry declaring them. A ``SIFT_*``
+    var matching neither is almost always a typo.
     """
     import difflib
 
     from sift_client.pytest_plugin import SiftPytestPluginWarning
 
-    known_full = {opt.env for opt in PLUGIN_OPTIONS if opt.env}
+    known_full = {opt.env for opt in PLUGIN_OPTIONS if opt.env} | set(CREDENTIAL_ENV_VARS)
     suggestion_pool = sorted(known_full)
     for name in sorted(os.environ):
         if not name.startswith("SIFT_"):
