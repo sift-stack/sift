@@ -3,25 +3,26 @@ syntax = "proto3";
 package sift.artifacts.v1;
 
 import "google/api/annotations.proto";
-import "protoc-gen-openapiv2/options/annotations.proto";
+import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "sift/metadata/v1/metadata.proto";
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Artifact Service"}
 };
 
-// ArtifactService manages artifacts: independent, org-scoped, versioned
-// documents. An artifact is not owned by a conversation. A conversation may
-// reference an artifact through a link, any number of conversations may link
-// the same artifact, and an artifact may exist with no link at all (for
-// example, created over MCP outside an agent session).
+// ArtifactService manages an organization-scoped, versioned generic artifact
+// store. Content class decides whether content lives in remote_files or the
+// version's JSON payload. Attachment and provenance are links, and metadata
+// uses the shared metadata values (sift.metadata.v1). No conversation owns an
+// artifact.
 //
-// The service carries artifact metadata only. Version bytes live in
-// remote_files (entity_type 'artifact_versions', entity_id =
-// artifact_version_id): upload via the remote-files multipart endpoint,
-// download via RemoteFileService.GetRemoteFileDownloadUrl.
+// Artifact bytes live in remote_files (entity_type 'artifact_versions',
+// entity_id = artifact_version_id): upload via the remote-files multipart
+// endpoint, download via RemoteFileService.GetRemoteFileDownloadUrl.
 service ArtifactService {
-  // Creates an artifact plus its version-1 row, or appends a version when
+  // Creates an artifact plus its version-1 entry, or appends a version when
   // artifact_id is set. When conversation_id is set on create, the new
   // artifact is also linked to that conversation.
   rpc CreateArtifact(CreateArtifactRequest) returns (CreateArtifactResponse) {
@@ -48,12 +49,12 @@ service ArtifactService {
 
   // One entry per artifact, resolved to its latest version, oldest first.
   // With conversation_id set, only artifacts linked to that conversation;
-  // otherwise every artifact created by the caller.
+  // otherwise every artifact in the caller's organization.
   rpc ListArtifacts(ListArtifactsRequest) returns (ListArtifactsResponse) {
     option (google.api.http) = {get: "/api/v1/artifacts"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "ListArtifacts"
-      description: "List artifacts created by the caller, optionally filtered to one conversation."
+      description: "List artifacts in the caller's organization, optionally filtered to one conversation."
       operation_id: "ArtifactService_ListArtifactsV1"
     };
   }
@@ -68,12 +69,49 @@ service ArtifactService {
     };
   }
 
-  // Links an existing artifact to a conversation. Idempotent: linking an
-  // already-linked pair succeeds without effect.
-  rpc LinkArtifactToConversation(LinkArtifactToConversationRequest) returns (LinkArtifactToConversationResponse) {
+  // Links an artifact to an entity. Idempotent: an existing identical link
+  // succeeds without effect.
+  rpc LinkArtifact(LinkArtifactRequest) returns (LinkArtifactResponse) {
     option (google.api.http) = {
-      post: "/api/v1/artifacts/{artifact_id}/conversations/{conversation_id}:link"
+      post: "/api/v1/artifacts/{artifact_id}/links"
+      body: "*"
     };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "LinkArtifact"
+      description: "Link an artifact to an entity."
+      operation_id: "ArtifactService_LinkArtifactV1"
+    };
+  }
+
+  // Removes a link from an artifact. Idempotent: a missing link succeeds.
+  // SOURCE links are provenance and are not removable (InvalidArgument).
+  rpc UnlinkArtifact(UnlinkArtifactRequest) returns (UnlinkArtifactResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/artifacts/{artifact_id}/links:unlink"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UnlinkArtifact"
+      description: "Remove a link from an artifact."
+      operation_id: "ArtifactService_UnlinkArtifactV1"
+    };
+  }
+
+  // Lists links for an artifact.
+  rpc ListArtifactLinks(ListArtifactLinksRequest) returns (ListArtifactLinksResponse) {
+    option (google.api.http) = {get: "/api/v1/artifacts/{artifact_id}/links"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListArtifactLinks"
+      description: "List links for an artifact."
+      operation_id: "ArtifactService_ListArtifactLinksV1"
+    };
+  }
+
+  // Links an existing artifact to a conversation. Equivalent to LinkArtifact
+  // with relation ATTACHED_TO and entity_type "conversations". Idempotent:
+  // linking an already-linked pair succeeds without effect.
+  rpc LinkArtifactToConversation(LinkArtifactToConversationRequest) returns (LinkArtifactToConversationResponse) {
+    option (google.api.http) = {post: "/api/v1/artifacts/{artifact_id}/conversations/{conversation_id}:link"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "LinkArtifactToConversation"
       description: "Link an existing artifact to a conversation."
@@ -81,12 +119,12 @@ service ArtifactService {
     };
   }
 
-  // Removes one conversation's link to an artifact. The artifact itself is
-  // untouched. Idempotent: unlinking a missing link succeeds.
+  // Removes one conversation's link to an artifact. Equivalent to
+  // UnlinkArtifact with relation ATTACHED_TO and entity_type "conversations".
+  // The artifact itself is untouched. Idempotent: unlinking a missing link
+  // succeeds.
   rpc UnlinkArtifactFromConversation(UnlinkArtifactFromConversationRequest) returns (UnlinkArtifactFromConversationResponse) {
-    option (google.api.http) = {
-      post: "/api/v1/artifacts/{artifact_id}/conversations/{conversation_id}:unlink"
-    };
+    option (google.api.http) = {post: "/api/v1/artifacts/{artifact_id}/conversations/{conversation_id}:unlink"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "UnlinkArtifactFromConversation"
       description: "Remove a conversation's link to an artifact."
@@ -94,14 +132,14 @@ service ArtifactService {
     };
   }
 
-  // Sets archived_date. Versions, stored bytes, and conversation links are
+  // Sets archived_date. Versions, bytes, and conversation links are
   // left in place. Idempotent: archiving an already-archived artifact
   // succeeds without changing archived_date.
   rpc ArchiveArtifact(ArchiveArtifactRequest) returns (ArchiveArtifactResponse) {
     option (google.api.http) = {post: "/api/v1/artifacts/{artifact_id}/archive"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "ArchiveArtifact"
-      description: "Archive an artifact. Versions, stored bytes, and conversation links are left in place."
+      description: "Archive an artifact. Versions, bytes, and conversation links are left in place."
       operation_id: "ArtifactService_ArchiveArtifactV1"
     };
   }
@@ -124,6 +162,42 @@ enum ArtifactAuthoringKind {
   ARTIFACT_AUTHORING_KIND_USER = 2;
 }
 
+enum ArtifactStorageClass {
+  // The content class is not specified.
+  ARTIFACT_STORAGE_CLASS_UNSPECIFIED = 0;
+  // Bytes in remote_files, previewable by MIME type.
+  ARTIFACT_STORAGE_CLASS_FILE = 1;
+  // Content is the JSON payload, no file.
+  ARTIFACT_STORAGE_CLASS_STRUCTURED = 2;
+  // Bytes in remote_files, opaque, download only.
+  ARTIFACT_STORAGE_CLASS_BLOB = 3;
+}
+
+// Which surface wrote the artifact, independent of authoring_kind (who is accountable).
+enum ArtifactCreatedVia {
+  // The producing surface is not specified.
+  ARTIFACT_CREATED_VIA_UNSPECIFIED = 0;
+  // Chat wrote the artifact.
+  ARTIFACT_CREATED_VIA_CHAT = 1;
+  // Canvas wrote the artifact.
+  ARTIFACT_CREATED_VIA_CANVAS = 2;
+  // The SDK wrote the artifact.
+  ARTIFACT_CREATED_VIA_SDK = 3;
+  // A direct upload wrote the artifact.
+  ARTIFACT_CREATED_VIA_UPLOAD = 4;
+}
+
+enum ArtifactLinkRelation {
+  // The link relation is not specified.
+  ARTIFACT_LINK_RELATION_UNSPECIFIED = 0;
+  // Placement, where the artifact surfaces.
+  ARTIFACT_LINK_RELATION_ATTACHED_TO = 1;
+  // Provenance, what the artifact was produced from; immutable.
+  ARTIFACT_LINK_RELATION_SOURCE = 2;
+  // Artifact-to-artifact.
+  ARTIFACT_LINK_RELATION_DERIVED_FROM = 3;
+}
+
 // Container fields flattened together with one resolved version.
 message Artifact {
   string artifact_id = 1;
@@ -143,12 +217,21 @@ message Artifact {
   // Unset until bytes are uploaded.
   optional string remote_file_id = 13;
   google.protobuf.Timestamp version_created_date = 14;
-  // From the version's remote_files row. Unset until bytes are uploaded.
+  // From the version's remote_files record. Unset until bytes are uploaded.
   // Clients infer preview behavior from file_name / file_mime_type.
   optional string file_name = 15;
   optional string file_mime_type = 16;
   // Unset while the artifact is active.
   optional google.protobuf.Timestamp archived_date = 17;
+  ArtifactStorageClass storage_class = 18;
+  ArtifactCreatedVia created_via = 19;
+  // An open semantic type label, such as markdown, code, image, pdf, psd, or
+  // table. This is not an encoding; encodings come from file_mime_type.
+  optional string kind = 20;
+  // Set only for STRUCTURED artifacts.
+  optional google.protobuf.Struct payload = 21;
+  // Metadata attached to the resolved version.
+  repeated sift.metadata.v1.MetadataValue metadata = 22;
 }
 
 message ArtifactVersion {
@@ -161,9 +244,38 @@ message ArtifactVersion {
   repeated string source_tool_use_ids = 7;
   optional string remote_file_id = 8;
   google.protobuf.Timestamp created_date = 9;
-  // From the version's remote_files row. Unset until bytes are uploaded.
+  // From the version's remote_files record. Unset until bytes are uploaded.
   optional string file_name = 10;
   optional string file_mime_type = 11;
+  // Set only for STRUCTURED artifacts.
+  optional google.protobuf.Struct payload = 12;
+  // Metadata attached to this version.
+  repeated sift.metadata.v1.MetadataValue metadata = 13;
+}
+
+// A link from an artifact to another entity.
+message ArtifactLink {
+  string artifact_link_id = 1;
+  string artifact_id = 2;
+  // Unset means the link is version-agnostic. ATTACHED_TO links are always
+  // version-agnostic. SOURCE and DERIVED_FROM links created with a version ID
+  // pin that version.
+  optional string artifact_version_id = 3;
+  ArtifactLinkRelation relation = 4;
+  // An open string accepting lowercase values: conversations, canvases, runs,
+  // assets, artifacts, or tool_uses.
+  string entity_type = 5;
+  string entity_id = 6;
+  string organization_id = 7;
+  google.protobuf.Timestamp created_date = 8;
+}
+
+message ArtifactLinkInput {
+  ArtifactLinkRelation relation = 1;
+  // An open string accepting lowercase values: conversations, canvases, runs,
+  // assets, artifacts, or tool_uses.
+  string entity_type = 2;
+  string entity_id = 3;
 }
 
 message CreateArtifactRequest {
@@ -171,14 +283,33 @@ message CreateArtifactRequest {
   optional string artifact_id = 1;
   // Set to link the new artifact to a conversation at create time. Legal
   // only on create (not on append), and only for the conversation's author.
+  // Equivalent to a links entry with relation ATTACHED_TO, entity_type
+  // "conversations", and this conversation_id as entity_id.
   optional string conversation_id = 2;
   optional string title = 4;
   optional string summary = 5;
   // Defaults to USER. AGENT is self-reported: the agent pod authenticates
   // with the requesting user's transient key, so until scoped pod
-  // credentials land (ENG-12831) authorship attribution rides on the same
+  // credentials land, authorship attribution rides on the same
   // trust as the pod's message persistence path.
   optional ArtifactAuthoringKind authoring_kind = 6;
+  // A container field. Legal on create and defaults to FILE when unset. On
+  // append, it must match the container.
+  optional ArtifactStorageClass storage_class = 7;
+  // A container field. Legal on create and defaults to SDK when unset. On
+  // append, it must match the container.
+  optional ArtifactCreatedVia created_via = 8;
+  // An open semantic type label and container field. Legal on create. On
+  // append, it must match the container.
+  optional string kind = 9;
+  // Required for STRUCTURED and rejected otherwise. The serialized payload
+  // must not exceed 1 MiB.
+  optional google.protobuf.Struct payload = 10;
+  // Metadata attached to the created version.
+  repeated sift.metadata.v1.MetadataValue metadata = 11;
+  // Links created alongside the artifact version. ATTACHED_TO links are at
+  // the artifact level. SOURCE and DERIVED_FROM links pin the new version.
+  repeated ArtifactLinkInput links = 12;
 }
 
 message CreateArtifactResponse {
@@ -195,12 +326,30 @@ message GetArtifactResponse {
 }
 
 message ListArtifactsRequest {
-  // Unset lists every artifact created by the caller.
+  // Unset lists every artifact in the caller's organization.
   optional string conversation_id = 1;
   uint32 page_size = 2;
   string page_token = 3;
   // When false (the default), archived artifacts are omitted.
   bool include_archived = 4;
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec)
+  // filter string. Available fields are artifact_id, organization_id,
+  // created_by_user_id, authoring_kind, storage_class, created_via, kind,
+  // title, version, created_date, archived_date, the include_archived
+  // directive, and metadata through `metadata["<key>"]`. Links can be filtered
+  // with a comprehension such as `links.exists(l, l.relation == "ATTACHED_TO"
+  // && l.entity_type == "conversations" && l.entity_id == "<id>")`. Link
+  // sub-fields are relation, entity_type, entity_id, and artifact_version_id.
+  // Enum fields compare against proto value names without the prefix, for
+  // example `storage_class == "STRUCTURED"`. The conversation_id and
+  // include_archived fields on this message keep working and combine with
+  // filter.
+  string filter = 5;
+  // A comma-separated [AIP-132](https://google.aip.dev/132#ordering) ordering
+  // string over created_date, archived_date, title, version, and kind. Fields
+  // sort ascending by default and support a `desc` suffix. The default is
+  // created_date ascending.
+  string order_by = 6;
 }
 
 message ListArtifactsResponse {
@@ -216,6 +365,40 @@ message ListArtifactVersionsRequest {
 
 message ListArtifactVersionsResponse {
   repeated ArtifactVersion versions = 1;
+  string next_page_token = 2;
+}
+
+message LinkArtifactRequest {
+  string artifact_id = 1;
+  ArtifactLinkRelation relation = 2;
+  string entity_type = 3;
+  string entity_id = 4;
+  optional string artifact_version_id = 5;
+}
+
+message LinkArtifactResponse {
+  ArtifactLink link = 1;
+}
+
+message UnlinkArtifactRequest {
+  string artifact_id = 1;
+  ArtifactLinkRelation relation = 2;
+  string entity_type = 3;
+  string entity_id = 4;
+  optional string artifact_version_id = 5;
+}
+
+message UnlinkArtifactResponse {}
+
+message ListArtifactLinksRequest {
+  string artifact_id = 1;
+  optional ArtifactLinkRelation relation = 2;
+  uint32 page_size = 3;
+  string page_token = 4;
+}
+
+message ListArtifactLinksResponse {
+  repeated ArtifactLink links = 1;
   string next_page_token = 2;
 }
 

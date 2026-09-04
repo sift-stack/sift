@@ -2,11 +2,13 @@ use async_trait::async_trait;
 use mockall::mock;
 use sift_rs::artifacts::v1::{
     ArchiveArtifactRequest, ArchiveArtifactResponse, CreateArtifactRequest, CreateArtifactResponse,
-    GetArtifactRequest, GetArtifactResponse, LinkArtifactToConversationRequest,
-    LinkArtifactToConversationResponse, ListArtifactVersionsRequest, ListArtifactVersionsResponse,
-    ListArtifactsRequest, ListArtifactsResponse, UnarchiveArtifactRequest,
-    UnarchiveArtifactResponse, UnlinkArtifactFromConversationRequest,
-    UnlinkArtifactFromConversationResponse, artifact_service_server::ArtifactService,
+    GetArtifactRequest, GetArtifactResponse, LinkArtifactRequest, LinkArtifactResponse,
+    LinkArtifactToConversationRequest, LinkArtifactToConversationResponse,
+    ListArtifactLinksRequest, ListArtifactLinksResponse, ListArtifactVersionsRequest,
+    ListArtifactVersionsResponse, ListArtifactsRequest, ListArtifactsResponse,
+    UnarchiveArtifactRequest, UnarchiveArtifactResponse, UnlinkArtifactFromConversationRequest,
+    UnlinkArtifactFromConversationResponse, UnlinkArtifactRequest, UnlinkArtifactResponse,
+    artifact_service_server::ArtifactService,
 };
 use tonic::{Request, Response, Status};
 
@@ -41,6 +43,27 @@ mock! {
             request: Request<ListArtifactVersionsRequest>,
         ) -> std::result::Result<
             Response<ListArtifactVersionsResponse>,
+            Status,
+        >;
+        async fn link_artifact(
+            &self,
+            request: Request<LinkArtifactRequest>,
+        ) -> std::result::Result<
+            Response<LinkArtifactResponse>,
+            Status,
+        >;
+        async fn unlink_artifact(
+            &self,
+            request: Request<UnlinkArtifactRequest>,
+        ) -> std::result::Result<
+            Response<UnlinkArtifactResponse>,
+            Status,
+        >;
+        async fn list_artifact_links(
+            &self,
+            request: Request<ListArtifactLinksRequest>,
+        ) -> std::result::Result<
+            Response<ListArtifactLinksResponse>,
             Status,
         >;
         async fn link_artifact_to_conversation(

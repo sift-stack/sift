@@ -140,16 +140,18 @@ exists.
   Send a rename on its own. The API applies a `name` change by itself and
   ignores every other field, so `update_user_defined_function` rejects `name`
   combined with anything else.
-- **Create an artifact.** `create_artifact` with a `title` / `summary`, and
-  `file_path` pointing at the local file that is the artifact's content — an
-  artifact without a file has nothing to preview or download. Pass
-  `conversation_id` to link it to a chat, and `authoring_kind=agent` when
-  a Sift agent produced it. Append a version by passing the existing
-  `artifact_id`. One artifact per real deliverable; never one per scratch
-  file. Creating is gated by `--allow-create`; appending a version to
-  an existing artifact also needs `--allow-destructive`. Discover artifacts
-  with `list_artifacts` (oldest first, no `order_by`); fetch a version or its
-  `download_url` with `download_artifact`.
+- **Create an artifact.** `create_artifact` accepts `title`, `summary`,
+  `kind`, metadata, links, and either `file_path` or a structured JSON
+  `payload`. Choose `storage_class=file` for previewable files,
+  `storage_class=structured` for computed tables and PSD-like results, or
+  `storage_class=blob` for opaque intermediates. `structured` requires a
+  payload and rejects `file_path`. Set `created_via=chat` inside a Sift agent
+  session, otherwise use `sdk`. Pass `conversation_id` to link a new artifact
+  to a chat, and `authoring_kind=agent` when a Sift agent produced it. Append
+  a version with `artifact_id`. Creating needs `--allow-create`; appending
+  needs `--allow-destructive`. Use `list_artifacts` with CEL `filter` and
+  `order_by` such as `created_date desc`; fetch a version or its `download_url`
+  with `download_artifact`.
 - **Produce a chart.** Build a link with `explore_url`. When the user wants a
   chart and numbers, do both and give the user both.
 - **Answer a question about how Sift works.** Call `search_docs`. Do not answer

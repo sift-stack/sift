@@ -1,6 +1,7 @@
 use sift_rs::{
     artifacts::v1::{
-        Artifact, ArtifactAuthoringKind, CreateArtifactResponse, GetArtifactResponse,
+        Artifact, ArtifactAuthoringKind, ArtifactCreatedVia, ArtifactLinkInput,
+        ArtifactLinkRelation, ArtifactStorageClass, CreateArtifactResponse, GetArtifactResponse,
         ListArtifactsResponse, artifact_service_server::ArtifactServiceServer,
     },
     remote_files::v1::{
@@ -14,7 +15,7 @@ use sift_test_util::{
 use tokio::task::JoinHandle;
 use tonic::{Code, Response, Status, transport::Server};
 
-use super::ArtifactService;
+use super::{ArtifactService, CreateArtifactInput};
 use crate::policy::RetryPolicy;
 
 fn sample_artifact() -> Artifact {
@@ -62,7 +63,12 @@ async fn service_with_mocks(
 async fn list_artifacts_returns_single_page() {
     let mut mock = MockArtifactServiceImpl::new();
     mock.expect_list_artifacts()
-        .withf(|req| req.get_ref().conversation_id.as_deref() == Some("conv-1"))
+        .withf(|req| {
+            let req = req.get_ref();
+            req.conversation_id.as_deref() == Some("conv-1")
+                && req.filter == "kind == \"table\""
+                && req.order_by == "created_date desc"
+        })
         .returning(|_| {
             Ok(Response::new(ListArtifactsResponse {
                 artifacts: vec![sample_artifact()],
@@ -72,7 +78,13 @@ async fn list_artifacts_returns_single_page() {
 
     let (service, _h) = service_with_mock(mock).await;
     let page = service
-        .list_artifacts(Some("conv-1".into()), false, None)
+        .list_artifacts(
+            Some("conv-1".into()),
+            false,
+            "kind == \"table\"".into(),
+            Some("created_date desc".into()),
+            None,
+        )
         .await
         .expect("list");
     assert_eq!(page.items.len(), 1);
@@ -115,7 +127,7 @@ async fn list_artifacts_paginates_until_token_empty() {
 
     let (service, _h) = service_with_mock(mock).await;
     let page = service
-        .list_artifacts(None, false, Some(200))
+        .list_artifacts(None, false, String::new(), None, Some(200))
         .await
         .expect("list");
     assert_eq!(
@@ -153,7 +165,7 @@ async fn list_artifacts_limit_truncates() {
 
     let (service, _h) = service_with_mock(mock).await;
     let page = service
-        .list_artifacts(None, false, Some(2))
+        .list_artifacts(None, false, String::new(), None, Some(2))
         .await
         .expect("list");
     assert_eq!(page.items.len(), 2);
@@ -168,7 +180,7 @@ async fn list_artifacts_propagates_not_found() {
 
     let (service, _h) = service_with_mock(mock).await;
     let err = service
-        .list_artifacts(Some("missing".into()), false, None)
+        .list_artifacts(Some("missing".into()), false, String::new(), None, None)
         .await
         .expect_err("expected error");
     let status = err.downcast_ref::<tonic::Status>().expect("status");
@@ -321,6 +333,12 @@ async fn create_artifact_returns_created_row() {
                 && req.title.as_deref() == Some("report")
                 && req.summary.as_deref() == Some("summary")
                 && req.authoring_kind == Some(ArtifactAuthoringKind::Agent as i32)
+                && req.storage_class == Some(ArtifactStorageClass::Structured as i32)
+                && req.created_via == Some(ArtifactCreatedVia::Chat as i32)
+                && req.kind.as_deref() == Some("table")
+                && serde_json::to_value(req.payload.as_ref().unwrap()).unwrap()
+                    == serde_json::json!({ "rows": [] })
+                && req.links[0].relation == ArtifactLinkRelation::AttachedTo as i32
         })
         .returning(|_| {
             Ok(Response::new(CreateArtifactResponse {
@@ -331,11 +349,23 @@ async fn create_artifact_returns_created_row() {
     let (service, _h) = service_with_mock(mock).await;
     let artifact = service
         .create_artifact(
-            Some("report".into()),
-            Some("summary".into()),
-            Some("conv-1".into()),
-            None,
-            ArtifactAuthoringKind::Agent,
+            CreateArtifactInput {
+                title: Some("report".into()),
+                summary: Some("summary".into()),
+                conversation_id: Some("conv-1".into()),
+                artifact_id: None,
+                authoring_kind: ArtifactAuthoringKind::Agent,
+                storage_class: Some(ArtifactStorageClass::Structured),
+                created_via: Some(ArtifactCreatedVia::Chat),
+                kind: Some("table".into()),
+                payload: Some(serde_json::from_value(serde_json::json!({ "rows": [] })).unwrap()),
+                metadata: vec![],
+                links: vec![ArtifactLinkInput {
+                    relation: ArtifactLinkRelation::AttachedTo as i32,
+                    entity_type: "conversations".into(),
+                    entity_id: "conv-1".into(),
+                }],
+            },
             None,
         )
         .await
