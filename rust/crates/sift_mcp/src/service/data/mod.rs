@@ -99,6 +99,43 @@ impl fmt::Display for NoChannelData {
 
 impl std::error::Error for NoChannelData {}
 
+/// The decimation interval the service actually applied, gathered from
+/// `Metadata.sampled_ms` on every returned data page.
+///
+/// It arrives per page rather than per request, and the API ignores `sample_ms`
+/// for data types it cannot sample, so one request can come back decimated for a
+/// double channel and raw for a string one. Tracking the range keeps that visible
+/// instead of reporting whichever page happened to land last.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct AppliedSampleMs {
+    lowest: Option<u32>,
+    highest: Option<u32>,
+}
+
+impl AppliedSampleMs {
+    fn observe(&mut self, sampled_ms: u32) {
+        self.lowest = Some(self.lowest.map_or(sampled_ms, |v| v.min(sampled_ms)));
+        self.highest = Some(self.highest.map_or(sampled_ms, |v| v.max(sampled_ms)));
+    }
+
+    /// The interval the pages reported, or `None` when none did. When pages
+    /// disagree this is the largest, which is the one that decides whether a
+    /// statistic drawn from the file can be trusted.
+    pub fn highest(&self) -> Option<u32> {
+        self.highest
+    }
+
+    /// True when any page came back decimated.
+    pub fn decimated(&self) -> bool {
+        self.highest.is_some_and(|v| v > 0)
+    }
+
+    /// True when some channels were decimated and others were not.
+    pub fn mixed(&self) -> bool {
+        matches!((self.lowest, self.highest), (Some(lo), Some(hi)) if lo != hi)
+    }
+}
+
 /// What `get_data` wrote, beyond the Parquet file itself.
 #[derive(Debug)]
 pub struct DataOutput {
@@ -107,6 +144,10 @@ pub struct DataOutput {
     /// caller diffing the Parquet schema against its request is the only way to
     /// notice them otherwise.
     pub empty_channels: Vec<String>,
+    /// What the service sampled at, as opposed to what was asked for. A caller
+    /// that never learns this quotes a mean off decimated data with no way to
+    /// know it is wrong.
+    pub applied_sample_ms: AppliedSampleMs,
 }
 
 pub enum ChannelInput {
@@ -330,6 +371,7 @@ impl DataService {
 
         let mut page_token = String::new();
         let mut columns = HashMap::<ColumnName, ChannelColumn>::new();
+        let mut applied_sample_ms = AppliedSampleMs::default();
 
         loop {
             let channel = self.channel.clone();
@@ -377,6 +419,7 @@ impl DataService {
                         let Some(metadata) = metadata else {
                             bail!("unexpected missing channel page metadata");
                         };
+                        applied_sample_ms.observe(metadata.sampled_ms);
 
                         let Some(channel) = metadata.channel else {
                             bail!("unexpected missing channel from metadata");
@@ -421,6 +464,7 @@ impl DataService {
                         let Some(metadata) = metadata else {
                             bail!("unexpected missing channel page metadata");
                         };
+                        applied_sample_ms.observe(metadata.sampled_ms);
 
                         let Some(channel) = metadata.channel else {
                             bail!("unexpected missing channel from metadata");
@@ -482,6 +526,7 @@ impl DataService {
                         let Some(metadata) = metadata else {
                             bail!("unexpected missing channel page metadata");
                         };
+                        applied_sample_ms.observe(metadata.sampled_ms);
 
                         let Some(channel) = metadata.channel else {
                             bail!("unexpected missing channel from metadata");
@@ -543,6 +588,7 @@ impl DataService {
                         let Some(metadata) = metadata else {
                             bail!("unexpected missing channel page metadata");
                         };
+                        applied_sample_ms.observe(metadata.sampled_ms);
 
                         let Some(channel) = metadata.channel else {
                             bail!("unexpected missing channel from metadata");
@@ -590,6 +636,7 @@ impl DataService {
                         let Some(metadata) = metadata else {
                             bail!("unexpected missing channel page metadata");
                         };
+                        applied_sample_ms.observe(metadata.sampled_ms);
 
                         let Some(channel) = metadata.channel else {
                             bail!("unexpected missing channel from metadata");
@@ -637,6 +684,7 @@ impl DataService {
                         let Some(metadata) = metadata else {
                             bail!("unexpected missing channel page metadata");
                         };
+                        applied_sample_ms.observe(metadata.sampled_ms);
 
                         let Some(channel) = metadata.channel else {
                             bail!("unexpected missing channel from metadata");
@@ -684,6 +732,7 @@ impl DataService {
                         let Some(metadata) = metadata else {
                             bail!("unexpected missing channel page metadata");
                         };
+                        applied_sample_ms.observe(metadata.sampled_ms);
 
                         let Some(channel) = metadata.channel else {
                             bail!("unexpected missing channel from metadata");
@@ -731,6 +780,7 @@ impl DataService {
                         let Some(metadata) = metadata else {
                             bail!("unexpected missing channel page metadata");
                         };
+                        applied_sample_ms.observe(metadata.sampled_ms);
 
                         let Some(channel) = metadata.channel else {
                             bail!("unexpected missing channel from metadata");
@@ -778,6 +828,7 @@ impl DataService {
                         let Some(metadata) = metadata else {
                             bail!("unexpected missing channel page metadata");
                         };
+                        applied_sample_ms.observe(metadata.sampled_ms);
 
                         let Some(channel) = metadata.channel else {
                             bail!("unexpected missing channel from metadata");
@@ -825,6 +876,7 @@ impl DataService {
                         let Some(metadata) = metadata else {
                             bail!("unexpected missing channel page metadata");
                         };
+                        applied_sample_ms.observe(metadata.sampled_ms);
 
                         let Some(channel) = metadata.channel else {
                             bail!("unexpected missing channel from metadata");
@@ -872,6 +924,7 @@ impl DataService {
                         let Some(metadata) = metadata else {
                             bail!("unexpected missing channel page metadata");
                         };
+                        applied_sample_ms.observe(metadata.sampled_ms);
 
                         let Some(channel) = metadata.channel else {
                             bail!("unexpected missing channel from metadata");
@@ -1082,7 +1135,10 @@ impl DataService {
             .close()
             .context("failed to finalize arrow writer")?;
 
-        Ok(DataOutput { empty_channels })
+        Ok(DataOutput {
+            empty_channels,
+            applied_sample_ms,
+        })
     }
 
     fn append_null_to_builder(
