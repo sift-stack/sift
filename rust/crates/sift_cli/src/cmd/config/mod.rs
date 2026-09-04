@@ -246,8 +246,8 @@ fn apply_profile_updates(
         target.insert(String::from("rest_uri"), Value::String(uri));
     }
     if let Some(token) = api_key {
-        // Write the canonical spelling and drop the legacy one, so a profile
-        // never carries both and readers never have to pick a winner.
+        // Write the canonical spelling and remove the older one, so a profile
+        // never holds both keys and no reader has to choose between them.
         target.remove(API_KEY_KEY_LEGACY);
         target.insert(String::from(API_KEY_KEY), Value::String(token));
     }

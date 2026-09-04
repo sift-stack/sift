@@ -25,12 +25,12 @@ pub struct Context {
     pub app_uri: Option<String>,
 }
 
-/// The canonical TOML key for the API key, matching the `api_key` spelling the
-/// Sift API itself uses.
+/// The canonical TOML key for the API key. It matches the `api_key` spelling
+/// that the Sift API uses.
 pub(super) const API_KEY_KEY: &str = "api_key";
 
-/// The original spelling, still accepted so configs written by older releases
-/// keep working. Never written back.
+/// The older spelling. It stays valid so that a config from an earlier release
+/// still works. The CLI never writes it.
 pub(super) const API_KEY_KEY_LEGACY: &str = "apikey";
 
 /// The profile's API key under either spelling, canonical first.
@@ -242,8 +242,8 @@ app_uri = "https://app.siftstack.com"
 
     #[test]
     fn accepts_either_api_key_spelling() {
-        // COMPLETE_CONFIG uses `api_key` at the top level and the legacy
-        // `apikey` under [mission], so one load covers both.
+        // COMPLETE_CONFIG uses `api_key` at the top level and the older
+        // `apikey` under [mission], so one load covers both spellings.
         assert_eq!(
             context(COMPLETE_CONFIG, None).unwrap().api_key,
             "default-key"
@@ -253,8 +253,8 @@ app_uri = "https://app.siftstack.com"
             "mission-key"
         );
 
-        // `config update` never writes both, but a hand-edited file can hold
-        // both; the canonical spelling decides.
+        // `config update` never writes both keys. A file that someone edits by
+        // hand can hold both, and then the canonical spelling decides.
         let both = r#"
 grpc_uri = "https://grpc-api.siftstack.com"
 rest_uri = "https://api.siftstack.com"

@@ -187,39 +187,39 @@ def abort(reason: str, returncode: int | None = None) -> NoReturn:
 def sift_client(pytestconfig: pytest.Config) -> SiftClient:
     """Default ``SiftClient`` resolved from env vars, ini keys, and sift.toml profiles.
 
-    Each credential is read from its environment variable first. The URIs
-    (``SIFT_GRPC_URI``, ``SIFT_REST_URI``) also fall back to the
-    ``sift_grpc_uri`` / ``sift_rest_uri`` ini keys, since they are stable
-    per-org values that are safe to commit. ``SIFT_API_KEY`` is intentionally
-    env-only; use ``pytest-dotenv`` (already a project dependency) to load
-    it from a ``.env`` file kept out of version control.
+    This fixture reads each credential from its environment variable first. The
+    URIs (``SIFT_GRPC_URI``, ``SIFT_REST_URI``) also fall back to the
+    ``sift_grpc_uri`` / ``sift_rest_uri`` ini keys, because those are stable
+    per-org values that are safe to commit. ``SIFT_API_KEY`` has no ini key, by
+    design. Use ``pytest-dotenv``, which is already a project dependency, to
+    load it from a ``.env`` file that you keep out of version control.
 
-    Anything those surfaces leave unset is filled from a ``sift.toml`` profile,
-    the same file ``sift-cli --profile`` reads. Name one with ``--sift-profile``,
-    the ``sift_profile`` ini key, or ``SIFT_PROFILE``; with none named, the
-    file's default profile is used. Unlike :class:`~sift_client.SiftClient`,
-    here the profile sits *below* the env vars rather than above them, so a key
-    injected by CI is never overridden by a profile on the runner.
+    A ``sift.toml`` profile supplies the values that those surfaces leave unset.
+    It is the same file that ``sift-cli --profile`` reads. Name a profile with
+    ``--sift-profile``, the ``sift_profile`` ini key, or ``SIFT_PROFILE``. If you
+    name none, the fixture uses the file's default profile.
 
-    Projects that need custom construction (TLS toggles, custom timeouts,
-    etc.) can override this fixture by defining their own ``sift_client``
-    in their ``conftest.py``; pytest fixture resolution prefers the local
-    definition.
+    Note: the precedence here differs from :class:`~sift_client.SiftClient`. The
+    profile ranks below the environment variables, not above them, so a profile
+    on the runner cannot replace a key that CI injects.
 
-    In ``--sift-offline`` mode the missing-credential check is relaxed:
-    real env vars and ini values still win when set (so the client is
-    constructible against a real backend even though no calls are made), but
-    anything still missing is filled with a placeholder. In ``--sift-disabled``
-    mode the credential resolution is skipped entirely and placeholders are
-    always used.
+    A project that needs custom construction, such as a TLS toggle or a custom
+    timeout, can override this fixture. Declare your own ``sift_client`` in
+    ``conftest.py``, because pytest prefers the local definition.
+
+    ``--sift-offline`` mode relaxes the missing-credential check. A real
+    environment variable or ini value still takes precedence when it is set, so
+    the client can point at a real backend even though it makes no calls. A
+    placeholder fills every field that is still missing. ``--sift-disabled``
+    mode resolves no credentials and always uses placeholders.
     """
     if is_disabled(pytestconfig):
         return build_disabled_client()
 
     offline = is_offline(pytestconfig)
-    # Everything the plugin's own surfaces resolved is passed as an explicit
-    # argument, so it outranks the profile; the profile fills only what they
-    # left unset. That keeps CI-injected env vars authoritative.
+    # Every value that the plugin's own surfaces resolved goes in as an explicit
+    # argument, so it outranks the profile. The profile then supplies only the
+    # values that they left unset, which keeps a key from CI in effect.
     try:
         creds = resolve_credentials(
             api_key=API_KEY_OPTION.resolve(pytestconfig),
@@ -230,8 +230,9 @@ def sift_client(pytestconfig: pytest.Config) -> SiftClient:
             require=False,
         )
     except SiftCredentialsError as exc:
-        # A named profile that doesn't exist, or an unreadable config file, is a
-        # usage error even offline: the run asked for something specific.
+        # A named profile that does not exist, or a config file that the resolver
+        # cannot read, is a usage error even offline, because the run asked for
+        # something specific.
         log_event(logger, logging.ERROR, "credentials", error=type(exc).__name__)
         raise pytest.UsageError(str(exc)) from exc
 

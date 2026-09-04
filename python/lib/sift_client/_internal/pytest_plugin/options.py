@@ -75,8 +75,9 @@ class Option:
     - ``toml``: tuple path under ``[tool.sift...]``, e.g.
       ``("pytest", "report", "name")`` -> ``tool.sift.pytest.report.name``.
     - ``env``: full env var name, e.g. ``"SIFT_API_KEY"``.
-    - ``surfaces``: precedence order, defaulting to env before cli. Override it
-      where a typed flag should beat an ambient env var, as ``profile`` does.
+    - ``surfaces``: the precedence order. The default puts env before cli.
+      Override it if a flag that the user types must outrank an environment
+      variable, as ``profile`` does.
 
     ``category`` groups the option in the docs reference (one of ``CATEGORIES``).
     """
@@ -129,7 +130,7 @@ class Option:
     def resolve(self, config: pytest.Config | None) -> Any:
         """First set value from declared surfaces; ``None`` when unset everywhere.
 
-        Walk order is :attr:`surfaces`, env before cli by default.
+        The walk order is :attr:`surfaces`, which puts env before cli by default.
         ``getini`` returns the typed default for unset bool/list keys, so this
         only returns ini values for booleans (always meaningful), non-empty
         strings, and non-empty lists.
@@ -140,9 +141,9 @@ class Option:
         """Like :meth:`resolve`, but also reports which surface set the value.
 
         Returns ``(value, source)`` where ``source`` is one of
-        ``env``/``cli``/``ini``/``toml``, or ``default`` when nothing set it
-        (``value`` is then ``None``). Used by the audit log's settings snapshot,
-        which therefore always reports the surface the run actually used.
+        ``env``/``cli``/``ini``/``toml``, or ``default`` if nothing set it
+        (``value`` is then ``None``). The audit log's settings snapshot calls
+        this method, so it always reports the surface that the run used.
         """
         for surface in self.surfaces:
             value = self._read_surface(surface, config)
@@ -358,13 +359,13 @@ PARAMETRIZE_NESTING_OPTION = Option(
     ini_default=True,
 )
 
-# Credentials. The API key is env-only; the URIs accept env + ini. A profile
-# supplies whatever the other three leave unset, from the same sift.toml that
-# `sift-cli --profile` reads.
+# Credentials. The API key has no ini key. The URIs accept env and ini. A
+# profile supplies the values that the other three leave unset, from the same
+# sift.toml that `sift-cli --profile` reads.
 PROFILE_OPTION = Option(
     name="profile",
     category=CAT_CONNECTION,
-    help="Named sift.toml profile to draw credentials from, as used by `sift-cli --profile`.",
+    help="Name of a sift.toml profile that supplies credentials, as with `sift-cli --profile`.",
     cli="--sift-profile",
     env=ENV_PROFILE,
     ini="sift_profile",
@@ -595,12 +596,12 @@ def render_settings_reference() -> str:
 
 
 def warn_on_unknown_env_vars() -> None:
-    """Emit a warning for any ``SIFT_*`` env var this plugin doesn't read.
+    """Emit a warning for any ``SIFT_*`` env var that this plugin does not read.
 
-    Known names are the registry's (``opt.env``) plus the credential resolver's
-    ``CREDENTIAL_ENV_VARS``, which includes variables like ``SIFT_CONFIG_FILE``
-    that the resolver honors without the registry declaring them. A ``SIFT_*``
-    var matching neither is almost always a typo.
+    The known names are the registry's (``opt.env``) and the credential
+    resolver's ``CREDENTIAL_ENV_VARS``. The resolver reads some names, such as
+    ``SIFT_CONFIG_FILE``, that the registry does not declare. A ``SIFT_*``
+    variable in neither list is almost always a typo.
     """
     import difflib
 

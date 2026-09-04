@@ -72,7 +72,7 @@ class SiftClient(
         from sift_client import SiftClient
         from datetime import datetime
 
-        # Use the same credentials sift-cli uses, from its default profile
+        # Use the same credentials as sift-cli, from its default profile
         client = SiftClient()
 
         # Or a named profile from sift.toml, like `sift-cli --profile staging`
@@ -163,10 +163,10 @@ class SiftClient(
     ):
         """Initialize the SiftClient with specific connection parameters or a connection_config.
 
-        Any argument left unset is resolved from the environment and from the
-        ``sift.toml`` profiles that ``sift-cli`` manages, so ``SiftClient()``
-        connects to the same place as ``sift-cli`` with no arguments at all.
-        See :func:`sift_client.credentials.resolve_credentials` for the full
+        For any argument that you leave unset, the client reads the environment
+        and the ``sift.toml`` profiles that ``sift-cli`` manages. ``SiftClient()``
+        therefore connects to the same endpoints as ``sift-cli``. See
+        :func:`sift_client.credentials.resolve_credentials` for the full
         precedence order.
 
         Args:
@@ -174,18 +174,18 @@ class SiftClient(
             grpc_url: The Sift gRPC API URL.
             rest_url: The Sift REST API URL.
             connection_config: A SiftConnectionConfig object to configure the connection behavior of the SiftClient.
-                When given, it is used as-is and no credential resolution happens.
+                The client uses it unchanged and resolves no credentials.
             app_url: The Sift web-app origin (e.g. ``https://app.siftstack.com``).
                 Set this for on-prem or custom deployments whose API host can't be
                 mapped to a frontend automatically; see the ``app_url`` property.
                 A value here takes precedence over ``connection_config.app_url``.
-            profile: Name of a ``sift.toml`` profile to draw credentials from,
-                equivalent to ``sift-cli --profile``. Ignored when
-                ``connection_config`` is given.
+            profile: Name of a ``sift.toml`` profile that supplies credentials,
+                as with ``sift-cli --profile``. The client ignores this argument
+                if you also pass ``connection_config``.
 
         Raises:
-            SiftCredentialsError: No ``connection_config`` was given and the API
-                key or either URL could not be resolved.
+            SiftCredentialsError: You passed no ``connection_config``, and the
+                client cannot resolve the API key or either URL.
 
         """
         self._credentials: ResolvedCredentials | None = None
@@ -199,9 +199,9 @@ class SiftClient(
                 profile=profile,
             )
             self._credentials = creds
-            # ``use_ssl`` comes from the gRPC URL's scheme: the transport strips
-            # the scheme off and would otherwise dial an ``http://`` endpoint
-            # over TLS.
+            # ``use_ssl`` comes from the scheme of the gRPC URL. The transport
+            # removes that scheme, so without this it connects to an ``http://``
+            # endpoint over TLS.
             connection_config = SiftConnectionConfig(
                 grpc_url=creds.grpc_url,
                 rest_url=creds.rest_url,
@@ -279,8 +279,9 @@ class SiftClient(
     def from_profile(cls, profile: str, **kwargs) -> SiftClient:
         """Build a client from a named ``sift.toml`` profile.
 
-        Equivalent to ``SiftClient(profile=...)``; keyword arguments are passed
-        through and still take precedence over the profile's values.
+        This method calls ``SiftClient(profile=...)``. It passes every keyword
+        argument through, and those arguments still outrank the profile's
+        values.
 
         Args:
             profile: Profile name, as used by ``sift-cli --profile``.
@@ -293,18 +294,19 @@ class SiftClient(
 
     @property
     def credential_sources(self) -> Mapping[str, str] | None:
-        """Which layer supplied each credential, for diagnosing connections.
+        """The layer that supplied each credential. Use it to diagnose a connection.
 
         Maps ``api_key`` / ``grpc_url`` / ``rest_url`` / ``app_url`` to
         ``"arg"``, ``"profile:<name>"``, ``"env"``, ``"default"``, or
-        ``"unset"``. ``None`` when the client was built from an explicit
-        ``connection_config``, which bypasses resolution.
+        ``"unset"``. This property is ``None`` if you build the client from an
+        explicit ``connection_config``, because that path resolves no
+        credentials.
         """
         return self._credentials.sources if self._credentials else None
 
     @property
     def profile(self) -> str | None:
-        """The ``sift.toml`` profile this client resolved its credentials from."""
+        """The ``sift.toml`` profile that supplied this client's credentials."""
         return self._credentials.profile if self._credentials else None
 
     @property

@@ -27,8 +27,8 @@ pub const SIFT_CONFIG_NAME: &str = "sift.toml";
 /// api_key = "production-api-key"
 /// ```
 ///
-/// The legacy `apikey` spelling is still accepted for files written by earlier
-/// releases; `api_key` wins when a table carries both.
+/// The older `apikey` spelling is still valid, so a file from an earlier release
+/// still works. If a table holds both keys, the loader uses `api_key`.
 ///
 /// # Direct Credentials
 ///
@@ -141,16 +141,16 @@ impl TryFrom<Credentials> for SiftChannelConfig {
     }
 }
 
-/// The canonical TOML key for the API key, matching the `api_key` spelling used
-/// by the Sift API and by `sift-cli`, followed by the legacy `apikey` spelling
-/// that earlier releases wrote. Lookups accept either; nothing writes the legacy
-/// one.
+/// The accepted TOML keys for the API key, canonical first. `api_key` matches
+/// the spelling that the Sift API and `sift-cli` use. `apikey` is the older
+/// spelling that earlier releases wrote. A lookup accepts either key. Nothing
+/// writes the older one.
 pub const API_KEY_KEYS: &[&str] = &["api_key", "apikey"];
 
 /// The TOML key naming the gRPC endpoint.
 pub const URI_KEY: &str = "uri";
 
-/// The first of `keys` present in `table` as a string, or `None`.
+/// The value of the first key in `keys` that `table` sets, or `None`.
 fn lookup<'a>(table: &'a Table, keys: &[&str]) -> Option<&'a str> {
     keys.iter().find_map(|key| match table.get(*key) {
         Some(Value::String(value)) if !value.is_empty() => Some(value.as_str()),

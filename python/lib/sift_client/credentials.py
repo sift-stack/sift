@@ -1,12 +1,12 @@
 """Credential resolution shared by ``SiftClient`` and the pytest plugin.
 
-Reads the same ``sift.toml`` profiles that ``sift-cli --profile`` uses, so an
-environment configured once for the CLI is available to the Python client
-without restating its endpoints. See :func:`resolve_credentials` for the
-precedence order, and the Credentials & Profiles guide for the config file's
-shape.
+This module reads the same ``sift.toml`` profiles that ``sift-cli --profile``
+uses. An environment that you configure once for the CLI is then available to
+the Python client, and you do not restate its endpoints. See
+:func:`resolve_credentials` for the precedence order. The Credentials and
+profiles guide describes the config file.
 
-This is the public surface; the implementation lives in
+This module is the public surface. The implementation is in
 ``sift_client._internal.credentials``.
 """
 

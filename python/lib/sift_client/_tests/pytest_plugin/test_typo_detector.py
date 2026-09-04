@@ -121,9 +121,9 @@ class TestTypoDetector:
     ) -> None:
         """``SIFT_CONFIG_FILE`` is honored by the resolver, so it must not read as a typo.
 
-        The registry does not declare it; the known set unions the credential
-        resolver's own variables so the warning can't tell a user that a
-        variable the run obeyed was ignored.
+        The registry does not declare it. The known set therefore includes the
+        credential resolver's own variables, so the warning cannot tell a user
+        that the run ignored a variable that it read.
         """
         monkeypatch.setenv("SIFT_CONFIG_FILE", str(pytester.path / "absent.toml"))
         write_plugin_conftest()

@@ -38,10 +38,11 @@ def _isolate_sift_config_file(monkeypatch, tmp_path_factory):
     """Point credential resolution at a config file that does not exist.
 
     ``SiftClient()`` without a ``connection_config`` reads ``sift.toml`` from
-    the user config directory, so without this a developer's real
-    ``~/.config/sift.toml`` would supply credentials a test never set — and
-    could point a test at a live backend. The plugin suite relies on it too:
-    its inner sessions inherit this environment through ``runpytest_subprocess``.
+    the user config directory. Without this fixture, a developer's real
+    ``~/.config/sift.toml`` supplies credentials that a test never set, and it
+    can point a test at a live backend. The plugin suite needs this fixture too,
+    because its inner sessions inherit this environment through
+    ``runpytest_subprocess``.
     """
     absent = tmp_path_factory.mktemp("sift-config") / "absent.toml"
     monkeypatch.setenv("SIFT_CONFIG_FILE", str(absent))

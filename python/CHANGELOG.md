@@ -9,7 +9,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 #### Credentials from sift-cli profiles
 
-`SiftClient` now reads the same `sift.toml` profiles that `sift-cli --profile` uses, so an environment configured once for the CLI works from Python with no arguments.
+`SiftClient` now reads the same `sift.toml` profiles that `sift-cli --profile` uses. An environment that you configure once for the CLI works from Python with no arguments.
 
 ```python
 client = SiftClient()                      # the CLI's default profile
@@ -17,13 +17,21 @@ client = SiftClient(profile="staging")     # a named profile
 client = SiftClient.from_profile("staging")
 ```
 
-Arguments still win, then a profile named in code, then `SIFT_API_KEY` / `SIFT_GRPC_URI` / `SIFT_REST_URI` / `SIFT_APP_URL`, then the profile named by `SIFT_PROFILE`, then the config file's default profile. `client.credential_sources` reports which layer supplied each value. See [Credentials & Profiles](guides/credentials.md).
+Precedence, highest first:
 
-The pytest plugin gains `--sift-profile`, the `sift_profile` ini key, and `SIFT_PROFILE`. There, the plugin's existing surfaces still outrank the profile, which fills in whatever they leave unset, so CI-injected values stay authoritative.
+1. Arguments.
+2. A profile that you name in code.
+3. `SIFT_API_KEY`, `SIFT_GRPC_URI`, `SIFT_REST_URI`, and `SIFT_APP_URL`.
+4. The profile that `SIFT_PROFILE` names.
+5. The config file's default profile.
 
-Passing an `http://` URL now connects without TLS instead of failing: transport security follows the gRPC URL's scheme. `https://` and bare host names are unaffected.
+`client.credential_sources` reports the layer that supplied each value. See [Credentials and profiles](guides/credentials.md).
 
-In the config file the API key is spelled `api_key`, matching the rest of Sift's API. The older `apikey` is still accepted everywhere and needs no migration; `api_key` wins if a profile carries both.
+The pytest plugin gains `--sift-profile`, the `sift_profile` ini key, and `SIFT_PROFILE`. In the plugin, the existing settings surfaces outrank the profile. The profile supplies only the values that they leave unset, so a key that CI injects stays in effect.
+
+An `http://` URL now connects without TLS instead of failing, because transport security follows the scheme of the gRPC URL. An `https://` URL and a bare host name behave as before.
+
+In the config file, the canonical spelling of the API key is `api_key`, which matches the rest of the Sift API. The older `apikey` spelling is still valid, so you do not need to migrate. If a profile holds both keys, the client uses `api_key`.
 
 #### List and get data imports
 

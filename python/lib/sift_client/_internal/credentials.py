@@ -1,10 +1,10 @@
 """Resolution of Sift credentials from arguments, environment, and ``sift.toml``.
 
-``sift-cli`` stores one or more named profiles in a ``sift.toml`` under the
+``sift-cli`` stores one or more named profiles in a ``sift.toml`` file in the
 user's config directory, and selects between them with ``--profile``. This
-module lets the Python client read that same file, so a developer who already
-runs ``sift-cli --profile staging`` gets the same endpoints from
-``SiftClient(profile="staging")`` without restating them.
+module reads that same file. A developer who runs ``sift-cli --profile staging``
+gets the same endpoints from ``SiftClient(profile="staging")`` and does not
+restate them.
 
 The resolution order, highest precedence first:
 
@@ -15,14 +15,14 @@ The resolution order, highest precedence first:
 4. The fields of the profile named by ``SIFT_PROFILE``.
 5. The default (top-level) table of the config file.
 
-Naming a profile explicitly outranks the ambient environment variables so that
-an argument beats a shell that was pointed somewhere else; ``SIFT_PROFILE``
-does not, so per-field environment overrides still work in CI.
+A profile that the caller names outranks the environment variables, so an
+argument wins over a shell that points somewhere else. ``SIFT_PROFILE`` does
+not outrank them, so a per-field environment override still works in CI.
 
-At most one profile table is ever consulted. A named profile does not inherit
-missing fields from the top-level table, matching ``sift-cli``: a profile that
-omits ``api_key`` is an error rather than a silent fall back to the default
-profile's key.
+The resolver reads one profile table at most. A named profile does not inherit
+missing fields from the top-level table, which matches ``sift-cli``. If a
+profile omits ``api_key``, the resolver reports an error. It does not fall back
+to the default profile's key.
 """
 
 from __future__ import annotations
@@ -35,8 +35,8 @@ from pathlib import Path
 from typing import Any, Mapping
 from urllib.parse import urlparse
 
-# Shared with the ``[tool.sift]`` loader so the 3.8-3.10 ``tomli`` fallback is
-# declared once.
+# The ``[tool.sift]`` loader declares the 3.8-3.10 ``tomli`` fallback. Import it
+# from there so only one module declares it.
 from sift_client._internal.pyproject_config import tomllib
 from sift_client.errors import SiftCredentialsError, SiftWarning
 
@@ -50,9 +50,10 @@ ENV_REST_URI = "SIFT_REST_URI"
 ENV_APP_URL = "SIFT_APP_URL"
 
 # Accepted TOML keys -> (public field name, environment variable). The first
-# TOML key is canonical, the rest are accepted spellings kept so files written by
-# earlier releases keep working. The env spellings are the ones the pytest plugin
-# already ships; they differ from the TOML keys for the app URL and both stay.
+# TOML key is canonical. The rest are older spellings, which stay valid so that
+# files from earlier releases still work. The environment names are the ones the
+# pytest plugin ships. They differ from the TOML keys for the app URL, and both
+# names stay.
 _FIELDS = (
     (("grpc_uri",), "grpc_url", ENV_GRPC_URI),
     (("rest_uri",), "rest_url", ENV_REST_URI),
@@ -60,9 +61,9 @@ _FIELDS = (
     (("api_key", "apikey"), "api_key", ENV_API_KEY),
 )
 
-#: Every ``SIFT_*`` variable this module reads. The pytest plugin unions this
-#: with its own registry so its unknown-variable warning doesn't flag one of
-#: these as a typo.
+#: Every ``SIFT_*`` variable that this module reads. The pytest plugin adds this
+#: list to its own registry, so its unknown-variable warning does not report one
+#: of these names as a typo.
 CREDENTIAL_ENV_VARS = (ENV_PROFILE, ENV_CONFIG_FILE, *(env for _, _, env in _FIELDS))
 
 _REQUIRED = ("grpc_url", "rest_url", "api_key")
@@ -75,9 +76,9 @@ class ResolvedCredentials:
     """Credentials resolved from arguments, environment, and config file.
 
     ``sources`` maps each field name to the layer that supplied it: ``"arg"``,
-    ``"profile:<name>"``, ``"env"``, ``"default"``, or ``"unset"``. It answers
-    "which environment am I actually talking to" without re-deriving the
-    precedence by hand.
+    ``"profile:<name>"``, ``"env"``, ``"default"``, or ``"unset"``. Use it to
+    find which environment the client connects to. You then do not have to
+    work through the precedence order by hand.
     """
 
     api_key: str
@@ -92,14 +93,15 @@ class ResolvedCredentials:
 def user_config_dir(env: Mapping[str, str] | None = None) -> Path | None:
     """The directory ``sift-cli`` stores ``sift.toml`` in.
 
-    Mirrors Rust's ``dirs::config_dir()``, which is what ``sift-cli`` uses:
-    ``%APPDATA%`` on Windows, ``~/Library/Application Support`` on macOS, and
-    ``$XDG_CONFIG_HOME`` (when absolute) or ``~/.config`` elsewhere. Returns
-    ``None`` when the home directory cannot be determined.
+    This function matches Rust's ``dirs::config_dir()``, which ``sift-cli``
+    uses. That directory is ``%APPDATA%`` on Windows and
+    ``~/Library/Application Support`` on macOS. Elsewhere it is
+    ``$XDG_CONFIG_HOME`` when that path is absolute, and ``~/.config`` if not.
+    Returns ``None`` if this function cannot find the home directory.
 
-    This is deliberately hand-rolled rather than delegated to ``platformdirs``,
-    whose default app-name suffix would put the file somewhere ``sift-cli``
-    never looks.
+    Note: ``platformdirs`` is not used here. It appends an application name by
+    default, which puts the file in a directory that ``sift-cli`` never
+    reads.
     """
     environ = os.environ if env is None else env
 
@@ -134,10 +136,12 @@ def config_file_path(
 ) -> Path | None:
     """Where to look for ``sift.toml``.
 
-    An explicit path wins, then ``SIFT_CONFIG_FILE``, then the user config
-    directory. There is deliberately no search of the current working
-    directory: a ``sift.toml`` inside a checkout would let a cloned repository
-    supply an API key, which needs its own decision before it ships.
+    An explicit path takes precedence, then ``SIFT_CONFIG_FILE``, then the user
+    config directory.
+
+    Note: this function does not search the current working directory. A
+    ``sift.toml`` file in a checkout can supply an API key, so that behavior
+    needs its own decision before it ships.
     """
     if config_path is not None:
         return Path(config_path)
@@ -150,12 +154,12 @@ def config_file_path(
 
 
 def _load_config(path: Path | None) -> dict[str, Any]:
-    """Parse the config file, or return ``{}`` when there isn't one.
+    """Parse the config file, or return ``{}`` if there is no file.
 
-    A missing file is not an error on its own, since arguments or environment
-    variables may supply everything. A file that exists but cannot be read or
-    parsed does raise: silently ignoring it would surface later as a confusing
-    "credentials missing" rather than the syntax error it is.
+    A missing file is not an error on its own, because arguments or environment
+    variables can supply every field. A file that exists but that this function
+    cannot read or parse does raise. If it did not raise, the caller would later
+    see a confusing "credentials missing" error instead of the syntax error.
     """
     if path is None:
         return {}
@@ -202,7 +206,7 @@ def _profile_table(
 
 
 def _first_present(table: Mapping[str, Any], keys: tuple[str, ...]) -> Any:
-    """The value of the first of ``keys`` set in ``table``, canonical spelling first."""
+    """The value of the first key in ``keys`` that ``table`` sets."""
     for key in keys:
         value = table.get(key)
         if _str_or_none(value) is not None:
@@ -211,7 +215,7 @@ def _first_present(table: Mapping[str, Any], keys: tuple[str, ...]) -> Any:
 
 
 def _str_or_none(value: Any) -> str | None:
-    """Coerce a layer's value, treating empty and non-string values as absent."""
+    """Return a layer's value. Empty and non-string values count as absent."""
     if isinstance(value, str) and value:
         return value
     return None
@@ -220,10 +224,10 @@ def _str_or_none(value: Any) -> str | None:
 def _derive_use_ssl(grpc_url: str, rest_url: str) -> bool:
     """Infer transport security from the gRPC URL's scheme.
 
-    ``sift_py`` strips the scheme off the URI and decides plaintext vs TLS from
-    ``use_ssl`` alone, so a profile's ``http://localhost:50051`` would otherwise
-    be dialed over TLS and fail. A bare host with no scheme keeps the TLS
-    default.
+    ``sift_py`` removes the scheme from the URI. It then selects plaintext or
+    TLS from ``use_ssl`` alone. Without this function, a profile that holds
+    ``http://localhost:50051`` gets a TLS connection to a plaintext port, and
+    the connection fails. A bare host with no scheme keeps the TLS default.
     """
     grpc_scheme = urlparse(grpc_url).scheme
     rest_scheme = urlparse(rest_url).scheme
@@ -244,7 +248,7 @@ def _select_profile(
     profile: str | None,
     environ: Mapping[str, str],
 ) -> tuple[str | None, bool]:
-    """The profile to read, and whether it was named explicitly rather than by env."""
+    """The profile to read, and whether the caller named it."""
     if profile:
         return profile, True
     return environ.get(ENV_PROFILE) or None, False
@@ -267,21 +271,22 @@ def resolve_credentials(
         grpc_url: Explicit gRPC endpoint, overriding every other layer.
         rest_url: Explicit REST endpoint, overriding every other layer.
         app_url: Explicit Sift web-app origin, overriding every other layer.
-        profile: Name of a profile in the config file. Outranks the per-field
-            environment variables; see the module docstring.
+        profile: Name of a profile in the config file. It outranks the
+            per-field environment variables. See the module docstring.
         config_path: Path to a specific config file, bypassing discovery.
         env: Environment mapping to read, defaulting to ``os.environ``.
-        require: When ``True``, raise if the API key or either URL is still
-            missing. Pass ``False`` to resolve as much as is available and
-            leave the rest empty, as the pytest plugin's offline mode does.
+        require: If ``True``, raise when the API key or either URL is still
+            missing. Pass ``False`` to resolve every field that is available
+            and leave the rest empty. The pytest plugin uses ``False`` for its
+            offline mode.
 
     Returns:
         The resolved credentials, including which layer supplied each field.
 
     Raises:
-        SiftCredentialsError: The config file is unreadable or malformed, the
-            named profile does not exist, or (when ``require``) a required
-            field could not be resolved.
+        SiftCredentialsError: This function cannot read or parse the config
+            file, the named profile does not exist, or ``require`` is ``True``
+            and a required field is still missing.
     """
     environ = os.environ if env is None else env
     profile_name, profile_is_explicit = _select_profile(profile, environ)
@@ -296,14 +301,14 @@ def resolve_credentials(
         table = config
         file_source = "default"
 
-    # Every layer is keyed by field name, so picking a value never depends on
-    # which layer it came from.
+    # Each layer uses the field name as its key. The choice of a value therefore
+    # does not depend on the layer that holds it.
     arg_layer = {"grpc_url": grpc_url, "rest_url": rest_url, "app_url": app_url, "api_key": api_key}
     env_layer = {field: environ.get(env_key) for _, field, env_key in _FIELDS}
     file_layer = {field: _first_present(table, toml_keys) for toml_keys, field, _ in _FIELDS}
 
-    # Highest precedence first. A profile named explicitly outranks the ambient
-    # environment; one named by SIFT_PROFILE does not.
+    # Highest precedence first. A profile that the caller names outranks the
+    # environment. A profile that SIFT_PROFILE names does not.
     if profile_is_explicit:
         layers = [("arg", arg_layer), (file_source, file_layer), ("env", env_layer)]
     else:
@@ -347,7 +352,7 @@ def _missing_message(
     path: Path | None,
     config: Mapping[str, Any],
 ) -> str:
-    """Explain what is missing, where it was looked for, and how to supply it."""
+    """Explain what is missing, where the resolver looked, and how to supply it."""
     env_names = {field_name: env_key for _, field_name, env_key in _FIELDS}
     wanted = ", ".join(env_names[name] for name in missing)
 

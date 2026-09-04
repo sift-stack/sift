@@ -232,7 +232,7 @@ mod api_key_key {
         assert_eq!(config[API_KEY_KEY].as_str(), Some("new"));
         assert!(
             !config.contains_key(API_KEY_KEY_LEGACY),
-            "the legacy key must be removed so readers never see two spellings"
+            "the older key must go, so that no reader sees two spellings"
         );
     }
 
@@ -245,7 +245,7 @@ mod api_key_key {
         assert_eq!(mission[API_KEY_KEY].as_str(), Some("new"));
         assert!(!mission.contains_key(API_KEY_KEY_LEGACY));
 
-        // The default profile is untouched, legacy spelling included.
+        // The default profile does not change, and keeps the older spelling.
         assert_eq!(config[API_KEY_KEY_LEGACY].as_str(), Some("top"));
     }
 }

@@ -222,7 +222,7 @@ class TestProfiles:
         monkeypatch: pytest.MonkeyPatch,
         write_plugin_conftest: Callable[[], None],
     ) -> None:
-        """A named profile that isn't in the file aborts and lists the ones that are."""
+        """A named profile that the file does not define aborts and lists the ones it does."""
         self._write_config(pytester, monkeypatch)
         write_plugin_conftest()
         pytester.makepyfile("def test_should_not_run(): pass")

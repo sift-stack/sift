@@ -163,7 +163,7 @@ suggestion, so typos like `SIFT_REPORT_SERIALNUM` surface immediately.
 
 | Setting | CLI flag | Ini (`[tool.pytest.ini_options]`) | Env var |
 |---|---|---|---|
-| Named sift.toml profile to draw credentials from, as used by `sift-cli --profile`. | `--sift-profile` | `sift_profile` | `SIFT_PROFILE` |
+| Name of a sift.toml profile that supplies credentials, as with `sift-cli --profile`. | `--sift-profile` | `sift_profile` | `SIFT_PROFILE` |
 | Sift API key (secret, env-only). | — | — | `SIFT_API_KEY` |
 | Sift gRPC endpoint URI. | — | `sift_grpc_uri` | `SIFT_GRPC_URI` |
 | Sift REST endpoint URI. | — | `sift_rest_uri` | `SIFT_REST_URI` |

@@ -166,8 +166,10 @@ class TestApiKeySpelling:
         assert resolve(config_file).api_key == "default-key"
 
     def test_canonical_wins_when_a_file_carries_both(self, tmp_path):
-        """`sift-cli config update` drops the legacy key, but a hand-edited
-        file can hold both; the canonical spelling decides.
+        """A file that someone edits by hand can hold both keys.
+
+        `sift-cli config update` never writes both. If both are present, the
+        canonical spelling decides.
         """
         path = tmp_path / "sift.toml"
         path.write_text(
