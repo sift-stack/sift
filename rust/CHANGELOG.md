@@ -3,6 +3,35 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.12.0] - September 4, 2026
+### What's New
+
+#### MCAP imports (PR [#765](https://github.com/sift-stack/sift/pull/765))
+
+`sift_mcp` can now import MCAP files.
+
+#### Artifact tools (PRs [#766](https://github.com/sift-stack/sift/pull/766), [#768](https://github.com/sift-stack/sift/pull/768))
+
+New MCP tools to create and manage artifacts. `create_artifact` uploads file content.
+
+#### Calculated channel tools (PRs [#736](https://github.com/sift-stack/sift/pull/736), [#737](https://github.com/sift-stack/sift/pull/737))
+
+New MCP tools for calculated channels. `get_data` now serves saved calculated channels.
+
+#### `get_data` accepts `asset_id` (PR [#757](https://github.com/sift-stack/sift/pull/757))
+
+`get_data` now accepts an `asset_id` and reports channels that are missing from its output (PR [#758](https://github.com/sift-stack/sift/pull/758)).
+
+#### Feature-flag gating for MCP tools (PR [#764](https://github.com/sift-stack/sift/pull/764))
+
+MCP tools are gated by account feature flags at startup.
+
+#### Other changes
+
+- `list_*` tools support a fields projection and return an item count (PR [#732](https://github.com/sift-stack/sift/pull/732)).
+- Explore links default to a single source type (PR [#762](https://github.com/sift-stack/sift/pull/762)).
+- Annotation enums are included in MCP tool schemas (PR [#773](https://github.com/sift-stack/sift/pull/773)).
+
 ## [v0.11.0] - August 20, 2026
 ### What's New
 
