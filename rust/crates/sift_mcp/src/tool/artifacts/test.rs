@@ -1,8 +1,9 @@
 use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
 use sift_rs::{
     artifacts::v1::{
-        Artifact, ArtifactAuthoringKind, CreateArtifactResponse, GetArtifactResponse,
-        ListArtifactsResponse, artifact_service_server::ArtifactServiceServer,
+        Artifact, ArtifactAuthoringKind, ArtifactCreatedVia, ArtifactLinkRelation,
+        ArtifactStorageClass, CreateArtifactResponse, GetArtifactResponse, ListArtifactsResponse,
+        artifact_service_server::ArtifactServiceServer,
     },
     remote_files::v1::{
         GetRemoteFileDownloadUrlResponse, remote_file_service_server::RemoteFileServiceServer,
@@ -15,10 +16,13 @@ use sift_test_util::{
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
-use super::{CreateArtifactParams, DownloadArtifactParams};
+use super::{CreateArtifactParams, DownloadArtifactParams, parse_created_via, parse_storage_class};
 use crate::{
     server::SiftMcpServer,
-    tool::{artifacts::ArtifactListParams, common::test_support::structured_field},
+    tool::{
+        artifacts::ArtifactListParams,
+        common::{MetadataEntry, MetadataScalar, test_support::structured_field},
+    },
 };
 
 fn sample_artifact() -> Artifact {
@@ -31,6 +35,18 @@ fn sample_artifact() -> Artifact {
         authoring_kind: ArtifactAuthoringKind::Agent as i32,
         ..Default::default()
     }
+}
+
+#[test]
+fn parse_container_fields_omit_empty_and_missing_values() {
+    for value in [None, Some(String::new())] {
+        assert_eq!(parse_storage_class(value.clone()).unwrap(), None);
+        assert_eq!(parse_created_via(value).unwrap(), None);
+    }
+    assert_eq!(
+        parse_created_via(Some("sdk".into())).unwrap(),
+        Some(ArtifactCreatedVia::Sdk)
+    );
 }
 
 async fn server_with_mock(
@@ -88,18 +104,27 @@ fn get_returns(artifact: Artifact) -> MockArtifactServiceImpl {
 #[tokio::test]
 async fn list_artifacts_returns_rows() {
     let mut mock = MockArtifactServiceImpl::new();
-    mock.expect_list_artifacts().returning(|_| {
-        Ok(Response::new(ListArtifactsResponse {
-            artifacts: vec![sample_artifact()],
-            next_page_token: String::new(),
-        }))
-    });
+    mock.expect_list_artifacts()
+        .withf(|request| {
+            let request = request.get_ref();
+            request.conversation_id.as_deref() == Some("conv-1")
+                && request.filter == "storage_class == \"STRUCTURED\""
+                && request.order_by == "created_date desc"
+        })
+        .returning(|_| {
+            Ok(Response::new(ListArtifactsResponse {
+                artifacts: vec![sample_artifact()],
+                next_page_token: String::new(),
+            }))
+        });
 
     let (server, _h) = server_with_mock(mock, true).await;
     let resp = server
         .list_artifacts(Parameters(ArtifactListParams {
             conversation_id: Some("conv-1".into()),
             include_archived: None,
+            filter: Some("storage_class == \"STRUCTURED\"".into()),
+            order_by: Some("created_date desc".into()),
             limit: None,
             fields: None,
         }))
@@ -117,6 +142,8 @@ async fn list_artifacts_rejects_empty_conversation_id() {
         .list_artifacts(Parameters(ArtifactListParams {
             conversation_id: Some("  ".into()),
             include_archived: None,
+            filter: None,
+            order_by: None,
             limit: None,
             fields: None,
         }))
@@ -182,6 +209,26 @@ async fn get_artifact_omits_download_url_without_bytes() {
 }
 
 #[tokio::test]
+async fn get_artifact_returns_structured_payload() {
+    let structured = Artifact {
+        storage_class: ArtifactStorageClass::Structured as i32,
+        payload: Some(serde_json::from_value(serde_json::json!({ "rows": [[1, 2]] })).unwrap()),
+        ..sample_artifact()
+    };
+    let (server, _h) = server_with_mock(get_returns(structured), false).await;
+    let resp = server
+        .download_artifact(Parameters(DownloadArtifactParams {
+            artifact_id: "art-1".into(),
+            artifact_version_id: None,
+        }))
+        .await
+        .expect("get");
+    let artifact = structured_field(resp, "artifact");
+    assert!(artifact["payload"].is_object());
+    assert!(artifact["payload"].get("rows").is_some());
+}
+
+#[tokio::test]
 async fn get_artifact_surfaces_download_url_failure() {
     let uploaded = Artifact {
         remote_file_id: Some("rf-1".into()),
@@ -214,6 +261,7 @@ async fn create_artifact_blocked_without_allow_create() {
             artifact_id: None,
             authoring_kind: None,
             file_path: None,
+            ..Default::default()
         }))
         .await
         .expect_err("gated");
@@ -238,6 +286,7 @@ async fn create_artifact_append_blocked_without_allow_destructive() {
             artifact_id: Some("art-1".into()),
             authoring_kind: None,
             file_path: None,
+            ..Default::default()
         }))
         .await
         .expect_err("append gated");
@@ -251,7 +300,10 @@ async fn create_artifact_append_reports_appended_version() {
     mock.expect_create_artifact()
         .withf(|req| {
             let req = req.get_ref();
-            req.artifact_id.as_deref() == Some("art-1") && req.conversation_id.is_none()
+            req.artifact_id.as_deref() == Some("art-1")
+                && req.conversation_id.is_none()
+                && req.storage_class.is_none()
+                && req.created_via.is_none()
         })
         .returning(|_| {
             Ok(Response::new(CreateArtifactResponse {
@@ -272,6 +324,7 @@ async fn create_artifact_append_reports_appended_version() {
             artifact_id: Some("art-1".into()),
             authoring_kind: None,
             file_path: None,
+            ..Default::default()
         }))
         .await
         .expect("append");
@@ -313,6 +366,7 @@ async fn create_artifact_accepts_authoring_kind_in_any_case() {
                 artifact_id: None,
                 authoring_kind: Some(input.into()),
                 file_path: None,
+                ..Default::default()
             }))
             .await
             .unwrap_or_else(|err| panic!("{input}: {err:?}"));
@@ -330,10 +384,125 @@ async fn create_artifact_rejects_unknown_authoring_kind() {
             artifact_id: None,
             authoring_kind: Some("robot".into()),
             file_path: None,
+            ..Default::default()
         }))
         .await
         .expect_err("unknown kind");
     assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+}
+
+#[tokio::test]
+async fn create_artifact_validates_storage_and_payload() {
+    for params in [
+        CreateArtifactParams {
+            storage_class: Some("structured".into()),
+            ..Default::default()
+        },
+        CreateArtifactParams {
+            storage_class: Some("file".into()),
+            payload: Some(serde_json::json!({ "rows": [] })),
+            ..Default::default()
+        },
+        CreateArtifactParams {
+            payload: Some(serde_json::json!({ "rows": [] })),
+            ..Default::default()
+        },
+        CreateArtifactParams {
+            storage_class: Some("unknown".into()),
+            ..Default::default()
+        },
+        CreateArtifactParams {
+            storage_class: Some("structured".into()),
+            payload: Some(serde_json::json!({ "rows": [] })),
+            file_path: Some("report.csv".into()),
+            ..Default::default()
+        },
+        CreateArtifactParams {
+            storage_class: Some("structured".into()),
+            payload: Some(serde_json::json!(["not an object"])),
+            ..Default::default()
+        },
+        CreateArtifactParams {
+            links: Some(vec![super::ArtifactLinkParam {
+                relation: "attached_to".into(),
+                entity_type: String::new(),
+                entity_id: "conv-1".into(),
+            }]),
+            ..Default::default()
+        },
+        CreateArtifactParams {
+            links: Some(vec![super::ArtifactLinkParam {
+                relation: "attached_to".into(),
+                entity_type: "conversations".into(),
+                entity_id: String::new(),
+            }]),
+            ..Default::default()
+        },
+        CreateArtifactParams {
+            links: Some(vec![super::ArtifactLinkParam {
+                relation: "invalid".into(),
+                entity_type: "conversations".into(),
+                entity_id: "conv-1".into(),
+            }]),
+            ..Default::default()
+        },
+    ] {
+        let (server, _h) = server_with_mock(MockArtifactServiceImpl::new(), true).await;
+        let err = server
+            .create_artifact(Parameters(params))
+            .await
+            .expect_err("invalid storage input");
+        assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+    }
+}
+
+#[tokio::test]
+async fn create_artifact_sends_generic_fields() {
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_create_artifact()
+        .withf(|request| {
+            let request = request.get_ref();
+            request.storage_class == Some(ArtifactStorageClass::Structured as i32)
+                && request.created_via == Some(ArtifactCreatedVia::Chat as i32)
+                && request.kind.as_deref() == Some("table")
+                && request
+                    .payload
+                    .as_ref()
+                    .is_some_and(|payload| payload.fields.contains_key("rows"))
+                && request.metadata.len() == 1
+                && request.links.len() == 1
+                && request.links[0].relation == ArtifactLinkRelation::AttachedTo as i32
+                && request.links[0].entity_type == "conversations"
+                && request.links[0].entity_id == "conv-1"
+        })
+        .returning(|_| {
+            Ok(Response::new(CreateArtifactResponse {
+                artifact: Some(sample_artifact()),
+            }))
+        });
+
+    let (server, _h) = server_with_mock(mock, true).await;
+    let response = server
+        .create_artifact(Parameters(CreateArtifactParams {
+            storage_class: Some("structured".into()),
+            created_via: Some("chat".into()),
+            kind: Some("table".into()),
+            payload: Some(serde_json::json!({ "rows": [[1, 2]] })),
+            metadata: Some(vec![MetadataEntry {
+                name: "source".into(),
+                value: MetadataScalar::String("computed".into()),
+            }]),
+            links: Some(vec![super::ArtifactLinkParam {
+                relation: "attached_to".into(),
+                entity_type: "conversations".into(),
+                entity_id: "conv-1".into(),
+            }]),
+            ..Default::default()
+        }))
+        .await
+        .expect("create");
+    let next_step = structured_field(response, "next_step");
+    assert!(next_step.as_str().unwrap().contains("JSON payload"));
 }
 
 #[tokio::test]
@@ -347,6 +516,7 @@ async fn create_artifact_rejects_append_with_conversation() {
             artifact_id: Some("art-1".into()),
             authoring_kind: None,
             file_path: None,
+            ..Default::default()
         }))
         .await
         .expect_err("illegal combo");
@@ -371,6 +541,7 @@ async fn create_artifact_happy_path() {
             artifact_id: None,
             authoring_kind: Some("agent".into()),
             file_path: None,
+            ..Default::default()
         }))
         .await
         .expect("create");
@@ -437,6 +608,7 @@ async fn create_artifact_with_file_path_uploads_and_returns_the_refreshed_artifa
             artifact_id: None,
             authoring_kind: Some("agent".into()),
             file_path: Some(path.to_string_lossy().into_owned()),
+            ..Default::default()
         }))
         .await
         .expect("create with file");
@@ -471,6 +643,7 @@ async fn create_artifact_rejects_an_empty_file_path() {
             artifact_id: None,
             authoring_kind: None,
             file_path: Some("   ".into()),
+            ..Default::default()
         }))
         .await
         .expect_err("empty file_path");
@@ -518,6 +691,7 @@ async fn create_artifact_names_the_created_artifact_when_the_upload_fails() {
             artifact_id: None,
             authoring_kind: Some("agent".into()),
             file_path: Some(path.to_string_lossy().into_owned()),
+            ..Default::default()
         }))
         .await
         .expect_err("upload failed");
@@ -575,6 +749,7 @@ async fn create_artifact_with_file_path_says_so_when_the_download_link_is_missin
             artifact_id: None,
             authoring_kind: Some("agent".into()),
             file_path: Some(path.to_string_lossy().into_owned()),
+            ..Default::default()
         }))
         .await
         .expect("upload succeeded even though the refresh failed");
