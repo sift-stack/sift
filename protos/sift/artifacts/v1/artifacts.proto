@@ -263,7 +263,8 @@ message ArtifactLink {
   optional string artifact_version_id = 3;
   ArtifactLinkRelation relation = 4;
   // An open string accepting lowercase values: conversations, canvases, runs,
-  // assets, artifacts, or tool_uses.
+  // assets, artifacts, or tool_uses. entity_id is opaque: a UUID for Sift
+  // entities, or the provider tool_use_id for tool_uses.
   string entity_type = 5;
   string entity_id = 6;
   string organization_id = 7;
@@ -273,7 +274,8 @@ message ArtifactLink {
 message ArtifactLinkInput {
   ArtifactLinkRelation relation = 1;
   // An open string accepting lowercase values: conversations, canvases, runs,
-  // assets, artifacts, or tool_uses.
+  // assets, artifacts, or tool_uses. entity_id is opaque: a UUID for Sift
+  // entities, or the provider tool_use_id for tool_uses.
   string entity_type = 2;
   string entity_id = 3;
 }
@@ -341,9 +343,10 @@ message ListArtifactsRequest {
   // && l.entity_type == "conversations" && l.entity_id == "<id>")`. Link
   // sub-fields are relation, entity_type, entity_id, and artifact_version_id.
   // Enum fields compare against proto value names without the prefix, for
-  // example `storage_class == "STRUCTURED"`. The conversation_id and
-  // include_archived fields on this message keep working and combine with
-  // filter.
+  // example `storage_class == "STRUCTURED"`. Link relation compares against
+  // the uppercase proto names ATTACHED_TO, SOURCE, and DERIVED_FROM. The
+  // conversation_id and include_archived fields on this message keep working
+  // and combine with filter.
   string filter = 5;
   // A comma-separated [AIP-132](https://google.aip.dev/132#ordering) ordering
   // string over created_date, archived_date, title, version, and kind. Fields
