@@ -173,6 +173,13 @@ impl IngestWithConfigDataChannelValuePy {
     }
 
     #[staticmethod]
+    pub fn bytes(value: Vec<u8>) -> Self {
+        Self {
+            ty: ChannelValueTypePy::bytes(value),
+        }
+    }
+
+    #[staticmethod]
     pub fn empty() -> Self {
         Self {
             ty: ChannelValueTypePy::empty(),
