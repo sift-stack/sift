@@ -113,8 +113,10 @@ class Option:
     def resolve(self, config: pytest.Config | None) -> Any:
         """First set value from declared surfaces; ``None`` when unset everywhere.
 
-        Walk order is env > cli > ini > toml. No current option declares both
-        env and cli, so the chain isn't ambiguous in practice.
+        Walk order is env > cli > ini > toml. ``profile`` is the only option
+        declaring both env and cli, and env-before-cli is the wrong order for
+        it, so the ``sift_client`` fixture reads its CLI flag first rather than
+        calling this; see ``_resolve_profile``.
         ``getini`` returns the typed default for unset bool/list keys, so this
         only returns ini values for booleans (always meaningful), non-empty
         strings, and non-empty lists.
@@ -335,7 +337,17 @@ PARAMETRIZE_NESTING_OPTION = Option(
     ini_default=True,
 )
 
-# Credentials. The API key is env-only; the URIs accept env + ini.
+# Credentials. The API key is env-only; the URIs accept env + ini. A profile
+# supplies whatever the other three leave unset, from the same sift.toml that
+# `sift-cli --profile` reads.
+PROFILE_OPTION = Option(
+    name="profile",
+    category=CAT_CONNECTION,
+    help="Named sift.toml profile to draw credentials from, as used by `sift-cli --profile`.",
+    cli="--sift-profile",
+    env="SIFT_PROFILE",
+    ini="sift_profile",
+)
 API_KEY_OPTION = Option(
     name="api_key",
     category=CAT_CONNECTION,
@@ -432,6 +444,7 @@ PLUGIN_OPTIONS: tuple[Option, ...] = (
     MODULE_STEP_OPTION,
     CLASS_STEP_OPTION,
     PARAMETRIZE_NESTING_OPTION,
+    PROFILE_OPTION,
     API_KEY_OPTION,
     GRPC_URI_OPTION,
     REST_URI_OPTION,
@@ -524,6 +537,7 @@ def render_settings_reference() -> str:
             ("Ini (`[tool.pytest.ini_options]`)", _ini_cell),
         ],
         CAT_CONNECTION: [
+            ("CLI flag", _cli_cell),
             ("Ini (`[tool.pytest.ini_options]`)", _ini_cell),
             ("Env var", _env_cell),
         ],

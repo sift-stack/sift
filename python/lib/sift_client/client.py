@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 import warnings
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Mapping
 
+from sift_client._internal.credentials import ResolvedCredentials, resolve_credentials
 from sift_client._internal.disk_cache_config import DiskCacheConfig
 from sift_client._internal.urls import frontend_origin_for_api
 from sift_client.errors import SiftWarning
@@ -72,6 +73,12 @@ class SiftClient(
     Examples:
         from sift_client import SiftClient
         from datetime import datetime
+
+        # Use the same credentials sift-cli uses, from its default profile
+        client = SiftClient()
+
+        # Or a named profile from sift.toml, like `sift-cli --profile staging`
+        client = SiftClient(profile="staging")
 
         # Initialize with individual parameters
         client = SiftClient(
@@ -154,35 +161,59 @@ class SiftClient(
         rest_url: str | None = None,
         connection_config: SiftConnectionConfig | None = None,
         app_url: str | None = None,
+        profile: str | None = None,
     ):
         """Initialize the SiftClient with specific connection parameters or a connection_config.
+
+        Any argument left unset is resolved from the environment and from the
+        ``sift.toml`` profiles that ``sift-cli`` manages, so ``SiftClient()``
+        connects to the same place as ``sift-cli`` with no arguments at all.
+        See :func:`sift_client.credentials.resolve_credentials` for the full
+        precedence order.
 
         Args:
             api_key: The Sift API key for authentication.
             grpc_url: The Sift gRPC API URL.
             rest_url: The Sift REST API URL.
             connection_config: A SiftConnectionConfig object to configure the connection behavior of the SiftClient.
+                When given, it is used as-is and no credential resolution happens.
             app_url: The Sift web-app origin (e.g. ``https://app.siftstack.com``).
                 Set this for on-prem or custom deployments whose API host can't be
                 mapped to a frontend automatically; see the ``app_url`` property.
                 A value here takes precedence over ``connection_config.app_url``.
+            profile: Name of a ``sift.toml`` profile to draw credentials from,
+                equivalent to ``sift-cli --profile``. Ignored when
+                ``connection_config`` is given.
+
+        Raises:
+            SiftCredentialsError: No ``connection_config`` was given and the API
+                key or either URL could not be resolved.
 
         """
-        if not (api_key and grpc_url and rest_url) and not connection_config:
-            raise ValueError(
-                "Either api_key, grpc_url and rest_url or connection_config must be provided to establish a connection."
-            )
+        self._credentials: ResolvedCredentials | None = None
 
         if connection_config:
             grpc_client = GrpcClient(connection_config.get_grpc_config())
             rest_client = RestClient(connection_config.get_rest_config())
-        elif api_key and grpc_url and rest_url:
-            grpc_client = GrpcClient(GrpcConfig(grpc_url, api_key))
-            rest_client = RestClient(RestConfig(rest_url, api_key))
         else:
-            raise ValueError(
-                "Invalid connection configuration. Please provide api_key, grpc_uri and rest_uri or a connection_config."
+            creds = resolve_credentials(
+                api_key=api_key,
+                grpc_url=grpc_url,
+                rest_url=rest_url,
+                app_url=app_url,
+                profile=profile,
             )
+            self._credentials = creds
+            # ``use_ssl`` comes from the gRPC URL's scheme: the transport strips
+            # the scheme off and would otherwise dial an ``http://`` endpoint
+            # over TLS.
+            grpc_client = GrpcClient(
+                GrpcConfig(creds.grpc_url, creds.api_key, use_ssl=creds.use_ssl)
+            )
+            rest_client = RestClient(
+                RestConfig(creds.rest_url, creds.api_key, use_ssl=creds.use_ssl)
+            )
+            app_url = creds.app_url
 
         WithGrpcClient.__init__(self, grpc_client=grpc_client)
         WithRestClient.__init__(self, rest_client=rest_client)
@@ -247,6 +278,38 @@ class SiftClient(
             data_export=DataExportAPIAsync(self),
             data_import=DataImportAPIAsync(self),
         )
+
+    @classmethod
+    def from_profile(cls, profile: str, **kwargs) -> SiftClient:
+        """Build a client from a named ``sift.toml`` profile.
+
+        Equivalent to ``SiftClient(profile=...)``; keyword arguments are passed
+        through and still take precedence over the profile's values.
+
+        Args:
+            profile: Profile name, as used by ``sift-cli --profile``.
+            **kwargs: Any other :class:`SiftClient` argument.
+
+        Returns:
+            A client connected to the endpoints that profile names.
+        """
+        return cls(profile=profile, **kwargs)
+
+    @property
+    def credential_sources(self) -> Mapping[str, str] | None:
+        """Which layer supplied each credential, for diagnosing connections.
+
+        Maps ``api_key`` / ``grpc_url`` / ``rest_url`` / ``app_url`` to
+        ``"arg"``, ``"profile:<name>"``, ``"env"``, ``"default"``, or
+        ``"unset"``. ``None`` when the client was built from an explicit
+        ``connection_config``, which bypasses resolution.
+        """
+        return self._credentials.sources if self._credentials else None
+
+    @property
+    def profile(self) -> str | None:
+        """The ``sift.toml`` profile this client resolved its credentials from."""
+        return self._credentials.profile if self._credentials else None
 
     @property
     def grpc_client(self) -> GrpcClient:

@@ -23,6 +23,7 @@ from typing import Any, Generator, NoReturn
 import pytest
 
 from sift_client import SiftClient, SiftConnectionConfig
+from sift_client._internal.credentials import resolve_credentials
 from sift_client._internal.pytest_plugin.audit_log import (
     _make_session_dir,
     configure_audit_logging,
@@ -46,6 +47,7 @@ from sift_client._internal.pytest_plugin.options import (
     LOG_FILE_OPTION,
     OPEN_OPTION,
     OUTPUT_DIR_OPTION,
+    PROFILE_OPTION,
     REST_URI_OPTION,
     register_options,
     resolved_settings,
@@ -80,7 +82,7 @@ from sift_client._internal.pytest_plugin.terminal import (
     write_disabled_summary,
     write_report_summary,
 )
-from sift_client.errors import SiftWarning
+from sift_client.errors import SiftCredentialsError, SiftWarning
 from sift_client.sift_types.test_report import TestStatus
 from sift_client.util.test_results import ReportContext
 from sift_client.util.test_results.context_manager import NewStep
@@ -183,7 +185,7 @@ def abort(reason: str, returncode: int | None = None) -> NoReturn:
 
 @pytest.fixture(scope="session")
 def sift_client(pytestconfig: pytest.Config) -> SiftClient:
-    """Default ``SiftClient`` resolved from environment variables and ini keys.
+    """Default ``SiftClient`` resolved from env vars, ini keys, and sift.toml profiles.
 
     Each credential is read from its environment variable first. The URIs
     (``SIFT_GRPC_URI``, ``SIFT_REST_URI``) also fall back to the
@@ -191,6 +193,13 @@ def sift_client(pytestconfig: pytest.Config) -> SiftClient:
     per-org values that are safe to commit. ``SIFT_API_KEY`` is intentionally
     env-only; use ``pytest-dotenv`` (already a project dependency) to load
     it from a ``.env`` file kept out of version control.
+
+    Anything those surfaces leave unset is filled from a ``sift.toml`` profile,
+    the same file ``sift-cli --profile`` reads. Name one with ``--sift-profile``,
+    the ``sift_profile`` ini key, or ``SIFT_PROFILE``; with none named, the
+    file's default profile is used. Unlike :class:`~sift_client.SiftClient`,
+    here the profile sits *below* the env vars rather than above them, so a key
+    injected by CI is never overridden by a profile on the runner.
 
     Projects that need custom construction (TLS toggles, custom timeouts,
     etc.) can override this fixture by defining their own ``sift_client``
@@ -206,13 +215,33 @@ def sift_client(pytestconfig: pytest.Config) -> SiftClient:
     """
     if is_disabled(pytestconfig):
         return build_disabled_client()
+
+    offline = is_offline(pytestconfig)
+    # Everything the plugin's own surfaces resolved is passed as an explicit
+    # argument, so it outranks the profile; the profile fills only what they
+    # left unset. That keeps CI-injected env vars authoritative.
+    try:
+        creds = resolve_credentials(
+            api_key=API_KEY_OPTION.resolve(pytestconfig),
+            grpc_url=GRPC_URI_OPTION.resolve(pytestconfig),
+            rest_url=REST_URI_OPTION.resolve(pytestconfig),
+            app_url=APP_URL_OPTION.resolve(pytestconfig),
+            profile=_resolve_profile(pytestconfig),
+            require=False,
+        )
+    except SiftCredentialsError as exc:
+        # A named profile that doesn't exist, or an unreadable config file, is a
+        # usage error even offline: the run asked for something specific.
+        log_event(logger, logging.ERROR, "credentials", error=type(exc).__name__)
+        raise pytest.UsageError(str(exc)) from exc
+
     resolved = {
-        "SIFT_API_KEY": API_KEY_OPTION.resolve(pytestconfig),
-        "SIFT_GRPC_URI": GRPC_URI_OPTION.resolve(pytestconfig),
-        "SIFT_REST_URI": REST_URI_OPTION.resolve(pytestconfig),
+        "SIFT_API_KEY": creds.api_key,
+        "SIFT_GRPC_URI": creds.grpc_url,
+        "SIFT_REST_URI": creds.rest_url,
     }
     missing = [env for env, value in resolved.items() if not value]
-    if missing and not is_offline(pytestconfig):
+    if missing and not offline:
         log_event(logger, logging.ERROR, "credentials", missing=",".join(missing))
         raise pytest.UsageError(
             "Sift credentials missing: "
@@ -220,23 +249,37 @@ def sift_client(pytestconfig: pytest.Config) -> SiftClient:
             + ". Set the environment variable(s) (pytest-dotenv loads them "
             "from a `.env` file automatically), or set the URIs under "
             "`sift_grpc_uri` / `sift_rest_uri` in `[tool.pytest.ini_options]` "
-            "in pyproject.toml, or override the sift_client fixture in your "
-            "conftest.py, or pass --sift-offline / --sift-disabled to run "
-            "without contacting Sift."
+            "in pyproject.toml, or name a sift.toml profile with "
+            "`--sift-profile` / `sift_profile` / SIFT_PROFILE, or override the "
+            "sift_client fixture in your conftest.py, or pass --sift-offline / "
+            "--sift-disabled to run without contacting Sift."
         )
     for env in missing:
         resolved[env] = OFFLINE_DEFAULTS[env]
-    # Web-app origin for the report link: the SIFT_APP_URL env var wins, then the
-    # sift_app_url ini key, else host-based derivation in SiftClient.app_url.
-    app_url = APP_URL_OPTION.resolve(pytestconfig)
+
     return SiftClient(
         connection_config=SiftConnectionConfig(
-            api_key=resolved["SIFT_API_KEY"] or "",
-            grpc_url=resolved["SIFT_GRPC_URI"] or "",
-            rest_url=resolved["SIFT_REST_URI"] or "",
-            app_url=app_url or None,
+            api_key=resolved["SIFT_API_KEY"],
+            grpc_url=resolved["SIFT_GRPC_URI"],
+            rest_url=resolved["SIFT_REST_URI"],
+            app_url=creds.app_url,
+            use_ssl=creds.use_ssl,
         )
     )
+
+
+def _resolve_profile(pytestconfig: pytest.Config) -> str | None:
+    """The sift.toml profile for this run, preferring the CLI flag over SIFT_PROFILE.
+
+    ``Option.resolve`` walks env before cli, which is right for the credential
+    options but wrong for a profile: typing ``--sift-profile staging`` should
+    beat a ``SIFT_PROFILE`` left over in the shell. Only this option declares
+    both surfaces, so the reordering stays local.
+    """
+    from_cli = pytestconfig.getoption(PROFILE_OPTION.cli_dest, default=None)
+    if from_cli:
+        return str(from_cli)
+    return PROFILE_OPTION.resolve(pytestconfig)
 
 
 @pytest.fixture(scope="session")

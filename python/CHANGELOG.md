@@ -7,6 +7,22 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+#### Credentials from sift-cli profiles
+
+`SiftClient` now reads the same `sift.toml` profiles that `sift-cli --profile` uses, so an environment configured once for the CLI works from Python with no arguments.
+
+```python
+client = SiftClient()                      # the CLI's default profile
+client = SiftClient(profile="staging")     # a named profile
+client = SiftClient.from_profile("staging")
+```
+
+Arguments still win, then a profile named in code, then `SIFT_API_KEY` / `SIFT_GRPC_URI` / `SIFT_REST_URI` / `SIFT_APP_URL`, then the profile named by `SIFT_PROFILE`, then the config file's default profile. `client.credential_sources` reports which layer supplied each value. See [Credentials & Profiles](guides/credentials.md).
+
+The pytest plugin gains `--sift-profile`, the `sift_profile` ini key, and `SIFT_PROFILE`. There, the plugin's existing surfaces still outrank the profile, which fills in whatever they leave unset, so CI-injected values stay authoritative.
+
+Passing an `http://` URL now connects without TLS instead of failing: transport security follows the gRPC URL's scheme. `https://` and bare host names are unaffected.
+
 #### List and get data imports
 
 New in `client.data_import`: `list_` and `get` (plus `find`), and a `run.data_imports` property.
