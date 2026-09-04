@@ -84,6 +84,9 @@ tracing = "0.1"
 tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
 tracing-test = { version = "0.2", features = ["no-env-filter"] }
+# `unicode-normalization` enables only `alloc`, which does not compile in
+# tinyvec 1.13.0. Workspace crates run with the standard library available.
+tinyvec = { version = "1", features = ["std"] }
 uuid = { version = "1.22", features = ["v4"] }
 zip = "8.2"
 
