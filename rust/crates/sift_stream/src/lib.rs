@@ -598,7 +598,7 @@ pub use stream::{
         FileBackupBuilder, IngestionConfigForm, LiveOnlyBuilder, LiveWithBackupsBuilder, RunForm,
         SiftStreamBuilder, StreamConfigBuilder,
     },
-    channel::{ChannelEnum, ChannelValue, Value},
+    channel::{ChannelBytes, ChannelEnum, ChannelValue, Value},
     flow::{ChannelIndex, FlowBuilder, FlowDescriptor, FlowDescriptorBuilder},
     mode::{
         file_backup::FileBackup,
