@@ -30,11 +30,11 @@ The following is an example of a valid `sift.toml` file:
 
 ```toml
 uri = "http://example-sift-api.com"
-apikey = "example-sift-api-key"
+api_key = "example-sift-api-key"
 
 [mission]
 uri = "http://example-sift-api.com"
-apikey = "my-other-sift-api-key"
+api_key = "my-other-sift-api-key"
 ```
 
 The top-level TOML table is considered the default profile, with the `mission` table being a

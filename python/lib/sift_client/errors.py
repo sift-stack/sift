@@ -11,6 +11,14 @@ class SiftExperimentalWarning(SiftWarning):
     """Warning for experimental features."""
 
 
+class SiftCredentialsError(ValueError):
+    """Raised when Sift credentials cannot be resolved.
+
+    Subclasses ``ValueError`` because that is what ``SiftClient`` raised for
+    unusable connection arguments before credential resolution existed.
+    """
+
+
 def _sift_stream_bindings_import_error(original_error: ImportError) -> NoReturn:
     # Returns NoReturn to satisfy pyright
     raise ImportError(

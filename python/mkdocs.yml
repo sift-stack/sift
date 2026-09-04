@@ -66,6 +66,7 @@ nav:
       - Pytest Plugin Quickstart: examples/pytest_plugin_quickstart.md
   - Guides:
       - guides/index.md
+      - Credentials and profiles: guides/credentials.md
       - Pytest Plugin:
           - Overview: guides/pytest_plugin/index.md
           - Configuration & Defaults: guides/pytest_plugin/configuration.md

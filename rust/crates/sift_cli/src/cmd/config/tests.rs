@@ -195,3 +195,57 @@ app_uri = "https://sift.example.net"
         );
     }
 }
+
+mod api_key_key {
+    use super::super::apply_profile_updates;
+    use crate::cmd::{API_KEY_KEY, API_KEY_KEY_LEGACY};
+    use toml::Table;
+
+    fn config(input: &str) -> Table {
+        input.parse().unwrap()
+    }
+
+    fn update_key(config: &mut Table, profile: Option<&str>, key: &str) {
+        apply_profile_updates(
+            config,
+            profile.map(String::from),
+            None,
+            None,
+            Some(key.to_string()),
+            None,
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn writes_the_canonical_key() {
+        let mut config = config("");
+        update_key(&mut config, None, "fresh");
+        assert_eq!(config[API_KEY_KEY].as_str(), Some("fresh"));
+        assert!(!config.contains_key(API_KEY_KEY_LEGACY));
+    }
+
+    #[test]
+    fn migrates_a_legacy_key_instead_of_leaving_both() {
+        let mut config = config("apikey = \"old\"\n");
+        update_key(&mut config, None, "new");
+        assert_eq!(config[API_KEY_KEY].as_str(), Some("new"));
+        assert!(
+            !config.contains_key(API_KEY_KEY_LEGACY),
+            "the older key must go, so that no reader sees two spellings"
+        );
+    }
+
+    #[test]
+    fn migrates_within_a_named_profile_only() {
+        let mut config = config("apikey = \"top\"\n\n[mission]\napikey = \"old\"\n");
+        update_key(&mut config, Some("mission"), "new");
+
+        let mission = config["mission"].as_table().unwrap();
+        assert_eq!(mission[API_KEY_KEY].as_str(), Some("new"));
+        assert!(!mission.contains_key(API_KEY_KEY_LEGACY));
+
+        // The default profile does not change, and keeps the older spelling.
+        assert_eq!(config[API_KEY_KEY_LEGACY].as_str(), Some("top"));
+    }
+}

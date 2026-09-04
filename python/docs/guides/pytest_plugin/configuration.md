@@ -161,12 +161,13 @@ suggestion, so typos like `SIFT_REPORT_SERIALNUM` surface immediately.
 
 ### Connection
 
-| Setting | Ini (`[tool.pytest.ini_options]`) | Env var |
-|---|---|---|
-| Sift API key (secret, env-only). | — | `SIFT_API_KEY` |
-| Sift gRPC endpoint URI. | `sift_grpc_uri` | `SIFT_GRPC_URI` |
-| Sift REST endpoint URI. | `sift_rest_uri` | `SIFT_REST_URI` |
-| Sift web-app origin for the report link in the terminal footer (e.g. https://app.siftstack.com). When unset, the link is derived from the REST URI for known Sift hosts. | `sift_app_url` | `SIFT_APP_URL` |
+| Setting | CLI flag | Ini (`[tool.pytest.ini_options]`) | Env var |
+|---|---|---|---|
+| Name of a sift.toml profile that supplies credentials, as with `sift-cli --profile`. | `--sift-profile` | `sift_profile` | `SIFT_PROFILE` |
+| Sift API key (secret, env-only). | — | — | `SIFT_API_KEY` |
+| Sift gRPC endpoint URI. | — | `sift_grpc_uri` | `SIFT_GRPC_URI` |
+| Sift REST endpoint URI. | — | `sift_rest_uri` | `SIFT_REST_URI` |
+| Sift web-app origin for the report link in the terminal footer (e.g. https://app.siftstack.com). When unset, the link is derived from the REST URI for known Sift hosts. | — | `sift_app_url` | `SIFT_APP_URL` |
 
 ### Report content
 
@@ -179,6 +180,7 @@ suggestion, so typos like `SIFT_REPORT_SERIALNUM` surface immediately.
 | Serial number of the unit under test. | `[tool.sift.pytest.report] serial_number` | `SIFT_REPORT_SERIAL_NUMBER` |
 | Part number of the unit under test. | `[tool.sift.pytest.report] part_number` | `SIFT_REPORT_PART_NUMBER` |
 | Free-form report metadata, as a TOML table of scalar values. For dynamic per-run keys, override the sift_report_metadata fixture in conftest. | `[tool.sift.pytest.report.metadata]` (table) | — |
+
 <!-- END settings-reference -->
 
 ### Quick-start examples

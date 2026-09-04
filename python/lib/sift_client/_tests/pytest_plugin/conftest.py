@@ -29,7 +29,15 @@ from typing import Callable
 
 import pytest
 
-_SIFT_ENV_VARS = ("SIFT_API_KEY", "SIFT_GRPC_URI", "SIFT_REST_URI", "SIFT_DISABLED", "SIFT_APP_URL")
+_SIFT_ENV_VARS = (
+    "SIFT_API_KEY",
+    "SIFT_GRPC_URI",
+    "SIFT_REST_URI",
+    "SIFT_DISABLED",
+    "SIFT_APP_URL",
+    "SIFT_PROFILE",
+    "SIFT_CONFIG_FILE",
+)
 
 
 def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:

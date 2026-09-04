@@ -20,12 +20,15 @@ pub const SIFT_CONFIG_NAME: &str = "sift.toml";
 ///
 /// ```toml
 /// uri = "https://api.siftstack.com"
-/// apikey = "default-api-key"
+/// api_key = "default-api-key"
 ///
 /// [production]
 /// uri = "https://api.siftstack.com"
-/// apikey = "production-api-key"
+/// api_key = "production-api-key"
 /// ```
+///
+/// The older `apikey` spelling is still valid, so a file from an earlier release
+/// still works. If a table holds both keys, the loader uses `api_key`.
 ///
 /// # Direct Credentials
 ///
@@ -102,56 +105,55 @@ impl TryFrom<Credentials> for SiftChannelConfig {
                     .with_context(|| format!("failed to parse {}", config.display()))
                     .help("ensure that the config file is properly formated")?;
 
-                match profile {
+                let (table, location) = match &profile {
                     Some(p) => {
-                        let Some(Value::Table(sub_table)) = config_toml.get(&p) else {
+                        let Some(Value::Table(sub_table)) = config_toml.get(p) else {
                             return Err(Error::new_msg(
                                 ErrorKind::ConfigError,
                                 format!("expected a '{p}' sub-table in '{}'", config.display()),
                             ));
                         };
-
-                        let Some(Value::String(uri)) = sub_table.get("uri") else {
-                            return Err(Error::new_msg(
-                                ErrorKind::ConfigError,
-                                format!("expected '{p}' to contain 'uri' entry"),
-                            ));
-                        };
-
-                        let Some(Value::String(apikey)) = sub_table.get("apikey") else {
-                            return Err(Error::new_msg(
-                                ErrorKind::ConfigError,
-                                format!("expected '{p}' to contain 'apikey' entry"),
-                            ));
-                        };
-
-                        Ok(SiftChannelConfig::new(uri, apikey))
+                        (sub_table, format!("'{p}'"))
                     }
-                    None => {
-                        let Some(Value::String(uri)) = config_toml.get("uri") else {
-                            return Err(Error::new_msg(
-                                ErrorKind::ConfigError,
-                                format!(
-                                    "expected '{}' to contain a top-level 'uri' entry",
-                                    config.display()
-                                ),
-                            ));
-                        };
+                    None => (
+                        &config_toml,
+                        format!("a top-level entry in '{}'", config.display()),
+                    ),
+                };
 
-                        let Some(Value::String(apikey)) = config_toml.get("apikey") else {
-                            return Err(Error::new_msg(
-                                ErrorKind::ConfigError,
-                                format!(
-                                    "expected '{}' to contain a top-level 'apikey' entry",
-                                    config.display()
-                                ),
-                            ));
-                        };
+                let Some(uri) = lookup(table, &[URI_KEY]) else {
+                    return Err(Error::new_msg(
+                        ErrorKind::ConfigError,
+                        format!("expected {location} to contain '{URI_KEY}'"),
+                    ));
+                };
 
-                        Ok(SiftChannelConfig::new(uri, apikey))
-                    }
-                }
+                let Some(apikey) = lookup(table, API_KEY_KEYS) else {
+                    return Err(Error::new_msg(
+                        ErrorKind::ConfigError,
+                        format!("expected {location} to contain '{}'", API_KEY_KEYS[0]),
+                    ));
+                };
+
+                Ok(SiftChannelConfig::new(uri, apikey))
             }
         }
     }
+}
+
+/// The accepted TOML keys for the API key, canonical first. `api_key` matches
+/// the spelling that the Sift API and `sift-cli` use. `apikey` is the older
+/// spelling that earlier releases wrote. A lookup accepts either key. Nothing
+/// writes the older one.
+pub const API_KEY_KEYS: &[&str] = &["api_key", "apikey"];
+
+/// The TOML key naming the gRPC endpoint.
+pub const URI_KEY: &str = "uri";
+
+/// The value of the first key in `keys` that `table` sets, or `None`.
+fn lookup<'a>(table: &'a Table, keys: &[&str]) -> Option<&'a str> {
+    keys.iter().find_map(|key| match table.get(*key) {
+        Some(Value::String(value)) if !value.is_empty() => Some(value.as_str()),
+        _ => None,
+    })
 }
