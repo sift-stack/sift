@@ -6420,28 +6420,27 @@ needing this call.</p>
     <div class="doc doc-contents ">
 
         <p>Default <code>SiftClient</code> resolved from env vars, ini keys, and sift.toml profiles.</p>
-<p>Each credential is read from its environment variable first. The URIs
-(<code>SIFT_GRPC_URI</code>, <code>SIFT_REST_URI</code>) also fall back to the
-<code>sift_grpc_uri</code> / <code>sift_rest_uri</code> ini keys, since they are stable
-per-org values that are safe to commit. <code>SIFT_API_KEY</code> is intentionally
-env-only; use <code>pytest-dotenv</code> (already a project dependency) to load
-it from a <code>.env</code> file kept out of version control.</p>
-<p>Anything those surfaces leave unset is filled from a <code>sift.toml</code> profile,
-the same file <code>sift-cli --profile</code> reads. Name one with <code>--sift-profile</code>,
-the <code>sift_profile</code> ini key, or <code>SIFT_PROFILE</code>; with none named, the
-file's default profile is used. Unlike :class:<code>~sift_client.SiftClient</code>,
-here the profile sits <em>below</em> the env vars rather than above them, so a key
-injected by CI is never overridden by a profile on the runner.</p>
-<p>Projects that need custom construction (TLS toggles, custom timeouts,
-etc.) can override this fixture by defining their own <code>sift_client</code>
-in their <code>conftest.py</code>; pytest fixture resolution prefers the local
-definition.</p>
-<p>In <code>--sift-offline</code> mode the missing-credential check is relaxed:
-real env vars and ini values still win when set (so the client is
-constructible against a real backend even though no calls are made), but
-anything still missing is filled with a placeholder. In <code>--sift-disabled</code>
-mode the credential resolution is skipped entirely and placeholders are
-always used.</p>
+<p>This fixture reads each credential from its environment variable first. The
+URIs (<code>SIFT_GRPC_URI</code>, <code>SIFT_REST_URI</code>) also fall back to the
+<code>sift_grpc_uri</code> / <code>sift_rest_uri</code> ini keys, because those are stable
+per-org values that are safe to commit. <code>SIFT_API_KEY</code> has no ini key, by
+design. Use <code>pytest-dotenv</code>, which is already a project dependency, to
+load it from a <code>.env</code> file that you keep out of version control.</p>
+<p>A <code>sift.toml</code> profile supplies the values that those surfaces leave unset.
+It is the same file that <code>sift-cli --profile</code> reads. Name a profile with
+<code>--sift-profile</code>, the <code>sift_profile</code> ini key, or <code>SIFT_PROFILE</code>. If you
+name none, the fixture uses the file's default profile.</p>
+<p>Note: the precedence here differs from :class:<code>~sift_client.SiftClient</code>. The
+profile ranks below the environment variables, not above them, so a profile
+on the runner cannot replace a key that CI injects.</p>
+<p>A project that needs custom construction, such as a TLS toggle or a custom
+timeout, can override this fixture. Declare your own <code>sift_client</code> in
+<code>conftest.py</code>, because pytest prefers the local definition.</p>
+<p><code>--sift-offline</code> mode relaxes the missing-credential check. A real
+environment variable or ini value still takes precedence when it is set, so
+the client can point at a real backend even though it makes no calls. A
+placeholder fills every field that is still missing. <code>--sift-disabled</code>
+mode resolves no credentials and always uses placeholders.</p>
 
 
     </div>

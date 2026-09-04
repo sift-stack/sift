@@ -3077,10 +3077,10 @@ type-safe access to properties and convenience methods for common operations.</p
 <p>It provides both synchronous and asynchronous interfaces, strong type checking, and a Pythonic API design.</p>
 
         <p>Initialize the SiftClient with specific connection parameters or a connection_config.</p>
-<p>Any argument left unset is resolved from the environment and from the
-<code>sift.toml</code> profiles that <code>sift-cli</code> manages, so <code>SiftClient()</code>
-connects to the same place as <code>sift-cli</code> with no arguments at all.
-See :func:<code>sift_client.credentials.resolve_credentials</code> for the full
+<p>For any argument that you leave unset, the client reads the environment
+and the <code>sift.toml</code> profiles that <code>sift-cli</code> manages. <code>SiftClient()</code>
+therefore connects to the same endpoints as <code>sift-cli</code>. See
+:func:<code>sift_client.credentials.resolve_credentials</code> for the full
 precedence order.</p>
 
 
@@ -3159,7 +3159,7 @@ precedence order.</p>
             <td class="doc-param-details">
               <div class="doc-md-description">
                 <p>A SiftConnectionConfig object to configure the connection behavior of the SiftClient.
-When given, it is used as-is and no credential resolution happens.</p>
+The client uses it unchanged and resolves no credentials.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -3202,9 +3202,9 @@ A value here takes precedence over <code>connection_config.app_url</code>.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Name of a <code>sift.toml</code> profile to draw credentials from,
-equivalent to <code>sift-cli --profile</code>. Ignored when
-<code>connection_config</code> is given.</p>
+                <p>Name of a <code>sift.toml</code> profile that supplies credentials,
+as with <code>sift-cli --profile</code>. The client ignores this argument
+if you also pass <code>connection_config</code>.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -3238,8 +3238,8 @@ equivalent to <code>sift-cli --profile</code>. Ignored when
             </td>
             <td class="doc-raises-details">
               <div class="doc-md-description">
-                <p>No <code>connection_config</code> was given and the API
-key or either URL could not be resolved.</p>
+                <p>You passed no <code>connection_config</code>, and the
+client cannot resolve the API key or either URL.</p>
               </div>
             </td>
           </tr>
@@ -3651,7 +3651,7 @@ key or either URL could not be resolved.</p>
    (sift_client.SiftClient.credential_sources)" href="#sift_client.SiftClient.credential_sources">credential_sources</a></code></td>
             <td class="doc-attribute-details">
               <div class="doc-md-description">
-                <p>Which layer supplied each credential, for diagnosing connections.</p>
+                <p>The layer that supplied each credential. Use it to diagnose a connection.</p>
               </div>
               <p>
                   <span class="doc-attribute-annotation">
@@ -3670,7 +3670,7 @@ key or either URL could not be resolved.</p>
    (sift_client.SiftClient.profile)" href="#sift_client.SiftClient.profile">profile</a></code></td>
             <td class="doc-attribute-details">
               <div class="doc-md-description">
-                <p>The <code>sift.toml</code> profile this client resolved its credentials from.</p>
+                <p>The <code>sift.toml</code> profile that supplied this client's credentials.</p>
               </div>
               <p>
                   <span class="doc-attribute-annotation">
@@ -4251,11 +4251,12 @@ key or either URL could not be resolved.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Which layer supplied each credential, for diagnosing connections.</p>
+        <p>The layer that supplied each credential. Use it to diagnose a connection.</p>
 <p>Maps <code>api_key</code> / <code>grpc_url</code> / <code>rest_url</code> / <code>app_url</code> to
 <code>"arg"</code>, <code>"profile:&lt;name&gt;"</code>, <code>"env"</code>, <code>"default"</code>, or
-<code>"unset"</code>. <code>None</code> when the client was built from an explicit
-<code>connection_config</code>, which bypasses resolution.</p>
+<code>"unset"</code>. This property is <code>None</code> if you build the client from an
+explicit <code>connection_config</code>, because that path resolves no
+credentials.</p>
 
     </div>
 
@@ -4279,7 +4280,7 @@ key or either URL could not be resolved.</p>
 
     <div class="doc doc-contents ">
 
-        <p>The <code>sift.toml</code> profile this client resolved its credentials from.</p>
+        <p>The <code>sift.toml</code> profile that supplied this client's credentials.</p>
 
     </div>
 
@@ -4453,8 +4454,9 @@ None for unrecognized hosts with no override.</p>
     <div class="doc doc-contents ">
 
         <p>Build a client from a named <code>sift.toml</code> profile.</p>
-<p>Equivalent to <code>SiftClient(profile=...)</code>; keyword arguments are passed
-through and still take precedence over the profile's values.</p>
+<p>This method calls <code>SiftClient(profile=...)</code>. It passes every keyword
+argument through, and those arguments still outrank the profile's
+values.</p>
 
 
 <table>
