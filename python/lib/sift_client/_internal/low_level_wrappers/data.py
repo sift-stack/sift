@@ -38,7 +38,7 @@ CHANNELS_DEFAULT_PAGE_SIZE = 100_000
 REQUEST_BATCH_SIZE = 1
 
 
-TimeRange = Tuple[datetime, datetime]
+TimeRange = Tuple[pd.Timestamp, pd.Timestamp]
 
 
 class SegmentRef(BaseModel):
@@ -48,12 +48,17 @@ class SegmentRef(BaseModel):
     queried this range and the wire returned no data". Empty refs
     contribute to coverage (so a repeat of a known-empty range
     doesn't hit the wire).
+
+    Bounds are ``pd.Timestamp``: a ``datetime`` truncates to
+    microseconds, which would under-claim the first sample by up to
+    999 ns. The adapter's methods normalize what they're handed, so
+    callers can still pass a plain ``datetime``.
     """
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
     seg_id: int | None
-    start_time: datetime
-    end_time: datetime
+    start_time: pd.Timestamp
+    end_time: pd.Timestamp
 
 
 class SegmentIndex(BaseModel):
@@ -159,8 +164,8 @@ class ChannelDataCache:
         self,
         channel_id: str,
         run_id: str | None,
-        start_time: datetime,
-        end_time: datetime,
+        start_time: pd.Timestamp | datetime,
+        end_time: pd.Timestamp | datetime,
     ) -> tuple[pd.DataFrame | None, list[TimeRange]]:
         """Return cached data covering ``[start_time, end_time]`` plus gaps.
 
@@ -176,6 +181,8 @@ class ChannelDataCache:
             query window not covered by any present segment.
             ``gaps == []`` means the cache fully covers the request.
         """
+        start_time = to_timestamp_nanos(start_time)
+        end_time = to_timestamp_nanos(end_time)
         idx = self._load_index(channel_id, run_id)
         if idx is None or not idx.segments:
             return None, [(start_time, end_time)]
@@ -226,8 +233,8 @@ class ChannelDataCache:
         channel_id: str,
         run_id: str | None,
         data: pd.DataFrame,
-        start_time: datetime,
-        end_time: datetime,
+        start_time: pd.Timestamp | datetime,
+        end_time: pd.Timestamp | datetime,
     ) -> None:
         """Write a new segment and update the index.
 
@@ -254,6 +261,8 @@ class ChannelDataCache:
         puts skip the segment write entirely and update the index
         directly.
         """
+        start_time = to_timestamp_nanos(start_time)
+        end_time = to_timestamp_nanos(end_time)
         idx = self._load_index(channel_id, run_id) or SegmentIndex()
 
         if len(data) == 0:
@@ -486,8 +495,8 @@ class ChannelDataCache:
 
     @staticmethod
     def _compute_gaps(
-        query_start: datetime,
-        query_end: datetime,
+        query_start: pd.Timestamp,
+        query_end: pd.Timestamp,
         covered: list[TimeRange],
     ) -> list[TimeRange]:
         """Sub-ranges of ``[query_start, query_end]`` not in ``covered``.
@@ -566,8 +575,8 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         *,
         channel_ids: list[str],
         run_id: str | None = None,
-        start_time: datetime | None = None,
-        end_time: datetime,
+        start_time: pd.Timestamp | datetime | None = None,
+        end_time: pd.Timestamp | datetime,
         page_size: int | None = None,
         page_token: str | None = None,
         order_by: str | None = None,
@@ -642,8 +651,8 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         *,
         channel_data: dict[str, pd.DataFrame],
         fetched_ranges_per_channel: dict[str, list[TimeRange]],
-        start_time: datetime,
-        end_time: datetime,
+        start_time: pd.Timestamp,
+        end_time: pd.Timestamp,
         run_id: str | None = None,
     ):
         """Write each channel's fresh data or empty-ref as a new segment.
@@ -720,12 +729,13 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
             # started yet). For unscoped queries, claim the full
             # requested range so a follow-up of the same range hits.
             seg_end = end_time
+            seg_start: pd.Timestamp
             if run_id:
                 # ``combined.index`` is a ``DatetimeIndex`` (built from
                 # the wire's nanosecond timestamps), so ``index[0]`` is
                 # always ``pd.Timestamp`` at runtime; pandas-stubs types
                 # it as the wider ``Scalar`` union.
-                seg_start = cast("pd.Timestamp", combined.index[0]).to_pydatetime()
+                seg_start = cast("pd.Timestamp", combined.index[0])
             else:
                 seg_start = start_time
 
@@ -767,8 +777,8 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         *,
         channels: list[Channel],
         run_id: str | None = None,
-        start_time: datetime | None = None,
-        end_time: datetime | None = None,
+        start_time: pd.Timestamp | datetime | None = None,
+        end_time: pd.Timestamp | datetime | None = None,
         max_results: int | None = None,
         page_size: int | None = None,
         ignore_cache: bool = False,
@@ -777,8 +787,8 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         """Get the data for a channel during a run."""
         ret_data: dict[str, pd.DataFrame] = {}
         # No data will be returned if end_time is not provided.
-        start_time = start_time or datetime.fromtimestamp(0, tz=timezone.utc)
-        end_time = end_time or datetime.now(timezone.utc)
+        query_start = to_timestamp_nanos(start_time or datetime.fromtimestamp(0, tz=timezone.utc))
+        query_end = to_timestamp_nanos(end_time or datetime.now(timezone.utc))
 
         self._update_name_id_map(channels)
 
@@ -803,9 +813,11 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
             assert cid is not None
             if ignore_cache:
                 cached_data: pd.DataFrame | None = None
-                gaps: list[TimeRange] = [(start_time, end_time)]
+                gaps: list[TimeRange] = [(query_start, query_end)]
             else:
-                cached_data, gaps = self.channel_cache.get_range(cid, run_id, start_time, end_time)
+                cached_data, gaps = self.channel_cache.get_range(
+                    cid, run_id, query_start, query_end
+                )
 
             if cached_data is not None:
                 cached_points += int(cached_data.size)
@@ -820,7 +832,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
             if not gaps:
                 continue
             fetched_ranges_per_channel.setdefault(cid, []).extend(gaps)
-            if len(gaps) == 1 and gaps[0] == (start_time, end_time):
+            if len(gaps) == 1 and gaps[0] == (query_start, query_end):
                 fully_uncached.append(cid)
             else:
                 partial_gaps.append((cid, gaps))
@@ -841,8 +853,8 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
                     {
                         "channel_ids": batch,
                         "run_id": run_id,
-                        "start_time": start_time,
-                        "end_time": end_time,
+                        "start_time": query_start,
+                        "end_time": query_end,
                     },
                     ", ".join(id_to_name.get(cid, cid) for cid in batch),
                 )
@@ -963,8 +975,8 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
             self._update_cache(
                 channel_data=ret_data,
                 fetched_ranges_per_channel=fetched_ranges_per_channel,
-                start_time=start_time,
-                end_time=end_time,
+                start_time=query_start,
+                end_time=query_end,
                 run_id=run_id,
             )
 

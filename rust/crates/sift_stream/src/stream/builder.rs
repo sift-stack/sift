@@ -261,7 +261,7 @@ impl StreamConfigBuilder {
             metrics_streaming_interval: Some(DEFAULT_METRICS_STREAMING_INTERVAL),
             ingestion_data_channel_capacity: DATA_CHANNEL_CAPACITY,
             control_channel_capacity: CONTROL_CHANNEL_CAPACITY,
-            retry_policy: RetryPolicy::default(),
+            retry_policy: Some(RetryPolicy::default()),
         }
     }
 
@@ -313,7 +313,7 @@ pub struct LiveOnlyBuilder {
     metrics_streaming_interval: Option<Duration>,
     ingestion_data_channel_capacity: usize,
     control_channel_capacity: usize,
-    retry_policy: RetryPolicy,
+    retry_policy: Option<RetryPolicy>,
 }
 
 impl LiveOnlyBuilder {
@@ -353,8 +353,33 @@ impl LiveOnlyBuilder {
     }
 
     /// Sets the retry policy. Defaults to [RetryPolicy::default].
-    pub fn retry_policy(mut self, policy: RetryPolicy) -> Self {
-        self.retry_policy = policy;
+    ///
+    /// Accepts a [`RetryPolicy`], `Some(policy)`, or `None`.
+    ///
+    /// `None` disables retries. The ingestion task still makes the first attempt, but it does
+    /// not open a replacement stream after a failure. It stops, and the failure surfaces from
+    /// [`SiftStream::finish`](crate::SiftStream::finish) as `ErrorKind::StreamError`. The
+    /// ingestion channel closes at the same time, so [`send`](crate::SiftStream::send) and
+    /// [`try_send`](crate::SiftStream::try_send) start reporting a closed channel.
+    ///
+    /// Disable retries when the caller keeps its own durable copy of the data and needs an
+    /// unambiguous delivery verdict. With retries enabled, a transient failure mid-stream
+    /// drops whatever that stream was carrying, reconnects, and still lets `finish` return
+    /// `Ok`, because live-only mode keeps no disk backup to replay from. With retries
+    /// disabled, an `Ok` from `finish` means Sift acknowledged every message that was sent.
+    ///
+    /// ```no_run
+    /// # use sift_stream::{RetryPolicy, StreamConfigBuilder};
+    /// # fn f(a: StreamConfigBuilder, b: StreamConfigBuilder) {
+    /// // Retry with the default policy.
+    /// let with_retries = a.live_only().retry_policy(RetryPolicy::default());
+    ///
+    /// // Do not retry; report the first failure instead.
+    /// let without_retries = b.live_only().retry_policy(None);
+    /// # }
+    /// ```
+    pub fn retry_policy(mut self, policy: impl Into<Option<RetryPolicy>>) -> Self {
+        self.retry_policy = policy.into();
         self
     }
 

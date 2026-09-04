@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+## [v0.5.0] - September 3, 2026
+
+### What's New
+
 - MCAP (`.mcap`) files can now be imported with `sift-cli import mcap`. Every
   decodable topic is imported one channel per flattened field, named
   `<topic>.<field path>`. Only ROS 2 topics (`cdr` messages with `ros2msg`

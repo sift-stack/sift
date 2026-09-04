@@ -54,7 +54,7 @@ from sift.rules.v1.rules_pb2_grpc import RuleServiceStub
 
 from sift_client._internal.low_level_wrappers.base import DEFAULT_PAGE_SIZE, LowLevelClientBase
 from sift_client._internal.low_level_wrappers.jobs import JobsLowLevelClient
-from sift_client._internal.util.timestamp import to_pb_timestamp
+from sift_client._internal.time import to_timestamp_pb
 from sift_client._internal.util.util import count_non_none
 from sift_client.sift_types.rule import (
     Rule,
@@ -635,13 +635,13 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             if run_id:
                 kwargs["run_time_range"] = RunTimeRange(
                     run=run_id,  # type: ignore
-                    start_time=to_pb_timestamp(start_time),
-                    end_time=to_pb_timestamp(end_time),  # type: ignore
+                    start_time=to_timestamp_pb(start_time),
+                    end_time=to_timestamp_pb(end_time),  # type: ignore
                 )
                 kwargs["assets"] = AssetsTimeRange(
                     assets={"ids": {"ids": asset_ids}},  # type: ignore
-                    start_time=to_pb_timestamp(start_time),
-                    end_time=to_pb_timestamp(end_time),
+                    start_time=to_timestamp_pb(start_time),
+                    end_time=to_timestamp_pb(end_time),
                 )
         elif run_id:
             kwargs["run"] = ResourceIdentifier(id=run_id)

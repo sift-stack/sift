@@ -3,34 +3,39 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [v0.12.0] - September 4, 2026
+## [v0.12.0]
 ### What's New
 
-#### MCAP imports (PR [#765](https://github.com/sift-stack/sift/pull/765))
+#### Live-only retries can be disabled
 
-`sift_mcp` can now import MCAP files.
+[`LiveOnlyBuilder::retry_policy`](crates/sift_stream/src/stream/builder.rs) now accepts `None`:
 
-#### Artifact tools (PRs [#766](https://github.com/sift-stack/sift/pull/766), [#768](https://github.com/sift-stack/sift/pull/768))
+```rust
+let mut sift_stream = SiftStreamBuilder::new(credentials)
+    .ingestion_config(ingestion_config)
+    .live_only()
+    .retry_policy(None)
+    .build()
+    .await?;
+```
 
-New MCP tools to create and manage artifacts. `create_artifact` uploads file content.
+The method takes `impl Into<Option<RetryPolicy>>`, so existing calls that pass a `RetryPolicy`
+still compile.
 
-#### Calculated channel tools (PRs [#736](https://github.com/sift-stack/sift/pull/736), [#737](https://github.com/sift-stack/sift/pull/737))
+With retries disabled, the ingestion task still makes the first attempt but does not open a
+replacement stream after a failure. It stops, closes the ingestion channel, and reports the
+failure. `send` and `try_send` then report a closed channel, and `finish` returns
+`ErrorKind::StreamError`.
 
-New MCP tools for calculated channels. `get_data` now serves saved calculated channels.
+This closes a gap in live-only mode. Retries there recover the connection but not the data:
+messages already handed to the failed stream are dropped, and live-only mode keeps no disk
+backup to replay them from. `finish` could therefore return `Ok` after a mid-stream failure
+that lost samples. With retries disabled, every stream failure is reported, so an `Ok` from
+`finish` means Sift acknowledged every message that was sent. Callers that keep their own
+durable copy of the data can use that verdict to decide whether to resend a range.
 
-#### `get_data` accepts `asset_id` (PR [#757](https://github.com/sift-stack/sift/pull/757))
-
-`get_data` now accepts an `asset_id` and reports channels that are missing from its output (PR [#758](https://github.com/sift-stack/sift/pull/758)).
-
-#### Feature-flag gating for MCP tools (PR [#764](https://github.com/sift-stack/sift/pull/764))
-
-MCP tools are gated by account feature flags at startup.
-
-#### Other changes
-
-- `list_*` tools support a fields projection and return an item count (PR [#732](https://github.com/sift-stack/sift/pull/732)).
-- Explore links default to a single source type (PR [#762](https://github.com/sift-stack/sift/pull/762)).
-- Annotation enums are included in MCP tool schemas (PR [#773](https://github.com/sift-stack/sift/pull/773)).
+`live_with_backups()` mode is unchanged and always retries. Recovery there depends on the
+ingestion task staying alive to drive checkpoints and reingestion from disk.
 
 ## [v0.11.0] - August 20, 2026
 ### What's New

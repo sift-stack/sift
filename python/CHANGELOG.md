@@ -37,6 +37,9 @@ CsvDataColumn(
 
 Setting `enum_types` on a non-enum data type raises a validation error. Multi-channel Parquet single-channel-per-row imports don't support enums, since channel configs there are derived per row.
 
+### Bugfixes
+- Fix `channels.get_data` printing a `UserWarning: Discarding nonzero nanoseconds in conversion` once per channel on each run-scoped fetch. The channel data cache stored segment bounds as `datetime`, which truncated the nanosecond timestamps the data already carries; they are now `pd.Timestamp`. `start_time` and `end_time` on `get_data` and `get_data_as_arrow` also accept a `pd.Timestamp` now, and its nanoseconds survive to the wire, where the service filters on them.
+
 ## [v0.20.0] - August 25, 2026
 
 ### What's New
