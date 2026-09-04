@@ -652,6 +652,9 @@ impl SiftMcpServer {
               - Before invoking this tool, CONFIRM the destination with the user: target `asset`, whether to
                 create a `run_name` (required for `tags`/`metadata`), and the specific tags/metadata to attach.
                 Do not silently default these — surface them for the user to override.
+              - A call with `run_name` is not safe to retry automatically: every call creates a new run. After an
+                ambiguous failure, check `list_runs` for the exact run name scoped to the asset and confirm with
+                the user before retrying when a matching run may be from the failed call.
               - The tool does not return until the entire stream has been consumed by the server, so large
                 datasets translate to long-running calls.
         ",

@@ -52,6 +52,16 @@ per session. The rest apply to each subcommand invocation.
    - `--preview`: parse the source file and print the inferred schema
      without uploading. Offer this when the user is unsure about column
      types or the time column.
+   - Column types, units, and descriptions: repeated `-c/-d/-u/-n` flags on
+     `import csv` set a column's index, data type, unit, and description
+     together. Pass one `-d`, `-u`, and `-n` for every `-c`: the counts have
+     to match or the command is rejected, and `-n ""` is accepted for a
+     column with no description. Without these flags, numeric columns are
+     inferred as doubles and nonnumeric columns as strings; inferred columns
+     carry no unit or description. Only `display_description`, `display_units`,
+     `metadata`, and `active` can be changed on a channel afterwards, so the
+     data type in particular has to be right at import. Ask for units the
+     source file does not state.
    - Per-format layout flags surfaced by `--help` (e.g. CSV's
      `--header-row`, `--time-column`, `--time-format`; HDF5's schema
      subcommand `one-d`/`two-d`/`compound`; Parquet's `cpr single`
@@ -89,6 +99,15 @@ per session. The rest apply to each subcommand invocation.
    bad flag combination or missing required argument; the CLI's stderr
    names the exact issue. Adjust the command and run again rather than
    treating the failure as terminal.
+
+   **A named import is the exception — check before you retry.** When `--run`
+   is set, the import creates a new run. If the request reached the server,
+   retrying can leave two runs with the same name holding copies of the same
+   data. A local validation failure before upload is safe to correct and retry.
+   After an upload or server-side failure, check `list_runs` for the exact run
+   name, scoped to the asset, and do not retry automatically when a matching
+   run may be from the failed attempt. Imports without `--run` do not create a
+   run; formats invoked with `--run-id` reuse that run.
 
 ## Importing data
 
