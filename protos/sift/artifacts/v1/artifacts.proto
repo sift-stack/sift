@@ -177,8 +177,8 @@ enum ArtifactStorageClass {
 enum ArtifactCreatedVia {
   // The producing surface is not specified.
   ARTIFACT_CREATED_VIA_UNSPECIFIED = 0;
-  // Chat wrote the artifact.
-  ARTIFACT_CREATED_VIA_CHAT = 1;
+  // Sift Agents wrote the artifact.
+  ARTIFACT_CREATED_VIA_AGENTS = 1;
   // Canvas wrote the artifact.
   ARTIFACT_CREATED_VIA_CANVAS = 2;
   // The SDK wrote the artifact.

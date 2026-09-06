@@ -334,7 +334,7 @@ async fn create_artifact_returns_created_row() {
                 && req.summary.as_deref() == Some("summary")
                 && req.authoring_kind == Some(ArtifactAuthoringKind::Agent as i32)
                 && req.storage_class == Some(ArtifactStorageClass::Structured as i32)
-                && req.created_via == Some(ArtifactCreatedVia::Chat as i32)
+                && req.created_via == Some(ArtifactCreatedVia::Agents as i32)
                 && req.kind.as_deref() == Some("table")
                 && serde_json::to_value(req.payload.as_ref().unwrap()).unwrap()
                     == serde_json::json!({ "rows": [] })
@@ -356,7 +356,7 @@ async fn create_artifact_returns_created_row() {
                 artifact_id: None,
                 authoring_kind: ArtifactAuthoringKind::Agent,
                 storage_class: Some(ArtifactStorageClass::Structured),
-                created_via: Some(ArtifactCreatedVia::Chat),
+                created_via: Some(ArtifactCreatedVia::Agents),
                 kind: Some("table".into()),
                 payload: Some(serde_json::from_value(serde_json::json!({ "rows": [] })).unwrap()),
                 metadata: vec![],

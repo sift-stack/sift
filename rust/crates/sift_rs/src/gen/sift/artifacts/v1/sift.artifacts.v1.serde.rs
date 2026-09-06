@@ -698,7 +698,7 @@ impl serde::Serialize for ArtifactCreatedVia {
     {
         let variant = match self {
             Self::Unspecified => "ARTIFACT_CREATED_VIA_UNSPECIFIED",
-            Self::Chat => "ARTIFACT_CREATED_VIA_CHAT",
+            Self::Agents => "ARTIFACT_CREATED_VIA_AGENTS",
             Self::Canvas => "ARTIFACT_CREATED_VIA_CANVAS",
             Self::Sdk => "ARTIFACT_CREATED_VIA_SDK",
             Self::Upload => "ARTIFACT_CREATED_VIA_UPLOAD",
@@ -714,7 +714,7 @@ impl<'de> serde::Deserialize<'de> for ArtifactCreatedVia {
     {
         const FIELDS: &[&str] = &[
             "ARTIFACT_CREATED_VIA_UNSPECIFIED",
-            "ARTIFACT_CREATED_VIA_CHAT",
+            "ARTIFACT_CREATED_VIA_AGENTS",
             "ARTIFACT_CREATED_VIA_CANVAS",
             "ARTIFACT_CREATED_VIA_SDK",
             "ARTIFACT_CREATED_VIA_UPLOAD",
@@ -759,7 +759,7 @@ impl<'de> serde::Deserialize<'de> for ArtifactCreatedVia {
             {
                 match value {
                     "ARTIFACT_CREATED_VIA_UNSPECIFIED" => Ok(ArtifactCreatedVia::Unspecified),
-                    "ARTIFACT_CREATED_VIA_CHAT" => Ok(ArtifactCreatedVia::Chat),
+                    "ARTIFACT_CREATED_VIA_AGENTS" => Ok(ArtifactCreatedVia::Agents),
                     "ARTIFACT_CREATED_VIA_CANVAS" => Ok(ArtifactCreatedVia::Canvas),
                     "ARTIFACT_CREATED_VIA_SDK" => Ok(ArtifactCreatedVia::Sdk),
                     "ARTIFACT_CREATED_VIA_UPLOAD" => Ok(ArtifactCreatedVia::Upload),

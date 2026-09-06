@@ -463,7 +463,7 @@ async fn create_artifact_sends_generic_fields() {
         .withf(|request| {
             let request = request.get_ref();
             request.storage_class == Some(ArtifactStorageClass::Structured as i32)
-                && request.created_via == Some(ArtifactCreatedVia::Chat as i32)
+                && request.created_via == Some(ArtifactCreatedVia::Agents as i32)
                 && request.kind.as_deref() == Some("table")
                 && request
                     .payload
@@ -485,7 +485,7 @@ async fn create_artifact_sends_generic_fields() {
     let response = server
         .create_artifact(Parameters(CreateArtifactParams {
             storage_class: Some("structured".into()),
-            created_via: Some("chat".into()),
+            created_via: Some("agents".into()),
             kind: Some("table".into()),
             payload: Some(serde_json::json!({ "rows": [[1, 2]] })),
             metadata: Some(vec![MetadataEntry {

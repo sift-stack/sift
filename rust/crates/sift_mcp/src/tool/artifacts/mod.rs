@@ -103,13 +103,13 @@ fn parse_created_via(value: Option<String>) -> Result<Option<ArtifactCreatedVia>
     let lowered = value.trim().to_ascii_lowercase();
     match lowered.as_str() {
         "" => Ok(None),
-        "chat" | "artifact_created_via_chat" => Ok(Some(ArtifactCreatedVia::Chat)),
+        "agents" | "artifact_created_via_agents" => Ok(Some(ArtifactCreatedVia::Agents)),
         "canvas" | "artifact_created_via_canvas" => Ok(Some(ArtifactCreatedVia::Canvas)),
         "sdk" | "artifact_created_via_sdk" => Ok(Some(ArtifactCreatedVia::Sdk)),
         "upload" | "artifact_created_via_upload" => Ok(Some(ArtifactCreatedVia::Upload)),
         other => Err(ErrorData::invalid_params(
             format!(
-                "unknown `created_via` `{other}`; expected `chat`, `canvas`, `sdk`, or `upload`"
+                "unknown `created_via` `{other}`; expected `agents`, `canvas`, `sdk`, or `upload`"
             ),
             None,
         )),
@@ -327,7 +327,7 @@ impl SiftMcpServer {
               - `storage_class`: optional; `file` (default), `structured`, or `blob`, matched case-insensitively.
                 Proto names are also accepted. `structured` requires `payload` and rejects `file_path`. `file`
                 and `blob` reject `payload`.
-              - `created_via`: optional; `chat`, `canvas`, `sdk` (default), or `upload`, matched
+              - `created_via`: optional; `agents`, `canvas`, `sdk` (default), or `upload`, matched
                 case-insensitively. Proto names are also accepted.
               - `kind`: optional semantic type label, such as `markdown`, `table`, or `psd`.
               - `payload`: optional JSON object. Required for `storage_class: \"structured\"`; rejected for
