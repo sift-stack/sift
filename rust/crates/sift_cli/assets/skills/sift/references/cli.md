@@ -56,7 +56,9 @@ per session. The rest apply to each subcommand invocation.
      `import csv` set a column's index, data type, unit, and description
      together. Pass one `-d`, `-u`, and `-n` for every `-c`: the counts have
      to match or the command is rejected, and `-n ""` is accepted for a
-     column with no description. Without these flags, numeric columns are
+     column with no description. Use `-d infer` (`--data-type infer`) to keep
+     automatic type detection while supplying a column's unit or description.
+     Without these flags, numeric columns are
      inferred as doubles and nonnumeric columns as strings; inferred columns
      carry no unit or description. Only `display_description`, `display_units`,
      `metadata`, and `active` can be changed on a channel afterwards, so the
