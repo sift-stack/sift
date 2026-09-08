@@ -314,6 +314,16 @@
     }
   },
   {
+    "version": "v0.21",
+    "title": "v0.21",
+    "aliases": [
+      "latest"
+    ],
+    "properties": {
+      "hidden": false
+    }
+  },
+  {
     "version": "v0.20.0",
     "title": "v0.20.0",
     "aliases": [],
@@ -324,9 +334,7 @@
   {
     "version": "v0.20",
     "title": "v0.20",
-    "aliases": [
-      "latest"
-    ],
+    "aliases": [],
     "properties": {
       "hidden": false
     }
