@@ -3,6 +3,14 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+### Bug Fixes
+
+#### Asset-name check is now case-insensitive
+
+`SiftStream` no longer rejects an ingestion config whose asset name differs from the one in Sift
+only by capitalization.
+
 ## [v0.13.0] - September 4, 2026
 ### What's New
 
