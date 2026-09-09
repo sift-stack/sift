@@ -117,6 +117,10 @@ impl SiftMcpServer {
               - `unresolved_calculated_channels` (`[{ \"name\", \"reason\" }]`) is present when a requested name
                 reached calculated-channel resolution and could not be served. It carries the reason for every
                 name in `unmatched_channel_names`.
+              - `sample_ms_applied` and `decimated` report what the service actually sampled at, which is not
+                always what was requested: `sample_ms` is ignored for data types that cannot be sampled. Both
+                keys are ALWAYS present; `sample_ms_applied` is null when no page reported a rate.
+                `mixed_sample_rates` appears when some channels came back decimated and others raw.
 
             Parameters:
               - `asset_name`: optional, exact asset name (not a pattern). Mutually exclusive with `asset_id`;
@@ -127,7 +131,13 @@ impl SiftMcpServer {
               - `run_name`: optional, exact run name within the asset. When provided, the run's start/stop bounds are
                 used as the time range; `start_time_unix_nanos` and/or `end_time_unix_nanos` may narrow either side.
                 When omitted, BOTH `start_time_unix_nanos` and `end_time_unix_nanos` are required.
-              - `sample_ms`: decimation interval in milliseconds. Use `0` for raw samples; larger values reduce volume.
+              - `sample_ms`: decimation interval in milliseconds. Set this to `0` unless the data will be used
+                EXCLUSIVELY to generate a visualization. Decimation applies LTTB, which selects shape-defining
+                extremes rather than representative samples: counts, means, standard deviations and trends
+                computed on decimated output are wrong, and the error depends on where bucket boundaries fall,
+                so it cannot be corrected afterwards. Extremes usually survive but are not guaranteed to.
+                If a raw result would be too large, narrow the time range or the channel set and issue
+                successive calls — do not decimate to reduce volume.
               - `channel_names`: optional array of exact channel names. Mutually exclusive with `channel_regex`;
                 exactly one of the two MUST be set. Prefer this form when the set is known — it's more predictable.
                 A name with no raw channel on the asset is resolved as an active saved calculated channel and
@@ -165,7 +175,12 @@ impl SiftMcpServer {
               - Data is buffered in memory until size/row thresholds are hit, so very large time ranges or wide
                 channel sets can be slow or memory-heavy. For large pulls, split the time range into successive calls
                 with disjoint `[start, end)` windows.
-              - Use `sample_ms > 0` for overview/summary work; reserve `sample_ms = 0` for cases that need raw fidelity.
+              - Analysis needs `sample_ms = 0`. Reserve `sample_ms > 0` for data used exclusively to draw a
+                picture, and prefer `explore_url` over `get_data` entirely when that is the goal. An overview,
+                a summary and a quick look are all analysis: they end in numbers, and numbers taken off
+                decimated data are wrong.
+              - The result reports `sample_ms_applied` and `decimated`. Check them before quoting any statistic:
+                a non-zero applied rate means means, standard deviations and trends from that file are not valid.
               - A successful call does NOT mean every requested channel is in the file. Check
                 `unmatched_channel_names` and `empty_channels` before reporting the result or aggregating over it,
                 and check the same two keys on the error's `data` when a call fails.
@@ -463,8 +478,30 @@ impl SiftMcpServer {
             ));
         }
 
+        let applied = data_output.applied_sample_ms;
+
         let mut next_step =
             format!("Wrote channel data to `{output_str}`. Inform the user where the data lives.");
+        // The caller asked for a rate; the service reports what it actually
+        // applied, and the two are not the same thing for a data type it cannot
+        // sample. Saying so here is the difference between an agent that knows
+        // its file is decimated and one that quotes a standard deviation off it.
+        if applied.decimated() {
+            next_step.push_str(
+                " This data is DECIMATED, not raw. It was sampled with LTTB, which selects \
+                 shape-defining extremes rather than representative samples: counts, means, \
+                 standard deviations and trends computed from this file are wrong. Use it only to \
+                 draw a picture. To analyse, call again with `sample_ms = 0`, narrowing the time \
+                 range or channel set if the raw result would be too large.",
+            );
+            if applied.mixed() {
+                next_step.push_str(
+                    " Note that not every channel was decimated: the service ignores `sample_ms` \
+                     for data types it cannot sample, so this file mixes decimated and raw \
+                     columns.",
+                );
+            }
+        }
         // Without this the agent reads a plain success and reports a partial
         // fetch as a complete one, because a channel with no column is
         // indistinguishable from one that was never requested.
@@ -498,6 +535,17 @@ impl SiftMcpServer {
             "empty_channels".to_string(),
             string_array(data_output.empty_channels),
         );
+        // What the service sampled at, not what was requested. Always present so
+        // "raw" and "this tool never checked" cannot be confused, for the same
+        // reason the two keys above are.
+        body.insert(
+            "sample_ms_applied".to_string(),
+            applied.highest().map_or(Value::Null, Value::from),
+        );
+        body.insert("decimated".to_string(), Value::from(applied.decimated()));
+        if applied.mixed() {
+            body.insert("mixed_sample_rates".to_string(), Value::from(true));
+        }
 
         if !unresolved.is_empty() {
             body.insert(
