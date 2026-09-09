@@ -7,6 +7,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- `sift-cli agent install`, `update`, `doctor`, and `uninstall` now support
+  Gemini CLI and Antigravity CLI.
+
 ## [v0.5.0] - September 3, 2026
 
 ### What's New

@@ -52,6 +52,101 @@ fn native_config_directories_detect_clients_without_binaries() {
 }
 
 #[test]
+fn google_config_paths_detect_clients_without_binaries() {
+    let directory = TempDir::new("sift-cli-agent-google-detection").unwrap();
+    fs::create_dir_all(directory.path().join(".gemini/antigravity-cli")).unwrap();
+    fs::write(directory.path().join(".gemini/settings.json"), "{}").unwrap();
+    let environment = Environment::for_test(
+        directory.path().to_path_buf(),
+        directory.path().join("bin/sift-cli"),
+        Vec::new(),
+    );
+
+    assert_eq!(
+        environment.detect_harnesses(),
+        vec![Harness::Gemini, Harness::Antigravity]
+    );
+}
+
+#[test]
+fn google_client_lifecycle_manages_configs_and_skills() {
+    let (directory, mut environment) = environment(vec![Harness::Gemini, Harness::Antigravity]);
+    environment.home = directory.path().to_path_buf();
+    let gemini_path = directory.path().join(".gemini/settings.json");
+    let antigravity_path = directory.path().join(".gemini/config/mcp_config.json");
+    fs::create_dir_all(antigravity_path.parent().unwrap()).unwrap();
+    fs::write(&gemini_path, r#"{"theme":"dark"}"#).unwrap();
+    fs::write(
+        &antigravity_path,
+        r#"{"mcpServers":{"other":{"command":"other-server"}}}"#,
+    )
+    .unwrap();
+
+    let install = super::install_environment(
+        &environment,
+        "Installed",
+        &default_registration(AccessMode::ReadOnly),
+        None,
+    )
+    .unwrap();
+
+    assert_eq!(
+        format!("{install:?}"),
+        format!("{:?}", std::process::ExitCode::SUCCESS)
+    );
+    for harness in [Harness::Gemini, Harness::Antigravity] {
+        assert_eq!(
+            config::inspect(harness, &environment).unwrap(),
+            config::State::Current(default_registration(AccessMode::ReadOnly))
+        );
+    }
+    let targets = skill::targets(&environment);
+    assert_eq!(
+        targets
+            .iter()
+            .map(|target| target.path.clone())
+            .collect::<Vec<_>>(),
+        vec![
+            directory.path().join(".agents/skills/sift"),
+            directory.path().join(".gemini/antigravity-cli/skills/sift")
+        ]
+    );
+    for target in &targets {
+        assert_eq!(skill::inspect(&target.path).unwrap(), skill::State::Current);
+    }
+    let gemini: Value = serde_json::from_slice(&fs::read(&gemini_path).unwrap()).unwrap();
+    assert_eq!(gemini["theme"], "dark");
+    let antigravity: Value = serde_json::from_slice(&fs::read(&antigravity_path).unwrap()).unwrap();
+    assert_eq!(
+        antigravity["mcpServers"]["other"]["command"],
+        "other-server"
+    );
+
+    let uninstall = super::uninstall_environment(&environment).unwrap();
+
+    assert_eq!(
+        format!("{uninstall:?}"),
+        format!("{:?}", std::process::ExitCode::SUCCESS)
+    );
+    for harness in [Harness::Gemini, Harness::Antigravity] {
+        assert_eq!(
+            config::inspect(harness, &environment).unwrap(),
+            config::State::Missing
+        );
+    }
+    for target in targets {
+        assert_eq!(skill::inspect(&target.path).unwrap(), skill::State::Missing);
+    }
+    let gemini: Value = serde_json::from_slice(&fs::read(gemini_path).unwrap()).unwrap();
+    assert_eq!(gemini["theme"], "dark");
+    let antigravity: Value = serde_json::from_slice(&fs::read(antigravity_path).unwrap()).unwrap();
+    assert_eq!(
+        antigravity["mcpServers"]["other"]["command"],
+        "other-server"
+    );
+}
+
+#[test]
 fn install_without_client_binaries_installs_the_skill_and_skips_registration() {
     let directory = TempDir::new("sift-cli-agent-headless-install").unwrap();
     fs::create_dir_all(directory.path().join(".claude")).unwrap();
@@ -166,14 +261,18 @@ fn install_with_path_adds_to_detected_clients() {
 
 #[test]
 fn one_shared_skill_covers_agent_skills_clients() {
-    let (directory, mut environment) =
-        environment(vec![Harness::Codex, Harness::Cursor, Harness::OpenCode]);
+    let (directory, mut environment) = environment(vec![
+        Harness::Codex,
+        Harness::Cursor,
+        Harness::Gemini,
+        Harness::OpenCode,
+    ]);
     environment.home = directory.path().to_path_buf();
 
     let targets = skill::targets(&environment);
 
     assert_eq!(targets.len(), 1);
-    assert_eq!(targets[0].harnesses.len(), 3);
+    assert_eq!(targets[0].harnesses.len(), 4);
     assert_eq!(
         targets[0].path,
         directory.path().join(".agents/skills/sift")
