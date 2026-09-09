@@ -108,7 +108,7 @@ fn google_client_lifecycle_manages_configs_and_skills() {
             .collect::<Vec<_>>(),
         vec![
             directory.path().join(".agents/skills/sift"),
-            directory.path().join(".gemini/antigravity-cli/skills/sift")
+            directory.path().join(".gemini/config/skills/sift")
         ]
     );
     for target in &targets {
@@ -144,6 +144,71 @@ fn google_client_lifecycle_manages_configs_and_skills() {
         antigravity["mcpServers"]["other"]["command"],
         "other-server"
     );
+}
+
+#[test]
+fn antigravity_empty_mcp_config_file_is_missing_and_installs_cleanly() {
+    let (directory, mut environment) = environment(vec![Harness::Antigravity]);
+    environment.home = directory.path().to_path_buf();
+    let antigravity_path = directory.path().join(".gemini/config/mcp_config.json");
+    fs::create_dir_all(antigravity_path.parent().unwrap()).unwrap();
+    fs::write(&antigravity_path, "").unwrap();
+
+    assert_eq!(
+        config::inspect(Harness::Antigravity, &environment).unwrap(),
+        config::State::Missing
+    );
+
+    let install = super::install_environment(
+        &environment,
+        "Installed",
+        &default_registration(AccessMode::ReadOnly),
+        None,
+    )
+    .unwrap();
+    assert_eq!(
+        format!("{install:?}"),
+        format!("{:?}", std::process::ExitCode::SUCCESS)
+    );
+    assert_eq!(
+        config::inspect(Harness::Antigravity, &environment).unwrap(),
+        config::State::Current(default_registration(AccessMode::ReadOnly))
+    );
+}
+
+#[test]
+fn antigravity_disabled_false_is_managed_current() {
+    let (directory, mut environment) = environment(vec![Harness::Antigravity]);
+    environment.home = directory.path().to_path_buf();
+    let antigravity_path = directory.path().join(".gemini/config/mcp_config.json");
+    fs::create_dir_all(antigravity_path.parent().unwrap()).unwrap();
+    fs::write(
+        &antigravity_path,
+        format!(
+            r#"{{"mcpServers":{{"sift":{{"command":"{}","args":["mcp"],"disabled":false}}}}}}"#,
+            environment.current_exe.display()
+        ),
+    )
+    .unwrap();
+
+    assert_eq!(
+        config::inspect(Harness::Antigravity, &environment).unwrap(),
+        config::State::Current(default_registration(AccessMode::ReadOnly))
+    );
+
+    fs::write(
+        &antigravity_path,
+        format!(
+            r#"{{"mcpServers":{{"sift":{{"command":"{}","args":["mcp"],"disabled":true}}}}}}"#,
+            environment.current_exe.display()
+        ),
+    )
+    .unwrap();
+
+    assert!(matches!(
+        config::inspect(Harness::Antigravity, &environment).unwrap(),
+        config::State::Conflict(_)
+    ));
 }
 
 #[test]

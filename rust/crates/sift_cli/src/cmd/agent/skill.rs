@@ -91,7 +91,7 @@ pub(super) fn targets(environment: &Environment) -> Vec<Target> {
             Harness::Antigravity => environment
                 .home
                 .join(".gemini")
-                .join("antigravity-cli")
+                .join("config")
                 .join("skills")
                 .join("sift"),
         };

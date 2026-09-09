@@ -8,7 +8,7 @@ Do not add per-client copies of the skill. The pair of near-identical files this
 replaced drifted apart, which is the failure this layout exists to prevent.
 Claude installs the canonical file to `~/.claude/skills/sift/SKILL.md`; Codex,
 Cursor, Gemini CLI, and OpenCode share `~/.agents/skills/sift/SKILL.md`.
-Antigravity CLI installs it to `~/.gemini/antigravity-cli/skills/sift/SKILL.md`.
+Antigravity CLI installs it to `~/.gemini/config/skills/sift/SKILL.md`.
 
 The skill is embedded at compile time, so rebuild `sift-cli` after changing it.
 

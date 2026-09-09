@@ -518,7 +518,7 @@ fn classify_json_entry(harness: Harness, entry: &Value, environment: &Environmen
     };
 
     let (command, args, metadata_is_managed) = match harness {
-        Harness::Cursor | Harness::Gemini | Harness::Antigravity => {
+        Harness::Cursor | Harness::Gemini => {
             let allowed = ["command", "args"];
             let managed = entry.keys().all(|key| allowed.contains(&key.as_str()));
             let Some(args) = string_array(entry.get("args")) else {
@@ -533,6 +533,24 @@ fn classify_json_entry(harness: Harness, entry: &Value, environment: &Environmen
                     .map(str::to_string),
                 args,
                 managed,
+            )
+        }
+        Harness::Antigravity => {
+            let allowed = ["command", "args", "disabled"];
+            let managed = entry.keys().all(|key| allowed.contains(&key.as_str()));
+            let Some(args) = string_array(entry.get("args")) else {
+                return State::Conflict(
+                    "the existing `sift` MCP entry has invalid arguments".to_string(),
+                );
+            };
+            let enabled = false_or_missing(entry.get("disabled"));
+            (
+                entry
+                    .get("command")
+                    .and_then(Value::as_str)
+                    .map(str::to_string),
+                args,
+                managed && enabled,
             )
         }
         Harness::OpenCode => {
@@ -689,6 +707,9 @@ fn load_json(path: &Path) -> Result<Option<Map<String, Value>>> {
             return Err(error).with_context(|| format!("failed to read {}", path.display()));
         }
     };
+    if contents.is_empty() || contents.iter().all(u8::is_ascii_whitespace) {
+        return Ok(None);
+    }
     let value: Value = serde_json::from_slice(&contents)
         .with_context(|| format!("{} is not valid JSON", path.display()))?;
     value
@@ -795,6 +816,10 @@ fn null_or_missing(value: Option<&Value>) -> bool {
 
 fn true_or_missing(value: Option<&Value>) -> bool {
     value.is_none_or(|value| value.as_bool() == Some(true))
+}
+
+fn false_or_missing(value: Option<&Value>) -> bool {
+    value.is_none_or(|value| value.as_bool() == Some(false))
 }
 
 fn field(contents: &str, prefix: &str) -> Option<String> {
