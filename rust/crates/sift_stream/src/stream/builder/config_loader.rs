@@ -89,7 +89,7 @@ pub async fn load_ingestion_config(
     };
 
     // Sanity check the Sift asset matches the expected asset-name.
-    if asset.name != asset_name {
+    if !asset.name.eq_ignore_ascii_case(&asset_name) {
         return Err(Error::new_msg(
             ErrorKind::IncompatibleIngestionConfigChange,
             format!(
