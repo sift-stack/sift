@@ -14,6 +14,7 @@ use toml::{Table, Value};
 
 use crate::{
     cli::ConfigUpdateArgs,
+    cmd::{API_KEY_KEY, API_KEY_KEY_LEGACY},
     util::{
         app_uri::{infer_app_uri, normalize_app_uri},
         tty::{Output, PromptUser},
@@ -245,7 +246,10 @@ fn apply_profile_updates(
         target.insert(String::from("rest_uri"), Value::String(uri));
     }
     if let Some(token) = api_key {
-        target.insert(String::from("apikey"), Value::String(token));
+        // Write the canonical spelling and remove the older one, so a profile
+        // never holds both keys and no reader has to choose between them.
+        target.remove(API_KEY_KEY_LEGACY);
+        target.insert(String::from(API_KEY_KEY), Value::String(token));
     }
     if let Some(uri) = app_uri.as_deref().and_then(normalize_app_uri) {
         target.insert(String::from("app_uri"), Value::String(uri.to_string()));
