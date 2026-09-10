@@ -17,6 +17,7 @@ from sift_client.sift_types.data_import import (
     DataTypeKey,
     Hdf5ImportConfig,
     ImportConfig,
+    McapImportConfig,
     ParquetFlatDatasetImportConfig,
     ParquetSingleChannelPerRowImportConfig,
     ParquetTimeColumn,
@@ -70,7 +71,7 @@ class DataImportAPIAsync(ResourceBase):
         completion before proceeding.
 
         When ``config`` is omitted the file format is auto-detected via
-        ``detect_config`` (CSV, Parquet, HDF5, TDMS, and ULog).
+        ``detect_config`` (CSV, Parquet, HDF5, TDMS, ULog, and MCAP).
         When ``asset`` is provided it overrides the config value;
         otherwise the config's ``asset_name`` is used.
         If neither ``run`` nor ``run_name`` is provided (and none is
@@ -109,16 +110,17 @@ class DataImportAPIAsync(ResourceBase):
             config: Import configuration describing the file format and column
                 mapping. When provided, ``data_type`` is ignored. If omitted,
                 the config is auto-detected via ``detect_config`` (for ULog
-                the detected channel list is dropped so every channel in the
-                file is imported). You can call ``detect_config`` yourself to
-                inspect and modify the config before passing it here.
+                and MCAP the detected channel list is dropped so every channel
+                in the file is imported). You can call ``detect_config``
+                yourself to inspect and modify the config before passing it
+                here.
             data_type: Explicit data type key. Required for formats with
                 multiple supported layouts (Parquet, HDF5) where the file
                 extension alone is ambiguous. Only used when ``config`` is
                 not provided.
             time_format: Time format override for CSV, Parquet, HDF5, and TDMS.
-                Ignored for ULog. When omitted, CSV, Parquet, and HDF5 use the
-                detected format if available, otherwise
+                Ignored for ULog and MCAP. When omitted, CSV, Parquet, and
+                HDF5 use the detected format if available, otherwise
                 ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``. TDMS keeps its
                 detected/default time handling. Only used when ``config`` is
                 not provided.
@@ -147,11 +149,8 @@ class DataImportAPIAsync(ResourceBase):
                 data_type=data_type,
                 time_format=time_format,
             )
-            if isinstance(config, UlogImportConfig):
-                # An empty channel list imports every channel. Keeping the
-                # detected list adds nothing and can fail the import when
-                # detection misreads a damaged file and lists channels the
-                # file does not contain.
+            if isinstance(config, (UlogImportConfig, McapImportConfig)):
+                # An empty channel list imports every channel
                 config.data = []
 
         if asset is not None:
@@ -328,9 +327,10 @@ class DataImportAPIAsync(ResourceBase):
         Returns the detected configuration, inferring the file format from the
         extension when ``data_type`` is not provided. CSV and Parquet are
         detected by sending a sample of the file to the server's DetectConfig
-        endpoint; TDMS, HDF5, and ULog are detected locally on the client.
+        endpoint; TDMS, HDF5, ULog, and MCAP are detected locally on the
+        client.
 
-        CSV, Parquet, HDF5, TDMS, and ULog files are supported for
+        CSV, Parquet, HDF5, TDMS, ULog, and MCAP files are supported for
         auto-detection.
 
         For CSV files, the server scans the first two rows for an optional
@@ -357,6 +357,15 @@ class DataImportAPIAsync(ResourceBase):
         to exactly those channels; the import fails if a listed channel is
         not in the file. Clear ``data`` to import every channel.
 
+        For MCAP files, ``data`` lists one channel per flattened field of each
+        supported topic, without decoding messages. A variable-cardinality
+        field is one entry; ``complex_types_import_mode`` on the config decides
+        whether it imports as Arrow IPC bytes, a JSON string under
+        ``<name>.json``, both, or neither. The same non-empty ``data``
+        semantics as ULog apply. Topics that cannot be decoded are skipped with
+        a warning; importing such a file fails unless
+        ``McapParseErrorPolicy.IGNORE_ERROR`` is set.
+
         For file types with multiple supported layouts (Parquet, HDF5),
         ``data_type`` must be specified explicitly.
 
@@ -366,8 +375,8 @@ class DataImportAPIAsync(ResourceBase):
                 multiple supported layouts (Parquet, HDF5) where the file
                 extension alone is ambiguous.
             time_format: Time format override for CSV, Parquet, HDF5, and TDMS.
-                Ignored for ULog. When omitted, CSV, Parquet, and HDF5 use the
-                detected format if available, otherwise
+                Ignored for ULog and MCAP. When omitted, CSV, Parquet, and
+                HDF5 use the detected format if available, otherwise
                 ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``. TDMS keeps its
                 detected/default time handling.
 
@@ -389,7 +398,7 @@ class DataImportAPIAsync(ResourceBase):
         if time_format is not None:
             _apply_time_format(config, time_format)
         elif (
-            not isinstance(config, (TdmsImportConfig, UlogImportConfig))
+            not isinstance(config, (TdmsImportConfig, UlogImportConfig, McapImportConfig))
             and _get_time_format(config) is None
         ):
             _apply_time_format(config, TimeFormat.ABSOLUTE_UNIX_NANOSECONDS)
@@ -431,6 +440,15 @@ class DataImportAPIAsync(ResourceBase):
                     "Install it via `pip install sift-stack-py[ulog]`."
                 ) from e
             return await run_sync_function(lambda: detect_ulog_config(path))
+        if data_type_key == DataTypeKey.MCAP:
+            try:
+                from sift_client._internal.util.mcap import detect_mcap_config
+            except ImportError as e:
+                raise RuntimeError(
+                    "mcap and mcap-ros2-support are required for MCAP import. "
+                    "Install them via `pip install sift-stack-py[mcap]`."
+                ) from e
+            return await run_sync_function(lambda: detect_mcap_config(path))
 
         is_parquet = data_type_key in (
             DataTypeKey.PARQUET_FLATDATASET,
@@ -468,7 +486,7 @@ class DataImportAPIAsync(ResourceBase):
 
         raise ValueError(
             f"No supported configuration detected for '{path.name}'. "
-            "Only CSV, Parquet, HDF5, TDMS, and ULog are supported by auto-detection."
+            "Only CSV, Parquet, HDF5, TDMS, ULog, and MCAP are supported by auto-detection."
         )
 
 
@@ -476,7 +494,8 @@ def _apply_time_format(config: ImportConfig, time_format: TimeFormat) -> None:
     """Set the time format on a detected config, dispatching by config type.
 
     CSV and Parquet store the format under ``time_column.format``. TDMS and
-    HDF5 store it on ``time_format``. ULog has no configurable time format.
+    HDF5 store it on ``time_format``. ULog and MCAP have no configurable
+    time format.
     """
     if isinstance(
         config,

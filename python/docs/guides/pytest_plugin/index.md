@@ -100,11 +100,11 @@ The plugin runs in one of three modes, picked at invocation.
 | **Offline** | `--sift-offline` | No; records to a log file for later replay | Environments without Sift access.                             |
 | **Disabled** | `--sift-disabled` | No | Local dev. Bounds still evaluate and return a real pass/fail. |
 
-Online mode pings Sift once at session start and aborts if Sift is unreachable or the credentials are invalid, 
-so a misconfigured job fails immediately instead of silently producing no report. 
-During the run, every create and update is appended to a JSONL log file. 
-A background worker uploads new entries to Sift incrementally. 
-If the connection drops mid-test, the test keeps running and the log keeps writing locally. 
+Online mode pings Sift once at session start and aborts if Sift is unreachable or the credentials are invalid,
+so a misconfigured job fails immediately instead of silently producing no report.
+During the run, every create and update is appended to a JSONL log file.
+A background worker uploads new entries to Sift incrementally.
+If the connection drops mid-test, the test keeps running and the log keeps writing locally.
 The remaining entries can be uploaded afterward by running import-test-result-log, which the plugin prints on exit. That command resumes into the report the interrupted run created rather than starting a second one.
 
 See [Running Modes](running_modes.md) for the log-file and replay pipeline,
