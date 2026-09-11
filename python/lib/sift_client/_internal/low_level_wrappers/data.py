@@ -36,6 +36,10 @@ CHANNELS_DEFAULT_PAGE_SIZE = 100_000
 # paging seems to omit all but a single channel. We can increase this batch size once that issue
 # has been resolved. In the mean time each channel gets its own request.
 REQUEST_BATCH_SIZE = 1
+# Caps concurrent wire requests to avoid exhausting the backend rate limiter.
+# The limiter defaults to 200ms tokens per query; at 500 parallel requests that
+# is 100s, safely under the 120s burst limit with headroom for partial-gap fetches.
+MAX_PARALLEL_DATA_REQUESTS = 500
 
 
 TimeRange = Tuple[pd.Timestamp, pd.Timestamp]
@@ -923,20 +927,23 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 fetched_points += points
                 _render()
 
+            _sem = asyncio.Semaphore(MAX_PARALLEL_DATA_REQUESTS)
+
             async def _tick(kwargs: dict[str, Any], label: str) -> Any:
-                in_flight.append(label)
-                _render()
-                try:
-                    return await self._paginate_channel_data(
-                        kwargs=kwargs,
-                        page_size=page_size,
-                        max_points=max_results,
-                        on_page=on_page,
-                    )
-                finally:
-                    in_flight.remove(label)
+                async with _sem:
+                    in_flight.append(label)
                     _render()
-                    bar()
+                    try:
+                        return await self._paginate_channel_data(
+                            kwargs=kwargs,
+                            page_size=page_size,
+                            max_points=max_results,
+                            on_page=on_page,
+                        )
+                    finally:
+                        in_flight.remove(label)
+                        _render()
+                        bar()
 
             # Seed the line up front so a fully-cached call (no fetch
             # tasks) still shows its cached-point summary in the receipt.
