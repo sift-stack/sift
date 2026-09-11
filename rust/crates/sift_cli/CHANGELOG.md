@@ -9,6 +9,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 - Artifact MCP tools now support generic artifact storage classes, structured
   JSON payloads, metadata, links, CEL filtering, and ordering.
+- `sift-cli agent install`, `update`, `doctor`, and `uninstall` now support
+  Gemini CLI and Antigravity CLI.
 
 ## [v0.5.0] - September 3, 2026
 

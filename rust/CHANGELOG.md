@@ -3,6 +3,33 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+### Bug Fixes
+
+#### Asset-name check is now case-insensitive
+
+`SiftStream` no longer rejects an ingestion config whose asset name differs from the one in Sift
+only by capitalization.
+
+## [v0.13.0] - September 4, 2026
+### What's New
+
+#### Bytes channel values
+
+`Value` has a new `Bytes(Vec<u8>)` variant that ingests as `CHANNEL_DATA_TYPE_BYTES`. A plain
+`Vec<u8>` or `&[u8]` still converts to `Value::BitField`; wrap it in the new `ChannelBytes`
+newtype to send raw bytes:
+
+```rust
+use sift_stream::{ChannelBytes, ChannelValue};
+
+let payload = ChannelValue::new("payload", ChannelBytes(vec![0xde, 0xad]));
+```
+
+`sift_stream_bindings` exposes this as `ValuePy.Bytes`, `ValuePy.is_bytes`, `ValuePy.as_bytes`,
+and `IngestWithConfigDataChannelValuePy.bytes`. This fixes bytes channel ingestion in the Python
+library, which previously raised `ValueError: Invalid data type: bytes`.
+
 ## [v0.12.0]
 ### What's New
 

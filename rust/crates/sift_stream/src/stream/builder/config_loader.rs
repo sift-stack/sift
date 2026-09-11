@@ -89,7 +89,7 @@ pub async fn load_ingestion_config(
     };
 
     // Sanity check the Sift asset matches the expected asset-name.
-    if asset.name != asset_name {
+    if !asset.name.eq_ignore_ascii_case(&asset_name) {
         return Err(Error::new_msg(
             ErrorKind::IncompatibleIngestionConfigChange,
             format!(
@@ -379,6 +379,25 @@ mod tests {
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert_eq!(err.kind(), ErrorKind::IncompatibleIngestionConfigChange);
+    }
+
+    #[tokio::test]
+    async fn test_load_ingestion_config_asset_name_differs_only_by_case() {
+        let (grpc_channel, _) = create_mock_grpc_channel_with_service().await;
+        let client_key = "already_exists_client_key";
+        // Same asset as the mock service, differing only in capitalization.
+        let asset_name = "Already_Exists_Asset";
+
+        let form = create_test_ingestion_config_form(asset_name, client_key, vec![]);
+
+        let (ingestion_config, _, asset) =
+            load_ingestion_config(grpc_channel, form, ServiceOptions::default())
+                .await
+                .unwrap();
+
+        assert_eq!(ingestion_config.client_key, client_key);
+        // Sift is the source of truth for the name, so the asset keeps its own casing.
+        assert_eq!(asset.name, "already_exists_asset");
     }
 
     #[tokio::test]
