@@ -16,7 +16,7 @@ from sift_client.sift_types._base import (
 )
 from sift_client.sift_types._mixins.file_attachments import FileAttachmentsMixin
 from sift_client.sift_types.tag import Tag
-from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
+from sift_client.util.metadata import Metadata, metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -42,7 +42,7 @@ class Run(BaseType[RunProto, "Run"], FileAttachmentsMixin):
     organization_id: str
     # NOTE: update() replaces this map wholesale. See TODO(metadata-mixin) in
     # sift_types/_mixins/metadata.py before adding keys at runtime.
-    metadata: dict[str, str | float | bool]
+    metadata: Metadata
     tags: list[str]
     asset_ids: list[str]
     is_adhoc: bool
