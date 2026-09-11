@@ -18,6 +18,12 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
 // uses the shared metadata values (sift.metadata.v1). No conversation owns an
 // artifact.
 //
+// Links are append-only and belong to the version they were written at. A
+// version's rows are its complete link set: ATTACHED_TO rows carry forward to
+// each new version, while SOURCE and DERIVED_FROM rows are a closed account of
+// one version's inputs. Linking and unlinking write a new version whose
+// content is copied from the previous one.
+//
 // Artifact bytes live in remote_files (entity_type 'artifact_versions',
 // entity_id = artifact_version_id): upload via the remote-files multipart
 // endpoint, download via RemoteFileService.GetRemoteFileDownloadUrl.
@@ -59,6 +65,9 @@ service ArtifactService {
     };
   }
 
+  // Returns the fields available to ListArtifacts filter, including the
+  // organization's metadata keys as one metadata namespace.
+
   // Full version history of one artifact, newest first.
   rpc ListArtifactVersions(ListArtifactVersionsRequest) returns (ListArtifactVersionsResponse) {
     option (google.api.http) = {get: "/api/v1/artifacts/{artifact_id}/versions"};
@@ -69,43 +78,17 @@ service ArtifactService {
     };
   }
 
-  // Links an artifact to an entity. Idempotent: an existing identical link
-  // succeeds without effect.
-  rpc LinkArtifact(LinkArtifactRequest) returns (LinkArtifactResponse) {
-    option (google.api.http) = {
-      post: "/api/v1/artifacts/{artifact_id}/links"
-      body: "*"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "LinkArtifact"
-      description: "Link an artifact to an entity."
-      operation_id: "ArtifactService_LinkArtifactV1"
-    };
-  }
+  // Links an artifact to an entity by writing a new version that carries the
+  // previous ATTACHED_TO rows plus this link. An identical link already in the
+  // latest version succeeds without writing a version.
 
-  // Removes a link from an artifact. Idempotent: a missing link succeeds.
-  // SOURCE links are provenance and are not removable (InvalidArgument).
-  rpc UnlinkArtifact(UnlinkArtifactRequest) returns (UnlinkArtifactResponse) {
-    option (google.api.http) = {
-      post: "/api/v1/artifacts/{artifact_id}/links:unlink"
-      body: "*"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "UnlinkArtifact"
-      description: "Remove a link from an artifact."
-      operation_id: "ArtifactService_UnlinkArtifactV1"
-    };
-  }
+  // Revokes an ATTACHED_TO link by writing a new version that omits it. The
+  // previous version's rows stay in place. A link missing from the latest
+  // version succeeds without writing a version. SOURCE and DERIVED_FROM rows
+  // are a closed account of one version's inputs and cannot be unlinked
+  // (InvalidArgument).
 
-  // Lists links for an artifact.
-  rpc ListArtifactLinks(ListArtifactLinksRequest) returns (ListArtifactLinksResponse) {
-    option (google.api.http) = {get: "/api/v1/artifacts/{artifact_id}/links"};
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "ListArtifactLinks"
-      description: "List links for an artifact."
-      operation_id: "ArtifactService_ListArtifactLinksV1"
-    };
-  }
+  // Lists the links of one artifact version, the latest by default.
 
   // Links an existing artifact to a conversation. Equivalent to LinkArtifact
   // with relation ATTACHED_TO and entity_type "conversations". Idempotent:
@@ -132,14 +115,14 @@ service ArtifactService {
     };
   }
 
-  // Sets archived_date. Versions, bytes, and conversation links are
+  // Sets archived_date. Versions, bytes, and links are
   // left in place. Idempotent: archiving an already-archived artifact
   // succeeds without changing archived_date.
   rpc ArchiveArtifact(ArchiveArtifactRequest) returns (ArchiveArtifactResponse) {
     option (google.api.http) = {post: "/api/v1/artifacts/{artifact_id}/archive"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "ArchiveArtifact"
-      description: "Archive an artifact. Versions, bytes, and conversation links are left in place."
+      description: "Archive an artifact. Versions, bytes, and links are left in place."
       operation_id: "ArtifactService_ArchiveArtifactV1"
     };
   }
@@ -177,14 +160,12 @@ enum ArtifactStorageClass {
 enum ArtifactCreatedVia {
   // The producing surface is not specified.
   ARTIFACT_CREATED_VIA_UNSPECIFIED = 0;
-  // Sift Agents wrote the artifact.
-  ARTIFACT_CREATED_VIA_AGENTS = 1;
+  // An agent wrote the artifact.
+  ARTIFACT_CREATED_VIA_AGENT = 1;
   // Canvas wrote the artifact.
   ARTIFACT_CREATED_VIA_CANVAS = 2;
-  // The SDK wrote the artifact.
-  ARTIFACT_CREATED_VIA_SDK = 3;
   // A direct upload wrote the artifact.
-  ARTIFACT_CREATED_VIA_UPLOAD = 4;
+  ARTIFACT_CREATED_VIA_UPLOAD = 3;
 }
 
 enum ArtifactLinkRelation {
@@ -225,13 +206,10 @@ message Artifact {
   optional google.protobuf.Timestamp archived_date = 17;
   ArtifactStorageClass storage_class = 18;
   ArtifactCreatedVia created_via = 19;
-  // An open semantic type label, such as markdown, code, image, pdf, psd, or
-  // table. This is not an encoding; encodings come from file_mime_type.
-  optional string kind = 20;
-  // Set only for STRUCTURED artifacts.
-  optional google.protobuf.Struct payload = 21;
+  // Set by GetArtifact for STRUCTURED artifacts. ListArtifacts omits it.
+  optional google.protobuf.Struct payload = 20;
   // Metadata attached to the resolved version.
-  repeated sift.metadata.v1.MetadataValue metadata = 22;
+  repeated sift.metadata.v1.MetadataValue metadata = 21;
 }
 
 message ArtifactVersion {
@@ -247,29 +225,13 @@ message ArtifactVersion {
   // From the version's remote_files record. Unset until bytes are uploaded.
   optional string file_name = 10;
   optional string file_mime_type = 11;
-  // Set only for STRUCTURED artifacts.
+  // Set by GetArtifact for STRUCTURED artifacts. ListArtifactVersions omits it.
   optional google.protobuf.Struct payload = 12;
   // Metadata attached to this version.
   repeated sift.metadata.v1.MetadataValue metadata = 13;
 }
 
-// A link from an artifact to another entity.
-message ArtifactLink {
-  string artifact_link_id = 1;
-  string artifact_id = 2;
-  // Unset means the link is version-agnostic. ATTACHED_TO links are always
-  // version-agnostic. SOURCE and DERIVED_FROM links created with a version ID
-  // pin that version.
-  optional string artifact_version_id = 3;
-  ArtifactLinkRelation relation = 4;
-  // An open string accepting lowercase values: conversations, canvases, runs,
-  // assets, artifacts, or tool_uses. entity_id is opaque: a UUID for Sift
-  // entities, or the provider tool_use_id for tool_uses.
-  string entity_type = 5;
-  string entity_id = 6;
-  string organization_id = 7;
-  google.protobuf.Timestamp created_date = 8;
-}
+// A link from an artifact to another entity, belonging to one version.
 
 message ArtifactLinkInput {
   ArtifactLinkRelation relation = 1;
@@ -298,20 +260,16 @@ message CreateArtifactRequest {
   // A container field. Legal on create and defaults to FILE when unset. On
   // append, it must match the container.
   optional ArtifactStorageClass storage_class = 7;
-  // A container field. Legal on create and defaults to SDK when unset. On
-  // append, it must match the container.
+  // A container field. Required on create. Ignored on append.
   optional ArtifactCreatedVia created_via = 8;
-  // An open semantic type label and container field. Legal on create. On
-  // append, it must match the container.
-  optional string kind = 9;
   // Required for STRUCTURED and rejected otherwise. The serialized payload
   // must not exceed 1 MiB.
-  optional google.protobuf.Struct payload = 10;
+  optional google.protobuf.Struct payload = 9;
+  // Links written at the new version. On append, the previous version's
+  // ATTACHED_TO rows carry forward and these are added to them.
+  repeated ArtifactLinkInput links = 10;
   // Metadata attached to the created version.
   repeated sift.metadata.v1.MetadataValue metadata = 11;
-  // Links created alongside the artifact version. ATTACHED_TO links are at
-  // the artifact level. SOURCE and DERIVED_FROM links pin the new version.
-  repeated ArtifactLinkInput links = 12;
 }
 
 message CreateArtifactResponse {
@@ -336,7 +294,7 @@ message ListArtifactsRequest {
   bool include_archived = 4;
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec)
   // filter string. Available fields are artifact_id, organization_id,
-  // created_by_user_id, authoring_kind, storage_class, created_via, kind,
+  // created_by_user_id, authoring_kind, storage_class, created_via,
   // title, version, created_date, archived_date, the include_archived
   // directive, and metadata through `metadata["<key>"]`. Links can be filtered
   // with a comprehension such as `links.exists(l, l.relation == "ATTACHED_TO"
@@ -349,7 +307,7 @@ message ListArtifactsRequest {
   // and combine with filter.
   string filter = 5;
   // A comma-separated [AIP-132](https://google.aip.dev/132#ordering) ordering
-  // string over created_date, archived_date, title, version, and kind. Fields
+  // string over created_date, archived_date, title, and version. Fields
   // sort ascending by default and support a `desc` suffix. The default is
   // created_date ascending.
   string order_by = 6;
@@ -368,40 +326,6 @@ message ListArtifactVersionsRequest {
 
 message ListArtifactVersionsResponse {
   repeated ArtifactVersion versions = 1;
-  string next_page_token = 2;
-}
-
-message LinkArtifactRequest {
-  string artifact_id = 1;
-  ArtifactLinkRelation relation = 2;
-  string entity_type = 3;
-  string entity_id = 4;
-  optional string artifact_version_id = 5;
-}
-
-message LinkArtifactResponse {
-  ArtifactLink link = 1;
-}
-
-message UnlinkArtifactRequest {
-  string artifact_id = 1;
-  ArtifactLinkRelation relation = 2;
-  string entity_type = 3;
-  string entity_id = 4;
-  optional string artifact_version_id = 5;
-}
-
-message UnlinkArtifactResponse {}
-
-message ListArtifactLinksRequest {
-  string artifact_id = 1;
-  optional ArtifactLinkRelation relation = 2;
-  uint32 page_size = 3;
-  string page_token = 4;
-}
-
-message ListArtifactLinksResponse {
-  repeated ArtifactLink links = 1;
   string next_page_token = 2;
 }
 

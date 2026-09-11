@@ -224,9 +224,6 @@ impl serde::Serialize for Artifact {
         if self.created_via != 0 {
             len += 1;
         }
-        if self.kind.is_some() {
-            len += 1;
-        }
         if self.payload.is_some() {
             len += 1;
         }
@@ -294,9 +291,6 @@ impl serde::Serialize for Artifact {
                 .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.created_via)))?;
             struct_ser.serialize_field("createdVia", &v)?;
         }
-        if let Some(v) = self.kind.as_ref() {
-            struct_ser.serialize_field("kind", v)?;
-        }
         if let Some(v) = self.payload.as_ref() {
             struct_ser.serialize_field("payload", v)?;
         }
@@ -346,7 +340,6 @@ impl<'de> serde::Deserialize<'de> for Artifact {
             "storageClass",
             "created_via",
             "createdVia",
-            "kind",
             "payload",
             "metadata",
         ];
@@ -371,7 +364,6 @@ impl<'de> serde::Deserialize<'de> for Artifact {
             ArchivedDate,
             StorageClass,
             CreatedVia,
-            Kind,
             Payload,
             Metadata,
         }
@@ -413,7 +405,6 @@ impl<'de> serde::Deserialize<'de> for Artifact {
                             "archivedDate" | "archived_date" => Ok(GeneratedField::ArchivedDate),
                             "storageClass" | "storage_class" => Ok(GeneratedField::StorageClass),
                             "createdVia" | "created_via" => Ok(GeneratedField::CreatedVia),
-                            "kind" => Ok(GeneratedField::Kind),
                             "payload" => Ok(GeneratedField::Payload),
                             "metadata" => Ok(GeneratedField::Metadata),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
@@ -453,7 +444,6 @@ impl<'de> serde::Deserialize<'de> for Artifact {
                 let mut archived_date__ = None;
                 let mut storage_class__ = None;
                 let mut created_via__ = None;
-                let mut kind__ = None;
                 let mut payload__ = None;
                 let mut metadata__ = None;
                 while let Some(k) = map_.next_key()? {
@@ -568,12 +558,6 @@ impl<'de> serde::Deserialize<'de> for Artifact {
                             }
                             created_via__ = Some(map_.next_value::<ArtifactCreatedVia>()? as i32);
                         }
-                        GeneratedField::Kind => {
-                            if kind__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("kind"));
-                            }
-                            kind__ = map_.next_value()?;
-                        }
                         GeneratedField::Payload => {
                             if payload__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("payload"));
@@ -607,7 +591,6 @@ impl<'de> serde::Deserialize<'de> for Artifact {
                     archived_date: archived_date__,
                     storage_class: storage_class__.unwrap_or_default(),
                     created_via: created_via__.unwrap_or_default(),
-                    kind: kind__,
                     payload: payload__,
                     metadata: metadata__.unwrap_or_default(),
                 })
@@ -698,9 +681,8 @@ impl serde::Serialize for ArtifactCreatedVia {
     {
         let variant = match self {
             Self::Unspecified => "ARTIFACT_CREATED_VIA_UNSPECIFIED",
-            Self::Agents => "ARTIFACT_CREATED_VIA_AGENTS",
+            Self::Agent => "ARTIFACT_CREATED_VIA_AGENT",
             Self::Canvas => "ARTIFACT_CREATED_VIA_CANVAS",
-            Self::Sdk => "ARTIFACT_CREATED_VIA_SDK",
             Self::Upload => "ARTIFACT_CREATED_VIA_UPLOAD",
         };
         serializer.serialize_str(variant)
@@ -714,9 +696,8 @@ impl<'de> serde::Deserialize<'de> for ArtifactCreatedVia {
     {
         const FIELDS: &[&str] = &[
             "ARTIFACT_CREATED_VIA_UNSPECIFIED",
-            "ARTIFACT_CREATED_VIA_AGENTS",
+            "ARTIFACT_CREATED_VIA_AGENT",
             "ARTIFACT_CREATED_VIA_CANVAS",
-            "ARTIFACT_CREATED_VIA_SDK",
             "ARTIFACT_CREATED_VIA_UPLOAD",
         ];
 
@@ -759,234 +740,14 @@ impl<'de> serde::Deserialize<'de> for ArtifactCreatedVia {
             {
                 match value {
                     "ARTIFACT_CREATED_VIA_UNSPECIFIED" => Ok(ArtifactCreatedVia::Unspecified),
-                    "ARTIFACT_CREATED_VIA_AGENTS" => Ok(ArtifactCreatedVia::Agents),
+                    "ARTIFACT_CREATED_VIA_AGENT" => Ok(ArtifactCreatedVia::Agent),
                     "ARTIFACT_CREATED_VIA_CANVAS" => Ok(ArtifactCreatedVia::Canvas),
-                    "ARTIFACT_CREATED_VIA_SDK" => Ok(ArtifactCreatedVia::Sdk),
                     "ARTIFACT_CREATED_VIA_UPLOAD" => Ok(ArtifactCreatedVia::Upload),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }
         }
         deserializer.deserialize_any(GeneratedVisitor)
-    }
-}
-impl serde::Serialize for ArtifactLink {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if !self.artifact_link_id.is_empty() {
-            len += 1;
-        }
-        if !self.artifact_id.is_empty() {
-            len += 1;
-        }
-        if self.artifact_version_id.is_some() {
-            len += 1;
-        }
-        if self.relation != 0 {
-            len += 1;
-        }
-        if !self.entity_type.is_empty() {
-            len += 1;
-        }
-        if !self.entity_id.is_empty() {
-            len += 1;
-        }
-        if !self.organization_id.is_empty() {
-            len += 1;
-        }
-        if self.created_date.is_some() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("sift.artifacts.v1.ArtifactLink", len)?;
-        if !self.artifact_link_id.is_empty() {
-            struct_ser.serialize_field("artifactLinkId", &self.artifact_link_id)?;
-        }
-        if !self.artifact_id.is_empty() {
-            struct_ser.serialize_field("artifactId", &self.artifact_id)?;
-        }
-        if let Some(v) = self.artifact_version_id.as_ref() {
-            struct_ser.serialize_field("artifactVersionId", v)?;
-        }
-        if self.relation != 0 {
-            let v = ArtifactLinkRelation::try_from(self.relation)
-                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.relation)))?;
-            struct_ser.serialize_field("relation", &v)?;
-        }
-        if !self.entity_type.is_empty() {
-            struct_ser.serialize_field("entityType", &self.entity_type)?;
-        }
-        if !self.entity_id.is_empty() {
-            struct_ser.serialize_field("entityId", &self.entity_id)?;
-        }
-        if !self.organization_id.is_empty() {
-            struct_ser.serialize_field("organizationId", &self.organization_id)?;
-        }
-        if let Some(v) = self.created_date.as_ref() {
-            struct_ser.serialize_field("createdDate", v)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for ArtifactLink {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "artifact_link_id",
-            "artifactLinkId",
-            "artifact_id",
-            "artifactId",
-            "artifact_version_id",
-            "artifactVersionId",
-            "relation",
-            "entity_type",
-            "entityType",
-            "entity_id",
-            "entityId",
-            "organization_id",
-            "organizationId",
-            "created_date",
-            "createdDate",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            ArtifactLinkId,
-            ArtifactId,
-            ArtifactVersionId,
-            Relation,
-            EntityType,
-            EntityId,
-            OrganizationId,
-            CreatedDate,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "artifactLinkId" | "artifact_link_id" => Ok(GeneratedField::ArtifactLinkId),
-                            "artifactId" | "artifact_id" => Ok(GeneratedField::ArtifactId),
-                            "artifactVersionId" | "artifact_version_id" => Ok(GeneratedField::ArtifactVersionId),
-                            "relation" => Ok(GeneratedField::Relation),
-                            "entityType" | "entity_type" => Ok(GeneratedField::EntityType),
-                            "entityId" | "entity_id" => Ok(GeneratedField::EntityId),
-                            "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
-                            "createdDate" | "created_date" => Ok(GeneratedField::CreatedDate),
-                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = ArtifactLink;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct sift.artifacts.v1.ArtifactLink")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ArtifactLink, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut artifact_link_id__ = None;
-                let mut artifact_id__ = None;
-                let mut artifact_version_id__ = None;
-                let mut relation__ = None;
-                let mut entity_type__ = None;
-                let mut entity_id__ = None;
-                let mut organization_id__ = None;
-                let mut created_date__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::ArtifactLinkId => {
-                            if artifact_link_id__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("artifactLinkId"));
-                            }
-                            artifact_link_id__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::ArtifactId => {
-                            if artifact_id__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("artifactId"));
-                            }
-                            artifact_id__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::ArtifactVersionId => {
-                            if artifact_version_id__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("artifactVersionId"));
-                            }
-                            artifact_version_id__ = map_.next_value()?;
-                        }
-                        GeneratedField::Relation => {
-                            if relation__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("relation"));
-                            }
-                            relation__ = Some(map_.next_value::<ArtifactLinkRelation>()? as i32);
-                        }
-                        GeneratedField::EntityType => {
-                            if entity_type__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("entityType"));
-                            }
-                            entity_type__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::EntityId => {
-                            if entity_id__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("entityId"));
-                            }
-                            entity_id__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::OrganizationId => {
-                            if organization_id__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("organizationId"));
-                            }
-                            organization_id__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::CreatedDate => {
-                            if created_date__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("createdDate"));
-                            }
-                            created_date__ = map_.next_value()?;
-                        }
-                    }
-                }
-                Ok(ArtifactLink {
-                    artifact_link_id: artifact_link_id__.unwrap_or_default(),
-                    artifact_id: artifact_id__.unwrap_or_default(),
-                    artifact_version_id: artifact_version_id__,
-                    relation: relation__.unwrap_or_default(),
-                    entity_type: entity_type__.unwrap_or_default(),
-                    entity_id: entity_id__.unwrap_or_default(),
-                    organization_id: organization_id__.unwrap_or_default(),
-                    created_date: created_date__,
-                })
-            }
-        }
-        deserializer.deserialize_struct("sift.artifacts.v1.ArtifactLink", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for ArtifactLinkInput {
@@ -1606,16 +1367,13 @@ impl serde::Serialize for CreateArtifactRequest {
         if self.created_via.is_some() {
             len += 1;
         }
-        if self.kind.is_some() {
-            len += 1;
-        }
         if self.payload.is_some() {
             len += 1;
         }
-        if !self.metadata.is_empty() {
+        if !self.links.is_empty() {
             len += 1;
         }
-        if !self.links.is_empty() {
+        if !self.metadata.is_empty() {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("sift.artifacts.v1.CreateArtifactRequest", len)?;
@@ -1646,17 +1404,14 @@ impl serde::Serialize for CreateArtifactRequest {
                 .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", *v)))?;
             struct_ser.serialize_field("createdVia", &v)?;
         }
-        if let Some(v) = self.kind.as_ref() {
-            struct_ser.serialize_field("kind", v)?;
-        }
         if let Some(v) = self.payload.as_ref() {
             struct_ser.serialize_field("payload", v)?;
         }
-        if !self.metadata.is_empty() {
-            struct_ser.serialize_field("metadata", &self.metadata)?;
-        }
         if !self.links.is_empty() {
             struct_ser.serialize_field("links", &self.links)?;
+        }
+        if !self.metadata.is_empty() {
+            struct_ser.serialize_field("metadata", &self.metadata)?;
         }
         struct_ser.end()
     }
@@ -1680,10 +1435,9 @@ impl<'de> serde::Deserialize<'de> for CreateArtifactRequest {
             "storageClass",
             "created_via",
             "createdVia",
-            "kind",
             "payload",
-            "metadata",
             "links",
+            "metadata",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1695,10 +1449,9 @@ impl<'de> serde::Deserialize<'de> for CreateArtifactRequest {
             AuthoringKind,
             StorageClass,
             CreatedVia,
-            Kind,
             Payload,
-            Metadata,
             Links,
+            Metadata,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1727,10 +1480,9 @@ impl<'de> serde::Deserialize<'de> for CreateArtifactRequest {
                             "authoringKind" | "authoring_kind" => Ok(GeneratedField::AuthoringKind),
                             "storageClass" | "storage_class" => Ok(GeneratedField::StorageClass),
                             "createdVia" | "created_via" => Ok(GeneratedField::CreatedVia),
-                            "kind" => Ok(GeneratedField::Kind),
                             "payload" => Ok(GeneratedField::Payload),
-                            "metadata" => Ok(GeneratedField::Metadata),
                             "links" => Ok(GeneratedField::Links),
+                            "metadata" => Ok(GeneratedField::Metadata),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1757,10 +1509,9 @@ impl<'de> serde::Deserialize<'de> for CreateArtifactRequest {
                 let mut authoring_kind__ = None;
                 let mut storage_class__ = None;
                 let mut created_via__ = None;
-                let mut kind__ = None;
                 let mut payload__ = None;
-                let mut metadata__ = None;
                 let mut links__ = None;
+                let mut metadata__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ArtifactId => {
@@ -1805,29 +1556,23 @@ impl<'de> serde::Deserialize<'de> for CreateArtifactRequest {
                             }
                             created_via__ = map_.next_value::<::std::option::Option<ArtifactCreatedVia>>()?.map(|x| x as i32);
                         }
-                        GeneratedField::Kind => {
-                            if kind__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("kind"));
-                            }
-                            kind__ = map_.next_value()?;
-                        }
                         GeneratedField::Payload => {
                             if payload__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("payload"));
                             }
                             payload__ = map_.next_value()?;
                         }
-                        GeneratedField::Metadata => {
-                            if metadata__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("metadata"));
-                            }
-                            metadata__ = Some(map_.next_value()?);
-                        }
                         GeneratedField::Links => {
                             if links__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("links"));
                             }
                             links__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Metadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadata"));
+                            }
+                            metadata__ = Some(map_.next_value()?);
                         }
                     }
                 }
@@ -1839,10 +1584,9 @@ impl<'de> serde::Deserialize<'de> for CreateArtifactRequest {
                     authoring_kind: authoring_kind__,
                     storage_class: storage_class__,
                     created_via: created_via__,
-                    kind: kind__,
                     payload: payload__,
-                    metadata: metadata__.unwrap_or_default(),
                     links: links__.unwrap_or_default(),
+                    metadata: metadata__.unwrap_or_default(),
                 })
             }
         }
@@ -2141,262 +1885,6 @@ impl<'de> serde::Deserialize<'de> for GetArtifactResponse {
         deserializer.deserialize_struct("sift.artifacts.v1.GetArtifactResponse", FIELDS, GeneratedVisitor)
     }
 }
-impl serde::Serialize for LinkArtifactRequest {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if !self.artifact_id.is_empty() {
-            len += 1;
-        }
-        if self.relation != 0 {
-            len += 1;
-        }
-        if !self.entity_type.is_empty() {
-            len += 1;
-        }
-        if !self.entity_id.is_empty() {
-            len += 1;
-        }
-        if self.artifact_version_id.is_some() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("sift.artifacts.v1.LinkArtifactRequest", len)?;
-        if !self.artifact_id.is_empty() {
-            struct_ser.serialize_field("artifactId", &self.artifact_id)?;
-        }
-        if self.relation != 0 {
-            let v = ArtifactLinkRelation::try_from(self.relation)
-                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.relation)))?;
-            struct_ser.serialize_field("relation", &v)?;
-        }
-        if !self.entity_type.is_empty() {
-            struct_ser.serialize_field("entityType", &self.entity_type)?;
-        }
-        if !self.entity_id.is_empty() {
-            struct_ser.serialize_field("entityId", &self.entity_id)?;
-        }
-        if let Some(v) = self.artifact_version_id.as_ref() {
-            struct_ser.serialize_field("artifactVersionId", v)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for LinkArtifactRequest {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "artifact_id",
-            "artifactId",
-            "relation",
-            "entity_type",
-            "entityType",
-            "entity_id",
-            "entityId",
-            "artifact_version_id",
-            "artifactVersionId",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            ArtifactId,
-            Relation,
-            EntityType,
-            EntityId,
-            ArtifactVersionId,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "artifactId" | "artifact_id" => Ok(GeneratedField::ArtifactId),
-                            "relation" => Ok(GeneratedField::Relation),
-                            "entityType" | "entity_type" => Ok(GeneratedField::EntityType),
-                            "entityId" | "entity_id" => Ok(GeneratedField::EntityId),
-                            "artifactVersionId" | "artifact_version_id" => Ok(GeneratedField::ArtifactVersionId),
-                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = LinkArtifactRequest;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct sift.artifacts.v1.LinkArtifactRequest")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<LinkArtifactRequest, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut artifact_id__ = None;
-                let mut relation__ = None;
-                let mut entity_type__ = None;
-                let mut entity_id__ = None;
-                let mut artifact_version_id__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::ArtifactId => {
-                            if artifact_id__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("artifactId"));
-                            }
-                            artifact_id__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::Relation => {
-                            if relation__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("relation"));
-                            }
-                            relation__ = Some(map_.next_value::<ArtifactLinkRelation>()? as i32);
-                        }
-                        GeneratedField::EntityType => {
-                            if entity_type__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("entityType"));
-                            }
-                            entity_type__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::EntityId => {
-                            if entity_id__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("entityId"));
-                            }
-                            entity_id__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::ArtifactVersionId => {
-                            if artifact_version_id__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("artifactVersionId"));
-                            }
-                            artifact_version_id__ = map_.next_value()?;
-                        }
-                    }
-                }
-                Ok(LinkArtifactRequest {
-                    artifact_id: artifact_id__.unwrap_or_default(),
-                    relation: relation__.unwrap_or_default(),
-                    entity_type: entity_type__.unwrap_or_default(),
-                    entity_id: entity_id__.unwrap_or_default(),
-                    artifact_version_id: artifact_version_id__,
-                })
-            }
-        }
-        deserializer.deserialize_struct("sift.artifacts.v1.LinkArtifactRequest", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for LinkArtifactResponse {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.link.is_some() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("sift.artifacts.v1.LinkArtifactResponse", len)?;
-        if let Some(v) = self.link.as_ref() {
-            struct_ser.serialize_field("link", v)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for LinkArtifactResponse {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "link",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            Link,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "link" => Ok(GeneratedField::Link),
-                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = LinkArtifactResponse;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct sift.artifacts.v1.LinkArtifactResponse")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<LinkArtifactResponse, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut link__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::Link => {
-                            if link__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("link"));
-                            }
-                            link__ = map_.next_value()?;
-                        }
-                    }
-                }
-                Ok(LinkArtifactResponse {
-                    link: link__,
-                })
-            }
-        }
-        deserializer.deserialize_struct("sift.artifacts.v1.LinkArtifactResponse", FIELDS, GeneratedVisitor)
-    }
-}
 impl serde::Serialize for LinkArtifactToConversationRequest {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -2576,264 +2064,6 @@ impl<'de> serde::Deserialize<'de> for LinkArtifactToConversationResponse {
             }
         }
         deserializer.deserialize_struct("sift.artifacts.v1.LinkArtifactToConversationResponse", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for ListArtifactLinksRequest {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if !self.artifact_id.is_empty() {
-            len += 1;
-        }
-        if self.relation.is_some() {
-            len += 1;
-        }
-        if self.page_size != 0 {
-            len += 1;
-        }
-        if !self.page_token.is_empty() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("sift.artifacts.v1.ListArtifactLinksRequest", len)?;
-        if !self.artifact_id.is_empty() {
-            struct_ser.serialize_field("artifactId", &self.artifact_id)?;
-        }
-        if let Some(v) = self.relation.as_ref() {
-            let v = ArtifactLinkRelation::try_from(*v)
-                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", *v)))?;
-            struct_ser.serialize_field("relation", &v)?;
-        }
-        if self.page_size != 0 {
-            struct_ser.serialize_field("pageSize", &self.page_size)?;
-        }
-        if !self.page_token.is_empty() {
-            struct_ser.serialize_field("pageToken", &self.page_token)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for ListArtifactLinksRequest {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "artifact_id",
-            "artifactId",
-            "relation",
-            "page_size",
-            "pageSize",
-            "page_token",
-            "pageToken",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            ArtifactId,
-            Relation,
-            PageSize,
-            PageToken,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "artifactId" | "artifact_id" => Ok(GeneratedField::ArtifactId),
-                            "relation" => Ok(GeneratedField::Relation),
-                            "pageSize" | "page_size" => Ok(GeneratedField::PageSize),
-                            "pageToken" | "page_token" => Ok(GeneratedField::PageToken),
-                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = ListArtifactLinksRequest;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct sift.artifacts.v1.ListArtifactLinksRequest")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ListArtifactLinksRequest, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut artifact_id__ = None;
-                let mut relation__ = None;
-                let mut page_size__ = None;
-                let mut page_token__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::ArtifactId => {
-                            if artifact_id__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("artifactId"));
-                            }
-                            artifact_id__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::Relation => {
-                            if relation__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("relation"));
-                            }
-                            relation__ = map_.next_value::<::std::option::Option<ArtifactLinkRelation>>()?.map(|x| x as i32);
-                        }
-                        GeneratedField::PageSize => {
-                            if page_size__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("pageSize"));
-                            }
-                            page_size__ = 
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::PageToken => {
-                            if page_token__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("pageToken"));
-                            }
-                            page_token__ = Some(map_.next_value()?);
-                        }
-                    }
-                }
-                Ok(ListArtifactLinksRequest {
-                    artifact_id: artifact_id__.unwrap_or_default(),
-                    relation: relation__,
-                    page_size: page_size__.unwrap_or_default(),
-                    page_token: page_token__.unwrap_or_default(),
-                })
-            }
-        }
-        deserializer.deserialize_struct("sift.artifacts.v1.ListArtifactLinksRequest", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for ListArtifactLinksResponse {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if !self.links.is_empty() {
-            len += 1;
-        }
-        if !self.next_page_token.is_empty() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("sift.artifacts.v1.ListArtifactLinksResponse", len)?;
-        if !self.links.is_empty() {
-            struct_ser.serialize_field("links", &self.links)?;
-        }
-        if !self.next_page_token.is_empty() {
-            struct_ser.serialize_field("nextPageToken", &self.next_page_token)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for ListArtifactLinksResponse {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "links",
-            "next_page_token",
-            "nextPageToken",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            Links,
-            NextPageToken,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "links" => Ok(GeneratedField::Links),
-                            "nextPageToken" | "next_page_token" => Ok(GeneratedField::NextPageToken),
-                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = ListArtifactLinksResponse;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct sift.artifacts.v1.ListArtifactLinksResponse")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ListArtifactLinksResponse, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut links__ = None;
-                let mut next_page_token__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::Links => {
-                            if links__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("links"));
-                            }
-                            links__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::NextPageToken => {
-                            if next_page_token__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("nextPageToken"));
-                            }
-                            next_page_token__ = Some(map_.next_value()?);
-                        }
-                    }
-                }
-                Ok(ListArtifactLinksResponse {
-                    links: links__.unwrap_or_default(),
-                    next_page_token: next_page_token__.unwrap_or_default(),
-                })
-            }
-        }
-        deserializer.deserialize_struct("sift.artifacts.v1.ListArtifactLinksResponse", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for ListArtifactVersionsRequest {
@@ -3709,241 +2939,5 @@ impl<'de> serde::Deserialize<'de> for UnlinkArtifactFromConversationResponse {
             }
         }
         deserializer.deserialize_struct("sift.artifacts.v1.UnlinkArtifactFromConversationResponse", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for UnlinkArtifactRequest {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if !self.artifact_id.is_empty() {
-            len += 1;
-        }
-        if self.relation != 0 {
-            len += 1;
-        }
-        if !self.entity_type.is_empty() {
-            len += 1;
-        }
-        if !self.entity_id.is_empty() {
-            len += 1;
-        }
-        if self.artifact_version_id.is_some() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("sift.artifacts.v1.UnlinkArtifactRequest", len)?;
-        if !self.artifact_id.is_empty() {
-            struct_ser.serialize_field("artifactId", &self.artifact_id)?;
-        }
-        if self.relation != 0 {
-            let v = ArtifactLinkRelation::try_from(self.relation)
-                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.relation)))?;
-            struct_ser.serialize_field("relation", &v)?;
-        }
-        if !self.entity_type.is_empty() {
-            struct_ser.serialize_field("entityType", &self.entity_type)?;
-        }
-        if !self.entity_id.is_empty() {
-            struct_ser.serialize_field("entityId", &self.entity_id)?;
-        }
-        if let Some(v) = self.artifact_version_id.as_ref() {
-            struct_ser.serialize_field("artifactVersionId", v)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for UnlinkArtifactRequest {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "artifact_id",
-            "artifactId",
-            "relation",
-            "entity_type",
-            "entityType",
-            "entity_id",
-            "entityId",
-            "artifact_version_id",
-            "artifactVersionId",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            ArtifactId,
-            Relation,
-            EntityType,
-            EntityId,
-            ArtifactVersionId,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "artifactId" | "artifact_id" => Ok(GeneratedField::ArtifactId),
-                            "relation" => Ok(GeneratedField::Relation),
-                            "entityType" | "entity_type" => Ok(GeneratedField::EntityType),
-                            "entityId" | "entity_id" => Ok(GeneratedField::EntityId),
-                            "artifactVersionId" | "artifact_version_id" => Ok(GeneratedField::ArtifactVersionId),
-                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = UnlinkArtifactRequest;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct sift.artifacts.v1.UnlinkArtifactRequest")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<UnlinkArtifactRequest, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut artifact_id__ = None;
-                let mut relation__ = None;
-                let mut entity_type__ = None;
-                let mut entity_id__ = None;
-                let mut artifact_version_id__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::ArtifactId => {
-                            if artifact_id__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("artifactId"));
-                            }
-                            artifact_id__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::Relation => {
-                            if relation__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("relation"));
-                            }
-                            relation__ = Some(map_.next_value::<ArtifactLinkRelation>()? as i32);
-                        }
-                        GeneratedField::EntityType => {
-                            if entity_type__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("entityType"));
-                            }
-                            entity_type__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::EntityId => {
-                            if entity_id__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("entityId"));
-                            }
-                            entity_id__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::ArtifactVersionId => {
-                            if artifact_version_id__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("artifactVersionId"));
-                            }
-                            artifact_version_id__ = map_.next_value()?;
-                        }
-                    }
-                }
-                Ok(UnlinkArtifactRequest {
-                    artifact_id: artifact_id__.unwrap_or_default(),
-                    relation: relation__.unwrap_or_default(),
-                    entity_type: entity_type__.unwrap_or_default(),
-                    entity_id: entity_id__.unwrap_or_default(),
-                    artifact_version_id: artifact_version_id__,
-                })
-            }
-        }
-        deserializer.deserialize_struct("sift.artifacts.v1.UnlinkArtifactRequest", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for UnlinkArtifactResponse {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let len = 0;
-        let struct_ser = serializer.serialize_struct("sift.artifacts.v1.UnlinkArtifactResponse", len)?;
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for UnlinkArtifactResponse {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                            Err(serde::de::Error::unknown_field(value, FIELDS))
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = UnlinkArtifactResponse;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct sift.artifacts.v1.UnlinkArtifactResponse")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<UnlinkArtifactResponse, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                while map_.next_key::<GeneratedField>()?.is_some() {
-                    let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                }
-                Ok(UnlinkArtifactResponse {
-                })
-            }
-        }
-        deserializer.deserialize_struct("sift.artifacts.v1.UnlinkArtifactResponse", FIELDS, GeneratedVisitor)
     }
 }

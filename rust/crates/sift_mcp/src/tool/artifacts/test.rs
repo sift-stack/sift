@@ -41,12 +41,10 @@ fn sample_artifact() -> Artifact {
 fn parse_container_fields_omit_empty_and_missing_values() {
     for value in [None, Some(String::new())] {
         assert_eq!(parse_storage_class(value.clone()).unwrap(), None);
-        assert_eq!(parse_created_via(value).unwrap(), None);
+        // An omitted created_via means the agent wrote it; the server requires the field.
+        assert_eq!(parse_created_via(value).unwrap(), ArtifactCreatedVia::Agent);
     }
-    assert_eq!(
-        parse_created_via(Some("sdk".into())).unwrap(),
-        Some(ArtifactCreatedVia::Sdk)
-    );
+    assert!(parse_created_via(Some("sdk".into())).is_err());
 }
 
 async fn server_with_mock(
@@ -303,7 +301,8 @@ async fn create_artifact_append_reports_appended_version() {
             req.artifact_id.as_deref() == Some("art-1")
                 && req.conversation_id.is_none()
                 && req.storage_class.is_none()
-                && req.created_via.is_none()
+                // The tool always names a surface; the server ignores it on append.
+                && req.created_via == Some(ArtifactCreatedVia::Agent as i32)
         })
         .returning(|_| {
             Ok(Response::new(CreateArtifactResponse {
@@ -463,8 +462,7 @@ async fn create_artifact_sends_generic_fields() {
         .withf(|request| {
             let request = request.get_ref();
             request.storage_class == Some(ArtifactStorageClass::Structured as i32)
-                && request.created_via == Some(ArtifactCreatedVia::Agents as i32)
-                && request.kind.as_deref() == Some("table")
+                && request.created_via == Some(ArtifactCreatedVia::Agent as i32)
                 && request
                     .payload
                     .as_ref()
@@ -485,8 +483,7 @@ async fn create_artifact_sends_generic_fields() {
     let response = server
         .create_artifact(Parameters(CreateArtifactParams {
             storage_class: Some("structured".into()),
-            created_via: Some("agents".into()),
-            kind: Some("table".into()),
+            created_via: Some("agent".into()),
             payload: Some(serde_json::json!({ "rows": [[1, 2]] })),
             metadata: Some(vec![MetadataEntry {
                 name: "source".into(),

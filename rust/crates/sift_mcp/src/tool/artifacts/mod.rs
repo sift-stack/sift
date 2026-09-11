@@ -46,7 +46,6 @@ pub struct CreateArtifactParams {
     authoring_kind: Option<String>,
     storage_class: Option<String>,
     created_via: Option<String>,
-    kind: Option<String>,
     payload: Option<serde_json::Value>,
     metadata: Option<Vec<MetadataEntry>>,
     links: Option<Vec<ArtifactLinkParam>>,
@@ -96,21 +95,19 @@ fn parse_storage_class(value: Option<String>) -> Result<Option<ArtifactStorageCl
     }
 }
 
-fn parse_created_via(value: Option<String>) -> Result<Option<ArtifactCreatedVia>, ErrorData> {
+// The server requires created_via. This tool runs inside Sift agent sessions,
+// so an omitted value means the agent wrote it.
+fn parse_created_via(value: Option<String>) -> Result<ArtifactCreatedVia, ErrorData> {
     let Some(value) = value else {
-        return Ok(None);
+        return Ok(ArtifactCreatedVia::Agent);
     };
     let lowered = value.trim().to_ascii_lowercase();
     match lowered.as_str() {
-        "" => Ok(None),
-        "agents" | "artifact_created_via_agents" => Ok(Some(ArtifactCreatedVia::Agents)),
-        "canvas" | "artifact_created_via_canvas" => Ok(Some(ArtifactCreatedVia::Canvas)),
-        "sdk" | "artifact_created_via_sdk" => Ok(Some(ArtifactCreatedVia::Sdk)),
-        "upload" | "artifact_created_via_upload" => Ok(Some(ArtifactCreatedVia::Upload)),
+        "" | "agent" | "artifact_created_via_agent" => Ok(ArtifactCreatedVia::Agent),
+        "canvas" | "artifact_created_via_canvas" => Ok(ArtifactCreatedVia::Canvas),
+        "upload" | "artifact_created_via_upload" => Ok(ArtifactCreatedVia::Upload),
         other => Err(ErrorData::invalid_params(
-            format!(
-                "unknown `created_via` `{other}`; expected `agents`, `canvas`, `sdk`, or `upload`"
-            ),
+            format!("unknown `created_via` `{other}`; expected `agent`, `canvas`, or `upload`"),
             None,
         )),
     }
@@ -151,7 +148,7 @@ impl SiftMcpServer {
 
             Output:
               - `{ \"artifacts\": [Artifact, ...] }`. Each item includes `artifact_id`, `artifact_version_id`,
-                `version`, `title`, `summary`, `authoring_kind`, `storage_class`, `created_via`, `kind`,
+                `version`, `title`, `summary`, `authoring_kind`, `storage_class`, `created_via`,
                 `payload` for structured artifacts, `metadata`, `file_name`, `file_mime_type`, `remote_file_id`,
                 `created_date`, and `archived_date` when set.
               - `count`: how many items THIS response carries — read it instead of
@@ -168,14 +165,14 @@ impl SiftMcpServer {
                 user asks for archived ones.
               - `filter`: optional CEL expression. Omit it or pass an empty string to list everything.
                 Filterable fields are `artifact_id`, `organization_id`, `created_by_user_id`, `authoring_kind`,
-                `storage_class`, `created_via`, `kind`, `title`, `version`, `created_date`, `archived_date`,
+                `storage_class`, `created_via`, `title`, `version`, `created_date`, `archived_date`,
                 the `include_archived` directive, `metadata[\"<key>\"]`, and
                 `links.exists(l, l.relation == \"ATTACHED_TO\" && l.entity_type == \"conversations\" &&
                 l.entity_id == \"<id>\")`. Enum comparisons use proto value names without the prefix, such as
                 `storage_class == \"STRUCTURED\"`. Use `created_by_user_id == \"<user id>\"` to narrow to
                 one author.
               - `order_by`: optional comma-separated ordering over `created_date`, `archived_date`, `title`,
-                `version`, and `kind`. Fields sort ascending by default and accept a `desc` suffix. The default
+                and `version`. Fields sort ascending by default and accept a `desc` suffix. The default
                 is `created_date` ascending.
               - `limit`: max items to return. Start at 50 and only raise it if the result is capped
                 and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
@@ -327,13 +324,12 @@ impl SiftMcpServer {
               - `storage_class`: optional; `file` (default), `structured`, or `blob`, matched case-insensitively.
                 Proto names are also accepted. `structured` requires `payload` and rejects `file_path`. `file`
                 and `blob` reject `payload`.
-              - `created_via`: optional; `agents`, `canvas`, `sdk` (default), or `upload`, matched
+              - `created_via`: optional; `agent` (default), `canvas`, or `upload`, matched
                 case-insensitively. Proto names are also accepted.
-              - `kind`: optional semantic type label, such as `markdown`, `table`, or `psd`.
               - `payload`: optional JSON object. Required for `storage_class: \"structured\"`; rejected for
                 `file` and `blob`. Its serialized form must not exceed 1 MiB.
-              - When appending, omit `storage_class`, `created_via`, and `kind` unless you intend to assert they
-                match the existing artifact. Appending a JSON payload requires `storage_class: \"structured\"`;
+              - When appending, omit `storage_class` unless you intend to assert it matches the existing
+                artifact; `created_via` is ignored on append. Appending a JSON payload requires `storage_class: \"structured\"`;
                 it must match the existing artifact and lets local validation accept the payload.
               - `metadata`: optional list of `{ \"name\": \"<key>\", \"value\": <scalar> }` entries.
               - `links`: optional list of `{ \"relation\", \"entity_type\", \"entity_id\" }` entries. `relation`
@@ -364,7 +360,7 @@ impl SiftMcpServer {
               - Edits always create a new version; there is no edit-in-place path.
               - Use `storage_class: \"structured\"` for computed tables and PSD-like results. Use `blob` for
                 opaque intermediates.
-              - Set `created_via: \"chat\"` inside a Sift agent session. Use `sdk` otherwise.
+              - Leave `created_via` unset inside a Sift agent session; it defaults to `agent`.
               - One artifact per real deliverable. Do not create artifacts for intermediate scratch files.
         ",
         annotations(
@@ -388,7 +384,6 @@ impl SiftMcpServer {
             authoring_kind,
             storage_class,
             created_via,
-            kind,
             payload,
             metadata,
             links,
@@ -496,7 +491,6 @@ impl SiftMcpServer {
                     authoring_kind,
                     storage_class,
                     created_via,
-                    kind,
                     payload,
                     metadata: metadata
                         .unwrap_or_default()

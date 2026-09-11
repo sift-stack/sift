@@ -66,7 +66,7 @@ async fn list_artifacts_returns_single_page() {
         .withf(|req| {
             let req = req.get_ref();
             req.conversation_id.as_deref() == Some("conv-1")
-                && req.filter == "kind == \"table\""
+                && req.filter == "storage_class == \"STRUCTURED\""
                 && req.order_by == "created_date desc"
         })
         .returning(|_| {
@@ -81,7 +81,7 @@ async fn list_artifacts_returns_single_page() {
         .list_artifacts(
             Some("conv-1".into()),
             false,
-            "kind == \"table\"".into(),
+            "storage_class == \"STRUCTURED\"".into(),
             Some("created_date desc".into()),
             None,
         )
@@ -334,8 +334,7 @@ async fn create_artifact_returns_created_row() {
                 && req.summary.as_deref() == Some("summary")
                 && req.authoring_kind == Some(ArtifactAuthoringKind::Agent as i32)
                 && req.storage_class == Some(ArtifactStorageClass::Structured as i32)
-                && req.created_via == Some(ArtifactCreatedVia::Agents as i32)
-                && req.kind.as_deref() == Some("table")
+                && req.created_via == Some(ArtifactCreatedVia::Agent as i32)
                 && serde_json::to_value(req.payload.as_ref().unwrap()).unwrap()
                     == serde_json::json!({ "rows": [] })
                 && req.links[0].relation == ArtifactLinkRelation::AttachedTo as i32
@@ -356,10 +355,9 @@ async fn create_artifact_returns_created_row() {
                 artifact_id: None,
                 authoring_kind: ArtifactAuthoringKind::Agent,
                 storage_class: Some(ArtifactStorageClass::Structured),
-                created_via: Some(ArtifactCreatedVia::Agents),
-                kind: Some("table".into()),
-                payload: Some(serde_json::from_value(serde_json::json!({ "rows": [] })).unwrap()),
+                created_via: ArtifactCreatedVia::Agent,
                 metadata: vec![],
+                payload: Some(serde_json::from_value(serde_json::json!({ "rows": [] })).unwrap()),
                 links: vec![ArtifactLinkInput {
                     relation: ArtifactLinkRelation::AttachedTo as i32,
                     entity_type: "conversations".into(),
