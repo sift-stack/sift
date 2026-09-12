@@ -1,9 +1,11 @@
 use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
 use sift_rs::{
     artifacts::v1::{
-        Artifact, ArtifactAuthoringKind, ArtifactCreatedVia, ArtifactEntityType,
-        ArtifactLinkRelation, ArtifactStorageClass, CreateArtifactResponse, GetArtifactResponse,
-        ListArtifactsResponse, artifact_service_server::ArtifactServiceServer,
+        ArchiveArtifactResponse, Artifact, ArtifactAuthoringKind, ArtifactCreatedVia,
+        ArtifactEntityType, ArtifactLinkRelation, ArtifactStorageClass, ArtifactVersion,
+        CreateArtifactResponse, GetArtifactResponse, ListArtifactVersionsResponse,
+        ListArtifactsResponse, UnarchiveArtifactResponse,
+        artifact_service_server::ArtifactServiceServer,
     },
     remote_files::v1::{
         GetRemoteFileDownloadUrlResponse, remote_file_service_server::RemoteFileServiceServer,
@@ -16,12 +18,18 @@ use sift_test_util::{
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
-use super::{CreateArtifactParams, DownloadArtifactParams, parse_created_via, parse_storage_class};
+use super::{
+    ArtifactArchiveParams, ArtifactVersionListParams, CreateArtifactParams, DownloadArtifactParams,
+    parse_created_via, parse_storage_class,
+};
 use crate::{
     server::SiftMcpServer,
     tool::{
         artifacts::ArtifactListParams,
-        common::{MetadataEntry, MetadataScalar, test_support::structured_field},
+        common::{
+            MetadataEntry, MetadataScalar,
+            test_support::{structured, structured_field},
+        },
     },
 };
 
@@ -271,6 +279,163 @@ async fn get_artifact_surfaces_download_url_failure() {
         .await
         .expect_err("download failure is an error, not a partial artifact");
     assert_eq!(err.code, ErrorCode::RESOURCE_NOT_FOUND);
+}
+
+#[tokio::test]
+async fn list_artifact_versions_returns_rows_newest_first() {
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_list_artifact_versions()
+        .withf(|request| request.get_ref().artifact_id == "art-1")
+        .returning(|_| {
+            Ok(Response::new(ListArtifactVersionsResponse {
+                versions: vec![
+                    ArtifactVersion {
+                        artifact_id: "art-1".into(),
+                        artifact_version_id: "ver-2".into(),
+                        version: 2,
+                        ..Default::default()
+                    },
+                    ArtifactVersion {
+                        artifact_id: "art-1".into(),
+                        artifact_version_id: "ver-1".into(),
+                        version: 1,
+                        ..Default::default()
+                    },
+                ],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let (server, _h) = server_with_mock(mock, true).await;
+    let resp = server
+        .list_artifact_versions(Parameters(ArtifactVersionListParams {
+            artifact_id: "art-1".into(),
+            limit: None,
+            fields: None,
+        }))
+        .await
+        .expect("list versions");
+    let versions = structured_field(resp, "artifact_versions");
+    let rows = versions.as_array().expect("rows");
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[0]["artifactVersionId"], "ver-2");
+    assert_eq!(rows[1]["artifactVersionId"], "ver-1");
+}
+
+#[tokio::test]
+async fn list_artifact_versions_rejects_empty_artifact_id() {
+    let (server, _h) = server_with_mock(MockArtifactServiceImpl::new(), true).await;
+    let err = server
+        .list_artifact_versions(Parameters(ArtifactVersionListParams {
+            artifact_id: "  ".into(),
+            limit: None,
+            fields: None,
+        }))
+        .await
+        .expect_err("empty id");
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+}
+
+#[tokio::test]
+async fn archive_artifact_blocked_without_allow_destructive() {
+    let (server, _h) = server_with_mocks(
+        MockArtifactServiceImpl::new(),
+        MockRemoteFileServiceImpl::new(),
+        true,
+        false,
+    )
+    .await;
+    let err = server
+        .archive_artifact(Parameters(ArtifactArchiveParams {
+            artifact_id: "art-1".into(),
+        }))
+        .await
+        .expect_err("archive gated");
+    assert_eq!(err.code, ErrorCode::INVALID_REQUEST);
+    assert!(err.message.contains("--allow-destructive"));
+}
+
+#[tokio::test]
+async fn unarchive_artifact_blocked_without_allow_destructive() {
+    let (server, _h) = server_with_mocks(
+        MockArtifactServiceImpl::new(),
+        MockRemoteFileServiceImpl::new(),
+        true,
+        false,
+    )
+    .await;
+    let err = server
+        .unarchive_artifact(Parameters(ArtifactArchiveParams {
+            artifact_id: "art-1".into(),
+        }))
+        .await
+        .expect_err("unarchive gated");
+    assert_eq!(err.code, ErrorCode::INVALID_REQUEST);
+    assert!(err.message.contains("--allow-destructive"));
+}
+
+#[tokio::test]
+async fn archive_artifact_rejects_empty_artifact_id() {
+    let (server, _h) = server_with_mock(MockArtifactServiceImpl::new(), true).await;
+    let err = server
+        .archive_artifact(Parameters(ArtifactArchiveParams {
+            artifact_id: "  ".into(),
+        }))
+        .await
+        .expect_err("empty id");
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+}
+
+#[tokio::test]
+async fn unarchive_artifact_rejects_empty_artifact_id() {
+    let (server, _h) = server_with_mock(MockArtifactServiceImpl::new(), true).await;
+    let err = server
+        .unarchive_artifact(Parameters(ArtifactArchiveParams {
+            artifact_id: "  ".into(),
+        }))
+        .await
+        .expect_err("empty id");
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+}
+
+#[tokio::test]
+async fn archive_artifact_returns_structured_result() {
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_archive_artifact()
+        .withf(|req| req.get_ref().artifact_id == "art-1")
+        .returning(|_| Ok(Response::new(ArchiveArtifactResponse {})));
+
+    let (server, _h) = server_with_mock(mock, true).await;
+    let response = server
+        .archive_artifact(Parameters(ArtifactArchiveParams {
+            artifact_id: "art-1".into(),
+        }))
+        .await
+        .expect("archive");
+    let body = structured(response);
+    assert_eq!(body["artifact_id"], "art-1");
+    assert_eq!(body["archived"], true);
+    assert!(body["next_step"].is_string());
+}
+
+#[tokio::test]
+async fn unarchive_artifact_returns_structured_result() {
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_unarchive_artifact()
+        .withf(|req| req.get_ref().artifact_id == "art-1")
+        .returning(|_| Ok(Response::new(UnarchiveArtifactResponse {})));
+
+    let (server, _h) = server_with_mock(mock, true).await;
+    let response = server
+        .unarchive_artifact(Parameters(ArtifactArchiveParams {
+            artifact_id: "art-1".into(),
+        }))
+        .await
+        .expect("unarchive");
+    let body = structured(response);
+    assert_eq!(body["artifact_id"], "art-1");
+    assert_eq!(body["unarchived"], true);
+    assert!(body["next_step"].is_string());
 }
 
 #[tokio::test]

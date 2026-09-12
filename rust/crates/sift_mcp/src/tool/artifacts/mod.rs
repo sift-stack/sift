@@ -37,6 +37,18 @@ pub struct DownloadArtifactParams {
     artifact_version_id: Option<String>,
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct ArtifactVersionListParams {
+    artifact_id: String,
+    limit: Option<u32>,
+    fields: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct ArtifactArchiveParams {
+    artifact_id: String,
+}
+
 #[derive(Debug, Default, Deserialize, JsonSchema)]
 pub struct CreateArtifactParams {
     title: Option<String>,
@@ -267,6 +279,85 @@ impl SiftMcpServer {
     }
 
     #[tool(
+        name = "list_artifact_versions",
+        description = "
+            List the version history of one artifact, newest first. Every `create_artifact` append writes a new
+            version, so this is how you see what changed and when.
+
+            Output:
+              - `{ \"artifact_versions\": [ArtifactVersion, ...] }`. Each item carries `artifact_version_id`,
+                `artifact_id`, `version`, `title`, `summary`, `metadata`, `file_name`, `file_mime_type`,
+                `remote_file_id`, `authoring_message_id`, `source_tool_use_ids`, and `created_date`.
+                `payload` is NOT included, even for structured artifacts: fetch one version's body with
+                `download_artifact` and its `artifact_version_id`.
+              - `count`: how many items THIS response carries — read it instead of
+                counting the array yourself. It is the size of the page you got back, not
+                how many versions the artifact has.
+              - `has_more`: `true` when the service hit `limit` with versions left over, so
+                this page is not the whole history. Never report `count` as a total while
+                `has_more` is `true` — raise `limit` and ask again.
+
+            Parameters:
+              - `artifact_id`: required stable container id. Resolve it with `list_artifacts` first if you only
+                have a title.
+              - `limit`: max items to return. Start at 50 and only raise it if the result is capped
+                and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
+              - `fields`: optional array of field names to keep on each item, e.g.
+                `[\"version\"]`. Omit it for the full object. Names match case-insensitively
+                and ignore underscores and hyphens, so `artifact_version_id`, `artifactVersionId` and
+                `artifact-version-id` all work. Any name that matched nothing on any returned item
+                is listed in `unmatched_fields`; an empty page reports none, since it
+                says nothing about whether a name was spelled right.
+                Reach for this whenever you need only a few fields: full objects are wide,
+                and a large listing can exceed the response size limit without it.
+
+            Errors:
+              - `INVALID_PARAMS` if `artifact_id` is empty.
+              - `RESOURCE_NOT_FOUND` if the artifact does not exist or is not visible to the caller.
+              - `INTERNAL_ERROR` for upstream failures.
+
+            Guidance:
+              - The order is fixed newest first; there is no `filter` or `order_by` on this tool. Pass
+                `limit: 1` to read just the current version.
+              - Use `download_artifact` with an `artifact_version_id` from here to read that version's bytes
+                or JSON payload.
+        ",
+        annotations(title = "artifacts/list_artifact_versions", read_only_hint = true)
+    )]
+    pub async fn list_artifact_versions(
+        &self,
+        params: Parameters<ArtifactVersionListParams>,
+    ) -> error::McpResult {
+        let Parameters(ArtifactVersionListParams {
+            artifact_id,
+            limit,
+            fields,
+        }) = params;
+
+        if artifact_id.trim().is_empty() {
+            return Err(ErrorData::invalid_params(
+                "`artifact_id` must not be empty",
+                None,
+            ));
+        }
+
+        let page = self
+            .artifact_service
+            .list_artifact_versions(artifact_id, limit)
+            .await
+            .map_err(from_anyhow)?;
+
+        let versions = to_values(&page.items)?;
+
+        Ok(CallToolResult::structured(list_body(
+            "artifact_versions",
+            versions,
+            fields,
+            page.has_more,
+        )))
+    }
+
+    #[tool(
         name = "download_artifact",
         description = "
             Get one artifact by `artifact_id`, resolved to the latest version unless `artifact_version_id` pins one.
@@ -325,6 +416,125 @@ impl SiftMcpServer {
         Ok(CallToolResult::structured(
             serde_json::json!({ "artifact": artifact }),
         ))
+    }
+
+    #[tool(
+        name = "archive_artifact",
+        description = "
+            Archive an artifact. Archived artifacts stay stored but disappear from default artifact listings.
+            This is a WRITE. Reversible with `unarchive_artifact`.
+
+            Output:
+              - `{ \"artifact_id\": string, \"archived\": true, \"next_step\": string }`.
+
+            Parameters:
+              - `artifact_id`: required stable artifact id.
+
+            Errors:
+              - `INVALID_PARAMS` if `artifact_id` is empty.
+              - `INVALID_REQUEST` if the server was launched without `--allow-destructive`.
+              - `RESOURCE_NOT_FOUND` if the artifact does not exist or is not visible to the caller.
+              - `PERMISSION_DENIED` if the caller did not create the artifact.
+              - `INTERNAL_ERROR` for upstream failures.
+
+            Guidance:
+              - Archiving preserves every version, link, and uploaded file. Confirm the target with the user.
+              - Use `list_artifacts` with `include_archived: true` to find archived artifacts.
+        ",
+        annotations(
+            title = "artifacts/archive_artifact",
+            read_only_hint = false,
+            destructive_hint = true,
+            idempotent_hint = true,
+        )
+    )]
+    pub async fn archive_artifact(
+        &self,
+        params: Parameters<ArtifactArchiveParams>,
+    ) -> error::McpResult {
+        self.require_destructive()?;
+        let Parameters(ArtifactArchiveParams { artifact_id }) = params;
+        if artifact_id.trim().is_empty() {
+            return Err(ErrorData::invalid_params(
+                "`artifact_id` must not be empty",
+                None,
+            ));
+        }
+
+        self.artifact_service
+            .archive_artifact(artifact_id.clone())
+            .await
+            .map_err(from_anyhow)?;
+
+        let next_step = format!(
+            "Archived artifact `{artifact_id}`. Tell the user it is hidden from default artifact listings and that `unarchive_artifact` restores it."
+        );
+        let mut result = CallToolResult::structured(serde_json::json!({
+            "artifact_id": artifact_id,
+            "archived": true,
+            "next_step": next_step,
+        }));
+        result.content = vec![ContentBlock::text(next_step)];
+        Ok(result)
+    }
+
+    #[tool(
+        name = "unarchive_artifact",
+        description = "
+            Restore an archived artifact so it appears in default artifact listings again. This is a WRITE.
+
+            Output:
+              - `{ \"artifact_id\": string, \"unarchived\": true, \"next_step\": string }`.
+
+            Parameters:
+              - `artifact_id`: required stable artifact id.
+
+            Errors:
+              - `INVALID_PARAMS` if `artifact_id` is empty.
+              - `INVALID_REQUEST` if the server was launched without `--allow-destructive`.
+              - `RESOURCE_NOT_FOUND` if the artifact does not exist or is not visible to the caller.
+              - `PERMISSION_DENIED` if the caller did not create the artifact.
+              - `INTERNAL_ERROR` for upstream failures.
+
+            Guidance:
+              - Confirm the target with the user before calling.
+              - Find archived artifacts with `list_artifacts` and `include_archived: true`.
+        ",
+        annotations(
+            title = "artifacts/unarchive_artifact",
+            read_only_hint = false,
+            destructive_hint = true,
+            idempotent_hint = true,
+        )
+    )]
+    pub async fn unarchive_artifact(
+        &self,
+        params: Parameters<ArtifactArchiveParams>,
+    ) -> error::McpResult {
+        self.require_destructive()?;
+        let Parameters(ArtifactArchiveParams { artifact_id }) = params;
+        if artifact_id.trim().is_empty() {
+            return Err(ErrorData::invalid_params(
+                "`artifact_id` must not be empty",
+                None,
+            ));
+        }
+
+        self.artifact_service
+            .unarchive_artifact(artifact_id.clone())
+            .await
+            .map_err(from_anyhow)?;
+
+        let next_step = format!(
+            "Unarchived artifact `{artifact_id}`. Tell the user it is restored to default artifact listings."
+        );
+        let mut result = CallToolResult::structured(serde_json::json!({
+            "artifact_id": artifact_id,
+            "unarchived": true,
+            "next_step": next_step,
+        }));
+        result.content = vec![ContentBlock::text(next_step)];
+        Ok(result)
     }
 
     #[tool(

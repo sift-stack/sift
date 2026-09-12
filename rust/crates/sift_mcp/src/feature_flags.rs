@@ -15,8 +15,11 @@ pub(crate) static TOOL_FEATURE_FLAGS: &[(&str, &str)] = &[
     ("create_test_report", "test-reports"),
     ("append_test_measurements", "test-reports"),
     ("list_artifacts", "chat-agents-service"),
+    ("list_artifact_versions", "chat-agents-service"),
     ("download_artifact", "chat-agents-service"),
     ("create_artifact", "chat-agents-service"),
+    ("archive_artifact", "chat-agents-service"),
+    ("unarchive_artifact", "chat-agents-service"),
 ];
 
 #[derive(Clone, Debug, Default, Deserialize)]

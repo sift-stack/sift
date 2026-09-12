@@ -54,12 +54,13 @@ exists.
   connectivity check; when it fails, expect every other Sift tool to fail too.
 - **Discovery:** `list_assets`, `list_runs`, `list_channels`, `list_reports`,
   `list_report_templates`, `list_rules`, `list_rule_versions`, `list_annotations`,
-  `list_artifacts`.
-- **Artifacts:** `download_artifact` (latest version, or pin `artifact_version_id`).
-  The artifact tools, including `list_artifacts` and the `create_artifact`
-  write below, are enabled per account by the agents feature flag resolved when
-  the MCP server starts, so they may be absent from the tool list. Enabling
-  them requires an account setting and an MCP restart.
+  `list_artifacts`, `list_artifact_versions`.
+- **Artifacts:** `download_artifact` (latest version, or pin `artifact_version_id`),
+  `list_artifact_versions` for one artifact's history, newest first.
+  The artifact tools, including `list_artifacts` and the artifact writes below,
+  are enabled per account by the agents feature flag resolved when the MCP
+  server starts, so they may be absent from the tool list. Enabling them
+  requires an account setting and an MCP restart.
 - **Derived channels:** `list_calculated_channels`,
   `list_calculated_channel_versions`, `list_user_defined_functions`,
   `list_user_defined_function_versions`.
@@ -87,7 +88,7 @@ exists.
   `create_user_defined_function`, `update_user_defined_function`,
   `archive_user_defined_function`, `unarchive_user_defined_function`,
   `create_test_report`, `append_test_measurements`, `update_asset`,
-  `update_run`, `create_artifact`.
+  `update_run`, `create_artifact`, `archive_artifact`, `unarchive_artifact`.
 
 ## Workflows that span tools
 
@@ -152,8 +153,13 @@ exists.
   `authoring_kind=agent` when a Sift agent produced it. Append a version with
   `artifact_id`. Creating needs `--allow-create`; appending needs
   `--allow-destructive`. Use `list_artifacts` with CEL `filter` and `order_by`
-  such as `created_date desc`; fetch a version or its `download_url` with
+  such as `created_date desc`; read one artifact's history with
+  `list_artifact_versions`; fetch a version or its `download_url` with
   `download_artifact`.
+- **Archive an artifact.** `archive_artifact` hides an artifact from default
+  listings without deleting its versions, links, or files. Find archived
+  artifacts with `list_artifacts` and `include_archived=true`, then restore one
+  with `unarchive_artifact`. Both writes need `--allow-destructive`.
 - **Produce a chart.** Build a link with `explore_url`. When the user wants a
   chart and numbers, do both and give the user both.
 - **Answer a question about how Sift works.** Call `search_docs`. Do not answer

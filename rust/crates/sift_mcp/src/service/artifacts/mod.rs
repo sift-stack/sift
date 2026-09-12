@@ -3,9 +3,11 @@ use serde::Serialize;
 use sift_rs::{
     SiftChannel,
     artifacts::v1::{
-        Artifact, ArtifactAuthoringKind, ArtifactCreatedVia, ArtifactLinkInput,
-        ArtifactStorageClass, CreateArtifactRequest, GetArtifactRequest, ListArtifactsRequest,
-        ListArtifactsResponse, artifact_service_client::ArtifactServiceClient,
+        ArchiveArtifactRequest, Artifact, ArtifactAuthoringKind, ArtifactCreatedVia,
+        ArtifactLinkInput, ArtifactStorageClass, ArtifactVersion, CreateArtifactRequest,
+        GetArtifactRequest, ListArtifactVersionsRequest, ListArtifactVersionsResponse,
+        ListArtifactsRequest, ListArtifactsResponse, UnarchiveArtifactRequest,
+        artifact_service_client::ArtifactServiceClient,
     },
     metadata::v1::MetadataValue,
     remote_files::v1::{
@@ -135,6 +137,65 @@ impl ArtifactService {
         })
     }
 
+    pub async fn list_artifact_versions(
+        &self,
+        artifact_id: String,
+        limit: Option<u32>,
+    ) -> Result<common::Page<ArtifactVersion>> {
+        let (page_size, record_limit) = common::paging(limit);
+        let mut page_token = String::new();
+        let mut results = Vec::new();
+        let mut has_more = false;
+
+        loop {
+            let channel = self.channel.clone();
+            let artifact_id = artifact_id.clone();
+            let token = page_token.clone();
+
+            let resp = with_retry(&self.policy, move || {
+                let channel = channel.clone();
+                let artifact_id = artifact_id.clone();
+                let token = token.clone();
+                async move {
+                    let mut client = ArtifactServiceClient::new(channel);
+                    client
+                        .list_artifact_versions(ListArtifactVersionsRequest {
+                            artifact_id,
+                            page_size,
+                            page_token: token,
+                        })
+                        .await
+                        .map(|resp| resp.into_inner())
+                }
+            })
+            .await
+            .context("failed to query artifact versions")?;
+
+            let ListArtifactVersionsResponse {
+                versions,
+                next_page_token,
+            } = resp;
+            if versions.is_empty() {
+                break;
+            }
+            results.extend(versions);
+            if results.len() >= record_limit {
+                has_more = results.len() > record_limit || !next_page_token.is_empty();
+                break;
+            }
+            if next_page_token.is_empty() {
+                break;
+            }
+            page_token = next_page_token;
+        }
+
+        results.truncate(record_limit);
+        Ok(common::Page {
+            items: results,
+            has_more,
+        })
+    }
+
     pub async fn download_artifact(
         &self,
         artifact_id: String,
@@ -149,6 +210,42 @@ impl ArtifactService {
             inner: artifact,
             download_url,
         })
+    }
+
+    pub async fn archive_artifact(&self, artifact_id: String) -> Result<()> {
+        let channel = self.channel.clone();
+        with_retry(&self.policy, move || {
+            let channel = channel.clone();
+            let artifact_id = artifact_id.clone();
+            async move {
+                let mut client = ArtifactServiceClient::new(channel);
+                client
+                    .archive_artifact(ArchiveArtifactRequest { artifact_id })
+                    .await
+                    .map(|response| response.into_inner())
+            }
+        })
+        .await
+        .context("failed to archive artifact")?;
+        Ok(())
+    }
+
+    pub async fn unarchive_artifact(&self, artifact_id: String) -> Result<()> {
+        let channel = self.channel.clone();
+        with_retry(&self.policy, move || {
+            let channel = channel.clone();
+            let artifact_id = artifact_id.clone();
+            async move {
+                let mut client = ArtifactServiceClient::new(channel);
+                client
+                    .unarchive_artifact(UnarchiveArtifactRequest { artifact_id })
+                    .await
+                    .map(|response| response.into_inner())
+            }
+        })
+        .await
+        .context("failed to unarchive artifact")?;
+        Ok(())
     }
 
     pub async fn create_artifact(

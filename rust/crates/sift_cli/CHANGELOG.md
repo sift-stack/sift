@@ -8,7 +8,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### What's New
 
 - Artifact MCP tools now support generic artifact storage classes, structured
-  JSON payloads, metadata, links, CEL filtering, and ordering.
+  JSON payloads, metadata, links, CEL filtering, ordering, archiving,
+  unarchiving, and listing an artifact's version history.
 - `sift-cli agent install`, `update`, `doctor`, and `uninstall` now support
   Gemini CLI and Antigravity CLI.
 

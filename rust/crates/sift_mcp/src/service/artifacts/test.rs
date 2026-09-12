@@ -1,8 +1,10 @@
 use sift_rs::{
     artifacts::v1::{
-        Artifact, ArtifactAuthoringKind, ArtifactCreatedVia, ArtifactEntityType, ArtifactLinkInput,
-        ArtifactLinkRelation, ArtifactStorageClass, CreateArtifactResponse, GetArtifactResponse,
-        ListArtifactsResponse, artifact_service_server::ArtifactServiceServer,
+        ArchiveArtifactResponse, Artifact, ArtifactAuthoringKind, ArtifactCreatedVia,
+        ArtifactEntityType, ArtifactLinkInput, ArtifactLinkRelation, ArtifactStorageClass,
+        ArtifactVersion, CreateArtifactResponse, GetArtifactResponse, ListArtifactVersionsResponse,
+        ListArtifactsResponse, UnarchiveArtifactResponse,
+        artifact_service_server::ArtifactServiceServer,
     },
     remote_files::v1::{
         GetRemoteFileDownloadUrlResponse, remote_file_service_server::RemoteFileServiceServer,
@@ -285,6 +287,125 @@ async fn download_artifact_rejects_empty_download_url() {
         .await
         .expect_err("empty url is an error");
     assert!(err.to_string().contains("download url response was empty"));
+}
+
+#[tokio::test]
+async fn list_artifact_versions_paginates_until_token_empty() {
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_list_artifact_versions().returning(|req| {
+        let req = req.into_inner();
+        assert_eq!(req.artifact_id, "art-1");
+        assert_eq!(req.page_size, 200);
+        let (versions, next) = match req.page_token.as_str() {
+            "" => (
+                vec![ArtifactVersion {
+                    artifact_version_id: "ver-2".into(),
+                    version: 2,
+                    ..Default::default()
+                }],
+                "50".to_string(),
+            ),
+            "50" => (
+                vec![ArtifactVersion {
+                    artifact_version_id: "ver-1".into(),
+                    version: 1,
+                    ..Default::default()
+                }],
+                String::new(),
+            ),
+            other => return Err(Status::invalid_argument(format!("bad token: {other}"))),
+        };
+        Ok(Response::new(ListArtifactVersionsResponse {
+            versions,
+            next_page_token: next,
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let page = service
+        .list_artifact_versions("art-1".into(), Some(200))
+        .await
+        .expect("list versions");
+    assert_eq!(
+        page.items.iter().map(|v| v.version).collect::<Vec<_>>(),
+        [2, 1]
+    );
+    assert!(!page.has_more);
+}
+
+#[tokio::test]
+async fn list_artifact_versions_limit_truncates() {
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_list_artifact_versions().returning(|_| {
+        Ok(Response::new(ListArtifactVersionsResponse {
+            versions: vec![
+                ArtifactVersion {
+                    version: 3,
+                    ..Default::default()
+                },
+                ArtifactVersion {
+                    version: 2,
+                    ..Default::default()
+                },
+                ArtifactVersion {
+                    version: 1,
+                    ..Default::default()
+                },
+            ],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let page = service
+        .list_artifact_versions("art-1".into(), Some(2))
+        .await
+        .expect("list versions");
+    assert_eq!(page.items.len(), 2);
+    assert!(page.has_more);
+}
+
+#[tokio::test]
+async fn list_artifact_versions_propagates_not_found() {
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_list_artifact_versions()
+        .returning(|_| Err(Status::not_found("artifact not found")));
+
+    let (service, _h) = service_with_mock(mock).await;
+    let err = service
+        .list_artifact_versions("missing".into(), None)
+        .await
+        .expect_err("expected error");
+    let status = err.downcast_ref::<tonic::Status>().expect("status");
+    assert_eq!(status.code(), Code::NotFound);
+}
+
+#[tokio::test]
+async fn archive_artifact_forwards_artifact_id() {
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_archive_artifact()
+        .withf(|req| req.get_ref().artifact_id == "art-1")
+        .returning(|_| Ok(Response::new(ArchiveArtifactResponse {})));
+
+    let (service, _h) = service_with_mock(mock).await;
+    service
+        .archive_artifact("art-1".into())
+        .await
+        .expect("archive");
+}
+
+#[tokio::test]
+async fn unarchive_artifact_forwards_artifact_id() {
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_unarchive_artifact()
+        .withf(|req| req.get_ref().artifact_id == "art-1")
+        .returning(|_| Ok(Response::new(UnarchiveArtifactResponse {})));
+
+    let (service, _h) = service_with_mock(mock).await;
+    service
+        .unarchive_artifact("art-1".into())
+        .await
+        .expect("unarchive");
 }
 
 #[test]
