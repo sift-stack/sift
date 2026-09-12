@@ -156,7 +156,23 @@ pub(crate) async fn start_event_server() -> (String, tokio::task::JoinHandle<Vec
 
 #[cfg(test)]
 mod tests {
-    use super::{ClientEventConfig, ClientEventReporter, start_event_server};
+    use super::{ClientEventConfig, ClientEventReporter, event_for_tool, start_event_server};
+
+    #[test]
+    fn artifact_archive_tools_have_client_events() {
+        assert_eq!(
+            event_for_tool("archive_artifact"),
+            Some("CLIENT_EVENT_USER_CALLED_MCP_TOOL_ARCHIVE_ARTIFACT")
+        );
+        assert_eq!(
+            event_for_tool("unarchive_artifact"),
+            Some("CLIENT_EVENT_USER_CALLED_MCP_TOOL_UNARCHIVE_ARTIFACT")
+        );
+        assert_eq!(
+            event_for_tool("list_artifact_versions"),
+            Some("CLIENT_EVENT_USER_CALLED_MCP_TOOL_LIST_ARTIFACT_VERSIONS")
+        );
+    }
 
     #[tokio::test]
     async fn sends_only_the_event_with_the_cli_version() {
