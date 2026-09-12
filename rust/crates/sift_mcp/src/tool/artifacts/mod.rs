@@ -25,7 +25,7 @@ mod test;
 pub struct ArtifactListParams {
     conversation_id: Option<String>,
     include_archived: Option<bool>,
-    filter: Option<String>,
+    filter: String,
     order_by: Option<String>,
     limit: Option<u32>,
     fields: Option<Vec<String>>,
@@ -164,7 +164,7 @@ fn parse_link_relation(value: String) -> Result<ArtifactLinkRelation, ErrorData>
 }
 
 fn with_include_archived(filter: String, include_archived: bool) -> String {
-    if !include_archived {
+    if !include_archived || filter.contains("include_archived") {
         return filter;
     }
     let filter = filter.trim();
@@ -206,14 +206,19 @@ impl SiftMcpServer {
                 every artifact in the caller's organization.
               - `include_archived`: optional. Default `false` omits archived artifacts. Set `true` only when the
                 user asks for archived ones.
-              - `filter`: optional CEL expression. Omit it or pass an empty string to list everything.
+              - `filter`: CEL expression. Pass an empty string to list everything.
                 Filterable fields are `artifact_id`, `organization_id`, `created_by_user_id`, `authoring_kind`,
                 `storage_class`, `created_via`, `title`, `version`, `created_date`, `archived_date`,
-                the `include_archived` directive, `metadata[\"<key>\"]`, and
+                the `include_archived` directive, and `metadata[\"<key>\"]`. Enum comparisons use proto value
+                names without the prefix, such as `storage_class == \"STRUCTURED\"`. Use
+                `created_by_user_id == \"<user id>\"` to narrow to one author.
+                Links are also filterable with
                 `links.exists(l, l.relation == \"ATTACHED_TO\" && l.entity_type == \"CONVERSATION\" &&
-                l.entity_id == \"<id>\")`. Enum comparisons use proto value names without the prefix, such as
-                `storage_class == \"STRUCTURED\"`. Use `created_by_user_id == \"<user id>\"` to narrow to
-                one author.
+                l.entity_id == \"<id>\")`, but no tool returns an artifact's links, so bring the
+                `entity_id` from the conversation, run, or asset you already have.
+                When filtering or searching, use `title.matches(\"(?i)flight\")`, not `==`. Use `==` only for an
+                exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
+                `contains(\"Flight\")` silently misses `flight-report`.
               - `order_by`: optional comma-separated ordering over `created_date`, `archived_date`, `title`,
                 and `version`. Fields sort ascending by default and accept a `desc` suffix. The default
                 is `created_date` ascending.
@@ -229,7 +234,8 @@ impl SiftMcpServer {
                 and a large listing can exceed the response size limit without it.
 
             Errors:
-              - `INVALID_PARAMS` if `conversation_id` is empty when set.
+              - `INVALID_PARAMS` if `conversation_id` is empty when set, if `filter` is not a valid CEL
+                expression, or if `order_by` references an unknown field.
               - `RESOURCE_NOT_FOUND` if `conversation_id` does not exist or is not visible to the caller.
               - `INTERNAL_ERROR` for upstream failures.
 
@@ -258,10 +264,7 @@ impl SiftMcpServer {
             ));
         }
 
-        let filter = with_include_archived(
-            filter.unwrap_or_default(),
-            include_archived.unwrap_or(false),
-        );
+        let filter = with_include_archived(filter, include_archived.unwrap_or(false));
         let page = self
             .artifact_service
             .list_artifacts(conversation_id, filter, order_by, limit)
@@ -689,6 +692,15 @@ impl SiftMcpServer {
         }
         let payload = payload
             .map(|value| {
+                // Some MCP clients JSON-stringify object arguments before transport.
+                let value = match value {
+                    serde_json::Value::String(raw) => {
+                        serde_json::from_str(&raw).map_err(|error| {
+                            ErrorData::invalid_params(format!("invalid `payload`: {error}"), None)
+                        })?
+                    }
+                    other => other,
+                };
                 if !value.is_object() {
                     return Err(ErrorData::invalid_params(
                         "`payload` must be a JSON object",

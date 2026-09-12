@@ -64,6 +64,10 @@ fn include_archived_uses_the_filter_directive() {
         super::with_include_archived("storage_class == \"FILE\"".into(), true),
         "(storage_class == \"FILE\") && include_archived == true"
     );
+    assert_eq!(
+        super::with_include_archived("include_archived == false".into(), true),
+        "include_archived == false"
+    );
 }
 
 #[test]
@@ -154,7 +158,7 @@ async fn list_artifacts_returns_rows() {
         .list_artifacts(Parameters(ArtifactListParams {
             conversation_id: Some("conv-1".into()),
             include_archived: None,
-            filter: Some("storage_class == \"STRUCTURED\"".into()),
+            filter: "storage_class == \"STRUCTURED\"".into(),
             order_by: Some("created_date desc".into()),
             limit: None,
             fields: None,
@@ -173,7 +177,7 @@ async fn list_artifacts_rejects_empty_conversation_id() {
         .list_artifacts(Parameters(ArtifactListParams {
             conversation_id: Some("  ".into()),
             include_archived: None,
-            filter: None,
+            filter: String::new(),
             order_by: None,
             limit: None,
             fields: None,
@@ -611,6 +615,11 @@ async fn create_artifact_validates_storage_and_payload() {
             ..Default::default()
         },
         CreateArtifactParams {
+            storage_class: Some("structured".into()),
+            payload: Some(serde_json::json!("{ not json")),
+            ..Default::default()
+        },
+        CreateArtifactParams {
             links: Some(vec![super::ArtifactLinkParam {
                 relation: "attached_to".into(),
                 entity_type: String::new(),
@@ -650,6 +659,34 @@ async fn create_artifact_validates_storage_and_payload() {
             .expect_err("invalid storage input");
         assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
     }
+}
+
+#[tokio::test]
+async fn create_artifact_accepts_a_stringified_payload() {
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_create_artifact()
+        .withf(|request| {
+            request
+                .get_ref()
+                .payload
+                .as_ref()
+                .is_some_and(|payload| payload.fields.contains_key("rows"))
+        })
+        .returning(|_| {
+            Ok(Response::new(CreateArtifactResponse {
+                artifact: Some(sample_artifact()),
+            }))
+        });
+
+    let (server, _h) = server_with_mock(mock, true).await;
+    server
+        .create_artifact(Parameters(CreateArtifactParams {
+            storage_class: Some("structured".into()),
+            payload: Some(serde_json::json!(r#"{"rows": []}"#)),
+            ..Default::default()
+        }))
+        .await
+        .expect("create");
 }
 
 #[tokio::test]

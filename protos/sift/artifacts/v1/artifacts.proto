@@ -66,9 +66,6 @@ service ArtifactService {
     };
   }
 
-  // Returns the fields available to ListArtifacts filter, including the
-  // organization's metadata keys as one metadata namespace.
-
   // Full version history of one artifact, newest first.
   rpc ListArtifactVersions(ListArtifactVersionsRequest) returns (ListArtifactVersionsResponse) {
     option (google.api.http) = {get: "/api/v1/artifacts/{artifact_id}/versions"};
@@ -79,21 +76,9 @@ service ArtifactService {
     };
   }
 
-  // Links an artifact to an entity by writing a new version that carries the
-  // previous ATTACHED_TO rows plus this link. An identical link already in the
-  // latest version succeeds without writing a version.
-
-  // Revokes an ATTACHED_TO link by writing a new version that omits it. The
-  // previous version's rows stay in place. A link missing from the latest
-  // version succeeds without writing a version. SOURCE and DERIVED_FROM rows
-  // are a closed account of one version's inputs and cannot be unlinked
-  // (InvalidArgument).
-
-  // Lists the links of one artifact version, the latest by default.
-
-  // Links an existing artifact to a conversation. Equivalent to LinkArtifact
-  // with relation ATTACHED_TO and entity_type CONVERSATION. Idempotent:
-  // linking an already-linked pair succeeds without effect.
+  // Links an existing artifact to a conversation, writing an ATTACHED_TO link
+  // to a CONVERSATION entity. Idempotent: linking an already-linked pair
+  // succeeds without effect.
   rpc LinkArtifactToConversation(LinkArtifactToConversationRequest) returns (LinkArtifactToConversationResponse) {
     option (google.api.http) = {post: "/api/v1/artifacts/{artifact_id}/conversations/{conversation_id}:link"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -103,10 +88,8 @@ service ArtifactService {
     };
   }
 
-  // Removes one conversation's link to an artifact. Equivalent to
-  // UnlinkArtifact with relation ATTACHED_TO and entity_type CONVERSATION.
-  // The artifact itself is untouched. Idempotent: unlinking a missing link
-  // succeeds.
+  // Removes one conversation's ATTACHED_TO link to an artifact. The artifact
+  // itself is untouched. Idempotent: unlinking a missing link succeeds.
   rpc UnlinkArtifactFromConversation(UnlinkArtifactFromConversationRequest) returns (UnlinkArtifactFromConversationResponse) {
     option (google.api.http) = {post: "/api/v1/artifacts/{artifact_id}/conversations/{conversation_id}:unlink"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -245,8 +228,7 @@ message ArtifactVersion {
   repeated sift.metadata.v1.MetadataValue metadata = 13 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
-// A link from an artifact to another entity, belonging to one version.
-
+// One link to write at the new version.
 message ArtifactLinkInput {
   ArtifactLinkRelation relation = 1 [(google.api.field_behavior) = REQUIRED];
   ArtifactEntityType entity_type = 2 [(google.api.field_behavior) = REQUIRED];
