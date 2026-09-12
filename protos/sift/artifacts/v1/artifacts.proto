@@ -3,6 +3,7 @@ syntax = "proto3";
 package sift.artifacts.v1;
 
 import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
@@ -91,7 +92,7 @@ service ArtifactService {
   // Lists the links of one artifact version, the latest by default.
 
   // Links an existing artifact to a conversation. Equivalent to LinkArtifact
-  // with relation ATTACHED_TO and entity_type "conversations". Idempotent:
+  // with relation ATTACHED_TO and entity_type CONVERSATION. Idempotent:
   // linking an already-linked pair succeeds without effect.
   rpc LinkArtifactToConversation(LinkArtifactToConversationRequest) returns (LinkArtifactToConversationResponse) {
     option (google.api.http) = {post: "/api/v1/artifacts/{artifact_id}/conversations/{conversation_id}:link"};
@@ -103,7 +104,7 @@ service ArtifactService {
   }
 
   // Removes one conversation's link to an artifact. Equivalent to
-  // UnlinkArtifact with relation ATTACHED_TO and entity_type "conversations".
+  // UnlinkArtifact with relation ATTACHED_TO and entity_type CONVERSATION.
   // The artifact itself is untouched. Idempotent: unlinking a missing link
   // succeeds.
   rpc UnlinkArtifactFromConversation(UnlinkArtifactFromConversationRequest) returns (UnlinkArtifactFromConversationResponse) {
@@ -179,178 +180,195 @@ enum ArtifactLinkRelation {
   ARTIFACT_LINK_RELATION_DERIVED_FROM = 3;
 }
 
+// The kind of entity an artifact link points at. entity_id is opaque: a UUID
+// for Sift entities, or the provider tool_use_id for TOOL_USE.
+enum ArtifactEntityType {
+  // The entity type is not specified.
+  ARTIFACT_ENTITY_TYPE_UNSPECIFIED = 0;
+  ARTIFACT_ENTITY_TYPE_CONVERSATION = 1;
+  ARTIFACT_ENTITY_TYPE_CANVAS = 2;
+  ARTIFACT_ENTITY_TYPE_RUN = 3;
+  ARTIFACT_ENTITY_TYPE_ASSET = 4;
+  ARTIFACT_ENTITY_TYPE_ARTIFACT = 5;
+  ARTIFACT_ENTITY_TYPE_TOOL_USE = 6;
+}
+
 // Container fields flattened together with one resolved version.
 message Artifact {
-  string artifact_id = 1;
-  string organization_id = 2;
-  string created_by_user_id = 3;
-  ArtifactAuthoringKind authoring_kind = 5;
-  google.protobuf.Timestamp created_date = 6;
-  string artifact_version_id = 7;
-  uint32 version = 8;
-  optional string title = 9;
-  optional string summary = 10;
+  string artifact_id = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string organization_id = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string created_by_user_id = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+  ArtifactAuthoringKind authoring_kind = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+  google.protobuf.Timestamp created_date = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string artifact_version_id = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+  uint32 version = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+  optional string title = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
+  optional string summary = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
   // Set only for versions authored inside a conversation, and there only
   // after the introducing message persists: uploads attach before the user
   // sends, and agent turns persist messages only at end of turn.
-  optional string authoring_message_id = 11;
-  repeated string source_tool_use_ids = 12;
+  optional string authoring_message_id = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
+  repeated string source_tool_use_ids = 12 [(google.api.field_behavior) = OUTPUT_ONLY];
   // Unset until bytes are uploaded.
-  optional string remote_file_id = 13;
-  google.protobuf.Timestamp version_created_date = 14;
+  optional string remote_file_id = 13 [(google.api.field_behavior) = OUTPUT_ONLY];
+  google.protobuf.Timestamp version_created_date = 14 [(google.api.field_behavior) = OUTPUT_ONLY];
   // From the version's remote_files record. Unset until bytes are uploaded.
   // Clients infer preview behavior from file_name / file_mime_type.
-  optional string file_name = 15;
-  optional string file_mime_type = 16;
+  optional string file_name = 15 [(google.api.field_behavior) = OUTPUT_ONLY];
+  optional string file_mime_type = 16 [(google.api.field_behavior) = OUTPUT_ONLY];
   // Unset while the artifact is active.
-  optional google.protobuf.Timestamp archived_date = 17;
-  ArtifactStorageClass storage_class = 18;
-  ArtifactCreatedVia created_via = 19;
+  optional google.protobuf.Timestamp archived_date = 17 [(google.api.field_behavior) = OUTPUT_ONLY];
+  ArtifactStorageClass storage_class = 18 [(google.api.field_behavior) = OUTPUT_ONLY];
+  ArtifactCreatedVia created_via = 19 [(google.api.field_behavior) = OUTPUT_ONLY];
   // Set by GetArtifact for STRUCTURED artifacts. ListArtifacts omits it.
-  optional google.protobuf.Struct payload = 20;
+  optional google.protobuf.Struct payload = 20 [(google.api.field_behavior) = OUTPUT_ONLY];
   // Metadata attached to the resolved version.
-  repeated sift.metadata.v1.MetadataValue metadata = 21;
+  repeated sift.metadata.v1.MetadataValue metadata = 21 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 message ArtifactVersion {
-  string artifact_version_id = 1;
-  string artifact_id = 2;
-  uint32 version = 3;
-  optional string title = 4;
-  optional string summary = 5;
-  optional string authoring_message_id = 6;
-  repeated string source_tool_use_ids = 7;
-  optional string remote_file_id = 8;
-  google.protobuf.Timestamp created_date = 9;
+  string artifact_version_id = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string artifact_id = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  uint32 version = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+  optional string title = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+  optional string summary = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+  optional string authoring_message_id = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+  repeated string source_tool_use_ids = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+  optional string remote_file_id = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+  google.protobuf.Timestamp created_date = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
   // From the version's remote_files record. Unset until bytes are uploaded.
-  optional string file_name = 10;
-  optional string file_mime_type = 11;
+  optional string file_name = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
+  optional string file_mime_type = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
   // Set by GetArtifact for STRUCTURED artifacts. ListArtifactVersions omits it.
-  optional google.protobuf.Struct payload = 12;
+  optional google.protobuf.Struct payload = 12 [(google.api.field_behavior) = OUTPUT_ONLY];
   // Metadata attached to this version.
-  repeated sift.metadata.v1.MetadataValue metadata = 13;
+  repeated sift.metadata.v1.MetadataValue metadata = 13 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // A link from an artifact to another entity, belonging to one version.
 
 message ArtifactLinkInput {
-  ArtifactLinkRelation relation = 1;
-  // An open string accepting lowercase values: conversations, canvases, runs,
-  // assets, artifacts, or tool_uses. entity_id is opaque: a UUID for Sift
-  // entities, or the provider tool_use_id for tool_uses.
-  string entity_type = 2;
-  string entity_id = 3;
+  ArtifactLinkRelation relation = 1 [(google.api.field_behavior) = REQUIRED];
+  ArtifactEntityType entity_type = 2 [(google.api.field_behavior) = REQUIRED];
+  string entity_id = 3 [(google.api.field_behavior) = REQUIRED];
 }
 
 message CreateArtifactRequest {
   // Set to append a version to an existing artifact; unset to create one.
-  optional string artifact_id = 1;
+  optional string artifact_id = 1 [(google.api.field_behavior) = OPTIONAL];
   // Set to link the new artifact to a conversation at create time. Legal
   // only on create (not on append), and only for the conversation's author.
   // Equivalent to a links entry with relation ATTACHED_TO, entity_type
-  // "conversations", and this conversation_id as entity_id.
-  optional string conversation_id = 2;
-  optional string title = 4;
-  optional string summary = 5;
+  // CONVERSATION, and this conversation_id as entity_id.
+  optional string conversation_id = 2 [(google.api.field_behavior) = OPTIONAL];
+  optional string title = 4 [(google.api.field_behavior) = OPTIONAL];
+  optional string summary = 5 [(google.api.field_behavior) = OPTIONAL];
   // Defaults to USER. AGENT is self-reported: the agent pod authenticates
   // with the requesting user's transient key, so until scoped pod
   // credentials land, authorship attribution rides on the same
   // trust as the pod's message persistence path.
-  optional ArtifactAuthoringKind authoring_kind = 6;
+  optional ArtifactAuthoringKind authoring_kind = 6 [(google.api.field_behavior) = OPTIONAL];
   // A container field. Legal on create and defaults to FILE when unset. On
   // append, it must match the container.
-  optional ArtifactStorageClass storage_class = 7;
-  // A container field. Required on create. Ignored on append.
-  optional ArtifactCreatedVia created_via = 8;
+  optional ArtifactStorageClass storage_class = 7 [(google.api.field_behavior) = OPTIONAL];
+  // A container field. Ignored on append. Defaults to AGENT when unset on
+  // create.
+  optional ArtifactCreatedVia created_via = 8 [(google.api.field_behavior) = OPTIONAL];
   // Required for STRUCTURED and rejected otherwise. The serialized payload
   // must not exceed 1 MiB.
-  optional google.protobuf.Struct payload = 9;
+  optional google.protobuf.Struct payload = 9 [(google.api.field_behavior) = OPTIONAL];
   // Links written at the new version. On append, the previous version's
   // ATTACHED_TO rows carry forward and these are added to them.
-  repeated ArtifactLinkInput links = 10;
+  repeated ArtifactLinkInput links = 10 [(google.api.field_behavior) = OPTIONAL];
   // Metadata attached to the created version.
-  repeated sift.metadata.v1.MetadataValue metadata = 11;
+  repeated sift.metadata.v1.MetadataValue metadata = 11 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message CreateArtifactResponse {
-  Artifact artifact = 1;
+  Artifact artifact = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 message GetArtifactRequest {
-  string artifact_id = 1;
-  optional string artifact_version_id = 2;
+  string artifact_id = 1 [(google.api.field_behavior) = REQUIRED];
+  optional string artifact_version_id = 2 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message GetArtifactResponse {
-  Artifact artifact = 1;
+  Artifact artifact = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 message ListArtifactsRequest {
   // Unset lists every artifact in the caller's organization.
-  optional string conversation_id = 1;
-  uint32 page_size = 2;
-  string page_token = 3;
+  optional string conversation_id = 1 [(google.api.field_behavior) = OPTIONAL];
+  uint32 page_size = 2 [(google.api.field_behavior) = OPTIONAL];
+  string page_token = 3 [(google.api.field_behavior) = OPTIONAL];
   // When false (the default), archived artifacts are omitted.
-  bool include_archived = 4;
+  //
+  // Deprecated: use the `include_archived` directive in `filter` instead. This
+  // field still works, and a filter that names the directive overrides it.
+  bool include_archived = 4 [
+    deprecated = true,
+    (google.api.field_behavior) = OPTIONAL
+  ];
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec)
   // filter string. Available fields are artifact_id, organization_id,
   // created_by_user_id, authoring_kind, storage_class, created_via,
   // title, version, created_date, archived_date, the include_archived
   // directive, and metadata through `metadata["<key>"]`. Links can be filtered
   // with a comprehension such as `links.exists(l, l.relation == "ATTACHED_TO"
-  // && l.entity_type == "conversations" && l.entity_id == "<id>")`. Link
+  // && l.entity_type == "CONVERSATION" && l.entity_id == "<id>")`. Link
   // sub-fields are relation, entity_type, entity_id, and artifact_version_id.
   // Enum fields compare against proto value names without the prefix, for
-  // example `storage_class == "STRUCTURED"`. Link relation compares against
-  // the uppercase proto names ATTACHED_TO, SOURCE, and DERIVED_FROM. The
+  // example `storage_class == "STRUCTURED"`, `relation == "ATTACHED_TO"`, and
+  // `entity_type == "CONVERSATION"`. The
   // conversation_id and include_archived fields on this message keep working
   // and combine with filter.
-  string filter = 5;
+  string filter = 5 [(google.api.field_behavior) = OPTIONAL];
   // A comma-separated [AIP-132](https://google.aip.dev/132#ordering) ordering
   // string over created_date, archived_date, title, and version. Fields
   // sort ascending by default and support a `desc` suffix. The default is
   // created_date ascending.
-  string order_by = 6;
+  string order_by = 6 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message ListArtifactsResponse {
-  repeated Artifact artifacts = 1;
-  string next_page_token = 2;
+  repeated Artifact artifacts = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string next_page_token = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 message ListArtifactVersionsRequest {
-  string artifact_id = 1;
-  uint32 page_size = 2;
-  string page_token = 3;
+  string artifact_id = 1 [(google.api.field_behavior) = REQUIRED];
+  uint32 page_size = 2 [(google.api.field_behavior) = OPTIONAL];
+  string page_token = 3 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message ListArtifactVersionsResponse {
-  repeated ArtifactVersion versions = 1;
-  string next_page_token = 2;
+  repeated ArtifactVersion versions = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string next_page_token = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 message LinkArtifactToConversationRequest {
-  string artifact_id = 1;
-  string conversation_id = 2;
+  string artifact_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string conversation_id = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
 message LinkArtifactToConversationResponse {}
 
 message UnlinkArtifactFromConversationRequest {
-  string artifact_id = 1;
-  string conversation_id = 2;
+  string artifact_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string conversation_id = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
 message UnlinkArtifactFromConversationResponse {}
 
 message ArchiveArtifactRequest {
-  string artifact_id = 1;
+  string artifact_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message ArchiveArtifactResponse {}
 
 message UnarchiveArtifactRequest {
-  string artifact_id = 1;
+  string artifact_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message UnarchiveArtifactResponse {}

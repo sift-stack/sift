@@ -38,7 +38,7 @@ pub(crate) struct CreateArtifactInput {
     pub(crate) artifact_id: Option<String>,
     pub(crate) authoring_kind: ArtifactAuthoringKind,
     pub(crate) storage_class: Option<ArtifactStorageClass>,
-    pub(crate) created_via: ArtifactCreatedVia,
+    pub(crate) created_via: Option<ArtifactCreatedVia>,
     pub(crate) payload: Option<pbjson_types::Struct>,
     pub(crate) metadata: Vec<MetadataValue>,
     pub(crate) links: Vec<ArtifactLinkInput>,
@@ -70,7 +70,6 @@ impl ArtifactService {
     pub async fn list_artifacts(
         &self,
         conversation_id: Option<String>,
-        include_archived: bool,
         filter: String,
         order_by: Option<String>,
         limit: Option<u32>,
@@ -100,9 +99,9 @@ impl ArtifactService {
                             conversation_id,
                             page_size,
                             page_token: token,
-                            include_archived,
                             filter,
                             order_by: order_by.unwrap_or_default(),
+                            ..Default::default()
                         })
                         .await
                         .map(|resp| resp.into_inner())
@@ -180,7 +179,7 @@ impl ArtifactService {
                         summary: input.summary,
                         authoring_kind: Some(input.authoring_kind as i32),
                         storage_class: input.storage_class.map(|value| value as i32),
-                        created_via: Some(input.created_via as i32),
+                        created_via: input.created_via.map(|value| value as i32),
                         payload: input.payload,
                         metadata: input.metadata,
                         links: input.links,

@@ -141,17 +141,19 @@ exists.
   ignores every other field, so `update_user_defined_function` rejects `name`
   combined with anything else.
 - **Create an artifact.** `create_artifact` accepts `title`, `summary`,
-  `kind`, metadata, links, and either `file_path` or a structured JSON
-  `payload`. Choose `storage_class=file` for previewable files,
+  metadata, links, and either `file_path` or a structured JSON `payload`.
+  Choose `storage_class=file` for previewable files,
   `storage_class=structured` for computed tables and PSD-like results, or
   `storage_class=blob` for opaque intermediates. `structured` requires a
-  payload and rejects `file_path`. Set `created_via=chat` inside a Sift agent
-  session, otherwise use `sdk`. Pass `conversation_id` to link a new artifact
-  to a chat, and `authoring_kind=agent` when a Sift agent produced it. Append
-  a version with `artifact_id`. Creating needs `--allow-create`; appending
-  needs `--allow-destructive`. Use `list_artifacts` with CEL `filter` and
-  `order_by` such as `created_date desc`; fetch a version or its `download_url`
-  with `download_artifact`.
+  payload and rejects `file_path`. `created_via` defaults to `agent`; set it
+  only for `canvas` or direct `upload` writes. Link entity types are
+  `conversation`, `canvas`, `run`, `asset`, `artifact`, and `tool_use`. Pass
+  `conversation_id` to link a new artifact to a chat, and set
+  `authoring_kind=agent` when a Sift agent produced it. Append a version with
+  `artifact_id`. Creating needs `--allow-create`; appending needs
+  `--allow-destructive`. Use `list_artifacts` with CEL `filter` and `order_by`
+  such as `created_date desc`; fetch a version or its `download_url` with
+  `download_artifact`.
 - **Produce a chart.** Build a link with `explore_url`. When the user wants a
   chart and numbers, do both and give the user both.
 - **Answer a question about how Sift works.** Call `search_docs`. Do not answer

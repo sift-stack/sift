@@ -1,9 +1,9 @@
 use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
 use sift_rs::{
     artifacts::v1::{
-        Artifact, ArtifactAuthoringKind, ArtifactCreatedVia, ArtifactLinkRelation,
-        ArtifactStorageClass, CreateArtifactResponse, GetArtifactResponse, ListArtifactsResponse,
-        artifact_service_server::ArtifactServiceServer,
+        Artifact, ArtifactAuthoringKind, ArtifactCreatedVia, ArtifactEntityType,
+        ArtifactLinkRelation, ArtifactStorageClass, CreateArtifactResponse, GetArtifactResponse,
+        ListArtifactsResponse, artifact_service_server::ArtifactServiceServer,
     },
     remote_files::v1::{
         GetRemoteFileDownloadUrlResponse, remote_file_service_server::RemoteFileServiceServer,
@@ -41,10 +41,35 @@ fn sample_artifact() -> Artifact {
 fn parse_container_fields_omit_empty_and_missing_values() {
     for value in [None, Some(String::new())] {
         assert_eq!(parse_storage_class(value.clone()).unwrap(), None);
-        // An omitted created_via means the agent wrote it; the server requires the field.
-        assert_eq!(parse_created_via(value).unwrap(), ArtifactCreatedVia::Agent);
+        assert_eq!(parse_created_via(value).unwrap(), None);
     }
     assert!(parse_created_via(Some("sdk".into())).is_err());
+}
+
+#[test]
+fn include_archived_uses_the_filter_directive() {
+    assert_eq!(
+        super::with_include_archived(String::new(), true),
+        "include_archived == true"
+    );
+    assert_eq!(
+        super::with_include_archived("storage_class == \"FILE\"".into(), true),
+        "(storage_class == \"FILE\") && include_archived == true"
+    );
+}
+
+#[test]
+fn parse_entity_types_uses_the_proto_enum() {
+    for (value, expected) in [
+        ("conversation", ArtifactEntityType::Conversation),
+        ("canvas", ArtifactEntityType::Canvas),
+        ("run", ArtifactEntityType::Run),
+        ("asset", ArtifactEntityType::Asset),
+        ("artifact", ArtifactEntityType::Artifact),
+        ("tool_use", ArtifactEntityType::ToolUse),
+    ] {
+        assert_eq!(super::parse_entity_type(value.into()).unwrap(), expected);
+    }
 }
 
 async fn server_with_mock(
@@ -301,8 +326,7 @@ async fn create_artifact_append_reports_appended_version() {
             req.artifact_id.as_deref() == Some("art-1")
                 && req.conversation_id.is_none()
                 && req.storage_class.is_none()
-                // The tool always names a surface; the server ignores it on append.
-                && req.created_via == Some(ArtifactCreatedVia::Agent as i32)
+                && req.created_via.is_none()
         })
         .returning(|_| {
             Ok(Response::new(CreateArtifactResponse {
@@ -432,7 +456,7 @@ async fn create_artifact_validates_storage_and_payload() {
         CreateArtifactParams {
             links: Some(vec![super::ArtifactLinkParam {
                 relation: "attached_to".into(),
-                entity_type: "conversations".into(),
+                entity_type: "conversation".into(),
                 entity_id: String::new(),
             }]),
             ..Default::default()
@@ -440,6 +464,14 @@ async fn create_artifact_validates_storage_and_payload() {
         CreateArtifactParams {
             links: Some(vec![super::ArtifactLinkParam {
                 relation: "invalid".into(),
+                entity_type: "conversation".into(),
+                entity_id: "conv-1".into(),
+            }]),
+            ..Default::default()
+        },
+        CreateArtifactParams {
+            links: Some(vec![super::ArtifactLinkParam {
+                relation: "attached_to".into(),
                 entity_type: "conversations".into(),
                 entity_id: "conv-1".into(),
             }]),
@@ -470,7 +502,7 @@ async fn create_artifact_sends_generic_fields() {
                 && request.metadata.len() == 1
                 && request.links.len() == 1
                 && request.links[0].relation == ArtifactLinkRelation::AttachedTo as i32
-                && request.links[0].entity_type == "conversations"
+                && request.links[0].entity_type == ArtifactEntityType::Conversation as i32
                 && request.links[0].entity_id == "conv-1"
         })
         .returning(|_| {
@@ -491,7 +523,7 @@ async fn create_artifact_sends_generic_fields() {
             }]),
             links: Some(vec![super::ArtifactLinkParam {
                 relation: "attached_to".into(),
-                entity_type: "conversations".into(),
+                entity_type: "conversation".into(),
                 entity_id: "conv-1".into(),
             }]),
             ..Default::default()
@@ -523,11 +555,13 @@ async fn create_artifact_rejects_append_with_conversation() {
 #[tokio::test]
 async fn create_artifact_happy_path() {
     let mut mock = MockArtifactServiceImpl::new();
-    mock.expect_create_artifact().returning(|_| {
-        Ok(Response::new(CreateArtifactResponse {
-            artifact: Some(sample_artifact()),
-        }))
-    });
+    mock.expect_create_artifact()
+        .withf(|request| request.get_ref().created_via.is_none())
+        .returning(|_| {
+            Ok(Response::new(CreateArtifactResponse {
+                artifact: Some(sample_artifact()),
+            }))
+        });
 
     let (server, _h) = server_with_mock(mock, true).await;
     let resp = server

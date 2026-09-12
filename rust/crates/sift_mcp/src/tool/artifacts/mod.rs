@@ -7,8 +7,8 @@ use rmcp::{
 };
 use serde::Deserialize;
 use sift_rs::artifacts::v1::{
-    ArtifactAuthoringKind, ArtifactCreatedVia, ArtifactLinkInput, ArtifactLinkRelation,
-    ArtifactStorageClass,
+    ArtifactAuthoringKind, ArtifactCreatedVia, ArtifactEntityType, ArtifactLinkInput,
+    ArtifactLinkRelation, ArtifactStorageClass,
 };
 
 use crate::{
@@ -95,19 +95,38 @@ fn parse_storage_class(value: Option<String>) -> Result<Option<ArtifactStorageCl
     }
 }
 
-// The server requires created_via. This tool runs inside Sift agent sessions,
-// so an omitted value means the agent wrote it.
-fn parse_created_via(value: Option<String>) -> Result<ArtifactCreatedVia, ErrorData> {
+fn parse_created_via(value: Option<String>) -> Result<Option<ArtifactCreatedVia>, ErrorData> {
     let Some(value) = value else {
-        return Ok(ArtifactCreatedVia::Agent);
+        return Ok(None);
     };
     let lowered = value.trim().to_ascii_lowercase();
     match lowered.as_str() {
-        "" | "agent" | "artifact_created_via_agent" => Ok(ArtifactCreatedVia::Agent),
-        "canvas" | "artifact_created_via_canvas" => Ok(ArtifactCreatedVia::Canvas),
-        "upload" | "artifact_created_via_upload" => Ok(ArtifactCreatedVia::Upload),
+        "" => Ok(None),
+        "agent" | "artifact_created_via_agent" => Ok(Some(ArtifactCreatedVia::Agent)),
+        "canvas" | "artifact_created_via_canvas" => Ok(Some(ArtifactCreatedVia::Canvas)),
+        "upload" | "artifact_created_via_upload" => Ok(Some(ArtifactCreatedVia::Upload)),
         other => Err(ErrorData::invalid_params(
             format!("unknown `created_via` `{other}`; expected `agent`, `canvas`, or `upload`"),
+            None,
+        )),
+    }
+}
+
+fn parse_entity_type(value: String) -> Result<ArtifactEntityType, ErrorData> {
+    let lowered = value.trim().to_ascii_lowercase();
+    match lowered.as_str() {
+        "conversation" | "artifact_entity_type_conversation" => {
+            Ok(ArtifactEntityType::Conversation)
+        }
+        "canvas" | "artifact_entity_type_canvas" => Ok(ArtifactEntityType::Canvas),
+        "run" | "artifact_entity_type_run" => Ok(ArtifactEntityType::Run),
+        "asset" | "artifact_entity_type_asset" => Ok(ArtifactEntityType::Asset),
+        "artifact" | "artifact_entity_type_artifact" => Ok(ArtifactEntityType::Artifact),
+        "tool_use" | "artifact_entity_type_tool_use" => Ok(ArtifactEntityType::ToolUse),
+        other => Err(ErrorData::invalid_params(
+            format!(
+                "unknown link `entity_type` `{other}`; expected `conversation`, `canvas`, `run`, `asset`, `artifact`, or `tool_use`"
+            ),
             None,
         )),
     }
@@ -129,6 +148,18 @@ fn parse_link_relation(value: String) -> Result<ArtifactLinkRelation, ErrorData>
             ),
             None,
         )),
+    }
+}
+
+fn with_include_archived(filter: String, include_archived: bool) -> String {
+    if !include_archived {
+        return filter;
+    }
+    let filter = filter.trim();
+    if filter.is_empty() {
+        "include_archived == true".into()
+    } else {
+        format!("({filter}) && include_archived == true")
     }
 }
 
@@ -167,7 +198,7 @@ impl SiftMcpServer {
                 Filterable fields are `artifact_id`, `organization_id`, `created_by_user_id`, `authoring_kind`,
                 `storage_class`, `created_via`, `title`, `version`, `created_date`, `archived_date`,
                 the `include_archived` directive, `metadata[\"<key>\"]`, and
-                `links.exists(l, l.relation == \"ATTACHED_TO\" && l.entity_type == \"conversations\" &&
+                `links.exists(l, l.relation == \"ATTACHED_TO\" && l.entity_type == \"CONVERSATION\" &&
                 l.entity_id == \"<id>\")`. Enum comparisons use proto value names without the prefix, such as
                 `storage_class == \"STRUCTURED\"`. Use `created_by_user_id == \"<user id>\"` to narrow to
                 one author.
@@ -215,15 +246,13 @@ impl SiftMcpServer {
             ));
         }
 
+        let filter = with_include_archived(
+            filter.unwrap_or_default(),
+            include_archived.unwrap_or(false),
+        );
         let page = self
             .artifact_service
-            .list_artifacts(
-                conversation_id,
-                include_archived.unwrap_or(false),
-                filter.unwrap_or_default(),
-                order_by,
-                limit,
-            )
+            .list_artifacts(conversation_id, filter, order_by, limit)
             .await
             .map_err(from_anyhow)?;
 
@@ -333,8 +362,8 @@ impl SiftMcpServer {
                 it must match the existing artifact and lets local validation accept the payload.
               - `metadata`: optional list of `{ \"name\": \"<key>\", \"value\": <scalar> }` entries.
               - `links`: optional list of `{ \"relation\", \"entity_type\", \"entity_id\" }` entries. `relation`
-                accepts `attached_to`, `source`, or `derived_from`, plus proto names. `entity_type` and
-                `entity_id` must not be empty.
+                accepts `attached_to`, `source`, or `derived_from`, plus proto names. `entity_type` accepts
+                `conversation`, `canvas`, `run`, `asset`, `artifact`, or `tool_use`, plus proto names.
               - `file_path`: optional absolute or relative path of a local file to upload as this
                 version's content. The file streams to Sift's file store; its name and extension drive
                 the mime type and how the UI previews it. Regular, non-empty files up to 1 GiB.
@@ -465,15 +494,15 @@ impl SiftMcpServer {
             .unwrap_or_default()
             .into_iter()
             .map(|link| {
-                if link.entity_type.trim().is_empty() || link.entity_id.trim().is_empty() {
+                if link.entity_id.trim().is_empty() {
                     return Err(ErrorData::invalid_params(
-                        "link `entity_type` and `entity_id` must not be empty",
+                        "link `entity_id` must not be empty",
                         None,
                     ));
                 }
                 Ok(ArtifactLinkInput {
                     relation: parse_link_relation(link.relation)? as i32,
-                    entity_type: link.entity_type,
+                    entity_type: parse_entity_type(link.entity_type)? as i32,
                     entity_id: link.entity_id,
                 })
             })

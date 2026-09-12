@@ -750,6 +750,92 @@ impl<'de> serde::Deserialize<'de> for ArtifactCreatedVia {
         deserializer.deserialize_any(GeneratedVisitor)
     }
 }
+impl serde::Serialize for ArtifactEntityType {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let variant = match self {
+            Self::Unspecified => "ARTIFACT_ENTITY_TYPE_UNSPECIFIED",
+            Self::Conversation => "ARTIFACT_ENTITY_TYPE_CONVERSATION",
+            Self::Canvas => "ARTIFACT_ENTITY_TYPE_CANVAS",
+            Self::Run => "ARTIFACT_ENTITY_TYPE_RUN",
+            Self::Asset => "ARTIFACT_ENTITY_TYPE_ASSET",
+            Self::Artifact => "ARTIFACT_ENTITY_TYPE_ARTIFACT",
+            Self::ToolUse => "ARTIFACT_ENTITY_TYPE_TOOL_USE",
+        };
+        serializer.serialize_str(variant)
+    }
+}
+impl<'de> serde::Deserialize<'de> for ArtifactEntityType {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "ARTIFACT_ENTITY_TYPE_UNSPECIFIED",
+            "ARTIFACT_ENTITY_TYPE_CONVERSATION",
+            "ARTIFACT_ENTITY_TYPE_CANVAS",
+            "ARTIFACT_ENTITY_TYPE_RUN",
+            "ARTIFACT_ENTITY_TYPE_ASSET",
+            "ARTIFACT_ENTITY_TYPE_ARTIFACT",
+            "ARTIFACT_ENTITY_TYPE_TOOL_USE",
+        ];
+
+        struct GeneratedVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ArtifactEntityType;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "expected one of: {:?}", &FIELDS)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
+                    })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
+                    })
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "ARTIFACT_ENTITY_TYPE_UNSPECIFIED" => Ok(ArtifactEntityType::Unspecified),
+                    "ARTIFACT_ENTITY_TYPE_CONVERSATION" => Ok(ArtifactEntityType::Conversation),
+                    "ARTIFACT_ENTITY_TYPE_CANVAS" => Ok(ArtifactEntityType::Canvas),
+                    "ARTIFACT_ENTITY_TYPE_RUN" => Ok(ArtifactEntityType::Run),
+                    "ARTIFACT_ENTITY_TYPE_ASSET" => Ok(ArtifactEntityType::Asset),
+                    "ARTIFACT_ENTITY_TYPE_ARTIFACT" => Ok(ArtifactEntityType::Artifact),
+                    "ARTIFACT_ENTITY_TYPE_TOOL_USE" => Ok(ArtifactEntityType::ToolUse),
+                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
+                }
+            }
+        }
+        deserializer.deserialize_any(GeneratedVisitor)
+    }
+}
 impl serde::Serialize for ArtifactLinkInput {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -761,7 +847,7 @@ impl serde::Serialize for ArtifactLinkInput {
         if self.relation != 0 {
             len += 1;
         }
-        if !self.entity_type.is_empty() {
+        if self.entity_type != 0 {
             len += 1;
         }
         if !self.entity_id.is_empty() {
@@ -773,8 +859,10 @@ impl serde::Serialize for ArtifactLinkInput {
                 .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.relation)))?;
             struct_ser.serialize_field("relation", &v)?;
         }
-        if !self.entity_type.is_empty() {
-            struct_ser.serialize_field("entityType", &self.entity_type)?;
+        if self.entity_type != 0 {
+            let v = ArtifactEntityType::try_from(self.entity_type)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.entity_type)))?;
+            struct_ser.serialize_field("entityType", &v)?;
         }
         if !self.entity_id.is_empty() {
             struct_ser.serialize_field("entityId", &self.entity_id)?;
@@ -859,7 +947,7 @@ impl<'de> serde::Deserialize<'de> for ArtifactLinkInput {
                             if entity_type__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("entityType"));
                             }
-                            entity_type__ = Some(map_.next_value()?);
+                            entity_type__ = Some(map_.next_value::<ArtifactEntityType>()? as i32);
                         }
                         GeneratedField::EntityId => {
                             if entity_id__.is_some() {

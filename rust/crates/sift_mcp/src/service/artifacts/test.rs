@@ -1,6 +1,6 @@
 use sift_rs::{
     artifacts::v1::{
-        Artifact, ArtifactAuthoringKind, ArtifactCreatedVia, ArtifactLinkInput,
+        Artifact, ArtifactAuthoringKind, ArtifactCreatedVia, ArtifactEntityType, ArtifactLinkInput,
         ArtifactLinkRelation, ArtifactStorageClass, CreateArtifactResponse, GetArtifactResponse,
         ListArtifactsResponse, artifact_service_server::ArtifactServiceServer,
     },
@@ -80,7 +80,6 @@ async fn list_artifacts_returns_single_page() {
     let page = service
         .list_artifacts(
             Some("conv-1".into()),
-            false,
             "storage_class == \"STRUCTURED\"".into(),
             Some("created_date desc".into()),
             None,
@@ -127,7 +126,7 @@ async fn list_artifacts_paginates_until_token_empty() {
 
     let (service, _h) = service_with_mock(mock).await;
     let page = service
-        .list_artifacts(None, false, String::new(), None, Some(200))
+        .list_artifacts(None, String::new(), None, Some(200))
         .await
         .expect("list");
     assert_eq!(
@@ -165,7 +164,7 @@ async fn list_artifacts_limit_truncates() {
 
     let (service, _h) = service_with_mock(mock).await;
     let page = service
-        .list_artifacts(None, false, String::new(), None, Some(2))
+        .list_artifacts(None, String::new(), None, Some(2))
         .await
         .expect("list");
     assert_eq!(page.items.len(), 2);
@@ -180,7 +179,7 @@ async fn list_artifacts_propagates_not_found() {
 
     let (service, _h) = service_with_mock(mock).await;
     let err = service
-        .list_artifacts(Some("missing".into()), false, String::new(), None, None)
+        .list_artifacts(Some("missing".into()), String::new(), None, None)
         .await
         .expect_err("expected error");
     let status = err.downcast_ref::<tonic::Status>().expect("status");
@@ -355,12 +354,12 @@ async fn create_artifact_returns_created_row() {
                 artifact_id: None,
                 authoring_kind: ArtifactAuthoringKind::Agent,
                 storage_class: Some(ArtifactStorageClass::Structured),
-                created_via: ArtifactCreatedVia::Agent,
+                created_via: Some(ArtifactCreatedVia::Agent),
                 metadata: vec![],
                 payload: Some(serde_json::from_value(serde_json::json!({ "rows": [] })).unwrap()),
                 links: vec![ArtifactLinkInput {
                     relation: ArtifactLinkRelation::AttachedTo as i32,
-                    entity_type: "conversations".into(),
+                    entity_type: ArtifactEntityType::Conversation as i32,
                     entity_id: "conv-1".into(),
                 }],
             },
