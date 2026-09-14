@@ -5,12 +5,14 @@ from enum import Enum
 from typing import TYPE_CHECKING
 from uuid import UUID
 
+from pydantic import field_validator
 from sift.rules.v1.rules_pb2 import (
     ActionKind,
     AnnotationActionConfiguration,
     CalculatedChannelConfig,
     RuleActionConfiguration,
     UpdateActionRequest,
+    WebhookActionConfiguration,
 )
 
 # Extract nested class.
@@ -31,12 +33,13 @@ from sift.rules.v1.rules_pb2 import (
 )
 
 from sift_client.sift_types._base import BaseType, ModelCreate, ModelCreateUpdateBase, ModelUpdate
+from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.channel import ChannelReference
 from sift_client.sift_types.tag import Tag
+from sift_client.sift_types.webhook import Webhook
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
-    from sift_client.sift_types.asset import Asset
 
 
 class Rule(BaseType[RuleProto, "Rule"]):
@@ -167,9 +170,14 @@ class Rule(BaseType[RuleProto, "Rule"]):
 class RuleCreateUpdateBase(ModelCreateUpdateBase):
     """Base class for Rule create and update models with shared fields and validation."""
 
+    @field_validator("asset_ids", mode="after")
+    @classmethod
+    def _asset_ids_to_strings(cls, value):
+        return [a.id_ if isinstance(a, Asset) else a for a in value] if value else value
+
     organization_id: str | None = None
     client_key: str | None = None
-    asset_ids: list[str] | None = None
+    asset_ids: list[str | Asset] | None = None
     asset_tag_ids: list[str] | None = None
     contextual_channels: list[str] | None = None
     is_external: bool = False
@@ -282,6 +290,17 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
     annotation_type: RuleAnnotationType | None = None
     tags_ids: list[str] | None = None
     default_assignee_user: str | None = None
+    webhook_id: str | None = None
+
+    @classmethod
+    def webhook(cls, webhook: str | Webhook) -> RuleAction:
+        """Create a webhook action.
+
+        Args:
+            webhook: The Webhook or webhook ID to call when the rule is violated.
+        """
+        webhook_id = webhook.id_ if isinstance(webhook, Webhook) else webhook
+        return cls(action_type=RuleActionType.WEBHOOK, webhook_id=str(UUID(webhook_id)))
 
     @classmethod
     def annotation(
@@ -341,6 +360,11 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
                 if action_type == RuleActionType.ANNOTATION
                 else None
             ),
+            webhook_id=(
+                proto.configuration.webhook.webhook_id
+                if action_type == RuleActionType.WEBHOOK
+                else None
+            ),
             _client=sift_client,
         )
 
@@ -356,6 +380,11 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
                         annotation_type=self.annotation_type.value,  # type: ignore
                     )
                     if self.action_type == RuleActionType.ANNOTATION
+                    else None
+                ),
+                webhook=(
+                    WebhookActionConfiguration(webhook_id=self.webhook_id)
+                    if self.action_type == RuleActionType.WEBHOOK
                     else None
                 ),
             ),

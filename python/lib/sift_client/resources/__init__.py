@@ -187,6 +187,7 @@ from sift_client.resources.user_defined_functions import (
     UserDefinedFunctionVersionsAPIAsync,
 )
 from sift_client.resources.users import UsersAPIAsync
+from sift_client.resources.webhooks import WebhooksAPIAsync
 from sift_client.resources.data_imports import DataImportAPIAsync
 from sift_client.resources.exports import DataExportAPIAsync
 
@@ -217,6 +218,7 @@ from sift_client.resources.sync_stubs import (
     UserDefinedFunctionsAPI,
     UserDefinedFunctionVersionsAPI,
     UsersAPI,
+    WebhooksAPI,
     FileAttachmentsAPI,
     DataExportAPI,
     DataImportAPI,
@@ -288,6 +290,8 @@ __all__ = [
     "UserDefinedFunctionsAPIAsync",
     "UsersAPI",
     "UsersAPIAsync",
+    "WebhooksAPI",
+    "WebhooksAPIAsync",
     "DataExportAPI",
     "DataExportAPIAsync",
     "DataImportAPI",
