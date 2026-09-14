@@ -47,11 +47,6 @@ class WebhooksLowLevelClient(LowLevelClientBase, WithGrpcClient):
         """
         super().__init__(grpc_client)
 
-    async def _get_webhook_proto(self, webhook_id: str) -> WebhookProto:
-        request = GetWebhookRequest(webhook_id=webhook_id)
-        response = await self._grpc_client.get_stub(WebhookServiceStub).GetWebhook(request)
-        return cast("GetWebhookResponse", response).webhook
-
     async def get_webhook(self, webhook_id: str) -> Webhook:
         """Get a webhook by webhook_id.
 
@@ -62,6 +57,11 @@ class WebhooksLowLevelClient(LowLevelClientBase, WithGrpcClient):
             The Webhook.
         """
         return Webhook._from_proto(await self._get_webhook_proto(webhook_id))
+
+    async def _get_webhook_proto(self, webhook_id: str) -> WebhookProto:
+        request = GetWebhookRequest(webhook_id=webhook_id)
+        response = await self._grpc_client.get_stub(WebhookServiceStub).GetWebhook(request)
+        return cast("GetWebhookResponse", response).webhook
 
     async def list_webhooks(
         self,
