@@ -11,6 +11,7 @@ from sift.rules.v1.rules_pb2 import (
     CalculatedChannelConfig,
     RuleActionConfiguration,
     UpdateActionRequest,
+    WebhookActionConfiguration,
 )
 
 # Extract nested class.
@@ -33,6 +34,7 @@ from sift.rules.v1.rules_pb2 import (
 from sift_client.sift_types._base import BaseType, ModelCreate, ModelCreateUpdateBase, ModelUpdate
 from sift_client.sift_types.channel import ChannelReference
 from sift_client.sift_types.tag import Tag
+from sift_client.sift_types.webhook import Webhook
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -282,6 +284,17 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
     annotation_type: RuleAnnotationType | None = None
     tags_ids: list[str] | None = None
     default_assignee_user: str | None = None
+    webhook_id: str | None = None
+
+    @classmethod
+    def webhook(cls, webhook: Webhook | str) -> RuleAction:
+        """Create a webhook action.
+
+        Args:
+            webhook: The Webhook or webhook ID to call when the rule is violated.
+        """
+        webhook_id = webhook._id_or_error if isinstance(webhook, Webhook) else webhook
+        return cls(action_type=RuleActionType.WEBHOOK, webhook_id=str(UUID(webhook_id)))
 
     @classmethod
     def annotation(
@@ -341,6 +354,11 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
                 if action_type == RuleActionType.ANNOTATION
                 else None
             ),
+            webhook_id=(
+                proto.configuration.webhook.webhook_id
+                if action_type == RuleActionType.WEBHOOK
+                else None
+            ),
             _client=sift_client,
         )
 
@@ -356,6 +374,11 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
                         annotation_type=self.annotation_type.value,  # type: ignore
                     )
                     if self.action_type == RuleActionType.ANNOTATION
+                    else None
+                ),
+                webhook=(
+                    WebhookActionConfiguration(webhook_id=self.webhook_id)
+                    if self.action_type == RuleActionType.WEBHOOK
                     else None
                 ),
             ),

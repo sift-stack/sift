@@ -217,6 +217,14 @@ from sift_client.sift_types.test_report import (
     TestStepType,
 )
 from sift_client.sift_types.user import User, UserOrganization
+from sift_client.sift_types.webhook import (
+    Webhook,
+    WebhookCreate,
+    WebhookEventType,
+    WebhookHttpHeader,
+    WebhookTestResult,
+    WebhookUpdate,
+)
 
 if "pytest" in sys.modules:
     # These are not test classes, so we need to set __test__ to False to avoid pytest warnings.
@@ -311,4 +319,10 @@ __all__ = [
     "TestStepType",
     "User",
     "UserOrganization",
+    "Webhook",
+    "WebhookCreate",
+    "WebhookEventType",
+    "WebhookHttpHeader",
+    "WebhookTestResult",
+    "WebhookUpdate",
 ]
