@@ -383,7 +383,7 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
                     else None
                 ),
                 webhook=(
-                    WebhookActionConfiguration(webhook_id=self.webhook_id)
+                    WebhookActionConfiguration(webhook_id=self.webhook_id)  # type: ignore
                     if self.action_type == RuleActionType.WEBHOOK
                     else None
                 ),

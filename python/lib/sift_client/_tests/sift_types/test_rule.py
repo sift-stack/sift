@@ -236,11 +236,11 @@ class TestRuleActionWebhook:
 
     def test_from_webhook_object(self):
         """Test building the action from a Webhook instance."""
-        webhook = MagicMock()
-        webhook._id_or_error = self.WEBHOOK_ID
+        from sift.webhooks.v1.webhooks_pb2 import Webhook as WebhookProto
+
         from sift_client.sift_types.webhook import Webhook
 
-        webhook.__class__ = Webhook
+        webhook = Webhook._from_proto(WebhookProto(webhook_id=self.WEBHOOK_ID))
 
         action = RuleAction.webhook(webhook)
 
