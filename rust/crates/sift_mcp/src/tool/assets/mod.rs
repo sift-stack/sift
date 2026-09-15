@@ -34,8 +34,8 @@ impl SiftMcpServer {
             Output:
               - `{ \"assets\": [Asset, ...] }`. Each item is the full Sift `Asset` shape including `asset_id`, `name`,
                 tags, metadata, timestamps, and archive state, plus an added `url` field with the asset's Sift web
-                link (`<host>/asset/<asset_id>`). `url` is omitted when the host can't be derived. Surface these
-                links to the user when presenting assets.
+                link (`<host>/asset/<asset_id>`). `url` is omitted when the host can't be derived. Present each
+                asset to the user as a Markdown link with its name as the text and `url` as the target.
               - `count`: how many items THIS response carries — read it instead of
                 counting the array yourself. It is the size of the page you got back, not
                 how many items match `filter`.
@@ -188,7 +188,7 @@ impl SiftMcpServer {
              nothing was unintentionally dropped.",
             asset.name,
             asset.asset_id,
-            url_clause(asset_url.as_deref()),
+            url_clause("asset", Some(&asset.name), asset_url.as_deref()),
         );
 
         let mut result = CallToolResult::structured(serde_json::json!({

@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+### What's New
+
+#### MCP tools present Sift entities as named Markdown links
+
+Tool results that carry a Sift web link now tell the model to present the entity as
+`[<name>](<url>)` instead of "View it in Sift: <url>", so chat clients render one consistent chip
+per entity. `upload_dataset` returns `asset_url` and `run_url` and names both in its guidance;
+before, it returned bare ids with no link. `explore_url` asks for descriptive link text instead of
+the word "link".
+
 ### Bug Fixes
 
 #### Asset-name check is now case-insensitive

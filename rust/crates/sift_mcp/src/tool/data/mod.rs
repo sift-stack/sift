@@ -22,7 +22,7 @@ use crate::{
         data::{ChannelInput, DataService, NoChannelData, TimeRange},
         ingest::RunForm,
     },
-    tool::common::MetadataEntry,
+    tool::common::{MetadataEntry, url_clause},
 };
 
 #[cfg(test)]
@@ -675,7 +675,10 @@ impl SiftMcpServer {
                 metadata under the `enum_config` and `bit_field_elements` keys respectively.
 
             Output:
-              - `{ \"input\": \"<path>\", \"next_step\": \"...\" }`.
+              - `{ \"input\": \"<path>\", \"asset_name\": \"...\", \"asset_id\": \"...\", \"asset_url\": string|null,
+                \"run_name\": string|null, \"run_id\": string|null, \"run_url\": string|null, \"next_step\": \"...\" }`.
+                `asset_url` and `run_url` are the Sift web links to present as Markdown links, with the asset's
+                and the run's names as the link text; they are null when the host can't be derived.
 
             Parameters:
               - `asset`: name of the Sift asset to ingest into. The Sift server creates the asset if it does not
@@ -752,24 +755,36 @@ impl SiftMcpServer {
             .map_err(from_anyhow)?;
 
         let input_str = input.to_string_lossy().into_owned();
+        let asset_url = self.url_service.build_asset_url(&uploaded.asset_id).ok();
+        let run_url = uploaded
+            .run_id
+            .as_deref()
+            .and_then(|run_id| self.url_service.build_run_url(run_id).ok());
         let run_summary = match (&uploaded.run_name, &uploaded.run_id) {
-            (Some(name), Some(id)) => format!(" (run `{name}`, id `{id}`)"),
+            (Some(name), Some(id)) => format!(
+                " Created run `{name}` (id `{id}`).{}",
+                url_clause("run", Some(name), run_url.as_deref())
+            ),
             _ => String::new(),
         };
         let next_step = format!(
-            "Uploaded `{input_str}` to Sift asset `{}` (id `{}`){run_summary}. \
+            "Uploaded `{input_str}` to Sift asset `{}` (id `{}`).{}{run_summary} \
              Inform the user where the data landed. If the user hasn't already indicated a next \
              step, offer to verify the ingest via `list_runs` (if a run was created) or \
              `list_channels`.",
-            uploaded.asset_name, uploaded.asset_id,
+            uploaded.asset_name,
+            uploaded.asset_id,
+            url_clause("asset", Some(&uploaded.asset_name), asset_url.as_deref()),
         );
 
         let mut result = CallToolResult::structured(serde_json::json!({
             "input": input_str,
             "asset_name": uploaded.asset_name,
             "asset_id": uploaded.asset_id,
+            "asset_url": asset_url,
             "run_name": uploaded.run_name,
             "run_id": uploaded.run_id,
+            "run_url": run_url,
             "next_step": next_step,
         }));
         result.content = vec![ContentBlock::text(next_step)];

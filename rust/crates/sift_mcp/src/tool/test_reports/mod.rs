@@ -451,7 +451,7 @@ impl SiftMcpServer {
             created.test_report_id,
             created.steps_created,
             created.measurements_created,
-            url_clause(report_url.as_deref()),
+            url_clause("test report", None, report_url.as_deref()),
             created.test_report_id,
         );
 
@@ -538,7 +538,7 @@ impl SiftMcpServer {
             "Appended {created} measurement(s) to step `{test_step_id}` in report \
              `{test_report_id}`.{} Tell the user. If they haven't indicated a next step, offer to \
              verify with `list_test_measurements` (filter `test_step_id == \"{test_step_id}\"`).",
-            url_clause(report_url.as_deref()),
+            url_clause("test report", None, report_url.as_deref()),
         );
 
         let mut result = CallToolResult::structured(serde_json::json!({
