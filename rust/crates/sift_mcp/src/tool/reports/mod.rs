@@ -65,7 +65,8 @@ impl SiftMcpServer {
                 `report_template_id`, `run_id`, `organization_id`, `name`, `description`, per-rule `summaries`,
                 tags, metadata, timestamps, and archive state, plus an added `url` field with the report's Sift
                 web link (`<host>/reports/<report_id>`). `url` is omitted when the host can't be derived.
-                Surface these links to the user when presenting reports.
+                Present each of these reports to the user as a Markdown link with its name as the text and `url` as the
+                target.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
@@ -181,7 +182,7 @@ impl SiftMcpServer {
         let next_step = format!(
             "Listed {} rule summaries.{} Surface the per-rule pass/fail/open breakdown to the user.",
             summaries.len(),
-            url_clause(report_url.as_deref()),
+            url_clause("report", None, report_url.as_deref()),
         );
 
         let mut result = CallToolResult::structured(serde_json::json!({
@@ -323,7 +324,7 @@ impl SiftMcpServer {
             output.report.name,
             output.report.report_id,
             job_clause,
-            url_clause(report_url.as_deref()),
+            url_clause("report", Some(&output.report.name), report_url.as_deref()),
         );
 
         let mut result = CallToolResult::structured(serde_json::json!({
@@ -407,7 +408,7 @@ impl SiftMcpServer {
              nothing was unintentionally dropped — metadata is a REPLACE operation.",
             report.name,
             report.report_id,
-            url_clause(report_url.as_deref()),
+            url_clause("report", Some(&report.name), report_url.as_deref()),
         );
 
         let mut result = CallToolResult::structured(serde_json::json!({

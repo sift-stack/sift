@@ -128,8 +128,8 @@ impl SiftMcpServer {
                 `annotation_id`, `name`, `description`, `start_time`, `end_time`, `state`, `annotation_type`,
                 `run_id`, `asset_ids`, `tags`, `linked_channels`, metadata, timestamps, and archive state, plus an
                 added `url` field with the annotation's Sift web link (`<host>/annotation/<annotation_id>`). `url`
-                is omitted when the host can't be derived. Surface these links to the user when presenting
-                annotations.
+                is omitted when the host can't be derived. Present each annotation to the user as a Markdown
+                link with its name as the text and `url` as the target.
               - `count`: how many items THIS response carries — read it instead of
                 counting the array yourself. It is the size of the page you got back, not
                 how many items match `filter`.
@@ -327,7 +327,11 @@ impl SiftMcpServer {
              matches their intent.",
             annotation.name,
             annotation.annotation_id,
-            url_clause(annotation_url.as_deref()),
+            url_clause(
+                "annotation",
+                Some(&annotation.name),
+                annotation_url.as_deref()
+            ),
         );
 
         let mut result = CallToolResult::structured(serde_json::json!({
