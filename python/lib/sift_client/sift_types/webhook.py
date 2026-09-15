@@ -140,7 +140,6 @@ class Webhook(BaseType[WebhookProto, "Webhook"]):
 class WebhookBase(ModelCreateUpdateBase):
     """Base class for Webhook create and update models with shared fields and validation."""
 
-    target_url: str | None = None
     event_type: WebhookEventType | None = None
     payload: str | None = None
     http_headers: list[WebhookHttpHeader] | dict[str, str] | None = None
@@ -164,7 +163,8 @@ class WebhookBase(ModelCreateUpdateBase):
     @model_validator(mode="after")
     def _validate_target_url(self):
         """Reject target URLs that are not absolute HTTP(S) URLs."""
-        if self.target_url is not None and not self.target_url.startswith(("http://", "https://")):
+        target_url = getattr(self, "target_url", None)
+        if target_url is not None and not target_url.startswith(("http://", "https://")):
             raise ValueError("target_url must start with http:// or https://")
         return self
 
@@ -194,6 +194,7 @@ class WebhookUpdate(WebhookBase, ModelUpdate[WebhookProto]):
     """Update model for Webhook."""
 
     name: str | None = None
+    target_url: str | None = None
     is_archived: bool | None = None
 
     def _get_proto_class(self) -> type[WebhookProto]:
