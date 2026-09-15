@@ -42,6 +42,33 @@ Try these in order. Stop at the first that does the job.
    `sift_py` is deprecated. Reach for it only when `sift_client` lacks the
    capability.
 
+## Choose the response surface
+
+Use the lightest surface that fully answers the request. An explicit format or
+Sift-entity request always wins.
+
+- **Chat:** lookups, explanations, how-to answers, and one-off numbers or
+  short analysis. Do not wrap a chat-sized answer in a file.
+- **Explore links:** plots and timeseries the user wants to inspect. Use the
+  native visualization instead of creating an intermediate image or HTML.
+- **Calculated channels:** reusable CEL transforms (unit conversions, rolling
+  windows, derived signals, and simple filters) that should be plottable or
+  usable by rules on later runs. List existing calculated channels first.
+- **User-defined functions:** shared CEL logic that would otherwise be copied
+  across multiple calculated channels or rules. Keep the calculated channel
+  as the named series and put only the shared math in the UDF.
+- **Artifacts:** exceptional durable files only when Sift cannot represent the
+  result, such as a requested PDF, CSV, image, or custom HTML diagram. Do not
+  use artifacts for intermediate plots, Parquet downloads, chat answers,
+  Explore views, calculated channels, UDFs, rules, or reports.
+
+For a reusable write, resolve the real channel names and types, propose the
+name, expression, bindings, and scope, then wait for confirmation unless the
+user explicitly asked you to create it. Python in `/workspace` is for
+investigation or transforms CEL cannot express, not a durable substitute for a
+calculated channel. If two surfaces could work, prefer a Sift entity over a
+file, and chat over both for a one-off answer.
+
 ## What the MCP server exposes
 
 Each tool's own description carries its parameters, filters, defaults, and
@@ -100,7 +127,10 @@ exists.
 - **Search a list.** Filter with a pattern rather than an exact match. Each
   tool's description names its own filterable fields. When the request is too
   vague to filter on, sample with a small `limit` and ask the user to narrow
-  it. Do not guess.
+  it. For `list_channels`, request only the fields needed (usually `name` and
+  `dataType`) on the first call; do not fetch the full payload and retry. Never
+  invent or guess a channel selection for a downstream call: if the user's
+  request is ambiguous, ask which verified channel they mean.
 - **Attribute something to a person.** Resolve the person with `list_users`,
   then filter another list on `created_by_user_id`. For "runs I created", pass
   `me: true`. Never guess which listed user is the caller.
