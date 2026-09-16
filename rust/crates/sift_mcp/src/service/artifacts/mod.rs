@@ -3,10 +3,13 @@ use serde::Serialize;
 use sift_rs::{
     SiftChannel,
     artifacts::v1::{
-        Artifact, ArtifactAuthoringKind, CreateArtifactRequest, GetArtifactRequest,
-        ListArtifactsRequest, ListArtifactsResponse,
+        ArchiveArtifactRequest, Artifact, ArtifactAuthoringKind, ArtifactCreatedVia,
+        ArtifactLinkInput, ArtifactStorageClass, ArtifactVersion, CreateArtifactRequest,
+        GetArtifactRequest, ListArtifactVersionsRequest, ListArtifactVersionsResponse,
+        ListArtifactsRequest, ListArtifactsResponse, UnarchiveArtifactRequest,
         artifact_service_client::ArtifactServiceClient,
     },
+    metadata::v1::MetadataValue,
     remote_files::v1::{
         GetRemoteFileDownloadUrlRequest, remote_file_service_client::RemoteFileServiceClient,
     },
@@ -27,6 +30,20 @@ pub struct ArtifactView {
     pub inner: Artifact,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub download_url: Option<String>,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct CreateArtifactInput {
+    pub(crate) title: Option<String>,
+    pub(crate) summary: Option<String>,
+    pub(crate) conversation_id: Option<String>,
+    pub(crate) artifact_id: Option<String>,
+    pub(crate) authoring_kind: ArtifactAuthoringKind,
+    pub(crate) storage_class: Option<ArtifactStorageClass>,
+    pub(crate) created_via: Option<ArtifactCreatedVia>,
+    pub(crate) payload: Option<pbjson_types::Struct>,
+    pub(crate) metadata: Vec<MetadataValue>,
+    pub(crate) links: Vec<ArtifactLinkInput>,
 }
 
 #[derive(Clone)]
@@ -55,7 +72,8 @@ impl ArtifactService {
     pub async fn list_artifacts(
         &self,
         conversation_id: Option<String>,
-        include_archived: bool,
+        filter: String,
+        order_by: Option<String>,
         limit: Option<u32>,
     ) -> Result<common::Page<Artifact>> {
         let (page_size, record_limit) = common::paging(limit);
@@ -66,11 +84,15 @@ impl ArtifactService {
         loop {
             let channel = self.channel.clone();
             let conversation_id = conversation_id.clone();
+            let filter = filter.clone();
+            let order_by = order_by.clone();
             let token = page_token.clone();
 
             let resp = with_retry(&self.policy, move || {
                 let channel = channel.clone();
                 let conversation_id = conversation_id.clone();
+                let filter = filter.clone();
+                let order_by = order_by.clone();
                 let token = token.clone();
                 async move {
                     let mut client = ArtifactServiceClient::new(channel);
@@ -79,7 +101,9 @@ impl ArtifactService {
                             conversation_id,
                             page_size,
                             page_token: token,
-                            include_archived,
+                            filter,
+                            order_by: order_by.unwrap_or_default(),
+                            ..Default::default()
                         })
                         .await
                         .map(|resp| resp.into_inner())
@@ -113,6 +137,65 @@ impl ArtifactService {
         })
     }
 
+    pub async fn list_artifact_versions(
+        &self,
+        artifact_id: String,
+        limit: Option<u32>,
+    ) -> Result<common::Page<ArtifactVersion>> {
+        let (page_size, record_limit) = common::paging(limit);
+        let mut page_token = String::new();
+        let mut results = Vec::new();
+        let mut has_more = false;
+
+        loop {
+            let channel = self.channel.clone();
+            let artifact_id = artifact_id.clone();
+            let token = page_token.clone();
+
+            let resp = with_retry(&self.policy, move || {
+                let channel = channel.clone();
+                let artifact_id = artifact_id.clone();
+                let token = token.clone();
+                async move {
+                    let mut client = ArtifactServiceClient::new(channel);
+                    client
+                        .list_artifact_versions(ListArtifactVersionsRequest {
+                            artifact_id,
+                            page_size,
+                            page_token: token,
+                        })
+                        .await
+                        .map(|resp| resp.into_inner())
+                }
+            })
+            .await
+            .context("failed to query artifact versions")?;
+
+            let ListArtifactVersionsResponse {
+                versions,
+                next_page_token,
+            } = resp;
+            if versions.is_empty() {
+                break;
+            }
+            results.extend(versions);
+            if results.len() >= record_limit {
+                has_more = results.len() > record_limit || !next_page_token.is_empty();
+                break;
+            }
+            if next_page_token.is_empty() {
+                break;
+            }
+            page_token = next_page_token;
+        }
+
+        results.truncate(record_limit);
+        Ok(common::Page {
+            items: results,
+            has_more,
+        })
+    }
+
     pub async fn download_artifact(
         &self,
         artifact_id: String,
@@ -129,13 +212,45 @@ impl ArtifactService {
         })
     }
 
+    pub async fn archive_artifact(&self, artifact_id: String) -> Result<()> {
+        let channel = self.channel.clone();
+        with_retry(&self.policy, move || {
+            let channel = channel.clone();
+            let artifact_id = artifact_id.clone();
+            async move {
+                let mut client = ArtifactServiceClient::new(channel);
+                client
+                    .archive_artifact(ArchiveArtifactRequest { artifact_id })
+                    .await
+                    .map(|response| response.into_inner())
+            }
+        })
+        .await
+        .context("failed to archive artifact")?;
+        Ok(())
+    }
+
+    pub async fn unarchive_artifact(&self, artifact_id: String) -> Result<()> {
+        let channel = self.channel.clone();
+        with_retry(&self.policy, move || {
+            let channel = channel.clone();
+            let artifact_id = artifact_id.clone();
+            async move {
+                let mut client = ArtifactServiceClient::new(channel);
+                client
+                    .unarchive_artifact(UnarchiveArtifactRequest { artifact_id })
+                    .await
+                    .map(|response| response.into_inner())
+            }
+        })
+        .await
+        .context("failed to unarchive artifact")?;
+        Ok(())
+    }
+
     pub async fn create_artifact(
         &self,
-        title: Option<String>,
-        summary: Option<String>,
-        conversation_id: Option<String>,
-        artifact_id: Option<String>,
-        authoring_kind: ArtifactAuthoringKind,
+        input: CreateArtifactInput,
         file_path: Option<&Path>,
     ) -> Result<ArtifactView> {
         // Refuse before creating any rows, so a misconfigured server does not
@@ -150,19 +265,21 @@ impl ArtifactService {
         let channel = self.channel.clone();
         let created = with_retry(&self.policy, move || {
             let channel = channel.clone();
-            let artifact_id = artifact_id.clone();
-            let conversation_id = conversation_id.clone();
-            let title = title.clone();
-            let summary = summary.clone();
+            let input = input.clone();
             async move {
                 let mut client = ArtifactServiceClient::new(channel);
                 client
                     .create_artifact(CreateArtifactRequest {
-                        artifact_id,
-                        conversation_id,
-                        title,
-                        summary,
-                        authoring_kind: Some(authoring_kind as i32),
+                        artifact_id: input.artifact_id,
+                        conversation_id: input.conversation_id,
+                        title: input.title,
+                        summary: input.summary,
+                        authoring_kind: Some(input.authoring_kind as i32),
+                        storage_class: input.storage_class.map(|value| value as i32),
+                        created_via: input.created_via.map(|value| value as i32),
+                        payload: input.payload,
+                        metadata: input.metadata,
+                        links: input.links,
                     })
                     .await
                     .map(|resp| resp.into_inner())
