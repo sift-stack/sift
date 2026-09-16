@@ -151,7 +151,7 @@ exists.
   `conversation`, `canvas`, `run`, `asset`, `artifact`, and `tool_use`. Pass
   `conversation_id` to link a new artifact to a chat, and set
   `authoring_kind=agent` when a Sift agent produced it. Append a version with
-  `artifact_id`. Creating needs `--allow-create`; appending needs
+  `artifact_id`. Creating needs `--allow-create`; appending also needs
   `--allow-destructive`. Use `list_artifacts` with CEL `filter` and `order_by`
   such as `created_date desc`; read one artifact's history with
   `list_artifact_versions`; fetch a version or its `download_url` with

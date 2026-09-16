@@ -192,8 +192,9 @@ impl SiftMcpServer {
             Output:
               - `{ \"artifacts\": [Artifact, ...] }`. Each item includes `artifact_id`, `artifact_version_id`,
                 `version`, `title`, `summary`, `authoring_kind`, `storage_class`, `created_via`,
-                `payload` for structured artifacts, `metadata`, `file_name`, `file_mime_type`, `remote_file_id`,
-                `created_date`, and `archived_date` when set.
+                `metadata`, `file_name`, `file_mime_type`, `remote_file_id`,
+                `created_date`, and `archived_date` when set. `payload` is NOT included, even for
+                structured artifacts: read one with `download_artifact`.
               - `count`: how many items THIS response carries — read it instead of
                 counting the array yourself. It is the size of the page you got back, not
                 how many artifacts the caller has.
@@ -210,7 +211,10 @@ impl SiftMcpServer {
                 Filterable fields are `artifact_id`, `organization_id`, `created_by_user_id`, `authoring_kind`,
                 `storage_class`, `created_via`, `title`, `version`, `created_date`, `archived_date`,
                 the `include_archived` directive, and `metadata[\"<key>\"]`. Enum comparisons use proto value
-                names without the prefix, such as `storage_class == \"STRUCTURED\"`. Use
+                names without the prefix, such as `storage_class == \"STRUCTURED\"`. Do NOT echo the value
+                you read back from a listing: the output carries the prefixed form
+                (`ARTIFACT_STORAGE_CLASS_STRUCTURED`), and filtering on that matches nothing and returns no
+                error. Strip the enum prefix first. Use
                 `created_by_user_id == \"<user id>\"` to narrow to one author.
                 Links are also filterable with
                 `links.exists(l, l.relation == \"ATTACHED_TO\" && l.entity_type == \"CONVERSATION\" &&
@@ -437,8 +441,8 @@ impl SiftMcpServer {
               - `INVALID_PARAMS` if `artifact_id` is empty.
               - `INVALID_REQUEST` if the server was launched without `--allow-destructive`.
               - `RESOURCE_NOT_FOUND` if the artifact does not exist or is not visible to the caller.
-              - `PERMISSION_DENIED` if the caller did not create the artifact.
-              - `INTERNAL_ERROR` for upstream failures.
+              - `INTERNAL_ERROR` for upstream failures, including a stop signal when the caller did not
+                create the artifact.
 
             Guidance:
               - Archiving preserves every version, link, and uploaded file. Confirm the target with the user.
@@ -496,8 +500,8 @@ impl SiftMcpServer {
               - `INVALID_PARAMS` if `artifact_id` is empty.
               - `INVALID_REQUEST` if the server was launched without `--allow-destructive`.
               - `RESOURCE_NOT_FOUND` if the artifact does not exist or is not visible to the caller.
-              - `PERMISSION_DENIED` if the caller did not create the artifact.
-              - `INTERNAL_ERROR` for upstream failures.
+              - `INTERNAL_ERROR` for upstream failures, including a stop signal when the caller did not
+                create the artifact.
 
             Guidance:
               - Confirm the target with the user before calling.
@@ -570,9 +574,11 @@ impl SiftMcpServer {
                 case-insensitively. Proto names are also accepted.
               - `payload`: optional JSON object. Required for `storage_class: \"structured\"`; rejected for
                 `file` and `blob`. Its serialized form must not exceed 1 MiB.
-              - When appending, omit `storage_class` unless you intend to assert it matches the existing
-                artifact; `created_via` is ignored on append. Appending a JSON payload requires `storage_class: \"structured\"`;
-                it must match the existing artifact and lets local validation accept the payload.
+              - When appending, the server checks `payload` against the existing artifact's storage class,
+                so omit `storage_class` unless you intend to assert it matches. Every version carries its
+                own content: a structured artifact needs the full `payload` on every append, including a
+                title-only edit, and `file` / `blob` artifacts reject `payload`. `created_via` is ignored
+                on append.
               - `metadata`: optional list of `{ \"name\": \"<key>\", \"value\": <scalar> }` entries.
               - `links`: optional list of `{ \"relation\", \"entity_type\", \"entity_id\" }` entries. `relation`
                 accepts `attached_to`, `source`, or `derived_from`, plus proto names. `entity_type` accepts
@@ -671,24 +677,28 @@ impl SiftMcpServer {
         let authoring_kind = parse_authoring_kind(authoring_kind)?;
         let storage_class = parse_storage_class(storage_class)?;
         let created_via = parse_created_via(created_via)?;
-        let storage_class_for_validation = storage_class.unwrap_or(ArtifactStorageClass::File);
-        if storage_class_for_validation == ArtifactStorageClass::Structured && payload.is_none() {
-            return Err(ErrorData::invalid_params(
-                "`payload` is required when `storage_class` is `structured`",
-                None,
-            ));
-        }
-        if storage_class_for_validation == ArtifactStorageClass::Structured && file_path.is_some() {
-            return Err(ErrorData::invalid_params(
-                "`file_path` is not allowed when `storage_class` is `structured`",
-                None,
-            ));
-        }
-        if storage_class_for_validation != ArtifactStorageClass::Structured && payload.is_some() {
-            return Err(ErrorData::invalid_params(
-                "`payload` is allowed only when `storage_class` is `structured`",
-                None,
-            ));
+        // Only a create knows its storage class locally: unset means FILE. On append the
+        // container already has one, so let the server match the payload against it.
+        if artifact_id.is_none() {
+            let storage_class = storage_class.unwrap_or(ArtifactStorageClass::File);
+            if storage_class == ArtifactStorageClass::Structured && payload.is_none() {
+                return Err(ErrorData::invalid_params(
+                    "`payload` is required when `storage_class` is `structured`",
+                    None,
+                ));
+            }
+            if storage_class == ArtifactStorageClass::Structured && file_path.is_some() {
+                return Err(ErrorData::invalid_params(
+                    "`file_path` is not allowed when `storage_class` is `structured`",
+                    None,
+                ));
+            }
+            if storage_class != ArtifactStorageClass::Structured && payload.is_some() {
+                return Err(ErrorData::invalid_params(
+                    "`payload` is allowed only when `storage_class` is `structured`",
+                    None,
+                ));
+            }
         }
         let payload = payload
             .map(|value| {
@@ -762,7 +772,7 @@ impl SiftMcpServer {
         } else if uploaded {
             " Its file content was uploaded, but the refreshed artifact or its download link \
              could not be fetched; call `download_artifact` for the link."
-        } else if storage_class_for_validation == ArtifactStorageClass::Structured {
+        } else if artifact.inner.storage_class == ArtifactStorageClass::Structured as i32 {
             " It carries its JSON payload."
         } else {
             " It has no file content; the user has nothing to preview or download."

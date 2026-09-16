@@ -487,6 +487,78 @@ async fn create_artifact_append_blocked_without_allow_destructive() {
 }
 
 #[tokio::test]
+async fn create_artifact_appends_a_payload_without_restating_storage_class() {
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_create_artifact()
+        .withf(|req| {
+            let req = req.get_ref();
+            req.artifact_id.as_deref() == Some("art-1")
+                && req.storage_class.is_none()
+                && req.payload.is_some()
+        })
+        .returning(|_| {
+            Ok(Response::new(CreateArtifactResponse {
+                artifact: Some(Artifact {
+                    artifact_version_id: "ver-2".into(),
+                    version: 2,
+                    storage_class: ArtifactStorageClass::Structured as i32,
+                    ..sample_artifact()
+                }),
+            }))
+        });
+
+    let (server, _h) = server_with_mock(mock, true).await;
+    let resp = server
+        .create_artifact(Parameters(CreateArtifactParams {
+            artifact_id: Some("art-1".into()),
+            payload: Some(serde_json::json!({ "step": 2 })),
+            ..Default::default()
+        }))
+        .await
+        .expect("append with payload");
+    let next_step = structured_field(resp, "next_step");
+    let next_step = next_step.as_str().unwrap();
+    assert!(
+        next_step.contains("It carries its JSON payload."),
+        "{next_step}"
+    );
+}
+
+#[tokio::test]
+async fn create_artifact_append_surfaces_the_server_storage_class_check() {
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_create_artifact()
+        .withf(|req| {
+            let req = req.get_ref();
+            req.artifact_id.as_deref() == Some("art-1")
+                && req.storage_class.is_none()
+                && req.payload.is_none()
+        })
+        .returning(|_| {
+            Err(Status::invalid_argument(
+                "payload is required for STRUCTURED artifacts",
+            ))
+        });
+
+    let (server, _h) = server_with_mock(mock, true).await;
+    let err = server
+        .create_artifact(Parameters(CreateArtifactParams {
+            artifact_id: Some("art-1".into()),
+            title: Some("Renamed".into()),
+            ..Default::default()
+        }))
+        .await
+        .expect_err("title-only append to a structured artifact");
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+    assert!(
+        err.message
+            .contains("payload is required for STRUCTURED artifacts"),
+        "{}",
+        err.message
+    );
+}
+
+#[tokio::test]
 async fn create_artifact_append_reports_appended_version() {
     let mut mock = MockArtifactServiceImpl::new();
     mock.expect_create_artifact()
@@ -709,7 +781,10 @@ async fn create_artifact_sends_generic_fields() {
         })
         .returning(|_| {
             Ok(Response::new(CreateArtifactResponse {
-                artifact: Some(sample_artifact()),
+                artifact: Some(Artifact {
+                    storage_class: ArtifactStorageClass::Structured as i32,
+                    ..sample_artifact()
+                }),
             }))
         });
 

@@ -14,7 +14,7 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
 };
 
 // ArtifactService manages an organization-scoped, versioned generic artifact
-// store. storage_class decides whether content lives in remote_files or the
+// store. Content class decides whether content lives in remote_files or the
 // version's JSON payload. Attachment and provenance are links, and metadata
 // uses the shared metadata values (sift.metadata.v1). No conversation owns an
 // artifact.
@@ -130,7 +130,7 @@ enum ArtifactAuthoringKind {
 }
 
 enum ArtifactStorageClass {
-  // The storage class is not specified.
+  // The content class is not specified.
   ARTIFACT_STORAGE_CLASS_UNSPECIFIED = 0;
   // Bytes in remote_files, previewable by MIME type.
   ARTIFACT_STORAGE_CLASS_FILE = 1;
@@ -222,8 +222,7 @@ message ArtifactVersion {
   // From the version's remote_files record. Unset until bytes are uploaded.
   optional string file_name = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
   optional string file_mime_type = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
-  // Never set: ListArtifactVersions omits it. Read a STRUCTURED version's
-  // payload with GetArtifact and this artifact_version_id.
+  // Set by GetArtifact for STRUCTURED artifacts. ListArtifactVersions omits it.
   optional google.protobuf.Struct payload = 12 [(google.api.field_behavior) = OUTPUT_ONLY];
   // Metadata attached to this version.
   repeated sift.metadata.v1.MetadataValue metadata = 13 [(google.api.field_behavior) = OUTPUT_ONLY];
