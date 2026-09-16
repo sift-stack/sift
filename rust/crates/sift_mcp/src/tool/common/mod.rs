@@ -35,15 +35,11 @@ pub struct MetadataEntry {
     pub(crate) value: MetadataScalar,
 }
 
-/// A trailing clause for a write tool's `next_step` that points at the operated
-/// resource's Sift web URL. Empty when the URL is `None` — i.e. the host could
-/// not be derived (e.g. self-hosted deployments without an `api.` subdomain) —
-/// so URL derivation never fails an operation.
-/// The sentence that tells the model how to present an entity's Sift web link.
-/// The Sift chat renders a Markdown link to an entity page as a chip whose text
-/// is the link text, so the text must be the entity's own name: `[name](url)`.
-/// When the caller has no name in scope, the model is told to supply it. Empty
-/// when there is no link to present (host not derivable).
+/// A trailing clause for a tool's `next_step` that tells the model how to
+/// present an entity's Sift web link. The Sift chat renders a Markdown link as
+/// a chip whose text must be the entity's own name: `[name](url)`. When the
+/// caller has no name in scope, the model is told to supply it. Empty when the
+/// URL is `None`, so URL derivation never fails an operation.
 pub(crate) fn url_clause(kind: &str, name: Option<&str>, url: Option<&str>) -> String {
     let Some(url) = url else {
         return String::new();

@@ -41,8 +41,8 @@ impl SiftMcpServer {
               - `{ \"runs\": [Run, ...] }`. Each item is the full Sift `Run` shape including `run_id`, `name`,
                 `asset_id`/`asset_name`, `client_key`, `start_time`, `stop_time`, duration, annotation state, tags,
                 and metadata, plus an added `url` field with the run's Sift web link (`<host>/run/<run_id>`). `url`
-                is omitted when the host can't be derived. Present each of these runs to the user as a Markdown link with its name as the text and `url` as the
-                target.
+                is omitted when the host can't be derived. Present each run to the user as a Markdown link with
+                its name as the text and `url` as the target.
               - `count`: how many items THIS response carries — read it instead of
                 counting the array yourself. It is the size of the page you got back, not
                 how many items match `filter`.

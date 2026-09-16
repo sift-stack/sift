@@ -65,7 +65,7 @@ impl SiftMcpServer {
                 `report_template_id`, `run_id`, `organization_id`, `name`, `description`, per-rule `summaries`,
                 tags, metadata, timestamps, and archive state, plus an added `url` field with the report's Sift
                 web link (`<host>/reports/<report_id>`). `url` is omitted when the host can't be derived.
-                Present each of these reports to the user as a Markdown link with its name as the text and `url` as the
+                Present each report to the user as a Markdown link with its name as the text and `url` as the
                 target.
 
             Parameters:

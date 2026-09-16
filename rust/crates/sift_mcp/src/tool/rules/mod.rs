@@ -61,8 +61,8 @@ impl SiftMcpServer {
                 `archived_date`, `is_live_evaluation_enabled`, `organization_id`, `conditions`, `rule_version`,
                 `current_version_id`, `asset_configuration` (asset_ids + tag_ids), `contextual_channels`,
                 `metadata`, and timestamps, plus an added `url` field with the rule's Sift web link
-                (`<host>/rules/<rule_id>`). `url` is omitted when the host can't be derived. Present each of these rules to the user as a Markdown link with its name as the text and `url` as the
-                target.
+                (`<host>/rules/<rule_id>`). `url` is omitted when the host can't be derived. Present each rule
+                to the user as a Markdown link with its name as the text and `url` as the target.
               - Fields at their proto3 default are OMITTED from the JSON: a missing `is_external`,
                 `is_live_evaluation_enabled`, `is_enabled`, or `is_archived` key means `false`, not \"unknown\".
                 Do not fall back to another API to read these; absence IS the value.
