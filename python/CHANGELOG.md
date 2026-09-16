@@ -9,48 +9,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 #### Webhooks API
 
-`client.webhooks` wraps `sift.webhooks.v1.WebhookService`. Sync and async both provide `get`,
-`list_`, `find`, `create`, `update`, `archive`, `unarchive`, and `test`.
-
-```python
-from sift_client.sift_types import WebhookCreate
-
-webhook = client.webhooks.create(
-    WebhookCreate(
-        name="rule-violations",
-        target_url="https://example.com/hooks/sift",
-        http_headers={"Authorization": "Bearer ..."},
-    )
-)
-
-# test() sends a real request to target_url.
-print(webhook.test().http_response_code)
-```
-
-`http_headers` accepts a list of `WebhookHttpHeader` or a `{name: value}` mapping. `update`
-replaces `http_headers`; it does not merge them. `event_type` defaults to
-`WebhookEventType.RULE_VIOLATION`, the only event Sift emits today.
-
-Signature keys and webhook logs are not wrapped.
-
-#### Webhook rule actions
-
-`RuleAction.webhook(...)` attaches a webhook to a rule. `RuleAction` previously supported
-annotation actions only.
-
-```python
-client.rules.create(
-    RuleCreate(
-        name="over-limit",
-        ...,
-        action=RuleAction.webhook(webhook),
-        evaluate_on_live_data=True,
-    )
-)
-```
-
-Set `evaluate_on_live_data=True`. Live evaluation dispatches webhooks. Batch `EvaluateRules`
-records annotations only.
+New `client.webhooks` resource, and `RuleAction.for_webhook(...)` to attach a webhook to a rule.
 
 ## [v0.21.0] - September 4, 2026
 

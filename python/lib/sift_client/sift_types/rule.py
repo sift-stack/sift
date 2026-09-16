@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING
-from uuid import UUID
 
 from sift.rules.v1.rules_pb2 import (
     ActionKind,
@@ -32,9 +31,13 @@ from sift.rules.v1.rules_pb2 import (
 )
 
 from sift_client.sift_types._base import BaseType, ModelCreate, ModelCreateUpdateBase, ModelUpdate
+from sift_client.sift_types._refs import Ref, resolve_id, resolve_ids
 from sift_client.sift_types.channel import ChannelReference
-from sift_client.sift_types.tag import Tag
-from sift_client.sift_types.webhook import Webhook
+
+# Runtime imports: pydantic resolves these when building RuleAction's fields.
+from sift_client.sift_types.tag import Tag  # noqa: TC001
+from sift_client.sift_types.user import User  # noqa: TC001
+from sift_client.sift_types.webhook import Webhook  # noqa: TC001
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -282,45 +285,38 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
     modified_by_user_id: str | None = None
     version_id: str | None = None
     annotation_type: RuleAnnotationType | None = None
-    tags_ids: list[str] | None = None
-    default_assignee_user: str | None = None
-    webhook_id: str | None = None
+    tags: list[Ref[Tag]] | None = None
+    assignee: Ref[User] | None = None
+    webhook: Ref[Webhook] | None = None
 
     @classmethod
-    def webhook(cls, webhook: Webhook | str) -> RuleAction:
+    def for_webhook(cls, webhook: Ref[Webhook]) -> RuleAction:
         """Create a webhook action.
 
         Args:
             webhook: The Webhook or webhook ID to call when the rule is violated.
         """
-        webhook_id = webhook._id_or_error if isinstance(webhook, Webhook) else webhook
-        return cls(action_type=RuleActionType.WEBHOOK, webhook_id=str(UUID(webhook_id)))
+        return cls(action_type=RuleActionType.WEBHOOK, webhook=webhook)
 
     @classmethod
-    def annotation(
+    def for_annotation(
         cls,
         annotation_type: RuleAnnotationType,
-        tags: list[str | Tag],
-        default_assignee_user: str | None = None,
+        tags: list[Ref[Tag]],
+        assignee: Ref[User] | None = None,
     ) -> RuleAction:
         """Create an annotation action.
 
         Args:
             annotation_type: Type of annotation to create.
-            default_assignee_user: User ID to assign the annotation to.
-            tags: List of tags or tag IDs to add to the annotation.
+            tags: Tags or tag IDs to add to the annotation.
+            assignee: The User or user ID to assign the annotation to.
         """
-        validated_tags = (
-            [str(UUID(tag.id_)) if isinstance(tag, Tag) else str(UUID(tag)) for tag in tags]
-            if tags
-            else None
-        )
-
         return cls(
             action_type=RuleActionType.ANNOTATION,
             annotation_type=annotation_type,
-            tags_ids=validated_tags,
-            default_assignee_user=default_assignee_user,
+            tags=tags,
+            assignee=assignee,
         )
 
     @classmethod
@@ -336,12 +332,12 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
             created_by_user_id=proto.created_by_user_id,
             modified_by_user_id=proto.modified_by_user_id,
             version_id=proto.rule_action_version_id,
-            tags_ids=(
+            tags=(
                 list(proto.configuration.annotation.tag_ids)
                 if proto.configuration.annotation.tag_ids
                 else None
             ),
-            default_assignee_user=(
+            assignee=(
                 proto.configuration.annotation.assigned_to_user_id
                 if proto.configuration.annotation.assigned_to_user_id
                 else None
@@ -354,7 +350,7 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
                 if action_type == RuleActionType.ANNOTATION
                 else None
             ),
-            webhook_id=(
+            webhook=(
                 proto.configuration.webhook.webhook_id
                 if action_type == RuleActionType.WEBHOOK
                 else None
@@ -363,21 +359,22 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
         )
 
     def _to_update_request(self) -> UpdateActionRequest:
-        tags_ids = [str(UUID(tag)) for tag in self.tags_ids] if self.tags_ids else None
         return UpdateActionRequest(
             action_type=self.action_type.value,
             configuration=RuleActionConfiguration(
                 annotation=(
                     AnnotationActionConfiguration(
-                        assigned_to_user_id=self.default_assignee_user,
-                        tag_ids=tags_ids,
+                        assigned_to_user_id=(
+                            resolve_id(self.assignee, field="assignee") if self.assignee else None
+                        ),
+                        tag_ids=resolve_ids(self.tags, field="tags"),
                         annotation_type=self.annotation_type.value,  # type: ignore
                     )
                     if self.action_type == RuleActionType.ANNOTATION
                     else None
                 ),
                 webhook=(
-                    WebhookActionConfiguration(webhook_id=self.webhook_id)  # type: ignore
+                    WebhookActionConfiguration(webhook_id=resolve_id(self.webhook, field="webhook"))
                     if self.action_type == RuleActionType.WEBHOOK
                     else None
                 ),
@@ -385,9 +382,10 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
         )
 
     @property
-    def tags(self) -> list[Tag]:
-        """Get the tags that this rule action applies to."""
-        return self.client.tags.list_(tag_ids=self.tags_ids) if self.tags_ids else []
+    def resolved_tags(self) -> list[Tag]:
+        """Fetch full Tags for this action. `tags` holds IDs when read back from the API."""
+        tag_ids = resolve_ids(self.tags, field="tags")
+        return self.client.tags.list_(tag_ids=tag_ids) if tag_ids else []
 
 
 class RuleVersion(BaseType[RuleVersionProto, "RuleVersion"]):

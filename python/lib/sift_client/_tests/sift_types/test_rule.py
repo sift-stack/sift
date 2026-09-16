@@ -37,7 +37,7 @@ def mock_rule(mock_client):
         action=RuleAction(
             action_type=RuleActionType.ANNOTATION,
             annotation_type=RuleAnnotationType.DATA_REVIEW,
-            tags_ids=["tag1"],
+            tags=["tag1"],
         ),
         asset_ids=["asset1", "asset2"],
         asset_tag_ids=["tag1"],
@@ -229,10 +229,10 @@ class TestRuleActionWebhook:
 
     def test_from_webhook_id(self):
         """Test building the action from a webhook ID string."""
-        action = RuleAction.webhook(self.WEBHOOK_ID)
+        action = RuleAction.for_webhook(self.WEBHOOK_ID)
 
         assert action.action_type == RuleActionType.WEBHOOK
-        assert action.webhook_id == self.WEBHOOK_ID
+        assert action.webhook == self.WEBHOOK_ID
 
     def test_from_webhook_object(self):
         """Test building the action from a Webhook instance."""
@@ -242,18 +242,20 @@ class TestRuleActionWebhook:
 
         webhook = Webhook._from_proto(WebhookProto(webhook_id=self.WEBHOOK_ID))
 
-        action = RuleAction.webhook(webhook)
+        action = RuleAction.for_webhook(webhook)
 
-        assert action.webhook_id == self.WEBHOOK_ID
+        # The field keeps the Webhook; the ID is resolved at conversion time.
+        assert action.webhook is webhook
+        assert action._to_update_request().configuration.webhook.webhook_id == self.WEBHOOK_ID
 
-    def test_rejects_non_uuid(self):
+    def test_rejects_non_uuid_on_conversion(self):
         """Test that a malformed webhook ID is caught before it reaches the server."""
-        with pytest.raises(ValueError, match="badly formed hexadecimal UUID string"):
-            RuleAction.webhook("not-a-uuid")
+        with pytest.raises(ValueError, match="must be a UUID or a Sift resource"):
+            RuleAction.for_webhook("not-a-uuid")._to_update_request()
 
     def test_to_update_request_sets_webhook_configuration(self):
         """Test the action serializes into the webhook branch of the oneof."""
-        request = RuleAction.webhook(self.WEBHOOK_ID)._to_update_request()
+        request = RuleAction.for_webhook(self.WEBHOOK_ID)._to_update_request()
 
         assert request.action_type == RuleActionType.WEBHOOK.value
         assert request.configuration.webhook.webhook_id == self.WEBHOOK_ID
@@ -261,7 +263,7 @@ class TestRuleActionWebhook:
 
     def test_annotation_action_sets_no_webhook(self):
         """Test the annotation action is unaffected by the webhook branch."""
-        request = RuleAction.annotation(
+        request = RuleAction.for_annotation(
             annotation_type=RuleAnnotationType.DATA_REVIEW, tags=[]
         )._to_update_request()
 
@@ -285,5 +287,5 @@ class TestRuleActionWebhook:
         action = RuleAction._from_proto(proto)
 
         assert action.action_type == RuleActionType.WEBHOOK
-        assert action.webhook_id == self.WEBHOOK_ID
+        assert action.webhook == self.WEBHOOK_ID
         assert action.annotation_type is None
