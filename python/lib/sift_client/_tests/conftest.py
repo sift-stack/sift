@@ -79,6 +79,7 @@ def mock_client():
     """Create a mock SiftClient for unit testing."""
     client = MagicMock(spec=SiftClient)
     # Configure the mock to have the necessary API attributes
+    client.annotations = MagicMock()
     client.assets = MagicMock()
     client.reports = MagicMock()
     client.runs = MagicMock()

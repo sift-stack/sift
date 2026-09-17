@@ -5,6 +5,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### What's New
+
+#### Annotations API
+
+New `client.annotations` resource, with `client.annotations.logs` for the review history.
+
 ## [v0.21.0] - September 4, 2026
 
 ### What's New
