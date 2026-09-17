@@ -86,8 +86,8 @@ class AnnotationState(Enum):
 class AnnotationLinkedChannel(BaseModel):
     """A channel an annotation points at.
 
-    Exactly one of `channel_id`, `bit_field_element`, or `calculated_channel_version_id`
-    must be set. `bit_field_element` requires `channel_id`.
+    Set exactly one of `channel_id` or `calculated_channel_version_id`.
+    `bit_field_element` requires `channel_id`.
 
     Attributes:
         channel_id: The ID of a regular channel.
@@ -148,7 +148,7 @@ def _linked_channel_to_proto(**kwargs) -> AnnotationLinkedChannelProto:
 
 
 class Annotation(BaseType[AnnotationProto, "Annotation"]):
-    """Annotation model representing a time range of interest on one or more assets."""
+    """Annotation model representing a time range on one or more assets."""
 
     # Required fields
     name: str
@@ -218,7 +218,7 @@ class Annotation(BaseType[AnnotationProto, "Annotation"]):
 
     @property
     def logs(self) -> list[AnnotationLog]:
-        """Return the assignment, state change, and comment history for this annotation."""
+        """Return this annotation's history."""
         return self.client.annotations.logs.list_(annotation=self._id_or_error)
 
     def update(self, update: AnnotationUpdate | dict) -> Annotation:
