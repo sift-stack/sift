@@ -102,8 +102,8 @@ class AnnotationLogsAPI:
 
     High-level API for an annotation's history.
 
-    An annotation log records one event in a review workflow: an assignment, a state
-    change, or a comment. Reachable as `client.annotations.logs`.
+    Each log records one event: an assignment, a state change, or a comment.
+    Reachable as `client.annotations.logs`.
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -154,7 +154,7 @@ class AnnotationLogsAPI:
         limit: int | None = None,
         page_size: int | None = None,
     ) -> list[AnnotationLog]:
-        """List annotation logs with optional filtering.
+        """List annotation logs.
 
         Args:
             annotation: Restrict results to this Annotation or annotation ID.
@@ -178,8 +178,8 @@ class AnnotationLogsAPI:
     def record_assignment(self, annotation: str | Annotation, user: str) -> AnnotationLog:
         """Record that an annotation was assigned to a user.
 
-        This writes a history entry. Use `annotations.assign` to also change the
-        annotation itself.
+        This writes a history entry only. Use `annotations.assign` to change the
+        annotation.
 
         Args:
             annotation: The Annotation or annotation ID.
@@ -195,8 +195,8 @@ class AnnotationLogsAPI:
     ) -> AnnotationLog:
         """Record a state change on an annotation.
 
-        This writes a history entry. Use `annotations.update` to also change the
-        annotation itself.
+        This writes a history entry only. Use `annotations.update` to change the
+        annotation.
 
         Args:
             annotation: The Annotation or annotation ID.
@@ -212,13 +212,9 @@ class AnnotationsAPI:
 
     High-level API for interacting with annotations.
 
-    An annotation marks a time range of interest on one or more assets. Data review
-    annotations carry a review state and an assignee; phase annotations mark a segment
-    of a run and carry no state.
-
-    This class provides a Pythonic, notebook-friendly interface for interacting with the
-    AnnotationsAPI. It handles automatic handling of gRPC services, seamless type
-    conversion, and clear error handling.
+    An annotation marks a time range on one or more assets. A data review annotation
+    carries a review state and an assignee. A phase annotation marks a segment of a run
+    and carries no state.
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -273,8 +269,7 @@ class AnnotationsAPI:
         """Create a new annotation.
 
         Args:
-            create: The annotation definition. Note that `assets` takes asset names and
-                `tags` takes tag names, not IDs.
+            create: The annotation definition. `assets` and `tags` take names, not IDs.
 
         Returns:
             The created Annotation.
@@ -282,8 +277,9 @@ class AnnotationsAPI:
         ...
 
     def find(self, **kwargs) -> Annotation | None:
-        """Find a single annotation matching the given query. Takes the same arguments as
-        `list_`. If more than one annotation is found, raises an error.
+        """Find one annotation. Takes the same arguments as `list_`.
+
+        Raises if more than one matches.
 
         Args:
             **kwargs: Keyword arguments to pass to `list_`.
@@ -338,7 +334,7 @@ class AnnotationsAPI:
         limit: int | None = None,
         page_size: int | None = None,
     ) -> list[Annotation]:
-        """List annotations with optional filtering.
+        """List annotations.
 
         Args:
             name: Exact name of the annotation.
@@ -392,7 +388,7 @@ class AnnotationsAPI:
     def update(self, annotation: str | Annotation, update: AnnotationUpdate | dict) -> Annotation:
         """Update an Annotation.
 
-        Note that `tags`, `linked_channels`, and `metadata` are replaced wholesale, not merged.
+        `tags`, `linked_channels`, and `metadata` are replaced, not merged.
 
         Args:
             annotation: The Annotation or annotation ID to update.
