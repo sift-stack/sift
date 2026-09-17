@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+## [v0.6.0] - September 17, 2026
+
+### What's New
+
 - Artifact MCP tools now support generic artifact storage classes, structured
   JSON payloads, metadata, links, CEL filtering, ordering, archiving,
   unarchiving, and listing an artifact's version history.
