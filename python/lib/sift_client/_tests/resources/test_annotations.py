@@ -287,3 +287,105 @@ class TestAnnotationLogs:
         )
 
         assert [a.id_ for a in annotations] == [new_annotation.id_]
+
+
+class TestAnnotationWorkflow:
+    """Tests for the task-shaped API: named creation verbs and review verbs."""
+
+    @pytest.fixture(scope="session")
+    def nostromo_channels(self, sift_client, nostromo_asset):
+        """The channels to draw test annotations on."""
+        return sift_client.channels.list_(asset=nostromo_asset)
+
+    def test_create_review(
+        self, sift_client, test_timestamp_str, window, nostromo_asset, nostromo_channels
+    ):
+        """Test that create_review links channels and derives the asset from them."""
+        start, end = window
+        review = sift_client.annotations.create_review(
+            f"test_review_{test_timestamp_str}",
+            start,
+            end,
+            channels=nostromo_channels,
+            description="needs a look",
+            tags=["sift-client-pytest"],
+        )
+
+        assert review.annotation_type is AnnotationType.DATA_REVIEW
+        # The asset came from the channels, not from an `assets` argument.
+        assert review.asset_ids == [nostromo_asset.id_]
+        assert {c.channel_id for c in review.linked_channels} == {c.id_ for c in nostromo_channels}
+        assert review.tags == ["sift-client-pytest"]
+
+        sift_client.annotations.archive(review)
+
+    def test_create_phase(
+        self, sift_client, test_timestamp_str, window, nostromo_asset, nostromo_channels
+    ):
+        """Test that create_phase makes a phase with no review state."""
+        start, end = window
+        phase = sift_client.annotations.create_phase(
+            f"test_phase_verb_{test_timestamp_str}",
+            start,
+            end,
+            channels=nostromo_channels,
+        )
+
+        assert phase.annotation_type is AnnotationType.PHASE
+        assert phase.state is None
+
+        sift_client.annotations.archive(phase)
+
+    def test_create_phase_has_no_state_argument(self):
+        """A phase carries no review state, so the signature must not offer one."""
+        import inspect
+
+        params = inspect.signature(AnnotationsAPIAsync.create_phase).parameters
+
+        assert "state" not in params
+        assert "state" in inspect.signature(AnnotationsAPIAsync.create_review).parameters
+
+    def test_create_review_with_explicit_assets(
+        self, sift_client, test_timestamp_str, window, nostromo_asset
+    ):
+        """Test that create_review accepts asset names without any channels."""
+        start, end = window
+        review = sift_client.annotations.create_review(
+            f"test_review_assets_{test_timestamp_str}",
+            start,
+            end,
+            assets=[nostromo_asset.name],
+        )
+
+        assert review.asset_ids == [nostromo_asset.id_]
+        assert review.linked_channels == []
+
+        sift_client.annotations.archive(review)
+
+    def test_state_verbs(self, sift_client, new_annotation):
+        """Test that each review verb changes the state, unlike logs.record_state."""
+        assert sift_client.annotations.resolve(new_annotation).state is AnnotationState.RESOLVED
+        assert sift_client.annotations.flag(new_annotation).state is AnnotationState.FLAGGED
+        assert sift_client.annotations.reopen(new_annotation).state is AnnotationState.OPEN
+
+    def test_instance_state_verbs(self, sift_client, new_annotation):
+        """Test the review verbs on the Annotation instance."""
+        assert new_annotation.resolve().state is AnnotationState.RESOLVED
+        assert new_annotation.flag().state is AnnotationState.FLAGGED
+        assert new_annotation.reopen().state is AnnotationState.OPEN
+
+    def test_instance_comment(self, sift_client, new_annotation):
+        """Test commenting from the Annotation instance."""
+        log = new_annotation.comment("from the instance")
+
+        assert log.kind is AnnotationLogKind.COMMENT
+
+    def test_record_state_does_not_change_state(self, sift_client, new_annotation):
+        """logs.record_state writes history only. This pins that difference."""
+        sift_client.annotations.reopen(new_annotation)
+
+        sift_client.annotations.logs.record_state(new_annotation, AnnotationState.RESOLVED)
+
+        assert (
+            sift_client.annotations.get(new_annotation._id_or_error).state is AnnotationState.OPEN
+        )
