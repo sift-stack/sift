@@ -101,8 +101,9 @@ impl SiftMcpServer {
 
         let mut next_step = format!(
             "Built Sift Explore URL: {url}\n\nRender this URL inline in your response as a \
-             clickable markdown link so the user can open the view in Sift. Do not summarize \
-             the link away."
+             clickable markdown link so the user can open the view in Sift. Use descriptive \
+             link text that names what the view shows, such as the asset or run and the \
+             channels, never the word \"link\" or the bare URL. Do not summarize the link away."
         );
         if start_time_unix_nanos.is_some() || end_time_unix_nanos.is_some() {
             next_step.push_str(

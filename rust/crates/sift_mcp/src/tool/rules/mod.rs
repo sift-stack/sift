@@ -61,8 +61,8 @@ impl SiftMcpServer {
                 `archived_date`, `is_live_evaluation_enabled`, `organization_id`, `conditions`, `rule_version`,
                 `current_version_id`, `asset_configuration` (asset_ids + tag_ids), `contextual_channels`,
                 `metadata`, and timestamps, plus an added `url` field with the rule's Sift web link
-                (`<host>/rules/<rule_id>`). `url` is omitted when the host can't be derived. Surface these links
-                to the user when presenting rules.
+                (`<host>/rules/<rule_id>`). `url` is omitted when the host can't be derived. Present each rule
+                to the user as a Markdown link with its name as the text and `url` as the target.
               - Fields at their proto3 default are OMITTED from the JSON: a missing `is_external`,
                 `is_live_evaluation_enabled`, `is_enabled`, or `is_archived` key means `false`, not \"unknown\".
                 Do not fall back to another API to read these; absence IS the value.
@@ -193,7 +193,7 @@ impl SiftMcpServer {
         let next_step = format!(
             "Listed {} rule versions.{} Surface the version history to the user.",
             rule_versions.len(),
-            url_clause(rule_url.as_deref()),
+            url_clause("rule", None, rule_url.as_deref()),
         );
 
         let mut result = CallToolResult::structured(serde_json::json!({
@@ -251,6 +251,7 @@ impl SiftMcpServer {
         let Parameters(RuleDefinitionParams { rule_json }) = params;
 
         let update = parse_rule_definition(&rule_json)?;
+        let rule_name = update.name.clone();
 
         let rule_id = self
             .rule_service
@@ -263,7 +264,7 @@ impl SiftMcpServer {
             "Created rule with id `{rule_id}`.{} Tell the user the new rule id. If they haven't \
              indicated a next step, offer to confirm it with `list_rules` \
              (filter `rule_id == \"{rule_id}\"`).",
-            url_clause(rule_url.as_deref()),
+            url_clause("rule", Some(rule_name.as_str()), rule_url.as_deref()),
         );
 
         let mut result = CallToolResult::structured(serde_json::json!({
@@ -361,6 +362,7 @@ impl SiftMcpServer {
             ));
         }
 
+        let rule_name = changes.name.clone();
         let rule_id = self
             .rule_service
             .update_rule(rule_id, changes)
@@ -372,7 +374,7 @@ impl SiftMcpServer {
             "Updated rule `{rule_id}`.{} Tell the user the update succeeded. If they haven't \
              indicated a next step, offer to confirm it with `list_rules` \
              (filter `rule_id == \"{rule_id}\"`).",
-            url_clause(rule_url.as_deref()),
+            url_clause("rule", rule_name.as_deref(), rule_url.as_deref()),
         );
 
         let mut result = CallToolResult::structured(serde_json::json!({
@@ -434,7 +436,7 @@ impl SiftMcpServer {
         let next_step = format!(
             "Rule archived.{} Tell the user it is archived and will no longer evaluate, \
              and that `unarchive_rule` restores it.",
-            url_clause(rule_url.as_deref()),
+            url_clause("rule", None, rule_url.as_deref()),
         );
 
         let mut result = CallToolResult::structured(serde_json::json!({
@@ -494,7 +496,7 @@ impl SiftMcpServer {
 
         let next_step = format!(
             "Rule unarchived.{} Tell the user it is restored and will evaluate again.",
-            url_clause(rule_url.as_deref()),
+            url_clause("rule", None, rule_url.as_deref()),
         );
 
         let mut result = CallToolResult::structured(serde_json::json!({
