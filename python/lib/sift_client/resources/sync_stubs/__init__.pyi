@@ -948,7 +948,9 @@ class CampaignsAPI:
             organization_id: Required if you belong to several organizations.
 
         Returns:
-            A mapping of campaign ID to its reports, with counts populated.
+            A mapping of campaign ID to its reports, with counts populated. The service
+            returns each campaign's reports in no fixed order; `Campaign.report_summaries`
+            orders them to match the campaign.
         """
         ...
 

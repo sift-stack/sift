@@ -253,11 +253,8 @@ class CampaignsAPIAsync(ResourceBase):
         Returns:
             The updated Campaign.
         """
-        current = (
-            campaign
-            if isinstance(campaign, Campaign)
-            else await self.get(campaign, skip_report_summaries=True)
-        )
+        campaign_id = campaign._id_or_error if isinstance(campaign, Campaign) else campaign
+        current = await self.get(campaign_id, skip_report_summaries=True)
         existing_ids = current.report_ids
         merged = existing_ids + [
             report_id
@@ -328,12 +325,17 @@ class CampaignsAPIAsync(ResourceBase):
             organization_id: Required if you belong to several organizations.
 
         Returns:
-            A mapping of campaign ID to its reports, with counts populated.
+            A mapping of campaign ID to its reports, with counts populated. The service
+            returns each campaign's reports in no fixed order; `Campaign.report_summaries`
+            orders them to match the campaign.
         """
         ids = [c._id_or_error if isinstance(c, Campaign) else c for c in campaigns]
-        return await self._low_level_client.get_report_summaries(
+        if not ids:
+            return {}
+        found = await self._low_level_client.get_report_summaries(
             campaign_ids=ids, organization_id=organization_id
         )
+        return {campaign_id: found.get(campaign_id, []) for campaign_id in ids}
 
     @staticmethod
     def _report_id(report: Report | str) -> str:

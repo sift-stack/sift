@@ -27,6 +27,7 @@ from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
     from sift_client.sift_types.report import Report
+    from sift_client.sift_types.run import Run
 
 
 class CampaignReport(BaseModel):
@@ -146,6 +147,23 @@ class Campaign(BaseType[CampaignProto, "Campaign"]):
             return []
         return self.client.reports.list_(report_ids=self.report_ids)
 
+    @property
+    def runs(self) -> list[Run]:
+        """Fetch the Runs behind this campaign's reports. Reports with no run are skipped."""
+        run_ids = [r.run_id for r in self.resolved_reports if r.run_id]
+        if not run_ids:
+            return []
+        return self.client.runs.list_(run_ids=run_ids)
+
+    def report_summaries(self) -> list[CampaignReport]:
+        """Get this campaign's reports with their rule counts, ordered to match `report_ids`.
+
+        The service returns them in no fixed order, so this would otherwise vary.
+        """
+        summaries = self.client.campaigns.report_summaries([self])
+        by_id = {s.report_id: s for s in summaries.get(self._id_or_error, [])}
+        return [by_id[report_id] for report_id in self.report_ids if report_id in by_id]
+
     def update(self, update: CampaignUpdate | dict) -> Campaign:
         """Update the Campaign.
 
@@ -176,8 +194,6 @@ class CampaignBase(ModelCreateUpdateBase):
     """Base class for Campaign create and update models."""
 
     description: str | None = None
-    # Create takes NamedResources and update takes repeated TagRef, so the low-level
-    # client sets tags on the proto rather than the shared builder.
     tags: list[str] | list[Tag] | None = Field(default=None, exclude=True)
     metadata: dict[str, str | float | bool] | None = None
 
@@ -209,7 +225,8 @@ class CampaignUpdate(CampaignBase, ModelUpdate[CampaignProto]):
     """Update model for Campaign.
 
     `reports` replaces the campaign's report list. Prefer `campaigns.add_reports` or
-    `campaigns.add_runs`, which read the current list first.
+    `campaigns.add_runs`, which read the current list first. `tags` is unordered, so it
+    may come back in a different order.
     """
 
     name: str | None = None

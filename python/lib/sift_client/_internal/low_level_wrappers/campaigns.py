@@ -113,7 +113,6 @@ class CampaignsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Returns:
             A tuple of (campaigns, next_page_token).
         """
-        # ListCampaigns gates archived rows on its own field, not on the CEL filter.
         request_kwargs: dict[str, Any] = {"include_archived": include_archived}
         if page_size is not None:
             request_kwargs["page_size"] = page_size
@@ -225,6 +224,8 @@ class CampaignsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if "tags" in update.model_fields_set:
             grpc_campaign.tags.extend(TagRef(name=name) for name in tag_names(update.tags))
             update_mask.paths.append("tags")
+        if not update_mask.paths:
+            return await self.get_campaign(campaign_id=grpc_campaign.campaign_id)
         request = UpdateCampaignRequest(campaign=grpc_campaign, update_mask=update_mask)
         response = await self._grpc_client.get_stub(CampaignServiceStub).UpdateCampaign(request)
         return Campaign._from_proto(cast("UpdateCampaignResponse", response).campaign)
