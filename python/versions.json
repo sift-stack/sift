@@ -1,5 +1,13 @@
 [
   {
+    "version": "pr-793",
+    "title": "pr-793",
+    "aliases": [],
+    "properties": {
+      "hidden": true
+    }
+  },
+  {
     "version": "pr-792",
     "title": "pr-792",
     "aliases": [],
