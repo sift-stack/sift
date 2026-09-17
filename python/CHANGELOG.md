@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 - Added `client.annotations` for data reviews, phases, and review history.
+- Added `client.campaigns` for grouping report results across runs.
 
 ### What's New
 
@@ -29,7 +30,7 @@ config.complex_types_import_mode = McapComplexTypesImportMode.STRING
 Variable-cardinality fields (dynamic and bounded arrays) are typed `BYTES`. As with Parquet, `complex_types_import_mode` on the config decides what each becomes: Arrow IPC bytes, a JSON string under `<name>.json`, both (the default), or neither.
 
 Reading a file locally needs the new `mcap` extra (`pip install sift-stack-py[mcap]`), so both `detect_config` and importing without a config require it.
-=======
+
 #### Credentials from sift-cli profiles
 
 `SiftClient` now reads the same `sift.toml` profiles that `sift-cli --profile` uses. An environment that you configure once for the CLI works from Python with no arguments.

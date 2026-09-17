@@ -8,6 +8,7 @@ from sift_client.resources import (
     AnnotationsAPIAsync,
     AssetsAPIAsync,
     CalculatedChannelsAPIAsync,
+    CampaignsAPIAsync,
     ChannelsAPIAsync,
     DataExportAPIAsync,
     DataImportAPIAsync,
@@ -39,6 +40,7 @@ AnnotationsAPI = generate_sync_api(
 )
 AssetsAPI = generate_sync_api(AssetsAPIAsync, "AssetsAPI")
 CalculatedChannelsAPI = generate_sync_api(CalculatedChannelsAPIAsync, "CalculatedChannelsAPI")
+CampaignsAPI = generate_sync_api(CampaignsAPIAsync, "CampaignsAPI")
 ChannelsAPI = generate_sync_api(ChannelsAPIAsync, "ChannelsAPI")
 FileAttachmentsAPI = generate_sync_api(FileAttachmentsAPIAsync, "FileAttachmentsAPI")
 JobsAPI = generate_sync_api(JobsAPIAsync, "JobsAPI")
@@ -98,6 +100,7 @@ __all__ = [
     "AnnotationsAPI",
     "AssetsAPI",
     "CalculatedChannelsAPI",
+    "CampaignsAPI",
     "ChannelsAPI",
     "DataExportAPI",
     "DataImportAPI",

@@ -153,6 +153,7 @@ result = asyncio.run(main())
 from sift_client.resources.annotations import AnnotationLogsAPIAsync, AnnotationsAPIAsync
 from sift_client.resources.assets import AssetsAPIAsync
 from sift_client.resources.calculated_channels import CalculatedChannelsAPIAsync
+from sift_client.resources.campaigns import CampaignsAPIAsync
 from sift_client.resources.channels import ChannelsAPIAsync
 from sift_client.resources.file_attachments import FileAttachmentsAPIAsync
 from sift_client.resources.ingestion import (
@@ -191,6 +192,7 @@ from sift_client.resources.sync_stubs import (
     AnnotationsAPI,
     AssetsAPI,
     CalculatedChannelsAPI,
+    CampaignsAPI,
     ChannelsAPI,
     JobsAPI,
     PingAPI,
@@ -232,6 +234,8 @@ __all__ = [
     "AutoRegisterStreamingClient",
     "CalculatedChannelsAPI",
     "CalculatedChannelsAPIAsync",
+    "CampaignsAPI",
+    "CampaignsAPIAsync",
     "ChannelsAPI",
     "ChannelsAPIAsync",
     "FileAttachmentsAPI",
