@@ -217,6 +217,15 @@ from sift_client.sift_types.test_report import (
     TestStepType,
 )
 from sift_client.sift_types.user import User, UserOrganization
+from sift_client.sift_types.user_defined_function import (
+    FunctionDataType,
+    FunctionDependents,
+    FunctionInput,
+    UserDefinedFunction,
+    UserDefinedFunctionCreate,
+    UserDefinedFunctionUpdate,
+    UserDefinedFunctionValidation,
+)
 
 if "pytest" in sys.modules:
     # These are not test classes, so we need to set __test__ to False to avoid pytest warnings.
@@ -253,6 +262,9 @@ __all__ = [
     "DataImportStatusDetails",
     "Flow",
     "FlowConfig",
+    "FunctionDataType",
+    "FunctionDependents",
+    "FunctionInput",
     "IngestionConfig",
     "IngestionConfigCreate",
     "Job",
@@ -310,5 +322,9 @@ __all__ = [
     "TestStepCreate",
     "TestStepType",
     "User",
+    "UserDefinedFunction",
+    "UserDefinedFunctionCreate",
+    "UserDefinedFunctionUpdate",
+    "UserDefinedFunctionValidation",
     "UserOrganization",
 ]

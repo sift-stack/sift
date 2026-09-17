@@ -5,6 +5,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### What's New
+
+#### User-defined functions API
+
+New `client.user_defined_functions` resource, with `versions`, `validate`, `dependents`, and `sync`.
+
 ## [v0.21.0] - September 4, 2026
 
 ### What's New
