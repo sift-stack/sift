@@ -325,3 +325,70 @@ class TestCampaigns:
         fetched = await campaigns_api_async.get(new_campaign._id_or_error)
 
         assert fetched.id_ == new_campaign.id_
+
+    def test_add_reports_reads_the_server_list(
+        self, campaigns_api_sync, campaign_run, test_timestamp_str
+    ):
+        """A stale Campaign handle must not drop reports added since it was fetched."""
+        campaign = campaigns_api_sync.create(
+            CampaignCreate(name=f"test_campaign_stale_{test_timestamp_str}")
+        )
+        stale = campaign
+
+        # Another caller adds a report that `stale` knows nothing about.
+        campaigns_api_sync.add_reports(campaign._id_or_error, [campaign_run.default_report_id])
+        assert stale.report_ids == []
+
+        merged = campaigns_api_sync.add_reports(stale, [campaign_run.default_report_id])
+
+        assert merged.report_ids == [campaign_run.default_report_id]
+
+        campaigns_api_sync.archive(campaign)
+
+    def test_campaign_runs(self, campaigns_api_sync, campaign_run, test_timestamp_str):
+        """Test reading back the runs behind a campaign's reports."""
+        campaign = campaigns_api_sync.create(
+            CampaignCreate(name=f"test_campaign_runs_prop_{test_timestamp_str}"),
+            runs=[campaign_run],
+        )
+
+        assert [r.id_ for r in campaign.runs] == [campaign_run.id_]
+
+        campaigns_api_sync.archive(campaign)
+
+    def test_campaign_report_summaries(self, campaigns_api_sync, campaign_run, test_timestamp_str):
+        """Test the rollup from the Campaign instance."""
+        campaign = campaigns_api_sync.create(
+            CampaignCreate(name=f"test_campaign_rollup_{test_timestamp_str}"),
+            runs=[campaign_run],
+        )
+
+        # The service returns these in no fixed order; the instance method sorts them.
+        assert [s.report_id for s in campaign.report_summaries()] == campaign.report_ids
+
+        campaigns_api_sync.archive(campaign)
+
+    def test_update_with_nothing_set_is_a_noop(self, campaigns_api_sync, new_campaign):
+        """The service rejects an empty update mask, so the client must not send one."""
+        unchanged = campaigns_api_sync.update(new_campaign, CampaignUpdate())
+
+        assert unchanged.id_ == new_campaign.id_
+        assert unchanged.name == new_campaign.name
+
+    def test_report_summaries_with_no_campaigns(self, campaigns_api_sync):
+        """An empty request must not reach the service, which rejects it."""
+        assert campaigns_api_sync.report_summaries([]) == {}
+
+    def test_report_summaries_includes_empty_campaigns(
+        self, campaigns_api_sync, test_timestamp_str
+    ):
+        """The service omits campaigns with no reports; every ID asked for is returned."""
+        campaign = campaigns_api_sync.create(
+            CampaignCreate(name=f"test_campaign_empty_rollup_{test_timestamp_str}")
+        )
+
+        summaries = campaigns_api_sync.report_summaries([campaign])
+
+        assert summaries[campaign._id_or_error] == []
+
+        campaigns_api_sync.archive(campaign)
