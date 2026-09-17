@@ -40,6 +40,8 @@ from sift_client.resources import (
     TagsAPIAsync,
     TestResultsAPI,
     TestResultsAPIAsync,
+    UserDefinedFunctionsAPI,
+    UserDefinedFunctionsAPIAsync,
     UsersAPI,
     UsersAPIAsync,
 )
@@ -136,6 +138,9 @@ class SiftClient(
 
     test_results: TestResultsAPI
     """Instance of the Test Results API for making synchronous requests."""
+
+    user_defined_functions: UserDefinedFunctionsAPI
+    """Instance of the User Defined Functions API for making synchronous requests."""
 
     users: UsersAPI
     """Instance of the Users API for making synchronous requests."""
@@ -248,6 +253,7 @@ class SiftClient(
         )
         self.tags = TagsAPI(self)
         self.test_results = TestResultsAPI(self)
+        self.user_defined_functions = UserDefinedFunctionsAPI(self)
         self.users = UsersAPI(self)
         self.data_export = DataExportAPI(self)
         self.data_import = DataImportAPI(self)
@@ -270,6 +276,7 @@ class SiftClient(
             ),
             tags=TagsAPIAsync(self),
             test_results=TestResultsAPIAsync(self),
+            user_defined_functions=UserDefinedFunctionsAPIAsync(self),
             users=UsersAPIAsync(self),
             data_export=DataExportAPIAsync(self),
             data_import=DataImportAPIAsync(self),

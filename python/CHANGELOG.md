@@ -5,6 +5,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+- Added `client.user_defined_functions` for reusable expressions.
+
 ### What's New
 
 #### MCAP imports

@@ -180,6 +180,10 @@ from sift_client.resources.rules import RulesAPIAsync
 from sift_client.resources.runs import RunsAPIAsync
 from sift_client.resources.tags import TagsAPIAsync
 from sift_client.resources.test_results import TestResultsAPIAsync
+from sift_client.resources.user_defined_functions import (
+    UserDefinedFunctionsAPIAsync,
+    UserDefinedFunctionVersionsAPIAsync,
+)
 from sift_client.resources.users import UsersAPIAsync
 from sift_client.resources.data_imports import DataImportAPIAsync
 from sift_client.resources.exports import DataExportAPIAsync
@@ -205,6 +209,8 @@ from sift_client.resources.sync_stubs import (
     RunsAPI,
     TagsAPI,
     TestResultsAPI,
+    UserDefinedFunctionsAPI,
+    UserDefinedFunctionVersionsAPI,
     UsersAPI,
     FileAttachmentsAPI,
     DataExportAPI,
@@ -265,6 +271,10 @@ __all__ = [
     "TestResultsAPI",
     "TestResultsAPIAsync",
     "TracingConfig",
+    "UserDefinedFunctionVersionsAPI",
+    "UserDefinedFunctionVersionsAPIAsync",
+    "UserDefinedFunctionsAPI",
+    "UserDefinedFunctionsAPIAsync",
     "UsersAPI",
     "UsersAPIAsync",
     "DataExportAPI",
