@@ -17,6 +17,17 @@ if TYPE_CHECKING:
         ReplayResult,
     )
     from sift_client.client import SiftClient
+    from sift_client.sift_types.annotation import (
+        Annotation,
+        AnnotationCommentElement,
+        AnnotationCreate,
+        AnnotationLog,
+        AnnotationLogKind,
+        AnnotationLogState,
+        AnnotationState,
+        AnnotationType,
+        AnnotationUpdate,
+    )
     from sift_client.sift_types.asset import Asset, AssetUpdate
     from sift_client.sift_types.calculated_channel import (
         CalculatedChannel,
@@ -85,6 +96,417 @@ if TYPE_CHECKING:
         TestStepUpdate,
     )
     from sift_client.sift_types.user import User
+
+class AnnotationLogsAPI:
+    """Sync counterpart to `AnnotationLogsAPIAsync`.
+
+    High-level API for an annotation's history.
+
+    Each log records one event: an assignment, a state change, or a comment.
+    Reachable as `client.annotations.logs`.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the AnnotationLogsAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def comment(
+        self, annotation: str | Annotation, text: str | list[AnnotationCommentElement]
+    ) -> AnnotationLog:
+        """Add a comment to an annotation.
+
+        Args:
+            annotation: The Annotation or annotation ID to comment on.
+            text: Plain text, or a list of elements to mix text with user mentions.
+
+        Returns:
+            The created AnnotationLog.
+        """
+        ...
+
+    def delete(self, annotation: str | Annotation, log: str | AnnotationLog) -> None:
+        """Delete an annotation log.
+
+        Args:
+            annotation: The Annotation or annotation ID the log belongs to.
+            log: The AnnotationLog or log ID to delete.
+        """
+        ...
+
+    def list_(
+        self,
+        *,
+        annotation: str | Annotation | None = None,
+        annotation_log_ids: list[str] | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        created_by: Any | str | None = None,
+        kind: AnnotationLogKind | None = None,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[AnnotationLog]:
+        """List annotation logs.
+
+        Args:
+            annotation: Restrict results to this Annotation or annotation ID.
+            annotation_log_ids: Filter to logs with any of these IDs.
+            created_after: Filter logs created after this datetime.
+            created_before: Filter logs created before this datetime.
+            modified_after: Filter logs modified after this datetime.
+            modified_before: Filter logs modified before this datetime.
+            created_by: Filter logs created by this user ID.
+            kind: Filter to comments, state updates, or assignments.
+            filter_query: Explicit CEL query to filter logs.
+            order_by: Field and direction to order results by.
+            limit: Maximum number of logs to return. If None, returns all matches.
+            page_size: Number of results to fetch per request.
+
+        Returns:
+            A list of AnnotationLog objects that match the filter criteria.
+        """
+        ...
+
+    def record_assignment(self, annotation: str | Annotation, user: str) -> AnnotationLog:
+        """Record that an annotation was assigned to a user.
+
+        This writes a history entry and nothing else. `annotations.assign` already
+        writes one, so you rarely need this.
+
+        Args:
+            annotation: The Annotation or annotation ID.
+            user: The user ID the annotation was assigned to.
+
+        Returns:
+            The created AnnotationLog.
+        """
+        ...
+
+    def record_state(
+        self, annotation: str | Annotation, state: AnnotationLogState
+    ) -> AnnotationLog:
+        """Record a state change on an annotation.
+
+        This writes a history entry and nothing else. It leaves the state alone, so
+        use `annotations.resolve`, `flag`, or `reopen` to change it.
+
+        Args:
+            annotation: The Annotation or annotation ID.
+            state: The state to record.
+
+        Returns:
+            The created AnnotationLog.
+        """
+        ...
+
+class AnnotationsAPI:
+    """Sync counterpart to `AnnotationsAPIAsync`.
+
+    High-level API for interacting with annotations.
+
+    An annotation marks a time range on one or more assets. A data review annotation
+    carries a review state and an assignee. A phase annotation marks a segment of a run
+    and carries no state.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the AnnotationsAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def archive(self, annotation: str | Annotation) -> Annotation:
+        """Archive an annotation.
+
+        Args:
+            annotation: The Annotation or annotation ID to archive.
+
+        Returns:
+            The archived Annotation.
+        """
+        ...
+
+    def assign(self, annotation: str | Annotation, user: str) -> Annotation:
+        """Assign an annotation to a user for review.
+
+        Args:
+            annotation: The Annotation or annotation ID to assign.
+            user: The user ID to assign to.
+
+        Returns:
+            The updated Annotation.
+        """
+        ...
+
+    def batch_archive(self, annotations: list[str | Annotation]) -> None:
+        """Archive many annotations in one call.
+
+        Args:
+            annotations: The Annotations or annotation IDs to archive.
+        """
+        ...
+
+    def batch_unarchive(self, annotations: list[str | Annotation]) -> None:
+        """Unarchive many annotations in one call.
+
+        Args:
+            annotations: The Annotations or annotation IDs to unarchive.
+        """
+        ...
+
+    def create(self, create: AnnotationCreate | dict) -> Annotation:
+        """Create a new annotation.
+
+        Args:
+            create: The annotation definition. `assets` and `tags` take names, not IDs.
+
+        Returns:
+            The created Annotation.
+        """
+        ...
+
+    def create_phase(
+        self,
+        name: str,
+        start_time: datetime,
+        end_time: datetime,
+        *,
+        assets: list[str] | None = None,
+        channels: list[Channel] | None = None,
+        run: Run | str | None = None,
+        description: str | None = None,
+        tags: list[str] | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> Annotation:
+        """Mark a time range as a phase.
+
+        A phase labels a segment of a run. It carries no review state, so it has no
+        `state` argument.
+
+        Args:
+            name: The name of the phase.
+            start_time: When the phase starts.
+            end_time: When the phase ends.
+            assets: Asset names to associate. Derived from `channels` if omitted.
+            channels: Channels to draw the phase on.
+            run: The Run or run ID the phase belongs to.
+            description: A description of the phase.
+            tags: Tag names to apply.
+            metadata: User-defined metadata.
+
+        Returns:
+            The created Annotation.
+        """
+        ...
+
+    def create_review(
+        self,
+        name: str,
+        start_time: datetime,
+        end_time: datetime,
+        *,
+        assets: list[str] | None = None,
+        channels: list[Channel] | None = None,
+        run: Run | str | None = None,
+        description: str | None = None,
+        tags: list[str] | None = None,
+        state: AnnotationState | None = None,
+        assign_to: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> Annotation:
+        """Flag a time range for review.
+
+        The annotation must reach an asset. Pass `channels` and the asset comes from
+        them, or name the assets directly.
+
+        Args:
+            name: The name of the annotation.
+            start_time: When the range starts.
+            end_time: When the range ends.
+            assets: Asset names to associate. Derived from `channels` if omitted.
+            channels: Channels to draw the annotation on.
+            run: The Run or run ID the annotation belongs to.
+            description: A description of what to review.
+            tags: Tag names to apply.
+            state: The initial review state. Defaults to open.
+            assign_to: The user ID to assign the review to.
+            metadata: User-defined metadata.
+
+        Returns:
+            The created Annotation.
+        """
+        ...
+
+    def find(self, **kwargs) -> Annotation | None:
+        """Find one annotation. Takes the same arguments as `list_`.
+
+        Raises if more than one matches.
+
+        Args:
+            **kwargs: Keyword arguments to pass to `list_`.
+
+        Returns:
+            The Annotation found or None.
+        """
+        ...
+
+    def flag(self, annotation: str | Annotation) -> Annotation:
+        """Flag a review as needing attention.
+
+        Args:
+            annotation: The Annotation or annotation ID to flag.
+
+        Returns:
+            The updated Annotation.
+        """
+        ...
+
+    def get(self, annotation_id: str) -> Annotation:
+        """Get an Annotation.
+
+        Args:
+            annotation_id: The ID of the annotation.
+
+        Returns:
+            The Annotation.
+        """
+        ...
+
+    def list_(
+        self,
+        *,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        annotation_ids: list[str] | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        created_by: Any | str | None = None,
+        tags: list[str] | list[Tag] | None = None,
+        metadata: dict[str, Any] | None = None,
+        annotation_type: AnnotationType | None = None,
+        state: AnnotationState | None = None,
+        assigned_to: Any | str | None = None,
+        pending: bool | None = None,
+        assets: list[Asset] | list[str] | None = None,
+        runs: list[Run] | list[str] | None = None,
+        rule_ids: list[str] | None = None,
+        report_ids: list[str] | None = None,
+        start_time_after: datetime | None = None,
+        start_time_before: datetime | None = None,
+        end_time_after: datetime | None = None,
+        end_time_before: datetime | None = None,
+        description_contains: str | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[Annotation]:
+        """List annotations.
+
+        Args:
+            name: Exact name of the annotation.
+            names: List of annotation names to filter by.
+            name_contains: Partial name of the annotation.
+            name_regex: Regular expression to filter annotations by name.
+            annotation_ids: Filter to annotations with any of these IDs.
+            created_after: Filter annotations created after this datetime.
+            created_before: Filter annotations created before this datetime.
+            modified_after: Filter annotations modified after this datetime.
+            modified_before: Filter annotations modified before this datetime.
+            created_by: Filter annotations created by this user ID.
+            tags: Filter annotations with any of these Tags or tag names.
+            metadata: Filter annotations by metadata criteria.
+            annotation_type: Filter to DATA_REVIEW or PHASE annotations.
+            state: Filter to a review state.
+            assigned_to: Filter to annotations assigned to this user ID.
+            pending: Filter to annotations from an ongoing rule violation.
+            assets: Filter annotations on any of these Assets or asset IDs.
+            runs: Filter annotations on any of these Runs or run IDs.
+            rule_ids: Filter annotations created by any of these rules.
+            report_ids: Filter annotations belonging to any of these reports.
+            start_time_after: Filter annotations that start after this datetime.
+            start_time_before: Filter annotations that start before this datetime.
+            end_time_after: Filter annotations that end after this datetime.
+            end_time_before: Filter annotations that end before this datetime.
+            description_contains: Partial description of the annotation.
+            include_archived: If True, include archived annotations in results.
+            filter_query: Explicit CEL query to filter annotations.
+            order_by: Field and direction to order results by.
+            limit: Maximum number of annotations to return. If None, returns all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
+
+        Returns:
+            A list of Annotation objects that match the filter criteria.
+        """
+        ...
+
+    def reopen(self, annotation: str | Annotation) -> Annotation:
+        """Return a review to the open state.
+
+        Args:
+            annotation: The Annotation or annotation ID to reopen.
+
+        Returns:
+            The updated Annotation.
+        """
+        ...
+
+    def resolve(self, annotation: str | Annotation) -> Annotation:
+        """Close out a review as resolved.
+
+        Args:
+            annotation: The Annotation or annotation ID to resolve.
+
+        Returns:
+            The updated Annotation.
+        """
+        ...
+
+    def unarchive(self, annotation: str | Annotation) -> Annotation:
+        """Unarchive an annotation.
+
+        Args:
+            annotation: The Annotation or annotation ID to unarchive.
+
+        Returns:
+            The unarchived Annotation.
+        """
+        ...
+
+    def update(self, annotation: str | Annotation, update: AnnotationUpdate | dict) -> Annotation:
+        """Update an Annotation.
+
+        `tags`, `linked_channels`, and `metadata` are replaced, not merged.
+
+        Args:
+            annotation: The Annotation or annotation ID to update.
+            update: Updates to apply to the Annotation.
+
+        Returns:
+            The updated Annotation.
+        """
+        ...
+    @property
+    def logs(self) -> AnnotationLogsAPI:
+        """Nested AnnotationLogsAPI for making synchronous requests."""
+        ...
 
 class AssetsAPI:
     """Sync counterpart to `AssetsAPIAsync`.

@@ -9,6 +9,8 @@ from sift_client._internal.urls import frontend_origin_for_api
 from sift_client.credentials import ResolvedCredentials, resolve_credentials
 from sift_client.errors import SiftWarning
 from sift_client.resources import (
+    AnnotationsAPI,
+    AnnotationsAPIAsync,
     AssetsAPI,
     AssetsAPIAsync,
     CalculatedChannelsAPI,
@@ -100,6 +102,9 @@ class SiftClient(
 
     ping: PingAPI
     """Instance of the Ping API for making synchronous requests."""
+
+    annotations: AnnotationsAPI
+    """Instance of the Annotations API for making synchronous requests."""
 
     assets: AssetsAPI
     """Instance of the Assets API for making synchronous requests."""
@@ -234,6 +239,7 @@ class SiftClient(
         self.cache = CacheNamespace(self)
 
         self.ping = PingAPI(self)
+        self.annotations = AnnotationsAPI(self)
         self.assets = AssetsAPI(self)
         self.calculated_channels = CalculatedChannelsAPI(self)
         self.channels = ChannelsAPI(self)
@@ -255,6 +261,7 @@ class SiftClient(
         # Accessor for the asynchronous APIs
         self.async_ = AsyncAPIs(
             ping=PingAPIAsync(self),
+            annotations=AnnotationsAPIAsync(self),
             assets=AssetsAPIAsync(self),
             calculated_channels=CalculatedChannelsAPIAsync(self),
             channels=ChannelsAPIAsync(self),
