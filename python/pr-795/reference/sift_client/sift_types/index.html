@@ -29894,8 +29894,7 @@ internal state with the updated values from the API.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Fetch the Runs behind this campaign's reports.</p>
-<p>A campaign holds reports, so a report with no run is skipped.</p>
+        <p>Fetch the Runs behind this campaign's reports. Reports with no run are skipped.</p>
 
     </div>
 
@@ -29922,9 +29921,8 @@ internal state with the updated values from the API.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Get this campaign's reports with their rule counts populated.</p>
-<p>Ordered to match <code>report_ids</code>. The service returns them in no fixed order, so
-it would otherwise vary between calls.</p>
+        <p>Get this campaign's reports with their rule counts, ordered to match <code>report_ids</code>.</p>
+<p>The service returns them in no fixed order, so this would otherwise vary.</p>
 
 
     </div>
@@ -30838,7 +30836,8 @@ what <code>get_or_create</code> matches on.</p>
 
         <p>Update model for Campaign.</p>
 <p><code>reports</code> replaces the campaign's report list. Prefer <code>campaigns.add_reports</code> or
-<code>campaigns.add_runs</code>, which read the current list first.</p>
+<code>campaigns.add_runs</code>, which read the current list first. <code>tags</code> is unordered, so it
+may come back in a different order.</p>
 
     
 
@@ -31108,8 +31107,6 @@ what <code>get_or_create</code> matches on.</p>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
-
-        <p><code>tags</code> is unordered, so the server may return it in a different order.</p>
 
     </div>
 
