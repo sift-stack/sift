@@ -258,8 +258,37 @@ class Annotation(BaseType[AnnotationProto, "Annotation"]):
         return self.update({"assigned_to_user_id": user})
 
     def resolve(self) -> Annotation:
-        """Mark the annotation resolved."""
-        return self.update({"state": AnnotationState.RESOLVED})
+        """Close out the review as resolved."""
+        return self._set_state(AnnotationState.RESOLVED)
+
+    def flag(self) -> Annotation:
+        """Flag the review as needing attention."""
+        return self._set_state(AnnotationState.FLAGGED)
+
+    def reopen(self) -> Annotation:
+        """Return the review to the open state."""
+        return self._set_state(AnnotationState.OPEN)
+
+    def _set_state(self, state: AnnotationState) -> Annotation:
+        """Move to a review state, skipping the call if already there.
+
+        The server rejects a redundant state change with INVALID_ARGUMENT, so calling
+        `resolve` twice would fail without this.
+        """
+        if self.state is state:
+            return self
+        return self.update({"state": state})
+
+    def comment(self, text: str | list[AnnotationCommentElement]) -> AnnotationLog:
+        """Add a comment to the annotation.
+
+        Args:
+            text: Plain text, or a list of elements to mix text with user mentions.
+
+        Returns:
+            The created AnnotationLog.
+        """
+        return self.client.annotations.logs.comment(self, text)
 
 
 class AnnotationBase(ModelCreateUpdateBase):

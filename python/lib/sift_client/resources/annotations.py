@@ -8,6 +8,7 @@ from sift_client.sift_types.annotation import (
     Annotation,
     AnnotationCommentElement,
     AnnotationCreate,
+    AnnotationLinkedChannel,
     AnnotationLog,
     AnnotationLogKind,
     AnnotationLogState,
@@ -24,6 +25,7 @@ if TYPE_CHECKING:
 
     from sift_client.client import SiftClient
     from sift_client.sift_types.asset import Asset
+    from sift_client.sift_types.channel import Channel
     from sift_client.sift_types.tag import Tag
 
 
@@ -136,8 +138,8 @@ class AnnotationLogsAPIAsync(ResourceBase):
     async def record_assignment(self, annotation: str | Annotation, user: str) -> AnnotationLog:
         """Record that an annotation was assigned to a user.
 
-        This writes a history entry only. Use `annotations.assign` to change the
-        annotation.
+        This writes a history entry and nothing else. `annotations.assign` already
+        writes one, so you rarely need this.
 
         Args:
             annotation: The Annotation or annotation ID.
@@ -160,8 +162,8 @@ class AnnotationLogsAPIAsync(ResourceBase):
     ) -> AnnotationLog:
         """Record a state change on an annotation.
 
-        This writes a history entry only. Use `annotations.update` to change the
-        annotation.
+        This writes a history entry and nothing else. It leaves the state alone, so
+        use `annotations.resolve`, `flag`, or `reopen` to change it.
 
         Args:
             annotation: The Annotation or annotation ID.
@@ -393,6 +395,141 @@ class AnnotationsAPIAsync(ResourceBase):
         created = await self._low_level_client.create_annotation(create=create)
         return self._apply_client_to_instance(created)
 
+    async def create_review(
+        self,
+        name: str,
+        start_time: datetime,
+        end_time: datetime,
+        *,
+        assets: list[str] | None = None,
+        channels: list[Channel] | None = None,
+        run: Run | str | None = None,
+        description: str | None = None,
+        tags: list[str] | None = None,
+        state: AnnotationState | None = None,
+        assign_to: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> Annotation:
+        """Flag a time range for review.
+
+        The annotation must reach an asset. Pass `channels` and the asset comes from
+        them, or name the assets directly.
+
+        Args:
+            name: The name of the annotation.
+            start_time: When the range starts.
+            end_time: When the range ends.
+            assets: Asset names to associate. Derived from `channels` if omitted.
+            channels: Channels to draw the annotation on.
+            run: The Run or run ID the annotation belongs to.
+            description: A description of what to review.
+            tags: Tag names to apply.
+            state: The initial review state. Defaults to open.
+            assign_to: The user ID to assign the review to.
+            metadata: User-defined metadata.
+
+        Returns:
+            The created Annotation.
+        """
+        return await self._create_typed(
+            AnnotationType.DATA_REVIEW,
+            name=name,
+            start_time=start_time,
+            end_time=end_time,
+            assets=assets,
+            channels=channels,
+            run=run,
+            description=description,
+            tags=tags,
+            state=state,
+            assign_to=assign_to,
+            metadata=metadata,
+        )
+
+    async def create_phase(
+        self,
+        name: str,
+        start_time: datetime,
+        end_time: datetime,
+        *,
+        assets: list[str] | None = None,
+        channels: list[Channel] | None = None,
+        run: Run | str | None = None,
+        description: str | None = None,
+        tags: list[str] | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> Annotation:
+        """Mark a time range as a phase.
+
+        A phase labels a segment of a run. It carries no review state, so it has no
+        `state` argument.
+
+        Args:
+            name: The name of the phase.
+            start_time: When the phase starts.
+            end_time: When the phase ends.
+            assets: Asset names to associate. Derived from `channels` if omitted.
+            channels: Channels to draw the phase on.
+            run: The Run or run ID the phase belongs to.
+            description: A description of the phase.
+            tags: Tag names to apply.
+            metadata: User-defined metadata.
+
+        Returns:
+            The created Annotation.
+        """
+        return await self._create_typed(
+            AnnotationType.PHASE,
+            name=name,
+            start_time=start_time,
+            end_time=end_time,
+            assets=assets,
+            channels=channels,
+            run=run,
+            description=description,
+            tags=tags,
+            metadata=metadata,
+        )
+
+    async def _create_typed(
+        self,
+        annotation_type: AnnotationType,
+        *,
+        name: str,
+        start_time: datetime,
+        end_time: datetime,
+        assets: list[str] | None,
+        channels: list[Channel] | None,
+        run: Run | str | None,
+        description: str | None,
+        tags: list[str] | None,
+        metadata: dict[str, Any] | None,
+        state: AnnotationState | None = None,
+        assign_to: str | None = None,
+    ) -> Annotation:
+        linked = [AnnotationLinkedChannel(channel_id=c._id_or_error) for c in channels or []]
+        if not assets and channels:
+            asset_ids = {c.asset_id for c in channels if c.asset_id}
+            assets = [
+                a.name for a in await self.client.async_.assets.list_(asset_ids=list(asset_ids))
+            ]
+        return await self.create(
+            AnnotationCreate(
+                name=name,
+                start_time=start_time,
+                end_time=end_time,
+                annotation_type=annotation_type,
+                assets=assets,
+                linked_channels=linked or None,
+                run_id=run._id_or_error if isinstance(run, Run) else run,
+                description=description,
+                tags=tags,
+                state=state,
+                assign_to_user_id=assign_to,
+                metadata=metadata,
+            )
+        )
+
     async def update(
         self, annotation: str | Annotation, update: AnnotationUpdate | dict
     ) -> Annotation:
@@ -475,3 +612,46 @@ class AnnotationsAPIAsync(ResourceBase):
             The updated Annotation.
         """
         return await self.update(annotation, AnnotationUpdate(assigned_to_user_id=user))
+
+    async def _set_state(self, annotation: str | Annotation, state: AnnotationState) -> Annotation:
+        """Move an annotation to a review state, skipping the call if already there.
+
+        The server rejects a redundant state change with INVALID_ARGUMENT. The state is
+        only known without a fetch when an Annotation was passed rather than an ID.
+        """
+        if isinstance(annotation, Annotation) and annotation.state is state:
+            return annotation
+        return await self.update(annotation, AnnotationUpdate(state=state))
+
+    async def resolve(self, annotation: str | Annotation) -> Annotation:
+        """Close out a review as resolved.
+
+        Args:
+            annotation: The Annotation or annotation ID to resolve.
+
+        Returns:
+            The updated Annotation.
+        """
+        return await self._set_state(annotation, AnnotationState.RESOLVED)
+
+    async def flag(self, annotation: str | Annotation) -> Annotation:
+        """Flag a review as needing attention.
+
+        Args:
+            annotation: The Annotation or annotation ID to flag.
+
+        Returns:
+            The updated Annotation.
+        """
+        return await self._set_state(annotation, AnnotationState.FLAGGED)
+
+    async def reopen(self, annotation: str | Annotation) -> Annotation:
+        """Return a review to the open state.
+
+        Args:
+            annotation: The Annotation or annotation ID to reopen.
+
+        Returns:
+            The updated Annotation.
+        """
+        return await self._set_state(annotation, AnnotationState.OPEN)
