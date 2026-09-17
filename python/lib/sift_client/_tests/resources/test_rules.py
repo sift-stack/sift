@@ -81,7 +81,7 @@ def new_rule(rules_api_sync, sift_client):
                 ChannelReference(channel_reference="$1", channel_identifier=channels[0].name),
                 ChannelReference(channel_reference="$2", channel_identifier=channels[1].name),
             ],
-            action=RuleAction.annotation(
+            action=RuleAction.for_annotation(
                 annotation_type=RuleAnnotationType.DATA_REVIEW,
                 tags=[],
             ),
@@ -376,7 +376,7 @@ class TestRulesAPIAsync:
                     ChannelReference(channel_reference="$1", channel_identifier=channels[0].name),
                     ChannelReference(channel_reference="$2", channel_identifier=channels[1].name),
                 ],
-                action=RuleAction.annotation(
+                action=RuleAction.for_annotation(
                     annotation_type=RuleAnnotationType.DATA_REVIEW,
                     tags=[],
                 ),
@@ -512,10 +512,10 @@ class TestRulesAPIAsync:
             try:
                 # Update the action with new annotation type, tags, and assignee
                 update = RuleUpdate(
-                    action=RuleAction.annotation(
+                    action=RuleAction.for_annotation(
                         annotation_type=RuleAnnotationType.PHASE,
                         tags=[ci_pytest_tag],
-                        default_assignee_user=new_rule.created_by_user_id,
+                        assignee=new_rule.created_by_user_id,
                     ),
                 )
                 updated_rule = await rules_api_async.update(new_rule, update)
@@ -524,8 +524,8 @@ class TestRulesAPIAsync:
                 assert updated_rule.id_ == new_rule.id_
                 assert updated_rule.action.action_type == RuleActionType.ANNOTATION
                 assert updated_rule.action.annotation_type == RuleAnnotationType.PHASE
-                assert set(updated_rule.action.tags_ids) == {ci_pytest_tag.id_}
-                assert updated_rule.action.default_assignee_user == new_rule.created_by_user_id
+                assert set(updated_rule.action.tags) == {ci_pytest_tag.id_}
+                assert updated_rule.action.assignee == new_rule.created_by_user_id
 
                 # Verify other fields remain unchanged
                 assert updated_rule.name == new_rule.name
@@ -551,7 +551,7 @@ class TestRulesAPIAsync:
                 channel_references=[
                     ChannelReference(channel_reference="$1", channel_identifier=channels[0].name),
                 ],
-                action=RuleAction.annotation(
+                action=RuleAction.for_annotation(
                     annotation_type=RuleAnnotationType.DATA_REVIEW,
                     tags=[test_tag],
                 ),
@@ -604,7 +604,7 @@ class TestRulesAPIAsync:
                     ChannelReference(channel_reference="$1", channel_identifier=channels[0].name),
                     ChannelReference(channel_reference="$2", channel_identifier=channels[1].name),
                 ],
-                action=RuleAction.annotation(
+                action=RuleAction.for_annotation(
                     annotation_type=RuleAnnotationType.DATA_REVIEW,
                     tags=[test_tag],
                 ),
@@ -749,7 +749,7 @@ class TestRulesAPIAsync:
                         ChannelReference(channel_reference="$1", channel_identifier="channel1"),
                         ChannelReference(channel_reference="$2", channel_identifier="channel2"),
                     ],
-                    action=RuleAction.annotation(
+                    action=RuleAction.for_annotation(
                         annotation_type=RuleAnnotationType.DATA_REVIEW,
                         tags=[],
                     ),
@@ -766,7 +766,7 @@ class TestRulesAPIAsync:
                     channel_references=[
                         ChannelReference(channel_reference="$1", channel_identifier="channel1"),
                     ],
-                    action=RuleAction.annotation(
+                    action=RuleAction.for_annotation(
                         annotation_type=RuleAnnotationType.DATA_REVIEW,
                         tags=[],
                     ),
@@ -813,7 +813,7 @@ class TestRulesAPIAsync:
                     ChannelReference(channel_reference="$1", channel_identifier="channel1"),
                     ChannelReference(channel_reference="$2", channel_identifier="channel2"),
                 ],
-                action=RuleAction.annotation(
+                action=RuleAction.for_annotation(
                     annotation_type=RuleAnnotationType.DATA_REVIEW,
                     tags=[],
                 ),
@@ -828,7 +828,7 @@ class TestRulesAPIAsync:
                 channel_references=[
                     ChannelReference(channel_reference="$1", channel_identifier="channel1"),
                 ],
-                action=RuleAction.annotation(
+                action=RuleAction.for_annotation(
                     annotation_type=RuleAnnotationType.DATA_REVIEW,
                     tags=[],
                 ),

@@ -181,6 +181,7 @@ from sift_client.resources.runs import RunsAPIAsync
 from sift_client.resources.tags import TagsAPIAsync
 from sift_client.resources.test_results import TestResultsAPIAsync
 from sift_client.resources.users import UsersAPIAsync
+from sift_client.resources.webhooks import WebhooksAPIAsync
 from sift_client.resources.data_imports import DataImportAPIAsync
 from sift_client.resources.exports import DataExportAPIAsync
 
@@ -206,6 +207,7 @@ from sift_client.resources.sync_stubs import (
     TagsAPI,
     TestResultsAPI,
     UsersAPI,
+    WebhooksAPI,
     FileAttachmentsAPI,
     DataExportAPI,
     DataImportAPI,
@@ -267,6 +269,8 @@ __all__ = [
     "TracingConfig",
     "UsersAPI",
     "UsersAPIAsync",
+    "WebhooksAPI",
+    "WebhooksAPIAsync",
     "DataExportAPI",
     "DataExportAPIAsync",
     "DataImportAPI",

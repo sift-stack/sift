@@ -5,6 +5,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### What's New
+
+#### Webhooks API
+
+New `client.webhooks` resource, and `RuleAction.for_webhook(...)` to attach a webhook to a rule.
+
 ## [v0.21.0] - September 4, 2026
 
 ### What's New

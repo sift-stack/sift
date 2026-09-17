@@ -35,7 +35,7 @@ def test_rule(sift_client, nostromo_asset, ci_pytest_tag):
                         channel_reference="$1", channel_identifier="mainmotor.velocity"
                     ),
                 ],
-                "action": RuleAction.annotation(
+                "action": RuleAction.for_annotation(
                     annotation_type=RuleAnnotationType.DATA_REVIEW,
                     tags=[ci_pytest_tag],
                 ),

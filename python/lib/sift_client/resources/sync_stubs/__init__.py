@@ -27,6 +27,7 @@ from sift_client.resources import (
     TagsAPIAsync,
     TestResultsAPIAsync,
     UsersAPIAsync,
+    WebhooksAPIAsync,
 )
 
 PingAPI = generate_sync_api(PingAPIAsync, "PingAPI")
@@ -83,6 +84,7 @@ PrincipalAttributesAPI = generate_sync_api(
 TagsAPI = generate_sync_api(TagsAPIAsync, "TagsAPI")
 TestResultsAPI = generate_sync_api(TestResultsAPIAsync, "TestResultsAPI")
 UsersAPI = generate_sync_api(UsersAPIAsync, "UsersAPI")
+WebhooksAPI = generate_sync_api(WebhooksAPIAsync, "WebhooksAPI")
 DataExportAPI = generate_sync_api(DataExportAPIAsync, "DataExportAPI")
 DataImportAPI = generate_sync_api(DataImportAPIAsync, "DataImportAPI")
 
@@ -110,4 +112,5 @@ __all__ = [
     "TagsAPI",
     "TestResultsAPI",
     "UsersAPI",
+    "WebhooksAPI",
 ]
