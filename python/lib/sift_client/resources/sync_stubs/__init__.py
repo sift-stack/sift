@@ -6,6 +6,7 @@ from sift_client._internal.sync_wrapper import generate_sync_api
 from sift_client.resources import (
     AssetsAPIAsync,
     CalculatedChannelsAPIAsync,
+    CampaignsAPIAsync,
     ChannelsAPIAsync,
     DataExportAPIAsync,
     DataImportAPIAsync,
@@ -32,6 +33,7 @@ from sift_client.resources import (
 PingAPI = generate_sync_api(PingAPIAsync, "PingAPI")
 AssetsAPI = generate_sync_api(AssetsAPIAsync, "AssetsAPI")
 CalculatedChannelsAPI = generate_sync_api(CalculatedChannelsAPIAsync, "CalculatedChannelsAPI")
+CampaignsAPI = generate_sync_api(CampaignsAPIAsync, "CampaignsAPI")
 ChannelsAPI = generate_sync_api(ChannelsAPIAsync, "ChannelsAPI")
 FileAttachmentsAPI = generate_sync_api(FileAttachmentsAPIAsync, "FileAttachmentsAPI")
 JobsAPI = generate_sync_api(JobsAPIAsync, "JobsAPI")
@@ -89,6 +91,7 @@ DataImportAPI = generate_sync_api(DataImportAPIAsync, "DataImportAPI")
 __all__ = [
     "AssetsAPI",
     "CalculatedChannelsAPI",
+    "CampaignsAPI",
     "ChannelsAPI",
     "DataExportAPI",
     "DataImportAPI",
