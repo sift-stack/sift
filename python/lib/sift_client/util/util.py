@@ -6,6 +6,7 @@ if TYPE_CHECKING:
     from sift_client.resources import (
         AssetsAPIAsync,
         CalculatedChannelsAPIAsync,
+        CampaignsAPIAsync,
         ChannelsAPIAsync,
         DataExportAPIAsync,
         DataImportAPIAsync,
@@ -34,6 +35,9 @@ class AsyncAPIs(NamedTuple):
 
     calculated_channels: CalculatedChannelsAPIAsync
     """Instance of the Calculated Channels API for making asynchronous requests."""
+
+    campaigns: CampaignsAPIAsync
+    """Instance of the Campaigns API for making asynchronous requests."""
 
     channels: ChannelsAPIAsync
     """Instance of the Channels API for making asynchronous requests."""

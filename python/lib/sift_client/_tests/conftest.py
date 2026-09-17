@@ -84,6 +84,7 @@ def mock_client():
     client.runs = MagicMock()
     client.channels = MagicMock()
     client.calculated_channels = MagicMock()
+    client.campaigns = MagicMock()
     client.rules = MagicMock()
     client.access_control = MagicMock()
     client.tags = MagicMock()
