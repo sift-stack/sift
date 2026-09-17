@@ -131,6 +131,18 @@ asset.update({"tags": ["new-tag"]})  # Updates the instance in-place
 
 import sys
 
+from sift_client.sift_types.annotation import (
+    Annotation,
+    AnnotationCommentElement,
+    AnnotationCreate,
+    AnnotationLinkedChannel,
+    AnnotationLog,
+    AnnotationLogKind,
+    AnnotationLogState,
+    AnnotationState,
+    AnnotationType,
+    AnnotationUpdate,
+)
 from sift_client.sift_types.asset import Asset, AssetUpdate
 from sift_client.sift_types.calculated_channel import (
     CalculatedChannel,
@@ -234,6 +246,16 @@ if "pytest" in sys.modules:
     TestReportUpdate.__test__ = False  # type: ignore
 
 __all__ = [
+    "Annotation",
+    "AnnotationCommentElement",
+    "AnnotationCreate",
+    "AnnotationLinkedChannel",
+    "AnnotationLog",
+    "AnnotationLogKind",
+    "AnnotationLogState",
+    "AnnotationState",
+    "AnnotationType",
+    "AnnotationUpdate",
     "Asset",
     "AssetUpdate",
     "CalculatedChannel",

@@ -5,6 +5,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+- Added `client.annotations` for data reviews, phases, and review history.
+
 ### What's New
 
 #### MCAP imports
