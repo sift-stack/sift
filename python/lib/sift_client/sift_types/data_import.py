@@ -1148,7 +1148,7 @@ class McapImportConfig(ImportConfigBase):
             complex_types_import_mode=self.complex_types_import_mode.value,
         )
         if self.relative_start_time is not None:
-            proto.relative_start_time.CopyFrom(to_pb_timestamp(self.relative_start_time))
+            proto.relative_start_time.CopyFrom(to_timestamp_pb(self.relative_start_time))
 
         mode = self.complex_types_import_mode
         # Channel names are unique per asset and compare case-insensitively.

@@ -5,6 +5,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### What's New
+
 #### MCAP imports
 
 `client.data_import` now supports MCAP (`.mcap`) files with ROS 2 (`ros2msg`/`cdr`) topics.
