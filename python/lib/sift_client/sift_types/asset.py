@@ -8,7 +8,7 @@ from sift.assets.v1.assets_pb2 import Asset as AssetProto
 from sift_client.sift_types._base import BaseType, MappingHelper, ModelUpdate
 from sift_client.sift_types._mixins.file_attachments import FileAttachmentsMixin
 from sift_client.sift_types.tag import Tag
-from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
+from sift_client.util.metadata import Metadata, metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -29,7 +29,7 @@ class Asset(BaseType[AssetProto, "Asset"], FileAttachmentsMixin):
     tags: list[str | Tag]
     # NOTE: update() replaces this map wholesale. See TODO(metadata-mixin) in
     # sift_types/_mixins/metadata.py before adding keys at runtime.
-    metadata: dict[str, str | float | bool]
+    metadata: Metadata
     is_archived: bool
 
     # Optional fields

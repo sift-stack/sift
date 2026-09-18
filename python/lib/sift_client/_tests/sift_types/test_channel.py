@@ -7,6 +7,7 @@ import pytest
 
 from sift_client.sift_types import Channel
 from sift_client.sift_types.channel import ChannelDataType, ChannelReference, ChannelUpdate
+from sift_client.util.metadata import Metadata
 
 
 def _make_channel(
@@ -26,7 +27,7 @@ def _make_channel(
         bit_field_elements=[],
         enum_types={},
         asset_id="test_asset_id",
-        metadata={},
+        metadata=Metadata(),
         is_archived=is_archived,
         created_date=datetime.now(timezone.utc),
         modified_date=datetime.now(timezone.utc),
