@@ -96,7 +96,9 @@ mod tests {
         let mut response = String::new();
         reader.read_line(&mut response).await.unwrap();
         let init_response: Value = serde_json::from_str(&response).unwrap();
-        assert_eq!(init_response["result"]["protocolVersion"], "2026-07-28");
+        // `2026-07-28` has no `initialize` handshake, so rmcp negotiates a
+        // client that names it there down to the newest legacy version.
+        assert_eq!(init_response["result"]["protocolVersion"], "2025-11-25");
         assert_eq!(
             init_response["result"]["instructions"],
             "profile needs app_uri"

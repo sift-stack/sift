@@ -213,3 +213,88 @@ pub async fn test_live_only_retries_exhausted() {
         "test server shutdown failed unexpectedly"
     );
 }
+
+/// With retries disabled the ingestion task must not open a replacement stream. It reports the
+/// first failure instead, which closes the caller's channel and surfaces from `finish`.
+#[tokio::test]
+pub async fn test_live_only_retries_disabled() {
+    let return_error = Arc::new(AtomicBool::new(true));
+
+    let num_messages_received = Arc::new(AtomicU32::default());
+    let num_streams_opened = Arc::new(AtomicU32::default());
+
+    let ingest_service = IngestServiceMock {
+        num_stream_opened: num_streams_opened.clone(),
+        num_messages_received: num_messages_received.clone(),
+        return_error: return_error.clone(),
+    };
+
+    let (client, server) = common::start_test_ingest_server(ingest_service).await;
+
+    let flows = vec![FlowConfig {
+        name: "flow-0".to_string(),
+        channels: vec![ChannelConfig {
+            name: "generator".to_string(),
+            data_type: ChannelDataType::Double.into(),
+            ..Default::default()
+        }],
+    }];
+
+    let mut sift_stream = SiftStreamBuilder::from_channel(client)
+        .ingestion_config(IngestionConfigForm {
+            asset_name: "test_asset".to_string(),
+            client_key: "test_client_key".to_string(),
+            flows,
+        })
+        .live_only()
+        .retry_policy(None)
+        .metrics_streaming_interval(None)
+        .build()
+        .await
+        .expect("failed to build sift stream");
+
+    // The ingestion task stops on the first stream failure, which drops the receiver and
+    // closes the channel for the caller.
+    let mut send_failed = false;
+    for _ in 0..100 {
+        let msg = Flow::new(
+            "flow",
+            TimeValue::from(Local::now().to_utc()),
+            &[ChannelValue::new("generator", 1.0)],
+        );
+        if sift_stream.send(msg).await.is_err() {
+            send_failed = true;
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    assert!(
+        send_failed,
+        "the ingestion channel should close once the ingestion task stops"
+    );
+
+    // Well past the default initial backoff, so a retrying task would have reconnected.
+    tokio::time::sleep(Duration::from_millis(500)).await;
+
+    assert_eq!(
+        num_streams_opened.load(Ordering::Relaxed),
+        1,
+        "a disabled retry policy must not open a replacement stream"
+    );
+    assert_eq!(
+        num_messages_received.load(Ordering::Relaxed),
+        0,
+        "the server never accepted a stream, so it received nothing"
+    );
+
+    let err = sift_stream
+        .finish()
+        .await
+        .expect_err("finish must surface the stream failure that stopped ingestion");
+    assert_eq!(err.kind(), ErrorKind::StreamError);
+
+    assert!(
+        server.await.is_ok(),
+        "test server shutdown failed unexpectedly"
+    );
+}

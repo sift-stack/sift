@@ -23,16 +23,28 @@ fn list_params_accept_empty_filter() {
 }
 
 #[test]
-fn url_clause_present_renders_view_link() {
+fn url_clause_with_name_renders_a_named_markdown_link() {
     assert_eq!(
-        url_clause(Some("https://app.siftstack.com/rules/r-1")),
-        " View it in Sift: https://app.siftstack.com/rules/r-1"
+        url_clause(
+            "rule",
+            Some("Undervoltage"),
+            Some("https://app.siftstack.com/rules/r-1")
+        ),
+        " Present it to the user as the Markdown link [Undervoltage](https://app.siftstack.com/rules/r-1)."
     );
 }
 
 #[test]
+fn url_clause_without_name_asks_the_model_to_name_the_entity() {
+    let clause = url_clause("rule", None, Some("https://app.siftstack.com/rules/r-1"));
+    assert!(clause.contains("Markdown link to https://app.siftstack.com/rules/r-1"));
+    assert!(clause.contains("rule's name"));
+    assert!(clause.contains("never a bare id"));
+}
+
+#[test]
 fn url_clause_none_is_empty() {
-    assert_eq!(url_clause(None), "");
+    assert_eq!(url_clause("rule", Some("Undervoltage"), None), "");
 }
 
 #[test]

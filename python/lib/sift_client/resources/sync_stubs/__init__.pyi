@@ -493,8 +493,8 @@ class ChannelsAPI:
         *,
         channels: list[Channel],
         run: Run | str | None = None,
-        start_time: datetime | None = None,
-        end_time: datetime | None = None,
+        start_time: pd.Timestamp | datetime | None = None,
+        end_time: pd.Timestamp | datetime | None = None,
         limit: int | None = None,
         page_size: int | None = None,
         ignore_cache: bool = False,
@@ -505,8 +505,11 @@ class ChannelsAPI:
         Args:
             channels: The channels to get data for.
             run: The Run or run_id to get data for.
-            start_time: The start time to get data for.
-            end_time: The end time to get data for.
+            start_time: The start time to get data for, inclusive. Pass a
+                ``pd.Timestamp`` to bound the query at nanosecond
+                resolution; a ``datetime`` bounds it at microseconds.
+            end_time: The end time to get data for, exclusive. Same
+                resolution rule as ``start_time``.
             limit: The maximum number of data points to return. Will be in increments of page_size or default page size defined by the call if no page_size is provided.
             page_size: Number of data points to fetch per request. Defaults to 10,000.
                 The server caps this at 1,000,000; values above that are coerced down.
@@ -526,8 +529,8 @@ class ChannelsAPI:
         *,
         channels: list[Channel],
         run: Run | str | None = None,
-        start_time: datetime | None = None,
-        end_time: datetime | None = None,
+        start_time: pd.Timestamp | datetime | None = None,
+        end_time: pd.Timestamp | datetime | None = None,
         limit: int | None = None,
         page_size: int | None = None,
         ignore_cache: bool = False,

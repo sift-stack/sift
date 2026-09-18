@@ -22,7 +22,7 @@ use crate::{
         data::{ChannelInput, DataService, NoChannelData, TimeRange},
         ingest::RunForm,
     },
-    tool::common::MetadataEntry,
+    tool::common::{MetadataEntry, url_clause},
 };
 
 #[cfg(test)]
@@ -117,6 +117,10 @@ impl SiftMcpServer {
               - `unresolved_calculated_channels` (`[{ \"name\", \"reason\" }]`) is present when a requested name
                 reached calculated-channel resolution and could not be served. It carries the reason for every
                 name in `unmatched_channel_names`.
+              - `sample_ms_applied` and `decimated` report what the service actually sampled at, which is not
+                always what was requested: `sample_ms` is ignored for data types that cannot be sampled. Both
+                keys are ALWAYS present; `sample_ms_applied` is null when no page reported a rate.
+                `mixed_sample_rates` appears when some channels came back decimated and others raw.
 
             Parameters:
               - `asset_name`: optional, exact asset name (not a pattern). Mutually exclusive with `asset_id`;
@@ -127,7 +131,13 @@ impl SiftMcpServer {
               - `run_name`: optional, exact run name within the asset. When provided, the run's start/stop bounds are
                 used as the time range; `start_time_unix_nanos` and/or `end_time_unix_nanos` may narrow either side.
                 When omitted, BOTH `start_time_unix_nanos` and `end_time_unix_nanos` are required.
-              - `sample_ms`: decimation interval in milliseconds. Use `0` for raw samples; larger values reduce volume.
+              - `sample_ms`: decimation interval in milliseconds. Set this to `0` unless the data will be used
+                EXCLUSIVELY to generate a visualization. Decimation applies LTTB, which selects shape-defining
+                extremes rather than representative samples: counts, means, standard deviations and trends
+                computed on decimated output are wrong, and the error depends on where bucket boundaries fall,
+                so it cannot be corrected afterwards. Extremes usually survive but are not guaranteed to.
+                If a raw result would be too large, narrow the time range or the channel set and issue
+                successive calls — do not decimate to reduce volume.
               - `channel_names`: optional array of exact channel names. Mutually exclusive with `channel_regex`;
                 exactly one of the two MUST be set. Prefer this form when the set is known — it's more predictable.
                 A name with no raw channel on the asset is resolved as an active saved calculated channel and
@@ -165,7 +175,12 @@ impl SiftMcpServer {
               - Data is buffered in memory until size/row thresholds are hit, so very large time ranges or wide
                 channel sets can be slow or memory-heavy. For large pulls, split the time range into successive calls
                 with disjoint `[start, end)` windows.
-              - Use `sample_ms > 0` for overview/summary work; reserve `sample_ms = 0` for cases that need raw fidelity.
+              - Analysis needs `sample_ms = 0`. Reserve `sample_ms > 0` for data used exclusively to draw a
+                picture, and prefer `explore_url` over `get_data` entirely when that is the goal. An overview,
+                a summary and a quick look are all analysis: they end in numbers, and numbers taken off
+                decimated data are wrong.
+              - The result reports `sample_ms_applied` and `decimated`. Check them before quoting any statistic:
+                a non-zero applied rate means means, standard deviations and trends from that file are not valid.
               - A successful call does NOT mean every requested channel is in the file. Check
                 `unmatched_channel_names` and `empty_channels` before reporting the result or aggregating over it,
                 and check the same two keys on the error's `data` when a call fails.
@@ -463,8 +478,30 @@ impl SiftMcpServer {
             ));
         }
 
+        let applied = data_output.applied_sample_ms;
+
         let mut next_step =
             format!("Wrote channel data to `{output_str}`. Inform the user where the data lives.");
+        // The caller asked for a rate; the service reports what it actually
+        // applied, and the two are not the same thing for a data type it cannot
+        // sample. Saying so here is the difference between an agent that knows
+        // its file is decimated and one that quotes a standard deviation off it.
+        if applied.decimated() {
+            next_step.push_str(
+                " This data is DECIMATED, not raw. It was sampled with LTTB, which selects \
+                 shape-defining extremes rather than representative samples: counts, means, \
+                 standard deviations and trends computed from this file are wrong. Use it only to \
+                 draw a picture. To analyse, call again with `sample_ms = 0`, narrowing the time \
+                 range or channel set if the raw result would be too large.",
+            );
+            if applied.mixed() {
+                next_step.push_str(
+                    " Note that not every channel was decimated: the service ignores `sample_ms` \
+                     for data types it cannot sample, so this file mixes decimated and raw \
+                     columns.",
+                );
+            }
+        }
         // Without this the agent reads a plain success and reports a partial
         // fetch as a complete one, because a channel with no column is
         // indistinguishable from one that was never requested.
@@ -498,6 +535,17 @@ impl SiftMcpServer {
             "empty_channels".to_string(),
             string_array(data_output.empty_channels),
         );
+        // What the service sampled at, not what was requested. Always present so
+        // "raw" and "this tool never checked" cannot be confused, for the same
+        // reason the two keys above are.
+        body.insert(
+            "sample_ms_applied".to_string(),
+            applied.highest().map_or(Value::Null, Value::from),
+        );
+        body.insert("decimated".to_string(), Value::from(applied.decimated()));
+        if applied.mixed() {
+            body.insert("mixed_sample_rates".to_string(), Value::from(true));
+        }
 
         if !unresolved.is_empty() {
             body.insert(
@@ -627,7 +675,10 @@ impl SiftMcpServer {
                 metadata under the `enum_config` and `bit_field_elements` keys respectively.
 
             Output:
-              - `{ \"input\": \"<path>\", \"next_step\": \"...\" }`.
+              - `{ \"input\": \"<path>\", \"asset_name\": \"...\", \"asset_id\": \"...\", \"asset_url\": string|null,
+                \"run_name\": string|null, \"run_id\": string|null, \"run_url\": string|null, \"next_step\": \"...\" }`.
+                `asset_url` and `run_url` are the Sift web links to present as Markdown links, with the asset's
+                and the run's names as the link text; they are null when the host can't be derived.
 
             Parameters:
               - `asset`: name of the Sift asset to ingest into. The Sift server creates the asset if it does not
@@ -652,6 +703,9 @@ impl SiftMcpServer {
               - Before invoking this tool, CONFIRM the destination with the user: target `asset`, whether to
                 create a `run_name` (required for `tags`/`metadata`), and the specific tags/metadata to attach.
                 Do not silently default these — surface them for the user to override.
+              - A call with `run_name` is not safe to retry automatically: every call creates a new run. After an
+                ambiguous failure, check `list_runs` for the exact run name scoped to the asset and confirm with
+                the user before retrying when a matching run may be from the failed call.
               - The tool does not return until the entire stream has been consumed by the server, so large
                 datasets translate to long-running calls.
         ",
@@ -701,24 +755,36 @@ impl SiftMcpServer {
             .map_err(from_anyhow)?;
 
         let input_str = input.to_string_lossy().into_owned();
+        let asset_url = self.url_service.build_asset_url(&uploaded.asset_id).ok();
+        let run_url = uploaded
+            .run_id
+            .as_deref()
+            .and_then(|run_id| self.url_service.build_run_url(run_id).ok());
         let run_summary = match (&uploaded.run_name, &uploaded.run_id) {
-            (Some(name), Some(id)) => format!(" (run `{name}`, id `{id}`)"),
+            (Some(name), Some(id)) => format!(
+                " Created run `{name}` (id `{id}`).{}",
+                url_clause("run", Some(name), run_url.as_deref())
+            ),
             _ => String::new(),
         };
         let next_step = format!(
-            "Uploaded `{input_str}` to Sift asset `{}` (id `{}`){run_summary}. \
+            "Uploaded `{input_str}` to Sift asset `{}` (id `{}`).{}{run_summary} \
              Inform the user where the data landed. If the user hasn't already indicated a next \
              step, offer to verify the ingest via `list_runs` (if a run was created) or \
              `list_channels`.",
-            uploaded.asset_name, uploaded.asset_id,
+            uploaded.asset_name,
+            uploaded.asset_id,
+            url_clause("asset", Some(&uploaded.asset_name), asset_url.as_deref()),
         );
 
         let mut result = CallToolResult::structured(serde_json::json!({
             "input": input_str,
             "asset_name": uploaded.asset_name,
             "asset_id": uploaded.asset_id,
+            "asset_url": asset_url,
             "run_name": uploaded.run_name,
             "run_id": uploaded.run_id,
+            "run_url": run_url,
             "next_step": next_step,
         }));
         result.content = vec![ContentBlock::text(next_step)];

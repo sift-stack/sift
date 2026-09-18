@@ -3,6 +3,77 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+### What's New
+
+#### MCP tools present Sift entities as named Markdown links
+
+Tool results that carry a Sift web link now tell the model to present the entity as
+`[<name>](<url>)` instead of "View it in Sift: <url>", so chat clients render one consistent chip
+per entity. `upload_dataset` returns `asset_url` and `run_url` and names both in its guidance;
+before, it returned bare ids with no link. `explore_url` asks for descriptive link text instead of
+the word "link".
+
+### Bug Fixes
+
+#### Asset-name check is now case-insensitive
+
+`SiftStream` no longer rejects an ingestion config whose asset name differs from the one in Sift
+only by capitalization.
+
+## [v0.13.0] - September 4, 2026
+### What's New
+
+#### Bytes channel values
+
+`Value` has a new `Bytes(Vec<u8>)` variant that ingests as `CHANNEL_DATA_TYPE_BYTES`. A plain
+`Vec<u8>` or `&[u8]` still converts to `Value::BitField`; wrap it in the new `ChannelBytes`
+newtype to send raw bytes:
+
+```rust
+use sift_stream::{ChannelBytes, ChannelValue};
+
+let payload = ChannelValue::new("payload", ChannelBytes(vec![0xde, 0xad]));
+```
+
+`sift_stream_bindings` exposes this as `ValuePy.Bytes`, `ValuePy.is_bytes`, `ValuePy.as_bytes`,
+and `IngestWithConfigDataChannelValuePy.bytes`. This fixes bytes channel ingestion in the Python
+library, which previously raised `ValueError: Invalid data type: bytes`.
+
+## [v0.12.0]
+### What's New
+
+#### Live-only retries can be disabled
+
+[`LiveOnlyBuilder::retry_policy`](crates/sift_stream/src/stream/builder.rs) now accepts `None`:
+
+```rust
+let mut sift_stream = SiftStreamBuilder::new(credentials)
+    .ingestion_config(ingestion_config)
+    .live_only()
+    .retry_policy(None)
+    .build()
+    .await?;
+```
+
+The method takes `impl Into<Option<RetryPolicy>>`, so existing calls that pass a `RetryPolicy`
+still compile.
+
+With retries disabled, the ingestion task still makes the first attempt but does not open a
+replacement stream after a failure. It stops, closes the ingestion channel, and reports the
+failure. `send` and `try_send` then report a closed channel, and `finish` returns
+`ErrorKind::StreamError`.
+
+This closes a gap in live-only mode. Retries there recover the connection but not the data:
+messages already handed to the failed stream are dropped, and live-only mode keeps no disk
+backup to replay them from. `finish` could therefore return `Ok` after a mid-stream failure
+that lost samples. With retries disabled, every stream failure is reported, so an `Ok` from
+`finish` means Sift acknowledged every message that was sent. Callers that keep their own
+durable copy of the data can use that verdict to decide whether to resend a range.
+
+`live_with_backups()` mode is unchanged and always retries. Recovery there depends on the
+ingestion task staying alive to drive checkpoints and reingestion from disk.
+
 ## [v0.11.0] - August 20, 2026
 ### What's New
 

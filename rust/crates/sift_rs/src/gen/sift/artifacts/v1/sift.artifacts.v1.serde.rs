@@ -218,6 +218,18 @@ impl serde::Serialize for Artifact {
         if self.archived_date.is_some() {
             len += 1;
         }
+        if self.storage_class != 0 {
+            len += 1;
+        }
+        if self.created_via != 0 {
+            len += 1;
+        }
+        if self.payload.is_some() {
+            len += 1;
+        }
+        if !self.metadata.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.artifacts.v1.Artifact", len)?;
         if !self.artifact_id.is_empty() {
             struct_ser.serialize_field("artifactId", &self.artifact_id)?;
@@ -269,6 +281,22 @@ impl serde::Serialize for Artifact {
         if let Some(v) = self.archived_date.as_ref() {
             struct_ser.serialize_field("archivedDate", v)?;
         }
+        if self.storage_class != 0 {
+            let v = ArtifactStorageClass::try_from(self.storage_class)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.storage_class)))?;
+            struct_ser.serialize_field("storageClass", &v)?;
+        }
+        if self.created_via != 0 {
+            let v = ArtifactCreatedVia::try_from(self.created_via)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.created_via)))?;
+            struct_ser.serialize_field("createdVia", &v)?;
+        }
+        if let Some(v) = self.payload.as_ref() {
+            struct_ser.serialize_field("payload", v)?;
+        }
+        if !self.metadata.is_empty() {
+            struct_ser.serialize_field("metadata", &self.metadata)?;
+        }
         struct_ser.end()
     }
 }
@@ -308,6 +336,12 @@ impl<'de> serde::Deserialize<'de> for Artifact {
             "fileMimeType",
             "archived_date",
             "archivedDate",
+            "storage_class",
+            "storageClass",
+            "created_via",
+            "createdVia",
+            "payload",
+            "metadata",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -328,6 +362,10 @@ impl<'de> serde::Deserialize<'de> for Artifact {
             FileName,
             FileMimeType,
             ArchivedDate,
+            StorageClass,
+            CreatedVia,
+            Payload,
+            Metadata,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -365,6 +403,10 @@ impl<'de> serde::Deserialize<'de> for Artifact {
                             "fileName" | "file_name" => Ok(GeneratedField::FileName),
                             "fileMimeType" | "file_mime_type" => Ok(GeneratedField::FileMimeType),
                             "archivedDate" | "archived_date" => Ok(GeneratedField::ArchivedDate),
+                            "storageClass" | "storage_class" => Ok(GeneratedField::StorageClass),
+                            "createdVia" | "created_via" => Ok(GeneratedField::CreatedVia),
+                            "payload" => Ok(GeneratedField::Payload),
+                            "metadata" => Ok(GeneratedField::Metadata),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -400,6 +442,10 @@ impl<'de> serde::Deserialize<'de> for Artifact {
                 let mut file_name__ = None;
                 let mut file_mime_type__ = None;
                 let mut archived_date__ = None;
+                let mut storage_class__ = None;
+                let mut created_via__ = None;
+                let mut payload__ = None;
+                let mut metadata__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ArtifactId => {
@@ -500,6 +546,30 @@ impl<'de> serde::Deserialize<'de> for Artifact {
                             }
                             archived_date__ = map_.next_value()?;
                         }
+                        GeneratedField::StorageClass => {
+                            if storage_class__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("storageClass"));
+                            }
+                            storage_class__ = Some(map_.next_value::<ArtifactStorageClass>()? as i32);
+                        }
+                        GeneratedField::CreatedVia => {
+                            if created_via__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("createdVia"));
+                            }
+                            created_via__ = Some(map_.next_value::<ArtifactCreatedVia>()? as i32);
+                        }
+                        GeneratedField::Payload => {
+                            if payload__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("payload"));
+                            }
+                            payload__ = map_.next_value()?;
+                        }
+                        GeneratedField::Metadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadata"));
+                            }
+                            metadata__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(Artifact {
@@ -519,6 +589,10 @@ impl<'de> serde::Deserialize<'de> for Artifact {
                     file_name: file_name__,
                     file_mime_type: file_mime_type__,
                     archived_date: archived_date__,
+                    storage_class: storage_class__.unwrap_or_default(),
+                    created_via: created_via__.unwrap_or_default(),
+                    payload: payload__,
+                    metadata: metadata__.unwrap_or_default(),
                 })
             }
         }
@@ -599,6 +673,454 @@ impl<'de> serde::Deserialize<'de> for ArtifactAuthoringKind {
         deserializer.deserialize_any(GeneratedVisitor)
     }
 }
+impl serde::Serialize for ArtifactCreatedVia {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let variant = match self {
+            Self::Unspecified => "ARTIFACT_CREATED_VIA_UNSPECIFIED",
+            Self::Agent => "ARTIFACT_CREATED_VIA_AGENT",
+            Self::Canvas => "ARTIFACT_CREATED_VIA_CANVAS",
+            Self::Upload => "ARTIFACT_CREATED_VIA_UPLOAD",
+        };
+        serializer.serialize_str(variant)
+    }
+}
+impl<'de> serde::Deserialize<'de> for ArtifactCreatedVia {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "ARTIFACT_CREATED_VIA_UNSPECIFIED",
+            "ARTIFACT_CREATED_VIA_AGENT",
+            "ARTIFACT_CREATED_VIA_CANVAS",
+            "ARTIFACT_CREATED_VIA_UPLOAD",
+        ];
+
+        struct GeneratedVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ArtifactCreatedVia;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "expected one of: {:?}", &FIELDS)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
+                    })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
+                    })
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "ARTIFACT_CREATED_VIA_UNSPECIFIED" => Ok(ArtifactCreatedVia::Unspecified),
+                    "ARTIFACT_CREATED_VIA_AGENT" => Ok(ArtifactCreatedVia::Agent),
+                    "ARTIFACT_CREATED_VIA_CANVAS" => Ok(ArtifactCreatedVia::Canvas),
+                    "ARTIFACT_CREATED_VIA_UPLOAD" => Ok(ArtifactCreatedVia::Upload),
+                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
+                }
+            }
+        }
+        deserializer.deserialize_any(GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ArtifactEntityType {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let variant = match self {
+            Self::Unspecified => "ARTIFACT_ENTITY_TYPE_UNSPECIFIED",
+            Self::Conversation => "ARTIFACT_ENTITY_TYPE_CONVERSATION",
+            Self::Canvas => "ARTIFACT_ENTITY_TYPE_CANVAS",
+            Self::Run => "ARTIFACT_ENTITY_TYPE_RUN",
+            Self::Asset => "ARTIFACT_ENTITY_TYPE_ASSET",
+            Self::Artifact => "ARTIFACT_ENTITY_TYPE_ARTIFACT",
+            Self::ToolUse => "ARTIFACT_ENTITY_TYPE_TOOL_USE",
+        };
+        serializer.serialize_str(variant)
+    }
+}
+impl<'de> serde::Deserialize<'de> for ArtifactEntityType {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "ARTIFACT_ENTITY_TYPE_UNSPECIFIED",
+            "ARTIFACT_ENTITY_TYPE_CONVERSATION",
+            "ARTIFACT_ENTITY_TYPE_CANVAS",
+            "ARTIFACT_ENTITY_TYPE_RUN",
+            "ARTIFACT_ENTITY_TYPE_ASSET",
+            "ARTIFACT_ENTITY_TYPE_ARTIFACT",
+            "ARTIFACT_ENTITY_TYPE_TOOL_USE",
+        ];
+
+        struct GeneratedVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ArtifactEntityType;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "expected one of: {:?}", &FIELDS)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
+                    })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
+                    })
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "ARTIFACT_ENTITY_TYPE_UNSPECIFIED" => Ok(ArtifactEntityType::Unspecified),
+                    "ARTIFACT_ENTITY_TYPE_CONVERSATION" => Ok(ArtifactEntityType::Conversation),
+                    "ARTIFACT_ENTITY_TYPE_CANVAS" => Ok(ArtifactEntityType::Canvas),
+                    "ARTIFACT_ENTITY_TYPE_RUN" => Ok(ArtifactEntityType::Run),
+                    "ARTIFACT_ENTITY_TYPE_ASSET" => Ok(ArtifactEntityType::Asset),
+                    "ARTIFACT_ENTITY_TYPE_ARTIFACT" => Ok(ArtifactEntityType::Artifact),
+                    "ARTIFACT_ENTITY_TYPE_TOOL_USE" => Ok(ArtifactEntityType::ToolUse),
+                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
+                }
+            }
+        }
+        deserializer.deserialize_any(GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ArtifactLinkInput {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.relation != 0 {
+            len += 1;
+        }
+        if self.entity_type != 0 {
+            len += 1;
+        }
+        if !self.entity_id.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.artifacts.v1.ArtifactLinkInput", len)?;
+        if self.relation != 0 {
+            let v = ArtifactLinkRelation::try_from(self.relation)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.relation)))?;
+            struct_ser.serialize_field("relation", &v)?;
+        }
+        if self.entity_type != 0 {
+            let v = ArtifactEntityType::try_from(self.entity_type)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.entity_type)))?;
+            struct_ser.serialize_field("entityType", &v)?;
+        }
+        if !self.entity_id.is_empty() {
+            struct_ser.serialize_field("entityId", &self.entity_id)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ArtifactLinkInput {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "relation",
+            "entity_type",
+            "entityType",
+            "entity_id",
+            "entityId",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Relation,
+            EntityType,
+            EntityId,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "relation" => Ok(GeneratedField::Relation),
+                            "entityType" | "entity_type" => Ok(GeneratedField::EntityType),
+                            "entityId" | "entity_id" => Ok(GeneratedField::EntityId),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ArtifactLinkInput;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.artifacts.v1.ArtifactLinkInput")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ArtifactLinkInput, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut relation__ = None;
+                let mut entity_type__ = None;
+                let mut entity_id__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Relation => {
+                            if relation__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("relation"));
+                            }
+                            relation__ = Some(map_.next_value::<ArtifactLinkRelation>()? as i32);
+                        }
+                        GeneratedField::EntityType => {
+                            if entity_type__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("entityType"));
+                            }
+                            entity_type__ = Some(map_.next_value::<ArtifactEntityType>()? as i32);
+                        }
+                        GeneratedField::EntityId => {
+                            if entity_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("entityId"));
+                            }
+                            entity_id__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ArtifactLinkInput {
+                    relation: relation__.unwrap_or_default(),
+                    entity_type: entity_type__.unwrap_or_default(),
+                    entity_id: entity_id__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.artifacts.v1.ArtifactLinkInput", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ArtifactLinkRelation {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let variant = match self {
+            Self::Unspecified => "ARTIFACT_LINK_RELATION_UNSPECIFIED",
+            Self::AttachedTo => "ARTIFACT_LINK_RELATION_ATTACHED_TO",
+            Self::Source => "ARTIFACT_LINK_RELATION_SOURCE",
+            Self::DerivedFrom => "ARTIFACT_LINK_RELATION_DERIVED_FROM",
+        };
+        serializer.serialize_str(variant)
+    }
+}
+impl<'de> serde::Deserialize<'de> for ArtifactLinkRelation {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "ARTIFACT_LINK_RELATION_UNSPECIFIED",
+            "ARTIFACT_LINK_RELATION_ATTACHED_TO",
+            "ARTIFACT_LINK_RELATION_SOURCE",
+            "ARTIFACT_LINK_RELATION_DERIVED_FROM",
+        ];
+
+        struct GeneratedVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ArtifactLinkRelation;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "expected one of: {:?}", &FIELDS)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
+                    })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
+                    })
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "ARTIFACT_LINK_RELATION_UNSPECIFIED" => Ok(ArtifactLinkRelation::Unspecified),
+                    "ARTIFACT_LINK_RELATION_ATTACHED_TO" => Ok(ArtifactLinkRelation::AttachedTo),
+                    "ARTIFACT_LINK_RELATION_SOURCE" => Ok(ArtifactLinkRelation::Source),
+                    "ARTIFACT_LINK_RELATION_DERIVED_FROM" => Ok(ArtifactLinkRelation::DerivedFrom),
+                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
+                }
+            }
+        }
+        deserializer.deserialize_any(GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ArtifactStorageClass {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let variant = match self {
+            Self::Unspecified => "ARTIFACT_STORAGE_CLASS_UNSPECIFIED",
+            Self::File => "ARTIFACT_STORAGE_CLASS_FILE",
+            Self::Structured => "ARTIFACT_STORAGE_CLASS_STRUCTURED",
+            Self::Blob => "ARTIFACT_STORAGE_CLASS_BLOB",
+        };
+        serializer.serialize_str(variant)
+    }
+}
+impl<'de> serde::Deserialize<'de> for ArtifactStorageClass {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "ARTIFACT_STORAGE_CLASS_UNSPECIFIED",
+            "ARTIFACT_STORAGE_CLASS_FILE",
+            "ARTIFACT_STORAGE_CLASS_STRUCTURED",
+            "ARTIFACT_STORAGE_CLASS_BLOB",
+        ];
+
+        struct GeneratedVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ArtifactStorageClass;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "expected one of: {:?}", &FIELDS)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
+                    })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
+                    })
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "ARTIFACT_STORAGE_CLASS_UNSPECIFIED" => Ok(ArtifactStorageClass::Unspecified),
+                    "ARTIFACT_STORAGE_CLASS_FILE" => Ok(ArtifactStorageClass::File),
+                    "ARTIFACT_STORAGE_CLASS_STRUCTURED" => Ok(ArtifactStorageClass::Structured),
+                    "ARTIFACT_STORAGE_CLASS_BLOB" => Ok(ArtifactStorageClass::Blob),
+                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
+                }
+            }
+        }
+        deserializer.deserialize_any(GeneratedVisitor)
+    }
+}
 impl serde::Serialize for ArtifactVersion {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -640,6 +1162,12 @@ impl serde::Serialize for ArtifactVersion {
         if self.file_mime_type.is_some() {
             len += 1;
         }
+        if self.payload.is_some() {
+            len += 1;
+        }
+        if !self.metadata.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.artifacts.v1.ArtifactVersion", len)?;
         if !self.artifact_version_id.is_empty() {
             struct_ser.serialize_field("artifactVersionId", &self.artifact_version_id)?;
@@ -674,6 +1202,12 @@ impl serde::Serialize for ArtifactVersion {
         if let Some(v) = self.file_mime_type.as_ref() {
             struct_ser.serialize_field("fileMimeType", v)?;
         }
+        if let Some(v) = self.payload.as_ref() {
+            struct_ser.serialize_field("payload", v)?;
+        }
+        if !self.metadata.is_empty() {
+            struct_ser.serialize_field("metadata", &self.metadata)?;
+        }
         struct_ser.end()
     }
 }
@@ -703,6 +1237,8 @@ impl<'de> serde::Deserialize<'de> for ArtifactVersion {
             "fileName",
             "file_mime_type",
             "fileMimeType",
+            "payload",
+            "metadata",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -718,6 +1254,8 @@ impl<'de> serde::Deserialize<'de> for ArtifactVersion {
             CreatedDate,
             FileName,
             FileMimeType,
+            Payload,
+            Metadata,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -750,6 +1288,8 @@ impl<'de> serde::Deserialize<'de> for ArtifactVersion {
                             "createdDate" | "created_date" => Ok(GeneratedField::CreatedDate),
                             "fileName" | "file_name" => Ok(GeneratedField::FileName),
                             "fileMimeType" | "file_mime_type" => Ok(GeneratedField::FileMimeType),
+                            "payload" => Ok(GeneratedField::Payload),
+                            "metadata" => Ok(GeneratedField::Metadata),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -780,6 +1320,8 @@ impl<'de> serde::Deserialize<'de> for ArtifactVersion {
                 let mut created_date__ = None;
                 let mut file_name__ = None;
                 let mut file_mime_type__ = None;
+                let mut payload__ = None;
+                let mut metadata__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ArtifactVersionId => {
@@ -850,6 +1392,18 @@ impl<'de> serde::Deserialize<'de> for ArtifactVersion {
                             }
                             file_mime_type__ = map_.next_value()?;
                         }
+                        GeneratedField::Payload => {
+                            if payload__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("payload"));
+                            }
+                            payload__ = map_.next_value()?;
+                        }
+                        GeneratedField::Metadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadata"));
+                            }
+                            metadata__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(ArtifactVersion {
@@ -864,6 +1418,8 @@ impl<'de> serde::Deserialize<'de> for ArtifactVersion {
                     created_date: created_date__,
                     file_name: file_name__,
                     file_mime_type: file_mime_type__,
+                    payload: payload__,
+                    metadata: metadata__.unwrap_or_default(),
                 })
             }
         }
@@ -893,6 +1449,21 @@ impl serde::Serialize for CreateArtifactRequest {
         if self.authoring_kind.is_some() {
             len += 1;
         }
+        if self.storage_class.is_some() {
+            len += 1;
+        }
+        if self.created_via.is_some() {
+            len += 1;
+        }
+        if self.payload.is_some() {
+            len += 1;
+        }
+        if !self.links.is_empty() {
+            len += 1;
+        }
+        if !self.metadata.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.artifacts.v1.CreateArtifactRequest", len)?;
         if let Some(v) = self.artifact_id.as_ref() {
             struct_ser.serialize_field("artifactId", v)?;
@@ -910,6 +1481,25 @@ impl serde::Serialize for CreateArtifactRequest {
             let v = ArtifactAuthoringKind::try_from(*v)
                 .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", *v)))?;
             struct_ser.serialize_field("authoringKind", &v)?;
+        }
+        if let Some(v) = self.storage_class.as_ref() {
+            let v = ArtifactStorageClass::try_from(*v)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", *v)))?;
+            struct_ser.serialize_field("storageClass", &v)?;
+        }
+        if let Some(v) = self.created_via.as_ref() {
+            let v = ArtifactCreatedVia::try_from(*v)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", *v)))?;
+            struct_ser.serialize_field("createdVia", &v)?;
+        }
+        if let Some(v) = self.payload.as_ref() {
+            struct_ser.serialize_field("payload", v)?;
+        }
+        if !self.links.is_empty() {
+            struct_ser.serialize_field("links", &self.links)?;
+        }
+        if !self.metadata.is_empty() {
+            struct_ser.serialize_field("metadata", &self.metadata)?;
         }
         struct_ser.end()
     }
@@ -929,6 +1519,13 @@ impl<'de> serde::Deserialize<'de> for CreateArtifactRequest {
             "summary",
             "authoring_kind",
             "authoringKind",
+            "storage_class",
+            "storageClass",
+            "created_via",
+            "createdVia",
+            "payload",
+            "links",
+            "metadata",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -938,6 +1535,11 @@ impl<'de> serde::Deserialize<'de> for CreateArtifactRequest {
             Title,
             Summary,
             AuthoringKind,
+            StorageClass,
+            CreatedVia,
+            Payload,
+            Links,
+            Metadata,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -964,6 +1566,11 @@ impl<'de> serde::Deserialize<'de> for CreateArtifactRequest {
                             "title" => Ok(GeneratedField::Title),
                             "summary" => Ok(GeneratedField::Summary),
                             "authoringKind" | "authoring_kind" => Ok(GeneratedField::AuthoringKind),
+                            "storageClass" | "storage_class" => Ok(GeneratedField::StorageClass),
+                            "createdVia" | "created_via" => Ok(GeneratedField::CreatedVia),
+                            "payload" => Ok(GeneratedField::Payload),
+                            "links" => Ok(GeneratedField::Links),
+                            "metadata" => Ok(GeneratedField::Metadata),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -988,6 +1595,11 @@ impl<'de> serde::Deserialize<'de> for CreateArtifactRequest {
                 let mut title__ = None;
                 let mut summary__ = None;
                 let mut authoring_kind__ = None;
+                let mut storage_class__ = None;
+                let mut created_via__ = None;
+                let mut payload__ = None;
+                let mut links__ = None;
+                let mut metadata__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ArtifactId => {
@@ -1020,6 +1632,36 @@ impl<'de> serde::Deserialize<'de> for CreateArtifactRequest {
                             }
                             authoring_kind__ = map_.next_value::<::std::option::Option<ArtifactAuthoringKind>>()?.map(|x| x as i32);
                         }
+                        GeneratedField::StorageClass => {
+                            if storage_class__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("storageClass"));
+                            }
+                            storage_class__ = map_.next_value::<::std::option::Option<ArtifactStorageClass>>()?.map(|x| x as i32);
+                        }
+                        GeneratedField::CreatedVia => {
+                            if created_via__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("createdVia"));
+                            }
+                            created_via__ = map_.next_value::<::std::option::Option<ArtifactCreatedVia>>()?.map(|x| x as i32);
+                        }
+                        GeneratedField::Payload => {
+                            if payload__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("payload"));
+                            }
+                            payload__ = map_.next_value()?;
+                        }
+                        GeneratedField::Links => {
+                            if links__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("links"));
+                            }
+                            links__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Metadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadata"));
+                            }
+                            metadata__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(CreateArtifactRequest {
@@ -1028,6 +1670,11 @@ impl<'de> serde::Deserialize<'de> for CreateArtifactRequest {
                     title: title__,
                     summary: summary__,
                     authoring_kind: authoring_kind__,
+                    storage_class: storage_class__,
+                    created_via: created_via__,
+                    payload: payload__,
+                    links: links__.unwrap_or_default(),
+                    metadata: metadata__.unwrap_or_default(),
                 })
             }
         }
@@ -1766,6 +2413,12 @@ impl serde::Serialize for ListArtifactsRequest {
         if self.include_archived {
             len += 1;
         }
+        if !self.filter.is_empty() {
+            len += 1;
+        }
+        if !self.order_by.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.artifacts.v1.ListArtifactsRequest", len)?;
         if let Some(v) = self.conversation_id.as_ref() {
             struct_ser.serialize_field("conversationId", v)?;
@@ -1778,6 +2431,12 @@ impl serde::Serialize for ListArtifactsRequest {
         }
         if self.include_archived {
             struct_ser.serialize_field("includeArchived", &self.include_archived)?;
+        }
+        if !self.filter.is_empty() {
+            struct_ser.serialize_field("filter", &self.filter)?;
+        }
+        if !self.order_by.is_empty() {
+            struct_ser.serialize_field("orderBy", &self.order_by)?;
         }
         struct_ser.end()
     }
@@ -1797,6 +2456,9 @@ impl<'de> serde::Deserialize<'de> for ListArtifactsRequest {
             "pageToken",
             "include_archived",
             "includeArchived",
+            "filter",
+            "order_by",
+            "orderBy",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1805,6 +2467,8 @@ impl<'de> serde::Deserialize<'de> for ListArtifactsRequest {
             PageSize,
             PageToken,
             IncludeArchived,
+            Filter,
+            OrderBy,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1830,6 +2494,8 @@ impl<'de> serde::Deserialize<'de> for ListArtifactsRequest {
                             "pageSize" | "page_size" => Ok(GeneratedField::PageSize),
                             "pageToken" | "page_token" => Ok(GeneratedField::PageToken),
                             "includeArchived" | "include_archived" => Ok(GeneratedField::IncludeArchived),
+                            "filter" => Ok(GeneratedField::Filter),
+                            "orderBy" | "order_by" => Ok(GeneratedField::OrderBy),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1853,6 +2519,8 @@ impl<'de> serde::Deserialize<'de> for ListArtifactsRequest {
                 let mut page_size__ = None;
                 let mut page_token__ = None;
                 let mut include_archived__ = None;
+                let mut filter__ = None;
+                let mut order_by__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ConversationId => {
@@ -1881,6 +2549,18 @@ impl<'de> serde::Deserialize<'de> for ListArtifactsRequest {
                             }
                             include_archived__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::Filter => {
+                            if filter__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("filter"));
+                            }
+                            filter__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::OrderBy => {
+                            if order_by__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("orderBy"));
+                            }
+                            order_by__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(ListArtifactsRequest {
@@ -1888,6 +2568,8 @@ impl<'de> serde::Deserialize<'de> for ListArtifactsRequest {
                     page_size: page_size__.unwrap_or_default(),
                     page_token: page_token__.unwrap_or_default(),
                     include_archived: include_archived__.unwrap_or_default(),
+                    filter: filter__.unwrap_or_default(),
+                    order_by: order_by__.unwrap_or_default(),
                 })
             }
         }

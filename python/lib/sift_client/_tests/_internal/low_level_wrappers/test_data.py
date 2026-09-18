@@ -35,6 +35,7 @@ the entire accumulated frame).
 
 from __future__ import annotations
 
+import warnings
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterator, Mapping, Sequence, cast
@@ -47,6 +48,7 @@ from sift_client._internal.disk_cache import DiskCache
 from sift_client._internal.low_level_wrappers.data import (
     ChannelDataCache,
     DataLowLevelClient,
+    SegmentRef,
 )
 from sift_client.sift_types.channel import (
     Channel,
@@ -56,6 +58,14 @@ from sift_client.sift_types.channel import (
 
 _NOW = datetime(2025, 1, 1, tzinfo=timezone.utc)
 _WINDOW_END = _NOW + timedelta(days=1)
+# ``_update_cache`` is called only by ``get_channel_data``, which
+# normalizes its window first, so its bounds arrive as ``pd.Timestamp``.
+_NOW_TS = pd.Timestamp(_NOW)
+_WINDOW_END_TS = pd.Timestamp(_WINDOW_END)
+# A start that falls off a whole microsecond, the way real sample
+# timestamps do. Anything derived from it keeps its 789 ns tail only if
+# every hop is nanosecond-capable.
+_NS_START = _NOW_TS + pd.Timedelta(123456789, unit="ns")
 
 
 # ---------- shared helpers -----------
@@ -76,6 +86,14 @@ def _frame(
         {cid: [(offset + i) * 1.0 for i in range(rows)]},
         index=index,
     ).astype({cid: value_dtype})
+
+
+def _sole_ref(adapter: ChannelDataCache, channel_id: str, run_id: str | None = None) -> SegmentRef:
+    """The one ``SegmentRef`` in a bucket. Fails loudly if there isn't exactly one."""
+    idx = adapter._load_index(channel_id, run_id)
+    assert idx is not None
+    assert len(idx.segments) == 1
+    return idx.segments[0]
 
 
 def _channel(cid: str) -> Channel:
@@ -217,11 +235,11 @@ def _put(
     *,
     data: pd.DataFrame | None = None,
     rows: int = 5,
-    start: datetime = _NOW,
+    start: pd.Timestamp | datetime = _NOW,
     offset: int = 0,
     freq: str = "ms",
-    seg_start: datetime | None = None,
-    seg_end: datetime | None = None,
+    seg_start: pd.Timestamp | datetime | None = None,
+    seg_end: pd.Timestamp | datetime | None = None,
     run_id: str | None = None,
 ) -> pd.DataFrame:
     """Convenience: build a frame, write it as one segment, return it.
@@ -233,9 +251,9 @@ def _put(
     if data is None:
         data = _frame(channel_id, rows=rows, start=start, offset=offset, freq=freq)
     if seg_start is None:
-        seg_start = cast("pd.Timestamp", data.index[0]).to_pydatetime()
+        seg_start = cast("pd.Timestamp", data.index[0])
     if seg_end is None:
-        seg_end = cast("pd.Timestamp", data.index[-1]).to_pydatetime()
+        seg_end = cast("pd.Timestamp", data.index[-1])
     adapter.put_segment(
         channel_id=channel_id,
         run_id=run_id,
@@ -415,9 +433,7 @@ class TestChannelDataCache:
         store = DiskCache(disk_path=tmp_path / "size", disk_max_bytes=size_bytes // 2)
         adapter = ChannelDataCache(store)
         try:
-            adapter.put_segment(
-                "c1", None, big, big.index[0].to_pydatetime(), big.index[-1].to_pydatetime()
-            )
+            adapter.put_segment("c1", None, big, big.index[0], big.index[-1])
             assert not adapter.has_any("c1")
         finally:
             store.close()
@@ -446,7 +462,7 @@ class TestChannelDataCache:
         adapter = ChannelDataCache(DiskCache(disk_path=tmp_path / "stitch"))
         try:
             df1 = _frame("c1", rows=5, start=_NOW, freq="ms", offset=0)
-            df1_end = df1.index[-1].to_pydatetime()
+            df1_end = df1.index[-1]
             df2 = _frame(
                 "c1",
                 rows=5,
@@ -454,8 +470,8 @@ class TestChannelDataCache:
                 freq="ms",
                 offset=100,
             )
-            query_start = df1.index[0].to_pydatetime()
-            query_end = df2.index[-1].to_pydatetime()
+            query_start = df1.index[0]
+            query_end = df2.index[-1]
             # Claim seg2 starts right where seg1 ends so the abutting
             # ranges leave no gap. Real callers do this via
             # ``_update_cache`` claiming the requested window.
@@ -534,8 +550,8 @@ class TestChannelDataCache:
             shuffled = sorted_frame.iloc[[2, 0, 4, 1, 3]]
             assert not shuffled.index.is_monotonic_increasing
 
-            seg_start = sorted_frame.index[0].to_pydatetime()
-            seg_end = sorted_frame.index[-1].to_pydatetime()
+            seg_start = sorted_frame.index[0]
+            seg_end = sorted_frame.index[-1]
             adapter.put_segment("c1", None, shuffled, seg_start, seg_end)
 
             data, gaps = adapter.get_range("c1", None, seg_start, seg_end)
@@ -654,13 +670,13 @@ class TestChannelDataCache:
         adapter = ChannelDataCache(DiskCache(disk_path=tmp_path / "mix"))
         try:
             data = _frame("c1", rows=5, freq="s")
-            mid = data.index[-1].to_pydatetime()
+            mid = data.index[-1]
             tail = mid + timedelta(seconds=5)
 
-            adapter.put_segment("c1", None, data, data.index[0].to_pydatetime(), mid)
+            adapter.put_segment("c1", None, data, data.index[0], mid)
             adapter.put_segment("c1", None, pd.DataFrame(), mid, tail)
 
-            got, gaps = adapter.get_range("c1", None, data.index[0].to_pydatetime(), tail)
+            got, gaps = adapter.get_range("c1", None, data.index[0], tail)
             assert got is not None
             pd.testing.assert_frame_equal(got, data)
             assert gaps == []
@@ -716,6 +732,154 @@ class TestChannelDataCache:
         query_start = _NOW
         query_end = _NOW + timedelta(seconds=10)
         assert ChannelDataCache._compute_gaps(query_start, query_end, covered) == expected
+
+
+class TestNanosecondPrecision:
+    """Cache bounds hold the nanoseconds the wire delivers.
+
+    A ``datetime`` stops at microseconds, so a bound recorded as one
+    sits up to 999 ns below the sample it describes. That shows up two
+    ways. Pandas warns ("Discarding nonzero nanoseconds in conversion")
+    once per channel per fetch. The index also claims coverage starting
+    before the first row it holds, and ``get_range`` believes it,
+    serving a hit for a sub-microsecond sliver that was never fetched.
+
+    Rigs whose samples fall on exact microseconds see neither symptom,
+    which is why the bug reads as dataset-specific.
+    """
+
+    def test_put_segment_round_trips_nanoseconds(self, tmp_path):
+        """The index stores the exact ns bound it was handed."""
+        adapter = ChannelDataCache(DiskCache(disk_path=tmp_path / "ns"))
+        try:
+            df = _put(adapter, "c1", rows=4, start=_NS_START)
+            ref = _sole_ref(adapter, "c1")
+            assert ref.start_time == df.index[0]
+            assert ref.start_time.nanosecond == 789
+        finally:
+            adapter.store.close()
+
+    def test_index_survives_a_reopen_with_nanoseconds_intact(self, tmp_path):
+        """Bounds keep their nanoseconds across a store close/reopen.
+
+        The index is pickled, so this pins that the precision isn't
+        lost on the serialization hop rather than in memory.
+        """
+        path = tmp_path / "ns-reopen"
+        adapter = ChannelDataCache(DiskCache(disk_path=path))
+        try:
+            df = _put(adapter, "c1", rows=4, start=_NS_START)
+        finally:
+            adapter.store.close()
+
+        reopened = ChannelDataCache(DiskCache(disk_path=path))
+        try:
+            assert _sole_ref(reopened, "c1").start_time == df.index[0]
+        finally:
+            reopened.store.close()
+
+    def test_gaps_are_exact_to_the_nanosecond(self, tmp_path):
+        """Gaps land on the segment's real bounds, from either input type.
+
+        A query starting a nanosecond early has to report that sliver
+        as a gap. With a rounded-down bound it reads as covered and
+        never reaches the wire. Gaps go straight back out, so they stay
+        ``pd.Timestamp`` even when the caller asked in ``datetime``.
+        """
+        adapter = ChannelDataCache(DiskCache(disk_path=tmp_path / "claim"))
+        try:
+            df = _put(adapter, "c1", rows=4, start=_NS_START)
+
+            early = df.index[0] - pd.Timedelta(1, unit="ns")
+            _, gaps = adapter.get_range("c1", None, early, df.index[-1])
+            assert gaps == [(early, df.index[0])]
+
+            _, gaps = adapter.get_range("c1", None, _NOW, _WINDOW_END)
+            assert gaps == [(_NOW, df.index[0]), (df.index[-1], _WINDOW_END)]
+            assert all(isinstance(bound, pd.Timestamp) for gap in gaps for bound in gap)
+        finally:
+            adapter.store.close()
+
+    def test_run_scoped_update_records_first_sample_exactly(self, tmp_path):
+        """``_update_cache`` claims the first row's nanoseconds and warns about nothing.
+
+        The run-scoped branch takes the segment's lower bound from the
+        data itself. That is the one place a wire timestamp used to be
+        narrowed to a ``datetime``.
+        """
+        client = _client_with_cache(tmp_path)
+        client._update_name_id_map([_channel("c1")])
+        df = _frame("c1", rows=4, start=_NS_START, freq="ms")
+        try:
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always")
+                client._update_cache(
+                    channel_data={"c1": df},
+                    fetched_ranges_per_channel={"c1": [(_NOW_TS, _WINDOW_END_TS)]},
+                    start_time=_NOW_TS,
+                    end_time=_WINDOW_END_TS,
+                    run_id="r1",
+                )
+            assert [str(w.message) for w in caught] == []
+
+            ref = _sole_ref(client.channel_cache, "c1", run_id="r1")
+            assert ref.start_time == df.index[0]
+        finally:
+            client.channel_cache.store.close()
+
+    def test_index_written_before_the_fix_still_reads(self, tmp_path):
+        """A ref carrying a plain ``datetime`` bound keeps working.
+
+        The store lives under the temp dir and is shared across
+        sessions, so an index written by an older client is a normal
+        thing to open. Unpickling skips validation, so such a ref
+        arrives with a ``datetime`` and has to compare cleanly against
+        nanosecond query bounds.
+        """
+        adapter = ChannelDataCache(DiskCache(disk_path=tmp_path / "stale"))
+        try:
+            df = _put(adapter, "c1", rows=4, start=_NS_START)
+            idx = adapter._load_index("c1", None)
+            assert idx is not None
+            ref = idx.segments[0]
+            # What the old code stored: the same bound, floored to a datetime.
+            idx.segments[0] = SegmentRef.model_construct(
+                seg_id=ref.seg_id,
+                start_time=ref.start_time.to_pydatetime(warn=False),
+                end_time=ref.end_time.to_pydatetime(warn=False),
+            )
+            adapter._write_index("c1", None, idx)
+
+            got, gaps = adapter.get_range("c1", None, df.index[0], df.index[-1])
+            assert got is not None
+            assert len(got) == 4
+            # The floored upper bound leaves the last 789 ns to refetch,
+            # erring toward the wire rather than toward a silent hole.
+            stale_end = pd.Timestamp(df.index[-1].to_pydatetime(warn=False))
+            assert gaps == [(stale_end, df.index[-1])]
+        finally:
+            adapter.store.close()
+
+    @pytest.mark.asyncio
+    async def test_query_bounds_reach_the_wire_with_nanoseconds(self) -> None:
+        """A ``pd.Timestamp`` bound arrives at ``_get_data_impl`` unrounded.
+
+        The service filters on a millisecond plus sub-millisecond pair,
+        so a caller asking for a nanosecond-precise window gets one
+        rather than the surrounding microsecond.
+        """
+        client = DataLowLevelClient(MagicMock())
+        end = _NS_START + pd.Timedelta(seconds=10)
+        with _fake_grpc(client, {"c1": [_frame("c1", start=_NS_START)]}) as call_log:
+            await client.get_channel_data(
+                channels=[_channel("c1")],
+                start_time=_NS_START,
+                end_time=end,
+                ignore_cache=True,
+            )
+        assert call_log[0]["start_time"] == _NS_START
+        assert call_log[0]["start_time"].nanosecond == 789
+        assert call_log[0]["end_time"] == end
 
 
 class TestCompaction:
@@ -822,8 +986,8 @@ class TestCompaction:
             got, gaps = adapter.get_range(
                 "c1",
                 None,
-                frames[0].index[0].to_pydatetime(),
-                frames[-1].index[-1].to_pydatetime(),
+                frames[0].index[0],
+                frames[-1].index[-1],
             )
             assert gaps == []
             assert got is not None
@@ -877,7 +1041,7 @@ class TestCompaction:
         adapter = ChannelDataCache(store)
         try:
             data = _put(adapter, "c1", rows=4, start=_NOW, freq="s")
-            data_end = data.index[-1].to_pydatetime()
+            data_end = data.index[-1]
             empty_end = data_end + timedelta(seconds=10)
             # Second put (empty) crosses the cap of 2 → compacts.
             adapter.put_segment("c1", None, pd.DataFrame(), data_end, empty_end)
@@ -890,12 +1054,12 @@ class TestCompaction:
             assert len(idx.segments) == 1
             sole = idx.segments[0]
             assert sole.seg_id is not None  # data ref survives
-            assert sole.start_time == data.index[0].to_pydatetime()
+            assert sole.start_time == data.index[0]
             assert sole.end_time == empty_end + timedelta(seconds=10)
 
             # Query the wider claim — data slice returns the actual
             # rows, and the empty tail counts as covered (no gap).
-            got, gaps = adapter.get_range("c1", None, data.index[0].to_pydatetime(), sole.end_time)
+            got, gaps = adapter.get_range("c1", None, data.index[0], sole.end_time)
             assert got is not None
             pd.testing.assert_frame_equal(got, data)
             assert gaps == []
@@ -1565,9 +1729,9 @@ class TestBitFieldChannels:
         try:
             client._update_cache(
                 channel_data={"ch1.lo": df_lo, "ch1.hi": df_hi},
-                fetched_ranges_per_channel={"abc": [(_NOW, _WINDOW_END)]},
-                start_time=_NOW,
-                end_time=_WINDOW_END,
+                fetched_ranges_per_channel={"abc": [(_NOW_TS, _WINDOW_END_TS)]},
+                start_time=_NOW_TS,
+                end_time=_WINDOW_END_TS,
             )
             assert client.channel_cache.has_any("abc")
             assert not client.channel_cache.has_any("ch1.lo")
@@ -1604,9 +1768,9 @@ class TestBitFieldChannels:
                     "ch1.lo": _frame("ch1.lo", rows=5),
                     "ch1.hi": _frame("ch1.hi", rows=5),
                 },
-                fetched_ranges_per_channel={"abc": [(_NOW, _WINDOW_END)]},
-                start_time=_NOW,
-                end_time=_WINDOW_END,
+                fetched_ranges_per_channel={"abc": [(_NOW_TS, _WINDOW_END_TS)]},
+                start_time=_NOW_TS,
+                end_time=_WINDOW_END_TS,
             )
             data, gaps = client.channel_cache.get_range("abc", None, _NOW, _WINDOW_END)
             assert data is not None

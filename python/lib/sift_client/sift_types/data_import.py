@@ -65,7 +65,7 @@ from sift.data_imports.v2.data_imports_pb2 import TimeFormat as TimeFormatProto
 from sift.data_imports.v2.data_imports_pb2 import UlogConfig as UlogConfigProto
 from sift.data_imports.v2.data_imports_pb2 import UlogDataConfig as UlogDataConfigProto
 
-from sift_client._internal.util.timestamp import to_pb_timestamp
+from sift_client._internal.time import to_timestamp_pb
 from sift_client.sift_types._base import BaseType
 from sift_client.sift_types.channel import ChannelDataType
 
@@ -230,7 +230,7 @@ class CsvTimeColumn(TimeColumnBase):
             format=self.format.value,
         )
         if self.relative_start_time is not None:
-            proto.relative_start_time.CopyFrom(to_pb_timestamp(self.relative_start_time))
+            proto.relative_start_time.CopyFrom(to_timestamp_pb(self.relative_start_time))
         return proto
 
 
@@ -355,7 +355,7 @@ class ParquetTimeColumn(TimeColumnBase):
             format=self.format.value,
         )
         if self.relative_start_time is not None:
-            proto.relative_start_time.CopyFrom(to_pb_timestamp(self.relative_start_time))
+            proto.relative_start_time.CopyFrom(to_timestamp_pb(self.relative_start_time))
         return proto
 
     @classmethod
@@ -700,12 +700,12 @@ class TdmsImportConfig(ImportConfigBase):
             import_file_properties=self.import_file_properties,
         )
         if self.start_time_override is not None:
-            proto.start_time_override.CopyFrom(to_pb_timestamp(self.start_time_override))
+            proto.start_time_override.CopyFrom(to_timestamp_pb(self.start_time_override))
         proto.fallback_method = self.fallback_method.value
         if self.time_format is not None:
             proto.time_format = self.time_format.value
         if self.relative_start_time is not None:
-            proto.relative_start_time.CopyFrom(to_pb_timestamp(self.relative_start_time))
+            proto.relative_start_time.CopyFrom(to_timestamp_pb(self.relative_start_time))
         for d in self.data:
             entry = TdmsDataConfigProto(
                 group_name=d.group_name,
@@ -868,7 +868,7 @@ class Hdf5ImportConfig(ImportConfigBase):
             ],
         )
         if self.relative_start_time is not None:
-            proto.relative_start_time.CopyFrom(to_pb_timestamp(self.relative_start_time))
+            proto.relative_start_time.CopyFrom(to_timestamp_pb(self.relative_start_time))
         return proto
 
 
@@ -977,7 +977,7 @@ class UlogImportConfig(ImportConfigBase):
             parse_error_policy=self.parse_error_policy.value,
         )
         if self.relative_start_time is not None:
-            proto.relative_start_time.CopyFrom(to_pb_timestamp(self.relative_start_time))
+            proto.relative_start_time.CopyFrom(to_timestamp_pb(self.relative_start_time))
         for dc in self.data:
             proto.data.append(
                 UlogDataConfigProto(

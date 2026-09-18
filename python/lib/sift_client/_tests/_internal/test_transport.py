@@ -5,10 +5,9 @@ import threading
 import pytest
 
 from sift_client._internal.grpc_transport.transport import (
-    MAX_DECODING_MESSAGE_SIZE,
     _compute_channel_options,
 )
-from sift_client.transport.grpc_transport import GrpcClient, GrpcConfig
+from sift_client.transport.grpc_transport import MAX_DECODING_MESSAGE_SIZE, GrpcClient, GrpcConfig
 from sift_client.transport.rest_transport import DEFAULT_REST_TIMEOUT, RestClient, RestConfig
 
 

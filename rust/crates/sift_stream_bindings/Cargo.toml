@@ -1,6 +1,6 @@
 [package]
 name = "sift-stream-bindings"
-version = "0.5.0"
+version = "0.5.1"
 # Released to PyPI as a wheel, never to crates.io.
 publish = false
 edition = { workspace = true }

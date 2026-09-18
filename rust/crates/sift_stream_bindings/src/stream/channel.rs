@@ -195,6 +195,7 @@ impl From<Value> for ChannelValueTypePy {
             Value::Uint64(val) => Self::uint64(val),
             Value::Enum(val) => Self::enum_value(val),
             Value::BitField(val) => Self::bitfield(val),
+            Value::Bytes(val) => Self::bytes(val),
         }
     }
 }
@@ -327,6 +328,17 @@ impl ValuePy {
         }
     }
 
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    pub fn Bytes(value: Option<Vec<u8>>) -> Self {
+        match value {
+            Some(value) => Self {
+                inner: Value::Bytes(value),
+            },
+            None => Self::Empty(),
+        }
+    }
+
     pub fn is_empty(&self) -> bool {
         matches!(self.inner, Value::Empty)
     }
@@ -369,6 +381,10 @@ impl ValuePy {
 
     pub fn is_bitfield(&self) -> bool {
         matches!(self.inner, Value::BitField(_))
+    }
+
+    pub fn is_bytes(&self) -> bool {
+        matches!(self.inner, Value::Bytes(_))
     }
 
     pub fn as_bool(&self) -> PyResult<bool> {
@@ -457,6 +473,15 @@ impl ValuePy {
             Value::BitField(v) => Ok(v.clone()),
             _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
                 "Value is not a BitField",
+            )),
+        }
+    }
+
+    pub fn as_bytes(&self) -> PyResult<Vec<u8>> {
+        match &self.inner {
+            Value::Bytes(v) => Ok(v.clone()),
+            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                "Value is not Bytes",
             )),
         }
     }

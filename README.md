@@ -21,6 +21,7 @@ to compile the protocol buffers yourself there are instructions on how to go abo
 ## Table of Contents
 
 * [Installation](#installation)
+  - [sift-cli](#sift-cli)
   - [Installation via Package Managers](#installation-via-package-managers)
       - [Go](#go)
       - [Rust](#rust)
@@ -28,6 +29,20 @@ to compile the protocol buffers yourself there are instructions on how to go abo
   - [Manual Protobuf Compilation](#manual-protobuf-compilation)
 
 ## Installation
+
+### sift-cli
+
+Install `sift-cli` on macOS or Linux:
+
+```sh
+curl -fsSL https://api.siftstack.com/install/sift-cli | sh
+```
+
+Install it on Windows with PowerShell:
+
+```powershell
+irm https://api.siftstack.com/install/sift-cli.ps1 | iex
+```
 
 The Sift client library can be installed using the package managers for the languages that are currently supported. If you are using a language that isn't officially supported see
 the [Manual Protobuf Compilation](#manual-protobuf-compilation) section.

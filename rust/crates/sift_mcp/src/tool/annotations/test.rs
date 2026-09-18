@@ -3,7 +3,10 @@ use std::sync::{
     atomic::{AtomicUsize, Ordering},
 };
 
-use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
+use rmcp::{
+    handler::server::wrapper::Parameters,
+    model::{ErrorCode, Tool},
+};
 use sift_rs::annotations::v1::{
     Annotation, BatchArchiveAnnotationsResponse, CreateAnnotationResponse, ListAnnotationsResponse,
     UpdateAnnotationResponse, annotation_service_server::AnnotationServiceServer,
@@ -12,11 +15,112 @@ use sift_test_util::{grpc::memory_sift_channel, mock::annotations::v1::MockAnnot
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
-use super::{AnnotationListParams, CreateAnnotationParams, UpdateAnnotationParams};
+use super::{
+    AnnotationListParams, AnnotationStateParam, AnnotationTypeParam, CreateAnnotationParams,
+    UpdateAnnotationParams,
+};
 use crate::{
     server::SiftMcpServer,
     tool::common::test_support::{structured, structured_field},
 };
+
+fn annotation_tool(name: &str) -> Tool {
+    SiftMcpServer::annotations_router()
+        .list_all()
+        .into_iter()
+        .find(|tool| tool.name == name)
+        .unwrap_or_else(|| panic!("missing annotation tool `{name}`"))
+}
+
+fn contains_enum(schema: &serde_json::Value, node: &serde_json::Value, expected: &[&str]) -> bool {
+    let expected_values = expected
+        .iter()
+        .map(|value| serde_json::Value::String((*value).to_string()))
+        .collect::<Vec<_>>();
+    if node
+        .get("enum")
+        .and_then(serde_json::Value::as_array)
+        .is_some_and(|values| values == &expected_values)
+    {
+        return true;
+    }
+
+    if let Some(reference) = node.get("$ref").and_then(serde_json::Value::as_str)
+        && let Some(name) = reference.strip_prefix("#/$defs/")
+        && contains_enum(schema, &schema["$defs"][name], expected)
+    {
+        return true;
+    }
+
+    ["anyOf", "oneOf", "allOf"].into_iter().any(|key| {
+        node.get(key)
+            .and_then(serde_json::Value::as_array)
+            .is_some_and(|nodes| {
+                nodes
+                    .iter()
+                    .any(|node| contains_enum(schema, node, expected))
+            })
+    })
+}
+
+fn assert_property_enum(tool: &Tool, property: &str, expected: &[&str]) {
+    let schema = serde_json::Value::Object(tool.input_schema.as_ref().clone());
+    let property_schema = &schema["properties"][property];
+    assert!(
+        contains_enum(&schema, property_schema, expected),
+        "`{}` must define `{property}` with enum values {expected:?}; schema: {schema}",
+        tool.name
+    );
+}
+
+#[test]
+fn annotation_tool_schemas_publish_exact_enum_values() {
+    let create = annotation_tool("create_annotation");
+    assert_property_enum(
+        &create,
+        "annotation_type",
+        &["ANNOTATION_TYPE_DATA_REVIEW", "ANNOTATION_TYPE_PHASE"],
+    );
+    assert_property_enum(
+        &create,
+        "state",
+        &[
+            "ANNOTATION_STATE_OPEN",
+            "ANNOTATION_STATE_FLAGGED",
+            "ANNOTATION_STATE_RESOLVED",
+        ],
+    );
+
+    let update = annotation_tool("update_annotation");
+    assert_property_enum(
+        &update,
+        "state",
+        &[
+            "ANNOTATION_STATE_OPEN",
+            "ANNOTATION_STATE_FLAGGED",
+            "ANNOTATION_STATE_RESOLVED",
+        ],
+    );
+}
+
+#[test]
+fn list_annotations_description_publishes_filter_enum_values() {
+    let tool = annotation_tool("list_annotations");
+    let description = tool.description.expect("tool must have a description");
+
+    for value in [
+        "ANNOTATION_STATE_OPEN",
+        "ANNOTATION_STATE_FLAGGED",
+        "ANNOTATION_STATE_RESOLVED",
+        "ANNOTATION_TYPE_DATA_REVIEW",
+        "ANNOTATION_TYPE_PHASE",
+    ] {
+        assert!(
+            description.contains(value),
+            "list_annotations description must name `{value}`"
+        );
+    }
+}
 
 async fn server_with_mock(mock: MockAnnotationServiceImpl) -> (SiftMcpServer, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
@@ -42,7 +146,7 @@ fn create_params() -> CreateAnnotationParams {
         description: None,
         start_time_unix_nanos: 1_000_000_000,
         end_time_unix_nanos: 2_000_000_000,
-        annotation_type: "data_review".into(),
+        annotation_type: AnnotationTypeParam::DataReview,
         state: None,
         assets: None,
         tags: None,
@@ -173,19 +277,60 @@ async fn create_annotation_rejects_inverted_time_range() {
     assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
 }
 
-#[tokio::test]
-async fn create_annotation_rejects_unknown_type() {
-    let (server, _h) = server_with_mock(MockAnnotationServiceImpl::new()).await;
+#[test]
+fn create_annotation_params_reject_unknown_type() {
+    let params = serde_json::from_value::<CreateAnnotationParams>(serde_json::json!({
+        "name": "review window",
+        "start_time_unix_nanos": 1_000_000_000,
+        "end_time_unix_nanos": 2_000_000_000,
+        "annotation_type": "bogus",
+    }));
 
-    let mut params = create_params();
-    params.annotation_type = "bogus".into();
+    assert!(params.is_err());
+}
 
-    let err = server
-        .create_annotation(Parameters(params))
-        .await
-        .expect_err("expected error");
+#[test]
+fn annotation_params_accept_published_enum_values() {
+    let create = serde_json::from_value::<CreateAnnotationParams>(serde_json::json!({
+        "name": "review window",
+        "start_time_unix_nanos": 1_000_000_000,
+        "end_time_unix_nanos": 2_000_000_000,
+        "annotation_type": "ANNOTATION_TYPE_DATA_REVIEW",
+        "state": "ANNOTATION_STATE_FLAGGED",
+    }))
+    .expect("published create enum values must deserialize");
+    assert!(matches!(
+        create.annotation_type,
+        AnnotationTypeParam::DataReview
+    ));
+    assert!(matches!(create.state, Some(AnnotationStateParam::Flagged)));
 
-    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+    let update = serde_json::from_value::<UpdateAnnotationParams>(serde_json::json!({
+        "annotation_ids": ["ann1"],
+        "state": "ANNOTATION_STATE_RESOLVED",
+    }))
+    .expect("published update enum values must deserialize");
+    assert!(matches!(update.state, Some(AnnotationStateParam::Resolved)));
+}
+
+#[test]
+fn annotation_params_accept_state_aliases() {
+    let failed = serde_json::from_value::<UpdateAnnotationParams>(serde_json::json!({
+        "annotation_ids": ["ann1"],
+        "state": "failed",
+    }))
+    .expect("`failed` must alias the flagged state");
+    assert!(matches!(failed.state, Some(AnnotationStateParam::Flagged)));
+
+    let accepted = serde_json::from_value::<UpdateAnnotationParams>(serde_json::json!({
+        "annotation_ids": ["ann1"],
+        "state": "accepted",
+    }))
+    .expect("`accepted` must alias the resolved state");
+    assert!(matches!(
+        accepted.state,
+        Some(AnnotationStateParam::Resolved)
+    ));
 }
 
 #[tokio::test]
@@ -193,8 +338,8 @@ async fn create_annotation_rejects_state_on_phase() {
     let (server, _h) = server_with_mock(MockAnnotationServiceImpl::new()).await;
 
     let mut params = create_params();
-    params.annotation_type = "phase".into();
-    params.state = Some("open".into());
+    params.annotation_type = AnnotationTypeParam::Phase;
+    params.state = Some(AnnotationStateParam::Open);
 
     let err = server
         .create_annotation(Parameters(params))

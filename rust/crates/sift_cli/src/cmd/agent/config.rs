@@ -97,7 +97,7 @@ pub(super) fn snapshot(harness: Harness, environment: &Environment) -> Result<Sn
                 }
             }
         }
-        Harness::Cursor | Harness::OpenCode => {
+        Harness::Cursor | Harness::Gemini | Harness::Antigravity | Harness::OpenCode => {
             let path = json_path(harness, environment);
             let contents = match fs::symlink_metadata(&path) {
                 Ok(metadata) if metadata.file_type().is_symlink() => {
@@ -155,8 +155,9 @@ pub(super) fn restore(snapshot: &Snapshot, environment: &Environment) -> Result<
 fn inspect_with(harness: Harness, environment: &Environment, runner: &dyn Runner) -> Result<State> {
     match harness {
         Harness::Claude | Harness::Codex => Ok(inspect_native(harness, environment, runner)?.state),
-        Harness::Cursor => inspect_json(harness, environment),
-        Harness::OpenCode => inspect_json(harness, environment),
+        Harness::Cursor | Harness::Gemini | Harness::Antigravity | Harness::OpenCode => {
+            inspect_json(harness, environment)
+        }
     }
 }
 
@@ -178,7 +179,9 @@ fn install_with(
         Harness::Claude | Harness::Codex => {
             install_native(harness, environment, registration, runner)
         }
-        Harness::Cursor | Harness::OpenCode => install_json(harness, environment, registration),
+        Harness::Cursor | Harness::Gemini | Harness::Antigravity | Harness::OpenCode => {
+            install_json(harness, environment, registration)
+        }
     }
 }
 
@@ -199,7 +202,7 @@ fn uninstall_with(
                 remove_native(harness, runner)?;
                 Ok(true)
             }
-            Harness::Cursor | Harness::OpenCode => {
+            Harness::Cursor | Harness::Gemini | Harness::Antigravity | Harness::OpenCode => {
                 remove_json(harness, environment)?;
                 Ok(true)
             }
@@ -215,7 +218,7 @@ fn inspect_native(
     match harness {
         Harness::Claude => inspect_claude(environment, runner),
         Harness::Codex => inspect_codex(environment, runner),
-        Harness::Cursor | Harness::OpenCode => {
+        Harness::Cursor | Harness::Gemini | Harness::Antigravity | Harness::OpenCode => {
             unreachable!("JSON-backed harnesses do not have native registrations")
         }
     }
@@ -478,7 +481,7 @@ fn install_json(
     servers.insert(
         "sift".to_string(),
         match harness {
-            Harness::Cursor => json!({
+            Harness::Cursor | Harness::Gemini | Harness::Antigravity => json!({
                 "command": environment.current_exe,
                 "args": args
             }),
@@ -515,7 +518,7 @@ fn classify_json_entry(harness: Harness, entry: &Value, environment: &Environmen
     };
 
     let (command, args, metadata_is_managed) = match harness {
-        Harness::Cursor => {
+        Harness::Cursor | Harness::Gemini => {
             let allowed = ["command", "args"];
             let managed = entry.keys().all(|key| allowed.contains(&key.as_str()));
             let Some(args) = string_array(entry.get("args")) else {
@@ -530,6 +533,24 @@ fn classify_json_entry(harness: Harness, entry: &Value, environment: &Environmen
                     .map(str::to_string),
                 args,
                 managed,
+            )
+        }
+        Harness::Antigravity => {
+            let allowed = ["command", "args", "disabled"];
+            let managed = entry.keys().all(|key| allowed.contains(&key.as_str()));
+            let Some(args) = string_array(entry.get("args")) else {
+                return State::Conflict(
+                    "the existing `sift` MCP entry has invalid arguments".to_string(),
+                );
+            };
+            let enabled = false_or_missing(entry.get("disabled"));
+            (
+                entry
+                    .get("command")
+                    .and_then(Value::as_str)
+                    .map(str::to_string),
+                args,
+                managed && enabled,
             )
         }
         Harness::OpenCode => {
@@ -642,6 +663,12 @@ fn is_sift_cli(command: &str) -> bool {
 fn json_path(harness: Harness, environment: &Environment) -> PathBuf {
     match harness {
         Harness::Cursor => environment.home.join(".cursor").join("mcp.json"),
+        Harness::Gemini => environment.home.join(".gemini").join("settings.json"),
+        Harness::Antigravity => environment
+            .home
+            .join(".gemini")
+            .join("config")
+            .join("mcp_config.json"),
         Harness::OpenCode => environment
             .home
             .join(".config")
@@ -653,7 +680,7 @@ fn json_path(harness: Harness, environment: &Environment) -> PathBuf {
 
 fn container_key(harness: Harness) -> &'static str {
     match harness {
-        Harness::Cursor => "mcpServers",
+        Harness::Cursor | Harness::Gemini | Harness::Antigravity => "mcpServers",
         Harness::OpenCode => "mcp",
         _ => unreachable!("only JSON-backed harnesses have container keys"),
     }
@@ -680,6 +707,9 @@ fn load_json(path: &Path) -> Result<Option<Map<String, Value>>> {
             return Err(error).with_context(|| format!("failed to read {}", path.display()));
         }
     };
+    if contents.is_empty() || contents.iter().all(u8::is_ascii_whitespace) {
+        return Ok(None);
+    }
     let value: Value = serde_json::from_slice(&contents)
         .with_context(|| format!("{} is not valid JSON", path.display()))?;
     value
@@ -788,6 +818,10 @@ fn true_or_missing(value: Option<&Value>) -> bool {
     value.is_none_or(|value| value.as_bool() == Some(true))
 }
 
+fn false_or_missing(value: Option<&Value>) -> bool {
+    value.is_none_or(|value| value.as_bool() == Some(false))
+}
+
 fn field(contents: &str, prefix: &str) -> Option<String> {
     contents
         .lines()
@@ -842,7 +876,7 @@ fn add_native(harness: Harness, entry: &NativeEntry, runner: &dyn Runner) -> Res
             os_args(["mcp", "add", "sift", "--"]),
             "register the Sift MCP server with Codex",
         ),
-        Harness::Cursor | Harness::OpenCode => {
+        Harness::Cursor | Harness::Gemini | Harness::Antigravity | Harness::OpenCode => {
             unreachable!("JSON-backed harnesses do not use native registration commands")
         }
     };
@@ -863,7 +897,7 @@ fn remove_native(harness: Harness, runner: &dyn Runner) -> Result<()> {
             os_args(["mcp", "remove", "sift"]),
             "remove the Codex MCP registration",
         ),
-        Harness::Cursor | Harness::OpenCode => {
+        Harness::Cursor | Harness::Gemini | Harness::Antigravity | Harness::OpenCode => {
             unreachable!("JSON-backed harnesses do not use native registration commands")
         }
     };

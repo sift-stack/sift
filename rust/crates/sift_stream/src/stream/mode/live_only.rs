@@ -75,8 +75,10 @@ impl Transport for LiveStreamingOnly {
     /// Sends a message, awaiting capacity on the **ingestion channel** if it is full.
     ///
     /// Backpressure comes from the bounded ingestion channel. The caller blocks until
-    /// the ingestion task drains capacity. Returns an error only if the channel is
-    /// closed (i.e. the stream is shutting down).
+    /// the ingestion task drains capacity. Returns an error only if the channel is closed,
+    /// which means the stream is shutting down or the ingestion task has stopped. The task
+    /// stops on a stream failure when retries are disabled; see
+    /// [`LiveOnlyBuilder::retry_policy`](crate::LiveOnlyBuilder::retry_policy).
     async fn send(
         &mut self,
         stream_id: &Uuid,
@@ -163,12 +165,22 @@ impl Transport for LiveStreamingOnly {
 
     /// Closes the ingestion channel, sends the shutdown signal, and awaits task completion.
     ///
-    /// The ingestion task drains any messages already queued before acting on the shutdown
-    /// signal, so all messages sent before `finish` is called are delivered. An `Err` means the
-    /// stream carrying that tail-end data failed and Sift never acknowledged it; since live-only
-    /// mode keeps no disk backup, that data is unrecoverable. An `Ok` means shutdown completed
-    /// with an acknowledged stream. Note that `Ok` does not account for data lost to earlier
-    /// mid-stream failures that the retry loop recovered from.
+    /// The ingestion task drains whatever is still queued on the ingestion channel before it
+    /// acts on the shutdown signal, so no message is left behind in the channel.
+    ///
+    /// An `Err` means a stream failed and Sift never acknowledged the data that stream was
+    /// carrying. Live-only mode keeps no disk backup, so that data is unrecoverable here.
+    ///
+    /// What `Ok` guarantees depends on
+    /// [`LiveOnlyBuilder::retry_policy`](crate::LiveOnlyBuilder::retry_policy):
+    ///
+    /// - With retries enabled (the default), `Ok` means the stream that was alive at shutdown
+    ///   drained and Sift acknowledged it. It does not account for data lost to an earlier
+    ///   mid-stream failure that the retry loop recovered from. Messages already handed to the
+    ///   failed stream are dropped and nothing replays them.
+    /// - With retries disabled (`retry_policy(None)`), any stream failure stops the ingestion
+    ///   task and is reported here, so `Ok` means Sift acknowledged every message that was
+    ///   sent.
     async fn finish(self, stream_id: &Uuid) -> Result<()> {
         self.ingestion_tx.close();
         let _ = self.control_tx.send(ControlMessage::Shutdown);

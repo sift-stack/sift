@@ -54,12 +54,13 @@ exists.
   connectivity check; when it fails, expect every other Sift tool to fail too.
 - **Discovery:** `list_assets`, `list_runs`, `list_channels`, `list_reports`,
   `list_report_templates`, `list_rules`, `list_rule_versions`, `list_annotations`,
-  `list_artifacts`.
-- **Artifacts:** `download_artifact` (latest version, or pin `artifact_version_id`).
-  The artifact tools, including `list_artifacts` and the `create_artifact`
-  write below, are enabled per account by the agents feature flag resolved when
-  the MCP server starts, so they may be absent from the tool list. Enabling
-  them requires an account setting and an MCP restart.
+  `list_artifacts`, `list_artifact_versions`.
+- **Artifacts:** `download_artifact` (latest version, or pin `artifact_version_id`),
+  `list_artifact_versions` for one artifact's history, newest first.
+  The artifact tools, including `list_artifacts` and the artifact writes below,
+  are enabled per account by the agents feature flag resolved when the MCP
+  server starts, so they may be absent from the tool list. Enabling them
+  requires an account setting and an MCP restart.
 - **Derived channels:** `list_calculated_channels`,
   `list_calculated_channel_versions`, `list_user_defined_functions`,
   `list_user_defined_function_versions`.
@@ -87,15 +88,15 @@ exists.
   `create_user_defined_function`, `update_user_defined_function`,
   `archive_user_defined_function`, `unarchive_user_defined_function`,
   `create_test_report`, `append_test_measurements`, `update_asset`,
-  `update_run`, `create_artifact`.
+  `update_run`, `create_artifact`, `archive_artifact`, `unarchive_artifact`.
 
 ## Workflows that span tools
 
 - **Start a Sift session.** If `check_for_updates` is available, call it once at
   the start of each session. Call it before any other Sift tool. If it reports
-  `update_available`, relay its
-  `message` and exact `install_command`. If it reports `unavailable`, continue
-  with the requested Sift task.
+  `update_available`, relay its `message` and exact `install_command`. Repeat
+  the notice even if an earlier session reported the same version. If it
+  reports `unavailable`, continue with the requested Sift task.
 - **Search a list.** Filter with a pattern rather than an exact match. Each
   tool's description names its own filterable fields. When the request is too
   vague to filter on, sample with a small `limit` and ask the user to narrow
@@ -140,13 +141,25 @@ exists.
   Send a rename on its own. The API applies a `name` change by itself and
   ignores every other field, so `update_user_defined_function` rejects `name`
   combined with anything else.
-- **Create an artifact.** `create_artifact` with a `title` / `summary`.
-  Pass `conversation_id` to link it to a chat, and `authoring_kind=agent` when
-  a Sift agent produced it. Append a version by passing the existing
-  `artifact_id`. Creating is gated by `--allow-create`; appending a version to
-  an existing artifact also needs `--allow-destructive`. Discover artifacts
-  with `list_artifacts` (oldest first, no `order_by`); fetch a version or its
-  `download_url` with `download_artifact`.
+- **Create an artifact.** `create_artifact` accepts `title`, `summary`,
+  metadata, links, and either `file_path` or a structured JSON `payload`.
+  Choose `storage_class=file` for previewable files,
+  `storage_class=structured` for computed tables and PSD-like results, or
+  `storage_class=blob` for opaque intermediates. `structured` requires a
+  payload and rejects `file_path`. `created_via` defaults to `agent`; set it
+  only for `canvas` or direct `upload` writes. Link entity types are
+  `conversation`, `canvas`, `run`, `asset`, `artifact`, and `tool_use`. Pass
+  `conversation_id` to link a new artifact to a chat, and set
+  `authoring_kind=agent` when a Sift agent produced it. Append a version with
+  `artifact_id`. Creating needs `--allow-create`; appending also needs
+  `--allow-destructive`. Use `list_artifacts` with CEL `filter` and `order_by`
+  such as `created_date desc`; read one artifact's history with
+  `list_artifact_versions`; fetch a version or its `download_url` with
+  `download_artifact`.
+- **Archive an artifact.** `archive_artifact` hides an artifact from default
+  listings without deleting its versions, links, or files. Find archived
+  artifacts with `list_artifacts` and `include_archived=true`, then restore one
+  with `unarchive_artifact`. Both writes need `--allow-destructive`.
 - **Produce a chart.** Build a link with `explore_url`. When the user wants a
   chart and numbers, do both and give the user both.
 - **Answer a question about how Sift works.** Call `search_docs`. Do not answer

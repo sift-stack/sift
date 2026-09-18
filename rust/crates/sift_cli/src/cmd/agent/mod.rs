@@ -122,6 +122,8 @@ pub(super) enum Harness {
     Claude,
     Codex,
     Cursor,
+    Gemini,
+    Antigravity,
     OpenCode,
 }
 
@@ -131,6 +133,8 @@ impl Harness {
             Self::Claude => "Claude Code",
             Self::Codex => "Codex",
             Self::Cursor => "Cursor",
+            Self::Gemini => "Gemini CLI",
+            Self::Antigravity => "Antigravity CLI",
             Self::OpenCode => "OpenCode",
         }
     }
@@ -169,6 +173,16 @@ impl Environment {
                 self.home.join(".cursor"),
             ),
             (
+                Harness::Gemini,
+                &["gemini"][..],
+                self.home.join(".gemini").join("settings.json"),
+            ),
+            (
+                Harness::Antigravity,
+                &["agy"][..],
+                self.home.join(".gemini").join("antigravity-cli"),
+            ),
+            (
                 Harness::OpenCode,
                 &["opencode"][..],
                 self.home.join(".config").join("opencode"),
@@ -177,13 +191,13 @@ impl Environment {
 
         candidates
             .into_iter()
-            .filter_map(|(harness, commands, config_dir)| {
+            .filter_map(|(harness, commands, config_path)| {
                 let command_exists = commands
                     .iter()
                     .any(|command| self.command_available(command));
-                // A config directory alone counts, so headless environments
+                // A config path alone counts, so headless environments
                 // without client binaries still install the skill.
-                let detected = command_exists || config_dir.exists();
+                let detected = command_exists || config_path.exists();
                 detected.then_some(harness)
             })
             .collect()
@@ -254,7 +268,7 @@ pub async fn update(profile: Option<String>, args: AgentUpdateArgs) -> Result<Ex
         Ok(Some(latest)) if latest > current => {
             println!("sift-cli {current} is outdated; the current agent bundle was not installed.");
             println!("Update the CLI and its embedded bundle with:");
-            println!("\n  {}\n", version::install_command(&latest));
+            println!("\n  {}\n", version::install_command());
             println!("Then run `sift-cli agent update` again.");
             return Ok(ExitCode::FAILURE);
         }
@@ -736,7 +750,7 @@ fn install_environment(
     if environment.harnesses.is_empty() && extra_skill_path.is_none() {
         println!(
             "No supported AI coding clients were detected. Supported clients: \
-             Claude Code, Codex, Cursor, and OpenCode."
+             Claude Code, Codex, Cursor, Gemini CLI, Antigravity CLI, and OpenCode."
         );
         return Ok(ExitCode::FAILURE);
     }
@@ -1011,7 +1025,7 @@ async fn check_release() -> bool {
                 "{} sift-cli {current} is outdated; latest is {latest}",
                 error_status()
             );
-            println!("Update with:\n\n  {}\n", version::install_command(&latest));
+            println!("Update with:\n\n  {}\n", version::install_command());
             true
         }
         Ok(Some(_)) => {

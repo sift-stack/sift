@@ -19,7 +19,7 @@ from sift.exports.v1.exports_pb2 import (
 from sift.exports.v1.exports_pb2_grpc import ExportServiceStub
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
-from sift_client._internal.util.timestamp import to_pb_timestamp
+from sift_client._internal.time import to_timestamp_pb
 from sift_client.sift_types.calculated_channel import CalculatedChannel, CalculatedChannelCreate
 from sift_client.transport import WithGrpcClient
 
@@ -123,25 +123,25 @@ class ExportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if run_ids is not None:
             runs_and_time_range = RunsAndTimeRange(run_ids=run_ids)
             if start_time:
-                runs_and_time_range.start_time.CopyFrom(to_pb_timestamp(start_time))
+                runs_and_time_range.start_time.CopyFrom(to_timestamp_pb(start_time))
             if stop_time:
-                runs_and_time_range.stop_time.CopyFrom(to_pb_timestamp(stop_time))
+                runs_and_time_range.stop_time.CopyFrom(to_timestamp_pb(stop_time))
             request.runs_and_time_range.CopyFrom(runs_and_time_range)
 
         if asset_ids is not None:
             assets_and_time_range = AssetsAndTimeRange(asset_ids=asset_ids)
             if start_time:
-                assets_and_time_range.start_time.CopyFrom(to_pb_timestamp(start_time))
+                assets_and_time_range.start_time.CopyFrom(to_timestamp_pb(start_time))
             if stop_time:
-                assets_and_time_range.stop_time.CopyFrom(to_pb_timestamp(stop_time))
+                assets_and_time_range.stop_time.CopyFrom(to_timestamp_pb(stop_time))
             request.assets_and_time_range.CopyFrom(assets_and_time_range)
 
         if run_ids is None and asset_ids is None:
             time_range = TimeRange()
             if start_time:
-                time_range.start_time.CopyFrom(to_pb_timestamp(start_time))
+                time_range.start_time.CopyFrom(to_timestamp_pb(start_time))
             if stop_time:
-                time_range.stop_time.CopyFrom(to_pb_timestamp(stop_time))
+                time_range.stop_time.CopyFrom(to_timestamp_pb(stop_time))
             request.time_range.CopyFrom(time_range)
 
         response = await self._grpc_client.get_stub(ExportServiceStub).ExportData(request)

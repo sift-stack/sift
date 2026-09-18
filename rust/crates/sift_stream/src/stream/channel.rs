@@ -38,6 +38,20 @@ pub struct ChannelValue {
 #[derive(Debug, PartialEq)]
 pub struct ChannelEnum(pub u32);
 
+/// Wrapper to distinguish raw bytes from bitfield values, since both are
+/// backed by `Vec<u8>`. A plain `Vec<u8>` or `&[u8]` converts to
+/// [`Value::BitField`]; wrap it in `ChannelBytes` to produce [`Value::Bytes`].
+///
+/// # Example
+///
+/// ```
+/// use sift_stream::{ChannelValue, ChannelBytes};
+///
+/// let bytes_value = ChannelValue::new("payload", ChannelBytes(vec![0xde, 0xad]));
+/// ```
+#[derive(Debug, PartialEq)]
+pub struct ChannelBytes(pub Vec<u8>);
+
 /// Represents a typed value emitted by a channel.
 ///
 /// This enum covers all supported data types for telemetry channels. Values can
@@ -65,6 +79,7 @@ pub enum Value {
     Uint64(u64),
     Enum(u32),
     BitField(Vec<u8>),
+    Bytes(Vec<u8>),
 }
 
 impl Value {
@@ -81,6 +96,7 @@ impl Value {
             Value::Uint64(_) => ChannelDataType::Uint64,
             Value::Enum(_) => ChannelDataType::Enum,
             Value::BitField(_) => ChannelDataType::BitField,
+            Value::Bytes(_) => ChannelDataType::Bytes,
         }
     }
 
@@ -97,6 +113,7 @@ impl Value {
             Value::Uint64(val) => Type::Uint64(*val),
             Value::Enum(val) => Type::Enum(*val),
             Value::BitField(val) => Type::BitField(val.clone()),
+            Value::Bytes(val) => Type::Bytes(val.clone()),
         }
     }
 }
@@ -189,6 +206,12 @@ impl From<i64> for Value {
 impl From<ChannelEnum> for Value {
     fn from(value: ChannelEnum) -> Self {
         Value::Enum(value.0)
+    }
+}
+
+impl From<ChannelBytes> for Value {
+    fn from(value: ChannelBytes) -> Self {
+        Value::Bytes(value.0)
     }
 }
 
@@ -335,4 +358,15 @@ fn test_channel_value_conversion() {
         },
         bitfield_val
     );
+
+    let bytes_val = ChannelValue::new("channel", ChannelBytes(vec![0xde, 0xad]));
+    assert_eq!(
+        ChannelValue {
+            name: String::from("channel"),
+            value: Value::Bytes(vec![0xde, 0xad])
+        },
+        bytes_val
+    );
+    assert_eq!(bytes_val.value.pb_data_type(), ChannelDataType::Bytes);
+    assert_eq!(bytes_val.value.pb_value(), Type::Bytes(vec![0xde, 0xad]));
 }
