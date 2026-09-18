@@ -5,10 +5,29 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-## [v0.21.0] - September 4, 2026
-
 ### What's New
 
+#### MCAP imports
+
+`client.data_import` now supports MCAP (`.mcap`) files with ROS 2 (`ros2msg`/`cdr`) topics.
+
+```python
+job = client.data_import.import_from_path("recording.mcap", asset=my_asset)
+```
+
+Importing without a config ingests every supported channel. Topics that cannot be decoded fail the import unless `McapParseErrorPolicy.IGNORE_ERROR` is set.
+
+`detect_config` reads the file's channels locally without decoding messages, returning an `McapImportConfig` whose `data` holds one entry per field. Edit it to select, rename, or retype channels before importing.
+
+```python
+config = client.data_import.detect_config("recording.mcap")
+config.complex_types_import_mode = McapComplexTypesImportMode.STRING
+```
+
+Variable-cardinality fields (dynamic and bounded arrays) are typed `BYTES`. As with Parquet, `complex_types_import_mode` on the config decides what each becomes: Arrow IPC bytes, a JSON string under `<name>.json`, both (the default), or neither.
+
+Reading a file locally needs the new `mcap` extra (`pip install sift-stack-py[mcap]`), so both `detect_config` and importing without a config require it.
+=======
 #### Credentials from sift-cli profiles
 
 `SiftClient` now reads the same `sift.toml` profiles that `sift-cli --profile` uses. An environment that you configure once for the CLI works from Python with no arguments.
@@ -34,6 +53,11 @@ The pytest plugin gains `--sift-profile`, the `sift_profile` ini key, and `SIFT_
 An `http://` URL now connects without TLS instead of failing, because transport security follows the scheme of the gRPC URL. An `https://` URL and a bare host name behave as before.
 
 In the config file, the canonical spelling of the API key is `api_key`, which matches the rest of the Sift API. The older `apikey` spelling is still valid, so you do not need to migrate. If a profile holds both keys, the client uses `api_key`.
+
+
+## [v0.21.0] - September 4, 2026
+
+### What's New
 
 #### List and get data imports
 
