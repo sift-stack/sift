@@ -876,6 +876,28 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.client.SiftClient.credential_sources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;credential_sources
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.client.SiftClient.profile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;profile
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.client.SiftClient.grpc_client" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -959,6 +981,17 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.client.SiftClient.from_profile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;from_profile
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.client.SiftClient.get_asyncio_loop" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -998,6 +1031,34 @@ You're not viewing the latest version.
     
   
     config
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../credentials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    credentials
   
 
     
@@ -1767,6 +1828,28 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.client.SiftClient.credential_sources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;credential_sources
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.client.SiftClient.profile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;profile
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.client.SiftClient.grpc_client" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1846,6 +1929,17 @@ You're not viewing the latest version.
         
       </ul>
     </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.client.SiftClient.from_profile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;from_profile
+      
+    </span>
+  </a>
   
 </li>
         
@@ -2005,7 +2099,8 @@ You're not viewing the latest version.
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">rest_url</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">connection_config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            SiftConnectionConfig (sift_client.transport.SiftConnectionConfig)" href="../transport/#sift_client.transport.SiftConnectionConfig">SiftConnectionConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">app_url</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">profile</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2018,6 +2113,11 @@ You're not viewing the latest version.
 <p>It provides both synchronous and asynchronous interfaces, strong type checking, and a Pythonic API design.</p>
 
         <p>Initialize the SiftClient with specific connection parameters or a connection_config.</p>
+<p>For any argument that you leave unset, the client reads the environment
+and the <code>sift.toml</code> profiles that <code>sift-cli</code> manages. <code>SiftClient()</code>
+therefore connects to the same endpoints as <code>sift-cli</code>. See
+:func:<code>sift_client.credentials.resolve_credentials</code> for the full
+precedence order.</p>
 
 
 <table>
@@ -2094,7 +2194,8 @@ You're not viewing the latest version.
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>A SiftConnectionConfig object to configure the connection behavior of the SiftClient.</p>
+                <p>A SiftConnectionConfig object to configure the connection behavior of the SiftClient.
+The client uses it unchanged and resolves no credentials.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -2131,6 +2232,53 @@ A value here takes precedence over <code>connection_config.app_url</code>.</p>
               </p>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>profile</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Name of a <code>sift.toml</code> profile that supplies credentials,
+as with <code>sift-cli --profile</code>. The client ignores this argument
+if you also pass <code>connection_config</code>.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RAISES</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+              <span class="doc-raises-annotation">
+                  <code><span title="SiftCredentialsError">SiftCredentialsError</span></code>
+              </span>
+            </td>
+            <td class="doc-raises-details">
+              <div class="doc-md-description">
+                <p>You passed no <code>connection_config</code>, and the
+client cannot resolve the API key or either URL.</p>
+              </div>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -2153,6 +2301,19 @@ A value here takes precedence over <code>connection_config.app_url</code>.</p>
         </tr>
       </thead>
       <tbody>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            from_profile
+
+
+  
+      classmethod
+   (sift_client.client.SiftClient.from_profile)" href="#sift_client.client.SiftClient.from_profile">from_profile</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Build a client from a named <code>sift.toml</code> profile.</p>
+                </div>
+              </td>
+            </tr>
             <tr class="doc-section-item">
               <td><code><a class="autorefs autorefs-internal" title="            get_asyncio_loop (sift_client.client.SiftClient.get_asyncio_loop)" href="#sift_client.client.SiftClient.get_asyncio_loop">get_asyncio_loop</a></code></td>
               <td class="doc-function-details">
@@ -2513,6 +2674,44 @@ A value here takes precedence over <code>connection_config.app_url</code>.</p>
                   <span class="doc-attribute-annotation">
                     <b>TYPE:</b>
                       <code><a class="autorefs autorefs-internal" title="            AsyncAPIs (sift_client.util.util.AsyncAPIs)" href="../util/util/#sift_client.util.util.AsyncAPIs">AsyncAPIs</a></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            credential_sources
+
+
+  
+      property
+   (sift_client.client.SiftClient.credential_sources)" href="#sift_client.client.SiftClient.credential_sources">credential_sources</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                <p>The layer that supplied each credential. Use it to diagnose a connection.</p>
+              </div>
+              <p>
+                  <span class="doc-attribute-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="typing.Mapping">Mapping</span>[<span title="str">str</span>, <span title="str">str</span>] | None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            profile
+
+
+  
+      property
+   (sift_client.client.SiftClient.profile)" href="#sift_client.client.SiftClient.profile">profile</a></code></td>
+            <td class="doc-attribute-details">
+              <div class="doc-md-description">
+                <p>The <code>sift.toml</code> profile that supplied this client's credentials.</p>
+              </div>
+              <p>
+                  <span class="doc-attribute-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span> | None</code>
                   </span>
               </p>
             </td>
@@ -3074,6 +3273,59 @@ A value here takes precedence over <code>connection_config.app_url</code>.</p>
 
 
 
+<h3 id="sift_client.client.SiftClient.credential_sources" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">credential_sources</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#sift_client.client.SiftClient.credential_sources" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">credential_sources</span><span class="p">:</span> <span class="n"><span title="typing.Mapping">Mapping</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="str">str</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>The layer that supplied each credential. Use it to diagnose a connection.</p>
+<p>Maps <code>api_key</code> / <code>grpc_url</code> / <code>rest_url</code> / <code>app_url</code> to
+<code>"arg"</code>, <code>"profile:&lt;name&gt;"</code>, <code>"env"</code>, <code>"default"</code>, or
+<code>"unset"</code>. This property is <code>None</code> if you build the client from an
+explicit <code>connection_config</code>, because that path resolves no
+credentials.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.client.SiftClient.profile" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">profile</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#sift_client.client.SiftClient.profile" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">profile</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>The <code>sift.toml</code> profile that supplied this client's credentials.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
 <h3 id="sift_client.client.SiftClient.grpc_client" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">grpc_client</span>
 
@@ -3175,6 +3427,101 @@ None for unrecognized hosts with no override.</p>
 
 
 
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="sift_client.client.SiftClient.from_profile" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">from_profile</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#sift_client.client.SiftClient.from_profile" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">from_profile</span><span class="p">(</span><span class="n">profile</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            SiftClient (sift_client.client.SiftClient)" href="#sift_client.client.SiftClient">SiftClient</a></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Build a client from a named <code>sift.toml</code> profile.</p>
+<p>This method calls <code>SiftClient(profile=...)</code>. It passes every keyword
+argument through, and those arguments still outrank the profile's
+values.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>profile</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Profile name, as used by <code>sift-cli --profile</code>.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="str">str</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>**kwargs</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Any other :class:<code>SiftClient</code> argument.</p>
+              </div>
+              <p>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>{}</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><a class="autorefs autorefs-internal" title="            SiftClient (sift_client.client.SiftClient)" href="#sift_client.client.SiftClient">SiftClient</a></code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>A client connected to the endpoints that profile names.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
 
 <div class="doc doc-object doc-function">
 

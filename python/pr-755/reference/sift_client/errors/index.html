@@ -11,7 +11,7 @@
         <link rel="canonical" href="https://sift-stack.github.io/sift/python/pr-755/reference/sift_client/errors/">
       
       
-        <link rel="prev" href="../config/">
+        <link rel="prev" href="../credentials/">
       
       
         <link rel="next" href="../pytest_plugin/">
@@ -646,6 +646,34 @@ You're not viewing the latest version.
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../credentials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    credentials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -726,6 +754,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;SiftExperimentalWarning
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.errors.SiftCredentialsError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;SiftCredentialsError
       
     </span>
   </a>
@@ -1269,6 +1308,17 @@ You're not viewing the latest version.
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#sift_client.errors.SiftCredentialsError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;SiftCredentialsError
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1331,6 +1381,14 @@ You're not viewing the latest version.
             <td class="doc-class-details">
               <div class="doc-md-description">
                 <p>Warning for experimental features.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            SiftCredentialsError (sift_client.errors.SiftCredentialsError)" href="#sift_client.errors.SiftCredentialsError">SiftCredentialsError</a></code></td>
+            <td class="doc-class-details">
+              <div class="doc-md-description">
+                <p>Raised when Sift credentials cannot be resolved.</p>
               </div>
             </td>
           </tr>
@@ -1407,6 +1465,44 @@ You're not viewing the latest version.
 
 
         <p>Warning for experimental features.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="sift_client.errors.SiftCredentialsError" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">SiftCredentialsError</span>
+
+
+<a href="#sift_client.errors.SiftCredentialsError" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="ValueError">ValueError</span></code></p>
+
+
+
+        <p>Raised when Sift credentials cannot be resolved.</p>
+<p>Subclasses <code>ValueError</code> because that is what <code>SiftClient</code> raised for
+unusable connection arguments before credential resolution existed.</p>
 
 
 
