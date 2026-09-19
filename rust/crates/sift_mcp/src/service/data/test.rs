@@ -480,6 +480,36 @@ async fn get_data_reports_nothing_empty_when_every_channel_has_samples() {
 }
 
 #[tokio::test]
+async fn get_data_deduplicates_empty_registration_names() {
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data().times(1).returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![],
+            next_page_token: String::new(),
+        }))
+    });
+    let (service, _h) = service_with_mock(mock).await;
+    let err = service
+        .get_data(
+            &[
+                named_raw_channel("c1", "state.mode"),
+                named_raw_channel("c2", "state.mode"),
+            ],
+            asset_range(0, 4_000_000_000),
+            0,
+            &mut Vec::new(),
+        )
+        .await
+        .unwrap_err();
+    assert_eq!(
+        err.downcast_ref::<super::NoChannelData>()
+            .unwrap()
+            .empty_channels,
+        vec!["state.mode"],
+    );
+}
+
+#[tokio::test]
 async fn get_data_no_samples_error_names_every_channel() {
     let mut mock = MockDataServiceImpl::new();
     mock.expect_get_data().times(1).returning(|_| {

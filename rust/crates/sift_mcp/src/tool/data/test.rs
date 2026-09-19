@@ -1,6 +1,9 @@
 use std::path::PathBuf;
 
+use arrow::array::{Array, AsArray};
+use arrow::datatypes::Float64Type;
 use bytes::Bytes;
+use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use pbjson_types::{Any, Timestamp};
 use prost::Message;
 use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
@@ -101,8 +104,258 @@ fn get_data_params(channel_regex: &str) -> Parameters<GetDataParams> {
         sample_ms: 0,
         channel_names: None,
         channel_regex: Some(channel_regex.into()),
+        channel_id: None,
+        channel_ids: None,
         output: std::env::temp_dir().join("sift-mcp-get-data-test-never-written.parquet"),
     })
+}
+
+#[tokio::test]
+async fn get_data_fetches_exact_channel_ids() {
+    for selector in [
+        serde_json::json!({"channel_id": "mode-1"}),
+        serde_json::json!({"channel_ids": ["mode-1"]}),
+        serde_json::json!({"channel_ids": ["mode-1", "mode-2", "mode-1"]}),
+    ] {
+        let ids = selector["channel_ids"]
+            .as_array()
+            .map(|ids| {
+                ids.iter()
+                    .map(|id| id.as_str().unwrap().to_string())
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_else(|| vec![selector["channel_id"].as_str().unwrap().to_string()]);
+        let expected_filter = format!(
+            "asset_id == \"asset-1\" && channel_id in [{}]",
+            ids.iter()
+                .map(|id| format!("\"{id}\""))
+                .collect::<Vec<_>>()
+                .join(", "),
+        );
+        let mut unique_ids = ids.clone();
+        unique_ids.sort();
+        unique_ids.dedup();
+        let listed_ids = unique_ids.clone();
+        let mut channels = MockChannelServiceImpl::new();
+        channels
+            .expect_list_channels()
+            .times(1)
+            .withf(move |req| req.get_ref().filter == expected_filter)
+            .returning(move |_| {
+                Ok(Response::new(ListChannelsResponse {
+                    channels: listed_ids
+                        .iter()
+                        .map(|id| Channel {
+                            channel_id: id.clone(),
+                            name: "state.mode".into(),
+                            ..Default::default()
+                        })
+                        .collect(),
+                    next_page_token: String::new(),
+                }))
+            });
+        let queried_ids = unique_ids.clone();
+        let mut data = MockDataServiceImpl::new();
+        data.expect_get_data().times(1).returning(move |req| {
+            let actual_ids = req
+                .get_ref()
+                .queries
+                .iter()
+                .map(|query| {
+                    let Some(QueryKind::Channel(channel)) = &query.query else {
+                        panic!("expected a raw channel query");
+                    };
+                    channel.channel_id.clone()
+                })
+                .collect::<Vec<_>>();
+            assert_eq!(actual_ids, queried_ids);
+            Ok(Response::new(GetDataResponse {
+                data: queried_ids
+                    .iter()
+                    .map(|id| double_page(id, "state.mode", vec![(1_000_000_000, 3.0)]))
+                    .collect(),
+                next_page_token: String::new(),
+            }))
+        });
+        let (server, _h) = server_with_all_mocks(one_asset_mock(), channels, data).await;
+        let dir = TempDir::new("sift-mcp-channel-ids").unwrap();
+        let output = dir.path().join("out.parquet");
+        let mut params = serde_json::json!({
+            "asset_id": "asset-1",
+            "start_time_unix_nanos": 0,
+            "end_time_unix_nanos": 2_000_000_000_i64,
+            "sample_ms": 0,
+            "output": output,
+        });
+        params
+            .as_object_mut()
+            .unwrap()
+            .extend(selector.as_object().unwrap().clone());
+        let body = structured(
+            server
+                .get_data(Parameters(serde_json::from_value(params).unwrap()))
+                .await
+                .unwrap(),
+        );
+        assert_eq!(body["empty_channels"], serde_json::json!([]));
+        assert!(!body["next_step"].as_str().unwrap().contains("no samples"));
+        let batch = ParquetRecordBatchReaderBuilder::try_new(std::fs::File::open(output).unwrap())
+            .unwrap()
+            .build()
+            .unwrap()
+            .next()
+            .unwrap()
+            .unwrap();
+        assert_eq!(batch.num_columns(), unique_ids.len() + 1);
+        assert_eq!(batch.num_rows(), 1);
+        for id in unique_ids {
+            let index = batch
+                .schema()
+                .fields()
+                .iter()
+                .position(|field| field.name().contains(&format!("channel_id=\"{id}\"")))
+                .unwrap();
+            let values = batch.column(index).as_primitive::<Float64Type>();
+            assert_eq!(values.null_count(), 0);
+            assert_eq!(values.value(0), 3.0);
+        }
+    }
+}
+
+#[tokio::test]
+async fn get_data_requires_exactly_one_channel_selector() {
+    let (server, _h) =
+        server_with_mocks(MockAssetServiceImpl::new(), MockChannelServiceImpl::new()).await;
+    for mask in 0u32..16 {
+        if mask.count_ones() == 1 {
+            continue;
+        }
+        let mut params = get_data_params(".*");
+        params.0.channel_names = (mask & 1 != 0).then(|| vec!["state.mode".into()]);
+        params.0.channel_regex = (mask & 2 != 0).then(|| ".*".into());
+        params.0.channel_id = (mask & 4 != 0).then(|| "mode-1".into());
+        params.0.channel_ids = (mask & 8 != 0).then(|| vec!["mode-1".into()]);
+        let err = server.get_data(params).await.unwrap_err();
+        assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+        assert!(err.message.contains("exactly one"), "{err:?}");
+    }
+}
+
+#[tokio::test]
+async fn get_data_rejects_empty_channel_id_selections() {
+    let (server, _h) =
+        server_with_mocks(MockAssetServiceImpl::new(), MockChannelServiceImpl::new()).await;
+    for (id, ids) in [
+        (Some(""), None),
+        (Some("  "), None),
+        (None, Some(vec![])),
+        (None, Some(vec!["mode-1".into(), "".into()])),
+    ] {
+        let mut params = get_data_params(".*");
+        params.0.channel_regex = None;
+        params.0.channel_id = id.map(String::from);
+        params.0.channel_ids = ids;
+        let err = server.get_data(params).await.unwrap_err();
+        assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+        assert!(err.message.contains("non-empty channel ID"), "{err:?}");
+    }
+}
+
+#[tokio::test]
+async fn get_data_rejects_missing_channel_ids_before_writing() {
+    for has_match in [false, true] {
+        let mut channels = MockChannelServiceImpl::new();
+        channels
+            .expect_list_channels()
+            .times(1)
+            .returning(move |_| {
+                Ok(Response::new(ListChannelsResponse {
+                    channels: if has_match {
+                        vec![Channel {
+                            channel_id: "mode-1".into(),
+                            name: "state.mode".into(),
+                            ..Default::default()
+                        }]
+                    } else {
+                        vec![]
+                    },
+                    next_page_token: String::new(),
+                }))
+            });
+        let (server, _h) = server_with_mocks(one_asset_mock(), channels).await;
+        let dir = TempDir::new("sift-mcp-missing-channel-ids").unwrap();
+        let output = dir.path().join("out.parquet");
+        std::fs::write(&output, b"existing file").unwrap();
+        let mut params = get_data_params(".*");
+        params.0.channel_regex = None;
+        params.0.channel_ids = Some(vec!["mode-1".into(), "missing-id".into()]);
+        params.0.output = output.clone();
+        let err = server.get_data(params).await.unwrap_err();
+        assert_eq!(err.code, ErrorCode::RESOURCE_NOT_FOUND);
+        assert!(err.message.contains("missing-id"), "{err:?}");
+        assert_eq!(std::fs::read(output).unwrap(), b"existing file");
+    }
+}
+
+#[tokio::test]
+async fn get_data_duplicate_registrations_agree_with_parquet() {
+    let mut channels = MockChannelServiceImpl::new();
+    channels.expect_list_channels().returning(|_| {
+        let mut channels = (0..18)
+            .map(|i| Channel {
+                channel_id: format!("mode-{i}"),
+                name: "state.mode".into(),
+                ..Default::default()
+            })
+            .collect::<Vec<_>>();
+        channels.extend((0..2).map(|i| Channel {
+            channel_id: format!("quiet-{i}"),
+            name: "quiet".into(),
+            ..Default::default()
+        }));
+        Ok(Response::new(ListChannelsResponse {
+            channels,
+            next_page_token: String::new(),
+        }))
+    });
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data().times(1).returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![double_page(
+                "mode-17",
+                "state.mode",
+                vec![(1_000_000_000, 3.0)],
+            )],
+            next_page_token: String::new(),
+        }))
+    });
+    let (server, _h) = server_with_all_mocks(one_asset_mock(), channels, data).await;
+    let dir = TempDir::new("sift-mcp-duplicate-registrations").unwrap();
+    let output = dir.path().join("out.parquet");
+    let mut params = get_data_params(".*");
+    params.0.channel_regex = None;
+    params.0.channel_names = Some(vec!["state.mode".into(), "quiet".into()]);
+    params.0.end_time_unix_nanos = Some(2_000_000_000);
+    params.0.output = output.clone();
+
+    let body = structured(server.get_data(params).await.unwrap());
+    let batch = ParquetRecordBatchReaderBuilder::try_new(std::fs::File::open(output).unwrap())
+        .unwrap()
+        .build()
+        .unwrap()
+        .next()
+        .unwrap()
+        .unwrap();
+    assert_eq!(batch.num_columns(), 2);
+    assert_eq!(batch.num_rows(), 1);
+    assert!(batch.schema().field(1).name().contains("mode-17"));
+    let values = batch.column(1).as_primitive::<Float64Type>();
+    assert_eq!(values.null_count(), 0);
+    assert_eq!(values.value(0), 3.0);
+    assert_eq!(body["empty_channels"], serde_json::json!(["quiet"]));
+    let next_step = body["next_step"].as_str().unwrap();
+    assert!(!next_step.contains("state.mode"), "{next_step}");
+    assert!(next_step.contains("1 returned no samples"), "{next_step}");
 }
 
 /// `list_runs` hands the caller an `asset_id`, not an asset name, so `get_data`
@@ -345,6 +598,8 @@ fn named_params(
         sample_ms: 0,
         channel_names: Some(names.iter().map(|n| (*n).to_string()).collect()),
         channel_regex: None,
+        channel_id: None,
+        channel_ids: None,
         output,
     })
 }
@@ -921,6 +1176,8 @@ async fn get_data_reports_channel_names_that_matched_nothing() {
                 "presure".into(),
             ]),
             channel_regex: None,
+            channel_id: None,
+            channel_ids: None,
             output: dir.path().join("out.parquet"),
         }))
         .await
@@ -984,6 +1241,8 @@ async fn get_data_reports_no_unmatched_names_for_a_regex_selection() {
             sample_ms: 0,
             channel_names: None,
             channel_regex: Some("press.*".into()),
+            channel_id: None,
+            channel_ids: None,
             output: dir.path().join("out.parquet"),
         }))
         .await
@@ -1045,6 +1304,8 @@ async fn get_data_reports_matched_channels_that_returned_no_samples() {
             sample_ms: 0,
             channel_names: Some(vec!["pressure".into(), "temperature".into()]),
             channel_regex: None,
+            channel_id: None,
+            channel_ids: None,
             output: dir.path().join("out.parquet"),
         }))
         .await
@@ -1110,6 +1371,8 @@ async fn no_data_error_reports_both_the_empty_and_the_unmatched_channels() {
             sample_ms: 0,
             channel_names: Some(vec!["pressure".into(), "presure".into()]),
             channel_regex: None,
+            channel_id: None,
+            channel_ids: None,
             output: dir.path().join("out.parquet"),
         }))
         .await
