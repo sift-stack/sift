@@ -67,13 +67,7 @@ pub struct DataService {
     policy: RetryPolicy,
 }
 
-/// Every matched channel returned no samples in the queried window.
-///
-/// Typed rather than a bare message so the tool layer can recover the channel
-/// names and hand them to the caller as data. The tool also knows which
-/// requested names matched nothing at all, and that half is computed before
-/// this error is raised — without a type to attach it to, the one response a
-/// caller most needs both halves from would carry neither.
+/// Matched raw channel IDs and calculated-channel keys with no samples in the queried window.
 #[derive(Debug)]
 pub struct NoChannelData {
     pub empty_channels: Vec<String>,
@@ -90,7 +84,7 @@ impl fmt::Display for NoChannelData {
         write!(
             f,
             "no channel data for given input parameters: no samples in the queried \
-             window{run_note} for {}; the channels exist, so widen the time range or drop \
+             window{run_note} for channel identifiers {}; the channels exist, so widen the time range or drop \
              the run scope before concluding the asset has no data",
             name_list(&self.empty_channels),
         )
@@ -139,10 +133,7 @@ impl AppliedSampleMs {
 /// What `get_data` wrote, beyond the Parquet file itself.
 #[derive(Debug)]
 pub struct DataOutput {
-    /// Requested channels that matched the selection but returned no samples in
-    /// the queried window. These have no column in the output at all, so a
-    /// caller diffing the Parquet schema against its request is the only way to
-    /// notice them otherwise.
+    /// Raw channel IDs and calculated-channel keys with no samples in the window.
     pub empty_channels: Vec<String>,
     /// What the service sampled at, as opposed to what was asked for. A caller
     /// that never learns this quotes a mean off decimated data with no way to
@@ -971,33 +962,20 @@ impl DataService {
             page_token = next_page_token;
         }
 
-        // A channel that matched the selection but returned nothing never
-        // reaches `columns`, so it is absent from the Parquet schema rather than
-        // present and null. Nothing downstream can recover the difference
-        // between "asked for and empty" and "never asked for", so name them here
-        // while the request is still in scope.
         let produced = columns
             .keys()
             .map(ColumnName::channel_id)
             .collect::<HashSet<_>>();
-
-        // Both arms look up the identifier this request sent. `Metadata.Channel`
-        // documents `channel_id` as REQUIRED and carrying the backing channel id
-        // for a channel query and the requested channel key for a calculated
-        // one, while `name` carries no such guarantee — so matching on `name`
-        // would report a calculated channel as empty even when it returned data.
+        let mut seen = HashSet::new();
         let empty_channels = channel_inputs
             .iter()
-            .filter_map(|input| {
-                let (key, reported_as) = match input {
-                    ChannelInput::Raw(channel) => (&channel.channel_id, &channel.name),
-                    ChannelInput::Calculation { name, .. } => (name, name),
-                    ChannelInput::SavedCalculation { channel_key, .. } => {
-                        (channel_key, channel_key)
-                    }
-                };
-                (!produced.contains(key.as_str())).then(|| reported_as.clone())
+            .map(|input| match input {
+                ChannelInput::Raw(channel) => &channel.channel_id,
+                ChannelInput::Calculation { name, .. } => name,
+                ChannelInput::SavedCalculation { channel_key, .. } => channel_key,
             })
+            .filter(|key| !produced.contains(key.as_str()) && seen.insert(key.as_str()))
+            .cloned()
             .collect::<Vec<_>>();
 
         if columns.is_empty() {

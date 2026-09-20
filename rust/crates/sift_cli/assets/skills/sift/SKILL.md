@@ -113,8 +113,14 @@ exists.
 - **Produce numbers.** `get_data` writes a Parquet file. `sql` then queries it.
   Add `upload_dataset` when the result belongs back in Sift. A successful
   `get_data` does not mean every requested channel is in the file: check
-  `unmatched_channel_names` and `empty_channels` in the result and name any
-  missing channel to the user before reporting numbers derived from it.
+  `unmatched_channel_names` and `empty_channels` in the result. Report missing
+  names and empty channel IDs before reporting numbers derived from the file.
+- **Query a channel registration.** Pass `channel_id` or `channel_ids` to
+  `get_data` with the asset and time range to fetch only those registrations.
+  Use exactly one selector: IDs, `channel_names`, or `channel_regex`.
+  `empty_channels` lists raw channel IDs with no samples in the queried window.
+  Calculated channels use their query keys instead. An empty registration does
+  not mean other registrations with the same name are empty.
 - **Query a derived channel.** `get_data` serves saved calculated channels as
   well as raw ones: name the calculated channel in `channel_names` and it is
   evaluated for the requested asset and run. Confirm the name with

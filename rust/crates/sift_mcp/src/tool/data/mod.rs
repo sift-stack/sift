@@ -38,6 +38,8 @@ pub struct GetDataParams {
     sample_ms: u32,
     channel_names: Option<Vec<String>>,
     channel_regex: Option<String>,
+    channel_id: Option<String>,
+    channel_ids: Option<Vec<String>>,
     output: PathBuf,
 }
 
@@ -110,10 +112,10 @@ impl SiftMcpServer {
               - A requested channel that produced no samples has NO column at all, not an all-null one. The tool
                 result reports these so they never have to be inferred from the schema:
                 `unmatched_channel_names` lists requested names served by neither a raw channel nor a saved
-                calculated channel, and `empty_channels` lists channels that matched but returned no samples in
-                the window. Both keys are ALWAYS present; two empty arrays mean every requested channel is in the
-                file. When either is non-empty, name those channels to the user before presenting any analysis —
-                the file is a partial answer.
+                calculated channel. `empty_channels` lists raw channel IDs that returned no samples in the window;
+                for calculated channels it lists query keys, matching the Parquet `channel_id` attribute.
+                Both keys are ALWAYS present. Two empty arrays mean every selected channel returned samples.
+                Report empty registrations by ID: another registration with the same name may have data.
               - `unresolved_calculated_channels` (`[{ \"name\", \"reason\" }]`) is present when a requested name
                 reached calculated-channel resolution and could not be served. It carries the reason for every
                 name in `unmatched_channel_names`.
@@ -138,21 +140,25 @@ impl SiftMcpServer {
                 so it cannot be corrected afterwards. Extremes usually survive but are not guaranteed to.
                 If a raw result would be too large, narrow the time range or the channel set and issue
                 successive calls — do not decimate to reduce volume.
-              - `channel_names`: optional array of exact channel names. Mutually exclusive with `channel_regex`;
-                exactly one of the two MUST be set. Prefer this form when the set is known — it's more predictable.
+              - `channel_names`: optional array of exact channel names. Selects all registrations of each name.
+                Set exactly one of `channel_names`, `channel_regex`, `channel_id`, or `channel_ids`.
                 A name with no raw channel on the asset is resolved as an active saved calculated channel and
                 evaluated for the requested asset and run. A raw channel wins a name it shares with a calculated
                 channel, so a calculated channel named after an existing raw channel is not served here.
-              - `channel_regex`: optional RE2 pattern matched against the channel name. Mutually exclusive with
-                `channel_names`; exactly one of the two MUST be set. Matches raw channels only; name saved
-                calculated channels explicitly in `channel_names`.
+              - `channel_regex`: optional RE2 pattern matched against raw channel names. Selects all matching
+                registrations. Name saved calculated channels explicitly in `channel_names`.
+              - `channel_id`: optional exact raw channel ID. Selects only that registration on the specified asset,
+                without name-based resolution or calculated-channel fallback.
+              - `channel_ids`: optional non-empty array of exact raw channel IDs on the specified asset.
+                Selects only those registrations. Every ID must exist on the asset; duplicate IDs are queried once.
               - `output`: filesystem path for the Parquet file. The file is opened in truncate mode; existing
                 contents are overwritten.
 
             Errors:
-              - `RESOURCE_NOT_FOUND` if the asset or run is missing or there are no matching channels.
-              - `INTERNAL_ERROR` if every matched channel returned no samples in the window. The message names the
-                channels; widen the time range or drop the run scope rather than concluding the asset has no data.
+              - `RESOURCE_NOT_FOUND` if the asset or run is missing, there are no matching channels, or any
+                requested channel ID is missing from the asset.
+              - `INTERNAL_ERROR` if every matched channel returned no samples in the window. The message lists
+                raw channel IDs or calculated-channel keys; widen the time range or drop the run scope.
                 The error's `data` carries `empty_channels`, and `unmatched_channel_names` when the request also
                 held a name that matched nothing — a failed call still reports both, so a retry does not repeat a
                 typo the first call already detected.
@@ -161,11 +167,10 @@ impl SiftMcpServer {
                 channel does not apply when the asset is outside its scope or lacks a channel its expression
                 references. Verify the name with `list_calculated_channels` filtered by `asset_id`.
               - `INVALID_PARAMS` if neither `asset_name` nor `asset_id` is set, or if both are set.
-              - `INVALID_PARAMS` if `run_name` is absent and the full time range is not supplied, if neither
-                `channel_names` nor `channel_regex` is set, if both are set, or if `channel_names` is empty.
-              - `INVALID_PARAMS` if the channel selection matches 200 or more channels — the result would be
-                silently incomplete. Narrow `channel_regex`, pass explicit `channel_names`, or split the request
-                into multiple calls.
+              - `INVALID_PARAMS` if `run_name` is absent and the full time range is not supplied, if not exactly
+                one channel selector is set, if a selection array is empty, or if a channel ID is blank.
+              - `INVALID_PARAMS` if the channel selection matches more than 200 channels and would be incomplete.
+                Narrow `channel_regex`, pass explicit `channel_names` or `channel_ids`, or split the request.
 
             Guidance:
               - If the user's intent is to view/plot/graph/visualize the data in a UI, call `explore_url` first
@@ -199,6 +204,8 @@ impl SiftMcpServer {
             run_name,
             channel_names,
             channel_regex,
+            channel_id,
+            channel_ids,
             start_time_unix_nanos,
             end_time_unix_nanos,
             sample_ms,
@@ -212,6 +219,62 @@ impl SiftMcpServer {
                 None,
             ));
         }
+
+        if [
+            channel_names.is_some(),
+            channel_regex.is_some(),
+            channel_id.is_some(),
+            channel_ids.is_some(),
+        ]
+        .into_iter()
+        .filter(|selected| *selected)
+        .count()
+            != 1
+        {
+            return Err(ErrorData::invalid_params(
+                "exactly one of `channel_names`, `channel_regex`, `channel_id`, or `channel_ids` must be set",
+                None,
+            ));
+        }
+        let requested_ids = channel_id.map(|id| vec![id]).or(channel_ids);
+        let (channel_search_filter, requested_names) = match (
+            channel_names,
+            channel_regex,
+            &requested_ids,
+        ) {
+            (Some(names), None, None) => {
+                if names.is_empty() {
+                    return Err(ErrorData::invalid_params(
+                        "`channel_names` must contain at least one name",
+                        None,
+                    ));
+                }
+                let items = names
+                    .iter()
+                    .map(|n| format!("\"{}\"", cel_escape(n)))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                (format!("name in [{items}]"), Some(names))
+            }
+            (None, Some(pattern), None) => {
+                (format!("name.matches(\"{}\")", cel_escape(&pattern)), None)
+            }
+            (None, None, Some(ids)) => {
+                if ids.is_empty() || ids.iter().any(|id| id.trim().is_empty()) {
+                    return Err(ErrorData::invalid_params(
+                        "`channel_id` or `channel_ids` must contain at least one non-empty channel ID and no blank IDs",
+                        None,
+                    ));
+                }
+                let items = ids
+                    .iter()
+                    .map(|id| format!("\"{}\"", cel_escape(id)))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                (format!("channel_id in [{items}]"), None)
+            }
+            _ => unreachable!("validated exactly one channel selector"),
+        };
 
         let (asset_filter, asset_label) = match (&asset_name, &asset_id) {
             (Some(_), Some(_)) => {
@@ -273,38 +336,6 @@ impl SiftMcpServer {
             None => None,
         };
 
-        // Hold on to the caller's own strings: `name in [...]` matches what it can
-        // and says nothing about the rest, so this is the last point at which an
-        // unmatched name can still be identified.
-        let (channel_search_filter, requested_names) = match (channel_names, channel_regex) {
-            (Some(_), Some(_)) => {
-                return Err(ErrorData::invalid_params(
-                    "exactly one of `channel_names` or `channel_regex` must be set, not both",
-                    None,
-                ));
-            }
-            (None, None) => {
-                return Err(ErrorData::invalid_params(
-                    "one of `channel_names` or `channel_regex` must be set",
-                    None,
-                ));
-            }
-            (Some(names), None) => {
-                if names.is_empty() {
-                    return Err(ErrorData::invalid_params(
-                        "`channel_names` must contain at least one name",
-                        None,
-                    ));
-                }
-                let items = names
-                    .iter()
-                    .map(|n| format!("\"{}\"", cel_escape(n)))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                (format!("name in [{items}]"), Some(names))
-            }
-            (None, Some(pattern)) => (format!("name.matches(\"{}\")", cel_escape(&pattern)), None),
-        };
         let channel_filter = format!(
             "asset_id == \"{}\" && {channel_search_filter}",
             asset.asset_id
@@ -339,7 +370,7 @@ impl SiftMcpServer {
             })
             .unwrap_or_default();
 
-        if channels.is_empty() && unmatched_names.is_empty() {
+        if channels.is_empty() && unmatched_names.is_empty() && requested_ids.is_none() {
             return Err(ErrorData::resource_not_found(
                 format!(
                     "no channels matched the search criteria for asset '{}'",
@@ -357,12 +388,34 @@ impl SiftMcpServer {
             return Err(ErrorData::invalid_params(
                 format!(
                     "channel selection matched more than {} channels and is incomplete; \
-                     narrow `channel_regex`, pass explicit `channel_names`, or split the \
+                     narrow `channel_regex`, pass explicit `channel_names` or `channel_ids`, or split the \
                      request into multiple calls",
                     common::PAGE_SIZE
                 ),
                 None,
             ));
+        }
+
+        if let Some(ids) = requested_ids {
+            let matched = channels
+                .iter()
+                .map(|c| c.channel_id.as_str())
+                .collect::<HashSet<_>>();
+            let mut seen = HashSet::new();
+            let missing = ids
+                .into_iter()
+                .filter(|id| !matched.contains(id.as_str()) && seen.insert(id.clone()))
+                .collect::<Vec<_>>();
+            if !missing.is_empty() {
+                return Err(ErrorData::resource_not_found(
+                    format!(
+                        "channel IDs not found for asset '{}': {}",
+                        asset.name,
+                        common::name_list(&missing)
+                    ),
+                    None,
+                ));
+            }
         }
 
         let mut channel_inputs = channels
@@ -441,11 +494,6 @@ impl SiftMcpServer {
         {
             Ok(output) => output,
             Err(err) => {
-                // The no-data error names the channels that came back empty, but
-                // the names that matched nothing were computed up here and would
-                // be lost with the early return. A caller told only "no samples
-                // for pressure" widens the window, retries, and is still
-                // carrying the typo nothing has mentioned.
                 let empty_channels = err
                     .downcast_ref::<NoChannelData>()
                     .map(|no_data| no_data.empty_channels.clone());
@@ -472,7 +520,7 @@ impl SiftMcpServer {
         }
         if !data_output.empty_channels.is_empty() {
             gaps.push(format!(
-                "{} returned no samples in this window: {}.",
+                "{} channel identifiers returned no samples in this window: {}.",
                 data_output.empty_channels.len(),
                 common::name_list(&data_output.empty_channels),
             ));
@@ -507,9 +555,9 @@ impl SiftMcpServer {
         // indistinguishable from one that was never requested.
         if !gaps.is_empty() {
             next_step.push_str(&format!(
-                " The file does NOT have a column for every channel requested. {} Name those \
-                 channels to the user before presenting any analysis, and do not describe the \
-                 fetch as complete.",
+                " The file does NOT contain every selected channel registration or calculated channel. {} \
+                 Report these gaps before presenting any analysis. An empty registration does not \
+                 mean every registration with that name is empty.",
                 gaps.join(" "),
             ));
         }
