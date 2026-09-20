@@ -157,16 +157,6 @@ service ArtifactService {
   }
 }
 
-// Deprecated: nothing reads or writes this. created_via answers the same
-// question with better names, and the enum stays declared only so its wire
-// numbers are never reused.
-enum ArtifactAuthoringKind {
-  option deprecated = true;
-  ARTIFACT_AUTHORING_KIND_UNSPECIFIED = 0;
-  ARTIFACT_AUTHORING_KIND_AGENT = 1;
-  ARTIFACT_AUTHORING_KIND_USER = 2;
-}
-
 enum ArtifactStorageClass {
   // The storage class is not specified.
   ARTIFACT_STORAGE_CLASS_UNSPECIFIED = 0;
@@ -220,18 +210,14 @@ message Artifact {
   string artifact_id = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
   string organization_id = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
   string created_by_user_id = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
-  // Removed: use created_via.
-  reserved 5;
-  google.protobuf.Timestamp created_date = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
-  // Moved to ArtifactVersion, which owns everything that varies by version.
-  reserved 7 to 16, 20, 21;
+  google.protobuf.Timestamp created_date = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
   // Unset while the artifact is active.
-  optional google.protobuf.Timestamp archived_date = 17 [(google.api.field_behavior) = OUTPUT_ONLY];
-  ArtifactStorageClass storage_class = 18 [(google.api.field_behavior) = OUTPUT_ONLY];
-  ArtifactCreatedVia created_via = 19 [(google.api.field_behavior) = OUTPUT_ONLY];
+  optional google.protobuf.Timestamp archived_date = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+  ArtifactStorageClass storage_class = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+  ArtifactCreatedVia created_via = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
   // The artifact's latest version. A pinned read reports it too, so a client
   // holding an older version can tell that it is behind.
-  string current_version_id = 22 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string current_version_id = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 message ArtifactVersion {
@@ -274,36 +260,30 @@ message ArtifactLinkInput {
 }
 
 message CreateArtifactRequest {
-  // Removed: create only creates. Use UpdateArtifact to add a version.
-  reserved 1;
   // Set to link the new artifact to a conversation at create time. Legal only
   // for the conversation's author. Equivalent to a links entry with relation
   // ATTACHED_TO, entity_type CONVERSATION, and this conversation_id as
   // entity_id.
-  optional string conversation_id = 2 [(google.api.field_behavior) = OPTIONAL];
-  optional string title = 4 [(google.api.field_behavior) = OPTIONAL];
-  optional string summary = 5 [(google.api.field_behavior) = OPTIONAL];
-  // Removed: use created_via.
-  reserved 6;
+  optional string conversation_id = 1 [(google.api.field_behavior) = OPTIONAL];
+  optional string title = 2 [(google.api.field_behavior) = OPTIONAL];
+  optional string summary = 3 [(google.api.field_behavior) = OPTIONAL];
   // A container field. Defaults to FILE when unset.
-  optional ArtifactStorageClass storage_class = 7 [(google.api.field_behavior) = OPTIONAL];
+  optional ArtifactStorageClass storage_class = 4 [(google.api.field_behavior) = OPTIONAL];
   // A container field. Defaults to AGENT when unset. It also decides link
   // attribution: an AGENT artifact's links record no user, because the pod acts
   // with the user's key but the user granted nothing.
-  optional ArtifactCreatedVia created_via = 8 [(google.api.field_behavior) = OPTIONAL];
+  optional ArtifactCreatedVia created_via = 5 [(google.api.field_behavior) = OPTIONAL];
   // Required for STRUCTURED and rejected otherwise. The serialized payload
   // must not exceed 1 MiB.
-  optional google.protobuf.Struct payload = 9 [(google.api.field_behavior) = OPTIONAL];
+  optional google.protobuf.Struct payload = 6 [(google.api.field_behavior) = OPTIONAL];
   // Links written at version 1.
-  repeated ArtifactLinkInput links = 10 [(google.api.field_behavior) = OPTIONAL];
+  repeated ArtifactLinkInput links = 7 [(google.api.field_behavior) = OPTIONAL];
   // Metadata attached to the created version.
-  repeated sift.metadata.v1.MetadataValue metadata = 11 [(google.api.field_behavior) = OPTIONAL];
+  repeated sift.metadata.v1.MetadataValue metadata = 8 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message CreateArtifactResponse {
-  // Retyped to the composed pair; field 1 was the flattened Artifact.
-  reserved 1;
-  ArtifactDetails artifact = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  ArtifactDetails artifact = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 message UpdateArtifactRequest {
@@ -338,9 +318,7 @@ message GetArtifactRequest {
 }
 
 message GetArtifactResponse {
-  // Retyped to the composed pair; field 1 was the flattened Artifact.
-  reserved 1;
-  ArtifactDetails artifact = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  ArtifactDetails artifact = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 message ListArtifactsRequest {
@@ -348,9 +326,6 @@ message ListArtifactsRequest {
   optional string conversation_id = 1 [(google.api.field_behavior) = OPTIONAL];
   uint32 page_size = 2 [(google.api.field_behavior) = OPTIONAL];
   string page_token = 3 [(google.api.field_behavior) = OPTIONAL];
-  // Removed: archival is controlled by the `include_archived` directive in
-  // `filter`.
-  reserved 4;
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec)
   // filter string. Available fields are artifact_id, organization_id,
   // created_by_user_id, storage_class, created_via,
@@ -367,19 +342,17 @@ message ListArtifactsRequest {
   // Archived artifacts are excluded unless the query says otherwise, either
   // through `include_archived == true` or by filtering on archived_date, which
   // governs archival on its own.
-  string filter = 5 [(google.api.field_behavior) = OPTIONAL];
+  string filter = 4 [(google.api.field_behavior) = OPTIONAL];
   // A comma-separated [AIP-132](https://google.aip.dev/132#ordering) ordering
   // string over created_date, archived_date, title, and version. Fields
   // sort ascending by default and support a `desc` suffix. The default is
   // created_date ascending.
-  string order_by = 6 [(google.api.field_behavior) = OPTIONAL];
+  string order_by = 5 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message ListArtifactsResponse {
-  // Retyped to the composed pair; field 1 was the flattened Artifact.
-  reserved 1;
+  repeated ArtifactDetails artifacts = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
   string next_page_token = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
-  repeated ArtifactDetails artifacts = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 message ListArtifactVersionsRequest {

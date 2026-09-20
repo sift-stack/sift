@@ -384,80 +384,6 @@ impl<'de> serde::Deserialize<'de> for Artifact {
         deserializer.deserialize_struct("sift.artifacts.v1.Artifact", FIELDS, GeneratedVisitor)
     }
 }
-impl serde::Serialize for ArtifactAuthoringKind {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let variant = match self {
-            Self::Unspecified => "ARTIFACT_AUTHORING_KIND_UNSPECIFIED",
-            Self::Agent => "ARTIFACT_AUTHORING_KIND_AGENT",
-            Self::User => "ARTIFACT_AUTHORING_KIND_USER",
-        };
-        serializer.serialize_str(variant)
-    }
-}
-impl<'de> serde::Deserialize<'de> for ArtifactAuthoringKind {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "ARTIFACT_AUTHORING_KIND_UNSPECIFIED",
-            "ARTIFACT_AUTHORING_KIND_AGENT",
-            "ARTIFACT_AUTHORING_KIND_USER",
-        ];
-
-        struct GeneratedVisitor;
-
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = ArtifactAuthoringKind;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(formatter, "expected one of: {:?}", &FIELDS)
-            }
-
-            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                i32::try_from(v)
-                    .ok()
-                    .and_then(|x| x.try_into().ok())
-                    .ok_or_else(|| {
-                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
-                    })
-            }
-
-            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                i32::try_from(v)
-                    .ok()
-                    .and_then(|x| x.try_into().ok())
-                    .ok_or_else(|| {
-                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
-                    })
-            }
-
-            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                match value {
-                    "ARTIFACT_AUTHORING_KIND_UNSPECIFIED" => Ok(ArtifactAuthoringKind::Unspecified),
-                    "ARTIFACT_AUTHORING_KIND_AGENT" => Ok(ArtifactAuthoringKind::Agent),
-                    "ARTIFACT_AUTHORING_KIND_USER" => Ok(ArtifactAuthoringKind::User),
-                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
-                }
-            }
-        }
-        deserializer.deserialize_any(GeneratedVisitor)
-    }
-}
 impl serde::Serialize for ArtifactCreatedVia {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -2422,18 +2348,18 @@ impl serde::Serialize for ListArtifactsResponse {
     {
         use serde::ser::SerializeStruct;
         let mut len = 0;
-        if !self.next_page_token.is_empty() {
+        if !self.artifacts.is_empty() {
             len += 1;
         }
-        if !self.artifacts.is_empty() {
+        if !self.next_page_token.is_empty() {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("sift.artifacts.v1.ListArtifactsResponse", len)?;
-        if !self.next_page_token.is_empty() {
-            struct_ser.serialize_field("nextPageToken", &self.next_page_token)?;
-        }
         if !self.artifacts.is_empty() {
             struct_ser.serialize_field("artifacts", &self.artifacts)?;
+        }
+        if !self.next_page_token.is_empty() {
+            struct_ser.serialize_field("nextPageToken", &self.next_page_token)?;
         }
         struct_ser.end()
     }
@@ -2445,15 +2371,15 @@ impl<'de> serde::Deserialize<'de> for ListArtifactsResponse {
         D: serde::Deserializer<'de>,
     {
         const FIELDS: &[&str] = &[
+            "artifacts",
             "next_page_token",
             "nextPageToken",
-            "artifacts",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
-            NextPageToken,
             Artifacts,
+            NextPageToken,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -2475,8 +2401,8 @@ impl<'de> serde::Deserialize<'de> for ListArtifactsResponse {
                         E: serde::de::Error,
                     {
                         match value {
-                            "nextPageToken" | "next_page_token" => Ok(GeneratedField::NextPageToken),
                             "artifacts" => Ok(GeneratedField::Artifacts),
+                            "nextPageToken" | "next_page_token" => Ok(GeneratedField::NextPageToken),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -2496,27 +2422,27 @@ impl<'de> serde::Deserialize<'de> for ListArtifactsResponse {
                 where
                     V: serde::de::MapAccess<'de>,
             {
-                let mut next_page_token__ = None;
                 let mut artifacts__ = None;
+                let mut next_page_token__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
-                        GeneratedField::NextPageToken => {
-                            if next_page_token__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("nextPageToken"));
-                            }
-                            next_page_token__ = Some(map_.next_value()?);
-                        }
                         GeneratedField::Artifacts => {
                             if artifacts__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("artifacts"));
                             }
                             artifacts__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::NextPageToken => {
+                            if next_page_token__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("nextPageToken"));
+                            }
+                            next_page_token__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(ListArtifactsResponse {
-                    next_page_token: next_page_token__.unwrap_or_default(),
                     artifacts: artifacts__.unwrap_or_default(),
+                    next_page_token: next_page_token__.unwrap_or_default(),
                 })
             }
         }
