@@ -47,16 +47,17 @@ Try these in order. Stop at the first that does the job.
 Use the lightest surface that fully answers the request. An explicit format or
 Sift-entity request always wins.
 
-- **Chat:** lookups, explanations, how-to answers, and one-off numbers or
+- **None:** lookups, explanations, how-to answers, and one-off numbers or
   short analysis. Do not wrap a chat-sized answer in a file.
-- **Explore links:** plots and timeseries the user wants to inspect. Use the
-  native visualization instead of creating an intermediate image or HTML.
+- **Explore links:** plots and timeseries the user wants to inspect. Use native
+  Sift app visualizations instead of creating an intermediate image or HTML.
 - **Calculated channels:** reusable CEL transforms (unit conversions, rolling
   windows, derived signals, and simple filters) that should be plottable or
-  usable by rules on later runs. List existing calculated channels first.
-- **User-defined functions:** shared CEL logic that would otherwise be copied
-  across multiple calculated channels or rules. Keep the calculated channel
-  as the named series and put only the shared math in the UDF.
+  usable by rules on later runs. List existing calculated channels first to
+  check for pre-existing calculated channels that match the candidates.
+- **User-defined functions (UDF):** shared CEL logic that would otherwise be
+  copied across multiple calculated channels or rules. Keep the calculated
+  channel as the named series and put only the shared math in the UDF.
 - **Artifacts:** exceptional durable files only when Sift cannot represent the
   result, such as a requested PDF, CSV, image, or custom HTML diagram. Do not
   use artifacts for intermediate plots, Parquet downloads, chat answers,
@@ -64,10 +65,8 @@ Sift-entity request always wins.
 
 For a reusable write, resolve the real channel names and types, propose the
 name, expression, bindings, and scope, then wait for confirmation unless the
-user explicitly asked you to create it. Python in `/workspace` is for
-investigation or transforms CEL cannot express, not a durable substitute for a
-calculated channel. If two surfaces could work, prefer a Sift entity over a
-file, and chat over both for a one-off answer.
+user explicitly asked you to create it. If two surfaces could work, prefer a
+Sift entity over a file, and chat over both for a one-off answer.
 
 ## What the MCP server exposes
 
