@@ -112,11 +112,10 @@ impl SiftMcpServer {
               - A requested channel that produced no samples has NO column at all, not an all-null one. The tool
                 result reports these so they never have to be inferred from the schema:
                 `unmatched_channel_names` lists requested names served by neither a raw channel nor a saved
-                calculated channel, and `empty_channels` lists unique names with no samples from any selected
-                registration in the window. Both keys are ALWAYS present; two empty arrays mean every requested
-                name has data in the file, but individual registrations may still be empty.
-                When either array is non-empty, name those channels to the user before presenting any analysis.
-                The file is a partial answer.
+                calculated channel. `empty_channels` lists raw channel IDs that returned no samples in the window;
+                for calculated channels it lists query keys, matching the Parquet `channel_id` attribute.
+                Both keys are ALWAYS present. Two empty arrays mean every selected channel returned samples.
+                Report empty registrations by ID: another registration with the same name may have data.
               - `unresolved_calculated_channels` (`[{ \"name\", \"reason\" }]`) is present when a requested name
                 reached calculated-channel resolution and could not be served. It carries the reason for every
                 name in `unmatched_channel_names`.
@@ -158,8 +157,8 @@ impl SiftMcpServer {
             Errors:
               - `RESOURCE_NOT_FOUND` if the asset or run is missing, there are no matching channels, or any
                 requested channel ID is missing from the asset.
-              - `INTERNAL_ERROR` if every matched channel returned no samples in the window. The message names the
-                channels; widen the time range or drop the run scope rather than concluding the asset has no data.
+              - `INTERNAL_ERROR` if every matched channel returned no samples in the window. The message lists
+                raw channel IDs or calculated-channel keys; widen the time range or drop the run scope.
                 The error's `data` carries `empty_channels`, and `unmatched_channel_names` when the request also
                 held a name that matched nothing — a failed call still reports both, so a retry does not repeat a
                 typo the first call already detected.
@@ -495,11 +494,6 @@ impl SiftMcpServer {
         {
             Ok(output) => output,
             Err(err) => {
-                // The no-data error names the channels that came back empty, but
-                // the names that matched nothing were computed up here and would
-                // be lost with the early return. A caller told only "no samples
-                // for pressure" widens the window, retries, and is still
-                // carrying the typo nothing has mentioned.
                 let empty_channels = err
                     .downcast_ref::<NoChannelData>()
                     .map(|no_data| no_data.empty_channels.clone());
@@ -526,7 +520,7 @@ impl SiftMcpServer {
         }
         if !data_output.empty_channels.is_empty() {
             gaps.push(format!(
-                "{} returned no samples in this window: {}.",
+                "{} channel identifiers returned no samples in this window: {}.",
                 data_output.empty_channels.len(),
                 common::name_list(&data_output.empty_channels),
             ));
@@ -561,9 +555,9 @@ impl SiftMcpServer {
         // indistinguishable from one that was never requested.
         if !gaps.is_empty() {
             next_step.push_str(&format!(
-                " The file does NOT have a column for every channel requested. {} Name those \
-                 channels to the user before presenting any analysis, and do not describe the \
-                 fetch as complete.",
+                " The file does NOT contain every selected channel registration or calculated channel. {} \
+                 Report these gaps before presenting any analysis. An empty registration does not \
+                 mean every registration with that name is empty.",
                 gaps.join(" "),
             ));
         }

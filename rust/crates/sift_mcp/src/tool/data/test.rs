@@ -352,10 +352,21 @@ async fn get_data_duplicate_registrations_agree_with_parquet() {
     let values = batch.column(1).as_primitive::<Float64Type>();
     assert_eq!(values.null_count(), 0);
     assert_eq!(values.value(0), 3.0);
-    assert_eq!(body["empty_channels"], serde_json::json!(["quiet"]));
+    let empty_ids = (0..17)
+        .map(|i| format!("mode-{i}"))
+        .chain(["quiet-0".into(), "quiet-1".into()])
+        .collect::<Vec<_>>();
+    assert_eq!(body["empty_channels"], serde_json::json!(empty_ids));
     let next_step = body["next_step"].as_str().unwrap();
     assert!(!next_step.contains("state.mode"), "{next_step}");
-    assert!(next_step.contains("1 returned no samples"), "{next_step}");
+    assert!(!next_step.contains("mode-17"), "{next_step}");
+    for id in empty_ids {
+        assert!(next_step.contains(&id), "{next_step}");
+    }
+    assert!(
+        next_step.contains("19 channel identifiers returned no samples"),
+        "{next_step}"
+    );
 }
 
 /// `list_runs` hands the caller an `asset_id`, not an asset name, so `get_data`
@@ -1312,7 +1323,7 @@ async fn get_data_reports_matched_channels_that_returned_no_samples() {
         .expect("a partially empty window is still a successful fetch");
 
     let body = structured(resp);
-    assert_eq!(body["empty_channels"], serde_json::json!(["temperature"]));
+    assert_eq!(body["empty_channels"], serde_json::json!(["ch-2"]));
     assert_eq!(
         body["unmatched_channel_names"],
         serde_json::json!([]),
@@ -1320,7 +1331,8 @@ async fn get_data_reports_matched_channels_that_returned_no_samples() {
     );
 
     let next_step = body["next_step"].as_str().expect("next_step");
-    assert!(next_step.contains("temperature"), "{next_step}");
+    assert!(next_step.contains("ch-2"), "{next_step}");
+    assert!(!next_step.contains("ch-1"), "{next_step}");
     assert!(next_step.contains("no samples"), "{next_step}");
 }
 
@@ -1379,10 +1391,10 @@ async fn no_data_error_reports_both_the_empty_and_the_unmatched_channels() {
         .expect_err("no channel returned samples, so the call fails");
 
     assert_eq!(err.code, ErrorCode::INTERNAL_ERROR);
-    assert!(err.message.contains("pressure"), "{}", err.message);
+    assert!(err.message.contains("ch-1"), "{}", err.message);
 
     let data = err.data.expect("error must carry the channel report");
-    assert_eq!(data["empty_channels"], serde_json::json!(["pressure"]));
+    assert_eq!(data["empty_channels"], serde_json::json!(["ch-1"]));
     assert_eq!(
         data["unmatched_channel_names"],
         serde_json::json!(["presure"])

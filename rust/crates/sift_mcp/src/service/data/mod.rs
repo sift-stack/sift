@@ -67,13 +67,7 @@ pub struct DataService {
     policy: RetryPolicy,
 }
 
-/// Every matched channel returned no samples in the queried window.
-///
-/// Typed rather than a bare message so the tool layer can recover the channel
-/// names and hand them to the caller as data. The tool also knows which
-/// requested names matched nothing at all, and that half is computed before
-/// this error is raised — without a type to attach it to, the one response a
-/// caller most needs both halves from would carry neither.
+/// Matched raw channel IDs and calculated-channel keys with no samples in the queried window.
 #[derive(Debug)]
 pub struct NoChannelData {
     pub empty_channels: Vec<String>,
@@ -90,7 +84,7 @@ impl fmt::Display for NoChannelData {
         write!(
             f,
             "no channel data for given input parameters: no samples in the queried \
-             window{run_note} for {}; the channels exist, so widen the time range or drop \
+             window{run_note} for channel identifiers {}; the channels exist, so widen the time range or drop \
              the run scope before concluding the asset has no data",
             name_list(&self.empty_channels),
         )
@@ -139,7 +133,7 @@ impl AppliedSampleMs {
 /// What `get_data` wrote, beyond the Parquet file itself.
 #[derive(Debug)]
 pub struct DataOutput {
-    /// Unique names with no samples from any selected registration in the window.
+    /// Raw channel IDs and calculated-channel keys with no samples in the window.
     pub empty_channels: Vec<String>,
     /// What the service sampled at, as opposed to what was asked for. A caller
     /// that never learns this quotes a mean off decimated data with no way to
@@ -972,24 +966,16 @@ impl DataService {
             .keys()
             .map(ColumnName::channel_id)
             .collect::<HashSet<_>>();
-        let requested = channel_inputs
+        let mut seen = HashSet::new();
+        let empty_channels = channel_inputs
             .iter()
             .map(|input| match input {
-                ChannelInput::Raw(channel) => (&channel.channel_id, &channel.name),
-                ChannelInput::Calculation { name, .. } => (name, name),
-                ChannelInput::SavedCalculation { channel_key, .. } => (channel_key, channel_key),
+                ChannelInput::Raw(channel) => &channel.channel_id,
+                ChannelInput::Calculation { name, .. } => name,
+                ChannelInput::SavedCalculation { channel_key, .. } => channel_key,
             })
-            .collect::<Vec<_>>();
-        let populated_names = requested
-            .iter()
-            .filter(|(key, _)| produced.contains(key.as_str()))
-            .map(|(_, name)| *name)
-            .collect::<HashSet<_>>();
-        let mut seen = HashSet::new();
-        let empty_channels = requested
-            .into_iter()
-            .filter(|(_, name)| !populated_names.contains(*name) && seen.insert(*name))
-            .map(|(_, name)| name.clone())
+            .filter(|key| !produced.contains(key.as_str()) && seen.insert(key.as_str()))
+            .cloned()
             .collect::<Vec<_>>();
 
         if columns.is_empty() {

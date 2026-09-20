@@ -371,7 +371,7 @@ async fn get_data_run_without_start_time_errors() {
 }
 
 #[tokio::test]
-async fn get_data_names_channels_that_returned_no_samples() {
+async fn get_data_identifies_channels_that_returned_no_samples() {
     // The server answers for one of the two requested channels. The other has no
     // column in the Parquet at all, which is indistinguishable from never having
     // been requested unless the service says so.
@@ -398,7 +398,7 @@ async fn get_data_names_channels_that_returned_no_samples() {
         .await
         .expect("get_data failed");
 
-    assert_eq!(output.empty_channels, vec!["quiet".to_string()]);
+    assert_eq!(output.empty_channels, vec!["c2".to_string()]);
 
     let batches = read_parquet(buffer);
     let schema = batches[0].schema();
@@ -480,7 +480,7 @@ async fn get_data_reports_nothing_empty_when_every_channel_has_samples() {
 }
 
 #[tokio::test]
-async fn get_data_deduplicates_empty_registration_names() {
+async fn get_data_reports_empty_registration_ids_and_calculation_keys() {
     let mut mock = MockDataServiceImpl::new();
     mock.expect_get_data().times(1).returning(|_| {
         Ok(Response::new(GetDataResponse {
@@ -494,6 +494,7 @@ async fn get_data_deduplicates_empty_registration_names() {
             &[
                 named_raw_channel("c1", "state.mode"),
                 named_raw_channel("c2", "state.mode"),
+                saved_calculation("derived", "$1 * 2", "c1"),
             ],
             asset_range(0, 4_000_000_000),
             0,
@@ -505,12 +506,12 @@ async fn get_data_deduplicates_empty_registration_names() {
         err.downcast_ref::<super::NoChannelData>()
             .unwrap()
             .empty_channels,
-        vec!["state.mode"],
+        vec!["c1", "c2", "derived"],
     );
 }
 
 #[tokio::test]
-async fn get_data_no_samples_error_names_every_channel() {
+async fn get_data_no_samples_error_identifies_every_channel() {
     let mut mock = MockDataServiceImpl::new();
     mock.expect_get_data().times(1).returning(|_| {
         Ok(Response::new(GetDataResponse {
@@ -535,9 +536,10 @@ async fn get_data_no_samples_error_names_every_channel() {
         .expect_err("expected an error when nothing returned samples");
 
     let message = err.to_string();
-    // A count sends the caller bisecting; the names are what it needs.
-    assert!(message.contains("pressure"), "{message}");
-    assert!(message.contains("temperature"), "{message}");
+    assert!(message.contains("c1"), "{message}");
+    assert!(message.contains("c2"), "{message}");
+    assert!(!message.contains("pressure"), "{message}");
+    assert!(!message.contains("temperature"), "{message}");
 }
 
 #[tokio::test]
@@ -562,9 +564,9 @@ async fn get_data_no_samples_error_caps_the_channel_list() {
         .expect_err("expected an error when nothing returned samples");
 
     let message = err.to_string();
-    assert!(message.contains("ch0"), "{message}");
+    assert!(message.contains("c0"), "{message}");
     assert!(message.contains("and 5 more"), "{message}");
-    assert!(!message.contains("ch24"), "{message}");
+    assert!(!message.contains("c24"), "{message}");
 }
 
 // --- sql ---
