@@ -6,15 +6,16 @@ use rmcp::{
     tool, tool_router,
 };
 use serde::Deserialize;
+use serde_json::Value;
 use sift_rs::artifacts::v1::{
-    ArtifactAuthoringKind, ArtifactCreatedVia, ArtifactEntityType, ArtifactLinkInput,
-    ArtifactLinkRelation, ArtifactStorageClass,
+    ArtifactCreatedVia, ArtifactDetails, ArtifactEntityType, ArtifactLinkInput,
+    ArtifactLinkRelation, ArtifactStorageClass, ArtifactVersion,
 };
 
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
-    service::artifacts::CreateArtifactInput,
+    service::artifacts::{ArtifactView, CreateArtifactInput, UpdateArtifactInput},
     tool::common::{MetadataEntry, list_body, to_values},
 };
 
@@ -54,10 +55,19 @@ pub struct CreateArtifactParams {
     title: Option<String>,
     summary: Option<String>,
     conversation_id: Option<String>,
-    artifact_id: Option<String>,
-    authoring_kind: Option<String>,
     storage_class: Option<String>,
     created_via: Option<String>,
+    payload: Option<serde_json::Value>,
+    metadata: Option<Vec<MetadataEntry>>,
+    links: Option<Vec<ArtifactLinkParam>>,
+    file_path: Option<String>,
+}
+
+#[derive(Debug, Default, Deserialize, JsonSchema)]
+pub struct UpdateArtifactParams {
+    artifact_id: String,
+    title: Option<String>,
+    summary: Option<String>,
     payload: Option<serde_json::Value>,
     metadata: Option<Vec<MetadataEntry>>,
     links: Option<Vec<ArtifactLinkParam>>,
@@ -69,23 +79,6 @@ pub struct ArtifactLinkParam {
     relation: String,
     entity_type: String,
     entity_id: String,
-}
-
-/// Also accepts the proto enum names so an agent can echo a value it read from `list_artifacts`.
-fn parse_authoring_kind(value: Option<String>) -> Result<ArtifactAuthoringKind, ErrorData> {
-    let lowered = value
-        .as_deref()
-        .map(str::trim)
-        .unwrap_or("user")
-        .to_ascii_lowercase();
-    match lowered.as_str() {
-        "" | "user" | "artifact_authoring_kind_user" => Ok(ArtifactAuthoringKind::User),
-        "agent" | "artifact_authoring_kind_agent" => Ok(ArtifactAuthoringKind::Agent),
-        other => Err(ErrorData::invalid_params(
-            format!("unknown `authoring_kind` `{other}`; expected `user` or `agent`"),
-            None,
-        )),
-    }
 }
 
 fn parse_storage_class(value: Option<String>) -> Result<Option<ArtifactStorageClass>, ErrorData> {
@@ -163,6 +156,128 @@ fn parse_link_relation(value: String) -> Result<ArtifactLinkRelation, ErrorData>
     }
 }
 
+/// Flattens the container and its resolved version into the single object a
+/// caller reads. The version's own `created_date` is published as
+/// `version_created_date` so the bare name keeps meaning the container's, and
+/// `fields` projection keeps working: it matches top-level keys only.
+fn artifact_value(details: &ArtifactDetails) -> Result<Value, ErrorData> {
+    let mut flat = serde_json::Map::new();
+    if let Some(version) = details.artifact_version.as_ref() {
+        let value = serde_json::to_value(version).map_err(|e| {
+            ErrorData::internal_error(format!("failed to serialize artifact version: {e}"), None)
+        })?;
+        if let Value::Object(map) = value {
+            for (key, value) in map {
+                let key = if key == "createdDate" {
+                    "versionCreatedDate".to_string()
+                } else {
+                    key
+                };
+                flat.insert(key, value);
+            }
+        }
+    }
+    if let Some(artifact) = details.artifact.as_ref() {
+        let value = serde_json::to_value(artifact).map_err(|e| {
+            ErrorData::internal_error(format!("failed to serialize artifact: {e}"), None)
+        })?;
+        if let Value::Object(map) = value {
+            flat.extend(map);
+        }
+    }
+    Ok(Value::Object(flat))
+}
+
+/// Adds the signed download link, which belongs to the view rather than either
+/// half of the pair. It keeps its snake_case name: it is not a proto field, and
+/// callers already read it that way.
+fn artifact_view_value(view: &ArtifactView) -> Result<Value, ErrorData> {
+    let mut value = artifact_value(&view.details)?;
+    if let (Value::Object(map), Some(url)) = (&mut value, view.download_url.as_ref()) {
+        map.insert("download_url".to_string(), Value::String(url.clone()));
+    }
+    Ok(value)
+}
+
+fn normalized_file_path(file_path: Option<String>) -> Result<Option<String>, ErrorData> {
+    match file_path.as_deref() {
+        Some(path) if path.trim().is_empty() => Err(ErrorData::invalid_params(
+            "`file_path` must not be empty when set",
+            None,
+        )),
+        _ => Ok(file_path),
+    }
+}
+
+fn parse_payload(
+    payload: Option<serde_json::Value>,
+) -> Result<Option<pbjson_types::Struct>, ErrorData> {
+    payload
+        .map(|value| {
+            // Some MCP clients JSON-stringify object arguments before transport.
+            let value = match value {
+                serde_json::Value::String(raw) => serde_json::from_str(&raw).map_err(|error| {
+                    ErrorData::invalid_params(format!("invalid `payload`: {error}"), None)
+                })?,
+                other => other,
+            };
+            if !value.is_object() {
+                return Err(ErrorData::invalid_params(
+                    "`payload` must be a JSON object",
+                    None,
+                ));
+            }
+            serde_json::from_value(value).map_err(|error| {
+                ErrorData::invalid_params(format!("invalid `payload`: {error}"), None)
+            })
+        })
+        .transpose()
+}
+
+fn parse_links(links: Option<Vec<ArtifactLinkParam>>) -> Result<Vec<ArtifactLinkInput>, ErrorData> {
+    links
+        .unwrap_or_default()
+        .into_iter()
+        .map(|link| {
+            if link.entity_id.trim().is_empty() {
+                return Err(ErrorData::invalid_params(
+                    "link `entity_id` must not be empty",
+                    None,
+                ));
+            }
+            Ok(ArtifactLinkInput {
+                relation: parse_link_relation(link.relation)? as i32,
+                entity_type: parse_entity_type(link.entity_type)? as i32,
+                entity_id: link.entity_id,
+            })
+        })
+        .collect()
+}
+
+/// The refresh and download-link steps after an upload are best-effort, so say
+/// only what the returned version actually carries.
+fn content_note(artifact: &ArtifactView, uploaded: bool) -> &'static str {
+    if uploaded && artifact.download_url.is_some() {
+        " Its file content was uploaded and the user can preview and download it."
+    } else if uploaded {
+        " Its file content was uploaded, but the refreshed artifact or its download link \
+         could not be fetched; call `download_artifact` for the link."
+    } else if artifact.storage_class() == ArtifactStorageClass::Structured as i32 {
+        " It carries its JSON payload."
+    } else {
+        " It has no file content; the user has nothing to preview or download."
+    }
+}
+
+fn artifact_result(artifact: &ArtifactView, next_step: String) -> error::McpResult {
+    let mut result = CallToolResult::structured(serde_json::json!({
+        "artifact": artifact_view_value(artifact)?,
+        "next_step": next_step,
+    }));
+    result.content = vec![ContentBlock::text(next_step)];
+    Ok(result)
+}
+
 fn with_include_archived(filter: String, include_archived: bool) -> String {
     if !include_archived || filter.contains("include_archived") {
         return filter;
@@ -191,10 +306,11 @@ impl SiftMcpServer {
 
             Output:
               - `{ \"artifacts\": [Artifact, ...] }`. Each item includes `artifact_id`, `artifact_version_id`,
-                `version`, `title`, `summary`, `authoring_kind`, `storage_class`, `created_via`,
-                `metadata`, `file_name`, `file_mime_type`, `remote_file_id`,
-                `created_date`, and `archived_date` when set. `payload` is NOT included, even for
-                structured artifacts: read one with `download_artifact`.
+                `current_version_id`, `version`, `title`, `summary`, `storage_class`, `created_via`,
+                `metadata`, `file_name`, `file_mime_type`, `remote_file_id`, `created_date`
+                (the artifact's), `version_created_date` (this version's), and `archived_date` when set.
+                `payload` is NOT included, even for structured artifacts: read one with
+                `download_artifact`.
               - `count`: how many items THIS response carries — read it instead of
                 counting the array yourself. It is the size of the page you got back, not
                 how many artifacts the caller has.
@@ -208,7 +324,7 @@ impl SiftMcpServer {
               - `include_archived`: optional. Default `false` omits archived artifacts. Set `true` only when the
                 user asks for archived ones.
               - `filter`: CEL expression. Pass an empty string to list everything.
-                Filterable fields are `artifact_id`, `organization_id`, `created_by_user_id`, `authoring_kind`,
+                Filterable fields are `artifact_id`, `organization_id`, `created_by_user_id`,
                 `storage_class`, `created_via`, `title`, `version`, `created_date`, `archived_date`,
                 the `include_archived` directive, and `metadata[\"<key>\"]`. Enum comparisons use proto value
                 names without the prefix, such as `storage_class == \"STRUCTURED\"`. Do NOT echo the value
@@ -275,7 +391,11 @@ impl SiftMcpServer {
             .await
             .map_err(from_anyhow)?;
 
-        let artifacts = to_values(&page.items)?;
+        let artifacts = page
+            .items
+            .iter()
+            .map(artifact_value)
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(CallToolResult::structured(list_body(
             "artifacts",
@@ -288,7 +408,7 @@ impl SiftMcpServer {
     #[tool(
         name = "list_artifact_versions",
         description = "
-            List the version history of one artifact, newest first. Every `create_artifact` append writes a new
+            List the version history of one artifact, newest first. Every `update_artifact` call writes a new
             version, so this is how you see what changed and when.
 
             Output:
@@ -421,7 +541,7 @@ impl SiftMcpServer {
             .map_err(from_anyhow)?;
 
         Ok(CallToolResult::structured(
-            serde_json::json!({ "artifact": artifact }),
+            serde_json::json!({ "artifact": artifact_view_value(&artifact)? }),
         ))
     }
 
@@ -547,26 +667,22 @@ impl SiftMcpServer {
     #[tool(
         name = "create_artifact",
         description = "
-            Create a new artifact, or append a version to an existing one. It can carry a local file or a
-            structured JSON payload.
+            Create a NEW artifact. It can carry a local file or a structured JSON payload.
+
+            This tool only creates. To change an artifact that already exists, call `update_artifact`
+            with its `artifact_id`; calling this one again mints a duplicate the user has to reconcile.
 
             Output:
-              - `{ \"artifact\": Artifact, \"next_step\": string }`. The returned artifact is the created or
-                appended version, including `artifact_id`, `artifact_version_id`, and `version`. When a
-                file was uploaded it also carries `file_name`, `file_mime_type`, `remote_file_id`, and a
-                short-lived signed `download_url`.
+              - `{ \"artifact\": Artifact, \"next_step\": string }`. The returned artifact is version 1,
+                including `artifact_id`, `artifact_version_id`, and `version`. When a file was uploaded it
+                also carries `file_name`, `file_mime_type`, `remote_file_id`, and a short-lived signed
+                `download_url`.
 
             Parameters:
               - `title`: optional display title stored on the version.
               - `summary`: optional short description stored on the version.
-              - `conversation_id`: optional. Legal only when creating a new artifact (not when appending).
-                Links the new artifact to that conversation. The caller must be the conversation's author.
-              - `artifact_id`: optional. Set to append a new version to an existing artifact. Omit to create
-                a new artifact. `conversation_id` must be omitted when this is set.
-              - `authoring_kind`: optional; `user` (default) or `agent`, matched case-insensitively. The
-                proto names that `list_artifacts` / `download_artifact` emit (`ARTIFACT_AUTHORING_KIND_USER`,
-                `ARTIFACT_AUTHORING_KIND_AGENT`) are also accepted. Use `agent` when a Sift agent is
-                producing the artifact during a turn.
+              - `conversation_id`: optional. Links the new artifact to that conversation. The caller must be
+                the conversation\'s author.
               - `storage_class`: optional; `file` (default), `structured`, or `blob`, matched case-insensitively.
                 Proto names are also accepted. `structured` requires `payload` and rejects `file_path`. `file`
                 and `blob` reject `payload`.
@@ -574,38 +690,30 @@ impl SiftMcpServer {
                 case-insensitively. Proto names are also accepted.
               - `payload`: optional JSON object. Required for `storage_class: \"structured\"`; rejected for
                 `file` and `blob`. Its serialized form must not exceed 1 MiB.
-              - When appending, the server checks `payload` against the existing artifact's storage class,
-                so omit `storage_class` unless you intend to assert it matches. Every version carries its
-                own content: a structured artifact needs the full `payload` on every append, including a
-                title-only edit, and `file` / `blob` artifacts reject `payload`. `created_via` is ignored
-                on append.
               - `metadata`: optional list of `{ \"name\": \"<key>\", \"value\": <scalar> }` entries.
               - `links`: optional list of `{ \"relation\", \"entity_type\", \"entity_id\" }` entries. `relation`
                 accepts `attached_to`, `source`, or `derived_from`, plus proto names. `entity_type` accepts
                 `conversation`, `canvas`, `run`, `asset`, `artifact`, or `tool_use`, plus proto names.
               - `file_path`: optional absolute or relative path of a local file to upload as this
-                version's content. The file streams to Sift's file store; its name and extension drive
+                version\'s content. The file streams to Sift\'s file store; its name and extension drive
                 the mime type and how the UI previews it. Regular, non-empty files up to 1 GiB.
                 Omit it to record metadata only (content can not be attached later to the same version).
 
             Access:
-              - Creating a new artifact needs `--allow-create`.
-              - Appending a version to an existing artifact changes what every linked conversation
-                resolves to, so it needs `--allow-destructive`.
+              - Needs `--allow-create`.
 
             Errors:
               - `INVALID_PARAMS` for unknown enum values, invalid storage/payload combinations, a non-object
-                `payload`, an empty link entity field, if `conversation_id` is set while appending, or if
-                `artifact_id` / `conversation_id` / `file_path` is empty when set.
-              - `INVALID_REQUEST` if the server was launched without the flag the call needs (see Access).
-              - `RESOURCE_NOT_FOUND` if the conversation or existing artifact is not visible to the caller.
+                `payload`, an empty link entity field, or an empty `conversation_id` / `file_path` when set.
+              - `INVALID_REQUEST` if the server was launched without `--allow-create`.
+              - `RESOURCE_NOT_FOUND` if the conversation is not visible to the caller.
               - `INTERNAL_ERROR` for upstream failures. When the message says the artifact was created but
                 the upload failed, the version exists without content — report that to the user instead of
                 calling `create_artifact` again, which would mint a duplicate.
 
             Guidance:
               - This is a write. CONFIRM the title and destination conversation with the user before invoking.
-              - Edits always create a new version; there is no edit-in-place path.
+              - Edits go through `update_artifact`; there is no edit-in-place path and no second create.
               - Use `storage_class: \"structured\"` for computed tables and PSD-like results. Use `blob` for
                 opaque intermediates.
               - Leave `created_via` unset inside a Sift agent session; it defaults to `agent`.
@@ -628,8 +736,6 @@ impl SiftMcpServer {
             title,
             summary,
             conversation_id,
-            artifact_id,
-            authoring_kind,
             storage_class,
             created_via,
             payload,
@@ -638,19 +744,6 @@ impl SiftMcpServer {
             file_path,
         }) = params;
 
-        // Appending rewrites what every linked conversation resolves to, so it takes the stronger gate.
-        if artifact_id.is_some() {
-            self.require_destructive()?;
-        }
-
-        if let Some(id) = artifact_id.as_deref()
-            && id.trim().is_empty()
-        {
-            return Err(ErrorData::invalid_params(
-                "`artifact_id` must not be empty when set",
-                None,
-            ));
-        }
         if let Some(id) = conversation_id.as_deref()
             && id.trim().is_empty()
         {
@@ -659,88 +752,33 @@ impl SiftMcpServer {
                 None,
             ));
         }
-        if artifact_id.is_some() && conversation_id.is_some() {
-            return Err(ErrorData::invalid_params(
-                "`conversation_id` is legal only when creating an artifact; omit it when appending a version",
-                None,
-            ));
-        }
-        if let Some(path) = file_path.as_deref()
-            && path.trim().is_empty()
-        {
-            return Err(ErrorData::invalid_params(
-                "`file_path` must not be empty when set",
-                None,
-            ));
-        }
+        let file_path = normalized_file_path(file_path)?;
 
-        let authoring_kind = parse_authoring_kind(authoring_kind)?;
         let storage_class = parse_storage_class(storage_class)?;
         let created_via = parse_created_via(created_via)?;
-        // Only a create knows its storage class locally: unset means FILE. On append the
-        // container already has one, so let the server match the payload against it.
-        if artifact_id.is_none() {
-            let storage_class = storage_class.unwrap_or(ArtifactStorageClass::File);
-            if storage_class == ArtifactStorageClass::Structured && payload.is_none() {
-                return Err(ErrorData::invalid_params(
-                    "`payload` is required when `storage_class` is `structured`",
-                    None,
-                ));
-            }
-            if storage_class == ArtifactStorageClass::Structured && file_path.is_some() {
-                return Err(ErrorData::invalid_params(
-                    "`file_path` is not allowed when `storage_class` is `structured`",
-                    None,
-                ));
-            }
-            if storage_class != ArtifactStorageClass::Structured && payload.is_some() {
-                return Err(ErrorData::invalid_params(
-                    "`payload` is allowed only when `storage_class` is `structured`",
-                    None,
-                ));
-            }
+        let resolved_storage_class = storage_class.unwrap_or(ArtifactStorageClass::File);
+        if resolved_storage_class == ArtifactStorageClass::Structured && payload.is_none() {
+            return Err(ErrorData::invalid_params(
+                "`payload` is required when `storage_class` is `structured`",
+                None,
+            ));
         }
-        let payload = payload
-            .map(|value| {
-                // Some MCP clients JSON-stringify object arguments before transport.
-                let value = match value {
-                    serde_json::Value::String(raw) => {
-                        serde_json::from_str(&raw).map_err(|error| {
-                            ErrorData::invalid_params(format!("invalid `payload`: {error}"), None)
-                        })?
-                    }
-                    other => other,
-                };
-                if !value.is_object() {
-                    return Err(ErrorData::invalid_params(
-                        "`payload` must be a JSON object",
-                        None,
-                    ));
-                }
-                serde_json::from_value(value).map_err(|error| {
-                    ErrorData::invalid_params(format!("invalid `payload`: {error}"), None)
-                })
-            })
-            .transpose()?;
-        let links = links
-            .unwrap_or_default()
-            .into_iter()
-            .map(|link| {
-                if link.entity_id.trim().is_empty() {
-                    return Err(ErrorData::invalid_params(
-                        "link `entity_id` must not be empty",
-                        None,
-                    ));
-                }
-                Ok(ArtifactLinkInput {
-                    relation: parse_link_relation(link.relation)? as i32,
-                    entity_type: parse_entity_type(link.entity_type)? as i32,
-                    entity_id: link.entity_id,
-                })
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-        let appending = artifact_id.is_some();
+        if resolved_storage_class == ArtifactStorageClass::Structured && file_path.is_some() {
+            return Err(ErrorData::invalid_params(
+                "`file_path` is not allowed when `storage_class` is `structured`",
+                None,
+            ));
+        }
+        if resolved_storage_class != ArtifactStorageClass::Structured && payload.is_some() {
+            return Err(ErrorData::invalid_params(
+                "`payload` is allowed only when `storage_class` is `structured`",
+                None,
+            ));
+        }
+        let payload = parse_payload(payload)?;
+        let links = parse_links(links)?;
         let uploaded = file_path.is_some();
+
         let artifact = self
             .artifact_service
             .create_artifact(
@@ -748,8 +786,6 @@ impl SiftMcpServer {
                     title,
                     summary,
                     conversation_id,
-                    artifact_id,
-                    authoring_kind,
                     storage_class,
                     created_via,
                     payload,
@@ -765,36 +801,146 @@ impl SiftMcpServer {
             .await
             .map_err(from_anyhow)?;
 
-        // The refresh and download-link steps after an upload are best-effort, so
-        // say only what the returned artifact actually carries.
-        let content_note = if uploaded && artifact.download_url.is_some() {
-            " Its file content was uploaded and the user can preview and download it."
-        } else if uploaded {
-            " Its file content was uploaded, but the refreshed artifact or its download link \
-             could not be fetched; call `download_artifact` for the link."
-        } else if artifact.inner.storage_class == ArtifactStorageClass::Structured as i32 {
-            " It carries its JSON payload."
-        } else {
-            " It has no file content; the user has nothing to preview or download."
-        };
-        let next_step = if appending {
-            format!(
-                "Appended version {} to artifact {}.{content_note} Surface the new version to the user \
-                 and confirm it matches their intent.",
-                artifact.inner.version, artifact.inner.artifact_id
+        let next_step = format!(
+            "Created artifact {} version {}.{} Surface the title and destination to the \
+             user and confirm they match their intent before further edits.",
+            artifact.artifact_id(),
+            artifact.version().version,
+            content_note(&artifact, uploaded),
+        );
+        artifact_result(&artifact, next_step)
+    }
+
+    #[tool(
+        name = "update_artifact",
+        description = "
+            Write a new version of an existing artifact, changing only what you pass. This is a WRITE.
+
+            Every field you leave out keeps its current value, so a title-only edit does not have to
+            resend the payload, the metadata, or the file. That is the whole point of this tool: passing
+            nothing for a field means `leave it alone`, never `blank it`.
+
+            Output:
+              - `{ \"artifact\": Artifact, \"next_step\": string }`. Same shape as `download_artifact`,
+                resolved to the version this call wrote.
+
+            Parameters:
+              - `artifact_id`: required stable container id. Resolve it with `list_artifacts` if you only
+                have a title.
+              - `title`: new display title. Pass an empty string to leave the artifact showing its file name.
+              - `summary`: new short description.
+              - `payload`: new JSON object for a `structured` artifact. Rejected for `file` and `blob`
+                artifacts. Its serialized form must not exceed 1 MiB.
+              - `metadata`: replaces the version's metadata with these `{ \"name\", \"value\" }` entries.
+                Omit it to carry the current metadata forward; pass an empty list to clear it.
+              - `links`: links to add at the new version, same shape as `create_artifact`. Existing
+                `attached_to` links carry forward either way.
+              - `file_path`: a local file whose bytes replace this artifact's content. The previous
+                version's file is left on its own version; the new version gets this one.
+
+            At least one of these must be set, since an update with nothing to change would write a
+            version identical to the current one.
+
+            Access:
+              - Needs `--allow-destructive`: a new version changes what every linked conversation resolves to.
+
+            Errors:
+              - `INVALID_PARAMS` if `artifact_id` is empty, if nothing to change was passed, for a
+                non-object `payload`, an empty link entity field, or an empty `file_path`.
+              - `INVALID_REQUEST` if the server was launched without `--allow-destructive`.
+              - `RESOURCE_NOT_FOUND` if the artifact does not exist or is not visible to the caller.
+              - `INTERNAL_ERROR` for upstream failures, including a payload that does not match the
+                artifact's storage class. When the message says the version was written but the upload
+                failed, the version exists without content — report that instead of calling again.
+
+            Guidance:
+              - This is how you refine an artifact. Do NOT call `create_artifact` again for an edit; that
+                mints a duplicate the user has to reconcile.
+              - Confirm the change with the user before calling.
+        ",
+        annotations(
+            title = "artifacts/update_artifact",
+            read_only_hint = false,
+            destructive_hint = true,
+            idempotent_hint = false,
+        )
+    )]
+    pub async fn update_artifact(
+        &self,
+        params: Parameters<UpdateArtifactParams>,
+    ) -> error::McpResult {
+        // A new version changes what every linked conversation resolves to.
+        self.require_destructive()?;
+
+        let Parameters(UpdateArtifactParams {
+            artifact_id,
+            title,
+            summary,
+            payload,
+            metadata,
+            links,
+            file_path,
+        }) = params;
+
+        if artifact_id.trim().is_empty() {
+            return Err(ErrorData::invalid_params(
+                "`artifact_id` must not be empty",
+                None,
+            ));
+        }
+        let file_path = normalized_file_path(file_path)?;
+
+        let mut version = ArtifactVersion::default();
+        let mut update_mask = Vec::new();
+        if let Some(title) = title {
+            version.title = Some(title);
+            update_mask.push("artifact_version.title".to_string());
+        }
+        if let Some(summary) = summary {
+            version.summary = Some(summary);
+            update_mask.push("artifact_version.summary".to_string());
+        }
+        if payload.is_some() {
+            version.payload = parse_payload(payload)?;
+            update_mask.push("artifact_version.payload".to_string());
+        }
+        if let Some(metadata) = metadata {
+            version.metadata = metadata.into_iter().map(Into::into).collect();
+            update_mask.push("artifact_version.metadata".to_string());
+        }
+        let links = parse_links(links)?;
+        if !links.is_empty() {
+            update_mask.push("links".to_string());
+        }
+        if update_mask.is_empty() && file_path.is_none() {
+            return Err(ErrorData::invalid_params(
+                "pass at least one of `title`, `summary`, `payload`, `metadata`, `links`, or `file_path`",
+                None,
+            ));
+        }
+
+        let uploaded = file_path.is_some();
+        let artifact = self
+            .artifact_service
+            .update_artifact(
+                UpdateArtifactInput {
+                    artifact_id,
+                    version,
+                    links,
+                    update_mask,
+                },
+                file_path.as_deref().map(std::path::Path::new),
             )
-        } else {
-            format!(
-                "Created artifact {} version {}.{content_note} Surface the title and destination to the \
-                 user and confirm they match their intent before further edits.",
-                artifact.inner.artifact_id, artifact.inner.version
-            )
-        };
-        let mut result = CallToolResult::structured(serde_json::json!({
-            "artifact": artifact,
-            "next_step": next_step,
-        }));
-        result.content = vec![ContentBlock::text(next_step)];
-        Ok(result)
+            .await
+            .map_err(from_anyhow)?;
+
+        let next_step = format!(
+            "Wrote version {} of artifact {}.{} Surface the new version to the user and confirm it \
+             matches their intent.",
+            artifact.version().version,
+            artifact.artifact_id(),
+            content_note(&artifact, uploaded),
+        );
+        artifact_result(&artifact, next_step)
     }
 }

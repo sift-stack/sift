@@ -1,9 +1,9 @@
 use sift_rs::{
     artifacts::v1::{
-        ArchiveArtifactResponse, Artifact, ArtifactAuthoringKind, ArtifactCreatedVia,
-        ArtifactEntityType, ArtifactLinkInput, ArtifactLinkRelation, ArtifactStorageClass,
-        ArtifactVersion, CreateArtifactResponse, GetArtifactResponse, ListArtifactVersionsResponse,
-        ListArtifactsResponse, UnarchiveArtifactResponse,
+        ArchiveArtifactResponse, Artifact, ArtifactCreatedVia, ArtifactDetails, ArtifactEntityType,
+        ArtifactLinkInput, ArtifactLinkRelation, ArtifactStorageClass, ArtifactVersion,
+        CreateArtifactResponse, GetArtifactResponse, ListArtifactVersionsResponse,
+        ListArtifactsResponse, UnarchiveArtifactResponse, UpdateArtifactResponse,
         artifact_service_server::ArtifactServiceServer,
     },
     remote_files::v1::{
@@ -17,21 +17,44 @@ use sift_test_util::{
 use tokio::task::JoinHandle;
 use tonic::{Code, Response, Status, transport::Server};
 
-use super::{ArtifactService, CreateArtifactInput};
+use super::{ArtifactService, CreateArtifactInput, UpdateArtifactInput};
 use crate::policy::RetryPolicy;
 
-fn sample_artifact() -> Artifact {
-    Artifact {
-        artifact_id: "art-1".into(),
-        organization_id: "org-1".into(),
-        created_by_user_id: "user-1".into(),
-        authoring_kind: ArtifactAuthoringKind::Agent as i32,
-        artifact_version_id: "ver-1".into(),
-        version: 1,
-        title: Some("report".into()),
-        file_name: Some("report.md".into()),
-        file_mime_type: Some("text/markdown".into()),
-        ..Default::default()
+/// A listing entry: the container plus its resolved version.
+fn listed(artifact_id: &str, artifact_version_id: &str, version: u32) -> ArtifactDetails {
+    ArtifactDetails {
+        artifact: Some(Artifact {
+            artifact_id: artifact_id.into(),
+            current_version_id: artifact_version_id.into(),
+            ..Default::default()
+        }),
+        artifact_version: Some(ArtifactVersion {
+            artifact_version_id: artifact_version_id.into(),
+            artifact_id: artifact_id.into(),
+            version,
+            ..Default::default()
+        }),
+    }
+}
+
+fn sample_artifact() -> ArtifactDetails {
+    ArtifactDetails {
+        artifact: Some(Artifact {
+            artifact_id: "art-1".into(),
+            organization_id: "org-1".into(),
+            created_by_user_id: "user-1".into(),
+            current_version_id: "ver-1".into(),
+            ..Default::default()
+        }),
+        artifact_version: Some(ArtifactVersion {
+            artifact_version_id: "ver-1".into(),
+            artifact_id: "art-1".into(),
+            version: 1,
+            title: Some("report".into()),
+            file_name: Some("report.md".into()),
+            file_mime_type: Some("text/markdown".into()),
+            ..Default::default()
+        }),
     }
 }
 
@@ -89,7 +112,10 @@ async fn list_artifacts_returns_single_page() {
         .await
         .expect("list");
     assert_eq!(page.items.len(), 1);
-    assert_eq!(page.items[0].artifact_id, "art-1");
+    assert_eq!(
+        page.items[0].artifact.as_ref().unwrap().artifact_id,
+        "art-1"
+    );
     assert!(!page.has_more);
 }
 
@@ -100,24 +126,8 @@ async fn list_artifacts_paginates_until_token_empty() {
         let req = req.into_inner();
         assert_eq!(req.page_size, 200);
         let (artifacts, next) = match req.page_token.as_str() {
-            "" => (
-                vec![Artifact {
-                    artifact_id: "a1".into(),
-                    artifact_version_id: "v1".into(),
-                    version: 1,
-                    ..Default::default()
-                }],
-                "50".to_string(),
-            ),
-            "50" => (
-                vec![Artifact {
-                    artifact_id: "a2".into(),
-                    artifact_version_id: "v2".into(),
-                    version: 1,
-                    ..Default::default()
-                }],
-                String::new(),
-            ),
+            "" => (vec![listed("a1", "v1", 1)], "50".to_string()),
+            "50" => (vec![listed("a2", "v2", 1)], String::new()),
             other => return Err(Status::invalid_argument(format!("bad token: {other}"))),
         };
         Ok(Response::new(ListArtifactsResponse {
@@ -134,7 +144,7 @@ async fn list_artifacts_paginates_until_token_empty() {
     assert_eq!(
         page.items
             .iter()
-            .map(|a| a.artifact_id.as_str())
+            .map(|a| a.artifact.as_ref().unwrap().artifact_id.as_str())
             .collect::<Vec<_>>(),
         ["a1", "a2"]
     );
@@ -147,18 +157,9 @@ async fn list_artifacts_limit_truncates() {
     mock.expect_list_artifacts().returning(|_| {
         Ok(Response::new(ListArtifactsResponse {
             artifacts: vec![
-                Artifact {
-                    artifact_id: "a1".into(),
-                    ..Default::default()
-                },
-                Artifact {
-                    artifact_id: "a2".into(),
-                    ..Default::default()
-                },
-                Artifact {
-                    artifact_id: "a3".into(),
-                    ..Default::default()
-                },
+                listed("a1", "v1", 1),
+                listed("a2", "v2", 1),
+                listed("a3", "v3", 1),
             ],
             next_page_token: String::new(),
         }))
@@ -207,16 +208,17 @@ async fn download_artifact_returns_latest() {
         .download_artifact("art-1".into(), None)
         .await
         .expect("get");
-    assert_eq!(artifact.inner.artifact_id, "art-1");
-    assert_eq!(artifact.inner.version, 1);
+    assert_eq!(artifact.artifact_id(), "art-1");
+    assert_eq!(artifact.version().version, 1);
     assert!(artifact.download_url.is_none());
 }
 
-fn uploaded_artifact() -> Artifact {
-    Artifact {
-        remote_file_id: Some("rf-1".into()),
-        ..sample_artifact()
+fn uploaded_artifact() -> ArtifactDetails {
+    let mut details = sample_artifact();
+    if let Some(version) = details.artifact_version.as_mut() {
+        version.remote_file_id = Some("rf-1".into());
     }
+    details
 }
 
 fn get_returns_uploaded() -> MockArtifactServiceImpl {
@@ -247,7 +249,7 @@ async fn download_artifact_attaches_download_url_when_bytes_uploaded() {
         .download_artifact("art-1".into(), None)
         .await
         .expect("get");
-    assert_eq!(artifact.inner.remote_file_id.as_deref(), Some("rf-1"));
+    assert_eq!(artifact.version().remote_file_id.as_deref(), Some("rf-1"));
     assert_eq!(
         artifact.download_url.as_deref(),
         Some("https://files.test.local/rf-1?sig=abc")
@@ -408,39 +410,41 @@ async fn unarchive_artifact_forwards_artifact_id() {
         .expect("unarchive");
 }
 
-#[test]
-fn artifact_view_serializes_flat_with_snake_case_download_url() {
-    let with_url = super::ArtifactView {
-        inner: uploaded_artifact(),
-        download_url: Some("https://files.test.local/rf-1".into()),
-    };
-    let value = serde_json::to_value(&with_url).expect("serialize");
-    assert_eq!(value["artifactId"], "art-1");
-    assert_eq!(value["remoteFileId"], "rf-1");
-    assert_eq!(value["download_url"], "https://files.test.local/rf-1");
-    assert!(value.get("downloadUrl").is_none());
-    assert!(value.get("inner").is_none());
+#[tokio::test]
+async fn update_artifact_forwards_the_mask_and_version() {
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_update_artifact()
+        .withf(|req| {
+            let req = req.get_ref();
+            let details = req.artifact.as_ref().unwrap();
+            req.artifact_id == "art-1"
+                && details.artifact.is_none()
+                && details.artifact_version.as_ref().unwrap().title.as_deref() == Some("Renamed")
+                && req.update_mask.as_ref().unwrap().paths == ["artifact_version.title"]
+        })
+        .returning(|_| {
+            Ok(Response::new(UpdateArtifactResponse {
+                artifact: Some(sample_artifact()),
+            }))
+        });
 
-    let without_url = super::ArtifactView {
-        inner: sample_artifact(),
-        download_url: None,
-    };
-    let value = serde_json::to_value(&without_url).expect("serialize");
-    assert_eq!(value["artifactId"], "art-1");
-    assert!(value.get("download_url").is_none());
-}
-
-#[test]
-fn artifact_view_serialization_error_propagates() {
-    let unknown_kind = super::ArtifactView {
-        inner: Artifact {
-            authoring_kind: 999,
-            ..sample_artifact()
-        },
-        download_url: None,
-    };
-    let err = serde_json::to_value(&unknown_kind).expect_err("unknown enum variant is an error");
-    assert!(err.to_string().contains("999"), "{err}");
+    let (service, _h) = service_with_mock(mock).await;
+    let artifact = service
+        .update_artifact(
+            UpdateArtifactInput {
+                artifact_id: "art-1".into(),
+                version: ArtifactVersion {
+                    title: Some("Renamed".into()),
+                    ..Default::default()
+                },
+                links: vec![],
+                update_mask: vec!["artifact_version.title".into()],
+            },
+            None,
+        )
+        .await
+        .expect("update");
+    assert_eq!(artifact.artifact_id(), "art-1");
 }
 
 #[tokio::test]
@@ -452,7 +456,6 @@ async fn create_artifact_returns_created_row() {
             req.conversation_id.as_deref() == Some("conv-1")
                 && req.title.as_deref() == Some("report")
                 && req.summary.as_deref() == Some("summary")
-                && req.authoring_kind == Some(ArtifactAuthoringKind::Agent as i32)
                 && req.storage_class == Some(ArtifactStorageClass::Structured as i32)
                 && req.created_via == Some(ArtifactCreatedVia::Agent as i32)
                 && serde_json::to_value(req.payload.as_ref().unwrap()).unwrap()
@@ -472,8 +475,6 @@ async fn create_artifact_returns_created_row() {
                 title: Some("report".into()),
                 summary: Some("summary".into()),
                 conversation_id: Some("conv-1".into()),
-                artifact_id: None,
-                authoring_kind: ArtifactAuthoringKind::Agent,
                 storage_class: Some(ArtifactStorageClass::Structured),
                 created_via: Some(ArtifactCreatedVia::Agent),
                 metadata: vec![],
@@ -488,6 +489,6 @@ async fn create_artifact_returns_created_row() {
         )
         .await
         .expect("create");
-    assert_eq!(artifact.inner.artifact_id, "art-1");
-    assert_eq!(artifact.inner.version, 1);
+    assert_eq!(artifact.artifact_id(), "art-1");
+    assert_eq!(artifact.version().version, 1);
 }
