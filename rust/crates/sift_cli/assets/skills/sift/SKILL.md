@@ -140,11 +140,27 @@ exists.
   unarchive; there is no separate archive tool. Check its per-id `failures`,
   `not_attempted` ids, and archive outcome before reporting success; a partial
   failure sets `isError`.
-- **Produce numbers.** `get_data` writes a Parquet file. `sql` then queries it.
-  Add `upload_dataset` when the result belongs back in Sift. A successful
-  `get_data` does not mean every requested channel is in the file: check
+- **Produce numbers.** `get_data` writes a Parquet file and `sql` then queries
+  it. Use a simple relative output name (for example `samples.parquet`) unless
+  the runtime explicitly provides a writable path. Pass the exact `output` path
+  returned by `get_data` as the `sql.inputs` value. A successful `get_data` does
+  not mean every requested channel is in the file: check
   `unmatched_channel_names` and `empty_channels` in the result. Report missing
   names and empty channel IDs before reporting numbers derived from the file.
+
+  For an aggregation, use `sample_ms: 0`, then write a small, ordinary SQL
+  query against the exact column name from the Parquet schema. Data columns
+  include metadata (`<name> {channel_id="...", run="...", units="..."}`),
+  so do not reconstruct or simplify that identifier. If it contains double
+  quotes, escape them for a SQL identifier by doubling them (`""`), never with
+  backslashes. Prefer an explicit `MIN(column)`, `MAX(column)`, or
+  `COUNT(column)` query; do not guess dialect-specific `EXCLUDE` or wildcard
+  syntax. After one parse error, read the error and correct the query once; if
+  the schema or quoting cannot be resolved with the available tools, stop and
+  explain the limitation rather than spending the remaining tool turns on
+  guesses.
+
+  Add `upload_dataset` when the result belongs back in Sift.
 - **Query a channel registration.** Pass `channel_id` or `channel_ids` to
   `get_data` with the asset and time range to fetch only those registrations.
   Use exactly one selector: IDs, `channel_names`, or `channel_regex`.
