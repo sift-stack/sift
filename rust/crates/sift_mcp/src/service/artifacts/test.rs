@@ -17,10 +17,9 @@ use sift_test_util::{
 use tokio::task::JoinHandle;
 use tonic::{Code, Response, Status, transport::Server};
 
-use super::{ArtifactService, CreateArtifactInput, UpdateArtifactInput};
+use super::{ArtifactService, CreateArtifactInput, UpdateArtifactInput, UpdatePath};
 use crate::policy::RetryPolicy;
 
-/// A listing entry: the container plus its resolved version.
 fn listed(artifact_id: &str, artifact_version_id: &str, version: u32) -> ArtifactDetails {
     ArtifactDetails {
         artifact: Some(Artifact {
@@ -438,7 +437,7 @@ async fn update_artifact_forwards_the_mask_and_version() {
                     ..Default::default()
                 },
                 links: vec![],
-                update_mask: vec!["artifact_version.title".into()],
+                update_mask: vec![UpdatePath::Title],
             },
             None,
         )

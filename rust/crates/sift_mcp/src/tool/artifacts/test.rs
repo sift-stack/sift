@@ -37,8 +37,6 @@ fn sample_artifact() -> ArtifactDetails {
     sample_with(|_| {}, |_| {})
 }
 
-/// The sample pair with either half adjusted, so a test can set a container
-/// field and a version field without restating both messages.
 fn sample_with(
     container: impl FnOnce(&mut Artifact),
     version: impl FnOnce(&mut ArtifactVersion),
@@ -511,7 +509,6 @@ async fn update_artifact_masks_only_what_was_passed() {
             req.artifact_id == "art-1"
                 && req.update_mask.as_ref().unwrap().paths == ["artifact_version.title"]
                 && version.title.as_deref() == Some("Renamed")
-                // The payload it did not send is the point: the server carries it forward.
                 && version.payload.is_none()
                 && version.summary.is_none()
                 && version.metadata.is_empty()
@@ -547,6 +544,73 @@ async fn update_artifact_masks_only_what_was_passed() {
         next_step.starts_with("Wrote version 2 of artifact art-1"),
         "{next_step}"
     );
+}
+
+#[tokio::test]
+async fn update_artifact_maps_each_parameter_to_its_own_path() {
+    for (params, want) in [
+        (
+            UpdateArtifactParams {
+                artifact_id: "art-1".into(),
+                title: Some("t".into()),
+                ..Default::default()
+            },
+            "artifact_version.title",
+        ),
+        (
+            UpdateArtifactParams {
+                artifact_id: "art-1".into(),
+                summary: Some("s".into()),
+                ..Default::default()
+            },
+            "artifact_version.summary",
+        ),
+        (
+            UpdateArtifactParams {
+                artifact_id: "art-1".into(),
+                payload: Some(serde_json::json!({ "a": 1 })),
+                ..Default::default()
+            },
+            "artifact_version.payload",
+        ),
+        (
+            UpdateArtifactParams {
+                artifact_id: "art-1".into(),
+                metadata: Some(vec![MetadataEntry {
+                    name: "k".into(),
+                    value: MetadataScalar::String("v".into()),
+                }]),
+                ..Default::default()
+            },
+            "artifact_version.metadata",
+        ),
+        (
+            UpdateArtifactParams {
+                artifact_id: "art-1".into(),
+                links: Some(vec![super::ArtifactLinkParam {
+                    relation: "source".into(),
+                    entity_type: "run".into(),
+                    entity_id: "run-1".into(),
+                }]),
+                ..Default::default()
+            },
+            "links",
+        ),
+    ] {
+        let mut mock = MockArtifactServiceImpl::new();
+        mock.expect_update_artifact()
+            .withf(move |req| req.get_ref().update_mask.as_ref().unwrap().paths == [want])
+            .returning(|_| {
+                Ok(Response::new(UpdateArtifactResponse {
+                    artifact: Some(sample_artifact()),
+                }))
+            });
+        let (server, _h) = server_with_mock(mock, true).await;
+        server
+            .update_artifact(Parameters(params))
+            .await
+            .unwrap_or_else(|err| panic!("{want}: {err:?}"));
+    }
 }
 
 #[tokio::test]

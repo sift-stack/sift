@@ -23,9 +23,6 @@ use crate::service::remote_files::RemoteFileUploader;
 #[cfg(test)]
 mod test;
 
-/// One artifact resolved to one version, plus the signed link for its bytes when
-/// it has any. The tool layer flattens the pair into the single object a caller
-/// reads.
 #[derive(Clone, Debug)]
 pub struct ArtifactView {
     pub details: ArtifactDetails,
@@ -66,14 +63,40 @@ pub(crate) struct CreateArtifactInput {
     pub(crate) links: Vec<ArtifactLinkInput>,
 }
 
-/// The values for the paths in `update_mask`. Anything the mask leaves out is
-/// carried forward by the server from the current version.
 #[derive(Clone, Debug)]
 pub(crate) struct UpdateArtifactInput {
     pub(crate) artifact_id: String,
     pub(crate) version: ArtifactVersion,
     pub(crate) links: Vec<ArtifactLinkInput>,
-    pub(crate) update_mask: Vec<String>,
+    pub(crate) update_mask: Vec<UpdatePath>,
+}
+
+/// A path the server publishes on `UpdateArtifactRequest.update_mask`. Spelling
+/// one wrong would drop the edit without an error, so callers name a variant and
+/// never a string.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum UpdatePath {
+    Title,
+    Summary,
+    Payload,
+    Metadata,
+    /// Declares that new bytes follow, so the server leaves the previous
+    /// version's files behind instead of carrying them onto this one.
+    ReplaceFile,
+    Links,
+}
+
+impl UpdatePath {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Title => "artifact_version.title",
+            Self::Summary => "artifact_version.summary",
+            Self::Payload => "artifact_version.payload",
+            Self::Metadata => "artifact_version.metadata",
+            Self::ReplaceFile => "artifact_version.remote_file_id",
+            Self::Links => "links",
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -326,9 +349,6 @@ impl ArtifactService {
         .await
     }
 
-    /// Writes a new version carrying only what `update_mask` names. A file turns
-    /// the update into a content replacement, so the server is told not to carry
-    /// the previous version's bytes forward.
     pub async fn update_artifact(
         &self,
         mut input: UpdateArtifactInput,
@@ -336,9 +356,7 @@ impl ArtifactService {
     ) -> Result<ArtifactView> {
         let uploader = self.uploader_for(file_path)?;
         if file_path.is_some() {
-            input
-                .update_mask
-                .push("artifact_version.remote_file_id".to_string());
+            input.update_mask.push(UpdatePath::ReplaceFile);
         }
 
         let channel = self.channel.clone();
@@ -356,7 +374,11 @@ impl ArtifactService {
                         }),
                         links: input.links,
                         update_mask: Some(pbjson_types::FieldMask {
-                            paths: input.update_mask,
+                            paths: input
+                                .update_mask
+                                .iter()
+                                .map(|path| path.as_str().to_string())
+                                .collect(),
                         }),
                     })
                     .await
@@ -387,8 +409,6 @@ impl ArtifactService {
         }
     }
 
-    /// Uploads the file, then re-reads the version so the caller sees the stored
-    /// file name, mime type, and a download link.
     async fn attach_bytes(
         &self,
         written: ArtifactDetails,
@@ -412,8 +432,6 @@ impl ArtifactService {
             .clone()
             .ok_or_else(|| anyhow!("artifact response missing version"))?;
 
-        // The version row exists from here on: a failed upload must say so,
-        // or the agent will retry and mint a duplicate.
         let upload_context = format!(
             "artifact {} version {} was {verb}, but uploading `{}` failed; do NOT {retry_warning}",
             artifact.artifact_id,
@@ -429,8 +447,6 @@ impl ArtifactService {
             .await
             .context(upload_context)?;
 
-        // Refresh so the returned version carries the uploaded file's name,
-        // mime type, and remote_file_id, and mint the download link.
         let refreshed = self
             .get_artifact(
                 artifact.artifact_id.clone(),

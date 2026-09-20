@@ -15,7 +15,7 @@ use sift_rs::artifacts::v1::{
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
-    service::artifacts::{ArtifactView, CreateArtifactInput, UpdateArtifactInput},
+    service::artifacts::{ArtifactView, CreateArtifactInput, UpdateArtifactInput, UpdatePath},
     tool::common::{MetadataEntry, list_body, to_values},
 };
 
@@ -156,41 +156,41 @@ fn parse_link_relation(value: String) -> Result<ArtifactLinkRelation, ErrorData>
     }
 }
 
-/// Flattens the container and its resolved version into the single object a
-/// caller reads. The version's own `created_date` is published as
-/// `version_created_date` so the bare name keeps meaning the container's, and
-/// `fields` projection keeps working: it matches top-level keys only.
+/// The wire form splits an artifact across two messages, but `fields` projection
+/// matches top-level keys only, so a caller reading `["title"]` needs them in one
+/// object. Both halves publish `createdDate` and `artifactId`, so each key is
+/// placed deliberately rather than merged.
 fn artifact_value(details: &ArtifactDetails) -> Result<Value, ErrorData> {
-    let mut flat = serde_json::Map::new();
-    if let Some(version) = details.artifact_version.as_ref() {
-        let value = serde_json::to_value(version).map_err(|e| {
-            ErrorData::internal_error(format!("failed to serialize artifact version: {e}"), None)
-        })?;
-        if let Value::Object(map) = value {
-            for (key, value) in map {
-                let key = if key == "createdDate" {
-                    "versionCreatedDate".to_string()
-                } else {
-                    key
-                };
-                flat.insert(key, value);
-            }
-        }
+    let mut flat = object_of(details.artifact_version.as_ref(), "artifact version")?;
+    if let Some(created) = flat.remove("createdDate") {
+        flat.insert("versionCreatedDate".to_string(), created);
     }
-    if let Some(artifact) = details.artifact.as_ref() {
-        let value = serde_json::to_value(artifact).map_err(|e| {
-            ErrorData::internal_error(format!("failed to serialize artifact: {e}"), None)
-        })?;
-        if let Value::Object(map) = value {
-            flat.extend(map);
+    for (key, value) in object_of(details.artifact.as_ref(), "artifact")? {
+        if flat.insert(key.clone(), value).is_some() && key != "artifactId" {
+            return Err(ErrorData::internal_error(
+                format!("artifact and artifact version both published `{key}`"),
+                None,
+            ));
         }
     }
     Ok(Value::Object(flat))
 }
 
-/// Adds the signed download link, which belongs to the view rather than either
-/// half of the pair. It keeps its snake_case name: it is not a proto field, and
-/// callers already read it that way.
+fn object_of<T: serde::Serialize>(
+    message: Option<&T>,
+    what: &str,
+) -> Result<serde_json::Map<String, Value>, ErrorData> {
+    let Some(message) = message else {
+        return Ok(serde_json::Map::new());
+    };
+    match serde_json::to_value(message)
+        .map_err(|e| ErrorData::internal_error(format!("failed to serialize {what}: {e}"), None))?
+    {
+        Value::Object(map) => Ok(map),
+        _ => Ok(serde_json::Map::new()),
+    }
+}
+
 fn artifact_view_value(view: &ArtifactView) -> Result<Value, ErrorData> {
     let mut value = artifact_value(&view.details)?;
     if let (Value::Object(map), Some(url)) = (&mut value, view.download_url.as_ref()) {
@@ -254,8 +254,6 @@ fn parse_links(links: Option<Vec<ArtifactLinkParam>>) -> Result<Vec<ArtifactLink
         .collect()
 }
 
-/// The refresh and download-link steps after an upload are best-effort, so say
-/// only what the returned version actually carries.
 fn content_note(artifact: &ArtifactView, uploaded: bool) -> &'static str {
     if uploaded && artifact.download_url.is_some() {
         " Its file content was uploaded and the user can preview and download it."
@@ -869,7 +867,6 @@ impl SiftMcpServer {
         &self,
         params: Parameters<UpdateArtifactParams>,
     ) -> error::McpResult {
-        // A new version changes what every linked conversation resolves to.
         self.require_destructive()?;
 
         let Parameters(UpdateArtifactParams {
@@ -894,23 +891,23 @@ impl SiftMcpServer {
         let mut update_mask = Vec::new();
         if let Some(title) = title {
             version.title = Some(title);
-            update_mask.push("artifact_version.title".to_string());
+            update_mask.push(UpdatePath::Title);
         }
         if let Some(summary) = summary {
             version.summary = Some(summary);
-            update_mask.push("artifact_version.summary".to_string());
+            update_mask.push(UpdatePath::Summary);
         }
         if payload.is_some() {
             version.payload = parse_payload(payload)?;
-            update_mask.push("artifact_version.payload".to_string());
+            update_mask.push(UpdatePath::Payload);
         }
         if let Some(metadata) = metadata {
             version.metadata = metadata.into_iter().map(Into::into).collect();
-            update_mask.push("artifact_version.metadata".to_string());
+            update_mask.push(UpdatePath::Metadata);
         }
         let links = parse_links(links)?;
         if !links.is_empty() {
-            update_mask.push("links".to_string());
+            update_mask.push(UpdatePath::Links);
         }
         if update_mask.is_empty() && file_path.is_none() {
             return Err(ErrorData::invalid_params(
