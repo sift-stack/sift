@@ -48,6 +48,11 @@ Each tool's own description carries its parameters, filters, defaults, and
 errors. Read the tool schema instead of guessing. This map only tells you what
 exists.
 
+Any tool listed below may be absent from the tool list because the account
+feature-gates it or the MCP server excludes it at startup. When a tool is
+absent, use the alternative the host provides and do not retry the missing
+tool.
+
 - **Setup:** When available, `check_for_updates` reports the installed sift-cli
   version, the latest stable version, and the exact installer command. Servers
   started with `--disable-update-check` omit this tool. `ping` is a

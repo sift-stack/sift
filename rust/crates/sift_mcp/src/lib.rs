@@ -115,6 +115,7 @@ pub async fn run_with_update_check(
         None,
         FeatureFlags::default(),
         None,
+        Vec::new(),
     )
     .await
 }
@@ -134,6 +135,7 @@ pub async fn run_with_client_events(
     client_event_config: Option<ClientEventConfig>,
     feature_flags: FeatureFlags,
     rest_config: Option<RestConfig>,
+    ignored_tools: Vec<String>,
 ) -> Result<()> {
     let client_event_reporter =
         client_event::ClientEventReporter::from_config(client_event_config, &cli_version);
@@ -149,6 +151,7 @@ pub async fn run_with_client_events(
             client_event_reporter,
             feature_flags,
             rest_config,
+            ignored_tools,
         },
     )
     .await
@@ -163,6 +166,7 @@ struct RunConfig {
     client_event_reporter: client_event::ClientEventReporter,
     feature_flags: FeatureFlags,
     rest_config: Option<RestConfig>,
+    ignored_tools: Vec<String>,
 }
 
 async fn run_server(credentials: Credentials, use_tls: bool, config: RunConfig) -> Result<()> {
@@ -182,7 +186,8 @@ async fn run_server(credentials: Credentials, use_tls: bool, config: RunConfig) 
         config.client_event_reporter,
         config.feature_flags,
         config.rest_config,
-    )
+        config.ignored_tools,
+    )?
     .serve(stdio())
     .await
     .context("failed to start MCP server")?;

@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use rmcp::{
     ErrorData, RoleServer, ServerHandler,
     handler::server::router::prompt::PromptRouter,
@@ -81,6 +83,7 @@ pub struct SiftMcpServer {
     pub allow_destructive: bool,
     cli_version: String,
     pub update_check: Option<UpdateCheckReceiver>,
+    update_tool_registered: bool,
     client_event_reporter: ClientEventReporter,
 }
 
@@ -131,7 +134,11 @@ impl ServerHandler for SiftMcpServer {
         let instructions = match &self.update_check {
             Some(receiver) => {
                 let update_check = receiver.borrow();
-                let base = format!("{UPDATE_CHECK_INSTRUCTIONS}{BASE_INSTRUCTIONS}");
+                let base = if self.update_tool_registered {
+                    format!("{UPDATE_CHECK_INSTRUCTIONS}{BASE_INSTRUCTIONS}")
+                } else {
+                    BASE_INSTRUCTIONS.to_string()
+                };
                 match update_check.update_message() {
                     Some(message) => {
                         format!("{message}\n\n{UPDATE_AVAILABLE_INSTRUCTIONS}{base}")
@@ -177,7 +184,9 @@ impl SiftMcpServer {
             ClientEventReporter::default(),
             FeatureFlags::default(),
             None,
+            Vec::new(),
         )
+        .expect("test server configuration is valid")
     }
 
     /// Test-only: route artifact file uploads at a mock REST endpoint.
@@ -201,7 +210,8 @@ impl SiftMcpServer {
         client_event_reporter: ClientEventReporter,
         feature_flags: FeatureFlags,
         rest_config: Option<crate::service::remote_files::RestConfig>,
-    ) -> Self {
+        ignored_tools: Vec<String>,
+    ) -> anyhow::Result<Self> {
         // Add more routers here as new tool groups are introduced, e.g.
         //   tool_router.merge(Self::ingestion_router())
         let mut tool_router = Self::assets_router();
@@ -221,14 +231,41 @@ impl SiftMcpServer {
         tool_router.merge(Self::docs_router());
         tool_router.merge(Self::user_defined_functions_router());
         tool_router.merge(Self::users_router());
-        if update_check.is_some() {
-            tool_router.merge(Self::update_router());
+        tool_router.merge(Self::update_router());
+        let registered_tools: HashSet<String> = tool_router
+            .list_all()
+            .iter()
+            .map(|tool| tool.name.to_string())
+            .collect();
+        let unknown_tools: Vec<_> = ignored_tools
+            .iter()
+            .filter(|tool_name| !registered_tools.contains(tool_name.as_str()))
+            .collect();
+        if !unknown_tools.is_empty() {
+            anyhow::bail!(
+                "unknown tools to ignore: {}",
+                unknown_tools
+                    .iter()
+                    .map(|tool_name| tool_name.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            );
+        }
+        if update_check.is_none() {
+            tool_router.remove_route("check_for_updates");
         }
         for &(tool_name, flag) in TOOL_FEATURE_FLAGS {
             if !feature_flags.enabled(flag) {
                 tool_router.remove_route(tool_name);
             }
         }
+        for tool_name in ignored_tools {
+            tool_router.remove_route(&tool_name);
+        }
+        let update_tool_registered = tool_router
+            .list_all()
+            .iter()
+            .any(|tool| tool.name == "check_for_updates");
 
         let prompt_router = Self::prompt_router();
 
@@ -262,7 +299,7 @@ impl SiftMcpServer {
             UserDefinedFunctionService::new(channel.clone(), retry_policy.clone());
         let user_service = UserService::new(channel.clone(), retry_policy);
 
-        Self {
+        Ok(Self {
             annotation_service,
             artifact_service,
             asset_service,
@@ -287,8 +324,9 @@ impl SiftMcpServer {
             allow_destructive,
             cli_version,
             update_check,
+            update_tool_registered,
             client_event_reporter,
-        }
+        })
     }
 
     pub(crate) fn require_create(&self) -> Result<(), ErrorData> {
