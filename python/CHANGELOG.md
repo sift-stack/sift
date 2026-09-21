@@ -9,6 +9,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Added `client.annotations` for data reviews, phases, and review history.
 - Added `client.campaigns` for grouping report results across runs.
 - Added `client.webhooks`, and `RuleAction.webhook` to call one when a rule is violated.
+- `RuleCreate.asset_ids` and `RuleUpdate.asset_ids` now accept `Asset` objects as well as IDs.
 
 ### What's New
 

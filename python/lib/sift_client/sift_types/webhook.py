@@ -130,10 +130,7 @@ class Webhook(BaseType[WebhookProto, "Webhook"]):
         return self
 
     def test(self) -> WebhookTestResult:
-        """Send a live request to this webhook's target URL and return its response.
-
-        This performs a real HTTP request against `target_url`.
-        """
+        """Send a real request to this webhook's target URL and return its response."""
         return self.client.webhooks.test(webhook=self)
 
 
@@ -180,11 +177,7 @@ class WebhookCreate(WebhookBase, ModelCreate[CreateWebhookRequestProto]):
 
     @model_validator(mode="after")
     def _default_event_type(self):
-        """Default to the only event type Sift emits.
-
-        Assign here, not as a field default. `to_proto` excludes unset fields, so a
-        field default would send `UNSPECIFIED`.
-        """
+        """Assign rather than default, since `to_proto` drops unset fields."""
         if self.event_type is None:
             self.event_type = WebhookEventType.RULE_VIOLATION
         return self

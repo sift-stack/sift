@@ -156,7 +156,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             is_live_evaluation_enabled=create.evaluate_on_live_data,
             conditions=conditions_request,
             asset_configuration=RuleAssetConfiguration(
-                asset_ids=create.asset_ids or [],
+                asset_ids=cast("list[str]", create.asset_ids or []),
                 tag_ids=create.asset_tag_ids or [],
             ),
             contextual_channels=ContextualChannels(
@@ -296,7 +296,10 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         # This always needs to be set, so handle the defaults.
         update_dict["asset_configuration"] = RuleAssetConfiguration(  # type: ignore
-            asset_ids=(update.asset_ids if "asset_ids" in model_dump else rule.asset_ids or []),
+            asset_ids=cast(
+                "list[str]",
+                update.asset_ids if "asset_ids" in model_dump else rule.asset_ids or [],
+            ),
             tag_ids=(
                 update.asset_tag_ids if "asset_tag_ids" in model_dump else rule.asset_tag_ids or []
             ),

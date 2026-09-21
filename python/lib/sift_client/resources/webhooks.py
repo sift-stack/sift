@@ -22,13 +22,7 @@ if TYPE_CHECKING:
 class WebhooksAPIAsync(ResourceBase):
     """High-level API for interacting with webhooks.
 
-    A webhook registers an HTTP endpoint that Sift calls when an event occurs, such as a
-    rule violation. This class provides a Pythonic, notebook-friendly interface for
-    interacting with the WebhooksAPI. It handles automatic handling of gRPC services,
-    seamless type conversion, and clear error handling.
-
-    All methods in this class use the Webhook class from the low-level wrapper, which is a
-    user-friendly representation of a webhook using standard Python data structures and types.
+    A webhook registers an HTTP endpoint that Sift calls when a rule is violated.
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -192,10 +186,10 @@ class WebhooksAPIAsync(ResourceBase):
         *,
         create: WebhookCreate | dict | None = None,
     ) -> WebhookTestResult:
-        """Send a live request to a webhook's target URL and return its response.
+        """Send a real request to a webhook's target URL and return its response.
 
-        This performs a real HTTP request against the target URL. Exactly one of `webhook`
-        or `create` must be provided. Use `create` to check an endpoint before saving it.
+        Pass exactly one of `webhook` or `create`. Use `create` to check an endpoint
+        before saving it.
 
         Args:
             webhook: The Webhook or webhook ID to test.
