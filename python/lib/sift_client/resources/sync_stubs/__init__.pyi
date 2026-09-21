@@ -20,10 +20,9 @@ if TYPE_CHECKING:
     from sift_client.sift_types.annotation import (
         Annotation,
         AnnotationCommentElement,
-        AnnotationCreate,
+        AnnotationCreateBase,
         AnnotationLog,
         AnnotationLogKind,
-        AnnotationLogState,
         AnnotationState,
         AnnotationType,
         AnnotationUpdate,
@@ -115,7 +114,7 @@ class AnnotationLogsAPI:
         ...
 
     def _run(self, coro): ...
-    def comment(
+    def add_comment(
         self, annotation: str | Annotation, text: str | list[AnnotationCommentElement]
     ) -> AnnotationLog:
         """Add a comment to an annotation.
@@ -129,20 +128,11 @@ class AnnotationLogsAPI:
         """
         ...
 
-    def delete(self, annotation: str | Annotation, log: str | AnnotationLog) -> None:
-        """Delete an annotation log.
-
-        Args:
-            annotation: The Annotation or annotation ID the log belongs to.
-            log: The AnnotationLog or log ID to delete.
-        """
-        ...
-
     def list_(
         self,
         *,
-        annotation: str | Annotation | None = None,
-        annotation_log_ids: list[str] | None = None,
+        annotation: str | Annotation,
+        annotation_logs: list[str | AnnotationLog] | None = None,
         created_after: datetime | None = None,
         created_before: datetime | None = None,
         modified_after: datetime | None = None,
@@ -157,8 +147,8 @@ class AnnotationLogsAPI:
         """List annotation logs.
 
         Args:
-            annotation: Restrict results to this Annotation or annotation ID.
-            annotation_log_ids: Filter to logs with any of these IDs.
+            annotation: The Annotation or annotation ID whose history to list.
+            annotation_logs: Filter to these AnnotationLogs or log IDs.
             created_after: Filter logs created after this datetime.
             created_before: Filter logs created before this datetime.
             modified_after: Filter logs modified after this datetime.
@@ -172,38 +162,6 @@ class AnnotationLogsAPI:
 
         Returns:
             A list of AnnotationLog objects that match the filter criteria.
-        """
-        ...
-
-    def record_assignment(self, annotation: str | Annotation, user: str) -> AnnotationLog:
-        """Record that an annotation was assigned to a user.
-
-        This writes a history entry and nothing else. `annotations.assign` already
-        writes one, so you rarely need this.
-
-        Args:
-            annotation: The Annotation or annotation ID.
-            user: The user ID the annotation was assigned to.
-
-        Returns:
-            The created AnnotationLog.
-        """
-        ...
-
-    def record_state(
-        self, annotation: str | Annotation, state: AnnotationLogState
-    ) -> AnnotationLog:
-        """Record a state change on an annotation.
-
-        This writes a history entry and nothing else. It leaves the state alone, so
-        use `annotations.resolve`, `flag`, or `reopen` to change it.
-
-        Args:
-            annotation: The Annotation or annotation ID.
-            state: The state to record.
-
-        Returns:
-            The created AnnotationLog.
         """
         ...
 
@@ -237,12 +195,12 @@ class AnnotationsAPI:
         """
         ...
 
-    def assign(self, annotation: str | Annotation, user: str) -> Annotation:
+    def assign_to_user(self, annotation: str | Annotation, user: str | User) -> Annotation:
         """Assign an annotation to a user for review.
 
         Args:
             annotation: The Annotation or annotation ID to assign.
-            user: The user ID to assign to.
+            user: The User or user ID to assign to.
 
         Returns:
             The updated Annotation.
@@ -265,83 +223,14 @@ class AnnotationsAPI:
         """
         ...
 
-    def create(self, create: AnnotationCreate | dict) -> Annotation:
-        """Create a new annotation.
+    def create(self, create: AnnotationCreateBase | dict) -> Annotation:
+        """Create an annotation.
+
+        Pass an `AnnotationCreate` for a data review or a `PhaseCreate` for a phase. A
+        dict is read as an `AnnotationCreate` unless `annotation_type` says otherwise.
 
         Args:
-            create: The annotation definition. `assets` and `tags` take names, not IDs.
-
-        Returns:
-            The created Annotation.
-        """
-        ...
-
-    def create_phase(
-        self,
-        name: str,
-        start_time: datetime,
-        end_time: datetime,
-        *,
-        assets: list[str] | None = None,
-        channels: list[Channel] | None = None,
-        run: Run | str | None = None,
-        description: str | None = None,
-        tags: list[str] | None = None,
-        metadata: dict[str, Any] | None = None,
-    ) -> Annotation:
-        """Mark a time range as a phase.
-
-        A phase labels a segment of a run. It carries no review state, so it has no
-        `state` argument.
-
-        Args:
-            name: The name of the phase.
-            start_time: When the phase starts.
-            end_time: When the phase ends.
-            assets: Asset names to associate. Derived from `channels` if omitted.
-            channels: Channels to draw the phase on.
-            run: The Run or run ID the phase belongs to.
-            description: A description of the phase.
-            tags: Tag names to apply.
-            metadata: User-defined metadata.
-
-        Returns:
-            The created Annotation.
-        """
-        ...
-
-    def create_review(
-        self,
-        name: str,
-        start_time: datetime,
-        end_time: datetime,
-        *,
-        assets: list[str] | None = None,
-        channels: list[Channel] | None = None,
-        run: Run | str | None = None,
-        description: str | None = None,
-        tags: list[str] | None = None,
-        state: AnnotationState | None = None,
-        assign_to: str | None = None,
-        metadata: dict[str, Any] | None = None,
-    ) -> Annotation:
-        """Flag a time range for review.
-
-        The annotation must reach an asset. Pass `channels` and the asset comes from
-        them, or name the assets directly.
-
-        Args:
-            name: The name of the annotation.
-            start_time: When the range starts.
-            end_time: When the range ends.
-            assets: Asset names to associate. Derived from `channels` if omitted.
-            channels: Channels to draw the annotation on.
-            run: The Run or run ID the annotation belongs to.
-            description: A description of what to review.
-            tags: Tag names to apply.
-            state: The initial review state. Defaults to open.
-            assign_to: The user ID to assign the review to.
-            metadata: User-defined metadata.
+            create: The annotation definition. `assets` and `tags` take names or objects.
 
         Returns:
             The created Annotation.
@@ -361,18 +250,7 @@ class AnnotationsAPI:
         """
         ...
 
-    def flag(self, annotation: str | Annotation) -> Annotation:
-        """Flag a review as needing attention.
-
-        Args:
-            annotation: The Annotation or annotation ID to flag.
-
-        Returns:
-            The updated Annotation.
-        """
-        ...
-
-    def get(self, annotation_id: str) -> Annotation:
+    def get(self, *, annotation_id: str) -> Annotation:
         """Get an Annotation.
 
         Args:
@@ -386,8 +264,7 @@ class AnnotationsAPI:
     def list_(
         self,
         *,
-        name: str | None = None,
-        names: list[str] | None = None,
+        name: str | list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         annotation_ids: list[str] | None = None,
@@ -404,8 +281,8 @@ class AnnotationsAPI:
         pending: bool | None = None,
         assets: list[Asset] | list[str] | None = None,
         runs: list[Run] | list[str] | None = None,
-        rule_ids: list[str] | None = None,
-        report_ids: list[str] | None = None,
+        rules: list[str | Rule] | None = None,
+        reports: list[str | Report] | None = None,
         start_time_after: datetime | None = None,
         start_time_before: datetime | None = None,
         end_time_after: datetime | None = None,
@@ -420,8 +297,7 @@ class AnnotationsAPI:
         """List annotations.
 
         Args:
-            name: Exact name of the annotation.
-            names: List of annotation names to filter by.
+            name: Exact name, or a list of names to match any of.
             name_contains: Partial name of the annotation.
             name_regex: Regular expression to filter annotations by name.
             annotation_ids: Filter to annotations with any of these IDs.
@@ -434,8 +310,10 @@ class AnnotationsAPI:
             metadata: Filter annotations by metadata criteria.
             annotation_type: Filter to DATA_REVIEW or PHASE annotations.
             state: Filter to a review state.
-            assigned_to: Filter to annotations assigned to this user ID.
+            assigned_to: Filter to annotations assigned to this user's name.
             pending: Filter to annotations from an ongoing rule violation.
+            rules: Filter to annotations created by any of these Rules or rule IDs.
+            reports: Filter to annotations in any of these Reports or report IDs.
             assets: Filter annotations on any of these Assets or asset IDs.
             runs: Filter annotations on any of these Runs or run IDs.
             rule_ids: Filter annotations created by any of these rules.
@@ -457,22 +335,33 @@ class AnnotationsAPI:
         """
         ...
 
-    def reopen(self, annotation: str | Annotation) -> Annotation:
-        """Return a review to the open state.
+    def set_accepted(self, annotation: str | Annotation) -> Annotation:
+        """Close out a review as resolved.
 
         Args:
-            annotation: The Annotation or annotation ID to reopen.
+            annotation: The Annotation or annotation ID to resolve.
 
         Returns:
             The updated Annotation.
         """
         ...
 
-    def resolve(self, annotation: str | Annotation) -> Annotation:
-        """Close out a review as resolved.
+    def set_failed(self, annotation: str | Annotation) -> Annotation:
+        """Flag a review as needing attention.
 
         Args:
-            annotation: The Annotation or annotation ID to resolve.
+            annotation: The Annotation or annotation ID to flag.
+
+        Returns:
+            The updated Annotation.
+        """
+        ...
+
+    def set_open(self, annotation: str | Annotation) -> Annotation:
+        """Return a review to the open state.
+
+        Args:
+            annotation: The Annotation or annotation ID to reopen.
 
         Returns:
             The updated Annotation.

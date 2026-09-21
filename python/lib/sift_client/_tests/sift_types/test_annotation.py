@@ -4,16 +4,19 @@ from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
 import pytest
+from sift.channels.v3.channels_pb2 import Channel as ChannelProto
+from sift.common.type.v1.channel_data_type_pb2 import ChannelDataType as ChannelDataTypeProto
 
 from sift_client.sift_types import Annotation
 from sift_client.sift_types.annotation import (
     AnnotationCommentElement,
     AnnotationCreate,
-    AnnotationLinkedChannel,
     AnnotationState,
     AnnotationType,
     AnnotationUpdate,
+    PhaseCreate,
 )
+from sift_client.sift_types.channel import Channel
 
 START = datetime(2026, 1, 1, tzinfo=timezone.utc)
 END = datetime(2026, 1, 2, tzinfo=timezone.utc)
@@ -26,42 +29,7 @@ class TestAnnotationEnums:
         assert AnnotationType.PHASE.to_filter_str() == "ANNOTATION_TYPE_PHASE"
 
     def test_state_filter_str(self):
-        assert AnnotationState.RESOLVED.to_filter_str() == "ANNOTATION_STATE_RESOLVED"
-
-
-class TestAnnotationLinkedChannel:
-    """Unit tests for the linked channel oneof."""
-
-    def test_plain_channel(self):
-        proto = AnnotationLinkedChannel(channel_id="ch-1")._to_proto()
-        assert proto.WhichOneof("type") == "channel"
-        assert proto.channel.channel_id == "ch-1"
-
-    def test_bit_field_element(self):
-        proto = AnnotationLinkedChannel(channel_id="ch-1", bit_field_element="bit")._to_proto()
-        assert proto.WhichOneof("type") == "bit_field_element"
-        assert proto.bit_field_element.bit_field_name == "bit"
-
-    def test_calculated_channel(self):
-        proto = AnnotationLinkedChannel(calculated_channel_version_id="v-1")._to_proto()
-        assert proto.WhichOneof("type") == "calculated_channel"
-        assert proto.calculated_channel.calculated_channel_version_id == "v-1"
-
-    def test_round_trip(self):
-        original = AnnotationLinkedChannel(channel_id="ch-1", bit_field_element="bit")
-        assert AnnotationLinkedChannel._from_proto(original._to_proto()) == original
-
-    def test_rejects_neither(self):
-        with pytest.raises(ValueError, match="exactly one"):
-            AnnotationLinkedChannel()
-
-    def test_rejects_both(self):
-        with pytest.raises(ValueError, match="exactly one"):
-            AnnotationLinkedChannel(channel_id="ch-1", calculated_channel_version_id="v-1")
-
-    def test_bit_field_needs_channel(self):
-        with pytest.raises(ValueError, match="bit_field_element requires channel_id"):
-            AnnotationLinkedChannel(bit_field_element="bit")
+        assert AnnotationState.ACCEPTED.to_filter_str() == "ANNOTATION_STATE_RESOLVED"
 
 
 class TestAnnotationCreate:
@@ -91,26 +59,28 @@ class TestAnnotationCreate:
         assert by_key["k"].string_value == "v"
         assert by_key["n"].number_value == 1.5
 
-    def test_linked_channels_converter(self):
-        proto = AnnotationCreate(
-            name="a",
-            start_time=START,
-            end_time=END,
-            linked_channels=[AnnotationLinkedChannel(channel_id="ch-1")],
-        ).to_proto()
-
-        assert len(proto.linked_channels) == 1
-        assert proto.linked_channels[0].channel.channel_id == "ch-1"
-
-    def test_phase_rejects_state(self):
-        with pytest.raises(ValueError, match="state must be unset"):
-            AnnotationCreate(
-                name="a",
-                start_time=START,
-                end_time=END,
-                annotation_type=AnnotationType.PHASE,
-                state=AnnotationState.OPEN,
+    def test_linked_channels_takes_channel_objects(self):
+        """linked_channels takes Channel objects, wrapping them for the proto."""
+        channel = Channel._from_proto(
+            ChannelProto(
+                channel_id="ch-1",
+                name="pressure",
+                data_type=ChannelDataTypeProto.CHANNEL_DATA_TYPE_DOUBLE,
             )
+        )
+
+        create = AnnotationCreate(
+            name="a", start_time=START, end_time=END, linked_channels=[channel]
+        )
+        linked = create.linked_channels_to_proto()
+
+        assert len(linked) == 1
+        assert linked[0].channel.channel_id == "ch-1"
+
+    def test_phase_has_no_state(self):
+        """PhaseCreate carries no review state, so this fails before the call."""
+        with pytest.raises(ValueError, match="state"):
+            PhaseCreate(name="a", start_time=START, end_time=END, state=AnnotationState.OPEN)
 
     def test_rejects_inverted_time_range(self):
         with pytest.raises(ValueError, match="start_time must not be after end_time"):
@@ -121,14 +91,14 @@ class TestAnnotationUpdate:
     """Unit tests for AnnotationUpdate - tests field masks."""
 
     def test_update_mask_only_includes_set_fields(self):
-        update = AnnotationUpdate(name="renamed", state=AnnotationState.FLAGGED)
+        update = AnnotationUpdate(name="renamed", state=AnnotationState.FAILED)
         update.resource_id = "an-1"
 
         proto, mask = update.to_proto_with_mask()
 
         assert proto.annotation_id == "an-1"
         assert proto.name == "renamed"
-        assert proto.state == AnnotationState.FLAGGED.value
+        assert proto.state == AnnotationState.FAILED.value
         assert set(mask.paths) == {"name", "state"}
 
     def test_assignment(self):
@@ -181,14 +151,14 @@ def mock_annotation(mock_client):
         modified_by_user_id="user1",
         tags=[],
         asset_ids=["asset1"],
-        linked_channels=[],
+        linked_channel_ids=[],
+        linked_calculated_channel_version_ids=[],
         metadata={},
         is_archived=False,
         pending=False,
         state=AnnotationState.OPEN,
         run_id=None,
         assigned_to_user_id=None,
-        created_by_rule_condition_version_id=None,
         legend_config=None,
         archived_date=None,
     )
@@ -242,22 +212,25 @@ class TestAnnotation:
             mock_client.annotations.unarchive.assert_called_once_with(annotation=mock_annotation)
             assert result is mock_annotation
 
-    def test_assign_updates_assignee(self, mock_annotation, mock_client):
-        mock_client.annotations.update.return_value = MagicMock()
+    def test_assign_forwards_to_the_resource(self, mock_annotation, mock_client):
+        mock_client.annotations.assign_to_user.return_value = MagicMock()
 
         with MagicMock() as mock_update:
             mock_annotation._update = mock_update
-            mock_annotation.assign("user-2")
+            mock_annotation.assign_to_user("user-2")
 
-            _, kwargs = mock_client.annotations.update.call_args
-            assert kwargs["update"] == {"assigned_to_user_id": "user-2"}
+            mock_client.annotations.assign_to_user.assert_called_once_with(
+                annotation=mock_annotation, user="user-2"
+            )
 
-    def test_resolve_sets_state(self, mock_annotation, mock_client):
-        mock_client.annotations.update.return_value = MagicMock()
+    def test_state_verbs_forward_to_the_resource(self, mock_annotation, mock_client):
+        for verb in ("set_open", "set_failed", "set_accepted"):
+            getattr(mock_client.annotations, verb).return_value = MagicMock()
 
-        with MagicMock() as mock_update:
-            mock_annotation._update = mock_update
-            mock_annotation.resolve()
+            with MagicMock() as mock_update:
+                mock_annotation._update = mock_update
+                getattr(mock_annotation, verb)()
 
-            _, kwargs = mock_client.annotations.update.call_args
-            assert kwargs["update"] == {"state": AnnotationState.RESOLVED}
+                getattr(mock_client.annotations, verb).assert_called_once_with(
+                    annotation=mock_annotation
+                )

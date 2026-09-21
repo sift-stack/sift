@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING, ClassVar
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from sift.annotation_logs.v1.annotation_logs_pb2 import (
     AnnotationCommentBodyElement as AnnotationCommentBodyElementProto,
 )
@@ -28,7 +28,6 @@ from sift.annotations.v1.annotations_pb2 import (
 )
 from sift.annotations.v1.annotations_pb2 import (
     AnnotationLinkedCalculatedChannel,
-    AnnotationLinkedChannelsBitFieldElement,
     AnnotationLinkedChannelsChannel,
 )
 from sift.annotations.v1.annotations_pb2 import (
@@ -51,7 +50,12 @@ from sift_client.sift_types._base import (
     ModelCreateUpdateBase,
     ModelUpdate,
 )
+from sift_client.sift_types.asset import Asset
+from sift_client.sift_types.calculated_channel import CalculatedChannel
+from sift_client.sift_types.channel import Channel  # noqa: TC001
+from sift_client.sift_types.run import Run
 from sift_client.sift_types.tag import Tag
+from sift_client.sift_types.user import User
 from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
@@ -71,80 +75,33 @@ class AnnotationType(Enum):
 
 
 class AnnotationState(Enum):
-    """Enum for the review state of a data review annotation."""
+    """Review state of a data review annotation, named as Sift shows it.
+
+    The proto spells these UNSPECIFIED, OPEN, FLAGGED, and RESOLVED.
+    """
 
     UNSPECIFIED = AnnotationStateProto.ANNOTATION_STATE_UNSPECIFIED  # 0
     OPEN = AnnotationStateProto.ANNOTATION_STATE_OPEN  # 1
-    FLAGGED = AnnotationStateProto.ANNOTATION_STATE_FLAGGED  # 2
-    RESOLVED = AnnotationStateProto.ANNOTATION_STATE_RESOLVED  # 3
+    FAILED = AnnotationStateProto.ANNOTATION_STATE_FLAGGED  # 2
+    ACCEPTED = AnnotationStateProto.ANNOTATION_STATE_RESOLVED  # 3
 
     def to_filter_str(self) -> str:
-        """Convert to the string used in CEL filters."""
-        return f"ANNOTATION_STATE_{self.name}"
+        """Convert to the string used in CEL filters, which uses the proto spelling."""
+        proto_name = {"FAILED": "FLAGGED", "ACCEPTED": "RESOLVED"}.get(self.name, self.name)
+        return f"ANNOTATION_STATE_{proto_name}"
 
 
-class AnnotationLinkedChannel(BaseModel):
-    """A channel an annotation points at.
-
-    Set exactly one of `channel_id` or `calculated_channel_version_id`.
-    `bit_field_element` requires `channel_id`.
-
-    Attributes:
-        channel_id: The ID of a regular channel.
-        bit_field_element: The name of a bit field element on `channel_id`.
-        calculated_channel_version_id: The version ID of a calculated channel.
-    """
-
-    channel_id: str | None = None
-    bit_field_element: str | None = None
-    calculated_channel_version_id: str | None = None
-
-    @model_validator(mode="after")
-    def _validate_exactly_one(self) -> AnnotationLinkedChannel:
-        if self.bit_field_element and not self.channel_id:
-            raise ValueError("bit_field_element requires channel_id")
-        if bool(self.channel_id) == bool(self.calculated_channel_version_id):
-            raise ValueError(
-                "AnnotationLinkedChannel requires exactly one of channel_id or "
-                "calculated_channel_version_id"
-            )
-        return self
-
-    @classmethod
-    def _from_proto(cls, proto: AnnotationLinkedChannelProto) -> AnnotationLinkedChannel:
-        which = proto.WhichOneof("type")
-        if which == "bit_field_element":
-            return cls(
-                channel_id=proto.bit_field_element.channel_id,
-                bit_field_element=proto.bit_field_element.bit_field_name,
-            )
-        if which == "calculated_channel":
-            return cls(
-                calculated_channel_version_id=proto.calculated_channel.calculated_channel_version_id
-            )
-        return cls(channel_id=proto.channel.channel_id)
-
-    def _to_proto(self) -> AnnotationLinkedChannelProto:
-        if self.calculated_channel_version_id:
-            return AnnotationLinkedChannelProto(
-                calculated_channel=AnnotationLinkedCalculatedChannel(
-                    calculated_channel_version_id=self.calculated_channel_version_id
-                )
-            )
-        if self.bit_field_element:
-            return AnnotationLinkedChannelProto(
-                bit_field_element=AnnotationLinkedChannelsBitFieldElement(
-                    channel_id=self.channel_id or "", bit_field_name=self.bit_field_element
-                )
-            )
+def _linked_channel_to_proto(channel: Channel | CalculatedChannel) -> AnnotationLinkedChannelProto:
+    """Wrap a Channel or CalculatedChannel in the proto's oneof."""
+    if isinstance(channel, CalculatedChannel):
         return AnnotationLinkedChannelProto(
-            channel=AnnotationLinkedChannelsChannel(channel_id=self.channel_id or "")
+            calculated_channel=AnnotationLinkedCalculatedChannel(
+                calculated_channel_version_id=channel.version_id or ""
+            )
         )
-
-
-def _linked_channel_to_proto(**kwargs) -> AnnotationLinkedChannelProto:
-    """Convert a linked channel dict (from model_dump) into its proto form."""
-    return AnnotationLinkedChannel(**kwargs)._to_proto()
+    return AnnotationLinkedChannelProto(
+        channel=AnnotationLinkedChannelsChannel(channel_id=channel._id_or_error)
+    )
 
 
 class Annotation(BaseType[AnnotationProto, "Annotation"]):
@@ -163,7 +120,8 @@ class Annotation(BaseType[AnnotationProto, "Annotation"]):
     modified_by_user_id: str
     tags: list[str]
     asset_ids: list[str]
-    linked_channels: list[AnnotationLinkedChannel]
+    linked_channel_ids: list[str]
+    linked_calculated_channel_version_ids: list[str]
     metadata: dict[str, str | float | bool]
     is_archived: bool
     pending: bool
@@ -172,7 +130,6 @@ class Annotation(BaseType[AnnotationProto, "Annotation"]):
     state: AnnotationState | None
     run_id: str | None
     assigned_to_user_id: str | None
-    created_by_rule_condition_version_id: str | None
     legend_config: str | None
     archived_date: datetime | None
 
@@ -195,18 +152,24 @@ class Annotation(BaseType[AnnotationProto, "Annotation"]):
             modified_by_user_id=proto.modified_by_user_id,
             tags=list(proto.tags),
             asset_ids=list(proto.asset_ids),
-            linked_channels=[AnnotationLinkedChannel._from_proto(c) for c in proto.linked_channels],
+            linked_channel_ids=[
+                c.bit_field_element.channel_id
+                if c.WhichOneof("type") == "bit_field_element"
+                else c.channel.channel_id
+                for c in proto.linked_channels
+                if c.WhichOneof("type") != "calculated_channel"
+            ],
+            linked_calculated_channel_version_ids=[
+                c.calculated_channel.calculated_channel_version_id
+                for c in proto.linked_channels
+                if c.WhichOneof("type") == "calculated_channel"
+            ],
             metadata=metadata_proto_to_dict(proto.metadata),  # type: ignore
             is_archived=proto.is_archived,
             pending=proto.pending,
             state=AnnotationState(proto.state) if proto.HasField("state") else None,
             run_id=proto.run_id if proto.HasField("run_id") else None,
             assigned_to_user_id=proto.assigned_to_user_id or None,
-            created_by_rule_condition_version_id=(
-                proto.created_by_rule_condition_version_id
-                if proto.HasField("created_by_rule_condition_version_id")
-                else None
-            ),
             legend_config=proto.legend_config if proto.HasField("legend_config") else None,
             archived_date=(
                 proto.archived_date.ToDatetime(tzinfo=timezone.utc)
@@ -246,40 +209,79 @@ class Annotation(BaseType[AnnotationProto, "Annotation"]):
         self._update(updated)
         return self
 
-    def assign(self, user: str) -> Annotation:
+    @property
+    def assets(self) -> list[Asset]:
+        """Fetch the Assets this annotation is on."""
+        return self.client.assets.list_(asset_ids=self.asset_ids) if self.asset_ids else []
+
+    @property
+    def linked_channels(self) -> list[Channel | CalculatedChannel]:
+        """Fetch the Channels and CalculatedChannels this annotation is drawn on."""
+        linked: list[Channel | CalculatedChannel] = []
+        if self.linked_channel_ids:
+            linked.extend(self.client.channels.list_(channel_ids=self.linked_channel_ids))
+        linked.extend(
+            self.client.calculated_channels.get(calculated_channel_id=version_id)
+            for version_id in self.linked_calculated_channel_version_ids
+        )
+        return linked
+
+    @property
+    def run(self) -> Run | None:
+        """Fetch the Run this annotation belongs to."""
+        return self.client.runs.get(run_id=self.run_id) if self.run_id else None
+
+    @property
+    def created_by(self) -> User:
+        """Fetch the User that created this annotation."""
+        return self.client.users.get(user_id=self.created_by_user_id)
+
+    @property
+    def modified_by(self) -> User:
+        """Fetch the User that last modified this annotation."""
+        return self.client.users.get(user_id=self.modified_by_user_id)
+
+    @property
+    def assigned_to(self) -> User | None:
+        """Fetch the User this annotation is assigned to."""
+        return (
+            self.client.users.get(user_id=self.assigned_to_user_id)
+            if self.assigned_to_user_id
+            else None
+        )
+
+    def assign_to_user(self, user: str | User) -> Annotation:
         """Assign the annotation to a user for review.
 
         Args:
-            user: The user ID to assign to.
+            user: The User or user ID to assign to.
 
         Returns:
             The updated annotation.
         """
-        return self.update({"assigned_to_user_id": user})
+        updated = self.client.annotations.assign_to_user(annotation=self, user=user)
+        self._update(updated)
+        return self
 
-    def resolve(self) -> Annotation:
-        """Close out the review as resolved."""
-        return self._set_state(AnnotationState.RESOLVED)
+    def set_open(self) -> Annotation:
+        """Set the review state to Open."""
+        updated = self.client.annotations.set_open(annotation=self)
+        self._update(updated)
+        return self
 
-    def flag(self) -> Annotation:
-        """Flag the review as needing attention."""
-        return self._set_state(AnnotationState.FLAGGED)
+    def set_failed(self) -> Annotation:
+        """Set the review state to Failed."""
+        updated = self.client.annotations.set_failed(annotation=self)
+        self._update(updated)
+        return self
 
-    def reopen(self) -> Annotation:
-        """Return the review to the open state."""
-        return self._set_state(AnnotationState.OPEN)
+    def set_accepted(self) -> Annotation:
+        """Set the review state to Accepted."""
+        updated = self.client.annotations.set_accepted(annotation=self)
+        self._update(updated)
+        return self
 
-    def _set_state(self, state: AnnotationState) -> Annotation:
-        """Move to a review state, skipping the call if already there.
-
-        The server rejects a redundant state change with INVALID_ARGUMENT, so calling
-        `resolve` twice would fail without this.
-        """
-        if self.state is state:
-            return self
-        return self.update({"state": state})
-
-    def comment(self, text: str | list[AnnotationCommentElement]) -> AnnotationLog:
+    def add_comment(self, text: str | list[AnnotationCommentElement]) -> AnnotationLog:
         """Add a comment to the annotation.
 
         Args:
@@ -288,7 +290,7 @@ class Annotation(BaseType[AnnotationProto, "Annotation"]):
         Returns:
             The created AnnotationLog.
         """
-        return self.client.annotations.logs.comment(self, text)
+        return self.client.annotations.logs.add_comment(self, text)
 
 
 class AnnotationBase(ModelCreateUpdateBase):
@@ -296,7 +298,7 @@ class AnnotationBase(ModelCreateUpdateBase):
 
     description: str | None = None
     tags: list[str] | list[Tag] | None = None
-    linked_channels: list[AnnotationLinkedChannel] | None = None
+    linked_channels: list[Channel | CalculatedChannel] | None = Field(default=None, exclude=True)
     state: AnnotationState | None = None
     legend_config: str | None = None
     metadata: dict[str, str | float | bool] | None = None
@@ -312,12 +314,11 @@ class AnnotationBase(ModelCreateUpdateBase):
             update_field="tags",
             converter=lambda tags: [tag.name if isinstance(tag, Tag) else tag for tag in tags],
         ),
-        "linked_channels": MappingHelper(
-            proto_attr_path="linked_channels",
-            update_field="linked_channels",
-            converter=_linked_channel_to_proto,  # type: ignore[arg-type]
-        ),
     }
+
+    def linked_channels_to_proto(self) -> list[AnnotationLinkedChannelProto]:
+        """Build the proto form of `linked_channels`."""
+        return [_linked_channel_to_proto(c) for c in self.linked_channels or []]
 
     @model_validator(mode="after")
     def _validate_time_range(self):
@@ -328,30 +329,32 @@ class AnnotationBase(ModelCreateUpdateBase):
         return self
 
 
-class AnnotationCreate(AnnotationBase, ModelCreate[CreateAnnotationRequestProto]):
-    """Create model for Annotation.
+class AnnotationCreateBase(AnnotationBase, ModelCreate[CreateAnnotationRequestProto]):
+    """Shared fields for creating an annotation.
 
-    Note that `assets` takes asset names, not IDs, and `tags` takes tag names.
+    `assets` takes Assets or asset names, and `tags` takes tag names. Omit `assets` and
+    the asset is taken from `linked_channels`.
     """
 
     name: str
     start_time: datetime
     end_time: datetime
-    annotation_type: AnnotationType = AnnotationType.DATA_REVIEW
-    assets: list[str] | None = None
-    run_id: str | None = None
-    assign_to_user_id: str | None = None
+    assets: list[str | Asset] | None = None
+    run_id: str | Run | None = None
     organization_id: str | None = None
 
     def _get_proto_class(self) -> type[CreateAnnotationRequestProto]:
         return CreateAnnotationRequestProto
 
-    @model_validator(mode="after")
-    def _validate_state(self):
-        """Phase annotations have no review state; the server rejects one."""
-        if self.annotation_type is AnnotationType.PHASE and self.state is not None:
-            raise ValueError("state must be unset when annotation_type is PHASE")
-        return self
+    @field_validator("assets", mode="after")
+    @classmethod
+    def _assets_to_names(cls, value):
+        return [a.name if isinstance(a, Asset) else a for a in value] if value else value
+
+    @field_validator("run_id", mode="after")
+    @classmethod
+    def _run_to_id(cls, value):
+        return value._id_or_error if isinstance(value, Run) else value
 
     @model_validator(mode="after")
     def _mark_annotation_type_set(self):
@@ -361,6 +364,25 @@ class AnnotationCreate(AnnotationBase, ModelCreate[CreateAnnotationRequestProto]
         """
         self.annotation_type = self.annotation_type
         return self
+
+
+class AnnotationCreate(AnnotationCreateBase):
+    """Create a data review annotation, which carries a review state and an assignee."""
+
+    annotation_type: AnnotationType = AnnotationType.DATA_REVIEW
+    assign_to_user_id: str | User | None = None
+
+    @field_validator("assign_to_user_id", mode="after")
+    @classmethod
+    def _user_to_id(cls, value):
+        return value._id_or_error if isinstance(value, User) else value
+
+
+class PhaseCreate(AnnotationCreateBase):
+    """Create a phase annotation, which labels a segment of a run and has no state."""
+
+    annotation_type: AnnotationType = AnnotationType.PHASE
+    state: None = None
 
 
 class AnnotationUpdate(AnnotationBase, ModelUpdate[AnnotationProto]):
@@ -404,8 +426,8 @@ class AnnotationLogState(Enum):
     UNSPECIFIED = AnnotationLogStateProto.ANNOTATION_LOG_STATE_UNSPECIFIED  # 0
     CREATED = AnnotationLogStateProto.ANNOTATION_LOG_STATE_CREATED  # 1
     OPEN = AnnotationLogStateProto.ANNOTATION_LOG_STATE_OPEN  # 2
-    FLAGGED = AnnotationLogStateProto.ANNOTATION_LOG_STATE_FLAGGED  # 3
-    RESOLVED = AnnotationLogStateProto.ANNOTATION_LOG_STATE_RESOLVED  # 4
+    FAILED = AnnotationLogStateProto.ANNOTATION_LOG_STATE_FLAGGED  # 3
+    ACCEPTED = AnnotationLogStateProto.ANNOTATION_LOG_STATE_RESOLVED  # 4
 
 
 class AnnotationCommentElement(BaseModel):
@@ -414,12 +436,10 @@ class AnnotationCommentElement(BaseModel):
     Attributes:
         text: The literal text, when this element is text.
         user_id: The mentioned user's ID, when this element is a mention.
-        user_email: The mentioned user's email, when this element is a mention.
     """
 
     text: str | None = None
     user_id: str | None = None
-    user_email: str | None = None
 
     @model_validator(mode="after")
     def _validate_exactly_one(self) -> AnnotationCommentElement:
@@ -433,16 +453,14 @@ class AnnotationCommentElement(BaseModel):
             proto.type
             == AnnotationCommentBodyElementTypeProto.ANNOTATION_COMMENT_BODY_ELEMENT_TYPE_USER_MENTION
         ):
-            return cls(user_id=proto.user_mention.user_id, user_email=proto.user_mention.user_email)
+            return cls(user_id=proto.user_mention.user_id)
         return cls(text=proto.text)
 
     def _to_proto(self) -> AnnotationCommentBodyElementProto:
         if self.user_id:
             return AnnotationCommentBodyElementProto(
                 type=AnnotationCommentBodyElementTypeProto.ANNOTATION_COMMENT_BODY_ELEMENT_TYPE_USER_MENTION,
-                user_mention=AnnotationCommentUserMentionProto(
-                    user_id=self.user_id, user_email=self.user_email or ""
-                ),
+                user_mention=AnnotationCommentUserMentionProto(user_id=self.user_id),
             )
         return AnnotationCommentBodyElementProto(
             type=AnnotationCommentBodyElementTypeProto.ANNOTATION_COMMENT_BODY_ELEMENT_TYPE_TEXT,
@@ -458,11 +476,9 @@ class AnnotationLog(BaseType[AnnotationLogProto, "AnnotationLog"]):
     created_date: datetime
     modified_date: datetime
     created_by_user_id: str
-    created_by_user_name: str
 
     # Set on ASSIGNED logs
     assigned_to_user_id: str | None
-    assigned_to_user_email: str | None
     # Set on STATE_UPDATE logs
     state: AnnotationLogState | None
     # Set on COMMENT logs
@@ -481,12 +497,8 @@ class AnnotationLog(BaseType[AnnotationLogProto, "AnnotationLog"]):
             created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
             modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
             created_by_user_id=proto.created_by_user_id,
-            created_by_user_name=proto.created_by_user_name,
             assigned_to_user_id=(
                 proto.assigned.assigned_to_user_id if which == "assigned" else None
-            ),
-            assigned_to_user_email=(
-                proto.assigned.assigned_to_user_email if which == "assigned" else None
             ),
             state=(
                 AnnotationLogState(proto.state_update.state) if which == "state_update" else None
@@ -500,8 +512,20 @@ class AnnotationLog(BaseType[AnnotationLogProto, "AnnotationLog"]):
         )
 
     @property
+    def created_by(self) -> User:
+        """Fetch the User that created this log entry."""
+        return self.client.users.get(user_id=self.created_by_user_id)
+
+    @property
+    def assigned_to(self) -> User | None:
+        """Fetch the User this log entry assigned the annotation to."""
+        if not self.assigned_to_user_id:
+            return None
+        return self.client.users.get(user_id=self.assigned_to_user_id)
+
+    @property
     def text(self) -> str:
-        """The comment body as plain text, with mentions rendered as emails."""
+        """The comment body as plain text, with mentions rendered as user IDs."""
         if not self.comment:
             return ""
-        return "".join(e.text or f"@{e.user_email or e.user_id}" for e in self.comment)
+        return "".join(e.text or f"@{e.user_id}" for e in self.comment)

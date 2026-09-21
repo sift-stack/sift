@@ -9,13 +9,13 @@ from sift.annotation_logs.v1.annotation_logs_pb2 import (
     AnnotationLogStateUpdateProperties,
     CreateAnnotationLogRequest,
     CreateAnnotationLogResponse,
-    DeleteAnnotationLogRequest,
     ListAnnotationLogsRequest,
     ListAnnotationLogsResponse,
 )
 from sift.annotation_logs.v1.annotation_logs_pb2_grpc import AnnotationLogServiceStub
 from sift.annotations.v1.annotations_pb2 import (
     ArchiveAnnotationRequest,
+    ArchiveAnnotationResponse,
     BatchArchiveAnnotationsRequest,
     BatchUnarchiveAnnotationsRequest,
     CreateAnnotationResponse,
@@ -24,6 +24,7 @@ from sift.annotations.v1.annotations_pb2 import (
     ListAnnotationsRequest,
     ListAnnotationsResponse,
     UnarchiveAnnotationRequest,
+    UnarchiveAnnotationResponse,
     UpdateAnnotationRequest,
     UpdateAnnotationResponse,
 )
@@ -33,7 +34,7 @@ from sift_client._internal.low_level_wrappers.base import DEFAULT_PAGE_SIZE, Low
 from sift_client.sift_types.annotation import (
     Annotation,
     AnnotationCommentElement,
-    AnnotationCreate,
+    AnnotationCreateBase,
     AnnotationLog,
     AnnotationLogKind,
     AnnotationLogState,
@@ -139,7 +140,7 @@ class AnnotationsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             page_size=page_size,
         )
 
-    async def create_annotation(self, *, create: AnnotationCreate) -> Annotation:
+    async def create_annotation(self, *, create: AnnotationCreateBase) -> Annotation:
         """Create an annotation.
 
         Args:
@@ -149,6 +150,7 @@ class AnnotationsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             The created Annotation.
         """
         request_proto = create.to_proto()
+        request_proto.linked_channels.extend(create.linked_channels_to_proto())
         response = await self._grpc_client.get_stub(AnnotationServiceStub).CreateAnnotation(
             request_proto
         )
@@ -178,8 +180,10 @@ class AnnotationsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             The archived Annotation.
         """
         request = ArchiveAnnotationRequest(annotation_id=annotation_id)
-        await self._grpc_client.get_stub(AnnotationServiceStub).ArchiveAnnotation(request)
-        return await self.get_annotation(annotation_id)
+        response = await self._grpc_client.get_stub(AnnotationServiceStub).ArchiveAnnotation(
+            request
+        )
+        return Annotation._from_proto(cast("ArchiveAnnotationResponse", response).annotation)
 
     async def unarchive_annotation(self, annotation_id: str) -> Annotation:
         """Unarchive an annotation.
@@ -191,8 +195,10 @@ class AnnotationsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             The unarchived Annotation.
         """
         request = UnarchiveAnnotationRequest(annotation_id=annotation_id)
-        await self._grpc_client.get_stub(AnnotationServiceStub).UnarchiveAnnotation(request)
-        return await self.get_annotation(annotation_id)
+        response = await self._grpc_client.get_stub(AnnotationServiceStub).UnarchiveAnnotation(
+            request
+        )
+        return Annotation._from_proto(cast("UnarchiveAnnotationResponse", response).annotation)
 
     async def batch_archive_annotations(self, annotation_ids: list[str]) -> None:
         """Archive many annotations in one call.
@@ -325,15 +331,3 @@ class AnnotationsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         return AnnotationLog._from_proto(
             cast("CreateAnnotationLogResponse", response).annotation_log
         )
-
-    async def delete_annotation_log(self, *, annotation_id: str, annotation_log_id: str) -> None:
-        """Delete an annotation log.
-
-        Args:
-            annotation_id: The annotation the log belongs to.
-            annotation_log_id: The log to delete.
-        """
-        request = DeleteAnnotationLogRequest(
-            annotation_id=annotation_id, annotation_log_id=annotation_log_id
-        )
-        await self._grpc_client.get_stub(AnnotationLogServiceStub).DeleteAnnotationLog(request)

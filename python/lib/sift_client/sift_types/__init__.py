@@ -135,13 +135,14 @@ from sift_client.sift_types.annotation import (
     Annotation,
     AnnotationCommentElement,
     AnnotationCreate,
-    AnnotationLinkedChannel,
+    AnnotationCreateBase,
     AnnotationLog,
     AnnotationLogKind,
     AnnotationLogState,
     AnnotationState,
     AnnotationType,
     AnnotationUpdate,
+    PhaseCreate,
 )
 from sift_client.sift_types.asset import Asset, AssetUpdate
 from sift_client.sift_types.calculated_channel import (
@@ -249,7 +250,7 @@ __all__ = [
     "Annotation",
     "AnnotationCommentElement",
     "AnnotationCreate",
-    "AnnotationLinkedChannel",
+    "AnnotationCreateBase",
     "AnnotationLog",
     "AnnotationLogKind",
     "AnnotationLogState",
@@ -282,6 +283,7 @@ __all__ = [
     "JobStatus",
     "JobStatusDetails",
     "JobType",
+    "PhaseCreate",
     "PrincipalAttributeAssignment",
     "PrincipalAttributeEnumValue",
     "PrincipalAttributeKey",

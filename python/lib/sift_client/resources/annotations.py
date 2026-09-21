@@ -8,15 +8,19 @@ from sift_client.sift_types.annotation import (
     Annotation,
     AnnotationCommentElement,
     AnnotationCreate,
-    AnnotationLinkedChannel,
+    AnnotationCreateBase,
     AnnotationLog,
     AnnotationLogKind,
-    AnnotationLogState,
     AnnotationState,
     AnnotationType,
     AnnotationUpdate,
+    PhaseCreate,
 )
+from sift_client.sift_types.channel import Channel
+from sift_client.sift_types.report import Report
+from sift_client.sift_types.rule import Rule
 from sift_client.sift_types.run import Run
+from sift_client.sift_types.user import User
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
@@ -25,7 +29,7 @@ if TYPE_CHECKING:
 
     from sift_client.client import SiftClient
     from sift_client.sift_types.asset import Asset
-    from sift_client.sift_types.channel import Channel
+    from sift_client.sift_types.calculated_channel import CalculatedChannel
     from sift_client.sift_types.tag import Tag
 
 
@@ -48,9 +52,9 @@ class AnnotationLogsAPIAsync(ResourceBase):
     async def list_(
         self,
         *,
-        annotation: str | Annotation | None = None,
+        annotation: str | Annotation,
         # self ids
-        annotation_log_ids: list[str] | None = None,
+        annotation_logs: list[str | AnnotationLog] | None = None,
         # created/modified ranges
         created_after: datetime | None = None,
         created_before: datetime | None = None,
@@ -69,8 +73,8 @@ class AnnotationLogsAPIAsync(ResourceBase):
         """List annotation logs.
 
         Args:
-            annotation: Restrict results to this Annotation or annotation ID.
-            annotation_log_ids: Filter to logs with any of these IDs.
+            annotation: The Annotation or annotation ID whose history to list.
+            annotation_logs: Filter to these AnnotationLogs or log IDs.
             created_after: Filter logs created after this datetime.
             created_before: Filter logs created before this datetime.
             modified_after: Filter logs modified after this datetime.
@@ -94,8 +98,11 @@ class AnnotationLogsAPIAsync(ResourceBase):
                 created_by=created_by,
             ),
         ]
-        if annotation_log_ids:
-            filter_parts.append(cel.in_("annotation_log_id", annotation_log_ids))
+        if annotation_logs:
+            log_ids = [
+                x._id_or_error if isinstance(x, AnnotationLog) else x for x in annotation_logs
+            ]
+            filter_parts.append(cel.in_("annotation_log_id", log_ids))
         if kind:
             filter_parts.append(cel.equals("kind", kind.to_filter_str()))
         if filter_query:
@@ -113,7 +120,7 @@ class AnnotationLogsAPIAsync(ResourceBase):
         )
         return self._apply_client_to_instances(logs)
 
-    async def comment(
+    async def add_comment(
         self, annotation: str | Annotation, text: str | list[AnnotationCommentElement]
     ) -> AnnotationLog:
         """Add a comment to an annotation.
@@ -135,66 +142,6 @@ class AnnotationLogsAPIAsync(ResourceBase):
         )
         return self._apply_client_to_instance(log)
 
-    async def record_assignment(self, annotation: str | Annotation, user: str) -> AnnotationLog:
-        """Record that an annotation was assigned to a user.
-
-        This writes a history entry and nothing else. `annotations.assign` already
-        writes one, so you rarely need this.
-
-        Args:
-            annotation: The Annotation or annotation ID.
-            user: The user ID the annotation was assigned to.
-
-        Returns:
-            The created AnnotationLog.
-        """
-        log = await self._low_level_client.create_annotation_log(
-            annotation_id=annotation._id_or_error
-            if isinstance(annotation, Annotation)
-            else annotation,
-            kind=AnnotationLogKind.ASSIGNED,
-            assigned_to_user_id=user,
-        )
-        return self._apply_client_to_instance(log)
-
-    async def record_state(
-        self, annotation: str | Annotation, state: AnnotationLogState
-    ) -> AnnotationLog:
-        """Record a state change on an annotation.
-
-        This writes a history entry and nothing else. It leaves the state alone, so
-        use `annotations.resolve`, `flag`, or `reopen` to change it.
-
-        Args:
-            annotation: The Annotation or annotation ID.
-            state: The state to record.
-
-        Returns:
-            The created AnnotationLog.
-        """
-        log = await self._low_level_client.create_annotation_log(
-            annotation_id=annotation._id_or_error
-            if isinstance(annotation, Annotation)
-            else annotation,
-            kind=AnnotationLogKind.STATE_UPDATE,
-            state=state,
-        )
-        return self._apply_client_to_instance(log)
-
-    async def delete(self, annotation: str | Annotation, log: str | AnnotationLog) -> None:
-        """Delete an annotation log.
-
-        Args:
-            annotation: The Annotation or annotation ID the log belongs to.
-            log: The AnnotationLog or log ID to delete.
-        """
-        await self._low_level_client.delete_annotation_log(
-            annotation_id=annotation._id_or_error
-            if isinstance(annotation, Annotation)
-            else annotation,
-            annotation_log_id=log._id_or_error if isinstance(log, AnnotationLog) else log,
-        )
-
 
 class AnnotationsAPIAsync(ResourceBase):
     """High-level API for interacting with annotations.
@@ -214,7 +161,7 @@ class AnnotationsAPIAsync(ResourceBase):
         self._low_level_client = AnnotationsLowLevelClient(grpc_client=self.client.grpc_client)
         self.logs = AnnotationLogsAPIAsync(sift_client)
 
-    async def get(self, annotation_id: str) -> Annotation:
+    async def get(self, *, annotation_id: str) -> Annotation:
         """Get an Annotation.
 
         Args:
@@ -229,8 +176,7 @@ class AnnotationsAPIAsync(ResourceBase):
     async def list_(
         self,
         *,
-        name: str | None = None,
-        names: list[str] | None = None,
+        name: str | list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         # self ids
@@ -252,8 +198,8 @@ class AnnotationsAPIAsync(ResourceBase):
         pending: bool | None = None,
         assets: list[Asset] | list[str] | None = None,
         runs: list[Run] | list[str] | None = None,
-        rule_ids: list[str] | None = None,
-        report_ids: list[str] | None = None,
+        rules: list[str | Rule] | None = None,
+        reports: list[str | Report] | None = None,
         start_time_after: datetime | None = None,
         start_time_before: datetime | None = None,
         end_time_after: datetime | None = None,
@@ -269,8 +215,7 @@ class AnnotationsAPIAsync(ResourceBase):
         """List annotations.
 
         Args:
-            name: Exact name of the annotation.
-            names: List of annotation names to filter by.
+            name: Exact name, or a list of names to match any of.
             name_contains: Partial name of the annotation.
             name_regex: Regular expression to filter annotations by name.
             annotation_ids: Filter to annotations with any of these IDs.
@@ -283,8 +228,10 @@ class AnnotationsAPIAsync(ResourceBase):
             metadata: Filter annotations by metadata criteria.
             annotation_type: Filter to DATA_REVIEW or PHASE annotations.
             state: Filter to a review state.
-            assigned_to: Filter to annotations assigned to this user ID.
+            assigned_to: Filter to annotations assigned to this user's name.
             pending: Filter to annotations from an ongoing rule violation.
+            rules: Filter to annotations created by any of these Rules or rule IDs.
+            reports: Filter to annotations in any of these Reports or report IDs.
             assets: Filter annotations on any of these Assets or asset IDs.
             runs: Filter annotations on any of these Runs or run IDs.
             rule_ids: Filter annotations created by any of these rules.
@@ -306,7 +253,10 @@ class AnnotationsAPIAsync(ResourceBase):
         """
         filter_parts = [
             *self._build_name_cel_filters(
-                name=name, names=names, name_contains=name_contains, name_regex=name_regex
+                name=name if isinstance(name, str) else None,
+                names=name if isinstance(name, list) else None,
+                name_contains=name_contains,
+                name_regex=name_regex,
             ),
             *self._build_time_cel_filters(
                 created_after=created_after,
@@ -341,10 +291,16 @@ class AnnotationsAPIAsync(ResourceBase):
         if runs:
             run_ids = [r._id_or_error if isinstance(r, Run) else r for r in runs]
             filter_parts.append(cel.in_("run_id", run_ids))
-        if rule_ids:
-            filter_parts.append(cel.in_("rule_id", rule_ids))
-        if report_ids:
-            filter_parts.append(cel.in_("report_id", report_ids))
+        if rules:
+            filter_parts.append(
+                cel.in_("rule_id", [r._id_or_error if isinstance(r, Rule) else r for r in rules])
+            )
+        if reports:
+            filter_parts.append(
+                cel.in_(
+                    "report_id", [r._id_or_error if isinstance(r, Report) else r for r in reports]
+                )
+            )
         if start_time_after:
             filter_parts.append(cel.greater_than("start_time", start_time_after))
         if start_time_before:
@@ -381,154 +337,37 @@ class AnnotationsAPIAsync(ResourceBase):
             return annotations[0]
         return None
 
-    async def create(self, create: AnnotationCreate | dict) -> Annotation:
-        """Create a new annotation.
+    async def create(self, create: AnnotationCreateBase | dict) -> Annotation:
+        """Create an annotation.
+
+        Pass an `AnnotationCreate` for a data review or a `PhaseCreate` for a phase. A
+        dict is read as an `AnnotationCreate` unless `annotation_type` says otherwise.
 
         Args:
-            create: The annotation definition. `assets` and `tags` take names, not IDs.
+            create: The annotation definition. `assets` and `tags` take names or objects.
 
         Returns:
             The created Annotation.
         """
         if isinstance(create, dict):
-            create = AnnotationCreate.model_validate(create)
+            create = (
+                PhaseCreate.model_validate(create)
+                if create.get("annotation_type") is AnnotationType.PHASE
+                else AnnotationCreate.model_validate(create)
+            )
+        if not create.assets and create.linked_channels:
+            create.assets = cast(
+                "list[str | Asset]", await self._assets_for_channels(create.linked_channels)
+            )
         created = await self._low_level_client.create_annotation(create=create)
         return self._apply_client_to_instance(created)
 
-    async def create_review(
-        self,
-        name: str,
-        start_time: datetime,
-        end_time: datetime,
-        *,
-        assets: list[str] | None = None,
-        channels: list[Channel] | None = None,
-        run: Run | str | None = None,
-        description: str | None = None,
-        tags: list[str] | None = None,
-        state: AnnotationState | None = None,
-        assign_to: str | None = None,
-        metadata: dict[str, Any] | None = None,
-    ) -> Annotation:
-        """Flag a time range for review.
-
-        The annotation must reach an asset. Pass `channels` and the asset comes from
-        them, or name the assets directly.
-
-        Args:
-            name: The name of the annotation.
-            start_time: When the range starts.
-            end_time: When the range ends.
-            assets: Asset names to associate. Derived from `channels` if omitted.
-            channels: Channels to draw the annotation on.
-            run: The Run or run ID the annotation belongs to.
-            description: A description of what to review.
-            tags: Tag names to apply.
-            state: The initial review state. Defaults to open.
-            assign_to: The user ID to assign the review to.
-            metadata: User-defined metadata.
-
-        Returns:
-            The created Annotation.
-        """
-        return await self._create_typed(
-            AnnotationType.DATA_REVIEW,
-            name=name,
-            start_time=start_time,
-            end_time=end_time,
-            assets=assets,
-            channels=channels,
-            run=run,
-            description=description,
-            tags=tags,
-            state=state,
-            assign_to=assign_to,
-            metadata=metadata,
-        )
-
-    async def create_phase(
-        self,
-        name: str,
-        start_time: datetime,
-        end_time: datetime,
-        *,
-        assets: list[str] | None = None,
-        channels: list[Channel] | None = None,
-        run: Run | str | None = None,
-        description: str | None = None,
-        tags: list[str] | None = None,
-        metadata: dict[str, Any] | None = None,
-    ) -> Annotation:
-        """Mark a time range as a phase.
-
-        A phase labels a segment of a run. It carries no review state, so it has no
-        `state` argument.
-
-        Args:
-            name: The name of the phase.
-            start_time: When the phase starts.
-            end_time: When the phase ends.
-            assets: Asset names to associate. Derived from `channels` if omitted.
-            channels: Channels to draw the phase on.
-            run: The Run or run ID the phase belongs to.
-            description: A description of the phase.
-            tags: Tag names to apply.
-            metadata: User-defined metadata.
-
-        Returns:
-            The created Annotation.
-        """
-        return await self._create_typed(
-            AnnotationType.PHASE,
-            name=name,
-            start_time=start_time,
-            end_time=end_time,
-            assets=assets,
-            channels=channels,
-            run=run,
-            description=description,
-            tags=tags,
-            metadata=metadata,
-        )
-
-    async def _create_typed(
-        self,
-        annotation_type: AnnotationType,
-        *,
-        name: str,
-        start_time: datetime,
-        end_time: datetime,
-        assets: list[str] | None,
-        channels: list[Channel] | None,
-        run: Run | str | None,
-        description: str | None,
-        tags: list[str] | None,
-        metadata: dict[str, Any] | None,
-        state: AnnotationState | None = None,
-        assign_to: str | None = None,
-    ) -> Annotation:
-        linked = [AnnotationLinkedChannel(channel_id=c._id_or_error) for c in channels or []]
-        if not assets and channels:
-            asset_ids = {c.asset_id for c in channels if c.asset_id}
-            assets = [
-                a.name for a in await self.client.async_.assets.list_(asset_ids=list(asset_ids))
-            ]
-        return await self.create(
-            AnnotationCreate(
-                name=name,
-                start_time=start_time,
-                end_time=end_time,
-                annotation_type=annotation_type,
-                assets=assets,
-                linked_channels=linked or None,
-                run_id=run._id_or_error if isinstance(run, Run) else run,
-                description=description,
-                tags=tags,
-                state=state,
-                assign_to_user_id=assign_to,
-                metadata=metadata,
-            )
-        )
+    async def _assets_for_channels(self, channels: list[Channel | CalculatedChannel]) -> list[str]:
+        asset_ids = {c.asset_id for c in channels if isinstance(c, Channel) and c.asset_id}
+        if not asset_ids:
+            return []
+        assets = await self.client.async_.assets.list_(asset_ids=list(asset_ids))
+        return [a.name for a in assets]
 
     async def update(
         self, annotation: str | Annotation, update: AnnotationUpdate | dict
@@ -601,17 +440,18 @@ class AnnotationsAPIAsync(ResourceBase):
         ids = [a._id_or_error if isinstance(a, Annotation) else a for a in annotations]
         await self._low_level_client.batch_unarchive_annotations(annotation_ids=ids)
 
-    async def assign(self, annotation: str | Annotation, user: str) -> Annotation:
+    async def assign_to_user(self, annotation: str | Annotation, user: str | User) -> Annotation:
         """Assign an annotation to a user for review.
 
         Args:
             annotation: The Annotation or annotation ID to assign.
-            user: The user ID to assign to.
+            user: The User or user ID to assign to.
 
         Returns:
             The updated Annotation.
         """
-        return await self.update(annotation, AnnotationUpdate(assigned_to_user_id=user))
+        user_id = user._id_or_error if isinstance(user, User) else user
+        return await self.update(annotation, AnnotationUpdate(assigned_to_user_id=user_id))
 
     async def _set_state(self, annotation: str | Annotation, state: AnnotationState) -> Annotation:
         """Move an annotation to a review state, skipping the call if already there.
@@ -623,7 +463,7 @@ class AnnotationsAPIAsync(ResourceBase):
             return annotation
         return await self.update(annotation, AnnotationUpdate(state=state))
 
-    async def resolve(self, annotation: str | Annotation) -> Annotation:
+    async def set_accepted(self, annotation: str | Annotation) -> Annotation:
         """Close out a review as resolved.
 
         Args:
@@ -632,9 +472,9 @@ class AnnotationsAPIAsync(ResourceBase):
         Returns:
             The updated Annotation.
         """
-        return await self._set_state(annotation, AnnotationState.RESOLVED)
+        return await self._set_state(annotation, AnnotationState.ACCEPTED)
 
-    async def flag(self, annotation: str | Annotation) -> Annotation:
+    async def set_failed(self, annotation: str | Annotation) -> Annotation:
         """Flag a review as needing attention.
 
         Args:
@@ -643,9 +483,9 @@ class AnnotationsAPIAsync(ResourceBase):
         Returns:
             The updated Annotation.
         """
-        return await self._set_state(annotation, AnnotationState.FLAGGED)
+        return await self._set_state(annotation, AnnotationState.FAILED)
 
-    async def reopen(self, annotation: str | Annotation) -> Annotation:
+    async def set_open(self, annotation: str | Annotation) -> Annotation:
         """Return a review to the open state.
 
         Args:
