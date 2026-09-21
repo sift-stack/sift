@@ -7,6 +7,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- Added a repeatable, comma-delimited `--ignore-tool <NAME>` flag to `sift-cli mcp`
+  that leaves the named tools unregistered. Unknown tool names fail startup.
+
 ## [v0.6.0] - September 17, 2026
 
 ### What's New

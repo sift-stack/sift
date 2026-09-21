@@ -78,6 +78,7 @@ pub async fn run(ctx: Context, args: McpArgs, app_uri: String) -> Result<ExitCod
         client_event_config,
         feature_flags,
         Some(rest_config),
+        args.ignore_tool,
     )
     .await
     {
@@ -227,6 +228,33 @@ mod tests {
         };
 
         assert!(args.disable_update_check);
+    }
+
+    #[test]
+    fn ignore_tool_flag_accepts_repeated_and_delimited_values() {
+        let repeated = crate::cli::Args::try_parse_from([
+            "sift-cli",
+            "mcp",
+            "--ignore-tool",
+            "a",
+            "--ignore-tool",
+            "b",
+        ])
+        .unwrap();
+        let Some(crate::cli::Cmd::Mcp(repeated)) = repeated.cmd else {
+            panic!("expected the MCP command");
+        };
+        assert_eq!(repeated.ignore_tool, ["a", "b"]);
+
+        let delimited =
+            crate::cli::Args::try_parse_from(["sift-cli", "mcp", "--ignore-tool", "a,b"]).unwrap();
+        let Some(crate::cli::Cmd::Mcp(delimited)) = delimited.cmd else {
+            panic!("expected the MCP command");
+        };
+        assert_eq!(delimited.ignore_tool, ["a", "b"]);
+        assert!(
+            crate::cli::Args::try_parse_from(["sift-cli", "mcp", "--ignore-tool", "a,"]).is_err()
+        );
     }
 
     #[test]

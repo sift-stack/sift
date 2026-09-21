@@ -636,12 +636,16 @@ and `derive_and_upload` are the reference implementations.
 
 ---
 
-## Reference — feature flags
+## Reference — feature flags and tool exclusions
 
 The server resolves account feature flags at startup with the user's API key. It requests
 `GET {rest_uri}/api/v1/feature-flags/variants` with a 5-second timeout, then removes tools whose
 flag is disabled. Most tools are unflagged and always available. Flag changes apply after an MCP
 restart.
+
+The `--ignore-tool <NAME>` option leaves each named tool unregistered, so it
+never appears in the MCP tool list. An unknown name causes startup to fail, and
+the option applies after account feature flags remove their tools.
 
 - To put a tool behind a flag, add its `(tool name, flag name)` pair to `TOOL_FEATURE_FLAGS` in
   `feature_flags.rs`.
