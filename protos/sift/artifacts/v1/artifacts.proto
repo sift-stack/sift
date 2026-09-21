@@ -224,31 +224,31 @@ message ArtifactVersion {
   string artifact_version_id = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
   string artifact_id = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
   uint32 version = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
-  optional string title = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
-  optional string summary = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+  optional string title = 4 [(google.api.field_behavior) = OPTIONAL];
+  optional string summary = 5 [(google.api.field_behavior) = OPTIONAL];
   // Set only for versions authored inside a conversation, and there only
   // after the introducing message persists: uploads attach before the user
   // sends, and agent turns persist messages only at end of turn.
   optional string authoring_message_id = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
   repeated string source_tool_use_ids = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
   // Unset until bytes are uploaded.
-  optional string remote_file_id = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+  optional string remote_file_id = 8 [(google.api.field_behavior) = OPTIONAL];
   google.protobuf.Timestamp created_date = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
   // From the version's remote_files record. Unset until bytes are uploaded.
   // Clients infer preview behavior from file_name / file_mime_type.
   optional string file_name = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
   optional string file_mime_type = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
   // Set by GetArtifact for STRUCTURED artifacts. The listings omit it.
-  optional google.protobuf.Struct payload = 12 [(google.api.field_behavior) = OUTPUT_ONLY];
+  optional google.protobuf.Struct payload = 12 [(google.api.field_behavior) = OPTIONAL];
   // Metadata attached to this version.
-  repeated sift.metadata.v1.MetadataValue metadata = 13 [(google.api.field_behavior) = OUTPUT_ONLY];
+  repeated sift.metadata.v1.MetadataValue metadata = 13 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // An artifact and one of its versions: the one artifact_version_id pinned, or
 // the latest.
 message ArtifactDetails {
-  Artifact artifact = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
-  ArtifactVersion artifact_version = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  Artifact artifact = 1 [(google.api.field_behavior) = OPTIONAL];
+  ArtifactVersion artifact_version = 2 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // A link from an artifact to another entity, belonging to one version.
@@ -290,8 +290,8 @@ message UpdateArtifactRequest {
   string artifact_id = 1 [(google.api.field_behavior) = REQUIRED];
   // Carries the values update_mask names. Only artifact_version fields are
   // updatable; the container's own fields are set at create time, and archival
-  // has its own RPCs.
-  ArtifactDetails artifact = 2 [(google.api.field_behavior) = REQUIRED];
+  // has its own RPCs. Leaving it out clears every field the mask names.
+  ArtifactDetails artifact = 2 [(google.api.field_behavior) = OPTIONAL];
   // Links written at the new version, when update_mask names `links`. The
   // previous version's ATTACHED_TO rows carry forward and these are added to
   // them.
