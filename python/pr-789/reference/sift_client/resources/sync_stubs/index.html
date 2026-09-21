@@ -33464,12 +33464,7 @@ found. Emails with no matching user are omitted.</p>
 
         <p>Sync counterpart to <code>WebhooksAPIAsync</code>.</p>
 <p>High-level API for interacting with webhooks.</p>
-<p>A webhook registers an HTTP endpoint that Sift calls when an event occurs, such as a
-rule violation. This class provides a Pythonic, notebook-friendly interface for
-interacting with the WebhooksAPI. It handles automatic handling of gRPC services,
-seamless type conversion, and clear error handling.</p>
-<p>All methods in this class use the Webhook class from the low-level wrapper, which is a
-user-friendly representation of a webhook using standard Python data structures and types.</p>
+<p>A webhook registers an HTTP endpoint that Sift calls when a rule is violated.</p>
 
         <p>Initialize the WebhooksAPI.</p>
 
@@ -33564,7 +33559,7 @@ user-friendly representation of a webhook using standard Python data structures 
               <td><code><a class="autorefs autorefs-internal" title="            test (sift_client.resources.sync_stubs.WebhooksAPI.test)" href="#sift_client.resources.sync_stubs.WebhooksAPI.test">test</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Send a live request to a webhook's target URL and return its response.</p>
+                  <p>Send a real request to a webhook's target URL and return its response.</p>
                 </div>
               </td>
             </tr>
@@ -34286,9 +34281,9 @@ message size limits on responses. If None, uses the server default.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Send a live request to a webhook's target URL and return its response.</p>
-<p>This performs a real HTTP request against the target URL. Exactly one of <code>webhook</code>
-or <code>create</code> must be provided. Use <code>create</code> to check an endpoint before saving it.</p>
+        <p>Send a real request to a webhook's target URL and return its response.</p>
+<p>Pass exactly one of <code>webhook</code> or <code>create</code>. Use <code>create</code> to check an endpoint
+before saving it.</p>
 
 
 <table>
