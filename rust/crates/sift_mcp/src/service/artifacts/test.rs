@@ -14,6 +14,9 @@ use sift_test_util::{
     grpc::memory_sift_channel,
     mock::{artifacts::v1::MockArtifactServiceImpl, remote_files::v1::MockRemoteFileServiceImpl},
 };
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
+
 use tokio::task::JoinHandle;
 use tonic::{Code, Response, Status, transport::Server};
 
@@ -407,6 +410,60 @@ async fn unarchive_artifact_forwards_artifact_id() {
         .unarchive_artifact("art-1".into())
         .await
         .expect("unarchive");
+}
+
+// A server can answer Unavailable after it has already written the version, so
+// these two calls get one attempt rather than minting a duplicate. The mock's
+// own `times()` cannot assert this: it runs in a detached task, so its panic
+// never reaches the test. Count the calls here instead.
+#[tokio::test]
+async fn writes_are_not_retried_on_unavailable() {
+    let creates = Arc::new(AtomicUsize::new(0));
+    let updates = Arc::new(AtomicUsize::new(0));
+    let mut mock = MockArtifactServiceImpl::new();
+    let seen = creates.clone();
+    mock.expect_create_artifact().returning(move |_| {
+        seen.fetch_add(1, Ordering::SeqCst);
+        Err(Status::unavailable("connection reset"))
+    });
+    let seen = updates.clone();
+    mock.expect_update_artifact().returning(move |_| {
+        seen.fetch_add(1, Ordering::SeqCst);
+        Err(Status::unavailable("connection reset"))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    service
+        .create_artifact(
+            CreateArtifactInput {
+                title: None,
+                summary: None,
+                conversation_id: None,
+                storage_class: None,
+                created_via: None,
+                payload: None,
+                metadata: vec![],
+                links: vec![],
+            },
+            None,
+        )
+        .await
+        .expect_err("create surfaces the failure");
+    service
+        .update_artifact(
+            UpdateArtifactInput {
+                artifact_id: "art-1".into(),
+                version: ArtifactVersion::default(),
+                links: vec![],
+                update_mask: vec![UpdatePath::Title],
+            },
+            None,
+        )
+        .await
+        .expect_err("update surfaces the failure");
+
+    assert_eq!(creates.load(Ordering::SeqCst), 1, "create was retried");
+    assert_eq!(updates.load(Ordering::SeqCst), 1, "update was retried");
 }
 
 #[tokio::test]

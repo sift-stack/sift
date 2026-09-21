@@ -16,7 +16,7 @@ use sift_rs::{
 
 use std::path::Path;
 
-use crate::policy::{RetryPolicy, with_retry};
+use crate::policy::{RetryPolicy, once, with_retry};
 use crate::service::common;
 use crate::service::remote_files::RemoteFileUploader;
 
@@ -314,25 +314,21 @@ impl ArtifactService {
         let uploader = self.uploader_for(file_path)?;
 
         let channel = self.channel.clone();
-        let created = with_retry(&self.policy, move || {
-            let channel = channel.clone();
-            let input = input.clone();
-            async move {
-                let mut client = ArtifactServiceClient::new(channel);
-                client
-                    .create_artifact(CreateArtifactRequest {
-                        conversation_id: input.conversation_id,
-                        title: input.title,
-                        summary: input.summary,
-                        storage_class: input.storage_class.map(|value| value as i32),
-                        created_via: input.created_via.map(|value| value as i32),
-                        payload: input.payload,
-                        metadata: input.metadata,
-                        links: input.links,
-                    })
-                    .await
-                    .map(|resp| resp.into_inner())
-            }
+        let created = once(move || async move {
+            let mut client = ArtifactServiceClient::new(channel);
+            client
+                .create_artifact(CreateArtifactRequest {
+                    conversation_id: input.conversation_id,
+                    title: input.title,
+                    summary: input.summary,
+                    storage_class: input.storage_class.map(|value| value as i32),
+                    created_via: input.created_via.map(|value| value as i32),
+                    payload: input.payload,
+                    metadata: input.metadata,
+                    links: input.links,
+                })
+                .await
+                .map(|resp| resp.into_inner())
         })
         .await
         .context("failed to create artifact")?
@@ -360,30 +356,26 @@ impl ArtifactService {
         }
 
         let channel = self.channel.clone();
-        let updated = with_retry(&self.policy, move || {
-            let channel = channel.clone();
-            let input = input.clone();
-            async move {
-                let mut client = ArtifactServiceClient::new(channel);
-                client
-                    .update_artifact(UpdateArtifactRequest {
-                        artifact_id: input.artifact_id,
-                        artifact: Some(ArtifactDetails {
-                            artifact: None,
-                            artifact_version: Some(input.version),
-                        }),
-                        links: input.links,
-                        update_mask: Some(pbjson_types::FieldMask {
-                            paths: input
-                                .update_mask
-                                .iter()
-                                .map(|path| path.as_str().to_string())
-                                .collect(),
-                        }),
-                    })
-                    .await
-                    .map(|resp| resp.into_inner())
-            }
+        let updated = once(move || async move {
+            let mut client = ArtifactServiceClient::new(channel);
+            client
+                .update_artifact(UpdateArtifactRequest {
+                    artifact_id: input.artifact_id,
+                    artifact: Some(ArtifactDetails {
+                        artifact: None,
+                        artifact_version: Some(input.version),
+                    }),
+                    links: input.links,
+                    update_mask: Some(pbjson_types::FieldMask {
+                        paths: input
+                            .update_mask
+                            .iter()
+                            .map(|path| path.as_str().to_string())
+                            .collect(),
+                    }),
+                })
+                .await
+                .map(|resp| resp.into_inner())
         })
         .await
         .context("failed to update artifact")?
