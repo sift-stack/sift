@@ -109,6 +109,9 @@ pub struct McpArgs {
     /// separately by `--disable-update-check`.
     #[arg(long)]
     pub disable_nonessential_traffic: bool,
+
+    #[arg(long, hide = true)]
+    pub sift_agents: bool,
 }
 
 /// Serve the bundled Sift CLI user documentation over HTTP.

@@ -5,6 +5,7 @@ use serde::Serialize;
 
 const CLIENT_EVENT_PATH: &str = "/api/v1/analytics/client-events";
 const CLIENT_NAME: &str = "sift_mcp";
+const SIFT_AGENTS_CLIENT_NAME: &str = "sift_agents";
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(2);
 
 static TOOL_EVENTS: LazyLock<HashMap<String, String>> = LazyLock::new(|| {
@@ -15,11 +16,22 @@ static TOOL_EVENTS: LazyLock<HashMap<String, String>> = LazyLock::new(|| {
 pub struct ClientEventConfig {
     rest_uri: String,
     api_key: String,
+    client_name: &'static str,
 }
 
 impl ClientEventConfig {
     pub fn new(rest_uri: String, api_key: String) -> Self {
-        Self { rest_uri, api_key }
+        Self {
+            rest_uri,
+            api_key,
+            client_name: CLIENT_NAME,
+        }
+    }
+
+    /// Attributes events to Sift Agents, which runs this server in its pods.
+    pub fn sift_agents(mut self) -> Self {
+        self.client_name = SIFT_AGENTS_CLIENT_NAME;
+        self
     }
 }
 
@@ -58,7 +70,7 @@ impl ClientEventReporter {
                 client: reqwest::Client::new(),
                 endpoint,
                 api_key: config.api_key,
-                user_agent: format!("{CLIENT_NAME}/{cli_version}"),
+                user_agent: format!("{}/{cli_version}", config.client_name),
             }),
         }
     }
@@ -202,6 +214,25 @@ mod tests {
             serde_json::json!({
                 "event": "CLIENT_EVENT_USER_CALLED_MCP_TOOL_LIST_ASSETS"
             })
+        );
+    }
+
+    #[tokio::test]
+    async fn sift_agents_config_identifies_as_sift_agents() {
+        let (rest_uri, server) = start_event_server().await;
+        let reporter = ClientEventReporter::new(
+            ClientEventConfig::new(rest_uri, "test-key".to_string()).sift_agents(),
+            "7.8.9",
+        );
+
+        reporter.send("list_assets").await.unwrap();
+        let request = String::from_utf8(server.await.unwrap()).unwrap();
+        let (headers, _) = request.split_once("\r\n\r\n").unwrap();
+
+        assert!(
+            headers
+                .lines()
+                .any(|line| line.eq_ignore_ascii_case("user-agent: sift_agents/7.8.9"))
         );
     }
 
