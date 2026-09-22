@@ -664,6 +664,7 @@ async fn every_registered_tool_has_a_client_event() {
 async fn client_event_failure_does_not_change_the_tool_result() {
     let reporter = ClientEventReporter::new(
         ClientEventConfig::new("invalid rest URI".to_string(), "test-key".to_string()),
+        crate::ClientName::SiftMcp,
         CLI_VERSION,
     );
     let (mut reader, mut writer, server) = connected_client_with_events(None, 1, reporter).await;
@@ -708,6 +709,7 @@ async fn tool_call_sends_its_client_event() {
     let (rest_uri, event_server) = start_event_server().await;
     let reporter = ClientEventReporter::new(
         ClientEventConfig::new(rest_uri, "test-key".to_string()),
+        crate::ClientName::SiftMcp,
         CLI_VERSION,
     );
     let (mut reader, mut writer, server) = connected_client_with_events(None, 1, reporter).await;

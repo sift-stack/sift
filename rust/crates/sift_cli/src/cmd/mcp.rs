@@ -47,8 +47,7 @@ pub async fn run(ctx: Context, args: McpArgs, app_uri: String) -> Result<ExitCod
     .await;
     let cli_version = env!("CARGO_PKG_VERSION").to_string();
     let client_event_config = select_client_event_config(args.disable_nonessential_traffic, || {
-        let config = sift_mcp::ClientEventConfig::new(ctx.rest_uri.clone(), ctx.api_key.clone());
-        if args.chat { config.chat() } else { config }
+        sift_mcp::ClientEventConfig::new(ctx.rest_uri.clone(), ctx.api_key.clone())
     });
     if client_event_config.is_none() {
         tracing::info!("non-essential traffic is disabled");
@@ -80,6 +79,11 @@ pub async fn run(ctx: Context, args: McpArgs, app_uri: String) -> Result<ExitCod
         feature_flags,
         Some(rest_config),
         args.ignore_tool,
+        if args.chat {
+            sift_mcp::ClientName::Chat
+        } else {
+            sift_mcp::ClientName::SiftMcp
+        },
     )
     .await
     {
