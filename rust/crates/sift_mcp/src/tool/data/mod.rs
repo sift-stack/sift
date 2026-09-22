@@ -1,4 +1,8 @@
-use std::{collections::HashSet, fs::File, path::PathBuf};
+use std::{
+    collections::HashSet,
+    fs::{self, File},
+    path::{Path, PathBuf},
+};
 
 use anyhow::Context;
 use rmcp::{
@@ -24,6 +28,22 @@ use crate::{
     },
     tool::common::{MetadataEntry, url_clause},
 };
+
+fn create_output_file(path: &Path) -> anyhow::Result<File> {
+    if let Some(parent) = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+    {
+        fs::create_dir_all(parent)
+            .with_context(|| format!("failed to create output directory `{}`", parent.display()))?;
+    }
+    File::options()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .open(path)
+        .context("failed to open output parquet file")
+}
 
 #[cfg(test)]
 mod test;
@@ -152,7 +172,7 @@ impl SiftMcpServer {
               - `channel_ids`: optional non-empty array of exact raw channel IDs on the specified asset.
                 Selects only those registrations. Every ID must exist on the asset; duplicate IDs are queried once.
               - `output`: filesystem path for the Parquet file. The file is opened in truncate mode; existing
-                contents are overwritten.
+                contents are overwritten. The tool creates missing parent directories.
 
             Errors:
               - `RESOURCE_NOT_FOUND` if the asset or run is missing, there are no matching channels, or any
@@ -179,7 +199,8 @@ impl SiftMcpServer {
                 asked for.
               - Data is buffered in memory until size/row thresholds are hit, so very large time ranges or wide
                 channel sets can be slow or memory-heavy. For large pulls, split the time range into successive calls
-                with disjoint `[start, end)` windows.
+                with disjoint `[start, end)` windows. A long call can also hit the client's request timeout and lose
+                everything it fetched. Each shorter window keeps its own result.
               - Analysis needs `sample_ms = 0`. Reserve `sample_ms > 0` for data used exclusively to draw a
                 picture, and prefer `explore_url` over `get_data` entirely when that is the goal. An overview,
                 a summary and a quick look are all analysis: they end in numbers, and numbers taken off
@@ -192,8 +213,13 @@ impl SiftMcpServer {
               - A partial result is possible: when some calculated channels resolve and others do not, the file is
                 written from what resolved and `unresolved_calculated_channels` names the rest. Never report on the
                 data without telling the user what is missing.
+              - Probe first. For many runs or channels, fetch one. For a long time range, fetch a short window.
+                Read the result before you issue the rest. The probe shows whether the selectors match and what
+                a call costs.
+              - Run four calls or fewer in parallel. Wider batches can fail calls that succeed when run alone.
               - After a successful call, if the user hasn't already indicated a next step, offer to run a SQL query
-                against the resulting Parquet file using the `sql` tool.
+                against the resulting Parquet file using the `sql` tool. Aggregate with `sql` instead of reading
+                the file in a script. One query can read several files.
         ",
         annotations(title = "data/get_data", read_only_hint = true)
     )]
@@ -479,13 +505,7 @@ impl SiftMcpServer {
             },
         };
 
-        let mut file = File::options()
-            .create(true)
-            .write(true)
-            .truncate(true)
-            .open(&output)
-            .context("failed to open output parquet file")
-            .map_err(from_anyhow)?;
+        let mut file = create_output_file(&output).map_err(from_anyhow)?;
 
         let data_output = match self
             .data_service
@@ -634,7 +654,7 @@ impl SiftMcpServer {
               - `query`: Polars SQL query. The relation `table_name` is the only registered table. Supports
                 SELECT/WHERE/GROUP BY/ORDER BY/aggregates and the rest of standard SQL.
               - `output`: filesystem path for the result Parquet file. The file is opened in truncate mode; existing
-                contents are overwritten.
+                contents are overwritten. The tool creates missing parent directories.
 
             Errors:
               - `INVALID_PARAMS` if `inputs` is empty.
@@ -672,12 +692,7 @@ impl SiftMcpServer {
 
         let output_for_task = output.clone();
         tokio::task::spawn_blocking(move || -> anyhow::Result<()> {
-            let mut file = File::options()
-                .create(true)
-                .write(true)
-                .truncate(true)
-                .open(&output_for_task)
-                .context("failed to open output parquet file")?;
+            let mut file = create_output_file(&output_for_task)?;
             DataService::sql(inputs, &mut file, &table_name, &query)
         })
         .await
