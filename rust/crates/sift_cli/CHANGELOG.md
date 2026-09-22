@@ -7,6 +7,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- `get_data` and `sql` now create missing parent directories for `output`.
+
 ## [v0.7.0] - September 21, 2026
 
 ### What's New

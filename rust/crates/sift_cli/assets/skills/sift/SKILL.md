@@ -165,6 +165,14 @@ tool.
   guesses.
 
   Add `upload_dataset` when the result belongs back in Sift.
+- **Query many runs, channels, or a long time range.** Test the query once
+  first. Fetch one run, one channel, or a short window, and check
+  `unmatched_channel_names` and `empty_channels` before you issue the rest. A
+  selector mistake repeats in every call. Run four calls or fewer in parallel.
+  Split a long range into successive calls with disjoint `[start, end)`
+  windows, because one long call can hit the client's request timeout and
+  return nothing. Pass every resulting file to one `sql` query instead of
+  reading them one at a time in a script.
 - **Query a channel registration.** Pass `channel_id` or `channel_ids` to
   `get_data` with the asset and time range to fetch only those registrations.
   Use exactly one selector: IDs, `channel_names`, or `channel_regex`.
