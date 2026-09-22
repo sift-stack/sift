@@ -5,7 +5,7 @@ use serde::Serialize;
 
 const CLIENT_EVENT_PATH: &str = "/api/v1/analytics/client-events";
 const CLIENT_NAME: &str = "sift_mcp";
-const SIFT_AGENTS_CLIENT_NAME: &str = "sift_agents";
+const CHAT_CLIENT_NAME: &str = "chat";
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(2);
 
 static TOOL_EVENTS: LazyLock<HashMap<String, String>> = LazyLock::new(|| {
@@ -28,9 +28,9 @@ impl ClientEventConfig {
         }
     }
 
-    /// Attributes events to Sift Agents, which runs this server in its pods.
-    pub fn sift_agents(mut self) -> Self {
-        self.client_name = SIFT_AGENTS_CLIENT_NAME;
+    /// Attributes events to chat, which runs this server in its pods.
+    pub fn chat(mut self) -> Self {
+        self.client_name = CHAT_CLIENT_NAME;
         self
     }
 }
@@ -218,10 +218,10 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn sift_agents_config_identifies_as_sift_agents() {
+    async fn chat_config_identifies_as_chat() {
         let (rest_uri, server) = start_event_server().await;
         let reporter = ClientEventReporter::new(
-            ClientEventConfig::new(rest_uri, "test-key".to_string()).sift_agents(),
+            ClientEventConfig::new(rest_uri, "test-key".to_string()).chat(),
             "7.8.9",
         );
 
@@ -232,7 +232,7 @@ mod tests {
         assert!(
             headers
                 .lines()
-                .any(|line| line.eq_ignore_ascii_case("user-agent: sift_agents/7.8.9"))
+                .any(|line| line.eq_ignore_ascii_case("user-agent: chat/7.8.9"))
         );
     }
 

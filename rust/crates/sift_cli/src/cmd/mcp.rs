@@ -48,11 +48,7 @@ pub async fn run(ctx: Context, args: McpArgs, app_uri: String) -> Result<ExitCod
     let cli_version = env!("CARGO_PKG_VERSION").to_string();
     let client_event_config = select_client_event_config(args.disable_nonessential_traffic, || {
         let config = sift_mcp::ClientEventConfig::new(ctx.rest_uri.clone(), ctx.api_key.clone());
-        if args.sift_agents {
-            config.sift_agents()
-        } else {
-            config
-        }
+        if args.chat { config.chat() } else { config }
     });
     if client_event_config.is_none() {
         tracing::info!("non-essential traffic is disabled");
@@ -317,19 +313,19 @@ mod tests {
     }
 
     #[test]
-    fn sift_agents_flag_is_accepted_and_hidden() {
-        let args = crate::cli::Args::try_parse_from(["sift-cli", "mcp", "--sift-agents"]).unwrap();
+    fn chat_flag_is_accepted_and_hidden() {
+        let args = crate::cli::Args::try_parse_from(["sift-cli", "mcp", "--chat"]).unwrap();
         let Some(crate::cli::Cmd::Mcp(args)) = args.cmd else {
             panic!("expected the MCP command");
         };
-        assert!(args.sift_agents);
+        assert!(args.chat);
 
         let help = crate::cli::Args::command()
             .find_subcommand_mut("mcp")
             .unwrap()
             .render_long_help()
             .to_string();
-        assert!(!help.contains("--sift-agents"));
+        assert!(!help.contains("--chat"));
     }
 
     #[test]

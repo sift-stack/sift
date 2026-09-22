@@ -111,7 +111,7 @@ pub struct McpArgs {
     pub disable_nonessential_traffic: bool,
 
     #[arg(long, hide = true)]
-    pub sift_agents: bool,
+    pub chat: bool,
 }
 
 /// Serve the bundled Sift CLI user documentation over HTTP.
