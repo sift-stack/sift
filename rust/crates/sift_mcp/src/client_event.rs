@@ -3,8 +3,9 @@ use std::{collections::HashMap, sync::LazyLock, time::Duration};
 use reqwest::header::USER_AGENT;
 use serde::Serialize;
 
+use crate::ClientName;
+
 const CLIENT_EVENT_PATH: &str = "/api/v1/analytics/client-events";
-const CLIENT_NAME: &str = "sift_mcp";
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(2);
 
 static TOOL_EVENTS: LazyLock<HashMap<String, String>> = LazyLock::new(|| {
@@ -44,11 +45,21 @@ struct ClientEventRequest {
 }
 
 impl ClientEventReporter {
-    pub(crate) fn from_config(config: Option<ClientEventConfig>, cli_version: &str) -> Self {
-        config.map_or_else(Self::default, |config| Self::new(config, cli_version))
+    pub(crate) fn from_config(
+        config: Option<ClientEventConfig>,
+        client_name: ClientName,
+        cli_version: &str,
+    ) -> Self {
+        config.map_or_else(Self::default, |config| {
+            Self::new(config, client_name, cli_version)
+        })
     }
 
-    pub(crate) fn new(config: ClientEventConfig, cli_version: &str) -> Self {
+    pub(crate) fn new(
+        config: ClientEventConfig,
+        client_name: ClientName,
+        cli_version: &str,
+    ) -> Self {
         let endpoint = format!(
             "{}{CLIENT_EVENT_PATH}",
             config.rest_uri.trim_end_matches('/')
@@ -58,7 +69,7 @@ impl ClientEventReporter {
                 client: reqwest::Client::new(),
                 endpoint,
                 api_key: config.api_key,
-                user_agent: format!("{CLIENT_NAME}/{cli_version}"),
+                user_agent: format!("{}/{cli_version}", client_name.as_str()),
             }),
         }
     }
@@ -157,6 +168,7 @@ pub(crate) async fn start_event_server() -> (String, tokio::task::JoinHandle<Vec
 #[cfg(test)]
 mod tests {
     use super::{ClientEventConfig, ClientEventReporter, event_for_tool, start_event_server};
+    use crate::ClientName;
 
     #[test]
     fn artifact_archive_tools_have_client_events() {
@@ -179,6 +191,7 @@ mod tests {
         let (rest_uri, server) = start_event_server().await;
         let reporter = ClientEventReporter::new(
             ClientEventConfig::new(rest_uri, "test-key".to_string()),
+            ClientName::SiftMcp,
             "7.8.9",
         );
 
@@ -205,15 +218,38 @@ mod tests {
         );
     }
 
+    #[tokio::test]
+    async fn chat_config_identifies_as_chat() {
+        let (rest_uri, server) = start_event_server().await;
+        let reporter = ClientEventReporter::new(
+            ClientEventConfig::new(rest_uri, "test-key".to_string()),
+            ClientName::Chat,
+            "7.8.9",
+        );
+
+        reporter.send("list_assets").await.unwrap();
+        let request = String::from_utf8(server.await.unwrap()).unwrap();
+        let (headers, _) = request.split_once("\r\n\r\n").unwrap();
+
+        assert!(
+            headers
+                .lines()
+                .any(|line| line.eq_ignore_ascii_case("user-agent: chat/7.8.9"))
+        );
+    }
+
     #[test]
     fn a_missing_config_reports_nothing() {
-        assert!(!ClientEventReporter::from_config(None, "7.8.9").is_reporting());
+        assert!(
+            !ClientEventReporter::from_config(None, ClientName::SiftMcp, "7.8.9").is_reporting()
+        );
         assert!(
             ClientEventReporter::from_config(
                 Some(ClientEventConfig::new(
                     "https://rest.test.local".to_string(),
                     "test-key".to_string(),
                 )),
+                ClientName::SiftMcp,
                 "7.8.9",
             )
             .is_reporting()

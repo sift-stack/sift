@@ -4,8 +4,9 @@ use std::time::Duration;
 use anyhow::{Context, Result, bail};
 use reqwest::header::USER_AGENT;
 
+use crate::ClientName;
+
 const UPLOAD_PATH: &str = "/api/v0/remote-files/upload";
-const CLIENT_NAME: &str = "sift_mcp";
 /// Client-side cap on one uploaded file. The server allows more, but an
 /// artifact version larger than this is almost certainly a mistake (raw data
 /// belongs in ingestion, not artifacts).
@@ -27,11 +28,16 @@ const UPLOAD_TIMEOUT: Duration = Duration::from_secs(10 * 60);
 pub struct RestConfig {
     pub rest_uri: String,
     pub api_key: String,
+    pub client_name: ClientName,
 }
 
 impl RestConfig {
     pub fn new(rest_uri: String, api_key: String) -> Self {
-        Self { rest_uri, api_key }
+        Self {
+            rest_uri,
+            api_key,
+            client_name: ClientName::default(),
+        }
     }
 }
 
@@ -52,7 +58,7 @@ impl RemoteFileUploader {
             client: reqwest::Client::new(),
             endpoint: format!("{}{UPLOAD_PATH}", config.rest_uri.trim_end_matches('/')),
             api_key: config.api_key,
-            user_agent: format!("{CLIENT_NAME}/{cli_version}"),
+            user_agent: format!("{}/{cli_version}", config.client_name.as_str()),
         }
     }
 

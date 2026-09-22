@@ -79,6 +79,11 @@ pub async fn run(ctx: Context, args: McpArgs, app_uri: String) -> Result<ExitCod
         feature_flags,
         Some(rest_config),
         args.ignore_tool,
+        if args.chat {
+            sift_mcp::ClientName::Chat
+        } else {
+            sift_mcp::ClientName::SiftMcp
+        },
     )
     .await
     {
@@ -210,7 +215,7 @@ fn ready_update_check(update_check: sift_mcp::UpdateCheck) -> sift_mcp::UpdateCh
 mod tests {
     use std::cell::Cell;
 
-    use clap::Parser;
+    use clap::{CommandFactory, Parser};
     use semver::Version;
     use tokio::sync::watch;
 
@@ -309,6 +314,22 @@ mod tests {
 
         assert!(args.disable_nonessential_traffic);
         assert!(!args.disable_update_check);
+    }
+
+    #[test]
+    fn chat_flag_is_accepted_and_hidden() {
+        let args = crate::cli::Args::try_parse_from(["sift-cli", "mcp", "--chat"]).unwrap();
+        let Some(crate::cli::Cmd::Mcp(args)) = args.cmd else {
+            panic!("expected the MCP command");
+        };
+        assert!(args.chat);
+
+        let help = crate::cli::Args::command()
+            .find_subcommand_mut("mcp")
+            .unwrap()
+            .render_long_help()
+            .to_string();
+        assert!(!help.contains("--chat"));
     }
 
     #[test]
