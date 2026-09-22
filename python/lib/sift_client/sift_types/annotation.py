@@ -298,7 +298,9 @@ class AnnotationBase(ModelCreateUpdateBase):
 
     description: str | None = None
     tags: list[str] | list[Tag] | None = None
-    linked_channels: list[Channel | CalculatedChannel] | None = Field(default=None, exclude=True)
+    linked_channels: (
+        list[Channel] | list[CalculatedChannel] | list[Channel | CalculatedChannel] | None
+    ) = Field(default=None, exclude=True)
     state: AnnotationState | None = None
     legend_config: str | None = None
     metadata: dict[str, str | float | bool] | None = None

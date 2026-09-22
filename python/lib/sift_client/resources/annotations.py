@@ -362,7 +362,9 @@ class AnnotationsAPIAsync(ResourceBase):
         created = await self._low_level_client.create_annotation(create=create)
         return self._apply_client_to_instance(created)
 
-    async def _assets_for_channels(self, channels: list[Channel | CalculatedChannel]) -> list[str]:
+    async def _assets_for_channels(
+        self, channels: list[Channel] | list[CalculatedChannel] | list[Channel | CalculatedChannel]
+    ) -> list[str]:
         asset_ids = {c.asset_id for c in channels if isinstance(c, Channel) and c.asset_id}
         if not asset_ids:
             return []
