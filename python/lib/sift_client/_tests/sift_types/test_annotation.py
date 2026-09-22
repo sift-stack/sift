@@ -80,7 +80,14 @@ class TestAnnotationCreate:
     def test_phase_has_no_state(self):
         """PhaseCreate carries no review state, so this fails before the call."""
         with pytest.raises(ValueError, match="state"):
-            PhaseCreate(name="a", start_time=START, end_time=END, state=AnnotationState.OPEN)
+            PhaseCreate.model_validate(
+                {
+                    "name": "a",
+                    "start_time": START,
+                    "end_time": END,
+                    "state": AnnotationState.OPEN,
+                }
+            )
 
     def test_rejects_inverted_time_range(self):
         with pytest.raises(ValueError, match="start_time must not be after end_time"):
@@ -124,7 +131,7 @@ class TestAnnotationCommentElement:
         assert AnnotationCommentElement._from_proto(proto).text == "looks fine"
 
     def test_mention_element(self):
-        proto = AnnotationCommentElement(user_id="u-1", user_email="a@b.c")._to_proto()
+        proto = AnnotationCommentElement(user_id="u-1")._to_proto()
         assert proto.user_mention.user_id == "u-1"
         assert AnnotationCommentElement._from_proto(proto).user_id == "u-1"
 

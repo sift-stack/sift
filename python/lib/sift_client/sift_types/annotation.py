@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING, ClassVar
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from sift.annotation_logs.v1.annotation_logs_pb2 import (
     AnnotationCommentBodyElement as AnnotationCommentBodyElementProto,
 )
@@ -301,7 +301,6 @@ class AnnotationBase(ModelCreateUpdateBase):
     linked_channels: (
         list[Channel] | list[CalculatedChannel] | list[Channel | CalculatedChannel] | None
     ) = Field(default=None, exclude=True)
-    state: AnnotationState | None = None
     legend_config: str | None = None
     metadata: dict[str, str | float | bool] | None = None
 
@@ -372,19 +371,32 @@ class AnnotationCreate(AnnotationCreateBase):
     """Create a data review annotation, which carries a review state and an assignee."""
 
     annotation_type: AnnotationType = AnnotationType.DATA_REVIEW
-    assign_to_user_id: str | User | None = None
+    state: AnnotationState | None = None
+    assign_to_user: str | User | None = None
 
-    @field_validator("assign_to_user_id", mode="after")
+    _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
+        **AnnotationBase._to_proto_helpers,
+        "assign_to_user": MappingHelper(
+            proto_attr_path="assign_to_user_id",
+            update_field="assign_to_user_id",
+        ),
+    }
+
+    @field_validator("assign_to_user", mode="after")
     @classmethod
     def _user_to_id(cls, value):
         return value._id_or_error if isinstance(value, User) else value
 
 
 class PhaseCreate(AnnotationCreateBase):
-    """Create a phase annotation, which labels a segment of a run and has no state."""
+    """Create a phase annotation, which labels a segment of a run and has no state.
+
+    `extra="forbid"` so that passing `state` raises rather than being dropped.
+    """
+
+    model_config = ConfigDict(extra="forbid")
 
     annotation_type: AnnotationType = AnnotationType.PHASE
-    state: None = None
 
 
 class AnnotationUpdate(AnnotationBase, ModelUpdate[AnnotationProto]):
@@ -394,6 +406,7 @@ class AnnotationUpdate(AnnotationBase, ModelUpdate[AnnotationProto]):
     start_time: datetime | None = None
     end_time: datetime | None = None
     assigned_to_user_id: str | None = None
+    state: AnnotationState | None = None
     is_archived: bool | None = None
 
     def _get_proto_class(self) -> type[AnnotationProto]:
