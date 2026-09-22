@@ -213,9 +213,9 @@ impl SiftMcpServer {
               - A partial result is possible: when some calculated channels resolve and others do not, the file is
                 written from what resolved and `unresolved_calculated_channels` names the rest. Never report on the
                 data without telling the user what is missing.
-              - Probe first. For many runs or channels, fetch one. For a long time range, fetch a short window.
-                Read the result before you issue the rest. The probe shows whether the selectors match and what
-                a call costs.
+              - Test a query once before you repeat it. When a question spans many runs, channels, or a long time
+                range, fetch one run, one channel, or a short window first. Check `unmatched_channel_names` and
+                `empty_channels` before you issue the rest. A selector mistake repeats in every call.
               - Run four calls or fewer in parallel. Wider batches can fail calls that succeed when run alone.
               - After a successful call, if the user hasn't already indicated a next step, offer to run a SQL query
                 against the resulting Parquet file using the `sql` tool. Aggregate with `sql` instead of reading
