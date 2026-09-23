@@ -149,11 +149,10 @@ class Webhook(BaseType[WebhookProto, "Webhook"]):
         return self.client.webhooks.send_test_request(webhook=self)
 
 
-def _check_target_url(value: str | None) -> str | None:
+def _check_target_url(value: str | None) -> None:
     """Reject target URLs that are not absolute HTTP(S) URLs."""
     if value is not None and not value.startswith(("http://", "https://")):
         raise ValueError("target_url must start with http:// or https://")
-    return value
 
 
 class WebhookBase(ModelCreateUpdateBase):
@@ -186,7 +185,11 @@ class WebhookCreate(WebhookBase, ModelCreate[CreateWebhookRequestProto]):
     name: str
     target_url: str
 
-    _validate_target_url = field_validator("target_url")(_check_target_url)
+    @field_validator("target_url")
+    @classmethod
+    def _validate_target_url(cls, value: str) -> str:
+        _check_target_url(value)
+        return value
 
     def _get_proto_class(self) -> type[CreateWebhookRequestProto]:
         return CreateWebhookRequestProto
@@ -206,7 +209,11 @@ class WebhookUpdate(WebhookBase, ModelUpdate[WebhookProto]):
     target_url: str | None = None
     is_archived: bool | None = None
 
-    _validate_target_url = field_validator("target_url")(_check_target_url)
+    @field_validator("target_url")
+    @classmethod
+    def _validate_target_url(cls, value: str | None) -> str | None:
+        _check_target_url(value)
+        return value
 
     def _get_proto_class(self) -> type[WebhookProto]:
         return WebhookProto
