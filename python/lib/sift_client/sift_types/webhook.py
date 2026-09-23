@@ -20,12 +20,12 @@ from sift_client.sift_types._base import (
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
+    from sift_client.sift_types.user import User
 
 
 class WebhookEventType(Enum):
     """Enum for the events that trigger a webhook."""
 
-    UNSPECIFIED = WebhookEventTypeProto.WEBHOOK_EVENT_TYPE_UNSPECIFIED  # 0
     RULE_VIOLATION = WebhookEventTypeProto.WEBHOOK_EVENT_TYPE_RULE_VIOLATION  # 1
 
     def to_filter_str(self) -> str:
@@ -60,6 +60,11 @@ class WebhookTestResult(BaseModel):
     http_response_code: int
     http_response_body: bytes
 
+    @property
+    def text(self) -> str:
+        """The response body decoded as text, with undecodable bytes replaced."""
+        return self.http_response_body.decode(errors="replace")
+
 
 class Webhook(BaseType[WebhookProto, "Webhook"]):
     """Webhook model representing an HTTP callback registered with Sift."""
@@ -68,7 +73,7 @@ class Webhook(BaseType[WebhookProto, "Webhook"]):
     name: str
     organization_id: str
     target_url: str
-    event_type: WebhookEventType
+    event_type: WebhookEventType | None
     http_headers: list[WebhookHttpHeader]
     created_date: datetime
     modified_date: datetime
@@ -88,7 +93,7 @@ class Webhook(BaseType[WebhookProto, "Webhook"]):
             name=proto.name,
             organization_id=proto.organization_id,
             target_url=proto.target_url,
-            event_type=WebhookEventType(proto.event_type),
+            event_type=(WebhookEventType(proto.event_type) if proto.event_type else None),
             http_headers=[WebhookHttpHeader._from_proto(header) for header in proto.http_headers],
             created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
             modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
@@ -103,6 +108,16 @@ class Webhook(BaseType[WebhookProto, "Webhook"]):
             ),
             _client=sift_client,
         )
+
+    @property
+    def created_by(self) -> User:
+        """Fetch the User that created this webhook."""
+        return self.client.users.get(user_id=self.created_by_user_id)
+
+    @property
+    def modified_by(self) -> User:
+        """Fetch the User that last modified this webhook."""
+        return self.client.users.get(user_id=self.modified_by_user_id)
 
     def update(self, update: WebhookUpdate | dict) -> Webhook:
         """Update the Webhook.
@@ -129,9 +144,16 @@ class Webhook(BaseType[WebhookProto, "Webhook"]):
         self._update(updated_webhook)
         return self
 
-    def test(self) -> WebhookTestResult:
+    def send_test_request(self) -> WebhookTestResult:
         """Send a real request to this webhook's target URL and return its response."""
-        return self.client.webhooks.test(webhook=self)
+        return self.client.webhooks.send_test_request(webhook=self)
+
+
+def _check_target_url(value: str | None) -> str | None:
+    """Reject target URLs that are not absolute HTTP(S) URLs."""
+    if value is not None and not value.startswith(("http://", "https://")):
+        raise ValueError("target_url must start with http:// or https://")
+    return value
 
 
 class WebhookBase(ModelCreateUpdateBase):
@@ -157,20 +179,14 @@ class WebhookBase(ModelCreateUpdateBase):
             return [WebhookHttpHeader(name=name, value=header) for name, header in value.items()]
         return value
 
-    @model_validator(mode="after")
-    def _validate_target_url(self):
-        """Reject target URLs that are not absolute HTTP(S) URLs."""
-        target_url = getattr(self, "target_url", None)
-        if target_url is not None and not target_url.startswith(("http://", "https://")):
-            raise ValueError("target_url must start with http:// or https://")
-        return self
-
 
 class WebhookCreate(WebhookBase, ModelCreate[CreateWebhookRequestProto]):
     """Create model for Webhook."""
 
     name: str
     target_url: str
+
+    _validate_target_url = field_validator("target_url")(_check_target_url)
 
     def _get_proto_class(self) -> type[CreateWebhookRequestProto]:
         return CreateWebhookRequestProto
@@ -189,6 +205,8 @@ class WebhookUpdate(WebhookBase, ModelUpdate[WebhookProto]):
     name: str | None = None
     target_url: str | None = None
     is_archived: bool | None = None
+
+    _validate_target_url = field_validator("target_url")(_check_target_url)
 
     def _get_proto_class(self) -> type[WebhookProto]:
         return WebhookProto

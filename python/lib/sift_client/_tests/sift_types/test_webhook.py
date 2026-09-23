@@ -212,11 +212,11 @@ class TestWebhook:
             assert result is mock_webhook
 
     def test_test_calls_client(self, mock_webhook, mock_client):
-        """Test that test() delegates to client.webhooks.test."""
+        """Test that test() delegates to client.webhooks.send_test_request."""
         expected = MagicMock()
-        mock_client.webhooks.test.return_value = expected
+        mock_client.webhooks.send_test_request.return_value = expected
 
-        result = mock_webhook.test()
+        result = mock_webhook.send_test_request()
 
-        mock_client.webhooks.test.assert_called_once_with(webhook=mock_webhook)
+        mock_client.webhooks.send_test_request.assert_called_once_with(webhook=mock_webhook)
         assert result is expected

@@ -233,6 +233,7 @@ class TestRuleActionWebhook:
 
         assert action.action_type == RuleActionType.WEBHOOK
         assert action.webhook_id == self.WEBHOOK_ID
+        assert action._to_update_request().configuration.webhook.webhook_id == self.WEBHOOK_ID
 
     def test_from_webhook_object(self):
         """Test building the action from a Webhook instance."""
@@ -244,7 +245,8 @@ class TestRuleActionWebhook:
 
         action = RuleAction.webhook(webhook)
 
-        assert action.webhook_id == self.WEBHOOK_ID
+        assert action.webhook_id is webhook
+        assert action._to_update_request().configuration.webhook.webhook_id == self.WEBHOOK_ID
 
     def test_rejects_non_uuid(self):
         """Test that a malformed webhook ID is caught before it reaches the server."""

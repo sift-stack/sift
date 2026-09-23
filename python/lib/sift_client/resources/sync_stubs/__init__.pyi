@@ -3858,8 +3858,8 @@ class WebhooksAPI:
         """
         ...
 
-    def test(
-        self, webhook: str | Webhook | None = None, *, create: WebhookCreate | dict | None = None
+    def send_test_request(
+        self, *, webhook: str | Webhook | None = None, create: WebhookCreate | dict | None = None
     ) -> WebhookTestResult:
         """Send a real request to a webhook's target URL and return its response.
 

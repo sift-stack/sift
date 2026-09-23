@@ -277,6 +277,14 @@ class RuleAnnotationType(Enum):
         return cls(int(val))
 
 
+def _webhook_id(webhook: str | Webhook | None) -> str:
+    """Resolve a Webhook or webhook ID to the UUID string the proto expects."""
+    if webhook is None:
+        raise ValueError("webhook is required for a webhook action")
+    raw = webhook.id_ if isinstance(webhook, Webhook) else webhook
+    return str(UUID(raw))
+
+
 class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
     """Model of a Rule Action."""
 
@@ -290,7 +298,14 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
     annotation_type: RuleAnnotationType | None = None
     tags_ids: list[str] | None = None
     default_assignee_user: str | None = None
-    webhook_id: str | None = None
+    webhook_id: str | Webhook | None = None
+
+    @field_validator("webhook_id", mode="after")
+    @classmethod
+    def _validate_webhook_id(cls, value):
+        if isinstance(value, str):
+            UUID(value)
+        return value
 
     @classmethod
     def webhook(cls, webhook: str | Webhook) -> RuleAction:
@@ -299,8 +314,7 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
         Args:
             webhook: The Webhook or webhook ID to call when the rule is violated.
         """
-        webhook_id = webhook.id_ if isinstance(webhook, Webhook) else webhook
-        return cls(action_type=RuleActionType.WEBHOOK, webhook_id=str(UUID(webhook_id)))
+        return cls(action_type=RuleActionType.WEBHOOK, webhook_id=webhook)
 
     @classmethod
     def annotation(
@@ -383,7 +397,7 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
                     else None
                 ),
                 webhook=(
-                    WebhookActionConfiguration(webhook_id=self.webhook_id)  # type: ignore
+                    WebhookActionConfiguration(webhook_id=_webhook_id(self.webhook_id))
                     if self.action_type == RuleActionType.WEBHOOK
                     else None
                 ),

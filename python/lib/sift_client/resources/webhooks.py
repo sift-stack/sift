@@ -180,10 +180,10 @@ class WebhooksAPIAsync(ResourceBase):
         """
         return await self.update(webhook, WebhookUpdate(is_archived=False))
 
-    async def test(
+    async def send_test_request(
         self,
-        webhook: str | Webhook | None = None,
         *,
+        webhook: str | Webhook | None = None,
         create: WebhookCreate | dict | None = None,
     ) -> WebhookTestResult:
         """Send a real request to a webhook's target URL and return its response.
