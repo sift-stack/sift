@@ -21,7 +21,7 @@ from sift_client._internal.low_level_wrappers.base import DEFAULT_PAGE_SIZE, Low
 from sift_client.sift_types.webhook import (
     Webhook,
     WebhookCreate,
-    WebhookTestResult,
+    WebhookTest,
     WebhookUpdate,
 )
 from sift_client.transport import WithGrpcClient
@@ -143,8 +143,11 @@ class WebhooksLowLevelClient(LowLevelClientBase, WithGrpcClient):
     async def update_webhook(self, update: WebhookUpdate) -> Webhook:
         """Update select fields of a webhook.
 
-        Fetches the webhook first. WebhookService validates the whole `Webhook`
-        message, not just the masked fields, so it rejects a sparse patch.
+        Reads the webhook first and merges the patch over it. UpdateWebhook runs
+        protovalidate across the whole `Webhook` message and ignores the update mask, so
+        a sparse patch fails with `webhook.organization_id: value must be a valid UUID`
+        and three similar errors. The cost is a round trip, and concurrent updates
+        overwrite each other. Remove this once the service validates only masked fields.
 
         Args:
             update: The updates to apply. Its `resource_id` must be set.
@@ -165,7 +168,7 @@ class WebhooksLowLevelClient(LowLevelClientBase, WithGrpcClient):
         *,
         webhook_id: str | None = None,
         create: WebhookCreate | None = None,
-    ) -> WebhookTestResult:
+    ) -> WebhookTest:
         """Send a real request to a webhook's target URL. Pass exactly one identifier.
 
         Args:
@@ -188,7 +191,7 @@ class WebhooksLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         response = await self._grpc_client.get_stub(WebhookServiceStub).TestWebhook(request)
         response = cast("TestWebhookResponse", response)
-        return WebhookTestResult(
+        return WebhookTest(
             http_response_code=response.http_response_code,
             http_response_body=response.http_response_body,
         )

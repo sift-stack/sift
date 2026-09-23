@@ -95,7 +95,7 @@ if TYPE_CHECKING:
         Webhook,
         WebhookCreate,
         WebhookEventType,
-        WebhookTestResult,
+        WebhookTest,
         WebhookUpdate,
     )
 
@@ -3860,7 +3860,7 @@ class WebhooksAPI:
 
     def send_test_request(
         self, *, webhook: str | Webhook | None = None, create: WebhookCreate | dict | None = None
-    ) -> WebhookTestResult:
+    ) -> WebhookTest:
         """Send a real request to a webhook's target URL and return its response.
 
         Pass exactly one of `webhook` or `create`. Use `create` to check an endpoint

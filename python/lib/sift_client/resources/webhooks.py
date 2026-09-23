@@ -8,7 +8,7 @@ from sift_client.sift_types.webhook import (
     Webhook,
     WebhookCreate,
     WebhookEventType,
-    WebhookTestResult,
+    WebhookTest,
     WebhookUpdate,
 )
 from sift_client.util import cel_utils as cel
@@ -185,7 +185,7 @@ class WebhooksAPIAsync(ResourceBase):
         *,
         webhook: str | Webhook | None = None,
         create: WebhookCreate | dict | None = None,
-    ) -> WebhookTestResult:
+    ) -> WebhookTest:
         """Send a real request to a webhook's target URL and return its response.
 
         Pass exactly one of `webhook` or `create`. Use `create` to check an endpoint

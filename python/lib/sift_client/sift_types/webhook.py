@@ -49,7 +49,7 @@ class WebhookHttpHeader(BaseModel):
         return cls(name=proto.name, value=proto.value)
 
 
-class WebhookTestResult(BaseModel):
+class WebhookTest(BaseModel):
     """The response the target URL returned for a test request.
 
     Attributes:
@@ -144,7 +144,7 @@ class Webhook(BaseType[WebhookProto, "Webhook"]):
         self._update(updated_webhook)
         return self
 
-    def send_test_request(self) -> WebhookTestResult:
+    def send_test_request(self) -> WebhookTest:
         """Send a real request to this webhook's target URL and return its response."""
         return self.client.webhooks.send_test_request(webhook=self)
 

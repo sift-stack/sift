@@ -252,7 +252,7 @@ from sift_client.sift_types.webhook import (
     WebhookCreate,
     WebhookEventType,
     WebhookHttpHeader,
-    WebhookTestResult,
+    WebhookTest,
     WebhookUpdate,
 )
 
@@ -377,6 +377,6 @@ __all__ = [
     "WebhookCreate",
     "WebhookEventType",
     "WebhookHttpHeader",
-    "WebhookTestResult",
+    "WebhookTest",
     "WebhookUpdate",
 ]
