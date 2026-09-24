@@ -173,8 +173,7 @@ class CampaignsAPIAsync(ResourceBase):
     ) -> Campaign:
         """Create a new campaign, optionally seeded with reports.
 
-        At most one seed may be given. `runs` lets the server collect the reports those
-        runs generated, so the runs need a default report.
+        At most one seed may be given.
 
         Args:
             create: The campaign definition.
@@ -184,15 +183,21 @@ class CampaignsAPIAsync(ResourceBase):
 
         Returns:
             The created Campaign.
+
+        Raises:
+            ValueError: If any run has no report.
         """
         if isinstance(create, dict):
             create = CampaignCreate.model_validate(create)
+        if len([seed for seed in (reports, runs, campaign) if seed]) > 1:
+            raise ValueError("At most one of reports, runs, or campaign may be provided")
+        seed_report_ids = [self._report_id(r) for r in reports] if reports else None
+        if runs:
+            # The service silently skips runs with no default report, so resolve here.
+            seed_report_ids = await self._run_report_ids(runs)
         created = await self._low_level_client.create_campaign(
             create=create,
-            from_report_ids=[self._report_id(r) for r in reports] if reports else None,
-            from_run_ids=(
-                [r._id_or_error if isinstance(r, Run) else r for r in runs] if runs else None
-            ),
+            from_report_ids=seed_report_ids,
             from_campaign_id=(
                 campaign._id_or_error if isinstance(campaign, Campaign) else campaign
             ),
@@ -257,28 +262,7 @@ class CampaignsAPIAsync(ResourceBase):
         Raises:
             ValueError: If any run has no report.
         """
-        resolved = [
-            r if isinstance(r, Run) else await self.client.async_.runs.get(run_id=r) for r in runs
-        ]
-        report_ids = []
-        missing = []
-        for run in resolved:
-            report_id = run.default_report_id
-            if not report_id:
-                found = await self.client.async_.reports.list_(
-                    run=run, order_by="created_date desc", limit=1
-                )
-                report_id = found[0]._id_or_error if found else None
-            if report_id:
-                report_ids.append(report_id)
-            else:
-                missing.append(run.name)
-        if missing:
-            raise ValueError(
-                f"These runs have no report, so they cannot join a campaign: {missing}. "
-                "Create runs with create_default_report=True, or build a report over the run."
-            )
-        return await self.add_reports(campaign, report_ids)
+        return await self.add_reports(campaign, await self._run_report_ids(runs))
 
     async def archive(self, campaign: str | Campaign) -> Campaign:
         """Archive a campaign.
@@ -323,6 +307,31 @@ class CampaignsAPIAsync(ResourceBase):
             campaign_ids=ids, organization_id=organization_id
         )
         return {campaign_id: found.get(campaign_id, []) for campaign_id in ids}
+
+    async def _run_report_ids(self, runs: list[Run] | list[str]) -> list[str]:
+        """Resolve runs to the report each one contributes to a campaign."""
+        resolved = [
+            r if isinstance(r, Run) else await self.client.async_.runs.get(run_id=r) for r in runs
+        ]
+        report_ids = []
+        missing = []
+        for run in resolved:
+            report_id = run.default_report_id
+            if not report_id:
+                found = await self.client.async_.reports.list_(
+                    run=run, order_by="created_date desc", limit=1
+                )
+                report_id = found[0]._id_or_error if found else None
+            if report_id:
+                report_ids.append(report_id)
+            else:
+                missing.append(run.name)
+        if missing:
+            raise ValueError(
+                f"These runs have no report, so they cannot join a campaign: {missing}. "
+                "Create runs with create_default_report=True, or build a report over the run."
+            )
+        return report_ids
 
     @staticmethod
     def _report_id(report: Report | str) -> str:

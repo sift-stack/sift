@@ -829,8 +829,7 @@ class CampaignsAPI:
     ) -> Campaign:
         """Create a new campaign, optionally seeded with reports.
 
-        At most one seed may be given. `runs` lets the server collect the reports those
-        runs generated, so the runs need a default report.
+        At most one seed may be given.
 
         Args:
             create: The campaign definition.
@@ -840,6 +839,9 @@ class CampaignsAPI:
 
         Returns:
             The created Campaign.
+
+        Raises:
+            ValueError: If any run has no report.
         """
         ...
 
