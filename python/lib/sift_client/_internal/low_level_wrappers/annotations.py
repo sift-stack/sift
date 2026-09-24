@@ -166,6 +166,9 @@ class AnnotationsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             The updated Annotation.
         """
         grpc_annotation, update_mask = update.to_proto_with_mask()
+        if "linked_channels" in update.model_fields_set:
+            grpc_annotation.linked_channels.extend(update.linked_channels_to_proto())
+            update_mask.paths.append("linked_channels")
         request = UpdateAnnotationRequest(annotation=grpc_annotation, update_mask=update_mask)
         response = await self._grpc_client.get_stub(AnnotationServiceStub).UpdateAnnotation(request)
         return Annotation._from_proto(cast("UpdateAnnotationResponse", response).annotation)

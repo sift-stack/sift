@@ -316,8 +316,6 @@ class AnnotationsAPI:
             reports: Filter to annotations in any of these Reports or report IDs.
             assets: Filter annotations on any of these Assets or asset IDs.
             runs: Filter annotations on any of these Runs or run IDs.
-            rule_ids: Filter annotations created by any of these rules.
-            report_ids: Filter annotations belonging to any of these reports.
             start_time_after: Filter annotations that start after this datetime.
             start_time_before: Filter annotations that start before this datetime.
             end_time_after: Filter annotations that end after this datetime.
@@ -339,7 +337,7 @@ class AnnotationsAPI:
         """Close out a review as resolved.
 
         Args:
-            annotation: The Annotation or annotation ID to resolve.
+            annotation: The Annotation or annotation ID.
 
         Returns:
             The updated Annotation.
@@ -350,7 +348,7 @@ class AnnotationsAPI:
         """Flag a review as needing attention.
 
         Args:
-            annotation: The Annotation or annotation ID to flag.
+            annotation: The Annotation or annotation ID.
 
         Returns:
             The updated Annotation.
@@ -361,7 +359,7 @@ class AnnotationsAPI:
         """Return a review to the open state.
 
         Args:
-            annotation: The Annotation or annotation ID to reopen.
+            annotation: The Annotation or annotation ID.
 
         Returns:
             The updated Annotation.

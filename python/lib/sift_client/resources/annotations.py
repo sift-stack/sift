@@ -16,6 +16,7 @@ from sift_client.sift_types.annotation import (
     AnnotationUpdate,
     PhaseCreate,
 )
+from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.channel import Channel
 from sift_client.sift_types.report import Report
 from sift_client.sift_types.rule import Rule
@@ -28,7 +29,6 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from sift_client.client import SiftClient
-    from sift_client.sift_types.asset import Asset
     from sift_client.sift_types.calculated_channel import CalculatedChannel
     from sift_client.sift_types.tag import Tag
 
@@ -234,8 +234,6 @@ class AnnotationsAPIAsync(ResourceBase):
             reports: Filter to annotations in any of these Reports or report IDs.
             assets: Filter annotations on any of these Assets or asset IDs.
             runs: Filter annotations on any of these Runs or run IDs.
-            rule_ids: Filter annotations created by any of these rules.
-            report_ids: Filter annotations belonging to any of these reports.
             start_time_after: Filter annotations that start after this datetime.
             start_time_before: Filter annotations that start before this datetime.
             end_time_after: Filter annotations that end after this datetime.
@@ -253,10 +251,7 @@ class AnnotationsAPIAsync(ResourceBase):
         """
         filter_parts = [
             *self._build_name_cel_filters(
-                name=name if isinstance(name, str) else None,
-                names=name if isinstance(name, list) else None,
-                name_contains=name_contains,
-                name_regex=name_regex,
+                name=name, name_contains=name_contains, name_regex=name_regex
             ),
             *self._build_time_cel_filters(
                 created_after=created_after,
@@ -359,8 +354,17 @@ class AnnotationsAPIAsync(ResourceBase):
             create.assets = cast(
                 "list[str | Asset]", await self._assets_for_channels(create.linked_channels)
             )
+        elif create.assets:
+            create.assets = cast("list[str | Asset]", await self._asset_names(create.assets))
         created = await self._low_level_client.create_annotation(create=create)
         return self._apply_client_to_instance(created)
+
+    async def _asset_names(self, assets: list[str | Asset]) -> list[str]:
+        names = [a.name for a in assets if isinstance(a, Asset)]
+        ids = [a for a in assets if isinstance(a, str)]
+        if ids:
+            names.extend(a.name for a in await self.client.async_.assets.list_(asset_ids=ids))
+        return names
 
     async def _assets_for_channels(
         self, channels: list[Channel] | list[CalculatedChannel] | list[Channel | CalculatedChannel]
@@ -469,7 +473,7 @@ class AnnotationsAPIAsync(ResourceBase):
         """Close out a review as resolved.
 
         Args:
-            annotation: The Annotation or annotation ID to resolve.
+            annotation: The Annotation or annotation ID.
 
         Returns:
             The updated Annotation.
@@ -480,7 +484,7 @@ class AnnotationsAPIAsync(ResourceBase):
         """Flag a review as needing attention.
 
         Args:
-            annotation: The Annotation or annotation ID to flag.
+            annotation: The Annotation or annotation ID.
 
         Returns:
             The updated Annotation.
@@ -491,7 +495,7 @@ class AnnotationsAPIAsync(ResourceBase):
         """Return a review to the open state.
 
         Args:
-            annotation: The Annotation or annotation ID to reopen.
+            annotation: The Annotation or annotation ID.
 
         Returns:
             The updated Annotation.

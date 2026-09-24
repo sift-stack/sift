@@ -18,7 +18,6 @@ from sift_client.sift_types.annotation import (
     AnnotationCreate,
     AnnotationLog,
     AnnotationLogKind,
-    AnnotationLogState,
     AnnotationState,
     AnnotationType,
     AnnotationUpdate,
@@ -63,7 +62,7 @@ def new_annotation(sift_client, test_timestamp_str, window, nostromo_asset):
             description="Created by Sift Client pytest",
             start_time=start,
             end_time=end,
-            assets=[nostromo_asset.name],
+            assets=[nostromo_asset],
             state=AnnotationState.OPEN,
         )
     )
@@ -88,12 +87,11 @@ class TestAnnotations:
         """Test creating a phase annotation, which carries no review state."""
         start, end = window
         phase = sift_client.annotations.create(
-            AnnotationCreate(
+            PhaseCreate(
                 name=f"test_phase_{test_timestamp_str}",
                 start_time=start,
                 end_time=end,
-                assets=[nostromo_asset.name],
-                annotation_type=AnnotationType.PHASE,
+                assets=[nostromo_asset],
             )
         )
 
@@ -189,7 +187,7 @@ class TestAnnotations:
                 name=f"test_annotation_archive_{test_timestamp_str}",
                 start_time=start,
                 end_time=end,
-                assets=[nostromo_asset.name],
+                assets=[nostromo_asset],
             )
         )
 
@@ -216,7 +214,7 @@ class TestAnnotations:
                 name=f"test_annotation_instance_{test_timestamp_str}",
                 start_time=start,
                 end_time=end,
-                assets=[nostromo_asset.name],
+                assets=[nostromo_asset],
                 state=AnnotationState.OPEN,
             )
         )
@@ -244,13 +242,6 @@ class TestAnnotationLogs:
 
         logs = sift_client.annotations.logs.list_(annotation=new_annotation)
         assert log.id_ in {entry.id_ for entry in logs}
-
-    def test_record_state(self, sift_client, new_annotation):
-        """Test recording a state change in the history."""
-        log = sift_client.annotations.logs.record_state(new_annotation, AnnotationLogState.FLAGGED)
-
-        assert log.kind is AnnotationLogKind.STATE_UPDATE
-        assert log.state is AnnotationLogState.FLAGGED
 
     def test_list_filtered_by_kind(self, sift_client, new_annotation):
         """Test filtering the history by log kind."""
@@ -297,7 +288,7 @@ class TestAnnotationWorkflow:
         assert review.annotation_type is AnnotationType.DATA_REVIEW
         # The asset came from the channels, not from an `assets` argument.
         assert review.asset_ids == [nostromo_asset.id_]
-        assert {c.channel_id for c in review.linked_channels} == {c.id_ for c in nostromo_channels}
+        assert {c.id_ for c in review.linked_channels} == {c.id_ for c in nostromo_channels}
         assert review.tags == ["sift-client-pytest"]
 
         sift_client.annotations.archive(review)
@@ -321,10 +312,30 @@ class TestAnnotationWorkflow:
 
         sift_client.annotations.archive(phase)
 
-    def test_phase_model_has_no_usable_state(self):
-        """PhaseCreate types `state` as None, so a state fails before any call."""
-        assert PhaseCreate.model_fields["state"].annotation is type(None)
-        assert AnnotationCreate.model_fields["state"].annotation is not type(None)
+    def test_phase_model_rejects_a_state(self):
+        """PhaseCreate has no `state` field and forbids extras, so it fails validation."""
+        assert "state" not in PhaseCreate.model_fields
+        with pytest.raises(ValueError, match="state"):
+            PhaseCreate.model_validate(
+                {
+                    "name": "a",
+                    "start_time": datetime.now(timezone.utc),
+                    "end_time": datetime.now(timezone.utc),
+                    "state": AnnotationState.OPEN,
+                }
+            )
+
+    def test_models_pin_their_annotation_type(self):
+        """Neither model accepts the other's type, so a phase with a state can't be built."""
+        now = datetime.now(timezone.utc)
+        with pytest.raises(ValueError, match="annotation_type"):
+            AnnotationCreate(
+                name="a", start_time=now, end_time=now, annotation_type=AnnotationType.PHASE
+            )
+        with pytest.raises(ValueError, match="annotation_type"):
+            PhaseCreate(
+                name="a", start_time=now, end_time=now, annotation_type=AnnotationType.DATA_REVIEW
+            )
 
     def test_create_with_explicit_assets(
         self, sift_client, test_timestamp_str, window, nostromo_asset

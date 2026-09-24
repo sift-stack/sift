@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from sift.annotation_logs.v1.annotation_logs_pb2 import (
@@ -50,7 +50,7 @@ from sift_client.sift_types._base import (
     ModelCreateUpdateBase,
     ModelUpdate,
 )
-from sift_client.sift_types.asset import Asset
+from sift_client.sift_types.asset import Asset  # noqa: TC001
 from sift_client.sift_types.calculated_channel import CalculatedChannel
 from sift_client.sift_types.channel import Channel  # noqa: TC001
 from sift_client.sift_types.run import Run
@@ -130,7 +130,6 @@ class Annotation(BaseType[AnnotationProto, "Annotation"]):
     state: AnnotationState | None
     run_id: str | None
     assigned_to_user_id: str | None
-    legend_config: str | None
     archived_date: datetime | None
 
     @classmethod
@@ -170,7 +169,6 @@ class Annotation(BaseType[AnnotationProto, "Annotation"]):
             state=AnnotationState(proto.state) if proto.HasField("state") else None,
             run_id=proto.run_id if proto.HasField("run_id") else None,
             assigned_to_user_id=proto.assigned_to_user_id or None,
-            legend_config=proto.legend_config if proto.HasField("legend_config") else None,
             archived_date=(
                 proto.archived_date.ToDatetime(tzinfo=timezone.utc)
                 if proto.HasField("archived_date")
@@ -220,10 +218,13 @@ class Annotation(BaseType[AnnotationProto, "Annotation"]):
         linked: list[Channel | CalculatedChannel] = []
         if self.linked_channel_ids:
             linked.extend(self.client.channels.list_(channel_ids=self.linked_channel_ids))
-        linked.extend(
-            self.client.calculated_channels.get(calculated_channel_id=version_id)
-            for version_id in self.linked_calculated_channel_version_ids
-        )
+        if self.linked_calculated_channel_version_ids:
+            quoted = ", ".join(f'"{v}"' for v in self.linked_calculated_channel_version_ids)
+            linked.extend(
+                self.client.calculated_channels.list_versions(
+                    filter_query=f"calculated_channel_version_id in [{quoted}]"
+                )
+            )
         return linked
 
     @property
@@ -301,7 +302,6 @@ class AnnotationBase(ModelCreateUpdateBase):
     linked_channels: (
         list[Channel] | list[CalculatedChannel] | list[Channel | CalculatedChannel] | None
     ) = Field(default=None, exclude=True)
-    legend_config: str | None = None
     metadata: dict[str, str | float | bool] | None = None
 
     _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
@@ -341,18 +341,19 @@ class AnnotationCreateBase(AnnotationBase, ModelCreate[CreateAnnotationRequestPr
     start_time: datetime
     end_time: datetime
     assets: list[str | Asset] | None = None
-    run_id: str | Run | None = None
+    """Assets or asset IDs. Resolved to names, which is what the proto takes."""
+    run: str | Run | None = None
     organization_id: str | None = None
+
+    _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
+        **AnnotationBase._to_proto_helpers,
+        "run": MappingHelper(proto_attr_path="run_id", update_field="run_id"),
+    }
 
     def _get_proto_class(self) -> type[CreateAnnotationRequestProto]:
         return CreateAnnotationRequestProto
 
-    @field_validator("assets", mode="after")
-    @classmethod
-    def _assets_to_names(cls, value):
-        return [a.name if isinstance(a, Asset) else a for a in value] if value else value
-
-    @field_validator("run_id", mode="after")
+    @field_validator("run", mode="after")
     @classmethod
     def _run_to_id(cls, value):
         return value._id_or_error if isinstance(value, Run) else value
@@ -370,7 +371,7 @@ class AnnotationCreateBase(AnnotationBase, ModelCreate[CreateAnnotationRequestPr
 class AnnotationCreate(AnnotationCreateBase):
     """Create a data review annotation, which carries a review state and an assignee."""
 
-    annotation_type: AnnotationType = AnnotationType.DATA_REVIEW
+    annotation_type: Literal[AnnotationType.DATA_REVIEW] = AnnotationType.DATA_REVIEW
     state: AnnotationState | None = None
     assign_to_user: str | User | None = None
 
@@ -396,7 +397,7 @@ class PhaseCreate(AnnotationCreateBase):
 
     model_config = ConfigDict(extra="forbid")
 
-    annotation_type: AnnotationType = AnnotationType.PHASE
+    annotation_type: Literal[AnnotationType.PHASE] = AnnotationType.PHASE
 
 
 class AnnotationUpdate(AnnotationBase, ModelUpdate[AnnotationProto]):
@@ -454,7 +455,12 @@ class AnnotationCommentElement(BaseModel):
     """
 
     text: str | None = None
-    user_id: str | None = None
+    user_id: str | User | None = None
+
+    @field_validator("user_id", mode="after")
+    @classmethod
+    def _user_to_id(cls, value):
+        return value._id_or_error if isinstance(value, User) else value
 
     @model_validator(mode="after")
     def _validate_exactly_one(self) -> AnnotationCommentElement:
@@ -475,7 +481,7 @@ class AnnotationCommentElement(BaseModel):
         if self.user_id:
             return AnnotationCommentBodyElementProto(
                 type=AnnotationCommentBodyElementTypeProto.ANNOTATION_COMMENT_BODY_ELEMENT_TYPE_USER_MENTION,
-                user_mention=AnnotationCommentUserMentionProto(user_id=self.user_id),
+                user_mention=AnnotationCommentUserMentionProto(user_id=cast("str", self.user_id)),
             )
         return AnnotationCommentBodyElementProto(
             type=AnnotationCommentBodyElementTypeProto.ANNOTATION_COMMENT_BODY_ELEMENT_TYPE_TEXT,
@@ -537,6 +543,15 @@ class AnnotationLog(BaseType[AnnotationLogProto, "AnnotationLog"]):
         if not self.assigned_to_user_id:
             return None
         return self.client.users.get(user_id=self.assigned_to_user_id)
+
+    @property
+    def mentioned_users(self) -> list[User]:
+        """Fetch the Users mentioned in this comment."""
+        return [
+            self.client.users.get(user_id=cast("str", e.user_id))
+            for e in self.comment or []
+            if e.user_id
+        ]
 
     @property
     def text(self) -> str:

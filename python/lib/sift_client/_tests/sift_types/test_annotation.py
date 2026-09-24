@@ -166,7 +166,6 @@ def mock_annotation(mock_client):
         state=AnnotationState.OPEN,
         run_id=None,
         assigned_to_user_id=None,
-        legend_config=None,
         archived_date=None,
     )
     annotation._apply_client_to_instance(mock_client)
