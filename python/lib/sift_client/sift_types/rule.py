@@ -167,6 +167,11 @@ class Rule(BaseType[RuleProto, "Rule"]):
         )
 
 
+def _wrap_webhook_action(value):
+    """A webhook action carries nothing else, so a bare Webhook is enough."""
+    return RuleAction.webhook(value) if isinstance(value, Webhook) else value
+
+
 class RuleCreateUpdateBase(ModelCreateUpdateBase):
     """Base class for Rule create and update models with shared fields and validation."""
 
@@ -196,7 +201,12 @@ class RuleCreate(RuleCreateUpdateBase, ModelCreate[CreateRuleRequest]):
     description: str
     expression: str
     channel_references: list[ChannelReference]
-    action: RuleAction
+    action: RuleAction | Webhook
+
+    @field_validator("action", mode="after")
+    @classmethod
+    def _wrap_webhook(cls, value):
+        return _wrap_webhook_action(value)
 
     def _get_proto_class(self) -> type[CreateRuleRequest]:
         return CreateRuleRequest
@@ -215,7 +225,13 @@ class RuleUpdate(RuleCreateUpdateBase, ModelUpdate[RuleProto]):
     description: str | None = None
     expression: str | None = None
     channel_references: list[ChannelReference] | None = None
-    action: RuleAction | None = None
+    action: RuleAction | Webhook | None = None
+
+    @field_validator("action", mode="after")
+    @classmethod
+    def _wrap_webhook(cls, value):
+        return _wrap_webhook_action(value)
+
     is_archived: bool | None = None
 
     def _get_proto_class(self) -> type[RuleProto]:
