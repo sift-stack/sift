@@ -25912,6 +25912,10 @@ internal state with the updated values from the API.</p>
         <p>Model of the Sift Asset.</p>
 
     
+      <p>Config:</p>
+      <ul>
+          <li><code>frozen</code>: <code class="highlight language-python"><span class="kc">True</span></code></li>
+      </ul>
 
         <p>Fields:</p>
         <ul>
@@ -27017,6 +27021,10 @@ internal state with the updated values from the API.</p>
         <p>Model of the Asset Fields that can be updated.</p>
 
     
+      <p>Config:</p>
+      <ul>
+          <li><code>frozen</code>: <code class="highlight language-python"><span class="kc">False</span></code></li>
+      </ul>
 
         <p>Fields:</p>
         <ul>
@@ -48818,7 +48826,12 @@ replaces the full set on each resource.</p>
 
   
       pydantic-model
-   (sift_client.sift_types.rule.RuleAction)" href="rule/#sift_client.sift_types.rule.RuleAction">RuleAction</a></code>)
+   (sift_client.sift_types.rule.RuleAction)" href="rule/#sift_client.sift_types.rule.RuleAction">RuleAction</a> | <a class="autorefs autorefs-internal" title="            Webhook
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.webhook.Webhook)" href="webhook/#sift_client.sift_types.webhook.Webhook">Webhook</a></code>)
             </li>
         </ul>
 
@@ -48833,6 +48846,15 @@ replaces the full set on each resource.</p>
   
       pydantic-field
    (sift_client.sift_types.rule.RuleCreateUpdateBase.asset_ids)" href="rule/#sift_client.sift_types.rule.RuleCreateUpdateBase.asset_ids">asset_ids</a></code>            </li>
+            <li>
+              <code><span title="sift_client.sift_types.rule.RuleCreate._wrap_webhook">_wrap_webhook</span></code>
+                &rarr;
+                  <code><a class="autorefs autorefs-internal" title="            action
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.rule.RuleCreate.action)" href="rule/#sift_client.sift_types.rule.RuleCreate.action">action</a></code>            </li>
         </ul>
 
 
@@ -49138,7 +49160,12 @@ replaces the full set on each resource.</p>
 
   
       pydantic-model
-   (sift_client.sift_types.rule.RuleAction)" href="rule/#sift_client.sift_types.rule.RuleAction">RuleAction</a></span>
+   (sift_client.sift_types.rule.RuleAction)" href="rule/#sift_client.sift_types.rule.RuleAction">RuleAction</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Webhook
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.webhook.Webhook)" href="webhook/#sift_client.sift_types.webhook.Webhook">Webhook</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -49361,7 +49388,12 @@ replaces the full set on each resource.</p>
 
   
       pydantic-model
-   (sift_client.sift_types.rule.RuleAction)" href="rule/#sift_client.sift_types.rule.RuleAction">RuleAction</a> | None</code>)
+   (sift_client.sift_types.rule.RuleAction)" href="rule/#sift_client.sift_types.rule.RuleAction">RuleAction</a> | <a class="autorefs autorefs-internal" title="            Webhook
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.webhook.Webhook)" href="webhook/#sift_client.sift_types.webhook.Webhook">Webhook</a> | None</code>)
             </li>
             <li>
               <code><a class="autorefs autorefs-internal" title="            is_archived
@@ -49385,6 +49417,15 @@ replaces the full set on each resource.</p>
   
       pydantic-field
    (sift_client.sift_types.rule.RuleCreateUpdateBase.asset_ids)" href="rule/#sift_client.sift_types.rule.RuleCreateUpdateBase.asset_ids">asset_ids</a></code>            </li>
+            <li>
+              <code><span title="sift_client.sift_types.rule.RuleUpdate._wrap_webhook">_wrap_webhook</span></code>
+                &rarr;
+                  <code><a class="autorefs autorefs-internal" title="            action
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.rule.RuleUpdate.action)" href="rule/#sift_client.sift_types.rule.RuleUpdate.action">action</a></code>            </li>
         </ul>
 
 
@@ -49713,7 +49754,12 @@ replaces the full set on each resource.</p>
 
   
       pydantic-model
-   (sift_client.sift_types.rule.RuleAction)" href="rule/#sift_client.sift_types.rule.RuleAction">RuleAction</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+   (sift_client.sift_types.rule.RuleAction)" href="rule/#sift_client.sift_types.rule.RuleAction">RuleAction</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Webhook
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.webhook.Webhook)" href="webhook/#sift_client.sift_types.webhook.Webhook">Webhook</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -52471,10 +52517,6 @@ with this run pre-filled. If the run has exactly one asset,
         <p>Model of the Sift Tag.</p>
 
     
-      <p>Config:</p>
-      <ul>
-          <li><code>frozen</code>: <code class="highlight language-python"><span class="kc">True</span></code></li>
-      </ul>
 
         <p>Fields:</p>
         <ul>
