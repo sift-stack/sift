@@ -21,62 +21,61 @@ from sift_client.sift_types._base import (
     ModelCreateUpdateBase,
     ModelUpdate,
 )
+from sift_client.sift_types.report import Report  # noqa: TC001
 from sift_client.sift_types.tag import Tag
 from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
-    from sift_client.sift_types.report import Report
     from sift_client.sift_types.run import Run
 
 
-class CampaignReport(BaseModel):
+class RuleStatistics(BaseModel):
+    """How a report's rules came out.
+
+    Attributes:
+        annotations: Annotations across the report's rules.
+        passed: Rules that never triggered.
+        accepted: Rules whose annotations are all accepted.
+        failed: Rules with any failed annotation.
+        open: Rules with open annotations and none failed.
+    """
+
+    annotations: int = 0
+    passed: int = 0
+    accepted: int = 0
+    failed: int = 0
+    open: int = 0
+
+
+class CampaignReportSummary(BaseModel):
     """A report in a campaign, with a rollup of its rule outcomes.
 
-    The counts are only populated when the campaign was fetched with summaries.
+    Read only. The counts are populated only when the campaign was fetched with summaries.
 
     Attributes:
         report_id: The report this entry refers to.
         report_name: The report's name.
-        num_annotations: Annotations across the report's rules.
-        num_passed_rules: Rules that never triggered.
-        num_accepted_rules: Rules whose annotations are all accepted.
-        num_failed_rules: Rules with any failed annotation.
-        num_open_rules: Rules with open annotations and none failed.
+        rule_statistics: The rollup of the report's rule outcomes.
     """
 
     report_id: str
     report_name: str = ""
-    num_annotations: int = 0
-    num_passed_rules: int = 0
-    num_accepted_rules: int = 0
-    num_failed_rules: int = 0
-    num_open_rules: int = 0
+    rule_statistics: RuleStatistics = RuleStatistics()
 
     @classmethod
-    def _from_proto(cls, proto: CampaignReportProto) -> CampaignReport:
+    def _from_proto(cls, proto: CampaignReportProto) -> CampaignReportSummary:
         return cls(
             report_id=proto.report_id,
             report_name=proto.report_name,
-            num_annotations=proto.num_annotations,
-            num_passed_rules=proto.num_passed_rules,
-            num_accepted_rules=proto.num_accepted_rules,
-            num_failed_rules=proto.num_failed_rules,
-            num_open_rules=proto.num_open_rules,
+            rule_statistics=RuleStatistics(
+                annotations=proto.num_annotations,
+                passed=proto.num_passed_rules,
+                accepted=proto.num_accepted_rules,
+                failed=proto.num_failed_rules,
+                open=proto.num_open_rules,
+            ),
         )
-
-
-def _campaign_report_to_proto(**kwargs) -> CampaignReportProto:
-    """Convert a campaign report dict (from model_dump) into its proto form.
-
-    Only `report_id` is sent; the name and counts are output only.
-    """
-    return CampaignReportProto(report_id=kwargs["report_id"])
-
-
-def tag_names(tags: list[str] | list[Tag] | None) -> list[str]:
-    """Reduce Tags or tag names to plain names."""
-    return [tag.name if isinstance(tag, Tag) else tag for tag in tags or []]
 
 
 class Campaign(BaseType[CampaignProto, "Campaign"]):
@@ -88,7 +87,7 @@ class Campaign(BaseType[CampaignProto, "Campaign"]):
     # Required fields
     name: str
     organization_id: str
-    reports: list[CampaignReport]
+    report_summaries: list[CampaignReportSummary]
     tags: list[str]
     metadata: dict[str, str | float | bool]
     created_date: datetime
@@ -111,7 +110,10 @@ class Campaign(BaseType[CampaignProto, "Campaign"]):
             id_=proto.campaign_id,
             name=proto.name,
             organization_id=proto.organization_id,
-            reports=[CampaignReport._from_proto(r) for r in proto.reports],
+            report_summaries=sorted(
+                (CampaignReportSummary._from_proto(r) for r in proto.reports),
+                key=lambda r: r.report_id,
+            ),
             tags=[t.name or t.tag_id for t in proto.tags],
             metadata=metadata_proto_to_dict(proto.metadata),  # type: ignore
             created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
@@ -136,33 +138,31 @@ class Campaign(BaseType[CampaignProto, "Campaign"]):
         )
 
     @property
-    def report_ids(self) -> list[str]:
-        """The IDs of the reports in this campaign."""
-        return [r.report_id for r in self.reports]
-
-    @property
-    def resolved_reports(self) -> list[Report]:
+    def reports(self) -> list[Report]:
         """Fetch the full Reports in this campaign."""
-        if not self.reports:
+        if not self.report_summaries:
             return []
-        return self.client.reports.list_(report_ids=self.report_ids)
+        return self.client.reports.list_(report_ids=[r.report_id for r in self.report_summaries])
 
     @property
     def runs(self) -> list[Run]:
         """Fetch the Runs behind this campaign's reports. Reports with no run are skipped."""
-        run_ids = [r.run_id for r in self.resolved_reports if r.run_id]
+        run_ids = [r.run_id for r in self.reports if r.run_id]
         if not run_ids:
             return []
         return self.client.runs.list_(run_ids=run_ids)
 
-    def report_summaries(self) -> list[CampaignReport]:
-        """Get this campaign's reports with their rule counts, ordered to match `report_ids`.
+    def add_reports(self, reports: list[Report] | list[str]) -> Campaign:
+        """Add reports to the campaign, keeping the ones already there."""
+        updated = self.client.campaigns.add_reports(campaign=self, reports=reports)
+        self._update(updated)
+        return self
 
-        The service returns them in no fixed order, so this would otherwise vary.
-        """
-        summaries = self.client.campaigns.report_summaries([self])
-        by_id = {s.report_id: s for s in summaries.get(self._id_or_error, [])}
-        return [by_id[report_id] for report_id in self.report_ids if report_id in by_id]
+    def add_runs(self, runs: list[Run] | list[str]) -> Campaign:
+        """Add runs to the campaign through the reports they generated."""
+        updated = self.client.campaigns.add_runs(campaign=self, runs=runs)
+        self._update(updated)
+        return self
 
     def update(self, update: CampaignUpdate | dict) -> Campaign:
         """Update the Campaign.
@@ -190,6 +190,16 @@ class Campaign(BaseType[CampaignProto, "Campaign"]):
         return self
 
 
+def tag_names(tags: list[str] | list[Tag] | None) -> list[str]:
+    """Reduce Tags or tag names to plain names."""
+    return [tag.name if isinstance(tag, Tag) else tag for tag in tags or []]
+
+
+def report_ids(reports: list[Report] | list[str] | None) -> list[str]:
+    """Reduce Reports or report IDs to plain IDs."""
+    return [r if isinstance(r, str) else r._id_or_error for r in reports or []]
+
+
 class CampaignBase(ModelCreateUpdateBase):
     """Base class for Campaign create and update models."""
 
@@ -209,8 +219,7 @@ class CampaignBase(ModelCreateUpdateBase):
 class CampaignCreate(CampaignBase, ModelCreate[CreateCampaignRequestProto]):
     """Create model for Campaign.
 
-    Pass `client_key` to make the campaign addressable by your own identifier, which is
-    what `get_or_create` matches on.
+    Pass `client_key` to make the campaign addressable by your own identifier.
     """
 
     name: str
@@ -230,16 +239,11 @@ class CampaignUpdate(CampaignBase, ModelUpdate[CampaignProto]):
     """
 
     name: str | None = None
-    reports: list[CampaignReport] | None = None
+    reports: list[Report] | list[str] | None = Field(default=None, exclude=True)
     is_archived: bool | None = None
 
     _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
         **CampaignBase._to_proto_helpers,
-        "reports": MappingHelper(
-            proto_attr_path="reports",
-            update_field="reports",
-            converter=_campaign_report_to_proto,  # type: ignore[arg-type]
-        ),
     }
 
     def _get_proto_class(self) -> type[CampaignProto]:

@@ -1,6 +1,6 @@
 """Pytest tests for the Campaigns API.
 
-These tests cover get, list, find, create, get_or_create, update, add_reports,
+These tests cover get, list, find, create, update, add_reports,
 add_runs, archive/unarchive, and report_summaries.
 """
 
@@ -181,33 +181,6 @@ class TestCampaigns:
 
         campaigns_api_sync.update(new_campaign, {"name": new_campaign.name})
 
-    def test_get_or_create(self, campaigns_api_sync, new_campaign):
-        """Test that get_or_create returns the existing campaign for a known key."""
-        existing = campaigns_api_sync.get_or_create(
-            CampaignCreate(name="ignored", client_key=new_campaign.client_key)
-        )
-
-        assert existing.id_ == new_campaign.id_
-
-    def test_get_or_create_creates(self, campaigns_api_sync, test_timestamp_str):
-        """Test that get_or_create creates a campaign for an unknown key."""
-        key = f"test_campaign_goc_{test_timestamp_str}"
-        created = campaigns_api_sync.get_or_create(
-            CampaignCreate(name=f"test_campaign_goc_{test_timestamp_str}", client_key=key)
-        )
-
-        assert created.client_key == key
-        assert campaigns_api_sync.get_or_create({"name": "ignored", "client_key": key}).id_ == (
-            created.id_
-        )
-
-        campaigns_api_sync.archive(created)
-
-    def test_get_or_create_requires_client_key(self, campaigns_api_sync):
-        """Test that get_or_create rejects a create with no client key."""
-        with pytest.raises(ValueError, match="requires a client_key"):
-            campaigns_api_sync.get_or_create(CampaignCreate(name="no key"))
-
     def test_add_reports(self, campaigns_api_sync, campaign_run, test_timestamp_str):
         """Test adding reports to a campaign without dropping the existing ones."""
         campaign = campaigns_api_sync.create(
@@ -216,11 +189,11 @@ class TestCampaigns:
         report_id = campaign_run.default_report_id
 
         added = campaigns_api_sync.add_reports(campaign, [report_id])
-        assert added.report_ids == [report_id]
+        assert [r.report_id for r in added.report_summaries] == [report_id]
 
         # Adding the same report again is a no-op, not a duplicate.
         again = campaigns_api_sync.add_reports(added, [report_id])
-        assert again.report_ids == [report_id]
+        assert [r.report_id for r in again.report_summaries] == [report_id]
 
         campaigns_api_sync.archive(campaign)
 
@@ -231,22 +204,37 @@ class TestCampaigns:
         )
 
         added = campaigns_api_sync.add_runs(campaign, [campaign_run])
-        assert added.report_ids == [campaign_run.default_report_id]
+        assert [r.report_id for r in added.report_summaries] == [campaign_run.default_report_id]
 
         campaigns_api_sync.archive(campaign)
 
     def test_add_runs_rejects_run_without_report(
         self, campaigns_api_sync, sift_client, new_campaign, test_timestamp_str
     ):
-        """Test that add_runs fails clearly when a run has no default report."""
+        """Test that add_runs fails clearly when a run has no report at all."""
         from sift_client.sift_types.run import RunCreate
 
         run = sift_client.runs.create(
             RunCreate(name=f"test_campaign_no_report_{test_timestamp_str}")
         )
 
-        with pytest.raises(ValueError, match="no default report"):
+        with pytest.raises(ValueError, match="no report"):
             campaigns_api_sync.add_runs(new_campaign, [run])
+
+    def test_add_runs_falls_back_to_a_report_over_the_run(
+        self, campaigns_api_sync, campaign_run, test_timestamp_str
+    ):
+        """Test that a run with no default report joins through a report search."""
+        # Hide the default report so add_runs must search for one over the run.
+        run = campaign_run.model_copy(update={"default_report_id": None})
+        campaign = campaigns_api_sync.create(
+            CampaignCreate(name=f"test_campaign_fallback_{test_timestamp_str}")
+        )
+
+        added = campaigns_api_sync.add_runs(campaign, [run])
+
+        assert [r.report_id for r in added.report_summaries] == [campaign_run.default_report_id]
+        campaigns_api_sync.archive(campaign)
 
     def test_create_from_runs(self, campaigns_api_sync, campaign_run, test_timestamp_str):
         """Test seeding a new campaign from a run."""
@@ -255,7 +243,7 @@ class TestCampaigns:
             runs=[campaign_run],
         )
 
-        assert campaign.report_ids == [campaign_run.default_report_id]
+        assert [r.report_id for r in campaign.report_summaries] == [campaign_run.default_report_id]
 
         campaigns_api_sync.archive(campaign)
 
@@ -278,7 +266,9 @@ class TestCampaigns:
         summaries = campaigns_api_sync.report_summaries([campaign])
 
         assert campaign._id_or_error in summaries
-        assert [r.report_id for r in summaries[campaign._id_or_error]] == campaign.report_ids
+        assert [r.report_id for r in summaries[campaign._id_or_error]] == [
+            r.report_id for r in campaign.report_summaries
+        ]
 
         campaigns_api_sync.archive(campaign)
 
@@ -337,11 +327,11 @@ class TestCampaigns:
 
         # Another caller adds a report that `stale` knows nothing about.
         campaigns_api_sync.add_reports(campaign._id_or_error, [campaign_run.default_report_id])
-        assert stale.report_ids == []
+        assert [r.report_id for r in stale.report_summaries] == []
 
         merged = campaigns_api_sync.add_reports(stale, [campaign_run.default_report_id])
 
-        assert merged.report_ids == [campaign_run.default_report_id]
+        assert [r.report_id for r in merged.report_summaries] == [campaign_run.default_report_id]
 
         campaigns_api_sync.archive(campaign)
 
@@ -363,8 +353,12 @@ class TestCampaigns:
             runs=[campaign_run],
         )
 
-        # The service returns these in no fixed order; the instance method sorts them.
-        assert [s.report_id for s in campaign.report_summaries()] == campaign.report_ids
+        # The service returns these in no fixed order; _from_proto sorts them.
+        ids = [r.report_id for r in campaign.report_summaries]
+        assert ids == sorted(ids)
+        assert ids == [
+            r.report_id for r in campaigns_api_sync.get(campaign._id_or_error).report_summaries
+        ]
 
         campaigns_api_sync.archive(campaign)
 

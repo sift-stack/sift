@@ -7,7 +7,7 @@ from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.campaign import (
     Campaign,
     CampaignCreate,
-    CampaignReport,
+    CampaignReportSummary,
     CampaignUpdate,
 )
 from sift_client.sift_types.run import Run
@@ -25,7 +25,7 @@ class CampaignsAPIAsync(ResourceBase):
     """High-level API for interacting with campaigns.
 
     A campaign is a named list of reports. Runs join a campaign through the reports they
-    generate, so a run must be created with `create_default_report=True` to be added.
+    generate.
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -169,7 +169,7 @@ class CampaignsAPIAsync(ResourceBase):
         *,
         reports: list[Report] | list[str] | None = None,
         runs: list[Run] | list[str] | None = None,
-        from_campaign: str | Campaign | None = None,
+        campaign: str | Campaign | None = None,
     ) -> Campaign:
         """Create a new campaign, optionally seeded with reports.
 
@@ -180,7 +180,7 @@ class CampaignsAPIAsync(ResourceBase):
             create: The campaign definition.
             reports: Seed with these Reports or report IDs.
             runs: Seed with the reports these Runs generated.
-            from_campaign: Duplicate this Campaign or campaign ID.
+            campaign: Duplicate this Campaign or campaign ID.
 
         Returns:
             The created Campaign.
@@ -194,32 +194,10 @@ class CampaignsAPIAsync(ResourceBase):
                 [r._id_or_error if isinstance(r, Run) else r for r in runs] if runs else None
             ),
             from_campaign_id=(
-                from_campaign._id_or_error if isinstance(from_campaign, Campaign) else from_campaign
+                campaign._id_or_error if isinstance(campaign, Campaign) else campaign
             ),
         )
         return self._apply_client_to_instance(created)
-
-    async def get_or_create(self, create: CampaignCreate | dict) -> Campaign:
-        """Get the campaign with this client key, or create it.
-
-        Args:
-            create: The campaign definition. Its `client_key` is required.
-
-        Returns:
-            The existing or newly created Campaign.
-
-        Raises:
-            ValueError: If `client_key` is not set.
-        """
-        if isinstance(create, dict):
-            create = CampaignCreate.model_validate(create)
-        if not create.client_key:
-            raise ValueError("get_or_create requires a client_key")
-
-        existing = await self.find(client_keys=[create.client_key], include_archived=True)
-        if existing is not None:
-            return existing
-        return await self.create(create)
 
     async def update(self, campaign: str | Campaign, update: CampaignUpdate | dict) -> Campaign:
         """Update a Campaign.
@@ -255,21 +233,19 @@ class CampaignsAPIAsync(ResourceBase):
         """
         campaign_id = campaign._id_or_error if isinstance(campaign, Campaign) else campaign
         current = await self.get(campaign_id, skip_report_summaries=True)
-        existing_ids = current.report_ids
+        existing_ids = [r.report_id for r in current.report_summaries]
         merged = existing_ids + [
             report_id
             for report_id in (self._report_id(r) for r in reports)
             if report_id not in existing_ids
         ]
-        return await self.update(
-            current, CampaignUpdate(reports=[CampaignReport(report_id=r) for r in merged])
-        )
+        return await self.update(current, CampaignUpdate(reports=merged))
 
     async def add_runs(self, campaign: str | Campaign, runs: list[Run] | list[str]) -> Campaign:
         """Add runs to a campaign through the reports they generated.
 
-        A campaign holds reports, not runs, so each run must have a default report. Pass
-        `create_default_report=True` to `RunCreate` to get one.
+        A campaign holds reports, not runs. Each run contributes its default report, or
+        its most recent report if it has none.
 
         Args:
             campaign: The Campaign or campaign ID to add to.
@@ -279,18 +255,29 @@ class CampaignsAPIAsync(ResourceBase):
             The updated Campaign.
 
         Raises:
-            ValueError: If any run has no default report.
+            ValueError: If any run has no report.
         """
         resolved = [
             r if isinstance(r, Run) else await self.client.async_.runs.get(run_id=r) for r in runs
         ]
-        missing = [r.name for r in resolved if not r.default_report_id]
+        report_ids = []
+        missing = []
+        for run in resolved:
+            report_id = run.default_report_id
+            if not report_id:
+                found = await self.client.async_.reports.list_(
+                    run=run, order_by="created_date desc", limit=1
+                )
+                report_id = found[0]._id_or_error if found else None
+            if report_id:
+                report_ids.append(report_id)
+            else:
+                missing.append(run.name)
         if missing:
             raise ValueError(
-                f"These runs have no default report, so they cannot join a campaign: {missing}. "
-                "Create runs with create_default_report=True."
+                f"These runs have no report, so they cannot join a campaign: {missing}. "
+                "Create runs with create_default_report=True, or build a report over the run."
             )
-        report_ids = [r.default_report_id for r in resolved if r.default_report_id]
         return await self.add_reports(campaign, report_ids)
 
     async def archive(self, campaign: str | Campaign) -> Campaign:
@@ -317,7 +304,7 @@ class CampaignsAPIAsync(ResourceBase):
 
     async def report_summaries(
         self, campaigns: list[str | Campaign], *, organization_id: str | None = None
-    ) -> dict[str, list[CampaignReport]]:
+    ) -> dict[str, list[CampaignReportSummary]]:
         """Get per-report rule counts for several campaigns at once.
 
         Args:

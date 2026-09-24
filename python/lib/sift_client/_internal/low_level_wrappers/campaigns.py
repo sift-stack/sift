@@ -4,6 +4,9 @@ import logging
 from typing import TYPE_CHECKING, Any, cast
 
 from sift.campaigns.v1.campaigns_pb2 import (
+    CampaignReport as CampaignReportProto,
+)
+from sift.campaigns.v1.campaigns_pb2 import (
     CreateCampaignFrom,
     CreateCampaignResponse,
     GetCampaignReportSummariesRequest,
@@ -28,8 +31,9 @@ from sift_client._internal.low_level_wrappers.base import DEFAULT_PAGE_SIZE, Low
 from sift_client.sift_types.campaign import (
     Campaign,
     CampaignCreate,
-    CampaignReport,
+    CampaignReportSummary,
     CampaignUpdate,
+    report_ids,
     tag_names,
 )
 from sift_client.transport import WithGrpcClient
@@ -221,6 +225,11 @@ class CampaignsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             The updated Campaign.
         """
         grpc_campaign, update_mask = update.to_proto_with_mask()
+        if "reports" in update.model_fields_set:
+            grpc_campaign.reports.extend(
+                CampaignReportProto(report_id=r) for r in report_ids(update.reports)
+            )
+            update_mask.paths.append("reports")
         if "tags" in update.model_fields_set:
             grpc_campaign.tags.extend(TagRef(name=name) for name in tag_names(update.tags))
             update_mask.paths.append("tags")
@@ -232,7 +241,7 @@ class CampaignsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
     async def get_report_summaries(
         self, *, campaign_ids: list[str], organization_id: str | None = None
-    ) -> dict[str, list[CampaignReport]]:
+    ) -> dict[str, list[CampaignReportSummary]]:
         """Get per-report rule counts for several campaigns at once.
 
         Args:
@@ -253,6 +262,6 @@ class CampaignsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = cast("GetCampaignReportSummariesResponse", response)
 
         return {
-            campaign_id: [CampaignReport._from_proto(r) for r in reports.reports]
+            campaign_id: [CampaignReportSummary._from_proto(r) for r in reports.reports]
             for campaign_id, reports in response.summaries_by_campaign_id.items()
         }

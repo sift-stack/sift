@@ -8,32 +8,32 @@ import pytest
 from sift_client.sift_types import Campaign
 from sift_client.sift_types.campaign import (
     CampaignCreate,
-    CampaignReport,
+    CampaignReportSummary,
     CampaignUpdate,
 )
 
 NOW = datetime(2026, 1, 1, tzinfo=timezone.utc)
 
 
-class TestCampaignReport:
-    """Unit tests for CampaignReport."""
+class TestCampaignReportSummary:
+    """Unit tests for CampaignReportSummary."""
 
     def test_counts_default_to_zero(self):
-        report = CampaignReport(report_id="r-1")
+        report = CampaignReportSummary(report_id="r-1")
 
-        assert report.num_annotations == 0
+        assert report.rule_statistics.annotations == 0
         assert report.report_name == ""
 
     def test_from_proto(self):
         from sift.campaigns.v1.campaigns_pb2 import CampaignReport as Proto
 
-        report = CampaignReport._from_proto(
+        report = CampaignReportSummary._from_proto(
             Proto(report_id="r-1", report_name="nightly", num_failed_rules=2)
         )
 
         assert report.report_id == "r-1"
         assert report.report_name == "nightly"
-        assert report.num_failed_rules == 2
+        assert report.rule_statistics.failed == 2
 
 
 class TestCampaignCreate:
@@ -70,22 +70,15 @@ class TestCampaignUpdate:
         assert proto.name == "renamed"
         assert set(mask.paths) == {"name", "description"}
 
-    def test_reports_converter_sends_only_ids(self):
-        update = CampaignUpdate(
-            reports=[
-                CampaignReport(report_id="r-1", report_name="ignored", num_failed_rules=9),
-                CampaignReport(report_id="r-2"),
-            ]
-        )
+    def test_reports_takes_ids(self):
+        """`reports` takes report IDs; the read-only summary type never appears here."""
+        update = CampaignUpdate(reports=["r-1", "r-2"])
         update.resource_id = "c-1"
 
         proto, mask = update.to_proto_with_mask()
 
-        assert [r.report_id for r in proto.reports] == ["r-1", "r-2"]
-        # Name and counts are output only, so they must not be sent.
-        assert proto.reports[0].report_name == ""
-        assert proto.reports[0].num_failed_rules == 0
-        assert mask.paths == ["reports"]
+        assert mask.paths == []
+        assert update.reports == ["r-1", "r-2"]
 
     def test_archive_update(self):
         update = CampaignUpdate(is_archived=True)
@@ -109,7 +102,10 @@ def mock_campaign(mock_client):
         id_="c-1",
         name="Q1 regression",
         organization_id="org1",
-        reports=[CampaignReport(report_id="r-1"), CampaignReport(report_id="r-2")],
+        report_summaries=[
+            CampaignReportSummary(report_id="r-1"),
+            CampaignReportSummary(report_id="r-2"),
+        ],
         tags=[],
         metadata={},
         created_date=NOW,
@@ -130,13 +126,13 @@ def mock_campaign(mock_client):
 class TestCampaign:
     """Unit tests for Campaign model - tests properties and methods."""
 
-    def test_report_ids(self, mock_campaign):
-        assert mock_campaign.report_ids == ["r-1", "r-2"]
+    def test_report_summaries(self, mock_campaign):
+        assert [r.report_id for r in mock_campaign.report_summaries] == ["r-1", "r-2"]
 
-    def test_resolved_reports_calls_client(self, mock_campaign, mock_client):
+    def test_reports_calls_client(self, mock_campaign, mock_client):
         mock_client.reports.list_.return_value = []
 
-        _ = mock_campaign.resolved_reports
+        _ = mock_campaign.reports
 
         mock_client.reports.list_.assert_called_once_with(report_ids=["r-1", "r-2"])
 

@@ -37,7 +37,7 @@ if TYPE_CHECKING:
     from sift_client.sift_types.campaign import (
         Campaign,
         CampaignCreate,
-        CampaignReport,
+        CampaignReportSummary,
         CampaignUpdate,
     )
     from sift_client.sift_types.channel import Channel, ChannelUpdate
@@ -766,7 +766,7 @@ class CampaignsAPI:
     High-level API for interacting with campaigns.
 
     A campaign is a named list of reports. Runs join a campaign through the reports they
-    generate, so a run must be created with `create_default_report=True` to be added.
+    generate.
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -793,8 +793,8 @@ class CampaignsAPI:
     def add_runs(self, campaign: str | Campaign, runs: list[Run] | list[str]) -> Campaign:
         """Add runs to a campaign through the reports they generated.
 
-        A campaign holds reports, not runs, so each run must have a default report. Pass
-        `create_default_report=True` to `RunCreate` to get one.
+        A campaign holds reports, not runs. Each run contributes its default report, or
+        its most recent report if it has none.
 
         Args:
             campaign: The Campaign or campaign ID to add to.
@@ -804,7 +804,7 @@ class CampaignsAPI:
             The updated Campaign.
 
         Raises:
-            ValueError: If any run has no default report.
+            ValueError: If any run has no report.
         """
         ...
 
@@ -825,7 +825,7 @@ class CampaignsAPI:
         *,
         reports: list[Report] | list[str] | None = None,
         runs: list[Run] | list[str] | None = None,
-        from_campaign: str | Campaign | None = None,
+        campaign: str | Campaign | None = None,
     ) -> Campaign:
         """Create a new campaign, optionally seeded with reports.
 
@@ -836,7 +836,7 @@ class CampaignsAPI:
             create: The campaign definition.
             reports: Seed with these Reports or report IDs.
             runs: Seed with the reports these Runs generated.
-            from_campaign: Duplicate this Campaign or campaign ID.
+            campaign: Duplicate this Campaign or campaign ID.
 
         Returns:
             The created Campaign.
@@ -874,20 +874,6 @@ class CampaignsAPI:
 
         Returns:
             The Campaign.
-        """
-        ...
-
-    def get_or_create(self, create: CampaignCreate | dict) -> Campaign:
-        """Get the campaign with this client key, or create it.
-
-        Args:
-            create: The campaign definition. Its `client_key` is required.
-
-        Returns:
-            The existing or newly created Campaign.
-
-        Raises:
-            ValueError: If `client_key` is not set.
         """
         ...
 
@@ -940,7 +926,7 @@ class CampaignsAPI:
 
     def report_summaries(
         self, campaigns: list[str | Campaign], *, organization_id: str | None = None
-    ) -> dict[str, list[CampaignReport]]:
+    ) -> dict[str, list[CampaignReportSummary]]:
         """Get per-report rule counts for several campaigns at once.
 
         Args:
