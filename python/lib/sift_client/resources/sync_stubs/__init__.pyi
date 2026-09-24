@@ -86,12 +86,13 @@ if TYPE_CHECKING:
     )
     from sift_client.sift_types.user import User
     from sift_client.sift_types.user_defined_function import (
-        FunctionDependents,
         FunctionInput,
+        FunctionUsage,
         UserDefinedFunction,
         UserDefinedFunctionCreate,
         UserDefinedFunctionUpdate,
         UserDefinedFunctionValidation,
+        UserDefinedFunctionVersion,
     )
 
 class AssetsAPI:
@@ -3485,21 +3486,21 @@ class UserDefinedFunctionVersionsAPI:
         ...
 
     def _run(self, coro): ...
-    def get(self, version_id: str) -> UserDefinedFunction:
+    def get(self, *, version: str | UserDefinedFunctionVersion) -> UserDefinedFunctionVersion:
         """Get one version.
 
         Args:
-            version_id: The ID of the version.
+            version: The UserDefinedFunctionVersion or version ID.
 
         Returns:
-            The function at that version.
+            The UserDefinedFunctionVersion.
         """
         ...
 
     def list_(
         self,
         *,
-        function: str | UserDefinedFunction | None = None,
+        user_defined_function: str | UserDefinedFunction | None = None,
         name: str | None = None,
         version: int | None = None,
         include_archived: bool = False,
@@ -3507,12 +3508,12 @@ class UserDefinedFunctionVersionsAPI:
         order_by: str | None = None,
         limit: int | None = None,
         page_size: int | None = None,
-    ) -> list[UserDefinedFunction]:
+    ) -> list[UserDefinedFunctionVersion]:
         """List a function's versions.
 
         Args:
-            function: The UserDefinedFunction or function ID whose versions to list.
-            name: The function name, as an alternative to `function`.
+            user_defined_function: The UserDefinedFunction or function ID whose versions to list.
+            name: The function name, as an alternative to `user_defined_function`.
             version: Filter to a single version number.
             include_archived: If True, include archived versions in results.
             filter_query: Explicit CEL query to filter versions.
@@ -3521,7 +3522,7 @@ class UserDefinedFunctionVersionsAPI:
             page_size: Number of results to fetch per request.
 
         Returns:
-            A list of UserDefinedFunction objects, one per version.
+            A list of UserDefinedFunctionVersion objects, newest first.
         """
         ...
 
@@ -3543,11 +3544,11 @@ class UserDefinedFunctionsAPI:
         ...
 
     def _run(self, coro): ...
-    def archive(self, function: str | UserDefinedFunction) -> UserDefinedFunction:
+    def archive(self, user_defined_function: str | UserDefinedFunction) -> UserDefinedFunction:
         """Archive a function.
 
         Args:
-            function: The UserDefinedFunction or function ID to archive.
+            user_defined_function: The UserDefinedFunction or function ID to archive.
 
         Returns:
             The archived UserDefinedFunction.
@@ -3565,23 +3566,6 @@ class UserDefinedFunctionsAPI:
         """
         ...
 
-    def dependents(
-        self, function: str | UserDefinedFunction, *, version_id: str | None = None
-    ) -> FunctionDependents:
-        """Get what depends on a function.
-
-        Check this before changing inputs or the output type. The server refuses those
-        changes once a function has dependents.
-
-        Args:
-            function: The UserDefinedFunction or function ID.
-            version_id: A specific version, instead of the function as a whole.
-
-        Returns:
-            The IDs of dependent functions, calculated channels, and rules.
-        """
-        ...
-
     def find(self, **kwargs) -> UserDefinedFunction | None:
         """Find one function. Takes the same arguments as `list_`.
 
@@ -3595,14 +3579,38 @@ class UserDefinedFunctionsAPI:
         """
         ...
 
-    def get(self, function_id: str) -> UserDefinedFunction:
+    def get(self, *, user_defined_function_id: str) -> UserDefinedFunction:
         """Get a UserDefinedFunction.
 
         Args:
-            function_id: The ID of the function.
+            user_defined_function_id: The ID of the function.
 
         Returns:
             The UserDefinedFunction.
+        """
+        ...
+
+    def get_where_used(
+        self,
+        user_defined_function: str | UserDefinedFunction | None = None,
+        *,
+        version: str | UserDefinedFunctionVersion | None = None,
+    ) -> FunctionUsage:
+        """Get what uses a function.
+
+        Check this before changing inputs or the output type. The server refuses those
+        changes once a function is in use.
+
+        Args:
+            user_defined_function: The UserDefinedFunction or function ID.
+            version: A specific UserDefinedFunctionVersion or version ID, instead of the
+                function as a whole.
+
+        Returns:
+            The functions, calculated channels, and rules that use it.
+
+        Raises:
+            ValueError: If neither or both are provided.
         """
         ...
 
@@ -3637,25 +3645,11 @@ class UserDefinedFunctionsAPI:
         """
         ...
 
-    def sync(self, functions: list[UserDefinedFunctionCreate | dict]) -> list[UserDefinedFunction]:
-        """Create or update each function so Sift matches the definitions given.
-
-        Functions match by name. A new name is created. An existing one is updated,
-        which produces a new version. Nothing is archived.
-
-        Args:
-            functions: The function definitions to apply.
-
-        Returns:
-            The created or updated functions, in the order given.
-        """
-        ...
-
-    def unarchive(self, function: str | UserDefinedFunction) -> UserDefinedFunction:
+    def unarchive(self, user_defined_function: str | UserDefinedFunction) -> UserDefinedFunction:
         """Unarchive a function.
 
         Args:
-            function: The UserDefinedFunction or function ID to unarchive.
+            user_defined_function: The UserDefinedFunction or function ID to unarchive.
 
         Returns:
             The unarchived UserDefinedFunction.
@@ -3663,27 +3657,35 @@ class UserDefinedFunctionsAPI:
         ...
 
     def update(
-        self, function: str | UserDefinedFunction, update: UserDefinedFunctionUpdate | dict
+        self,
+        user_defined_function: str | UserDefinedFunction,
+        update: UserDefinedFunctionUpdate | dict,
+        change_notes: str | None = None,
     ) -> UserDefinedFunction:
-        """Update a function. This creates a new version.
+        """Update a function.
+
+        Changes to the expression, inputs, description, or metadata create a new version.
 
         Args:
-            function: The UserDefinedFunction or function ID to update.
+            user_defined_function: The UserDefinedFunction or function ID to update.
             update: Updates to apply to the function.
+            change_notes: A note to attach to the new version. The server treats an empty
+                note as a change, so the current version's note carries over when omitted.
 
         Returns:
             The updated UserDefinedFunction.
         """
         ...
 
-    def validate(
-        self, expression: str, function_inputs: list[FunctionInput] | None = None
+    def validate_expression(
+        self, expression: str, function_inputs: list[FunctionInput]
     ) -> UserDefinedFunctionValidation:
         """Check an expression without saving it.
 
         Args:
             expression: The expression to check.
-            function_inputs: The inputs the expression refers to.
+            function_inputs: The inputs the expression refers to. The server rejects an
+                empty list.
 
         Returns:
             Whether the expression compiles, and its output type or error.

@@ -25,14 +25,17 @@ from sift.user_defined_functions.v1.user_defined_functions_pb2_grpc import (
 )
 
 from sift_client._internal.low_level_wrappers.base import DEFAULT_PAGE_SIZE, LowLevelClientBase
+from sift_client.sift_types.calculated_channel import CalculatedChannel
+from sift_client.sift_types.rule import Rule
 from sift_client.sift_types.user_defined_function import (
     FunctionDataType,
-    FunctionDependents,
     FunctionInput,
+    FunctionUsage,
     UserDefinedFunction,
     UserDefinedFunctionCreate,
     UserDefinedFunctionUpdate,
     UserDefinedFunctionValidation,
+    UserDefinedFunctionVersion,
     _function_input_to_proto,
 )
 from sift_client.transport import WithGrpcClient
@@ -75,20 +78,20 @@ class UserDefinedFunctionsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             cast("GetUserDefinedFunctionResponse", response).user_defined_function
         )
 
-    async def get_version(self, version_id: str) -> UserDefinedFunction:
+    async def get_version(self, version_id: str) -> UserDefinedFunctionVersion:
         """Get one version of a function.
 
         Args:
             version_id: The version ID to get.
 
         Returns:
-            The UserDefinedFunction at that version.
+            The UserDefinedFunctionVersion.
         """
         request = GetUserDefinedFunctionVersionRequest(user_defined_function_version_id=version_id)
         response = await self._grpc_client.get_stub(
             UserDefinedFunctionServiceStub
         ).GetUserDefinedFunctionVersion(request)
-        return UserDefinedFunction._from_proto(
+        return UserDefinedFunctionVersion._from_proto(
             cast("GetUserDefinedFunctionVersionResponse", response).user_defined_function
         )
 
@@ -166,7 +169,7 @@ class UserDefinedFunctionsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         page_token: str | None = None,
         query_filter: str | None = None,
         order_by: str | None = None,
-    ) -> tuple[list[UserDefinedFunction], str]:
+    ) -> tuple[list[UserDefinedFunctionVersion], str]:
         """List one page of versions for a function.
 
         Args:
@@ -200,7 +203,9 @@ class UserDefinedFunctionsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         ).ListUserDefinedFunctionVersions(request)
         response = cast("ListUserDefinedFunctionVersionsResponse", response)
 
-        versions = [UserDefinedFunction._from_proto(f) for f in response.user_defined_functions]
+        versions = [
+            UserDefinedFunctionVersion._from_proto(f) for f in response.user_defined_functions
+        ]
         return versions, response.next_page_token
 
     async def list_all_versions(
@@ -212,7 +217,7 @@ class UserDefinedFunctionsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         order_by: str | None = None,
         page_size: int | None = DEFAULT_PAGE_SIZE,
         max_results: int | None = None,
-    ) -> list[UserDefinedFunction]:
+    ) -> list[UserDefinedFunctionVersion]:
         """List every matching version.
 
         Args:
@@ -251,16 +256,21 @@ class UserDefinedFunctionsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             cast("CreateUserDefinedFunctionResponse", response).user_defined_function
         )
 
-    async def update_function(self, update: UserDefinedFunctionUpdate) -> UserDefinedFunction:
+    async def update_function(
+        self, update: UserDefinedFunctionUpdate, change_notes: str | None = None
+    ) -> UserDefinedFunction:
         """Update select fields of a function.
 
         Args:
             update: The updates to apply. Its `resource_id` must be set.
+            change_notes: The note to attach to the new version.
 
         Returns:
             The updated UserDefinedFunction.
         """
         grpc_function, update_mask = update.to_proto_with_mask()
+        if change_notes is not None:
+            grpc_function.user_notes = change_notes
         request = UpdateUserDefinedFunctionRequest(
             user_defined_function=grpc_function, update_mask=update_mask
         )
@@ -272,7 +282,7 @@ class UserDefinedFunctionsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         )
 
     async def validate_function(
-        self, *, expression: str, function_inputs: list[FunctionInput] | None = None
+        self, *, expression: str, function_inputs: list[FunctionInput]
     ) -> UserDefinedFunctionValidation:
         """Check an expression without saving it.
 
@@ -295,10 +305,10 @@ class UserDefinedFunctionsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = cast("ValidateUserDefinedFunctionResponse", response)
 
         if response.WhichOneof("result") == "error":
-            return UserDefinedFunctionValidation(valid=False, error=response.error.error_message)
+            return UserDefinedFunctionValidation(is_valid=False, error=response.error.error_message)
         output_type = response.success.user_defined_function.function_output_type
         return UserDefinedFunctionValidation(
-            valid=True,
+            is_valid=True,
             output_type=FunctionDataType(output_type) if output_type else None,
         )
 
@@ -308,7 +318,7 @@ class UserDefinedFunctionsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         function_id: str | None = None,
         name: str | None = None,
         version_id: str | None = None,
-    ) -> FunctionDependents:
+    ) -> FunctionUsage:
         """Get what depends on a function.
 
         Exactly one identifier must be provided.
@@ -319,7 +329,7 @@ class UserDefinedFunctionsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             version_id: A specific version ID.
 
         Returns:
-            The IDs of dependent functions, calculated channels, and rules.
+            The functions, calculated channels, and rules that use it.
 
         Raises:
             ValueError: If not exactly one identifier is provided.
@@ -342,8 +352,10 @@ class UserDefinedFunctionsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         ).GetUserDefinedFunctionDependents(request)
         response = cast("GetUserDefinedFunctionDependentsResponse", response)
 
-        return FunctionDependents(
-            function_ids=[f.user_defined_function_id for f in response.user_defined_functions],
-            calculated_channel_ids=[c.calculated_channel_id for c in response.calculated_channels],
-            rule_ids=[r.rule_id for r in response.rules],
+        return FunctionUsage(
+            functions=[UserDefinedFunction._from_proto(f) for f in response.user_defined_functions],
+            calculated_channels=[
+                CalculatedChannel._from_proto(c) for c in response.calculated_channels
+            ],
+            rules=[Rule._from_proto(r) for r in response.rules],
         )

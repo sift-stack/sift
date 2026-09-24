@@ -25,10 +25,13 @@ from sift_client.sift_types._base import (
     ModelCreateUpdateBase,
     ModelUpdate,
 )
+from sift_client.sift_types.calculated_channel import CalculatedChannel  # noqa: TC001
+from sift_client.sift_types.rule import Rule  # noqa: TC001
 from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
+    from sift_client.sift_types.user import User
 
 
 class FunctionDataType(Enum):
@@ -46,19 +49,19 @@ class FunctionInput(BaseModel):
     Attributes:
         identifier: How the expression refers to this input, such as `$1`.
         data_type: The type the input accepts.
-        constant: Whether the input is a literal rather than a channel.
+        scalar: Whether the input is a literal value rather than a channel.
     """
 
     identifier: str
     data_type: FunctionDataType = FunctionDataType.NUMERIC
-    constant: bool = False
+    scalar: bool = False
 
     @classmethod
     def _from_proto(cls, proto: FunctionInputProto) -> FunctionInput:
         return cls(
             identifier=proto.identifier,
             data_type=FunctionDataType(proto.data_type),
-            constant=proto.constant,
+            scalar=proto.constant,
         )
 
 
@@ -68,36 +71,86 @@ def _function_input_to_proto(**kwargs) -> FunctionInputProto:
     return FunctionInputProto(
         identifier=kwargs["identifier"],
         data_type=data_type.value if isinstance(data_type, FunctionDataType) else data_type,
-        constant=kwargs.get("constant", False),
+        constant=kwargs.get("scalar", False),
     )
+
+
+class UserDefinedFunctionVersion(BaseType[UserDefinedFunctionProto, "UserDefinedFunctionVersion"]):
+    """One saved revision of a function. `id_` is the version ID."""
+
+    user_defined_function_id: str
+    version: int
+    expression: str
+    change_message: str
+    change_notes: str
+    function_inputs: list[FunctionInput]
+    dependency_version_ids: list[str]
+    created_date: datetime
+    created_by_user_id: str
+    output_type: FunctionDataType | None
+
+    @classmethod
+    def _from_proto(
+        cls, proto: UserDefinedFunctionProto, sift_client: SiftClient | None = None
+    ) -> UserDefinedFunctionVersion:
+        return cls(
+            proto=proto,
+            id_=proto.user_defined_function_version_id,
+            user_defined_function_id=proto.user_defined_function_id,
+            version=proto.version,
+            expression=proto.expression,
+            change_message=proto.change_message,
+            change_notes=proto.user_notes,
+            function_inputs=[FunctionInput._from_proto(i) for i in proto.function_inputs],
+            dependency_version_ids=[
+                d.user_defined_function_version_id for d in proto.function_dependencies
+            ],
+            created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
+            created_by_user_id=proto.created_by_user_id,
+            output_type=(
+                FunctionDataType(proto.function_output_type) if proto.function_output_type else None
+            ),
+            _client=sift_client,
+        )
+
+    @property
+    def function(self) -> UserDefinedFunction:
+        """Fetch the function this version belongs to."""
+        return self.client.user_defined_functions.get(
+            user_defined_function_id=self.user_defined_function_id
+        )
+
+    @property
+    def created_by(self) -> User:
+        """Fetch the User that created this version."""
+        return self.client.users.get(user_id=self.created_by_user_id)
+
+    @property
+    def dependencies(self) -> list[UserDefinedFunctionVersion]:
+        """Fetch the function versions this one calls."""
+        return [
+            self.client.user_defined_functions.versions.get(version=v)
+            for v in self.dependency_version_ids
+        ]
 
 
 class UserDefinedFunction(BaseType[UserDefinedFunctionProto, "UserDefinedFunction"]):
     """A reusable expression that calculated channels and rules can call.
 
-    Each save produces a new version. `id_` identifies the function; `version_id`
-    identifies this particular version.
+    Version agnostic. The expression, inputs, and output type live on
+    `latest_version`; each save produces a new one.
     """
 
-    # Required fields
     name: str
     description: str
-    expression: str
-    version: int
-    version_id: str
-    change_message: str
-    user_notes: str
-    function_inputs: list[FunctionInput]
-    dependency_version_ids: list[str]
     metadata: dict[str, str | float | bool]
     created_date: datetime
     modified_date: datetime
     created_by_user_id: str
     modified_by_user_id: str
     is_archived: bool
+    latest_version: UserDefinedFunctionVersion
 
-    # Optional fields
-    output_type: FunctionDataType | None
     archived_date: datetime | None
 
     @classmethod
@@ -109,24 +162,13 @@ class UserDefinedFunction(BaseType[UserDefinedFunctionProto, "UserDefinedFunctio
             id_=proto.user_defined_function_id,
             name=proto.name,
             description=proto.description,
-            expression=proto.expression,
-            version=proto.version,
-            version_id=proto.user_defined_function_version_id,
-            change_message=proto.change_message,
-            user_notes=proto.user_notes,
-            function_inputs=[FunctionInput._from_proto(i) for i in proto.function_inputs],
-            dependency_version_ids=[
-                d.user_defined_function_version_id for d in proto.function_dependencies
-            ],
             metadata=metadata_proto_to_dict(proto.metadata),  # type: ignore
             created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
             modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
             created_by_user_id=proto.created_by_user_id,
             modified_by_user_id=proto.modified_by_user_id,
             is_archived=proto.is_archived,
-            output_type=(
-                FunctionDataType(proto.function_output_type) if proto.function_output_type else None
-            ),
+            latest_version=UserDefinedFunctionVersion._from_proto(proto, sift_client),
             archived_date=(
                 proto.archived_date.ToDatetime(tzinfo=timezone.utc)
                 if proto.HasField("archived_date")
@@ -136,9 +178,19 @@ class UserDefinedFunction(BaseType[UserDefinedFunctionProto, "UserDefinedFunctio
         )
 
     @property
-    def versions(self) -> list[UserDefinedFunction]:
-        """Return every version of this function, newest first."""
-        return self.client.user_defined_functions.versions.list_(function=self._id_or_error)
+    def versions(self) -> list[UserDefinedFunctionVersion]:
+        """Fetch every version of this function, newest first."""
+        return self.client.user_defined_functions.versions.list_(user_defined_function=self)
+
+    @property
+    def created_by(self) -> User:
+        """Fetch the User that created this function."""
+        return self.client.users.get(user_id=self.created_by_user_id)
+
+    @property
+    def modified_by(self) -> User:
+        """Fetch the User that last modified this function."""
+        return self.client.users.get(user_id=self.modified_by_user_id)
 
     def update(self, update: UserDefinedFunctionUpdate | dict) -> UserDefinedFunction:
         """Update the function. This creates a new version.
@@ -149,19 +201,21 @@ class UserDefinedFunction(BaseType[UserDefinedFunctionProto, "UserDefinedFunctio
         Returns:
             The updated function.
         """
-        updated = self.client.user_defined_functions.update(function=self, update=update)
+        updated = self.client.user_defined_functions.update(
+            user_defined_function=self, update=update
+        )
         self._update(updated)
         return self
 
     def archive(self) -> UserDefinedFunction:
         """Archive the function."""
-        updated = self.client.user_defined_functions.archive(function=self)
+        updated = self.client.user_defined_functions.archive(user_defined_function=self)
         self._update(updated)
         return self
 
     def unarchive(self) -> UserDefinedFunction:
         """Unarchive the function."""
-        updated = self.client.user_defined_functions.unarchive(function=self)
+        updated = self.client.user_defined_functions.unarchive(user_defined_function=self)
         self._update(updated)
         return self
 
@@ -170,7 +224,6 @@ class UserDefinedFunctionBase(ModelCreateUpdateBase):
     """Base class for UserDefinedFunction create and update models."""
 
     description: str | None = None
-    function_inputs: list[FunctionInput] | None = None
     metadata: dict[str, str | float | bool] | None = None
 
     _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
@@ -178,11 +231,6 @@ class UserDefinedFunctionBase(ModelCreateUpdateBase):
             proto_attr_path="metadata",
             update_field="metadata",
             converter=metadata_dict_to_proto,
-        ),
-        "function_inputs": MappingHelper(
-            proto_attr_path="function_inputs",
-            update_field="function_inputs",
-            converter=_function_input_to_proto,  # type: ignore[arg-type]
         ),
     }
 
@@ -194,7 +242,19 @@ class UserDefinedFunctionCreate(
 
     name: str
     expression: str
-    user_notes: str | None = None
+    """The CEL expression, referring to inputs positionally as `$1`, `$2`."""
+    function_inputs: list[FunctionInput]
+    change_notes: str | None = None
+
+    _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
+        **UserDefinedFunctionBase._to_proto_helpers,
+        "function_inputs": MappingHelper(
+            proto_attr_path="function_inputs",
+            update_field="function_inputs",
+            converter=_function_input_to_proto,  # type: ignore[arg-type]
+        ),
+        "change_notes": MappingHelper(proto_attr_path="user_notes", update_field="user_notes"),
+    }
 
     def _get_proto_class(self) -> type[CreateUserDefinedFunctionRequestProto]:
         return CreateUserDefinedFunctionRequestProto
@@ -204,12 +264,22 @@ class UserDefinedFunctionUpdate(UserDefinedFunctionBase, ModelUpdate[UserDefined
     """Update model for UserDefinedFunction.
 
     Once a function has dependents the server refuses to change `name`,
-    `function_inputs`, or the output type. Check `dependents` first.
+    `function_inputs`, or the output type. Check `get_where_used` first.
     """
 
     name: str | None = None
     expression: str | None = None
+    function_inputs: list[FunctionInput] | None = None
     is_archived: bool | None = None
+
+    _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
+        **UserDefinedFunctionBase._to_proto_helpers,
+        "function_inputs": MappingHelper(
+            proto_attr_path="function_inputs",
+            update_field="function_inputs",
+            converter=_function_input_to_proto,  # type: ignore[arg-type]
+        ),
+    }
 
     def _get_proto_class(self) -> type[UserDefinedFunctionProto]:
         return UserDefinedFunctionProto
@@ -224,30 +294,30 @@ class UserDefinedFunctionValidation(BaseModel):
     """The result of checking an expression before saving it.
 
     Attributes:
-        valid: Whether the expression compiles.
+        is_valid: Whether the expression compiles.
         error: Why it failed, when it is not valid.
         output_type: The type the expression returns, when it is valid.
     """
 
-    valid: bool
+    is_valid: bool
     error: str | None = None
     output_type: FunctionDataType | None = None
 
 
-class FunctionDependents(BaseModel):
-    """What would break if a function changed.
+class FunctionUsage(BaseModel):
+    """Where a function is used.
 
     Attributes:
-        function_ids: IDs of other functions that call it.
-        calculated_channel_ids: IDs of calculated channels that use it.
-        rule_ids: IDs of rules that use it.
+        functions: Other functions that call it.
+        calculated_channels: Calculated channels that use it.
+        rules: Rules that use it.
     """
 
-    function_ids: list[str] = []
-    calculated_channel_ids: list[str] = []
-    rule_ids: list[str] = []
+    functions: list[UserDefinedFunction] = []
+    calculated_channels: list[CalculatedChannel] = []
+    rules: list[Rule] = []
 
     @property
     def any(self) -> bool:
-        """Whether anything depends on the function."""
-        return bool(self.function_ids or self.calculated_channel_ids or self.rule_ids)
+        """Whether anything uses the function."""
+        return bool(self.functions or self.calculated_channels or self.rules)

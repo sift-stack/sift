@@ -7,12 +7,13 @@ from sift_client._internal.low_level_wrappers.user_defined_functions import (
 )
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.user_defined_function import (
-    FunctionDependents,
     FunctionInput,
+    FunctionUsage,
     UserDefinedFunction,
     UserDefinedFunctionCreate,
     UserDefinedFunctionUpdate,
     UserDefinedFunctionValidation,
+    UserDefinedFunctionVersion,
 )
 from sift_client.util import cel_utils as cel
 
@@ -40,22 +41,25 @@ class UserDefinedFunctionVersionsAPIAsync(ResourceBase):
             grpc_client=self.client.grpc_client
         )
 
-    async def get(self, version_id: str) -> UserDefinedFunction:
+    async def get(self, *, version: str | UserDefinedFunctionVersion) -> UserDefinedFunctionVersion:
         """Get one version.
 
         Args:
-            version_id: The ID of the version.
+            version: The UserDefinedFunctionVersion or version ID.
 
         Returns:
-            The function at that version.
+            The UserDefinedFunctionVersion.
         """
+        version_id = (
+            version._id_or_error if isinstance(version, UserDefinedFunctionVersion) else version
+        )
         version = await self._low_level_client.get_version(version_id=version_id)
         return self._apply_client_to_instance(version)
 
     async def list_(
         self,
         *,
-        function: str | UserDefinedFunction | None = None,
+        user_defined_function: str | UserDefinedFunction | None = None,
         name: str | None = None,
         # version specific
         version: int | None = None,
@@ -65,12 +69,12 @@ class UserDefinedFunctionVersionsAPIAsync(ResourceBase):
         order_by: str | None = None,
         limit: int | None = None,
         page_size: int | None = None,
-    ) -> list[UserDefinedFunction]:
+    ) -> list[UserDefinedFunctionVersion]:
         """List a function's versions.
 
         Args:
-            function: The UserDefinedFunction or function ID whose versions to list.
-            name: The function name, as an alternative to `function`.
+            user_defined_function: The UserDefinedFunction or function ID whose versions to list.
+            name: The function name, as an alternative to `user_defined_function`.
             version: Filter to a single version number.
             include_archived: If True, include archived versions in results.
             filter_query: Explicit CEL query to filter versions.
@@ -79,7 +83,7 @@ class UserDefinedFunctionVersionsAPIAsync(ResourceBase):
             page_size: Number of results to fetch per request.
 
         Returns:
-            A list of UserDefinedFunction objects, one per version.
+            A list of UserDefinedFunctionVersion objects, newest first.
         """
         filter_parts = self._build_common_cel_filters(
             include_archived=include_archived, filter_query=filter_query
@@ -90,7 +94,9 @@ class UserDefinedFunctionVersionsAPIAsync(ResourceBase):
 
         versions = await self._low_level_client.list_all_versions(
             function_id=(
-                function._id_or_error if isinstance(function, UserDefinedFunction) else function
+                user_defined_function._id_or_error
+                if isinstance(user_defined_function, UserDefinedFunction)
+                else user_defined_function
             ),
             name=name,
             query_filter=query_filter or None,
@@ -120,16 +126,16 @@ class UserDefinedFunctionsAPIAsync(ResourceBase):
         )
         self.versions = UserDefinedFunctionVersionsAPIAsync(sift_client)
 
-    async def get(self, function_id: str) -> UserDefinedFunction:
+    async def get(self, *, user_defined_function_id: str) -> UserDefinedFunction:
         """Get a UserDefinedFunction.
 
         Args:
-            function_id: The ID of the function.
+            user_defined_function_id: The ID of the function.
 
         Returns:
             The UserDefinedFunction.
         """
-        function = await self._low_level_client.get_function(function_id=function_id)
+        function = await self._low_level_client.get_function(function_id=user_defined_function_id)
         return self._apply_client_to_instance(function)
 
     async def list_(
@@ -217,66 +223,45 @@ class UserDefinedFunctionsAPIAsync(ResourceBase):
 
     async def update(
         self,
-        function: str | UserDefinedFunction,
+        user_defined_function: str | UserDefinedFunction,
         update: UserDefinedFunctionUpdate | dict,
+        change_notes: str | None = None,
     ) -> UserDefinedFunction:
-        """Update a function. This creates a new version.
+        """Update a function.
+
+        Changes to the expression, inputs, description, or metadata create a new version.
 
         Args:
-            function: The UserDefinedFunction or function ID to update.
+            user_defined_function: The UserDefinedFunction or function ID to update.
             update: Updates to apply to the function.
+            change_notes: A note to attach to the new version. The server treats an empty
+                note as a change, so the current version's note carries over when omitted.
 
         Returns:
             The updated UserDefinedFunction.
         """
-        function_id = (
-            function._id_or_error if isinstance(function, UserDefinedFunction) else function
+        current = (
+            user_defined_function
+            if isinstance(user_defined_function, UserDefinedFunction)
+            else await self.get(user_defined_function_id=user_defined_function)
         )
         if isinstance(update, dict):
             update = UserDefinedFunctionUpdate.model_validate(update)
-        update.resource_id = function_id
-        updated = await self._low_level_client.update_function(update)
+        update.resource_id = current._id_or_error
+        updated = await self._low_level_client.update_function(
+            update, change_notes=change_notes or current.latest_version.change_notes
+        )
         return self._apply_client_to_instance(updated)
 
-    async def sync(
-        self, functions: list[UserDefinedFunctionCreate | dict]
-    ) -> list[UserDefinedFunction]:
-        """Create or update each function so Sift matches the definitions given.
-
-        Functions match by name. A new name is created. An existing one is updated,
-        which produces a new version. Nothing is archived.
-
-        Args:
-            functions: The function definitions to apply.
-
-        Returns:
-            The created or updated functions, in the order given.
-        """
-        definitions = [
-            UserDefinedFunctionCreate.model_validate(f) if isinstance(f, dict) else f
-            for f in functions
-        ]
-        wanted = {d.name for d in definitions}
-        existing = {f.name: f for f in await self.list_(include_archived=True) if f.name in wanted}
-
-        results = []
-        for definition in definitions:
-            current = existing.get(definition.name)
-            if current is None:
-                results.append(await self.create(definition))
-                continue
-            changes = definition.model_dump(exclude_unset=True, exclude={"name"})
-            results.append(await self.update(current, changes))
-        return results
-
-    async def validate(
-        self, expression: str, function_inputs: list[FunctionInput] | None = None
+    async def validate_expression(
+        self, expression: str, function_inputs: list[FunctionInput]
     ) -> UserDefinedFunctionValidation:
         """Check an expression without saving it.
 
         Args:
             expression: The expression to check.
-            function_inputs: The inputs the expression refers to.
+            function_inputs: The inputs the expression refers to. The server rejects an
+                empty list.
 
         Returns:
             Whether the expression compiles, and its output type or error.
@@ -285,46 +270,66 @@ class UserDefinedFunctionsAPIAsync(ResourceBase):
             expression=expression, function_inputs=function_inputs
         )
 
-    async def dependents(
-        self, function: str | UserDefinedFunction, *, version_id: str | None = None
-    ) -> FunctionDependents:
-        """Get what depends on a function.
+    async def get_where_used(
+        self,
+        user_defined_function: str | UserDefinedFunction | None = None,
+        *,
+        version: str | UserDefinedFunctionVersion | None = None,
+    ) -> FunctionUsage:
+        """Get what uses a function.
 
         Check this before changing inputs or the output type. The server refuses those
-        changes once a function has dependents.
+        changes once a function is in use.
 
         Args:
-            function: The UserDefinedFunction or function ID.
-            version_id: A specific version, instead of the function as a whole.
+            user_defined_function: The UserDefinedFunction or function ID.
+            version: A specific UserDefinedFunctionVersion or version ID, instead of the
+                function as a whole.
 
         Returns:
-            The IDs of dependent functions, calculated channels, and rules.
+            The functions, calculated channels, and rules that use it.
+
+        Raises:
+            ValueError: If neither or both are provided.
         """
-        if version_id is not None:
+        if (user_defined_function is None) == (version is None):
+            raise ValueError("Exactly one of user_defined_function or version must be provided")
+        if version is not None:
+            version_id = (
+                version._id_or_error if isinstance(version, UserDefinedFunctionVersion) else version
+            )
             return await self._low_level_client.get_dependents(version_id=version_id)
         function_id = (
-            function._id_or_error if isinstance(function, UserDefinedFunction) else function
+            user_defined_function._id_or_error
+            if isinstance(user_defined_function, UserDefinedFunction)
+            else user_defined_function
         )
         return await self._low_level_client.get_dependents(function_id=function_id)
 
-    async def archive(self, function: str | UserDefinedFunction) -> UserDefinedFunction:
+    async def archive(
+        self, user_defined_function: str | UserDefinedFunction
+    ) -> UserDefinedFunction:
         """Archive a function.
 
         Args:
-            function: The UserDefinedFunction or function ID to archive.
+            user_defined_function: The UserDefinedFunction or function ID to archive.
 
         Returns:
             The archived UserDefinedFunction.
         """
-        return await self.update(function, UserDefinedFunctionUpdate(is_archived=True))
+        return await self.update(user_defined_function, UserDefinedFunctionUpdate(is_archived=True))
 
-    async def unarchive(self, function: str | UserDefinedFunction) -> UserDefinedFunction:
+    async def unarchive(
+        self, user_defined_function: str | UserDefinedFunction
+    ) -> UserDefinedFunction:
         """Unarchive a function.
 
         Args:
-            function: The UserDefinedFunction or function ID to unarchive.
+            user_defined_function: The UserDefinedFunction or function ID to unarchive.
 
         Returns:
             The unarchived UserDefinedFunction.
         """
-        return await self.update(function, UserDefinedFunctionUpdate(is_archived=False))
+        return await self.update(
+            user_defined_function, UserDefinedFunctionUpdate(is_archived=False)
+        )

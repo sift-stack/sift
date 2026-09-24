@@ -219,12 +219,13 @@ from sift_client.sift_types.test_report import (
 from sift_client.sift_types.user import User, UserOrganization
 from sift_client.sift_types.user_defined_function import (
     FunctionDataType,
-    FunctionDependents,
     FunctionInput,
+    FunctionUsage,
     UserDefinedFunction,
     UserDefinedFunctionCreate,
     UserDefinedFunctionUpdate,
     UserDefinedFunctionValidation,
+    UserDefinedFunctionVersion,
 )
 
 if "pytest" in sys.modules:
@@ -263,8 +264,8 @@ __all__ = [
     "Flow",
     "FlowConfig",
     "FunctionDataType",
-    "FunctionDependents",
     "FunctionInput",
+    "FunctionUsage",
     "IngestionConfig",
     "IngestionConfigCreate",
     "Job",
@@ -326,5 +327,6 @@ __all__ = [
     "UserDefinedFunctionCreate",
     "UserDefinedFunctionUpdate",
     "UserDefinedFunctionValidation",
+    "UserDefinedFunctionVersion",
     "UserOrganization",
 ]

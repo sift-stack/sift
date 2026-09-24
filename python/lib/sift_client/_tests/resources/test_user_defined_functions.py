@@ -180,7 +180,7 @@ class TestUserDefinedFunctions:
 
     def test_validate_accepts_a_good_expression(self, sift_client):
         """Test validating an expression that compiles."""
-        result = sift_client.user_defined_functions.validate(
+        result = sift_client.user_defined_functions.validate_expression(
             "$1 * 2", [FunctionInput(identifier="$1")]
         )
 
@@ -189,7 +189,7 @@ class TestUserDefinedFunctions:
 
     def test_validate_rejects_a_bad_expression(self, sift_client):
         """Test validating an expression that does not compile."""
-        result = sift_client.user_defined_functions.validate(
+        result = sift_client.user_defined_functions.validate_expression(
             "$1 ** ** 2", [FunctionInput(identifier="$1")]
         )
 
@@ -198,7 +198,7 @@ class TestUserDefinedFunctions:
 
     def test_dependents_of_an_unused_function(self, sift_client, new_function):
         """Test that a function nothing uses reports no dependents."""
-        dependents = sift_client.user_defined_functions.dependents(new_function)
+        dependents = sift_client.user_defined_functions.get_where_used(new_function)
 
         assert dependents.any is False
 
@@ -215,7 +215,9 @@ class TestUserDefinedFunctionVersions:
 
     def test_list_versions(self, sift_client, new_function):
         """Test listing a function's versions."""
-        versions = sift_client.user_defined_functions.versions.list_(function=new_function)
+        versions = sift_client.user_defined_functions.versions.list_(
+            user_defined_function=new_function
+        )
 
         assert versions
         assert all(v.id_ == new_function.id_ for v in versions)
