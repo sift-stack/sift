@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import re
+    from collections.abc import Iterable
     from datetime import datetime, timedelta
     from pathlib import Path
     from typing import TYPE_CHECKING, Any, Sequence
@@ -264,7 +265,7 @@ class AnnotationsAPI:
     def list_(
         self,
         *,
-        name: str | list[str] | None = None,
+        name: str | Iterable[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         annotation_ids: list[str] | None = None,
@@ -297,7 +298,7 @@ class AnnotationsAPI:
         """List annotations.
 
         Args:
-            name: Exact name, or a list of names to match any of.
+            name: Exact name, or any iterable of names to match against.
             name_contains: Partial name of the annotation.
             name_regex: Regular expression to filter annotations by name.
             annotation_ids: Filter to annotations with any of these IDs.

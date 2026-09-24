@@ -26,6 +26,7 @@ from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
     import re
+    from collections.abc import Iterable
     from datetime import datetime
 
     from sift_client.client import SiftClient
@@ -176,7 +177,7 @@ class AnnotationsAPIAsync(ResourceBase):
     async def list_(
         self,
         *,
-        name: str | list[str] | None = None,
+        name: str | Iterable[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         # self ids
@@ -215,7 +216,7 @@ class AnnotationsAPIAsync(ResourceBase):
         """List annotations.
 
         Args:
-            name: Exact name, or a list of names to match any of.
+            name: Exact name, or any iterable of names to match against.
             name_contains: Partial name of the annotation.
             name_regex: Regular expression to filter annotations by name.
             annotation_ids: Filter to annotations with any of these IDs.
@@ -251,7 +252,10 @@ class AnnotationsAPIAsync(ResourceBase):
         """
         filter_parts = [
             *self._build_name_cel_filters(
-                name=name, name_contains=name_contains, name_regex=name_regex
+                name=name if isinstance(name, str) else None,
+                names=None if name is None or isinstance(name, str) else list(name),
+                name_contains=name_contains,
+                name_regex=name_regex,
             ),
             *self._build_time_cel_filters(
                 created_after=created_after,

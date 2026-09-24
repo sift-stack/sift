@@ -9,7 +9,6 @@ from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
     import re
-    from collections.abc import Iterable
     from datetime import datetime
 
     from sift_client.client import SiftClient
@@ -50,19 +49,17 @@ class ResourceBase(ABC):
     def _build_name_cel_filters(
         self,
         *,
-        name: str | Iterable[str] | None = None,
-        names: Iterable[str] | None = None,
+        name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         field: str = "name",
     ) -> list[str]:
-        if name is not None and not isinstance(name, str):
-            names, name = name, None
         filter_parts = []
         if name:
             filter_parts.append(cel.equals(field, name))
         if names:
-            filter_parts.append(cel.in_(field, list(names)))
+            filter_parts.append(cel.in_(field, names))
         if name_contains:
             filter_parts.append(cel.contains(field, name_contains))
         if name_regex:
