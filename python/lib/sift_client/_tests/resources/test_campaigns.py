@@ -1,7 +1,7 @@
 """Pytest tests for the Campaigns API.
 
 These tests cover get, list, find, create, update, add_reports_to_campaign,
-add_runs_to_campaign, archive/unarchive, and report_summaries.
+archive/unarchive, and report_summaries.
 """
 
 from datetime import datetime, timezone
@@ -43,16 +43,38 @@ def test_timestamp_str():
 
 @pytest.fixture(scope="session")
 def campaign_run(sift_client, test_timestamp_str):
-    """A run with a default report, so it can join a campaign."""
+    """A bounded run, so rules can be evaluated over it."""
+    from datetime import timedelta
+
     from sift_client.sift_types.run import RunCreate
 
+    stop = datetime.now(timezone.utc)
     return sift_client.runs.create(
         RunCreate(
             name=f"test_campaign_run_{test_timestamp_str}",
             description="sift_client campaign tests",
-            create_default_report=True,
+            start_time=stop - timedelta(minutes=5),
+            stop_time=stop,
         )
     )
+
+
+@pytest.fixture(scope="session")
+def campaign_report(sift_client, campaign_run, test_timestamp_str):
+    """A report over `campaign_run`, which is what a campaign holds."""
+    rules = sift_client.rules.list_(limit=1)
+    if not rules:
+        pytest.skip("no rules in this organization")
+    try:
+        sift_client.reports.create_from_rules(
+            name=f"test_campaign_report_{test_timestamp_str}", run=campaign_run, rules=rules
+        )
+    except ValueError:
+        # The report is created, but the call raises looking up a job ListJobs never returns.
+        pass
+    reports = sift_client.reports.list_(run=campaign_run)
+    assert reports, "no report was created over the run"
+    return reports[0]
 
 
 @pytest.fixture(scope="session")
@@ -181,12 +203,12 @@ class TestCampaigns:
 
         campaigns_api_sync.update(new_campaign, {"name": new_campaign.name})
 
-    def test_add_reports(self, campaigns_api_sync, campaign_run, test_timestamp_str):
+    def test_add_reports(self, campaigns_api_sync, campaign_report, test_timestamp_str):
         """Test adding reports to a campaign without dropping the existing ones."""
         campaign = campaigns_api_sync.create(
             CampaignCreate(name=f"test_campaign_reports_{test_timestamp_str}")
         )
-        report_id = campaign_run.default_report_id
+        report_id = campaign_report._id_or_error
 
         added = campaigns_api_sync.add_reports_to_campaign(campaign, [report_id])
         assert [r.report_id for r in added.report_summaries] == [report_id]
@@ -197,70 +219,46 @@ class TestCampaigns:
 
         campaigns_api_sync.archive(campaign)
 
-    def test_add_runs(self, campaigns_api_sync, campaign_run, test_timestamp_str):
-        """Test adding runs to a campaign through their default reports."""
+    def test_create_from_reports(self, campaigns_api_sync, campaign_report, test_timestamp_str):
+        """Test seeding a new campaign from a report."""
         campaign = campaigns_api_sync.create(
-            CampaignCreate(name=f"test_campaign_runs_{test_timestamp_str}")
+            CampaignCreate(name=f"test_campaign_from_reports_{test_timestamp_str}"),
+            reports=[campaign_report],
         )
 
-        added = campaigns_api_sync.add_runs_to_campaign(campaign, [campaign_run])
-        assert [r.report_id for r in added.report_summaries] == [campaign_run.default_report_id]
+        assert [r.report_id for r in campaign.report_summaries] == [campaign_report._id_or_error]
 
         campaigns_api_sync.archive(campaign)
 
-    def test_add_runs_rejects_run_without_report(
-        self, campaigns_api_sync, sift_client, new_campaign, test_timestamp_str
+    def test_create_from_runs(
+        self, campaigns_api_sync, sift_client, campaign_run, campaign_report, test_timestamp_str
     ):
-        """Test that add_runs fails clearly when a run has no report at all."""
-        from sift_client.sift_types.run import RunCreate
+        """Test that seeding from a run collects every report over it."""
+        expected = {r._id_or_error for r in sift_client.reports.list_(run=campaign_run)}
 
-        run = sift_client.runs.create(
-            RunCreate(name=f"test_campaign_no_report_{test_timestamp_str}")
-        )
-
-        with pytest.raises(ValueError, match="no report"):
-            campaigns_api_sync.add_runs_to_campaign(new_campaign, [run])
-
-    def test_add_runs_falls_back_to_a_report_over_the_run(
-        self, campaigns_api_sync, campaign_run, test_timestamp_str
-    ):
-        """Test that a run with no default report joins through a report search."""
-        # Hide the default report so add_runs must search for one over the run.
-        run = campaign_run.model_copy(update={"default_report_id": None})
-        campaign = campaigns_api_sync.create(
-            CampaignCreate(name=f"test_campaign_fallback_{test_timestamp_str}")
-        )
-
-        added = campaigns_api_sync.add_runs_to_campaign(campaign, [run])
-
-        assert [r.report_id for r in added.report_summaries] == [campaign_run.default_report_id]
-        campaigns_api_sync.archive(campaign)
-
-    def test_create_from_runs(self, campaigns_api_sync, campaign_run, test_timestamp_str):
-        """Test seeding a new campaign from a run."""
         campaign = campaigns_api_sync.create(
             CampaignCreate(name=f"test_campaign_from_runs_{test_timestamp_str}"),
             runs=[campaign_run],
         )
 
-        assert [r.report_id for r in campaign.report_summaries] == [campaign_run.default_report_id]
+        assert {r.report_id for r in campaign.report_summaries} == expected
 
         campaigns_api_sync.archive(campaign)
 
-    def test_create_rejects_multiple_seeds(self, campaigns_api_sync, campaign_run):
+    def test_create_rejects_multiple_seeds(self, campaigns_api_sync, campaign_report, campaign_run):
         """Test that create rejects more than one seed."""
         with pytest.raises(ValueError, match="At most one of"):
             campaigns_api_sync.create(
                 CampaignCreate(name="ignored"),
+                reports=[campaign_report],
                 runs=[campaign_run],
-                reports=[campaign_run.default_report_id],
             )
 
-    def test_report_summaries(self, campaigns_api_sync, campaign_run, test_timestamp_str):
+    def test_report_summaries(self, campaigns_api_sync, campaign_report, test_timestamp_str):
         """Test fetching per-report rule counts for a campaign."""
         campaign = campaigns_api_sync.create(
             CampaignCreate(name=f"test_campaign_summaries_{test_timestamp_str}"),
-            runs=[campaign_run],
+            reports=[campaign_report],
         )
 
         summaries = campaigns_api_sync.report_summaries([campaign])
@@ -317,7 +315,7 @@ class TestCampaigns:
         assert fetched.id_ == new_campaign.id_
 
     def test_add_reports_reads_the_server_list(
-        self, campaigns_api_sync, campaign_run, test_timestamp_str
+        self, campaigns_api_sync, campaign_report, test_timestamp_str
     ):
         """A stale Campaign handle must not drop reports added since it was fetched."""
         campaign = campaigns_api_sync.create(
@@ -327,32 +325,36 @@ class TestCampaigns:
 
         # Another caller adds a report that `stale` knows nothing about.
         campaigns_api_sync.add_reports_to_campaign(
-            campaign._id_or_error, [campaign_run.default_report_id]
+            campaign._id_or_error, [campaign_report._id_or_error]
         )
         assert [r.report_id for r in stale.report_summaries] == []
 
-        merged = campaigns_api_sync.add_reports_to_campaign(stale, [campaign_run.default_report_id])
+        merged = campaigns_api_sync.add_reports_to_campaign(stale, [campaign_report._id_or_error])
 
-        assert [r.report_id for r in merged.report_summaries] == [campaign_run.default_report_id]
+        assert [r.report_id for r in merged.report_summaries] == [campaign_report._id_or_error]
 
         campaigns_api_sync.archive(campaign)
 
-    def test_campaign_runs(self, campaigns_api_sync, campaign_run, test_timestamp_str):
+    def test_campaign_runs(
+        self, campaigns_api_sync, campaign_run, campaign_report, test_timestamp_str
+    ):
         """Test reading back the runs behind a campaign's reports."""
         campaign = campaigns_api_sync.create(
             CampaignCreate(name=f"test_campaign_runs_prop_{test_timestamp_str}"),
-            runs=[campaign_run],
+            reports=[campaign_report],
         )
 
         assert [r.id_ for r in campaign.runs] == [campaign_run.id_]
 
         campaigns_api_sync.archive(campaign)
 
-    def test_campaign_report_summaries(self, campaigns_api_sync, campaign_run, test_timestamp_str):
+    def test_campaign_report_summaries(
+        self, campaigns_api_sync, campaign_report, test_timestamp_str
+    ):
         """Test the rollup from the Campaign instance."""
         campaign = campaigns_api_sync.create(
             CampaignCreate(name=f"test_campaign_rollup_{test_timestamp_str}"),
-            runs=[campaign_run],
+            reports=[campaign_report],
         )
 
         # The service returns these in no fixed order; _from_proto sorts them.

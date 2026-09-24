@@ -158,12 +158,6 @@ class Campaign(BaseType[CampaignProto, "Campaign"]):
         self._update(updated)
         return self
 
-    def add_runs(self, runs: list[Run] | list[str]) -> Campaign:
-        """Add runs to the campaign through the reports they generated."""
-        updated = self.client.campaigns.add_runs_to_campaign(campaign=self, runs=runs)
-        self._update(updated)
-        return self
-
     def update(self, update: CampaignUpdate | dict) -> Campaign:
         """Update the Campaign.
 
@@ -233,8 +227,8 @@ class CampaignCreate(CampaignBase, ModelCreate[CreateCampaignRequestProto]):
 class CampaignUpdate(CampaignBase, ModelUpdate[CampaignProto]):
     """Update model for Campaign.
 
-    `reports` replaces the campaign's report list. Prefer `Campaign.add_reports` or
-    `Campaign.add_runs`, which read the current list first. `tags` is unordered, so it
+    `reports` replaces the campaign's report list. Prefer `Campaign.add_reports`,
+    which reads the current list first. `tags` is unordered, so it
     may come back in a different order.
     """
 

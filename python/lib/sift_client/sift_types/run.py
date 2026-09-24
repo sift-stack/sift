@@ -223,8 +223,6 @@ class RunCreate(RunBase, ModelCreate[CreateRunRequestProto]):
     name: str
     client_key: str | None = None
     organization_id: str | None = None
-    create_default_report: bool | None = None
-    """Create a report for the run, so it can be added to a campaign."""
 
     def _get_proto_class(self) -> type[CreateRunRequestProto]:
         return CreateRunRequestProto

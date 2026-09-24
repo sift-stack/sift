@@ -24,8 +24,8 @@ if TYPE_CHECKING:
 class CampaignsAPIAsync(ResourceBase):
     """High-level API for interacting with campaigns.
 
-    A campaign is a named list of reports. Runs join a campaign through the reports they
-    generate.
+    A campaign is a named list of reports. Seeding from runs collects every report
+    those runs generated.
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -178,26 +178,25 @@ class CampaignsAPIAsync(ResourceBase):
         Args:
             create: The campaign definition.
             reports: Seed with these Reports or report IDs.
-            runs: Seed with the reports these Runs generated.
+            runs: Seed with every report these Runs generated.
             campaign: Duplicate this Campaign or campaign ID.
 
         Returns:
             The created Campaign.
 
         Raises:
-            ValueError: If any run has no report.
+            ValueError: If more than one seed is provided.
         """
         if isinstance(create, dict):
             create = CampaignCreate.model_validate(create)
         if len([seed for seed in (reports, runs, campaign) if seed]) > 1:
             raise ValueError("At most one of reports, runs, or campaign may be provided")
-        seed_report_ids = [self._report_id(r) for r in reports] if reports else None
-        if runs:
-            # The service silently skips runs with no default report, so resolve here.
-            seed_report_ids = await self._run_report_ids(runs)
         created = await self._low_level_client.create_campaign(
             create=create,
-            from_report_ids=seed_report_ids,
+            from_report_ids=[self._report_id(r) for r in reports] if reports else None,
+            from_run_ids=(
+                [r._id_or_error if isinstance(r, Run) else r for r in runs] if runs else None
+            ),
             from_campaign_id=(
                 campaign._id_or_error if isinstance(campaign, Campaign) else campaign
             ),
@@ -208,7 +207,7 @@ class CampaignsAPIAsync(ResourceBase):
         """Update a Campaign.
 
         `reports`, `tags`, and `metadata` are replaced, not merged. Prefer
-        `add_reports_to_campaign` or `add_runs_to_campaign` to grow the report list.
+        `add_reports_to_campaign` to grow the report list.
 
         Args:
             campaign: The Campaign or campaign ID to update.
@@ -245,26 +244,6 @@ class CampaignsAPIAsync(ResourceBase):
             if report_id not in existing_ids
         ]
         return await self.update(current, CampaignUpdate(reports=merged))
-
-    async def add_runs_to_campaign(
-        self, campaign: str | Campaign, runs: list[Run] | list[str]
-    ) -> Campaign:
-        """Add runs to a campaign through the reports they generated.
-
-        A campaign holds reports, not runs. Each run contributes its default report, or
-        its most recent report if it has none.
-
-        Args:
-            campaign: The Campaign or campaign ID to add to.
-            runs: The Runs or run IDs to add.
-
-        Returns:
-            The updated Campaign.
-
-        Raises:
-            ValueError: If any run has no report.
-        """
-        return await self.add_reports_to_campaign(campaign, await self._run_report_ids(runs))
 
     async def archive(self, campaign: str | Campaign) -> Campaign:
         """Archive a campaign.
@@ -309,31 +288,6 @@ class CampaignsAPIAsync(ResourceBase):
             campaign_ids=ids, organization_id=organization_id
         )
         return {campaign_id: found.get(campaign_id, []) for campaign_id in ids}
-
-    async def _run_report_ids(self, runs: list[Run] | list[str]) -> list[str]:
-        """Resolve runs to the report each one contributes to a campaign."""
-        resolved = [
-            r if isinstance(r, Run) else await self.client.async_.runs.get(run_id=r) for r in runs
-        ]
-        report_ids = []
-        missing = []
-        for run in resolved:
-            report_id = run.default_report_id
-            if not report_id:
-                found = await self.client.async_.reports.list_(
-                    run=run, order_by="created_date desc", limit=1
-                )
-                report_id = found[0]._id_or_error if found else None
-            if report_id:
-                report_ids.append(report_id)
-            else:
-                missing.append(run.name)
-        if missing:
-            raise ValueError(
-                f"These runs have no report, so they cannot join a campaign: {missing}. "
-                "Create runs with create_default_report=True, or build a report over the run."
-            )
-        return report_ids
 
     @staticmethod
     def _report_id(report: Report | str) -> str:

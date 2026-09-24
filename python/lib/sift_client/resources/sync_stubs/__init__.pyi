@@ -765,8 +765,8 @@ class CampaignsAPI:
 
     High-level API for interacting with campaigns.
 
-    A campaign is a named list of reports. Runs join a campaign through the reports they
-    generate.
+    A campaign is a named list of reports. Seeding from runs collects every report
+    those runs generated.
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -789,26 +789,6 @@ class CampaignsAPI:
 
         Returns:
             The updated Campaign.
-        """
-        ...
-
-    def add_runs_to_campaign(
-        self, campaign: str | Campaign, runs: list[Run] | list[str]
-    ) -> Campaign:
-        """Add runs to a campaign through the reports they generated.
-
-        A campaign holds reports, not runs. Each run contributes its default report, or
-        its most recent report if it has none.
-
-        Args:
-            campaign: The Campaign or campaign ID to add to.
-            runs: The Runs or run IDs to add.
-
-        Returns:
-            The updated Campaign.
-
-        Raises:
-            ValueError: If any run has no report.
         """
         ...
 
@@ -838,14 +818,14 @@ class CampaignsAPI:
         Args:
             create: The campaign definition.
             reports: Seed with these Reports or report IDs.
-            runs: Seed with the reports these Runs generated.
+            runs: Seed with every report these Runs generated.
             campaign: Duplicate this Campaign or campaign ID.
 
         Returns:
             The created Campaign.
 
         Raises:
-            ValueError: If any run has no report.
+            ValueError: If more than one seed is provided.
         """
         ...
 
@@ -961,7 +941,7 @@ class CampaignsAPI:
         """Update a Campaign.
 
         `reports`, `tags`, and `metadata` are replaced, not merged. Prefer
-        `add_reports_to_campaign` or `add_runs_to_campaign` to grow the report list.
+        `add_reports_to_campaign` to grow the report list.
 
         Args:
             campaign: The Campaign or campaign ID to update.

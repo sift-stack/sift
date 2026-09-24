@@ -171,21 +171,3 @@ class TestCampaign:
 
             mock_client.campaigns.unarchive.assert_called_once_with(campaign=mock_campaign)
             assert result is mock_campaign
-
-
-class TestRunCreateDefaultReport:
-    """A run needs a default report before it can join a campaign."""
-
-    def test_create_default_report_reaches_the_proto(self):
-        from sift_client.sift_types.run import RunCreate
-
-        proto = RunCreate(name="r", create_default_report=True).to_proto()
-
-        assert proto.create_default_report is True
-
-    def test_unset_by_default(self):
-        from sift_client.sift_types.run import RunCreate
-
-        proto = RunCreate(name="r").to_proto()
-
-        assert proto.HasField("create_default_report") is False
