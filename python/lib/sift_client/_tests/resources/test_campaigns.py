@@ -1,7 +1,7 @@
 """Pytest tests for the Campaigns API.
 
-These tests cover get, list, find, create, update, add_reports,
-add_runs, archive/unarchive, and report_summaries.
+These tests cover get, list, find, create, update, add_reports_to_campaign,
+add_runs_to_campaign, archive/unarchive, and report_summaries.
 """
 
 from datetime import datetime, timezone
@@ -188,11 +188,11 @@ class TestCampaigns:
         )
         report_id = campaign_run.default_report_id
 
-        added = campaigns_api_sync.add_reports(campaign, [report_id])
+        added = campaigns_api_sync.add_reports_to_campaign(campaign, [report_id])
         assert [r.report_id for r in added.report_summaries] == [report_id]
 
         # Adding the same report again is a no-op, not a duplicate.
-        again = campaigns_api_sync.add_reports(added, [report_id])
+        again = campaigns_api_sync.add_reports_to_campaign(added, [report_id])
         assert [r.report_id for r in again.report_summaries] == [report_id]
 
         campaigns_api_sync.archive(campaign)
@@ -203,7 +203,7 @@ class TestCampaigns:
             CampaignCreate(name=f"test_campaign_runs_{test_timestamp_str}")
         )
 
-        added = campaigns_api_sync.add_runs(campaign, [campaign_run])
+        added = campaigns_api_sync.add_runs_to_campaign(campaign, [campaign_run])
         assert [r.report_id for r in added.report_summaries] == [campaign_run.default_report_id]
 
         campaigns_api_sync.archive(campaign)
@@ -219,7 +219,7 @@ class TestCampaigns:
         )
 
         with pytest.raises(ValueError, match="no report"):
-            campaigns_api_sync.add_runs(new_campaign, [run])
+            campaigns_api_sync.add_runs_to_campaign(new_campaign, [run])
 
     def test_add_runs_falls_back_to_a_report_over_the_run(
         self, campaigns_api_sync, campaign_run, test_timestamp_str
@@ -231,7 +231,7 @@ class TestCampaigns:
             CampaignCreate(name=f"test_campaign_fallback_{test_timestamp_str}")
         )
 
-        added = campaigns_api_sync.add_runs(campaign, [run])
+        added = campaigns_api_sync.add_runs_to_campaign(campaign, [run])
 
         assert [r.report_id for r in added.report_summaries] == [campaign_run.default_report_id]
         campaigns_api_sync.archive(campaign)
@@ -326,10 +326,12 @@ class TestCampaigns:
         stale = campaign
 
         # Another caller adds a report that `stale` knows nothing about.
-        campaigns_api_sync.add_reports(campaign._id_or_error, [campaign_run.default_report_id])
+        campaigns_api_sync.add_reports_to_campaign(
+            campaign._id_or_error, [campaign_run.default_report_id]
+        )
         assert [r.report_id for r in stale.report_summaries] == []
 
-        merged = campaigns_api_sync.add_reports(stale, [campaign_run.default_report_id])
+        merged = campaigns_api_sync.add_reports_to_campaign(stale, [campaign_run.default_report_id])
 
         assert [r.report_id for r in merged.report_summaries] == [campaign_run.default_report_id]
 

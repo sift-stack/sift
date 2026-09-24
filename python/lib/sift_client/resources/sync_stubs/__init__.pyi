@@ -778,7 +778,9 @@ class CampaignsAPI:
         ...
 
     def _run(self, coro): ...
-    def add_reports(self, campaign: str | Campaign, reports: list[Report] | list[str]) -> Campaign:
+    def add_reports_to_campaign(
+        self, campaign: str | Campaign, reports: list[Report] | list[str]
+    ) -> Campaign:
         """Add reports to a campaign, keeping the ones already there.
 
         Args:
@@ -790,7 +792,9 @@ class CampaignsAPI:
         """
         ...
 
-    def add_runs(self, campaign: str | Campaign, runs: list[Run] | list[str]) -> Campaign:
+    def add_runs_to_campaign(
+        self, campaign: str | Campaign, runs: list[Run] | list[str]
+    ) -> Campaign:
         """Add runs to a campaign through the reports they generated.
 
         A campaign holds reports, not runs. Each run contributes its default report, or
@@ -956,8 +960,8 @@ class CampaignsAPI:
     def update(self, campaign: str | Campaign, update: CampaignUpdate | dict) -> Campaign:
         """Update a Campaign.
 
-        `reports`, `tags`, and `metadata` are replaced, not merged. Prefer `add_reports`
-        or `add_runs` to grow the report list.
+        `reports`, `tags`, and `metadata` are replaced, not merged. Prefer
+        `add_reports_to_campaign` or `add_runs_to_campaign` to grow the report list.
 
         Args:
             campaign: The Campaign or campaign ID to update.

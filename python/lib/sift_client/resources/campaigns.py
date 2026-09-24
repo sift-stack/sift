@@ -207,8 +207,8 @@ class CampaignsAPIAsync(ResourceBase):
     async def update(self, campaign: str | Campaign, update: CampaignUpdate | dict) -> Campaign:
         """Update a Campaign.
 
-        `reports`, `tags`, and `metadata` are replaced, not merged. Prefer `add_reports`
-        or `add_runs` to grow the report list.
+        `reports`, `tags`, and `metadata` are replaced, not merged. Prefer
+        `add_reports_to_campaign` or `add_runs_to_campaign` to grow the report list.
 
         Args:
             campaign: The Campaign or campaign ID to update.
@@ -224,7 +224,7 @@ class CampaignsAPIAsync(ResourceBase):
         updated = await self._low_level_client.update_campaign(update)
         return self._apply_client_to_instance(updated)
 
-    async def add_reports(
+    async def add_reports_to_campaign(
         self, campaign: str | Campaign, reports: list[Report] | list[str]
     ) -> Campaign:
         """Add reports to a campaign, keeping the ones already there.
@@ -246,7 +246,9 @@ class CampaignsAPIAsync(ResourceBase):
         ]
         return await self.update(current, CampaignUpdate(reports=merged))
 
-    async def add_runs(self, campaign: str | Campaign, runs: list[Run] | list[str]) -> Campaign:
+    async def add_runs_to_campaign(
+        self, campaign: str | Campaign, runs: list[Run] | list[str]
+    ) -> Campaign:
         """Add runs to a campaign through the reports they generated.
 
         A campaign holds reports, not runs. Each run contributes its default report, or
@@ -262,7 +264,7 @@ class CampaignsAPIAsync(ResourceBase):
         Raises:
             ValueError: If any run has no report.
         """
-        return await self.add_reports(campaign, await self._run_report_ids(runs))
+        return await self.add_reports_to_campaign(campaign, await self._run_report_ids(runs))
 
     async def archive(self, campaign: str | Campaign) -> Campaign:
         """Archive a campaign.
