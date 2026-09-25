@@ -178,7 +178,7 @@ class RuleCreateUpdateBase(ModelCreateUpdateBase):
     @field_validator("asset_ids", mode="after")
     @classmethod
     def _asset_ids_to_strings(cls, value):
-        return [a.id_ if isinstance(a, Asset) else a for a in value] if value else value
+        return [a._id_or_error if isinstance(a, Asset) else a for a in value] if value else value
 
     organization_id: str | None = None
     client_key: str | None = None
@@ -297,7 +297,7 @@ def _webhook_id(webhook: str | Webhook | None) -> str:
     """Resolve a Webhook or webhook ID to the UUID string the proto expects."""
     if webhook is None:
         raise ValueError("webhook is required for a webhook action")
-    raw = webhook.id_ if isinstance(webhook, Webhook) else webhook
+    raw = webhook._id_or_error if isinstance(webhook, Webhook) else webhook
     return str(UUID(raw))
 
 
