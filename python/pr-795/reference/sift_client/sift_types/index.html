@@ -2432,6 +2432,28 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.sift_types.Campaign.created_by" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;created_by
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.Campaign.modified_by" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;modified_by
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.sift_types.Campaign.runs" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -14578,6 +14600,28 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.sift_types.Campaign.created_by" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;created_by
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.Campaign.modified_by" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;modified_by
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.sift_types.Campaign.runs" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -25936,6 +25980,10 @@ internal state with the updated values from the API.</p>
         <p>Model of the Sift Asset.</p>
 
     
+      <p>Config:</p>
+      <ul>
+          <li><code>frozen</code>: <code class="highlight language-python"><span class="kc">True</span></code></li>
+      </ul>
 
         <p>Fields:</p>
         <ul>
@@ -27041,6 +27089,10 @@ internal state with the updated values from the API.</p>
         <p>Model of the Asset Fields that can be updated.</p>
 
     
+      <p>Config:</p>
+      <ul>
+          <li><code>frozen</code>: <code class="highlight language-python"><span class="kc">False</span></code></li>
+      </ul>
 
         <p>Fields:</p>
         <ul>
@@ -29867,6 +29919,64 @@ internal state with the updated values from the API.</p>
     <div class="doc doc-contents ">
 
         <p>Fetch the full Reports in this campaign.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.sift_types.Campaign.created_by" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">created_by</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#sift_client.sift_types.Campaign.created_by" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">created_by</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            User
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.user.User)" href="user/#sift_client.sift_types.user.User">User</a></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Fetch the User that created this campaign.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.sift_types.Campaign.modified_by" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">modified_by</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#sift_client.sift_types.Campaign.modified_by" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">modified_by</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            User
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.user.User)" href="user/#sift_client.sift_types.user.User">User</a></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Fetch the User that last modified this campaign.</p>
 
     </div>
 
@@ -54404,10 +54514,6 @@ with this run pre-filled. If the run has exactly one asset,
         <p>Model of the Sift Tag.</p>
 
     
-      <p>Config:</p>
-      <ul>
-          <li><code>frozen</code>: <code class="highlight language-python"><span class="kc">True</span></code></li>
-      </ul>
 
         <p>Fields:</p>
         <ul>

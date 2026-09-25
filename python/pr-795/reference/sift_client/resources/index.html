@@ -19308,6 +19308,8 @@ those runs generated.</p>
     <div class="doc doc-contents ">
 
         <p>Add reports to a campaign, keeping the ones already there.</p>
+<p><code>CampaignService</code> has no append RPC, so this reads the report list, merges, and
+writes it back. Two concurrent calls drop one side's reports.</p>
 
 
 <table>
@@ -54441,6 +54443,8 @@ those runs generated.</p>
     <div class="doc doc-contents ">
 
         <p>Add reports to a campaign, keeping the ones already there.</p>
+<p><code>CampaignService</code> has no append RPC, so this reads the report list, merges, and
+writes it back. Two concurrent calls drop one side's reports.</p>
 
 
 <table>
