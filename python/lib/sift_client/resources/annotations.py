@@ -167,8 +167,10 @@ def _create_from_dict(create: dict) -> AnnotationCreate | PhaseCreate:
             raise ValueError(
                 f"Unknown annotation_type {value!r}. Expected one of: {names}"
             ) from None
-    model = PhaseCreate if resolved is AnnotationType.PHASE else AnnotationCreate
-    return model.model_validate({**create, "annotation_type": resolved})
+    payload = {**create, "annotation_type": resolved}
+    if resolved is AnnotationType.PHASE:
+        return PhaseCreate.model_validate(payload)
+    return AnnotationCreate.model_validate(payload)
 
 
 class AnnotationsAPIAsync(ResourceBase):
