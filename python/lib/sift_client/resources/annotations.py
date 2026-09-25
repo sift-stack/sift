@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated, Any, Union, cast
-
-from pydantic import Field, TypeAdapter
+from typing import TYPE_CHECKING, Any, cast
 
 from sift_client._internal.low_level_wrappers.annotations import AnnotationsLowLevelClient
 from sift_client.resources._base import ResourceBase
@@ -149,28 +147,28 @@ class AnnotationLogsAPIAsync(ResourceBase):
 BATCH_LIMIT = 1000
 """Annotations per call to BatchArchiveAnnotations, per the service."""
 
-_CREATE_ADAPTER: TypeAdapter[AnnotationCreate | PhaseCreate] = TypeAdapter(
-    Annotated[Union[AnnotationCreate, PhaseCreate], Field(discriminator="annotation_type")]
-)
 
-
-def _with_annotation_type(create: dict) -> dict:
-    """Resolve a dict's `annotation_type` to the enum the discriminator matches on.
+def _create_from_dict(create: dict) -> AnnotationCreate | PhaseCreate:
+    """Pick the create model from a dict's `annotation_type`.
 
     A dict from a config file holds a name or a number, never a live enum member, and
     omits the key entirely for a data review.
     """
     value = create.get("annotation_type")
-    if isinstance(value, AnnotationType):
-        return create
     if value is None:
-        return {**create, "annotation_type": AnnotationType.DATA_REVIEW}
-    try:
-        resolved = AnnotationType[value] if isinstance(value, str) else AnnotationType(value)
-    except (KeyError, ValueError):
-        names = ", ".join(t.name for t in AnnotationType)
-        raise ValueError(f"Unknown annotation_type {value!r}. Expected one of: {names}") from None
-    return {**create, "annotation_type": resolved}
+        resolved = AnnotationType.DATA_REVIEW
+    elif isinstance(value, AnnotationType):
+        resolved = value
+    else:
+        try:
+            resolved = AnnotationType[value] if isinstance(value, str) else AnnotationType(value)
+        except (KeyError, ValueError):
+            names = ", ".join(t.name for t in AnnotationType)
+            raise ValueError(
+                f"Unknown annotation_type {value!r}. Expected one of: {names}"
+            ) from None
+    model = PhaseCreate if resolved is AnnotationType.PHASE else AnnotationCreate
+    return model.model_validate({**create, "annotation_type": resolved})
 
 
 class AnnotationsAPIAsync(ResourceBase):
@@ -381,7 +379,7 @@ class AnnotationsAPIAsync(ResourceBase):
             The created Annotation.
         """
         if isinstance(create, dict):
-            create = _CREATE_ADAPTER.validate_python(_with_annotation_type(create))
+            create = _create_from_dict(create)
         if not create.assets and create.linked_channels:
             create.assets = cast(
                 "list[str | Asset]", await self._assets_for_channels(create.linked_channels)
