@@ -159,7 +159,7 @@ class TestUserDefinedFunction:
         _ = mock_function.versions
 
         mock_client.user_defined_functions.versions.list_.assert_called_once_with(
-            user_defined_function=mock_function
+            user_defined_function=mock_function, order_by="version desc"
         )
 
     def test_update_calls_client_and_updates_self(self, mock_function, mock_client):

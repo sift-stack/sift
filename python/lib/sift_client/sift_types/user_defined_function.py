@@ -181,7 +181,9 @@ class UserDefinedFunction(BaseType[UserDefinedFunctionProto, "UserDefinedFunctio
     @property
     def versions(self) -> list[UserDefinedFunctionVersion]:
         """Fetch every version of this function, newest first."""
-        return self.client.user_defined_functions.versions.list_(user_defined_function=self)
+        return self.client.user_defined_functions.versions.list_(
+            user_defined_function=self, order_by="version desc"
+        )
 
     @property
     def created_by(self) -> User:

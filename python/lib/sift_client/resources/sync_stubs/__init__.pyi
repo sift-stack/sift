@@ -3530,13 +3530,14 @@ class UserDefinedFunctionVersionsAPI:
             version: Filter to a single version number.
             include_archived: If True, include archived versions in results.
             filter_query: Explicit CEL query to filter versions.
-            order_by: Field and direction to order results by. Newest first by default;
-                the service otherwise orders by name, which every version shares.
+            order_by: Field and direction to order results by.
             limit: Maximum number of versions to return. If None, returns all matches.
             page_size: Number of results to fetch per request.
 
         Returns:
-            A list of UserDefinedFunctionVersion objects, newest first.
+            A list of UserDefinedFunctionVersion objects in the service's order, which is
+            by name unless `order_by` says otherwise. Every version shares the function's
+            name, so pass `order_by="version desc"` for newest first.
         """
         ...
 
