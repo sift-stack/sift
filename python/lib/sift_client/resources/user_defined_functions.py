@@ -161,7 +161,7 @@ class UserDefinedFunctionsAPIAsync(ResourceBase):
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         # self ids
-        function_ids: list[str] | None = None,
+        user_defined_functions: list[str] | list[UserDefinedFunction] | None = None,
         # common filters
         include_archived: bool = False,
         filter_query: str | None = None,
@@ -175,7 +175,7 @@ class UserDefinedFunctionsAPIAsync(ResourceBase):
             name: Exact name of the function.
             name_contains: Partial name of the function.
             name_regex: Regular expression to filter functions by name.
-            function_ids: Filter to functions with any of these IDs.
+            user_defined_functions: Filter to these UserDefinedFunctions or function IDs.
             include_archived: If True, include archived functions in results.
             filter_query: Explicit CEL query to filter functions.
             order_by: Field and direction to order results by.
@@ -193,8 +193,12 @@ class UserDefinedFunctionsAPIAsync(ResourceBase):
                 include_archived=include_archived, filter_query=filter_query
             ),
         ]
-        if function_ids:
-            filter_parts.append(cel.in_("user_defined_function_id", function_ids))
+        if user_defined_functions:
+            ids = [
+                f._id_or_error if isinstance(f, UserDefinedFunction) else f
+                for f in user_defined_functions
+            ]
+            filter_parts.append(cel.in_("user_defined_function_id", ids))
         query_filter = cel.and_(*filter_parts)
 
         functions = await self._low_level_client.list_all_functions(
