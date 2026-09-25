@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Annotated, Any, Union, cast
+
+from pydantic import Field, TypeAdapter
 
 from sift_client._internal.low_level_wrappers.annotations import AnnotationsLowLevelClient
 from sift_client.resources._base import ResourceBase
@@ -144,6 +146,33 @@ class AnnotationLogsAPIAsync(ResourceBase):
         return self._apply_client_to_instance(log)
 
 
+BATCH_LIMIT = 1000
+"""Annotations per call to BatchArchiveAnnotations, per the service."""
+
+_CREATE_ADAPTER: TypeAdapter[AnnotationCreate | PhaseCreate] = TypeAdapter(
+    Annotated[Union[AnnotationCreate, PhaseCreate], Field(discriminator="annotation_type")]
+)
+
+
+def _with_annotation_type(create: dict) -> dict:
+    """Resolve a dict's `annotation_type` to the enum the discriminator matches on.
+
+    A dict from a config file holds a name or a number, never a live enum member, and
+    omits the key entirely for a data review.
+    """
+    value = create.get("annotation_type")
+    if isinstance(value, AnnotationType):
+        return create
+    if value is None:
+        return {**create, "annotation_type": AnnotationType.DATA_REVIEW}
+    try:
+        resolved = AnnotationType[value] if isinstance(value, str) else AnnotationType(value)
+    except (KeyError, ValueError):
+        names = ", ".join(t.name for t in AnnotationType)
+        raise ValueError(f"Unknown annotation_type {value!r}. Expected one of: {names}") from None
+    return {**create, "annotation_type": resolved}
+
+
 class AnnotationsAPIAsync(ResourceBase):
     """High-level API for interacting with annotations.
 
@@ -189,6 +218,7 @@ class AnnotationsAPIAsync(ResourceBase):
         modified_before: datetime | None = None,
         # created/modified users
         created_by: Any | str | None = None,
+        modified_by: Any | str | None = None,
         # tags and metadata
         tags: list[str] | list[Tag] | None = None,
         metadata: dict[str, Any] | None = None,
@@ -225,6 +255,7 @@ class AnnotationsAPIAsync(ResourceBase):
             modified_after: Filter annotations modified after this datetime.
             modified_before: Filter annotations modified before this datetime.
             created_by: Filter annotations created by this user ID.
+            modified_by: Filter annotations last modified by this user ID.
             tags: Filter annotations with any of these Tags or tag names.
             metadata: Filter annotations by metadata criteria.
             annotation_type: Filter to DATA_REVIEW or PHASE annotations.
@@ -263,6 +294,7 @@ class AnnotationsAPIAsync(ResourceBase):
                 modified_after=modified_after,
                 modified_before=modified_before,
                 created_by=created_by,
+                modified_by=modified_by,
             ),
             *self._build_tags_metadata_cel_filters(tag_names=tags, metadata=metadata),
             *self._build_common_cel_filters(
@@ -340,7 +372,7 @@ class AnnotationsAPIAsync(ResourceBase):
         """Create an annotation.
 
         Pass an `AnnotationCreate` for a data review or a `PhaseCreate` for a phase. A
-        dict is read as an `AnnotationCreate` unless `annotation_type` says otherwise.
+        dict picks the model from its `annotation_type`, which may be a name or a number.
 
         Args:
             create: The annotation definition. `assets` and `tags` take names or objects.
@@ -349,11 +381,7 @@ class AnnotationsAPIAsync(ResourceBase):
             The created Annotation.
         """
         if isinstance(create, dict):
-            create = (
-                PhaseCreate.model_validate(create)
-                if create.get("annotation_type") is AnnotationType.PHASE
-                else AnnotationCreate.model_validate(create)
-            )
+            create = _CREATE_ADAPTER.validate_python(_with_annotation_type(create))
         if not create.assets and create.linked_channels:
             create.assets = cast(
                 "list[str | Asset]", await self._assets_for_channels(create.linked_channels)
@@ -432,23 +460,43 @@ class AnnotationsAPIAsync(ResourceBase):
         unarchived = await self._low_level_client.unarchive_annotation(annotation_id=annotation_id)
         return self._apply_client_to_instance(unarchived)
 
-    async def batch_archive(self, annotations: list[str | Annotation]) -> None:
-        """Archive many annotations in one call.
+    async def batch_archive(self, annotations: list[str | Annotation]) -> list[Annotation]:
+        """Archive many annotations, one call per `BATCH_LIMIT` of them.
 
         Args:
             annotations: The Annotations or annotation IDs to archive.
-        """
-        ids = [a._id_or_error if isinstance(a, Annotation) else a for a in annotations]
-        await self._low_level_client.batch_archive_annotations(annotation_ids=ids)
 
-    async def batch_unarchive(self, annotations: list[str | Annotation]) -> None:
-        """Unarchive many annotations in one call.
+        Returns:
+            The archived Annotations.
+        """
+        archived = []
+        for batch in self._batches(annotations):
+            archived.extend(
+                await self._low_level_client.batch_archive_annotations(annotation_ids=batch)
+            )
+        return self._apply_client_to_instances(archived)
+
+    async def batch_unarchive(self, annotations: list[str | Annotation]) -> list[Annotation]:
+        """Unarchive many annotations, one call per `BATCH_LIMIT` of them.
 
         Args:
             annotations: The Annotations or annotation IDs to unarchive.
+
+        Returns:
+            The unarchived Annotations.
         """
+        unarchived = []
+        for batch in self._batches(annotations):
+            unarchived.extend(
+                await self._low_level_client.batch_unarchive_annotations(annotation_ids=batch)
+            )
+        return self._apply_client_to_instances(unarchived)
+
+    @staticmethod
+    def _batches(annotations: list[str | Annotation]) -> list[list[str]]:
+        """Split annotations into ID batches the service will accept."""
         ids = [a._id_or_error if isinstance(a, Annotation) else a for a in annotations]
-        await self._low_level_client.batch_unarchive_annotations(annotation_ids=ids)
+        return [ids[i : i + BATCH_LIMIT] for i in range(0, len(ids), BATCH_LIMIT)]
 
     async def assign_to_user(self, annotation: str | Annotation, user: str | User) -> Annotation:
         """Assign an annotation to a user for review.

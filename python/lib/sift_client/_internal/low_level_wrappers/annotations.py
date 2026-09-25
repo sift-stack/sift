@@ -17,7 +17,9 @@ from sift.annotations.v1.annotations_pb2 import (
     ArchiveAnnotationRequest,
     ArchiveAnnotationResponse,
     BatchArchiveAnnotationsRequest,
+    BatchArchiveAnnotationsResponse,
     BatchUnarchiveAnnotationsRequest,
+    BatchUnarchiveAnnotationsResponse,
     CreateAnnotationResponse,
     GetAnnotationRequest,
     GetAnnotationResponse,
@@ -203,23 +205,37 @@ class AnnotationsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         )
         return Annotation._from_proto(cast("UnarchiveAnnotationResponse", response).annotation)
 
-    async def batch_archive_annotations(self, annotation_ids: list[str]) -> None:
+    async def batch_archive_annotations(self, annotation_ids: list[str]) -> list[Annotation]:
         """Archive many annotations in one call.
 
         Args:
             annotation_ids: The IDs of the annotations to archive.
+
+        Returns:
+            The archived Annotations.
         """
         request = BatchArchiveAnnotationsRequest(annotation_ids=annotation_ids)
-        await self._grpc_client.get_stub(AnnotationServiceStub).BatchArchiveAnnotations(request)
+        response = await self._grpc_client.get_stub(AnnotationServiceStub).BatchArchiveAnnotations(
+            request
+        )
+        response = cast("BatchArchiveAnnotationsResponse", response)
+        return [Annotation._from_proto(a) for a in response.annotations]
 
-    async def batch_unarchive_annotations(self, annotation_ids: list[str]) -> None:
+    async def batch_unarchive_annotations(self, annotation_ids: list[str]) -> list[Annotation]:
         """Unarchive many annotations in one call.
 
         Args:
             annotation_ids: The IDs of the annotations to unarchive.
+
+        Returns:
+            The unarchived Annotations.
         """
         request = BatchUnarchiveAnnotationsRequest(annotation_ids=annotation_ids)
-        await self._grpc_client.get_stub(AnnotationServiceStub).BatchUnarchiveAnnotations(request)
+        response = await self._grpc_client.get_stub(
+            AnnotationServiceStub
+        ).BatchUnarchiveAnnotations(request)
+        response = cast("BatchUnarchiveAnnotationsResponse", response)
+        return [Annotation._from_proto(a) for a in response.annotations]
 
     async def list_annotation_logs(
         self,

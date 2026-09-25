@@ -208,19 +208,25 @@ class AnnotationsAPI:
         """
         ...
 
-    def batch_archive(self, annotations: list[str | Annotation]) -> None:
-        """Archive many annotations in one call.
+    def batch_archive(self, annotations: list[str | Annotation]) -> list[Annotation]:
+        """Archive many annotations, one call per `BATCH_LIMIT` of them.
 
         Args:
             annotations: The Annotations or annotation IDs to archive.
+
+        Returns:
+            The archived Annotations.
         """
         ...
 
-    def batch_unarchive(self, annotations: list[str | Annotation]) -> None:
-        """Unarchive many annotations in one call.
+    def batch_unarchive(self, annotations: list[str | Annotation]) -> list[Annotation]:
+        """Unarchive many annotations, one call per `BATCH_LIMIT` of them.
 
         Args:
             annotations: The Annotations or annotation IDs to unarchive.
+
+        Returns:
+            The unarchived Annotations.
         """
         ...
 
@@ -228,7 +234,7 @@ class AnnotationsAPI:
         """Create an annotation.
 
         Pass an `AnnotationCreate` for a data review or a `PhaseCreate` for a phase. A
-        dict is read as an `AnnotationCreate` unless `annotation_type` says otherwise.
+        dict picks the model from its `annotation_type`, which may be a name or a number.
 
         Args:
             create: The annotation definition. `assets` and `tags` take names or objects.
@@ -274,6 +280,7 @@ class AnnotationsAPI:
         modified_after: datetime | None = None,
         modified_before: datetime | None = None,
         created_by: Any | str | None = None,
+        modified_by: Any | str | None = None,
         tags: list[str] | list[Tag] | None = None,
         metadata: dict[str, Any] | None = None,
         annotation_type: AnnotationType | None = None,
@@ -307,6 +314,7 @@ class AnnotationsAPI:
             modified_after: Filter annotations modified after this datetime.
             modified_before: Filter annotations modified before this datetime.
             created_by: Filter annotations created by this user ID.
+            modified_by: Filter annotations last modified by this user ID.
             tags: Filter annotations with any of these Tags or tag names.
             metadata: Filter annotations by metadata criteria.
             annotation_type: Filter to DATA_REVIEW or PHASE annotations.
