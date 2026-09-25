@@ -200,7 +200,7 @@ class TestUserDefinedFunctions:
         """Test that a function nothing uses reports no dependents."""
         dependents = sift_client.user_defined_functions.get_where_used(new_function)
 
-        assert dependents.any is False
+        assert dependents.is_used is False
 
     @pytest.mark.asyncio
     async def test_async_list(self, functions_api_async, new_function):

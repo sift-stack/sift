@@ -107,12 +107,12 @@ class TestFunctionUsage:
     """Unit tests for FunctionUsage."""
 
     def test_any_is_false_when_empty(self):
-        assert FunctionUsage().any is False
+        assert FunctionUsage().is_used is False
 
     def test_any_is_true_with_one_rule(self):
         usage = FunctionUsage.model_construct(rules=[object()])
 
-        assert usage.any is True
+        assert usage.is_used is True
 
 
 @pytest.fixture

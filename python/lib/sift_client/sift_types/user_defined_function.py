@@ -128,10 +128,11 @@ class UserDefinedFunctionVersion(BaseType[UserDefinedFunctionProto, "UserDefined
     @property
     def dependencies(self) -> list[UserDefinedFunctionVersion]:
         """Fetch the function versions this one calls."""
-        return [
-            self.client.user_defined_functions.versions.get(version=v)
-            for v in self.dependency_version_ids
-        ]
+        if not self.dependency_version_ids:
+            return []
+        return self.client.user_defined_functions.versions.batch_get(
+            versions=self.dependency_version_ids
+        )
 
 
 class UserDefinedFunction(BaseType[UserDefinedFunctionProto, "UserDefinedFunction"]):
@@ -318,6 +319,6 @@ class FunctionUsage(BaseModel):
     rules: list[Rule] = []
 
     @property
-    def any(self) -> bool:
+    def is_used(self) -> bool:
         """Whether anything uses the function."""
         return bool(self.functions or self.calculated_channels or self.rules)

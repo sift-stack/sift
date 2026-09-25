@@ -11,6 +11,8 @@ from sift.user_defined_functions.v1.user_defined_functions_pb2 import (
     GetUserDefinedFunctionResponse,
     GetUserDefinedFunctionVersionRequest,
     GetUserDefinedFunctionVersionResponse,
+    GetUserDefinedFunctionVersionsRequest,
+    GetUserDefinedFunctionVersionsResponse,
     ListUserDefinedFunctionsRequest,
     ListUserDefinedFunctionsResponse,
     ListUserDefinedFunctionVersionsRequest,
@@ -94,6 +96,26 @@ class UserDefinedFunctionsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         return UserDefinedFunctionVersion._from_proto(
             cast("GetUserDefinedFunctionVersionResponse", response).user_defined_function
         )
+
+    async def get_versions(self, version_ids: list[str]) -> list[UserDefinedFunctionVersion]:
+        """Get many versions in one call.
+
+        Args:
+            version_ids: The version IDs to get.
+
+        Returns:
+            The UserDefinedFunctionVersions.
+        """
+        if not version_ids:
+            return []
+        request = GetUserDefinedFunctionVersionsRequest(
+            user_defined_function_version_ids=version_ids
+        )
+        response = await self._grpc_client.get_stub(
+            UserDefinedFunctionServiceStub
+        ).GetUserDefinedFunctionVersions(request)
+        response = cast("GetUserDefinedFunctionVersionsResponse", response)
+        return [UserDefinedFunctionVersion._from_proto(f) for f in response.user_defined_functions]
 
     async def list_functions(
         self,

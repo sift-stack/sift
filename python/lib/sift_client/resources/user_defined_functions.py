@@ -56,6 +56,21 @@ class UserDefinedFunctionVersionsAPIAsync(ResourceBase):
         version = await self._low_level_client.get_version(version_id=version_id)
         return self._apply_client_to_instance(version)
 
+    async def batch_get(
+        self, *, versions: list[str] | list[UserDefinedFunctionVersion]
+    ) -> list[UserDefinedFunctionVersion]:
+        """Get many versions in one call.
+
+        Args:
+            versions: The UserDefinedFunctionVersions or version IDs.
+
+        Returns:
+            The UserDefinedFunctionVersions.
+        """
+        ids = [v._id_or_error if isinstance(v, UserDefinedFunctionVersion) else v for v in versions]
+        found = await self._low_level_client.get_versions(version_ids=ids)
+        return self._apply_client_to_instances(found)
+
     async def list_(
         self,
         *,
@@ -78,7 +93,8 @@ class UserDefinedFunctionVersionsAPIAsync(ResourceBase):
             version: Filter to a single version number.
             include_archived: If True, include archived versions in results.
             filter_query: Explicit CEL query to filter versions.
-            order_by: Field and direction to order results by.
+            order_by: Field and direction to order results by. Newest first by default;
+                the service otherwise orders by name, which every version shares.
             limit: Maximum number of versions to return. If None, returns all matches.
             page_size: Number of results to fetch per request.
 
@@ -100,7 +116,7 @@ class UserDefinedFunctionVersionsAPIAsync(ResourceBase):
             ),
             name=name,
             query_filter=query_filter or None,
-            order_by=order_by,
+            order_by=order_by or "version desc",
             max_results=limit,
             **({"page_size": page_size} if page_size is not None else {}),
         )
