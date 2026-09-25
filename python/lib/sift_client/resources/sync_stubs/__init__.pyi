@@ -3635,7 +3635,7 @@ class UserDefinedFunctionsAPI:
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
-        user_defined_functions: list[str] | list[UserDefinedFunction] | None = None,
+        user_defined_function_ids: list[str] | list[UserDefinedFunction] | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
@@ -3648,7 +3648,7 @@ class UserDefinedFunctionsAPI:
             name: Exact name of the function.
             name_contains: Partial name of the function.
             name_regex: Regular expression to filter functions by name.
-            user_defined_functions: Filter to these UserDefinedFunctions or function IDs.
+            user_defined_function_ids: Filter to these UserDefinedFunctions or function IDs.
             include_archived: If True, include archived functions in results.
             filter_query: Explicit CEL query to filter functions.
             order_by: Field and direction to order results by.

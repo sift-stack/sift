@@ -98,7 +98,9 @@ class TestUserDefinedFunctions:
 
     def test_list_with_id_filter(self, sift_client, new_function):
         """Test function listing filtered to specific IDs."""
-        functions = sift_client.user_defined_functions.list_(user_defined_functions=[new_function])
+        functions = sift_client.user_defined_functions.list_(
+            user_defined_function_ids=[new_function]
+        )
 
         assert [f.id_ for f in functions] == [new_function.id_]
 
@@ -203,7 +205,7 @@ class TestUserDefinedFunctions:
     @pytest.mark.asyncio
     async def test_async_list(self, functions_api_async, new_function):
         """Test the async API returns the same functions."""
-        functions = await functions_api_async.list_(user_defined_functions=[new_function])
+        functions = await functions_api_async.list_(user_defined_function_ids=[new_function])
 
         assert [f.id_ for f in functions] == [new_function.id_]
 

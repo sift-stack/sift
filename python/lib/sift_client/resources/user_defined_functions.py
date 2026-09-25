@@ -162,7 +162,7 @@ class UserDefinedFunctionsAPIAsync(ResourceBase):
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         # self ids
-        user_defined_functions: list[str] | list[UserDefinedFunction] | None = None,
+        user_defined_function_ids: list[str] | list[UserDefinedFunction] | None = None,
         # common filters
         include_archived: bool = False,
         filter_query: str | None = None,
@@ -176,7 +176,7 @@ class UserDefinedFunctionsAPIAsync(ResourceBase):
             name: Exact name of the function.
             name_contains: Partial name of the function.
             name_regex: Regular expression to filter functions by name.
-            user_defined_functions: Filter to these UserDefinedFunctions or function IDs.
+            user_defined_function_ids: Filter to these UserDefinedFunctions or function IDs.
             include_archived: If True, include archived functions in results.
             filter_query: Explicit CEL query to filter functions.
             order_by: Field and direction to order results by.
@@ -194,10 +194,10 @@ class UserDefinedFunctionsAPIAsync(ResourceBase):
                 include_archived=include_archived, filter_query=filter_query
             ),
         ]
-        if user_defined_functions:
+        if user_defined_function_ids:
             ids = [
                 f._id_or_error if isinstance(f, UserDefinedFunction) else f
-                for f in user_defined_functions
+                for f in user_defined_function_ids
             ]
             filter_parts.append(cel.in_("user_defined_function_id", ids))
         query_filter = cel.and_(*filter_parts)
@@ -319,13 +319,24 @@ class UserDefinedFunctionsAPIAsync(ResourceBase):
             version_id = (
                 version._id_or_error if isinstance(version, UserDefinedFunctionVersion) else version
             )
-            return await self._low_level_client.get_dependents(version_id=version_id)
+            return self._apply_client_to_usage(
+                await self._low_level_client.get_dependents(version_id=version_id)
+            )
         function_id = (
             user_defined_function._id_or_error
             if isinstance(user_defined_function, UserDefinedFunction)
             else user_defined_function
         )
-        return await self._low_level_client.get_dependents(function_id=function_id)
+        return self._apply_client_to_usage(
+            await self._low_level_client.get_dependents(function_id=function_id)
+        )
+
+    def _apply_client_to_usage(self, usage: FunctionUsage) -> FunctionUsage:
+        """Hand the client to every object in the usage, so their properties resolve."""
+        self._apply_client_to_instances(usage.functions)
+        self._apply_client_to_instances(usage.calculated_channels)
+        self._apply_client_to_instances(usage.rules)
+        return usage
 
     async def archive(
         self, user_defined_function: str | UserDefinedFunction
