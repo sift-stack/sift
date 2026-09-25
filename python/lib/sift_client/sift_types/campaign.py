@@ -28,6 +28,7 @@ from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
     from sift_client.sift_types.run import Run
+    from sift_client.sift_types.user import User
 
 
 class RuleStatistics(BaseModel):
@@ -143,6 +144,16 @@ class Campaign(BaseType[CampaignProto, "Campaign"]):
         if not self.report_summaries:
             return []
         return self.client.reports.list_(report_ids=[r.report_id for r in self.report_summaries])
+
+    @property
+    def created_by(self) -> User:
+        """Fetch the User that created this campaign."""
+        return self.client.users.get(user_id=self.created_by_user_id)
+
+    @property
+    def modified_by(self) -> User:
+        """Fetch the User that last modified this campaign."""
+        return self.client.users.get(user_id=self.modified_by_user_id)
 
     @property
     def runs(self) -> list[Run]:

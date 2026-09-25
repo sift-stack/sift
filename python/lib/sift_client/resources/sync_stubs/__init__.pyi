@@ -783,6 +783,9 @@ class CampaignsAPI:
     ) -> Campaign:
         """Add reports to a campaign, keeping the ones already there.
 
+        `CampaignService` has no append RPC, so this reads the report list, merges, and
+        writes it back. Two concurrent calls drop one side's reports.
+
         Args:
             campaign: The Campaign or campaign ID to add to.
             reports: The Reports or report IDs to add.
