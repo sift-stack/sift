@@ -375,7 +375,8 @@ class AnnotationsAPIAsync(ResourceBase):
         dict picks the model from its `annotation_type`, which may be a name or a number.
 
         Args:
-            create: The annotation definition. `assets` and `tags` take names or objects.
+            create: The annotation definition. `assets` takes Assets or asset IDs,
+                `tags` takes Tags or tag names.
 
         Returns:
             The created Annotation.
@@ -512,7 +513,7 @@ class AnnotationsAPIAsync(ResourceBase):
         return await self.update(annotation, AnnotationUpdate(assigned_to_user_id=user_id))
 
     async def _set_state(self, annotation: str | Annotation, state: AnnotationState) -> Annotation:
-        """Move an annotation to a review state, skipping the call if already there.
+        """Set the review state, skipping the call if already there.
 
         The server rejects a redundant state change with INVALID_ARGUMENT. The state is
         only known without a fetch when an Annotation was passed rather than an ID.
@@ -522,7 +523,7 @@ class AnnotationsAPIAsync(ResourceBase):
         return await self.update(annotation, AnnotationUpdate(state=state))
 
     async def set_accepted(self, annotation: str | Annotation) -> Annotation:
-        """Close out a review as resolved.
+        """Set the review state to Accepted.
 
         Args:
             annotation: The Annotation or annotation ID.
@@ -533,7 +534,7 @@ class AnnotationsAPIAsync(ResourceBase):
         return await self._set_state(annotation, AnnotationState.ACCEPTED)
 
     async def set_failed(self, annotation: str | Annotation) -> Annotation:
-        """Flag a review as needing attention.
+        """Set the review state to Failed.
 
         Args:
             annotation: The Annotation or annotation ID.
@@ -544,7 +545,7 @@ class AnnotationsAPIAsync(ResourceBase):
         return await self._set_state(annotation, AnnotationState.FAILED)
 
     async def set_open(self, annotation: str | Annotation) -> Annotation:
-        """Return a review to the open state.
+        """Set the review state to Open.
 
         Args:
             annotation: The Annotation or annotation ID.

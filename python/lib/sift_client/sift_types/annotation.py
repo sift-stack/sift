@@ -333,8 +333,8 @@ class AnnotationBase(ModelCreateUpdateBase):
 class AnnotationCreateBase(AnnotationBase, ModelCreate[CreateAnnotationRequestProto]):
     """Shared fields for creating an annotation.
 
-    `assets` takes Assets or asset names, and `tags` takes tag names. Omit `assets` and
-    the asset is taken from `linked_channels`.
+    `assets` takes Assets or asset IDs, and `tags` takes Tags or tag names. Omit
+    `assets` and the asset is taken from `linked_channels`.
     """
 
     name: str

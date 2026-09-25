@@ -237,7 +237,8 @@ class AnnotationsAPI:
         dict picks the model from its `annotation_type`, which may be a name or a number.
 
         Args:
-            create: The annotation definition. `assets` and `tags` take names or objects.
+            create: The annotation definition. `assets` takes Assets or asset IDs,
+                `tags` takes Tags or tag names.
 
         Returns:
             The created Annotation.
@@ -343,7 +344,7 @@ class AnnotationsAPI:
         ...
 
     def set_accepted(self, annotation: str | Annotation) -> Annotation:
-        """Close out a review as resolved.
+        """Set the review state to Accepted.
 
         Args:
             annotation: The Annotation or annotation ID.
@@ -354,7 +355,7 @@ class AnnotationsAPI:
         ...
 
     def set_failed(self, annotation: str | Annotation) -> Annotation:
-        """Flag a review as needing attention.
+        """Set the review state to Failed.
 
         Args:
             annotation: The Annotation or annotation ID.
@@ -365,7 +366,7 @@ class AnnotationsAPI:
         ...
 
     def set_open(self, annotation: str | Annotation) -> Annotation:
-        """Return a review to the open state.
+        """Set the review state to Open.
 
         Args:
             annotation: The Annotation or annotation ID.
