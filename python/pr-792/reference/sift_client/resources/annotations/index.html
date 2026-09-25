@@ -3466,7 +3466,7 @@ and carries no state.</p>
    (sift_client.resources.annotations.AnnotationsAPIAsync.set_accepted)" href="#sift_client.resources.annotations.AnnotationsAPIAsync.set_accepted">set_accepted</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Close out a review as resolved.</p>
+                  <p>Set the review state to Accepted.</p>
                 </div>
               </td>
             </tr>
@@ -3479,7 +3479,7 @@ and carries no state.</p>
    (sift_client.resources.annotations.AnnotationsAPIAsync.set_failed)" href="#sift_client.resources.annotations.AnnotationsAPIAsync.set_failed">set_failed</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Flag a review as needing attention.</p>
+                  <p>Set the review state to Failed.</p>
                 </div>
               </td>
             </tr>
@@ -3492,7 +3492,7 @@ and carries no state.</p>
    (sift_client.resources.annotations.AnnotationsAPIAsync.set_open)" href="#sift_client.resources.annotations.AnnotationsAPIAsync.set_open">set_open</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Return a review to the open state.</p>
+                  <p>Set the review state to Open.</p>
                 </div>
               </td>
             </tr>
@@ -4659,7 +4659,8 @@ dict picks the model from its <code>annotation_type</code>, which may be a name 
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>The annotation definition. <code>assets</code> and <code>tags</code> take names or objects.</p>
+                <p>The annotation definition. <code>assets</code> takes Assets or asset IDs,
+<code>tags</code> takes Tags or tag names.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -5376,7 +5377,7 @@ dict picks the model from its <code>annotation_type</code>, which may be a name 
 
     <div class="doc doc-contents ">
 
-        <p>Close out a review as resolved.</p>
+        <p>Set the review state to Accepted.</p>
 
 
 <table>
@@ -5472,7 +5473,7 @@ dict picks the model from its <code>annotation_type</code>, which may be a name 
 
     <div class="doc doc-contents ">
 
-        <p>Flag a review as needing attention.</p>
+        <p>Set the review state to Failed.</p>
 
 
 <table>
@@ -5568,7 +5569,7 @@ dict picks the model from its <code>annotation_type</code>, which may be a name 
 
     <div class="doc doc-contents ">
 
-        <p>Return a review to the open state.</p>
+        <p>Set the review state to Open.</p>
 
 
 <table>
