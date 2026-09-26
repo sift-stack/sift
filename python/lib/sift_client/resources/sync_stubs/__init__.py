@@ -32,6 +32,7 @@ from sift_client.resources import (
     UserDefinedFunctionsAPIAsync,
     UserDefinedFunctionVersionsAPIAsync,
     UsersAPIAsync,
+    WebhooksAPIAsync,
 )
 
 PingAPI = generate_sync_api(PingAPIAsync, "PingAPI")
@@ -103,6 +104,7 @@ UserDefinedFunctionsAPI = generate_sync_api(
     nested_resources={"versions": UserDefinedFunctionVersionsAPI},
 )
 UsersAPI = generate_sync_api(UsersAPIAsync, "UsersAPI")
+WebhooksAPI = generate_sync_api(WebhooksAPIAsync, "WebhooksAPI")
 DataExportAPI = generate_sync_api(DataExportAPIAsync, "DataExportAPI")
 DataImportAPI = generate_sync_api(DataImportAPIAsync, "DataImportAPI")
 
@@ -135,4 +137,5 @@ __all__ = [
     "UserDefinedFunctionVersionsAPI",
     "UserDefinedFunctionsAPI",
     "UsersAPI",
+    "WebhooksAPI",
 ]

@@ -220,3 +220,72 @@ class TestRuleChannelReferenceSerialization:
         ref = rule.channel_references[0]
         assert ref.calculated_channel == "v-xyz"
         assert ref.channel_identifier is None
+
+
+class TestRuleActionWebhook:
+    """Unit tests for the webhook rule action."""
+
+    WEBHOOK_ID = "3bc0c34b-5c63-446d-845c-2b319b7b1a78"
+
+    def test_from_webhook_id(self):
+        """Test building the action from a webhook ID string."""
+        action = RuleAction.webhook(self.WEBHOOK_ID)
+
+        assert action.action_type == RuleActionType.WEBHOOK
+        assert action.webhook_id == self.WEBHOOK_ID
+        assert action._to_update_request().configuration.webhook.webhook_id == self.WEBHOOK_ID
+
+    def test_from_webhook_object(self):
+        """Test building the action from a Webhook instance."""
+        from sift.webhooks.v1.webhooks_pb2 import Webhook as WebhookProto
+
+        from sift_client.sift_types.webhook import Webhook
+
+        webhook = Webhook._from_proto(WebhookProto(webhook_id=self.WEBHOOK_ID))
+
+        action = RuleAction.webhook(webhook)
+
+        assert action.webhook_id is webhook
+        assert action._to_update_request().configuration.webhook.webhook_id == self.WEBHOOK_ID
+
+    def test_rejects_non_uuid(self):
+        """Test that a malformed webhook ID is caught before it reaches the server."""
+        with pytest.raises(ValueError, match="badly formed hexadecimal UUID string"):
+            RuleAction.webhook("not-a-uuid")
+
+    def test_to_update_request_sets_webhook_configuration(self):
+        """Test the action serializes into the webhook branch of the oneof."""
+        request = RuleAction.webhook(self.WEBHOOK_ID)._to_update_request()
+
+        assert request.action_type == RuleActionType.WEBHOOK.value
+        assert request.configuration.webhook.webhook_id == self.WEBHOOK_ID
+        assert not request.configuration.annotation.tag_ids
+
+    def test_annotation_action_sets_no_webhook(self):
+        """Test the annotation action is unaffected by the webhook branch."""
+        request = RuleAction.annotation(
+            annotation_type=RuleAnnotationType.DATA_REVIEW, tags=[]
+        )._to_update_request()
+
+        assert request.configuration.webhook.webhook_id == ""
+
+    def test_from_proto_reads_webhook_id(self):
+        """Test the webhook ID round trips back out of the proto."""
+        from sift.rules.v1.rules_pb2 import (
+            ActionKind,
+            RuleActionConfiguration,
+            WebhookActionConfiguration,
+        )
+        from sift.rules.v1.rules_pb2 import RuleAction as RuleActionProto
+
+        proto = RuleActionProto(
+            action_type=ActionKind.WEBHOOK,
+            configuration=RuleActionConfiguration(
+                webhook=WebhookActionConfiguration(webhook_id=self.WEBHOOK_ID)
+            ),
+        )
+        action = RuleAction._from_proto(proto)
+
+        assert action.action_type == RuleActionType.WEBHOOK
+        assert action.webhook_id == self.WEBHOOK_ID
+        assert action.annotation_type is None

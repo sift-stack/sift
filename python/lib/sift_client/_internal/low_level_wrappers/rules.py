@@ -58,6 +58,7 @@ from sift_client._internal.time import to_timestamp_pb
 from sift_client._internal.util.util import count_non_none
 from sift_client.sift_types.rule import (
     Rule,
+    RuleAction,
     RuleCreate,
     RuleUpdate,
     RuleVersion,
@@ -144,7 +145,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         conditions_request = [
             UpdateConditionRequest(
                 expression=expression_proto,
-                actions=[create.action._to_update_request()],
+                actions=[cast("RuleAction", create.action)._to_update_request()],
             )
         ]
         update_request = UpdateRuleRequest(
@@ -156,7 +157,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             is_live_evaluation_enabled=create.evaluate_on_live_data,
             conditions=conditions_request,
             asset_configuration=RuleAssetConfiguration(
-                asset_ids=create.asset_ids or [],
+                asset_ids=cast("list[str]", create.asset_ids or []),
                 tag_ids=create.asset_tag_ids or [],
             ),
             contextual_channels=ContextualChannels(
@@ -259,7 +260,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             if "channel_references" in model_dump
             else rule.channel_references
         ) or []
-        action = update.action if "action" in model_dump else rule.action
+        action = cast("RuleAction", update.action if "action" in model_dump else rule.action)
         if bool(expression) != bool(channel_references):
             raise ValueError(
                 "Expression and channel_references must both be provided or both be None"
@@ -296,7 +297,10 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         # This always needs to be set, so handle the defaults.
         update_dict["asset_configuration"] = RuleAssetConfiguration(  # type: ignore
-            asset_ids=(update.asset_ids if "asset_ids" in model_dump else rule.asset_ids or []),
+            asset_ids=cast(
+                "list[str]",
+                update.asset_ids if "asset_ids" in model_dump else rule.asset_ids or [],
+            ),
             tag_ids=(
                 update.asset_tag_ids if "asset_tag_ids" in model_dump else rule.asset_tag_ids or []
             ),

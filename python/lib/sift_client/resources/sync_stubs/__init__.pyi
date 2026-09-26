@@ -111,6 +111,13 @@ if TYPE_CHECKING:
         UserDefinedFunctionValidation,
         UserDefinedFunctionVersion,
     )
+    from sift_client.sift_types.webhook import (
+        Webhook,
+        WebhookCreate,
+        WebhookEventType,
+        WebhookTest,
+        WebhookUpdate,
+    )
 
 class AnnotationLogsAPI:
     """Sync counterpart to `AnnotationLogsAPIAsync`.
@@ -4323,5 +4330,150 @@ class UsersAPI:
 
         Raises:
             ValueError: If an email matches multiple users case-insensitively.
+        """
+        ...
+
+class WebhooksAPI:
+    """Sync counterpart to `WebhooksAPIAsync`.
+
+    High-level API for interacting with webhooks.
+
+    A webhook registers an HTTP endpoint that Sift calls when a rule is violated.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the WebhooksAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def archive(self, webhook: str | Webhook) -> Webhook:
+        """Archive a webhook. Archived webhooks stop receiving events.
+
+        Args:
+            webhook: The Webhook or webhook ID to archive.
+
+        Returns:
+            The archived Webhook.
+        """
+        ...
+
+    def create(self, create: WebhookCreate | dict) -> Webhook:
+        """Create a new webhook.
+
+        Args:
+            create: The webhook definition. `http_headers` accepts either a list of
+                WebhookHttpHeader or a `{name: value}` mapping.
+
+        Returns:
+            The created Webhook.
+        """
+        ...
+
+    def find(self, **kwargs) -> Webhook | None:
+        """Find a single webhook matching the given query. Takes the same arguments as `list_`.
+        If more than one webhook is found, raises an error.
+
+        Args:
+            **kwargs: Keyword arguments to pass to `list_`.
+
+        Returns:
+            The Webhook found or None.
+        """
+        ...
+
+    def get(self, webhook_id: str) -> Webhook:
+        """Get a Webhook.
+
+        Args:
+            webhook_id: The ID of the webhook.
+
+        Returns:
+            The Webhook.
+        """
+        ...
+
+    def list_(
+        self,
+        *,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        webhook_ids: list[str] | None = None,
+        event_type: WebhookEventType | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[Webhook]:
+        """List webhooks with optional filtering.
+
+        Args:
+            name: Exact name of the webhook.
+            names: List of webhook names to filter by.
+            name_contains: Partial name of the webhook.
+            name_regex: Regular expression to filter webhooks by name.
+            webhook_ids: Filter to webhooks with any of these IDs.
+            event_type: Filter to webhooks triggered by this event type.
+            include_archived: If True, include archived webhooks in results.
+            filter_query: Explicit CEL query to filter webhooks.
+            order_by: Field and direction to order results by. Only `created_date` is
+                supported, e.g. "created_date desc".
+            limit: Maximum number of webhooks to return. If None, returns all matches.
+            page_size: Number of results to fetch per request. Lower this if you hit gRPC
+                message size limits on responses. If None, uses the server default.
+
+        Returns:
+            A list of Webhook objects that match the filter criteria.
+        """
+        ...
+
+    def send_test_request(
+        self, *, webhook: str | Webhook | None = None, create: WebhookCreate | dict | None = None
+    ) -> WebhookTest:
+        """Send a real request to a webhook's target URL and return its response.
+
+        Pass exactly one of `webhook` or `create`. Use `create` to check an endpoint
+        before saving it.
+
+        Args:
+            webhook: The Webhook or webhook ID to test.
+            create: An unsaved webhook definition to test.
+
+        Returns:
+            The response the target URL returned.
+
+        Raises:
+            ValueError: If neither or both arguments are provided.
+        """
+        ...
+
+    def unarchive(self, webhook: str | Webhook) -> Webhook:
+        """Unarchive a webhook.
+
+        Args:
+            webhook: The Webhook or webhook ID to unarchive.
+
+        Returns:
+            The unarchived Webhook.
+        """
+        ...
+
+    def update(self, webhook: str | Webhook, update: WebhookUpdate | dict) -> Webhook:
+        """Update a Webhook.
+
+        Note that `http_headers` is replaced wholesale, not merged.
+
+        Args:
+            webhook: The Webhook or webhook ID to update.
+            update: Updates to apply to the Webhook.
+
+        Returns:
+            The updated Webhook.
         """
         ...

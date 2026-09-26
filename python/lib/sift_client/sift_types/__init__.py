@@ -247,6 +247,14 @@ from sift_client.sift_types.user_defined_function import (
     UserDefinedFunctionValidation,
     UserDefinedFunctionVersion,
 )
+from sift_client.sift_types.webhook import (
+    Webhook,
+    WebhookCreate,
+    WebhookEventType,
+    WebhookHttpHeader,
+    WebhookTest,
+    WebhookUpdate,
+)
 
 if "pytest" in sys.modules:
     # These are not test classes, so we need to set __test__ to False to avoid pytest warnings.
@@ -365,4 +373,10 @@ __all__ = [
     "UserDefinedFunctionValidation",
     "UserDefinedFunctionVersion",
     "UserOrganization",
+    "Webhook",
+    "WebhookCreate",
+    "WebhookEventType",
+    "WebhookHttpHeader",
+    "WebhookTest",
+    "WebhookUpdate",
 ]
