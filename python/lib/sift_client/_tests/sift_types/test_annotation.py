@@ -41,6 +41,15 @@ class TestAnnotationCreate:
         assert proto.name == "a"
         assert proto.annotation_type == AnnotationType.DATA_REVIEW.value
 
+    def test_run_reaches_the_proto(self):
+        """Both create models inherit the `run` helper, which maps it to `run_id`."""
+        run_id = "d961e543-0dde-4069-b046-8ae124f48d9b"
+
+        for model in (AnnotationCreate, PhaseCreate):
+            proto = model(name="a", start_time=START, end_time=END, run=run_id).to_proto()
+
+            assert proto.run_id == run_id
+
     def test_assets_and_tags_are_names(self):
         create = AnnotationCreate(
             name="a", start_time=START, end_time=END, assets=["Nostromo"], tags=["review"]

@@ -376,7 +376,7 @@ class AnnotationCreate(AnnotationCreateBase):
     assign_to_user: str | User | None = None
 
     _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
-        **AnnotationBase._to_proto_helpers,
+        **AnnotationCreateBase._to_proto_helpers,
         "assign_to_user": MappingHelper(
             proto_attr_path="assign_to_user_id",
             update_field="assign_to_user_id",
