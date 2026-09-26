@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from sift_stream_bindings import RunFormPy
 
     from sift_client.client import SiftClient
+    from sift_client.sift_types.annotation import Annotation
     from sift_client.sift_types.asset import Asset
     from sift_client.sift_types.data_import import DataImport, DataTypeKey, ImportConfig
     from sift_client.sift_types.job import Job
@@ -100,6 +101,11 @@ class Run(BaseType[RunProto, "Run"], FileAttachmentsMixin):
         if not self.asset_ids:
             return []
         return self.client.assets.list_(asset_ids=self.asset_ids)
+
+    @property
+    def annotations(self) -> list[Annotation]:
+        """Fetch the Annotations on this run."""
+        return self.client.annotations.list_(runs=[self])
 
     @property
     def data_imports(self) -> list[DataImport]:

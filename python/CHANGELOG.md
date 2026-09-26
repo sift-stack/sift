@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 - Added `client.user_defined_functions` for reusable expressions.
+- Added `client.annotations` for data reviews, phases, and review history.
 
 ### What's New
 

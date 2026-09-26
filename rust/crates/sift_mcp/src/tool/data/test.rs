@@ -38,7 +38,7 @@ use tempdir::TempDir;
 use tokio::task::JoinHandle;
 use tonic::{Response, transport::Server};
 
-use super::GetDataParams;
+use super::{GetDataParams, create_output_file};
 use crate::{
     server::SiftMcpServer, service::common::PAGE_SIZE, tool::common::test_support::structured,
 };
@@ -1399,4 +1399,82 @@ async fn no_data_error_reports_both_the_empty_and_the_unmatched_channels() {
         data["unmatched_channel_names"],
         serde_json::json!(["presure"])
     );
+}
+
+#[test]
+fn output_file_creates_missing_parent_directories() {
+    let dir = TempDir::new("sift-mcp-output-dirs").expect("temp dir");
+    let nested = dir
+        .path()
+        .join("runs")
+        .join("monza")
+        .join("laptimes.parquet");
+
+    create_output_file(&nested).expect("nested output path");
+
+    assert!(nested.exists());
+}
+
+#[test]
+fn output_file_truncates_an_existing_file() {
+    let dir = TempDir::new("sift-mcp-output-truncate").expect("temp dir");
+    let path = dir.path().join("laptimes.parquet");
+    std::fs::write(&path, b"stale").expect("seed file");
+
+    create_output_file(&path).expect("existing output path");
+
+    assert_eq!(std::fs::metadata(&path).expect("metadata").len(), 0);
+}
+
+#[tokio::test]
+async fn get_data_writes_into_a_directory_that_does_not_exist_yet() {
+    let mut channels = MockChannelServiceImpl::new();
+    channels.expect_list_channels().returning(|_| {
+        Ok(Response::new(ListChannelsResponse {
+            channels: vec![Channel {
+                channel_id: "ch-1".into(),
+                name: "pressure".into(),
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data().returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![double_page("ch-1", "pressure", vec![(1_000_000_000, 1.0)])],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let dir = TempDir::new("sift-mcp-nested-output").expect("failed to create temp dir");
+    let nested = dir.path().join("runs").join("monza").join("out.parquet");
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        channels,
+        MockRunServiceImpl::new(),
+        no_calculation_mock(),
+        data,
+    )
+    .await;
+
+    server
+        .get_data(Parameters(GetDataParams {
+            asset_name: Some("bench".into()),
+            asset_id: None,
+            run_name: None,
+            start_time_unix_nanos: Some(0),
+            end_time_unix_nanos: Some(2_000_000_000),
+            sample_ms: 0,
+            channel_names: Some(vec!["pressure".into()]),
+            channel_regex: None,
+            channel_id: None,
+            channel_ids: None,
+            output: nested.clone(),
+        }))
+        .await
+        .expect("a missing parent directory should not fail the call");
+
+    assert!(nested.exists());
 }

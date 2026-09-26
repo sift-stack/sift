@@ -4,6 +4,8 @@ This package contains synchronous versions of all async API classes.
 
 from sift_client._internal.sync_wrapper import generate_sync_api
 from sift_client.resources import (
+    AnnotationLogsAPIAsync,
+    AnnotationsAPIAsync,
     AssetsAPIAsync,
     CalculatedChannelsAPIAsync,
     ChannelsAPIAsync,
@@ -32,6 +34,11 @@ from sift_client.resources import (
 )
 
 PingAPI = generate_sync_api(PingAPIAsync, "PingAPI")
+# AnnotationLogsAPI must be generated before AnnotationsAPI so it can be nested under it.
+AnnotationLogsAPI = generate_sync_api(AnnotationLogsAPIAsync, "AnnotationLogsAPI")
+AnnotationsAPI = generate_sync_api(
+    AnnotationsAPIAsync, "AnnotationsAPI", nested_resources={"logs": AnnotationLogsAPI}
+)
 AssetsAPI = generate_sync_api(AssetsAPIAsync, "AssetsAPI")
 CalculatedChannelsAPI = generate_sync_api(CalculatedChannelsAPIAsync, "CalculatedChannelsAPI")
 ChannelsAPI = generate_sync_api(ChannelsAPIAsync, "ChannelsAPI")
@@ -98,6 +105,8 @@ DataExportAPI = generate_sync_api(DataExportAPIAsync, "DataExportAPI")
 DataImportAPI = generate_sync_api(DataImportAPIAsync, "DataImportAPI")
 
 __all__ = [
+    "AnnotationLogsAPI",
+    "AnnotationsAPI",
     "AssetsAPI",
     "CalculatedChannelsAPI",
     "ChannelsAPI",

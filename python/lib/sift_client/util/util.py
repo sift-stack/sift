@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, NamedTuple
 
 if TYPE_CHECKING:
     from sift_client.resources import (
+        AnnotationsAPIAsync,
         AssetsAPIAsync,
         CalculatedChannelsAPIAsync,
         ChannelsAPIAsync,
@@ -29,6 +30,9 @@ class AsyncAPIs(NamedTuple):
 
     ping: PingAPIAsync
     """Instance of the Ping API for making asynchronous requests."""
+
+    annotations: AnnotationsAPIAsync
+    """Instance of the Annotations API for making asynchronous requests."""
 
     assets: AssetsAPIAsync
     """Instance of the Assets API for making asynchronous requests."""

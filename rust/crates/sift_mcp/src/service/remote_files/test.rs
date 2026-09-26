@@ -62,6 +62,34 @@ async fn uploads_the_file_as_one_multipart_request() {
 }
 
 #[tokio::test]
+async fn a_chat_upload_identifies_as_chat() {
+    let (rest_uri, server) = start_http_server(
+        b"HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: 2\r\nconnection: close\r\n\r\n{}"
+            .to_vec(),
+    )
+    .await;
+    let dir = TempDir::new("artifact-upload").unwrap();
+    let path = write_file(&dir, "report.md", b"# Battery Report\n");
+
+    let config = RestConfig {
+        client_name: crate::ClientName::Chat,
+        ..RestConfig::new(rest_uri, "test-key".into())
+    };
+    RemoteFileUploader::new(config, "1.2.3")
+        .upload_artifact_version_file("org-1", "ver-1", &path)
+        .await
+        .unwrap();
+
+    let request = String::from_utf8(server.await.unwrap()).unwrap();
+    let (headers, _) = request.split_once("\r\n\r\n").unwrap();
+    assert!(
+        headers
+            .lines()
+            .any(|line| line.eq_ignore_ascii_case("user-agent: chat/1.2.3"))
+    );
+}
+
+#[tokio::test]
 async fn a_failed_upload_reports_the_status_and_detail() {
     let (rest_uri, server) = start_http_server(
         b"HTTP/1.1 413 Payload Too Large\r\ncontent-type: application/json\r\ncontent-length: 24\r\nconnection: close\r\n\r\n{\"error\":\"file too big\"}"

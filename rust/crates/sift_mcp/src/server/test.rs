@@ -96,6 +96,23 @@ async fn server_with_feature_flags(
     client_event_reporter: ClientEventReporter,
     feature_flags: FeatureFlags,
 ) -> (SiftMcpServer, JoinHandle<()>) {
+    server_with_config(
+        update_check,
+        asset_tool_calls,
+        client_event_reporter,
+        feature_flags,
+        Vec::new(),
+    )
+    .await
+}
+
+async fn server_with_config(
+    update_check: Option<watch::Receiver<UpdateCheck>>,
+    asset_tool_calls: usize,
+    client_event_reporter: ClientEventReporter,
+    feature_flags: FeatureFlags,
+    ignored_tools: Vec<String>,
+) -> (SiftMcpServer, JoinHandle<()>) {
     let mut mock = MockAssetServiceImpl::new();
     mock.expect_list_assets()
         .times(asset_tool_calls)
@@ -129,7 +146,9 @@ async fn server_with_feature_flags(
             client_event_reporter,
             feature_flags,
             None,
-        ),
+            ignored_tools,
+        )
+        .expect("test server configuration is valid"),
         handle,
     )
 }
@@ -202,8 +221,25 @@ async fn initialized_client_with_feature_flags(
     tokio::io::WriteHalf<DuplexStream>,
     JoinHandle<()>,
 ) {
-    let (server, grpc_handle) =
-        server_with_feature_flags(None, 0, ClientEventReporter::default(), feature_flags).await;
+    initialized_client_with_config(feature_flags, Vec::new()).await
+}
+
+async fn initialized_client_with_config(
+    feature_flags: FeatureFlags,
+    ignored_tools: Vec<String>,
+) -> (
+    BufReader<tokio::io::ReadHalf<DuplexStream>>,
+    tokio::io::WriteHalf<DuplexStream>,
+    JoinHandle<()>,
+) {
+    let (server, grpc_handle) = server_with_config(
+        None,
+        0,
+        ClientEventReporter::default(),
+        feature_flags,
+        ignored_tools,
+    )
+    .await;
     let (reader, mut writer, mcp_handle) = connect_server(server, grpc_handle).await;
 
     let request = serde_json::json!({
@@ -222,6 +258,121 @@ async fn initialized_client_with_feature_flags(
         .unwrap();
 
     (reader, writer, mcp_handle)
+}
+
+#[tokio::test]
+async fn ignored_tools_are_not_listed() {
+    let (mut reader, mut writer, server) =
+        initialized_client_with_config(FeatureFlags::default(), vec!["list_assets".to_string()])
+            .await;
+    let _initialize = read_json(&mut reader).await;
+    writer
+        .write_all(b"{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}\n")
+        .await
+        .unwrap();
+    writer
+        .write_all(b"{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}\n")
+        .await
+        .unwrap();
+    let tools = read_json(&mut reader).await;
+    let tools = tools["result"]["tools"].as_array().unwrap();
+    assert!(tools.iter().all(|tool| tool["name"] != "list_assets"));
+    assert!(tools.iter().any(|tool| tool["name"] == "list_runs"));
+
+    finish(reader, writer, server).await;
+}
+
+#[tokio::test]
+async fn ignored_disabled_tools_are_known() {
+    let (client, _server) = tokio::io::duplex(1024);
+    let channel = memory_sift_channel(client).await;
+    let tool_name = TOOL_FEATURE_FLAGS[0].0;
+
+    let server = SiftMcpServer::new_with_client_events(
+        channel,
+        "https://app.test.local".to_string(),
+        false,
+        false,
+        CLI_VERSION.to_string(),
+        None,
+        ClientEventReporter::default(),
+        FeatureFlags::default(),
+        None,
+        vec![tool_name.to_string(), "check_for_updates".to_string()],
+    )
+    .unwrap();
+
+    assert!(
+        server
+            .tool_router
+            .list_all()
+            .iter()
+            .all(|tool| tool.name != tool_name)
+    );
+    assert!(
+        server
+            .tool_router
+            .list_all()
+            .iter()
+            .all(|tool| tool.name != "check_for_updates")
+    );
+}
+
+#[tokio::test]
+async fn ignored_update_tool_is_not_advertised() {
+    let (client, _server) = tokio::io::duplex(1024);
+    let channel = memory_sift_channel(client).await;
+    let update = update_available();
+    let update_check = receiver(update.clone());
+    let server = SiftMcpServer::new_with_client_events(
+        channel,
+        "https://app.test.local".to_string(),
+        false,
+        false,
+        CLI_VERSION.to_string(),
+        Some(update_check),
+        ClientEventReporter::default(),
+        FeatureFlags::default(),
+        None,
+        vec!["check_for_updates".to_string()],
+    )
+    .unwrap();
+
+    let instructions = ServerHandler::get_info(&server).instructions.unwrap();
+    assert!(instructions.contains(&update.message()));
+    assert!(!instructions.contains("check_for_updates"));
+    assert!(
+        server
+            .tool_router
+            .list_all()
+            .iter()
+            .all(|tool| tool.name != "check_for_updates")
+    );
+}
+
+#[tokio::test]
+async fn unknown_ignored_tools_fail_startup() {
+    let (client, _server) = tokio::io::duplex(1024);
+    let channel = memory_sift_channel(client).await;
+
+    let result = SiftMcpServer::new_with_client_events(
+        channel,
+        "https://app.test.local".to_string(),
+        false,
+        false,
+        CLI_VERSION.to_string(),
+        None,
+        ClientEventReporter::default(),
+        FeatureFlags::default(),
+        None,
+        vec!["not_a_tool".to_string(), "also_not_a_tool".to_string()],
+    );
+    let Err(error) = result else {
+        panic!("expected unknown ignored tools to fail startup");
+    };
+
+    assert!(error.to_string().contains("not_a_tool"));
+    assert!(error.to_string().contains("also_not_a_tool"));
 }
 
 #[tokio::test]
@@ -513,6 +664,7 @@ async fn every_registered_tool_has_a_client_event() {
 async fn client_event_failure_does_not_change_the_tool_result() {
     let reporter = ClientEventReporter::new(
         ClientEventConfig::new("invalid rest URI".to_string(), "test-key".to_string()),
+        crate::ClientName::SiftMcp,
         CLI_VERSION,
     );
     let (mut reader, mut writer, server) = connected_client_with_events(None, 1, reporter).await;
@@ -557,6 +709,7 @@ async fn tool_call_sends_its_client_event() {
     let (rest_uri, event_server) = start_event_server().await;
     let reporter = ClientEventReporter::new(
         ClientEventConfig::new(rest_uri, "test-key".to_string()),
+        crate::ClientName::SiftMcp,
         CLI_VERSION,
     );
     let (mut reader, mut writer, server) = connected_client_with_events(None, 1, reporter).await;

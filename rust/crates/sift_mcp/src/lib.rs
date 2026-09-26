@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use clap::{crate_name, crate_version};
+use clap::crate_version;
 use rmcp::{ServiceExt, transport::stdio};
 use serde::Serialize;
 use sift_rs::{Credentials, SiftChannelBuilder};
@@ -76,6 +76,25 @@ impl UpdateCheck {
 
 pub type UpdateCheckReceiver = watch::Receiver<UpdateCheck>;
 
+/// Names this server in the User-Agent of every request it sends to Sift,
+/// which is how Sift attributes the activity.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ClientName {
+    #[default]
+    SiftMcp,
+    /// The server running inside a Sift chat pod.
+    Chat,
+}
+
+impl ClientName {
+    pub(crate) fn as_str(self) -> &'static str {
+        match self {
+            Self::SiftMcp => "sift_mcp",
+            Self::Chat => "chat",
+        }
+    }
+}
+
 pub async fn run(
     credentials: Credentials,
     use_tls: bool,
@@ -115,6 +134,8 @@ pub async fn run_with_update_check(
         None,
         FeatureFlags::default(),
         None,
+        Vec::new(),
+        ClientName::default(),
     )
     .await
 }
@@ -134,9 +155,18 @@ pub async fn run_with_client_events(
     client_event_config: Option<ClientEventConfig>,
     feature_flags: FeatureFlags,
     rest_config: Option<RestConfig>,
+    ignored_tools: Vec<String>,
+    client_name: ClientName,
 ) -> Result<()> {
-    let client_event_reporter =
-        client_event::ClientEventReporter::from_config(client_event_config, &cli_version);
+    let client_event_reporter = client_event::ClientEventReporter::from_config(
+        client_event_config,
+        client_name,
+        &cli_version,
+    );
+    let rest_config = rest_config.map(|config| RestConfig {
+        client_name,
+        ..config
+    });
     run_server(
         credentials,
         use_tls,
@@ -149,6 +179,8 @@ pub async fn run_with_client_events(
             client_event_reporter,
             feature_flags,
             rest_config,
+            ignored_tools,
+            client_name,
         },
     )
     .await
@@ -163,12 +195,14 @@ struct RunConfig {
     client_event_reporter: client_event::ClientEventReporter,
     feature_flags: FeatureFlags,
     rest_config: Option<RestConfig>,
+    ignored_tools: Vec<String>,
+    client_name: ClientName,
 }
 
 async fn run_server(credentials: Credentials, use_tls: bool, config: RunConfig) -> Result<()> {
     let channel = SiftChannelBuilder::new(credentials)
         .use_tls(use_tls)
-        .user_agent(format!("{}/{}", crate_name!(), crate_version!()))
+        .user_agent(grpc_user_agent(config.client_name))
         .build()
         .context("failed to build gRPC channel to connect to Sift")?;
 
@@ -182,7 +216,8 @@ async fn run_server(credentials: Credentials, use_tls: bool, config: RunConfig) 
         config.client_event_reporter,
         config.feature_flags,
         config.rest_config,
-    )
+        config.ignored_tools,
+    )?
     .serve(stdio())
     .await
     .context("failed to start MCP server")?;
@@ -193,6 +228,10 @@ async fn run_server(credentials: Credentials, use_tls: bool, config: RunConfig) 
         .context("MCP server terminated unexpectedly")?;
 
     Ok(())
+}
+
+fn grpc_user_agent(client_name: ClientName) -> String {
+    format!("{}/{}", client_name.as_str(), crate_version!())
 }
 
 #[cfg(test)]
@@ -211,5 +250,18 @@ mod tests {
     #[test]
     fn public_run_keeps_its_legacy_signature() {
         accepts_legacy_run(super::run);
+    }
+
+    #[test]
+    fn grpc_user_agent_names_the_client() {
+        let version = clap::crate_version!();
+        assert_eq!(
+            super::grpc_user_agent(super::ClientName::SiftMcp),
+            format!("sift_mcp/{version}")
+        );
+        assert_eq!(
+            super::grpc_user_agent(super::ClientName::Chat),
+            format!("chat/{version}")
+        );
     }
 }

@@ -1,10 +1,10 @@
 use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
 use sift_rs::{
     artifacts::v1::{
-        ArchiveArtifactResponse, Artifact, ArtifactAuthoringKind, ArtifactCreatedVia,
-        ArtifactEntityType, ArtifactLinkRelation, ArtifactStorageClass, ArtifactVersion,
-        CreateArtifactResponse, GetArtifactResponse, ListArtifactVersionsResponse,
-        ListArtifactsResponse, UnarchiveArtifactResponse,
+        ArchiveArtifactResponse, Artifact, ArtifactCreatedVia, ArtifactDetails, ArtifactEntityType,
+        ArtifactLinkRelation, ArtifactStorageClass, ArtifactVersion, CreateArtifactResponse,
+        GetArtifactResponse, ListArtifactVersionsResponse, ListArtifactsResponse,
+        UnarchiveArtifactResponse, UpdateArtifactResponse,
         artifact_service_server::ArtifactServiceServer,
     },
     remote_files::v1::{
@@ -20,7 +20,7 @@ use tonic::{Response, Status, transport::Server};
 
 use super::{
     ArtifactArchiveParams, ArtifactVersionListParams, CreateArtifactParams, DownloadArtifactParams,
-    parse_created_via, parse_storage_class,
+    UpdateArtifactParams, parse_created_via, parse_storage_class,
 };
 use crate::{
     server::SiftMcpServer,
@@ -33,15 +33,32 @@ use crate::{
     },
 };
 
-fn sample_artifact() -> Artifact {
-    Artifact {
+fn sample_artifact() -> ArtifactDetails {
+    sample_with(|_| {}, |_| {})
+}
+
+fn sample_with(
+    container: impl FnOnce(&mut Artifact),
+    version: impl FnOnce(&mut ArtifactVersion),
+) -> ArtifactDetails {
+    let mut artifact = Artifact {
         artifact_id: "art-1".into(),
         organization_id: "org-1".into(),
+        current_version_id: "ver-1".into(),
+        ..Default::default()
+    };
+    let mut artifact_version = ArtifactVersion {
         artifact_version_id: "ver-1".into(),
+        artifact_id: "art-1".into(),
         version: 1,
         title: Some("report".into()),
-        authoring_kind: ArtifactAuthoringKind::Agent as i32,
         ..Default::default()
+    };
+    container(&mut artifact);
+    version(&mut artifact_version);
+    ArtifactDetails {
+        artifact: Some(artifact),
+        artifact_version: Some(artifact_version),
     }
 }
 
@@ -126,7 +143,7 @@ async fn server_with_mocks(
     )
 }
 
-fn get_returns(artifact: Artifact) -> MockArtifactServiceImpl {
+fn get_returns(artifact: ArtifactDetails) -> MockArtifactServiceImpl {
     let mut mock = MockArtifactServiceImpl::new();
     mock.expect_get_artifact().returning(move |_| {
         Ok(Response::new(GetArtifactResponse {
@@ -202,10 +219,10 @@ async fn get_artifact_rejects_empty_id() {
 
 #[tokio::test]
 async fn get_artifact_returns_snake_case_download_url() {
-    let uploaded = Artifact {
-        remote_file_id: Some("rf-1".into()),
-        ..sample_artifact()
-    };
+    let uploaded = sample_with(
+        |_| {},
+        |version| version.remote_file_id = Some("rf-1".into()),
+    );
     let mut remote_files = MockRemoteFileServiceImpl::new();
     remote_files
         .expect_get_remote_file_download_url()
@@ -245,11 +262,13 @@ async fn get_artifact_omits_download_url_without_bytes() {
 
 #[tokio::test]
 async fn get_artifact_returns_structured_payload() {
-    let structured = Artifact {
-        storage_class: ArtifactStorageClass::Structured as i32,
-        payload: Some(serde_json::from_value(serde_json::json!({ "rows": [[1, 2]] })).unwrap()),
-        ..sample_artifact()
-    };
+    let structured = sample_with(
+        |artifact| artifact.storage_class = ArtifactStorageClass::Structured as i32,
+        |version| {
+            version.payload =
+                Some(serde_json::from_value(serde_json::json!({ "rows": [[1, 2]] })).unwrap())
+        },
+    );
     let (server, _h) = server_with_mock(get_returns(structured), false).await;
     let resp = server
         .download_artifact(Parameters(DownloadArtifactParams {
@@ -265,10 +284,10 @@ async fn get_artifact_returns_structured_payload() {
 
 #[tokio::test]
 async fn get_artifact_surfaces_download_url_failure() {
-    let uploaded = Artifact {
-        remote_file_id: Some("rf-1".into()),
-        ..sample_artifact()
-    };
+    let uploaded = sample_with(
+        |_| {},
+        |version| version.remote_file_id = Some("rf-1".into()),
+    );
     let mut remote_files = MockRemoteFileServiceImpl::new();
     remote_files
         .expect_get_remote_file_download_url()
@@ -446,15 +465,7 @@ async fn unarchive_artifact_returns_structured_result() {
 async fn create_artifact_blocked_without_allow_create() {
     let (server, _h) = server_with_mock(MockArtifactServiceImpl::new(), false).await;
     let err = server
-        .create_artifact(Parameters(CreateArtifactParams {
-            title: None,
-            summary: None,
-            conversation_id: None,
-            artifact_id: None,
-            authoring_kind: None,
-            file_path: None,
-            ..Default::default()
-        }))
+        .create_artifact(Parameters(CreateArtifactParams::default()))
         .await
         .expect_err("gated");
     assert_eq!(err.code, ErrorCode::INVALID_REQUEST);
@@ -462,7 +473,7 @@ async fn create_artifact_blocked_without_allow_create() {
 }
 
 #[tokio::test]
-async fn create_artifact_append_blocked_without_allow_destructive() {
+async fn update_artifact_blocked_without_allow_destructive() {
     let (server, _h) = server_with_mocks(
         MockArtifactServiceImpl::new(),
         MockRemoteFileServiceImpl::new(),
@@ -471,51 +482,175 @@ async fn create_artifact_append_blocked_without_allow_destructive() {
     )
     .await;
     let err = server
-        .create_artifact(Parameters(CreateArtifactParams {
+        .update_artifact(Parameters(UpdateArtifactParams {
+            artifact_id: "art-1".into(),
             title: Some("v2".into()),
-            summary: None,
-            conversation_id: None,
-            artifact_id: Some("art-1".into()),
-            authoring_kind: None,
-            file_path: None,
             ..Default::default()
         }))
         .await
-        .expect_err("append gated");
+        .expect_err("update gated");
     assert_eq!(err.code, ErrorCode::INVALID_REQUEST);
     assert!(err.message.contains("--allow-destructive"));
 }
 
 #[tokio::test]
-async fn create_artifact_appends_a_payload_without_restating_storage_class() {
+async fn update_artifact_masks_only_what_was_passed() {
     let mut mock = MockArtifactServiceImpl::new();
-    mock.expect_create_artifact()
+    mock.expect_update_artifact()
         .withf(|req| {
             let req = req.get_ref();
-            req.artifact_id.as_deref() == Some("art-1")
-                && req.storage_class.is_none()
-                && req.payload.is_some()
+            let version = req
+                .artifact
+                .as_ref()
+                .unwrap()
+                .artifact_version
+                .as_ref()
+                .unwrap();
+            req.artifact_id == "art-1"
+                && req.update_mask.as_ref().unwrap().paths == ["artifact_version.title"]
+                && version.title.as_deref() == Some("Renamed")
+                && version.payload.is_none()
+                && version.summary.is_none()
+                && version.metadata.is_empty()
         })
         .returning(|_| {
-            Ok(Response::new(CreateArtifactResponse {
-                artifact: Some(Artifact {
-                    artifact_version_id: "ver-2".into(),
-                    version: 2,
-                    storage_class: ArtifactStorageClass::Structured as i32,
-                    ..sample_artifact()
-                }),
+            Ok(Response::new(UpdateArtifactResponse {
+                artifact: Some(sample_with(
+                    |_| {},
+                    |version| {
+                        version.artifact_version_id = "ver-2".into();
+                        version.version = 2;
+                        version.title = Some("Renamed".into());
+                    },
+                )),
             }))
         });
 
     let (server, _h) = server_with_mock(mock, true).await;
     let resp = server
-        .create_artifact(Parameters(CreateArtifactParams {
-            artifact_id: Some("art-1".into()),
+        .update_artifact(Parameters(UpdateArtifactParams {
+            artifact_id: "art-1".into(),
+            title: Some("Renamed".into()),
+            ..Default::default()
+        }))
+        .await
+        .expect("update");
+    let artifact = structured_field(resp.clone(), "artifact");
+    assert_eq!(artifact["version"], 2);
+    assert_eq!(artifact["title"], "Renamed");
+    let next_step = structured_field(resp, "next_step");
+    let next_step = next_step.as_str().unwrap();
+    assert!(
+        next_step.starts_with("Wrote version 2 of artifact art-1"),
+        "{next_step}"
+    );
+}
+
+#[tokio::test]
+async fn update_artifact_maps_each_parameter_to_its_own_path() {
+    for (params, want) in [
+        (
+            UpdateArtifactParams {
+                artifact_id: "art-1".into(),
+                title: Some("t".into()),
+                ..Default::default()
+            },
+            "artifact_version.title",
+        ),
+        (
+            UpdateArtifactParams {
+                artifact_id: "art-1".into(),
+                summary: Some("s".into()),
+                ..Default::default()
+            },
+            "artifact_version.summary",
+        ),
+        (
+            UpdateArtifactParams {
+                artifact_id: "art-1".into(),
+                payload: Some(serde_json::json!({ "a": 1 })),
+                ..Default::default()
+            },
+            "artifact_version.payload",
+        ),
+        (
+            UpdateArtifactParams {
+                artifact_id: "art-1".into(),
+                metadata: Some(vec![MetadataEntry {
+                    name: "k".into(),
+                    value: MetadataScalar::String("v".into()),
+                }]),
+                ..Default::default()
+            },
+            "artifact_version.metadata",
+        ),
+        (
+            UpdateArtifactParams {
+                artifact_id: "art-1".into(),
+                links: Some(vec![super::ArtifactLinkParam {
+                    relation: "source".into(),
+                    entity_type: "run".into(),
+                    entity_id: "run-1".into(),
+                }]),
+                ..Default::default()
+            },
+            "links",
+        ),
+    ] {
+        let mut mock = MockArtifactServiceImpl::new();
+        mock.expect_update_artifact()
+            .withf(move |req| req.get_ref().update_mask.as_ref().unwrap().paths == [want])
+            .returning(|_| {
+                Ok(Response::new(UpdateArtifactResponse {
+                    artifact: Some(sample_artifact()),
+                }))
+            });
+        let (server, _h) = server_with_mock(mock, true).await;
+        server
+            .update_artifact(Parameters(params))
+            .await
+            .unwrap_or_else(|err| panic!("{want}: {err:?}"));
+    }
+}
+
+#[tokio::test]
+async fn update_artifact_masks_a_payload_replacement() {
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_update_artifact()
+        .withf(|req| {
+            let req = req.get_ref();
+            req.update_mask.as_ref().unwrap().paths == ["artifact_version.payload"]
+                && req
+                    .artifact
+                    .as_ref()
+                    .unwrap()
+                    .artifact_version
+                    .as_ref()
+                    .unwrap()
+                    .payload
+                    .is_some()
+        })
+        .returning(|_| {
+            Ok(Response::new(UpdateArtifactResponse {
+                artifact: Some(sample_with(
+                    |artifact| artifact.storage_class = ArtifactStorageClass::Structured as i32,
+                    |version| {
+                        version.artifact_version_id = "ver-2".into();
+                        version.version = 2;
+                    },
+                )),
+            }))
+        });
+
+    let (server, _h) = server_with_mock(mock, true).await;
+    let resp = server
+        .update_artifact(Parameters(UpdateArtifactParams {
+            artifact_id: "art-1".into(),
             payload: Some(serde_json::json!({ "step": 2 })),
             ..Default::default()
         }))
         .await
-        .expect("append with payload");
+        .expect("update with payload");
     let next_step = structured_field(resp, "next_step");
     let next_step = next_step.as_str().unwrap();
     assert!(
@@ -525,134 +660,52 @@ async fn create_artifact_appends_a_payload_without_restating_storage_class() {
 }
 
 #[tokio::test]
-async fn create_artifact_append_surfaces_the_server_storage_class_check() {
+async fn update_artifact_surfaces_the_server_storage_class_check() {
     let mut mock = MockArtifactServiceImpl::new();
-    mock.expect_create_artifact()
-        .withf(|req| {
-            let req = req.get_ref();
-            req.artifact_id.as_deref() == Some("art-1")
-                && req.storage_class.is_none()
-                && req.payload.is_none()
-        })
-        .returning(|_| {
-            Err(Status::invalid_argument(
-                "payload is required for STRUCTURED artifacts",
-            ))
-        });
+    mock.expect_update_artifact().returning(|_| {
+        Err(Status::invalid_argument(
+            "payload is legal only for STRUCTURED artifacts",
+        ))
+    });
 
     let (server, _h) = server_with_mock(mock, true).await;
     let err = server
-        .create_artifact(Parameters(CreateArtifactParams {
-            artifact_id: Some("art-1".into()),
-            title: Some("Renamed".into()),
+        .update_artifact(Parameters(UpdateArtifactParams {
+            artifact_id: "art-1".into(),
+            payload: Some(serde_json::json!({ "step": 2 })),
             ..Default::default()
         }))
         .await
-        .expect_err("title-only append to a structured artifact");
+        .expect_err("payload on a file artifact");
     assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
     assert!(
         err.message
-            .contains("payload is required for STRUCTURED artifacts"),
+            .contains("payload is legal only for STRUCTURED artifacts"),
         "{}",
         err.message
     );
 }
 
 #[tokio::test]
-async fn create_artifact_append_reports_appended_version() {
-    let mut mock = MockArtifactServiceImpl::new();
-    mock.expect_create_artifact()
-        .withf(|req| {
-            let req = req.get_ref();
-            req.artifact_id.as_deref() == Some("art-1")
-                && req.conversation_id.is_none()
-                && req.storage_class.is_none()
-                && req.created_via.is_none()
-        })
-        .returning(|_| {
-            Ok(Response::new(CreateArtifactResponse {
-                artifact: Some(Artifact {
-                    artifact_version_id: "ver-2".into(),
-                    version: 2,
-                    ..sample_artifact()
-                }),
-            }))
-        });
-
-    let (server, _h) = server_with_mock(mock, true).await;
-    let resp = server
-        .create_artifact(Parameters(CreateArtifactParams {
-            title: Some("v2".into()),
-            summary: None,
-            conversation_id: None,
-            artifact_id: Some("art-1".into()),
-            authoring_kind: None,
-            file_path: None,
-            ..Default::default()
-        }))
-        .await
-        .expect("append");
-    let next_step = structured_field(resp, "next_step");
-    let next_step = next_step.as_str().unwrap();
-    assert!(
-        next_step.starts_with("Appended version 2 to artifact art-1"),
-        "{next_step}"
-    );
-    assert!(!next_step.contains("Created"), "{next_step}");
-}
-
-#[tokio::test]
-async fn create_artifact_accepts_authoring_kind_in_any_case() {
-    for (input, expected) in [
-        ("Agent", ArtifactAuthoringKind::Agent),
-        ("AGENT", ArtifactAuthoringKind::Agent),
-        (
-            "ARTIFACT_AUTHORING_KIND_AGENT",
-            ArtifactAuthoringKind::Agent,
-        ),
-        ("User", ArtifactAuthoringKind::User),
-        ("artifact_authoring_kind_user", ArtifactAuthoringKind::User),
-    ] {
-        let mut mock = MockArtifactServiceImpl::new();
-        mock.expect_create_artifact()
-            .withf(move |req| req.get_ref().authoring_kind == Some(expected as i32))
-            .returning(|_| {
-                Ok(Response::new(CreateArtifactResponse {
-                    artifact: Some(sample_artifact()),
-                }))
-            });
-        let (server, _h) = server_with_mock(mock, true).await;
-        server
-            .create_artifact(Parameters(CreateArtifactParams {
-                title: None,
-                summary: None,
-                conversation_id: None,
-                artifact_id: None,
-                authoring_kind: Some(input.into()),
-                file_path: None,
-                ..Default::default()
-            }))
-            .await
-            .unwrap_or_else(|err| panic!("{input}: {err:?}"));
-    }
-}
-
-#[tokio::test]
-async fn create_artifact_rejects_unknown_authoring_kind() {
+async fn update_artifact_requires_an_id_and_something_to_change() {
     let (server, _h) = server_with_mock(MockArtifactServiceImpl::new(), true).await;
-    let err = server
-        .create_artifact(Parameters(CreateArtifactParams {
-            title: None,
-            summary: None,
-            conversation_id: None,
-            artifact_id: None,
-            authoring_kind: Some("robot".into()),
-            file_path: None,
+    for params in [
+        UpdateArtifactParams {
+            artifact_id: "  ".into(),
+            title: Some("Renamed".into()),
             ..Default::default()
-        }))
-        .await
-        .expect_err("unknown kind");
-    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+        },
+        UpdateArtifactParams {
+            artifact_id: "art-1".into(),
+            ..Default::default()
+        },
+    ] {
+        let err = server
+            .update_artifact(Parameters(params))
+            .await
+            .expect_err("rejected");
+        assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+    }
 }
 
 #[tokio::test]
@@ -781,10 +834,10 @@ async fn create_artifact_sends_generic_fields() {
         })
         .returning(|_| {
             Ok(Response::new(CreateArtifactResponse {
-                artifact: Some(Artifact {
-                    storage_class: ArtifactStorageClass::Structured as i32,
-                    ..sample_artifact()
-                }),
+                artifact: Some(sample_with(
+                    |artifact| artifact.storage_class = ArtifactStorageClass::Structured as i32,
+                    |_| {},
+                )),
             }))
         });
 
@@ -812,24 +865,6 @@ async fn create_artifact_sends_generic_fields() {
 }
 
 #[tokio::test]
-async fn create_artifact_rejects_append_with_conversation() {
-    let (server, _h) = server_with_mock(MockArtifactServiceImpl::new(), true).await;
-    let err = server
-        .create_artifact(Parameters(CreateArtifactParams {
-            title: None,
-            summary: None,
-            conversation_id: Some("conv-1".into()),
-            artifact_id: Some("art-1".into()),
-            authoring_kind: None,
-            file_path: None,
-            ..Default::default()
-        }))
-        .await
-        .expect_err("illegal combo");
-    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
-}
-
-#[tokio::test]
 async fn create_artifact_happy_path() {
     let mut mock = MockArtifactServiceImpl::new();
     mock.expect_create_artifact()
@@ -844,11 +879,7 @@ async fn create_artifact_happy_path() {
     let resp = server
         .create_artifact(Parameters(CreateArtifactParams {
             title: Some("report".into()),
-            summary: None,
             conversation_id: Some("conv-1".into()),
-            artifact_id: None,
-            authoring_kind: Some("agent".into()),
-            file_path: None,
             ..Default::default()
         }))
         .await
@@ -886,11 +917,14 @@ async fn create_artifact_with_file_path_uploads_and_returns_the_refreshed_artifa
     });
     // The refresh after the upload returns the version with its file fields.
     mock.expect_get_artifact().returning(|_| {
-        let mut uploaded = sample_artifact();
-        uploaded.remote_file_id = Some("rf-1".into());
-        uploaded.file_name = Some("report.md".into());
         Ok(Response::new(GetArtifactResponse {
-            artifact: Some(uploaded),
+            artifact: Some(sample_with(
+                |_| {},
+                |version| {
+                    version.remote_file_id = Some("rf-1".into());
+                    version.file_name = Some("report.md".into());
+                },
+            )),
         }))
     });
     let mut remote_files = MockRemoteFileServiceImpl::new();
@@ -913,8 +947,6 @@ async fn create_artifact_with_file_path_uploads_and_returns_the_refreshed_artifa
             title: Some("report".into()),
             summary: None,
             conversation_id: None,
-            artifact_id: None,
-            authoring_kind: Some("agent".into()),
             file_path: Some(path.to_string_lossy().into_owned()),
             ..Default::default()
         }))
@@ -948,8 +980,6 @@ async fn create_artifact_rejects_an_empty_file_path() {
             title: None,
             summary: None,
             conversation_id: None,
-            artifact_id: None,
-            authoring_kind: None,
             file_path: Some("   ".into()),
             ..Default::default()
         }))
@@ -996,8 +1026,6 @@ async fn create_artifact_names_the_created_artifact_when_the_upload_fails() {
             title: None,
             summary: None,
             conversation_id: None,
-            artifact_id: None,
-            authoring_kind: Some("agent".into()),
             file_path: Some(path.to_string_lossy().into_owned()),
             ..Default::default()
         }))
@@ -1054,8 +1082,6 @@ async fn create_artifact_with_file_path_says_so_when_the_download_link_is_missin
             title: Some("report".into()),
             summary: None,
             conversation_id: None,
-            artifact_id: None,
-            authoring_kind: Some("agent".into()),
             file_path: Some(path.to_string_lossy().into_owned()),
             ..Default::default()
         }))

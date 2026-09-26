@@ -1,3 +1,4 @@
+use std::future::Future;
 use std::time::Duration;
 
 use rand::RngExt;
@@ -22,11 +23,27 @@ impl Default for RetryPolicy {
     }
 }
 
-/// Wrap a gRPC call in retry-with-backoff policy. Per AIP-194, only
+/// Run a gRPC call that is not safe to repeat, with one attempt and no retry.
+///
+/// AIP-194 permits retrying `Unavailable` only for idempotent methods. A server
+/// can answer `Unavailable` after it has already committed — the connection
+/// drops between the write and the response — so retrying a create or an append
+/// mints a second artifact or a second version that nothing asked for. One
+/// attempt turns that into an error the caller can report instead.
+pub async fn once<T, Fut>(op: impl FnOnce() -> Fut) -> Result<T, Status>
+where
+    Fut: Future<Output = Result<T, Status>>,
+{
+    op().await
+}
+
+/// Wrap an idempotent gRPC call in retry-with-backoff policy. Per AIP-194, only
 /// `Unavailable` is automatically retried (with exponential backoff and full
 /// jitter). All other codes — including `ResourceExhausted`, which is a
 /// server-side rate-limit signal — return immediately so the caller can surface
 /// the failure rather than amplifying load.
+///
+/// Calls that are not safe to repeat use [`once`] instead.
 pub async fn with_retry<T, F, Fut>(policy: &RetryPolicy, op: F) -> Result<T, Status>
 where
     F: Fn() -> Fut,

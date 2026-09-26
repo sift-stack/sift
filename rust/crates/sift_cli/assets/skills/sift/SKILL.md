@@ -42,11 +42,42 @@ Try these in order. Stop at the first that does the job.
    `sift_py` is deprecated. Reach for it only when `sift_client` lacks the
    capability.
 
+## Choose the response surface
+
+Use the lightest surface that fully answers the request. An explicit format or
+Sift-entity request always wins.
+
+- **None:** lookups, explanations, how-to answers, and one-off numbers or
+  short analysis. Do not wrap a chat-sized answer in a file.
+- **Explore links:** plots and timeseries the user wants to inspect. Use native
+  Sift app visualizations instead of creating an intermediate image or HTML.
+- **Calculated channels:** reusable CEL transforms (unit conversions, rolling
+  windows, derived signals, and simple filters) that should be plottable or
+  usable by rules on later runs. List existing calculated channels first to
+  check for pre-existing calculated channels that match the candidates.
+- **User-defined functions (UDF):** shared CEL logic that would otherwise be
+  copied across multiple calculated channels or rules. Keep the calculated
+  channel as the named series and put only the shared math in the UDF.
+- **Artifacts:** exceptional durable files only when Sift cannot represent the
+  result, such as a requested PDF, CSV, image, or custom HTML diagram. Do not
+  use artifacts for intermediate plots, Parquet downloads, chat answers,
+  Explore views, calculated channels, UDFs, rules, or reports.
+
+For a reusable write, resolve the real channel names and types, propose the
+name, expression, bindings, and scope, then wait for confirmation unless the
+user explicitly asked you to create it. If two surfaces could work, prefer a
+Sift entity over a file, and chat over both for a one-off answer.
+
 ## What the MCP server exposes
 
 Each tool's own description carries its parameters, filters, defaults, and
 errors. Read the tool schema instead of guessing. This map only tells you what
 exists.
+
+Any tool listed below may be absent from the tool list because the account
+feature-gates it or the MCP server excludes it at startup. When a tool is
+absent, use the alternative the host provides and do not retry the missing
+tool.
 
 - **Setup:** When available, `check_for_updates` reports the installed sift-cli
   version, the latest stable version, and the exact installer command. Servers
@@ -100,7 +131,10 @@ exists.
 - **Search a list.** Filter with a pattern rather than an exact match. Each
   tool's description names its own filterable fields. When the request is too
   vague to filter on, sample with a small `limit` and ask the user to narrow
-  it. Do not guess.
+  it. For `list_channels`, request only the fields needed (usually `name` and
+  `dataType`) on the first call; do not fetch the full payload and retry. Never
+  invent or guess a channel selection for a downstream call: if the user's
+  request is ambiguous, ask which verified channel they mean.
 - **Attribute something to a person.** Resolve the person with `list_users`,
   then filter another list on `created_by_user_id`. For "runs I created", pass
   `me: true`. Never guess which listed user is the caller.
@@ -110,11 +144,35 @@ exists.
   unarchive; there is no separate archive tool. Check its per-id `failures`,
   `not_attempted` ids, and archive outcome before reporting success; a partial
   failure sets `isError`.
-- **Produce numbers.** `get_data` writes a Parquet file. `sql` then queries it.
-  Add `upload_dataset` when the result belongs back in Sift. A successful
-  `get_data` does not mean every requested channel is in the file: check
+- **Produce numbers.** `get_data` writes a Parquet file and `sql` then queries
+  it. Use a simple relative output name (for example `samples.parquet`) unless
+  the runtime explicitly provides a writable path. Pass the exact `output` path
+  returned by `get_data` as the `sql.inputs` value. A successful `get_data` does
+  not mean every requested channel is in the file: check
   `unmatched_channel_names` and `empty_channels` in the result. Report missing
   names and empty channel IDs before reporting numbers derived from the file.
+
+  For an aggregation, use `sample_ms: 0`, then write a small, ordinary SQL
+  query against the exact column name from the Parquet schema. Data columns
+  include metadata (`<name> {channel_id="...", run="...", units="..."}`),
+  so do not reconstruct or simplify that identifier. If it contains double
+  quotes, escape them for a SQL identifier by doubling them (`""`), never with
+  backslashes. Prefer an explicit `MIN(column)`, `MAX(column)`, or
+  `COUNT(column)` query; do not guess dialect-specific `EXCLUDE` or wildcard
+  syntax. After one parse error, read the error and correct the query once; if
+  the schema or quoting cannot be resolved with the available tools, stop and
+  explain the limitation rather than spending the remaining tool turns on
+  guesses.
+
+  Add `upload_dataset` when the result belongs back in Sift.
+- **Query many runs, channels, or a long time range.** Test the query once
+  first. Fetch one run, one channel, or a short window, and check
+  `unmatched_channel_names` and `empty_channels` before you issue the rest. A
+  selector mistake repeats in every call. Run four calls or fewer in parallel.
+  Split a long range into successive calls with disjoint `[start, end)`
+  windows, because one long call can hit the client's request timeout and
+  return nothing. Pass every resulting file to one `sql` query instead of
+  reading them one at a time in a script.
 - **Query a channel registration.** Pass `channel_id` or `channel_ids` to
   `get_data` with the asset and time range to fetch only those registrations.
   Use exactly one selector: IDs, `channel_names`, or `channel_regex`.

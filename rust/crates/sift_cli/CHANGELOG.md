@@ -7,6 +7,24 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+## [v0.7.1] - September 22, 2026
+
+### What's New
+
+- `get_data` and `sql` now create missing parent directories for `output`.
+
+## [v0.7.0] - September 21, 2026
+
+### What's New
+
+- Added a repeatable, comma-delimited `--ignore-tool <NAME>` flag to `sift-cli mcp`
+  that leaves the named tools unregistered. Unknown tool names fail startup.
+- `get_data` accepts `channel_id` and `channel_ids` to target specific channel
+  registrations. Use exactly one selector: IDs, `channel_names`, or
+  `channel_regex`. `empty_channels` now reports raw channel IDs instead of
+  names, so a name shared by several registrations no longer hides which one
+  returned no samples. Calculated channels are reported by their query key.
+
 ## [v0.6.0] - September 17, 2026
 
 ### What's New

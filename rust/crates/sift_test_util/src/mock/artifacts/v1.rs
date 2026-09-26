@@ -6,7 +6,8 @@ use sift_rs::artifacts::v1::{
     LinkArtifactToConversationResponse, ListArtifactVersionsRequest, ListArtifactVersionsResponse,
     ListArtifactsRequest, ListArtifactsResponse, UnarchiveArtifactRequest,
     UnarchiveArtifactResponse, UnlinkArtifactFromConversationRequest,
-    UnlinkArtifactFromConversationResponse, artifact_service_server::ArtifactService,
+    UnlinkArtifactFromConversationResponse, UpdateArtifactRequest, UpdateArtifactResponse,
+    artifact_service_server::ArtifactService,
 };
 use tonic::{Request, Response, Status};
 
@@ -20,6 +21,13 @@ mock! {
             request: Request<CreateArtifactRequest>,
         ) -> std::result::Result<
             Response<CreateArtifactResponse>,
+            Status,
+        >;
+        async fn update_artifact(
+            &self,
+            request: Request<UpdateArtifactRequest>,
+        ) -> std::result::Result<
+            Response<UpdateArtifactResponse>,
             Status,
         >;
         async fn get_artifact(
