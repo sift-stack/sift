@@ -112,6 +112,11 @@ class RuleConfig(AsJson):
 
             if self.action.tags is not None and len(self.action.tags) > 0:
                 hash_map["tags"] = self.action.tags
+        elif isinstance(self.action, RuleActionCreateNotification):
+            hash_map["type"] = RuleActionKindStrRep.NOTIFICATION.value
+
+            if self.action.recipients is not None and len(self.action.recipients) > 0:
+                hash_map["recipients"] = self.action.recipients
         else:
             kind = self.action.kind() if self.action else self.action
             raise TypeError(f"Unsupported rule action '{kind}'.")
@@ -175,6 +180,24 @@ class RuleActionCreatePhaseAnnotation(RuleAction):
 
     def kind(self) -> RuleActionKind:
         return RuleActionKind.ANNOTATION
+
+
+class RuleActionCreateNotification(RuleAction):
+    """
+    Action to send a notification to one or more users when a rule evaluates to a truthy value.
+
+    - `recipients`: List of emails of users in the organization to notify.
+    """
+
+    recipients: List[str]
+    tags: Optional[List[str]]
+
+    def __init__(self, recipients: List[str]):
+        self.recipients = recipients
+        self.tags = None
+
+    def kind(self) -> RuleActionKind:
+        return RuleActionKind.NOTIFICATION
 
 
 class RuleActionKind(Enum):
