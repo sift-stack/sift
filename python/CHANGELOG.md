@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased]
+## [v0.22.0] - September 25, 2026
 
 - Added `client.user_defined_functions` for reusable expressions.
 - Added `client.annotations` for data reviews, phases, and review history.
@@ -11,7 +11,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Added `client.webhooks`, and `RuleAction.webhook` to call one when a rule is violated.
 - `RuleCreate.action` and `RuleUpdate.action` accept a `Webhook` directly.
 - `RuleCreate.asset_ids` and `RuleUpdate.asset_ids` now accept `Asset` objects as well as IDs.
-- `WebhookTestResult.text` decodes the response body, and `Webhook.created_by`/`modified_by` resolve users.
+- `WebhookTest.text` decodes the response body, and `Webhook.created_by`/`modified_by` resolve users.
 
 ### What's New
 
