@@ -54,16 +54,21 @@ def metadata_dict_to_proto(_metadata: dict[str, str | float | bool]) -> list[Met
 def metadata_proto_to_dict(metadata: list[MetadataProto]) -> dict[str, str | float | bool]:
     """Converts a list of MetadataValue objects into a dictionary.
 
+    A key may appear multiple times when it holds multiple values
+    (multi-value metadata). The dictionary keeps the first value of each
+    key -- the API returns values in canonical order, so this matches the
+    value every other single-value context (e.g. backend flattening) uses.
+
     Args:
         metadata: List of MetadataValue objects.
 
     Returns:
-        Dictionary of metadata key-value pairs.
+        Dictionary of metadata key-value pairs (first value per key).
     """
     unwrapped_metadata: dict[str, str | float | bool] = {}
     for md in metadata:
         if md.key.name in unwrapped_metadata:
-            raise ValueError(f"Key already exists: {md.key.name}")
+            continue
         if md.key.type == MetadataKeyType.METADATA_KEY_TYPE_STRING:
             unwrapped_metadata[md.key.name] = md.string_value
         elif md.key.type == MetadataKeyType.METADATA_KEY_TYPE_BOOLEAN:
