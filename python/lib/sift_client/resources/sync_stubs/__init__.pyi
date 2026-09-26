@@ -34,6 +34,12 @@ if TYPE_CHECKING:
         CalculatedChannelCreate,
         CalculatedChannelUpdate,
     )
+    from sift_client.sift_types.campaign import (
+        Campaign,
+        CampaignCreate,
+        CampaignReportSummary,
+        CampaignUpdate,
+    )
     from sift_client.sift_types.channel import Channel, ChannelUpdate
     from sift_client.sift_types.data_import import (
         DataImport,
@@ -760,6 +766,204 @@ class CalculatedChannelsAPI:
 
         Returns:
             The updated CalculatedChannel.
+        """
+        ...
+
+class CampaignsAPI:
+    """Sync counterpart to `CampaignsAPIAsync`.
+
+    High-level API for interacting with campaigns.
+
+    A campaign is a named list of reports. Seeding from runs collects every report
+    those runs generated.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the CampaignsAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def add_reports_to_campaign(
+        self, campaign: str | Campaign, reports: list[Report] | list[str]
+    ) -> Campaign:
+        """Add reports to a campaign, keeping the ones already there.
+
+        `CampaignService` has no append RPC, so this reads the report list, merges, and
+        writes it back. Two concurrent calls drop one side's reports.
+
+        Args:
+            campaign: The Campaign or campaign ID to add to.
+            reports: The Reports or report IDs to add.
+
+        Returns:
+            The updated Campaign.
+        """
+        ...
+
+    def archive(self, campaign: str | Campaign) -> Campaign:
+        """Archive a campaign.
+
+        Args:
+            campaign: The Campaign or campaign ID to archive.
+
+        Returns:
+            The archived Campaign.
+        """
+        ...
+
+    def create(
+        self,
+        create: CampaignCreate | dict,
+        *,
+        reports: list[Report] | list[str] | None = None,
+        runs: list[Run] | list[str] | None = None,
+        campaign: str | Campaign | None = None,
+    ) -> Campaign:
+        """Create a new campaign, optionally seeded with reports.
+
+        At most one seed may be given.
+
+        Args:
+            create: The campaign definition.
+            reports: Seed with these Reports or report IDs.
+            runs: Seed with every report these Runs generated.
+            campaign: Duplicate this Campaign or campaign ID.
+
+        Returns:
+            The created Campaign.
+
+        Raises:
+            ValueError: If more than one seed is provided.
+        """
+        ...
+
+    def find(self, **kwargs) -> Campaign | None:
+        """Find one campaign. Takes the same arguments as `list_`.
+
+        Raises if more than one matches.
+
+        Args:
+            **kwargs: Keyword arguments to pass to `list_`.
+
+        Returns:
+            The Campaign found or None.
+        """
+        ...
+
+    def get(
+        self,
+        campaign_id: str | None = None,
+        *,
+        client_key: str | None = None,
+        organization_id: str | None = None,
+        skip_report_summaries: bool = False,
+    ) -> Campaign:
+        """Get a Campaign by ID or client key.
+
+        Args:
+            campaign_id: The ID of the campaign.
+            client_key: The client key, as an alternative to the ID.
+            organization_id: Required with `client_key` if you belong to several orgs.
+            skip_report_summaries: Omit the per-report counts. Much faster for large campaigns.
+
+        Returns:
+            The Campaign.
+        """
+        ...
+
+    def list_(
+        self,
+        *,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        campaign_ids: list[str] | None = None,
+        client_keys: list[str] | None = None,
+        created_by: Any | str | None = None,
+        tags: list[str] | list[Tag] | None = None,
+        metadata: dict[str, Any] | None = None,
+        reports: list[Report] | list[str] | None = None,
+        runs: list[Run] | list[str] | None = None,
+        description_contains: str | None = None,
+        include_archived: bool = False,
+        skip_report_summaries: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[Campaign]:
+        """List campaigns.
+
+        Args:
+            name: Exact name of the campaign.
+            names: List of campaign names to filter by.
+            name_contains: Partial name of the campaign.
+            name_regex: Regular expression to filter campaigns by name.
+            campaign_ids: Filter to campaigns with any of these IDs.
+            client_keys: Filter to campaigns with any of these client keys.
+            created_by: Filter campaigns created by this user ID.
+            tags: Filter campaigns with any of these Tags or tag names.
+            metadata: Filter campaigns by metadata criteria.
+            reports: Filter campaigns containing any of these Reports or report IDs.
+            runs: Filter campaigns containing any of these Runs or run IDs.
+            description_contains: Partial description of the campaign.
+            include_archived: If True, include archived campaigns in results.
+            skip_report_summaries: Omit the per-report counts. Much faster over many
+                campaigns; fetch counts for the ones you want with `report_summaries`.
+            filter_query: Explicit CEL query to filter campaigns.
+            order_by: Field and direction to order results by.
+            limit: Maximum number of campaigns to return. If None, returns all matches.
+            page_size: Number of results to fetch per request.
+
+        Returns:
+            A list of Campaign objects that match the filter criteria.
+        """
+        ...
+
+    def report_summaries(
+        self, campaigns: list[str | Campaign], *, organization_id: str | None = None
+    ) -> dict[str, list[CampaignReportSummary]]:
+        """Get per-report rule counts for several campaigns at once.
+
+        Args:
+            campaigns: The Campaigns or campaign IDs to summarize.
+            organization_id: Required if you belong to several organizations.
+
+        Returns:
+            A mapping of campaign ID to its reports, with counts populated. The service
+            returns each campaign's reports in no fixed order; `Campaign.report_summaries`
+            orders them to match the campaign.
+        """
+        ...
+
+    def unarchive(self, campaign: str | Campaign) -> Campaign:
+        """Unarchive a campaign.
+
+        Args:
+            campaign: The Campaign or campaign ID to unarchive.
+
+        Returns:
+            The unarchived Campaign.
+        """
+        ...
+
+    def update(self, campaign: str | Campaign, update: CampaignUpdate | dict) -> Campaign:
+        """Update a Campaign.
+
+        `reports`, `tags`, and `metadata` are replaced, not merged. Prefer
+        `add_reports_to_campaign` to grow the report list.
+
+        Args:
+            campaign: The Campaign or campaign ID to update.
+            update: Updates to apply to the Campaign.
+
+        Returns:
+            The updated Campaign.
         """
         ...
 

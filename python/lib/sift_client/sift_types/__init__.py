@@ -150,6 +150,13 @@ from sift_client.sift_types.calculated_channel import (
     CalculatedChannelCreate,
     CalculatedChannelUpdate,
 )
+from sift_client.sift_types.campaign import (
+    Campaign,
+    CampaignCreate,
+    CampaignReportSummary,
+    CampaignUpdate,
+    RuleStatistics,
+)
 from sift_client.sift_types.channel import (
     Channel,
     ChannelBitFieldElement,
@@ -272,6 +279,10 @@ __all__ = [
     "CalculatedChannel",
     "CalculatedChannelCreate",
     "CalculatedChannelUpdate",
+    "Campaign",
+    "CampaignCreate",
+    "CampaignReportSummary",
+    "CampaignUpdate",
     "Channel",
     "ChannelBitFieldElement",
     "ChannelConfig",
@@ -328,6 +339,7 @@ __all__ = [
     "RuleCreate",
     "RuleEvaluationDetails",
     "RuleEvaluationStatusDetails",
+    "RuleStatistics",
     "RuleUpdate",
     "RuleVersion",
     "Run",

@@ -15,6 +15,8 @@ from sift_client.resources import (
     AssetsAPIAsync,
     CalculatedChannelsAPI,
     CalculatedChannelsAPIAsync,
+    CampaignsAPI,
+    CampaignsAPIAsync,
     ChannelsAPI,
     ChannelsAPIAsync,
     DataExportAPI,
@@ -113,6 +115,9 @@ class SiftClient(
 
     calculated_channels: CalculatedChannelsAPI
     """Instance of the Calculated Channels API for making synchronous requests."""
+
+    campaigns: CampaignsAPI
+    """Instance of the Campaigns API for making synchronous requests."""
 
     channels: ChannelsAPI
     """Instance of the Channels API for making synchronous requests."""
@@ -247,6 +252,7 @@ class SiftClient(
         self.annotations = AnnotationsAPI(self)
         self.assets = AssetsAPI(self)
         self.calculated_channels = CalculatedChannelsAPI(self)
+        self.campaigns = CampaignsAPI(self)
         self.channels = ChannelsAPI(self)
         self.file_attachments = FileAttachmentsAPI(self)
         self.jobs = JobsAPI(self)
@@ -270,6 +276,7 @@ class SiftClient(
             annotations=AnnotationsAPIAsync(self),
             assets=AssetsAPIAsync(self),
             calculated_channels=CalculatedChannelsAPIAsync(self),
+            campaigns=CampaignsAPIAsync(self),
             channels=ChannelsAPIAsync(self),
             file_attachments=FileAttachmentsAPIAsync(self),
             ingestion=IngestionAPIAsync(self),
