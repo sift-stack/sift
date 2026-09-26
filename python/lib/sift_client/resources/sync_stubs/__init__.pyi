@@ -882,6 +882,7 @@ class CampaignsAPI:
         runs: list[Run] | list[str] | None = None,
         description_contains: str | None = None,
         include_archived: bool = False,
+        skip_report_summaries: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
@@ -903,6 +904,8 @@ class CampaignsAPI:
             runs: Filter campaigns containing any of these Runs or run IDs.
             description_contains: Partial description of the campaign.
             include_archived: If True, include archived campaigns in results.
+            skip_report_summaries: Omit the per-report counts. Much faster over many
+                campaigns; fetch counts for the ones you want with `report_summaries`.
             filter_query: Explicit CEL query to filter campaigns.
             order_by: Field and direction to order results by.
             limit: Maximum number of campaigns to return. If None, returns all matches.

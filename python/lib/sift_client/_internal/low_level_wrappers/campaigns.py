@@ -104,6 +104,7 @@ class CampaignsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         query_filter: str | None = None,
         order_by: str | None = None,
         include_archived: bool = False,
+        skip_report_summaries: bool = False,
     ) -> tuple[list[Campaign], str]:
         """List one page of campaigns.
 
@@ -113,11 +114,15 @@ class CampaignsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             query_filter: A CEL filter string.
             order_by: How to order the retrieved campaigns.
             include_archived: Include archived campaigns in the results.
+            skip_report_summaries: Omit the per-report counts. Much faster for large campaigns.
 
         Returns:
             A tuple of (campaigns, next_page_token).
         """
-        request_kwargs: dict[str, Any] = {"include_archived": include_archived}
+        request_kwargs: dict[str, Any] = {
+            "include_archived": include_archived,
+            "skip_report_summaries": skip_report_summaries,
+        }
         if page_size is not None:
             request_kwargs["page_size"] = page_size
         if page_token is not None:
@@ -142,6 +147,7 @@ class CampaignsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         page_size: int | None = DEFAULT_PAGE_SIZE,
         max_results: int | None = None,
         include_archived: bool = False,
+        skip_report_summaries: bool = False,
     ) -> list[Campaign]:
         """List every matching campaign.
 
@@ -151,13 +157,18 @@ class CampaignsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             page_size: The number of results to fetch per request.
             max_results: Maximum number of results to return.
             include_archived: Include archived campaigns in the results.
+            skip_report_summaries: Omit the per-report counts. Much faster for large campaigns.
 
         Returns:
             A list of all matching campaigns.
         """
         return await self._handle_pagination(
             self.list_campaigns,
-            kwargs={"query_filter": query_filter, "include_archived": include_archived},
+            kwargs={
+                "query_filter": query_filter,
+                "include_archived": include_archived,
+                "skip_report_summaries": skip_report_summaries,
+            },
             order_by=order_by,
             max_results=max_results,
             page_size=page_size,
