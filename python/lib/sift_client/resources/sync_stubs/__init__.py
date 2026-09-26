@@ -28,6 +28,8 @@ from sift_client.resources import (
     RunsAPIAsync,
     TagsAPIAsync,
     TestResultsAPIAsync,
+    UserDefinedFunctionsAPIAsync,
+    UserDefinedFunctionVersionsAPIAsync,
     UsersAPIAsync,
 )
 
@@ -89,6 +91,15 @@ PrincipalAttributesAPI = generate_sync_api(
 )
 TagsAPI = generate_sync_api(TagsAPIAsync, "TagsAPI")
 TestResultsAPI = generate_sync_api(TestResultsAPIAsync, "TestResultsAPI")
+# UserDefinedFunctionVersionsAPI must be generated before UserDefinedFunctionsAPI so it can be nested under it.
+UserDefinedFunctionVersionsAPI = generate_sync_api(
+    UserDefinedFunctionVersionsAPIAsync, "UserDefinedFunctionVersionsAPI"
+)
+UserDefinedFunctionsAPI = generate_sync_api(
+    UserDefinedFunctionsAPIAsync,
+    "UserDefinedFunctionsAPI",
+    nested_resources={"versions": UserDefinedFunctionVersionsAPI},
+)
 UsersAPI = generate_sync_api(UsersAPIAsync, "UsersAPI")
 DataExportAPI = generate_sync_api(DataExportAPIAsync, "DataExportAPI")
 DataImportAPI = generate_sync_api(DataImportAPIAsync, "DataImportAPI")
@@ -118,5 +129,7 @@ __all__ = [
     "RunsAPI",
     "TagsAPI",
     "TestResultsAPI",
+    "UserDefinedFunctionVersionsAPI",
+    "UserDefinedFunctionsAPI",
     "UsersAPI",
 ]
