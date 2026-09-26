@@ -871,6 +871,34 @@ You're not viewing the latest version.
   
   
     <li class="md-nav__item">
+      <a href="../annotations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    annotations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../assets/" class="md-nav__link">
         
   
@@ -4377,6 +4405,9 @@ empty list.</p>
         <p>Get what uses a function.</p>
 <p>Check this before changing inputs or the output type. The server refuses those
 changes once a function is in use.</p>
+<p>Each result set is capped at 1000. The service pages them separately but accepts
+no page token, so the rest cannot be fetched; <code>FunctionUsage.truncated</code> says when
+that happened.</p>
 
 
 <table>
