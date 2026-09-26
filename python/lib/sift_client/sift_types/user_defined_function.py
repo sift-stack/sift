@@ -314,11 +314,13 @@ class FunctionUsage(BaseModel):
         functions: Other functions that call it.
         calculated_channels: Calculated channels that use it.
         rules: Rules that use it.
+        truncated: Whether the service had more to return than it sent.
     """
 
     functions: list[UserDefinedFunction] = []
     calculated_channels: list[CalculatedChannel] = []
     rules: list[Rule] = []
+    truncated: bool = False
 
     @property
     def is_used(self) -> bool:

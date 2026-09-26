@@ -368,11 +368,31 @@ class UserDefinedFunctionsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         else:
             request_kwargs["user_defined_function_version_id"] = version_id
 
+        request_kwargs["page_size"] = DEFAULT_PAGE_SIZE
         request = GetUserDefinedFunctionDependentsRequest(**request_kwargs)
         response = await self._grpc_client.get_stub(
             UserDefinedFunctionServiceStub
         ).GetUserDefinedFunctionDependents(request)
         response = cast("GetUserDefinedFunctionDependentsResponse", response)
+
+        # The response pages each set separately but the request takes no page token,
+        # so a leftover token cannot be followed. Say so rather than return short.
+        truncated = [
+            name
+            for name, token in (
+                ("functions", response.next_page_token_user_defined_function),
+                ("calculated_channels", response.next_page_token_calculated_channel),
+                ("rules", response.next_page_token_rule),
+            )
+            if token
+        ]
+        if truncated:
+            logger.warning(
+                "GetUserDefinedFunctionDependents returned more than %d %s; "
+                "the request takes no page token, so the rest cannot be fetched.",
+                DEFAULT_PAGE_SIZE,
+                " and ".join(truncated),
+            )
 
         return FunctionUsage(
             functions=[UserDefinedFunction._from_proto(f) for f in response.user_defined_functions],
@@ -380,4 +400,5 @@ class UserDefinedFunctionsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 CalculatedChannel._from_proto(c) for c in response.calculated_channels
             ],
             rules=[Rule._from_proto(r) for r in response.rules],
+            truncated=bool(truncated),
         )

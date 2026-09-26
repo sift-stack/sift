@@ -302,6 +302,10 @@ class UserDefinedFunctionsAPIAsync(ResourceBase):
         Check this before changing inputs or the output type. The server refuses those
         changes once a function is in use.
 
+        Each result set is capped at 1000. The service pages them separately but accepts
+        no page token, so the rest cannot be fetched; `FunctionUsage.truncated` says when
+        that happened.
+
         Args:
             user_defined_function: The UserDefinedFunction or function ID.
             version: A specific UserDefinedFunctionVersion or version ID, instead of the
