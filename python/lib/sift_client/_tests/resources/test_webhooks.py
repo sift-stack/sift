@@ -209,14 +209,14 @@ class TestWebhooks:
         webhook.archive()
         assert webhook.is_archived is True
 
-    def test_test_requires_exactly_one_argument(self, webhooks_api_sync, new_webhook):
-        """Test that test() rejects ambiguous arguments before making any request."""
+    def test_send_test_request_requires_exactly_one_argument(self, webhooks_api_sync, new_webhook):
+        """Test that send_test_request() rejects ambiguous arguments before any request."""
         with pytest.raises(ValueError, match="Exactly one of webhook or create"):
-            webhooks_api_sync.test()
+            webhooks_api_sync.send_test_request()
 
         with pytest.raises(ValueError, match="Exactly one of webhook or create"):
-            webhooks_api_sync.test(
-                new_webhook,
+            webhooks_api_sync.send_test_request(
+                webhook=new_webhook,
                 create=WebhookCreate(name="ignored", target_url=TEST_TARGET_URL),
             )
 
