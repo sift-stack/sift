@@ -202,6 +202,34 @@ class TestUserDefinedFunctions:
 
         assert dependents.is_used is False
 
+    def test_dependents_come_back_usable(self, sift_client, new_function, test_timestamp_str):
+        """Test that a returned object carries the client, so its properties resolve."""
+        from sift_client.sift_types.calculated_channel import (
+            CalculatedChannelCreate,
+            ChannelReference,
+        )
+
+        channel = sift_client.channels.list_(limit=1)[0]
+        calc = sift_client.calculated_channels.create(
+            CalculatedChannelCreate(
+                name=f"test_fn_user_{test_timestamp_str}",
+                expression=f"{new_function.name}($1)",
+                expression_channel_references=[
+                    ChannelReference(channel_reference="$1", channel_identifier=channel.name)
+                ],
+                all_assets=True,
+            )
+        )
+
+        usage = sift_client.user_defined_functions.get_where_used(new_function)
+
+        assert [c.id_ for c in usage.calculated_channels] == [calc.id_]
+        # CalculatedChannel exposes no client-backed property, so check the client
+        # directly. Without it, every property on a returned object raises.
+        assert usage.calculated_channels[0]._client is not None
+
+        sift_client.calculated_channels.archive(calc)
+
     @pytest.mark.asyncio
     async def test_async_list(self, functions_api_async, new_function):
         """Test the async API returns the same functions."""
