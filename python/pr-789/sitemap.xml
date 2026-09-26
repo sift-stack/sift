@@ -345,6 +345,10 @@
          <lastmod>2026-09-26</lastmod>
     </url>
     <url>
+         <loc>https://sift-stack.github.io/sift/python/pr-789/reference/sift_client/resources/campaigns/</loc>
+         <lastmod>2026-09-26</lastmod>
+    </url>
+    <url>
          <loc>https://sift-stack.github.io/sift/python/pr-789/reference/sift_client/resources/channels/</loc>
          <lastmod>2026-09-26</lastmod>
     </url>
@@ -430,6 +434,10 @@
     </url>
     <url>
          <loc>https://sift-stack.github.io/sift/python/pr-789/reference/sift_client/sift_types/calculated_channel/</loc>
+         <lastmod>2026-09-26</lastmod>
+    </url>
+    <url>
+         <loc>https://sift-stack.github.io/sift/python/pr-789/reference/sift_client/sift_types/campaign/</loc>
          <lastmod>2026-09-26</lastmod>
     </url>
     <url>
