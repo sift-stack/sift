@@ -397,6 +397,10 @@
          <lastmod>2026-09-26</lastmod>
     </url>
     <url>
+         <loc>https://sift-stack.github.io/sift/python/pr-789/reference/sift_client/resources/user_defined_functions/</loc>
+         <lastmod>2026-09-26</lastmod>
+    </url>
+    <url>
          <loc>https://sift-stack.github.io/sift/python/pr-789/reference/sift_client/resources/users/</loc>
          <lastmod>2026-09-26</lastmod>
     </url>
@@ -486,6 +490,10 @@
     </url>
     <url>
          <loc>https://sift-stack.github.io/sift/python/pr-789/reference/sift_client/sift_types/user/</loc>
+         <lastmod>2026-09-26</lastmod>
+    </url>
+    <url>
+         <loc>https://sift-stack.github.io/sift/python/pr-789/reference/sift_client/sift_types/user_defined_function/</loc>
          <lastmod>2026-09-26</lastmod>
     </url>
     <url>
