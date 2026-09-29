@@ -21,6 +21,13 @@ the word "link".
 `SiftStream` no longer rejects an ingestion config whose asset name differs from the one in Sift
 only by capitalization.
 
+#### `sift-stream-bindings` no longer crashes Python at interpreter exit
+
+A Python process using `sift-stream-bindings` could die with SIGSEGV or SIGABRT after its program
+finished, when an async call completed while the interpreter was shutting down. The bindings now
+stop delivering results into Python once interpreter exit begins, and wait for in-flight deliveries
+before finalization starts. Async methods behave as before, including cancellation.
+
 ## [v0.13.0] - September 4, 2026
 ### What's New
 

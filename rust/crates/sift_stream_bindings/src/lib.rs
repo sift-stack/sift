@@ -6,6 +6,7 @@ use tracing_subscriber::{Layer, filter, layer::SubscriberExt};
 
 mod error;
 mod metrics;
+mod runtime;
 mod sift;
 mod stream;
 
@@ -180,5 +181,6 @@ fn sift_stream_bindings(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(init_tracing, m)?)?;
     m.add_function(wrap_pyfunction!(init_tracing_with_file, m)?)?;
     m.add_function(wrap_pyfunction!(is_tracing_initialized, m)?)?;
+    runtime::register_exit_hook(m)?;
     Ok(())
 }
