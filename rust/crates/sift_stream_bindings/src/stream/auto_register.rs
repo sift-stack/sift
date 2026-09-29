@@ -1,9 +1,9 @@
 use super::{FlowPy, SiftStreamInner, SiftStreamPy, stream_consumed_err};
 use crate::error::SiftErrorWrapper;
 use crate::metrics::SiftStreamMetricsSnapshotPy;
+use crate::runtime::future_into_py;
 use crate::stream::config::{FlowConfigPy, FlowDescriptorPy, RunSelectorPy};
 use pyo3::prelude::*;
-use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
 use sift_stream::{
     AutoRegisterStream, FileBackup, Flow, LiveStreamingOnly, LiveStreamingWithBackups,

@@ -1,11 +1,15 @@
+use pyo3::exceptions::{PyRuntimeWarning, PyValueError};
 use pyo3::prelude::*;
 use pyo3_stub_gen::define_stub_info_gatherer;
+use std::ffi::CString;
 use std::sync::{Mutex, Once};
+use std::time::Duration;
 use tracing::Level;
 use tracing_subscriber::{Layer, filter, layer::SubscriberExt};
 
 mod error;
 mod metrics;
+mod runtime;
 mod sift;
 mod stream;
 
@@ -135,6 +139,54 @@ fn is_tracing_initialized() -> bool {
     INIT_TRACING.is_completed()
 }
 
+/// Stop the background runtime that runs this library's async work and wait up to
+/// `timeout` seconds for its threads to finish.
+///
+/// The module registers this with `atexit` when it is imported, so a normal interpreter
+/// shutdown calls it for you. Without it, runtime threads that complete work while the
+/// interpreter is finalizing re-enter Python and crash the process (SIGSEGV or SIGABRT).
+/// `atexit` handlers registered after this module was imported run before it, so they can
+/// still finish a stream. Call it yourself to stop the runtime earlier, for example right
+/// before `os._exit()`.
+///
+/// Finish your streams first. In-flight work is cancelled, awaitables that have not
+/// completed never resolve, and any later call that needs the runtime raises `RuntimeError`.
+/// Calling this more than once is harmless.
+///
+/// If runtime threads are still alive when the timeout expires, this logs a warning through
+/// `tracing` and issues a Python `RuntimeWarning`, because those threads can still re-enter
+/// Python during finalization. Raise the timeout or finish streams earlier if you see it.
+///
+/// Args:
+///     timeout: Seconds to wait for in-flight work before giving up (default: 5.0)
+#[pyfunction]
+#[pyo3(signature = (timeout = runtime::DEFAULT_SHUTDOWN_TIMEOUT_SECS))]
+fn shutdown(py: Python<'_>, timeout: f64) -> PyResult<()> {
+    if !timeout.is_finite() || timeout < 0.0 {
+        return Err(PyValueError::new_err(
+            "timeout must be a non-negative number of seconds",
+        ));
+    }
+    let leftover = runtime::shutdown(py, Duration::from_secs_f64(timeout));
+    if leftover > 0 {
+        let message = format!(
+            "sift_stream_bindings.shutdown() timed out after {timeout}s with {leftover} runtime \
+             thread(s) still running; they may re-enter Python during interpreter finalization \
+             and crash the process. Finish streams before exit or raise the timeout."
+        );
+        tracing::warn!("{message}");
+        let message = CString::new(message)?;
+        PyErr::warn(py, py.get_type::<PyRuntimeWarning>().as_any(), &message, 1)?;
+    }
+    Ok(())
+}
+
+/// Whether `shutdown()` has run. Calls that need the runtime raise `RuntimeError` after it.
+#[pyfunction]
+fn is_shut_down() -> bool {
+    runtime::is_shut_down()
+}
+
 // Cannot organize into submodules right now
 // See below for issues with submodules using pyo3
 // https://github.com/PyO3/pyo3/issues/759
@@ -180,5 +232,14 @@ fn sift_stream_bindings(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(init_tracing, m)?)?;
     m.add_function(wrap_pyfunction!(init_tracing_with_file, m)?)?;
     m.add_function(wrap_pyfunction!(is_tracing_initialized, m)?)?;
+    m.add_function(wrap_pyfunction!(is_shut_down, m)?)?;
+
+    // Stop the runtime while the interpreter is still intact. `atexit` runs before CPython
+    // marks itself finalizing, so runtime threads never re-enter Python after that point.
+    let shutdown_fn = wrap_pyfunction!(shutdown, m)?;
+    m.add_function(shutdown_fn.clone())?;
+    m.py()
+        .import("atexit")?
+        .call_method1("register", (shutdown_fn,))?;
     Ok(())
 }

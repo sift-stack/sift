@@ -8,12 +8,12 @@ pub mod time;
 
 use crate::error::SiftErrorWrapper;
 use crate::metrics::SiftStreamMetricsSnapshotPy;
+use crate::runtime::future_into_py;
 use crate::stream::channel::ChannelValuePy;
 use crate::stream::config::{FlowConfigPy, FlowDescriptorPy, RunSelectorPy};
 use crate::stream::request::IngestWithConfigDataStreamRequestWrapperPy;
 use crate::stream::time::TimeValuePy;
 use pyo3::{prelude::*, types::PyIterator};
-use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
 use sift_rs::ingest::v1::IngestWithConfigDataStreamRequest;
 use sift_stream::{

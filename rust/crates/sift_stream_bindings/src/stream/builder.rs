@@ -128,7 +128,7 @@ impl SiftStreamBuilderPy {
 
         let mode_builder = config_builder.live_only();
 
-        let awaitable = pyo3_async_runtimes::tokio::future_into_py(py, async move {
+        let awaitable = crate::runtime::future_into_py(py, async move {
             match mode_builder.build().await {
                 Ok(stream) => Ok(SiftStreamPy::from(stream)),
                 Err(e) => Err(crate::error::SiftErrorWrapper(e).into()),
@@ -321,7 +321,7 @@ impl LiveOnlyBuilderPy {
         let ingestion_cap = self.ingestion_data_channel_capacity;
         let control_cap = self.control_channel_capacity;
 
-        let awaitable = pyo3_async_runtimes::tokio::future_into_py(py, async move {
+        let awaitable = crate::runtime::future_into_py(py, async move {
             let config_builder = make_stream_config_builder(base)?;
 
             let mode_builder = config_builder
@@ -408,7 +408,7 @@ impl LiveWithBackupsBuilderPy {
         let backup_cap = self.backup_data_channel_capacity;
         let control_cap = self.control_channel_capacity;
 
-        let awaitable = pyo3_async_runtimes::tokio::future_into_py(py, async move {
+        let awaitable = crate::runtime::future_into_py(py, async move {
             let config_builder = make_stream_config_builder(base)?;
 
             let mode_builder = config_builder
@@ -481,7 +481,7 @@ impl FileBackupBuilderPy {
             .metrics_streaming_interval
             .map(std::time::Duration::from);
 
-        let awaitable = pyo3_async_runtimes::tokio::future_into_py(py, async move {
+        let awaitable = crate::runtime::future_into_py(py, async move {
             let config_builder = make_stream_config_builder(base)?;
 
             let mode_builder = config_builder
