@@ -1,6 +1,7 @@
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyRuntimeWarning, PyValueError};
 use pyo3::prelude::*;
 use pyo3_stub_gen::define_stub_info_gatherer;
+use std::ffi::CString;
 use std::sync::{Mutex, Once};
 use std::time::Duration;
 use tracing::Level;
@@ -152,6 +153,10 @@ fn is_tracing_initialized() -> bool {
 /// completed never resolve, and any later call that needs the runtime raises `RuntimeError`.
 /// Calling this more than once is harmless.
 ///
+/// If runtime threads are still alive when the timeout expires, this logs a warning through
+/// `tracing` and issues a Python `RuntimeWarning`, because those threads can still re-enter
+/// Python during finalization. Raise the timeout or finish streams earlier if you see it.
+///
 /// Args:
 ///     timeout: Seconds to wait for in-flight work before giving up (default: 5.0)
 #[pyfunction]
@@ -162,7 +167,17 @@ fn shutdown(py: Python<'_>, timeout: f64) -> PyResult<()> {
             "timeout must be a non-negative number of seconds",
         ));
     }
-    runtime::shutdown(py, Duration::from_secs_f64(timeout));
+    let leftover = runtime::shutdown(py, Duration::from_secs_f64(timeout));
+    if leftover > 0 {
+        let message = format!(
+            "sift_stream_bindings.shutdown() timed out after {timeout}s with {leftover} runtime \
+             thread(s) still running; they may re-enter Python during interpreter finalization \
+             and crash the process. Finish streams before exit or raise the timeout."
+        );
+        tracing::warn!("{message}");
+        let message = CString::new(message)?;
+        PyErr::warn(py, py.get_type::<PyRuntimeWarning>().as_any(), &message, 1)?;
+    }
     Ok(())
 }
 

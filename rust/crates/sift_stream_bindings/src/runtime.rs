@@ -21,7 +21,7 @@ use pyo3_async_runtimes::generic::{self, ContextExt, Runtime as GenericRuntime};
 use std::cell::OnceCell;
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Mutex, OnceLock, PoisonError};
 use std::time::Duration;
 use tokio::runtime::{Builder, Handle, Runtime};
@@ -35,6 +35,8 @@ static RUNTIME: Mutex<Option<Runtime>> = Mutex::new(None);
 static HANDLE: OnceLock<Handle> = OnceLock::new();
 /// Set by [`shutdown`] before it drains `RUNTIME`; never cleared.
 static SHUT_DOWN: AtomicBool = AtomicBool::new(false);
+/// Runtime threads (workers and blocking pool) currently alive, kept by tokio's thread hooks.
+static LIVE_THREADS: AtomicUsize = AtomicUsize::new(0);
 
 tokio::task_local! {
     static TASK_LOCALS: OnceCell<TaskLocals>;
@@ -107,14 +109,22 @@ pub(crate) fn is_shut_down() -> bool {
 /// runtime raises `RuntimeError`. The GIL is released while waiting so that a
 /// task which is already resolving a Python future can finish. Calling this more
 /// than once is harmless.
-pub(crate) fn shutdown(py: Python<'_>, timeout: Duration) {
+///
+/// Returns the number of runtime threads still alive when the wait ended. Tokio
+/// gives no signal when `shutdown_timeout` gives up, so this is how a caller
+/// learns that threads outlived the timeout and could still re-enter Python.
+pub(crate) fn shutdown(py: Python<'_>, timeout: Duration) -> usize {
     SHUT_DOWN.store(true, Ordering::SeqCst);
     let runtime = RUNTIME
         .lock()
         .unwrap_or_else(PoisonError::into_inner)
         .take();
-    if let Some(runtime) = runtime {
-        py.detach(|| runtime.shutdown_timeout(timeout));
+    match runtime {
+        Some(runtime) => py.detach(|| {
+            runtime.shutdown_timeout(timeout);
+            LIVE_THREADS.load(Ordering::SeqCst)
+        }),
+        None => 0,
     }
 }
 
@@ -142,6 +152,12 @@ fn ensure_started() -> PyResult<()> {
     let runtime = Builder::new_multi_thread()
         .enable_all()
         .thread_name("sift-stream-worker")
+        .on_thread_start(|| {
+            LIVE_THREADS.fetch_add(1, Ordering::SeqCst);
+        })
+        .on_thread_stop(|| {
+            LIVE_THREADS.fetch_sub(1, Ordering::SeqCst);
+        })
         .build()
         .map_err(|e| {
             PyRuntimeError::new_err(format!(

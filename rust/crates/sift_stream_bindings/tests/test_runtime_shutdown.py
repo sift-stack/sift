@@ -169,6 +169,38 @@ def test_shutdown_before_any_use_is_safe() -> None:
     assert_exited_cleanly(child)
 
 
+def test_shutdown_warns_when_threads_outlive_timeout() -> None:
+    # Builds that are blocked on a server that never replies keep runtime threads busy. A zero
+    # timeout cannot wait for them, so shutdown() must say that threads are still alive.
+    listener = ResettingListener()
+    child = run_child(
+        """
+        import asyncio, sys, warnings
+        import sift_stream_bindings
+        from sift_stream_bindings import IngestionConfigFormPy, SiftStreamBuilderPy
+
+        async def main():
+            for _ in range(3):
+                builder = SiftStreamBuilderPy(uri=sys.argv[1], apikey="not-a-real-key")
+                builder.enable_tls = False
+                builder.ingestion_config_form = IngestionConfigFormPy(
+                    asset_name="repro", client_key="repro", flows=[]
+                )
+                builder.build()
+            await asyncio.sleep(0.3)
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always")
+                sift_stream_bindings.shutdown(timeout=0.0)
+            messages = [str(w.message) for w in caught if w.category is RuntimeWarning]
+            assert any("timed out" in m and "still running" in m for m in messages), caught
+
+        asyncio.run(main())
+        """,
+        listener.uri,
+    )
+    assert_exited_cleanly(child)
+
+
 def test_shutdown_rejects_bad_timeout() -> None:
     # Runs in-process: an invalid timeout is rejected before the runtime is touched.
     assert not is_shut_down()

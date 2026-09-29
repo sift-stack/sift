@@ -26,8 +26,9 @@ process with SIGSEGV or SIGABRT after the program had already completed. The cra
 runtime and registers a new `shutdown(timeout=5.0)` function with `atexit`, so the runtime is
 stopped and its threads joined while the interpreter is still intact. `shutdown()` can also be
 called directly, for example before `os._exit()`, and `is_shut_down()` reports whether it has
-run. Calls that need the runtime raise `RuntimeError` afterwards. Runtime threads are now named
-`sift-stream-worker`.
+run. Calls that need the runtime raise `RuntimeError` afterwards. If threads are still alive when
+the timeout expires, `shutdown()` logs a warning and issues a `RuntimeWarning`, since those threads
+can still crash the process. Runtime threads are now named `sift-stream-worker`.
 
 #### Asset-name check is now case-insensitive
 
