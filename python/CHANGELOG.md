@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.22.1] - September 29, 2026
+
+- Fix streaming ingestion processes crashing with SIGSEGV or SIGABRT at interpreter exit. The `sift-stream-bindings` tokio runtime was never shut down, so a runtime thread that finished work while Python was finalizing re-entered the interpreter and killed the process after the program had completed. The bindings now stop the runtime from an `atexit` hook, and expose `shutdown(timeout=5.0)` for callers that exit with `os._exit()`. Requires `sift-stream-bindings` 0.5.2.
+
 ## [v0.22.0] - September 25, 2026
 
 - Added `client.user_defined_functions` for reusable expressions.

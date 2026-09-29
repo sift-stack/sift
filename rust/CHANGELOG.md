@@ -16,6 +16,19 @@ the word "link".
 
 ### Bug Fixes
 
+#### Runtime threads no longer crash the Python process at interpreter exit
+
+##### `sift-stream-bindings` 0.5.2
+
+The bindings ran every async call on a process-global tokio runtime that was never shut down.
+A worker that finished work while CPython was finalizing re-entered Python and killed the
+process with SIGSEGV or SIGABRT after the program had already completed. The crate now owns its
+runtime and registers a new `shutdown(timeout=5.0)` function with `atexit`, so the runtime is
+stopped and its threads joined while the interpreter is still intact. `shutdown()` can also be
+called directly, for example before `os._exit()`, and `is_shut_down()` reports whether it has
+run. Calls that need the runtime raise `RuntimeError` afterwards. Runtime threads are now named
+`sift-stream-worker`.
+
 #### Asset-name check is now case-insensitive
 
 `SiftStream` no longer rejects an ingestion config whose asset name differs from the one in Sift
