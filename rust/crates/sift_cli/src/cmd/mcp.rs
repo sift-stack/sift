@@ -1,4 +1,5 @@
 use std::{
+    env,
     io::{self, IsTerminal},
     process::ExitCode,
 };
@@ -12,6 +13,10 @@ use tracing_subscriber::EnvFilter;
 use crate::cli::McpArgs;
 use crate::cmd::{Context, version};
 use crate::util::tty::Output;
+
+/// Set by hosts that already resolved the user's feature flags, such as the
+/// Sift agent pod, so tool registration does not depend on a startup fetch.
+const FEATURE_FLAGS_ENV: &str = "SIFT_MCP_FEATURE_FLAGS";
 
 pub async fn report_startup_error(error: Error) -> Result<ExitCode> {
     let message = format!("{error:#}");
@@ -52,15 +57,12 @@ pub async fn run(ctx: Context, args: McpArgs, app_uri: String) -> Result<ExitCod
     if client_event_config.is_none() {
         tracing::info!("non-essential traffic is disabled");
     }
-    let feature_flags = sift_mcp::FeatureFlags::fetch(&ctx.rest_uri, &ctx.api_key)
-        .await
-        .unwrap_or_else(|error| {
-            tracing::warn!(
-                error = format!("{error:#}"),
-                "failed to fetch feature flags; flag-gated tools are disabled"
-            );
-            sift_mcp::FeatureFlags::default()
-        });
+    let feature_flags = resolve_feature_flags(
+        env::var(FEATURE_FLAGS_ENV).ok(),
+        &ctx.rest_uri,
+        &ctx.api_key,
+    )
+    .await;
 
     let rest_config = sift_mcp::RestConfig::new(ctx.rest_uri.clone(), ctx.api_key.clone());
     let credentials = Credentials::Config {
@@ -96,6 +98,31 @@ pub async fn run(ctx: Context, args: McpArgs, app_uri: String) -> Result<ExitCod
             Err(err)
         }
     }
+}
+
+async fn resolve_feature_flags(
+    provided: Option<String>,
+    rest_uri: &str,
+    api_key: &str,
+) -> sift_mcp::FeatureFlags {
+    if let Some(json) = provided {
+        match sift_mcp::FeatureFlags::from_json(&json) {
+            Ok(flags) => return flags,
+            Err(error) => tracing::warn!(
+                error = format!("{error:#}"),
+                "ignoring invalid {FEATURE_FLAGS_ENV}; fetching feature flags"
+            ),
+        }
+    }
+    sift_mcp::FeatureFlags::fetch(rest_uri, api_key)
+        .await
+        .unwrap_or_else(|error| {
+            tracing::warn!(
+                error = format!("{error:#}"),
+                "failed to fetch feature flags; flag-gated tools are disabled"
+            );
+            sift_mcp::FeatureFlags::default()
+        })
 }
 
 fn select_update_check<F>(
@@ -220,8 +247,8 @@ mod tests {
     use tokio::sync::watch;
 
     use super::{
-        select_client_event_config, select_update_check, update_check_from_versions,
-        wait_for_initial_update_check,
+        resolve_feature_flags, select_client_event_config, select_update_check,
+        update_check_from_versions, wait_for_initial_update_check,
     };
 
     #[test]
@@ -260,6 +287,19 @@ mod tests {
         assert!(
             crate::cli::Args::try_parse_from(["sift-cli", "mcp", "--ignore-tool", "a,"]).is_err()
         );
+    }
+
+    #[tokio::test]
+    async fn provided_feature_flags_skip_the_fetch() {
+        // Nothing listens on port 1, so a fetch would disable every flag.
+        let flags = resolve_feature_flags(
+            Some(r#"{"chat-agents-service":"on"}"#.to_string()),
+            "http://127.0.0.1:1",
+            "key",
+        )
+        .await;
+
+        assert!(flags.enabled("chat-agents-service"));
     }
 
     #[test]

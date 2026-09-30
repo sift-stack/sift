@@ -56,6 +56,19 @@ impl FeatureFlags {
             .await
             .context("failed to parse feature flag response")
     }
+
+    /// Parses flags a host already resolved, as a JSON object of flag name to
+    /// variant value, e.g. `{"chat-agents-service":"on"}`.
+    pub fn from_json(json: &str) -> Result<Self> {
+        let values: HashMap<String, String> =
+            serde_json::from_str(json).context("feature flags must be a JSON object of strings")?;
+        Ok(Self {
+            variants: values
+                .into_iter()
+                .map(|(name, value)| (name, FeatureFlagVariant { value }))
+                .collect(),
+        })
+    }
 }
 
 #[cfg(test)]
@@ -111,6 +124,16 @@ mod tests {
         let flags: FeatureFlags = serde_json::from_str("{}").unwrap();
 
         assert!(!flags.enabled("test-flag"));
+    }
+
+    #[test]
+    fn parses_host_resolved_flags() {
+        let flags = FeatureFlags::from_json(r#"{"chat-agents-service":"on","test-reports":"off"}"#)
+            .unwrap();
+
+        assert!(flags.enabled("chat-agents-service"));
+        assert!(!flags.enabled("test-reports"));
+        assert!(FeatureFlags::from_json(r#"["chat-agents-service"]"#).is_err());
     }
 
     #[tokio::test]
