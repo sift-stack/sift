@@ -11,6 +11,18 @@ class SiftExperimentalWarning(SiftWarning):
     """Warning for experimental features."""
 
 
+class SiftIgnoredInputWarning(SiftWarning):
+    """Input the SDK accepted but could not act on.
+
+    Raised for a key that is not a field of a create or update model, and for an
+    update that names no fields to change. Both are caller mistakes that the SDK
+    tolerates rather than fails, so this class exists to let a caller promote
+    exactly these to errors without also promoting unrelated Sift warnings::
+
+        filterwarnings = error::sift_client.errors.SiftIgnoredInputWarning
+    """
+
+
 class SiftCredentialsError(ValueError):
     """Raised when Sift credentials cannot be resolved.
 

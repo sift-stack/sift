@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
+import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, NamedTuple, TypeVar, cast
 
@@ -51,6 +52,8 @@ from sift_client._internal.low_level_wrappers._test_results_log import (
 )
 from sift_client._internal.low_level_wrappers.base import DEFAULT_PAGE_SIZE, LowLevelClientBase
 from sift_client._internal.pytest_plugin.audit_log import log_event
+from sift_client._internal.util.util import caller_stacklevel, chunked
+from sift_client.errors import SiftIgnoredInputWarning
 from sift_client.sift_types.test_report import (
     TestMeasurement,
     TestMeasurementCreate,
@@ -78,6 +81,14 @@ _EntityT = TypeVar("_EntityT", TestReport, TestStep, TestMeasurement)
 # measurements, of which an interrupted run may have created only some, so that
 # handler filters per measurement instead.
 _WHOLE_ENTRY_CREATES = frozenset({"CreateTestReport", "CreateTestStep", "CreateTestMeasurement"})
+
+# Measurements per CreateTestMeasurements request. One measurement with a full
+# description and metadata is about 2.5KB, so 100 leaves a wide margin under the
+# 4MB gRPC message limit. The same number bounds two other things, which is why
+# it is not worth tuning for throughput alone: it is the flush threshold for a
+# run of consecutive measurement log lines, and it is how much progress a crash
+# can cost, since the sidecar is written once per request.
+_MEASUREMENT_CREATE_BATCH_SIZE = 100
 
 
 class _EntryIds(NamedTuple):
@@ -121,6 +132,46 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         """
         instance.__dict__["_simulated"] = True
         return instance
+
+    @classmethod
+    def _skip_empty_update(
+        cls,
+        entity_name: str,
+        existing: _EntityT | None,
+        simulated: _EntityT | None,
+    ) -> _EntityT:
+        """Short-circuit an update whose field mask is empty.
+
+        An empty mask asks the API to change nothing, and the API rejects it.
+        Logging one is worse than sending it: at import the entry stops the
+        replay at its line, and no retry gets past it.
+
+        Warn, since either every field was ``None`` or the keys were dropped as
+        unknown (see ``ModelCreateUpdateBase._warn_on_unknown_keys``), then return
+        the entity unchanged. ``simulated`` is the response to hand back on the
+        log and simulate paths, where a synthesized entity is the correct answer,
+        and None on a live call, where it would not be.
+
+        Raises:
+            ValueError: On a live call with no ``existing`` entity. Nothing
+                changed server-side and there is no entity to return, so the
+                alternative is a fabricated one, which callers cannot tell from a
+                real read.
+        """
+        warnings.warn(
+            f"Update to {entity_name} requested no field changes; ignored.",
+            SiftIgnoredInputWarning,
+            stacklevel=caller_stacklevel(),
+        )
+        if existing is not None:
+            return existing
+        if simulated is not None:
+            return cls._mark_simulated(simulated)
+        raise ValueError(
+            f"Update to {entity_name} named no fields to change. Pass the "
+            f"{entity_name} rather than its ID to get it back unchanged, or name "
+            "at least one field to update."
+        )
 
     @staticmethod
     def simulate_create_test_report_response(
@@ -534,13 +585,22 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             simulate: If True, return a simulated response without making an API call.
 
         Returns:
-            The updated TestReport.
+            The updated TestReport, or the report unchanged when the update names
+            no fields (see ``_skip_empty_update``).
         """
         if request is None:
             if update is None:
                 raise ValueError("Either update or request must be provided")
             test_report_proto, field_mask = update.to_proto_with_mask()
             request = UpdateTestReportRequest(test_report=test_report_proto, update_mask=field_mask)
+
+        simulating = log_file is not None or simulate
+        if not request.update_mask.paths:
+            return self._skip_empty_update(
+                "TestReport",
+                existing,
+                self.simulate_update_test_report_response(request) if simulating else None,
+            )
 
         if log_file is not None or simulate:
             if log_file is not None:
@@ -689,7 +749,8 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             simulate: If True, return a simulated response without making an API call.
 
         Returns:
-            The updated TestStep.
+            The updated TestStep, or the step unchanged when the update names no
+            fields (see ``_skip_empty_update``).
         """
         if request is None:
             if update is None:
@@ -699,6 +760,14 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             if has_error_info:
                 field_mask.paths.append("error_info")
             request = UpdateTestStepRequest(test_step=test_step_proto, update_mask=field_mask)
+
+        simulating = log_file is not None or simulate
+        if not request.update_mask.paths:
+            return self._skip_empty_update(
+                "TestStep",
+                existing,
+                self.simulate_update_test_step_response(request) if simulating else None,
+            )
 
         if log_file is not None or simulate:
             if log_file is not None:
@@ -809,6 +878,51 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = cast("CreateTestMeasurementsResponse", response)
         return response.measurements_created_count, list(response.measurement_ids)
 
+    async def _create_measurement_batch(
+        self, protos: list[TestMeasurementProto]
+    ) -> list[TestMeasurement]:
+        """Create measurements in one batch call, in request order.
+
+        Callers pair the result with whatever they hold per input, so the order
+        and the length of the result both matter.
+
+        The batch response carries IDs rather than entities, so each entity is
+        rebuilt from the proto that was sent plus its assigned ID. Fields the
+        server normalizes are therefore the values as sent, not as stored.
+
+        Raises:
+            RuntimeError: If the response returns an ID count other than the
+                number of measurements sent. IDs are paired with inputs by
+                position, so a short response would attach real IDs to the wrong
+                measurements and send later updates to the wrong rows.
+        """
+        _, real_ids = await self.create_test_measurements(
+            request=CreateTestMeasurementsRequest(test_measurements=protos)
+        )
+        if len(real_ids) != len(protos):
+            raise RuntimeError(
+                f"CreateTestMeasurements returned {len(real_ids)} IDs for "
+                f"{len(protos)} measurements; cannot match IDs to measurements."
+            )
+        created: list[TestMeasurement] = []
+        for proto, real_id in zip(protos, real_ids):
+            proto.measurement_id = real_id
+            created.append(TestMeasurement._from_proto(proto))
+        return created
+
+    async def _create_measurements_in_batches(
+        self, protos: list[TestMeasurementProto]
+    ) -> list[TestMeasurement]:
+        """Create measurements over as few batch calls as the size guard allows.
+
+        For a caller that holds more measurements than one request should carry,
+        such as a logged batch line of arbitrary length.
+        """
+        created: list[TestMeasurement] = []
+        for chunk in chunked(protos, _MEASUREMENT_CREATE_BATCH_SIZE):
+            created.extend(await self._create_measurement_batch(chunk))
+        return created
+
     async def list_test_measurements(
         self,
         *,
@@ -892,7 +1006,8 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             simulate: If True, return a simulated response without making an API call.
 
         Returns:
-            The updated TestMeasurement.
+            The updated TestMeasurement, or the measurement unchanged when the
+            update names no fields (see ``_skip_empty_update``).
         """
         if request is None:
             if update is None:
@@ -900,6 +1015,14 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             test_measurement_proto, field_mask = update.to_proto_with_mask()
             request = UpdateTestMeasurementRequest(
                 test_measurement=test_measurement_proto, update_mask=field_mask
+            )
+
+        simulating = log_file is not None or simulate
+        if not request.update_mask.paths:
+            return self._skip_empty_update(
+                "TestMeasurement",
+                existing,
+                self.simulate_update_test_measurement_response(request) if simulating else None,
             )
 
         if log_file is not None or simulate:
@@ -1160,6 +1283,48 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         state.measurements_order.append(measurement._id_or_error)
         return _EntryIds(response_id, measurement._id_or_error)
 
+    async def _replay_create_measurement_group(
+        self,
+        pairs: list[tuple[str | None, TestMeasurementProto]],
+        *,
+        id_map: dict[str, str],
+        state: _ReplayState,
+    ) -> list[str]:
+        """Create a group of logged measurements, recording what each one became.
+
+        ``pairs`` holds the logged response ID, where the line carried one,
+        against the measurement proto to send. An entry whose logged ID is already
+        in the sidecar map reached the server on an earlier attempt, so it is left
+        alone rather than created a second time. A group can be part done like
+        that because a batch upload creates measurements in collapsed order, one
+        at a time, so it can stop partway through what one log line covers.
+
+        Every group goes through the batch endpoint, including a group of one.
+        Choosing an endpoint by group size would mean entities built two ways,
+        since the batch endpoint returns IDs while the single endpoint returns the
+        server's entity, and a resume would send the same measurement through a
+        different endpoint than the attempt before it.
+
+        Returns the real IDs created, in the order they were sent, for the audit
+        trail.
+        """
+        pending = [
+            (logged_id, tm) for logged_id, tm in pairs if not (logged_id and logged_id in id_map)
+        ]
+        if not pending:
+            return []
+        created = await self._create_measurements_in_batches([tm for _, tm in pending])
+
+        real_ids: list[str] = []
+        for (logged_id, _), measurement in zip(pending, created):
+            real_id = measurement._id_or_error
+            if logged_id:
+                id_map[logged_id] = real_id
+            state.measurements_by_id[real_id] = measurement
+            state.measurements_order.append(real_id)
+            real_ids.append(real_id)
+        return real_ids
+
     async def _replay_create_measurements(
         self,
         json_str: str,
@@ -1174,8 +1339,8 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         for tm in request.test_measurements:
             tm.test_step_id = self._map_id(id_map, tm.test_step_id)
         original_ids = response_id.split(",") if response_id else []
-        created_ids: list[str] = []
         if simulate:
+            created_ids: list[str] = []
             # Batch endpoint has no simulate path; fan out to per-measurement simulate calls.
             for i, tm_proto in enumerate(request.test_measurements):
                 single_req = CreateTestMeasurementRequest(test_measurement=tm_proto)
@@ -1186,26 +1351,13 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 state.measurements_order.append(meas._id_or_error)
                 created_ids.append(meas._id_or_error)
         else:
-            # Batch replay creates measurements one at a time, so an interrupted
-            # run can leave part of a batch line already on the server. Re-sending
-            # the whole line would duplicate those, so send only what is missing.
-            pending: list[tuple[str | None, TestMeasurementProto]] = []
-            for i, tm in enumerate(request.test_measurements):
-                logged_id = original_ids[i] if i < len(original_ids) else None
-                if logged_id and logged_id in id_map:
-                    continue
-                pending.append((logged_id, tm))
-            real_ids: list[str] = []
-            if pending:
-                _, real_ids = await self.create_test_measurements(
-                    request=CreateTestMeasurementsRequest(
-                        test_measurements=[tm for _, tm in pending]
-                    )
-                )
-            for (logged_id, _), real_id in zip(pending, real_ids):
-                if logged_id:
-                    id_map[logged_id] = real_id
-                created_ids.append(real_id)
+            pairs = [
+                (original_ids[i] if i < len(original_ids) else None, tm)
+                for i, tm in enumerate(request.test_measurements)
+            ]
+            created_ids = await self._replay_create_measurement_group(
+                pairs, id_map=id_map, state=state
+            )
         # Batch line covers many measurements; comma-join both sides so the
         # audit row still names every entity (fields are space-free, so commas
         # keep it one token). A resume that found the whole line already on the
@@ -1226,6 +1378,12 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         orig_report_id = request.test_report.test_report_id
         mapped_report_id = self._map_id(id_map, orig_report_id)
         request.test_report.test_report_id = mapped_report_id
+        # An empty mask asks the server to change nothing, and the API rejects it.
+        # Clients before the write-time guard logged such entries, and the cursor
+        # only advances past a line that succeeded, so one of them stopped every
+        # retry at the same place. Nothing to apply here, so count it skipped.
+        if not request.update_mask.paths:
+            return _EntryIds(orig_report_id or None, mapped_report_id or None, skipped=True)
         # Batch/simulate replays the whole log in order, so a missing report means
         # the log is malformed. Incremental replay may have created the report on an
         # earlier tick (its real ID lives in id_map), so state.report is legitimately
@@ -1251,6 +1409,9 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         orig_step_id = request.test_step.test_step_id
         mapped_step_id = self._map_id(id_map, orig_step_id)
         request.test_step.test_step_id = mapped_step_id
+        # No paths means nothing to apply; see _replay_update_report.
+        if not request.update_mask.paths:
+            return _EntryIds(orig_step_id or None, mapped_step_id or None, skipped=True)
         existing_step = state.steps_by_id.get(mapped_step_id)
         if simulate and existing_step is None:
             raise ValueError(f"UpdateTestStep for unknown step: {orig_step_id}")
@@ -1275,6 +1436,9 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         orig_meas_id = request.test_measurement.measurement_id
         mapped_meas_id = self._map_id(id_map, orig_meas_id)
         request.test_measurement.measurement_id = mapped_meas_id
+        # No paths means nothing to apply; see _replay_update_report.
+        if not request.update_mask.paths:
+            return _EntryIds(orig_meas_id or None, mapped_meas_id or None, skipped=True)
         existing_meas = state.measurements_by_id.get(mapped_meas_id)
         if simulate and existing_meas is None:
             raise ValueError(f"UpdateTestMeasurement for unknown measurement: {orig_meas_id}")
@@ -1321,19 +1485,23 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         logged_by_simulated = {simulated: logged for logged, simulated in id_map.items()}
         real_id_map: dict[str, str] = {}
 
-        def record_created(simulated_id: str, real_id: str) -> None:
+        def record_created(simulated_id: str, real_id: str, *, save: bool = True) -> None:
             """Note a real entity against both the in-run map and the sidecar.
 
             The sidecar is saved per entity so an upload interrupted at any point
             is resumable. That is one small atomic rewrite per created entity;
             the incremental path already pays the same cost per log line.
+
+            ``save=False`` records the entity without writing, for a caller that
+            creates a batch in one call and writes once for the whole batch.
             """
             real_id_map[simulated_id] = real_id
             logged_id = logged_by_simulated.get(simulated_id)
             if not logged_id:
                 return
             tracking.id_map[logged_id] = real_id
-            tracking.save(log_path)
+            if save:
+                tracking.save(log_path)
 
         real_report = await self._create_report_from_simulated(state.report)
         real_report_id = real_report._id_or_error
@@ -1354,18 +1522,27 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             real_steps.append(real_step)
             record_created(sim_step_id, real_step._id_or_error)
 
+        # Measurements are the bulk of a log, so they go out in batches rather
+        # than one call each. One request per chunk means the sidecar is written
+        # once per chunk, so a crash loses at most one request's IDs and the
+        # resume recreates those measurements.
         real_measurements: list[TestMeasurement] = []
-        for sim_measurement_id in state.measurements_order:
-            sim_measurement = state.measurements_by_id[sim_measurement_id]
-            real_step_id = real_id_map.get(
-                sim_measurement.test_step_id, sim_measurement.test_step_id
-            )
-            measurement_create = self._measurement_create_from_simulated(
-                sim_measurement, real_step_id
-            )
-            real_measurement = await self.create_test_measurement(measurement_create)
-            real_measurements.append(real_measurement)
-            record_created(sim_measurement_id, real_measurement._id_or_error)
+        for chunk_ids in chunked(state.measurements_order, _MEASUREMENT_CREATE_BATCH_SIZE):
+            protos = []
+            for sim_measurement_id in chunk_ids:
+                sim_measurement = state.measurements_by_id[sim_measurement_id]
+                real_step_id = real_id_map.get(
+                    sim_measurement.test_step_id, sim_measurement.test_step_id
+                )
+                measurement_create = self._measurement_create_from_simulated(
+                    sim_measurement, real_step_id
+                )
+                protos.append(measurement_create.to_proto())
+            created = await self._create_measurement_batch(protos)
+            real_measurements.extend(created)
+            for sim_measurement_id, real_measurement in zip(chunk_ids, created):
+                record_created(sim_measurement_id, real_measurement._id_or_error, save=False)
+            tracking.save(log_path)
 
         # Everything in the log reached the server. The cursor stays at zero
         # because batch created in collapsed order, not log order; the flag is
@@ -1393,10 +1570,10 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         Resumes from ``LogTracking.last_uploaded_line`` (loaded from the
         ``<log>.tracking`` sidecar) so already-uploaded entries are skipped on
-        subsequent ticks rather than re-sent to the server. Each data line is a
-        single atomic API call; if replay of a line fails,
-        ``last_uploaded_line`` is not advanced so the whole line is retried
-        next tick.
+        subsequent ticks rather than re-sent to the server. Most data lines are a
+        single atomic API call, and a run of consecutive measurement lines is one
+        batch call covering the run. If a call fails, ``last_uploaded_line`` is
+        not advanced, so every line it covered is retried next tick.
 
         A batch upload records what it created but keeps its cursor at zero,
         since it creates in collapsed order rather than log order. Finishing one
@@ -1420,9 +1597,81 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         state = _ReplayState()
 
         raw_lines = await _read_log_lines(log_path)
+        # A run of consecutive single-measurement lines collects here and reaches
+        # the server as one batch call. Measurements are the bulk of a log, and
+        # one round-trip each is what makes a large log slow to upload.
+        buffered_measurements: list[tuple[str | None, TestMeasurementProto]] = []
+
+        async def flush_measurements() -> None:
+            """Send the buffered run as one group and move the cursor past it.
+
+            The cursor advances only after the call returns, so a failure leaves
+            every line of the run to be retried next tick. That widens an existing
+            exposure: a create is not idempotent, so a response lost after the
+            server committed duplicates the measurements on retry. The window was
+            one measurement per line and is now one run. Closing it needs a
+            request ID the API does not accept yet.
+            """
+            if not buffered_measurements:
+                return
+            first_line = tracking.last_uploaded_line + 1
+            try:
+                real_ids = await self._replay_create_measurement_group(
+                    buffered_measurements, id_map=id_map, state=state
+                )
+            except Exception as exc:
+                log_event(
+                    logger,
+                    logging.WARNING,
+                    "replay.error",
+                    line=first_line,
+                    lines=len(buffered_measurements),
+                    type="CreateTestMeasurement",
+                    error=repr(exc),
+                )
+                raise
+
+            tracking.last_uploaded_line += len(buffered_measurements)
+            tracking.save(log_path)
+            # One row per run rather than per line. ``line`` stays the cursor, as
+            # on every other row, and ``first_line`` names where the run started
+            # so a reader can attribute the whole span.
+            log_event(
+                logger,
+                logging.DEBUG,
+                "replay.upload",
+                type="CreateTestMeasurement",
+                line=tracking.last_uploaded_line,
+                first_line=first_line,
+                count=len(buffered_measurements),
+                sim_id=",".join(sid for sid, _ in buffered_measurements if sid) or "-",
+                real_id=",".join(real_ids) or "-",
+                skipped="yes" if not real_ids else "no",
+                idmap=len(id_map),
+            )
+            buffered_measurements.clear()
+
         for request_type, response_id, json_str in parse_log_data_lines(
             raw_lines, start_line=tracking.last_uploaded_line
         ):
+            if request_type == "CreateTestMeasurement":
+                # Parsed on the way into the buffer, so the flush has one job. The
+                # step ID is resolvable now because a CreateTestStep line flushes
+                # the buffer before it is imported, so every step a buffered
+                # measurement can name is already in the ID map.
+                buffered_request = CreateTestMeasurementRequest()
+                json_format.Parse(json_str, buffered_request)
+                buffered_request.test_measurement.test_step_id = self._map_id(
+                    id_map, buffered_request.test_measurement.test_step_id
+                )
+                buffered_measurements.append((response_id, buffered_request.test_measurement))
+                if len(buffered_measurements) >= _MEASUREMENT_CREATE_BATCH_SIZE:
+                    await flush_measurements()
+                continue
+            # The cursor is a line count, so lines must reach the server in log
+            # order. Flush the run before the line that ended it.
+            await flush_measurements()
+
             line_number = tracking.last_uploaded_line + 1
             try:
                 entry_ids = await self._import_entry(
@@ -1464,6 +1713,9 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 skipped="yes" if entry_ids.skipped else "no",
                 idmap=len(id_map),
             )
+
+        # A log ending in measurement lines leaves a run buffered.
+        await flush_measurements()
 
         # On a resume tick the CreateTestReport line was consumed on an earlier
         # tick, so state.report is expected to be None; the report already exists

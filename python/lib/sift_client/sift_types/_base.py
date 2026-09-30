@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import difflib
+import warnings
 from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
@@ -15,6 +17,9 @@ from typing import (
 
 from google.protobuf import field_mask_pb2, message
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
+
+from sift_client._internal.util.util import caller_stacklevel
+from sift_client.errors import SiftIgnoredInputWarning
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -112,6 +117,37 @@ class ModelCreateUpdateBase(BaseModel, ABC):
 
     def __init__(self, **data: Any):
         super().__init__(**data)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _warn_on_unknown_keys(cls, data: Any) -> Any:
+        """Warn for input keys that are not fields of this model.
+
+        Pydantic's default ``extra="ignore"`` drops an unrecognized key in
+        silence. A create then omits that field, and an update carries an empty
+        field mask, which the API rejects.
+
+        Warn rather than raise, since a reporting mistake must not fail a test
+        run in progress. ``filterwarnings`` promotes it to an error. A model that
+        sets ``extra="forbid"`` raises on its own and is left alone; that is what
+        ``PhaseCreate`` does, and forbidding here instead would abort a live test
+        run over a dropped field.
+        """
+        if not isinstance(data, dict) or cls.model_config.get("extra") == "forbid":
+            return data
+        unknown = [key for key in data if key not in cls.model_fields]
+        if not unknown:
+            return data
+        known = sorted(cls.model_fields)
+        for key in unknown:
+            close = difflib.get_close_matches(str(key), known, n=1, cutoff=0.6)
+            hint = f" (did you mean `{close[0]}`?)" if close else ""
+            warnings.warn(
+                f"Unknown field `{key}` for {cls.__name__}{hint}; ignored.",
+                SiftIgnoredInputWarning,
+                stacklevel=caller_stacklevel(),
+            )
+        return data
 
     @model_validator(mode="after")
     def _check_mapping_helpers(self):
