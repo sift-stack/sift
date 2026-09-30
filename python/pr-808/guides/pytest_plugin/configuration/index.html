@@ -1894,7 +1894,8 @@ then TOML. An explicit <code>false</code> overrides a <code>true</code> from a l
 production can set <code>SIFT_REPORT_ARCHIVE_ON_CREATE=false</code> while the shared TOML
 stays <code>true</code>.</p>
 <p>The terminal summary prints <code>(archived)</code> next to the report link. Offline, the
-same note follows the <code>import-test-result-log</code> command. Replay of that log
+same note is the line after the <code>import-test-result-log</code> command, so the
+command line itself still runs when copied. Replay of that log
 archives the uploaded report.</p>
 <h3 id="name-vs-test_case"><code>name</code> vs <code>test_case</code><a class="headerlink" href="#name-vs-test_case" title="Permanent link">&para;</a></h3>
 <p>The two fields look similar but serve opposite purposes:</p>
