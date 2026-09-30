@@ -178,41 +178,48 @@ async def main() -> None:
         ingestion_config=ingestion_config,
         run=run,
     ) as ingest_client:
-        # Continue streaming until the user terminates the program
-        while True:
-            now = datetime.now(timezone.utc)
+        # Continue streaming until the user terminates the program.
+        # On Ctrl+C, Python's asyncio raises CancelledError (not
+        # KeyboardInterrupt) inside awaiting coroutines.  Catching it
+        # here lets the async-with context manager exit cleanly and
+        # call finish() via __aexit__.
+        try:
+            while True:
+                now = datetime.now(timezone.utc)
 
-            # Generate mock telemetry values
-            # ---------------------------------------------------------
-            # In a real system, these would come from sensors,
-            # hardware interfaces, or production metrics.
-            velocity = random.uniform(0, 10)
-            temperature = random.uniform(20, 40)
+                # Generate mock telemetry values
+                # ---------------------------------------------------------
+                # In a real system, these would come from sensors,
+                # hardware interfaces, or production metrics.
+                velocity = random.uniform(0, 10)
+                temperature = random.uniform(20, 40)
 
-            # Build and send a FlowPy directly using sift_stream_bindings types
-            # ---------------------------------------------------------
-            # Using FlowPy, ChannelValuePy, ValuePy, and TimeValuePy directly
-            # avoids the CPU-bound conversion overhead of the ergonomic
-            # flow_config.as_flow() helper.
-            await ingest_client.send(
-                FlowPy(
-                    flow_name=FLOW_NAME,
-                    timestamp=TimeValuePy.from_timestamp_millis(int(now.timestamp() * 1000)),
-                    values=[
-                        ChannelValuePy(name="velocity", value=ValuePy.Double(velocity)),
-                        ChannelValuePy(name="temperature", value=ValuePy.Double(temperature)),
-                    ],
+                # Build and send a FlowPy directly using sift_stream_bindings types
+                # ---------------------------------------------------------
+                # Using FlowPy, ChannelValuePy, ValuePy, and TimeValuePy directly
+                # avoids the CPU-bound conversion overhead of the ergonomic
+                # flow_config.as_flow() helper.
+                await ingest_client.send(
+                    FlowPy(
+                        flow_name=FLOW_NAME,
+                        timestamp=TimeValuePy.from_timestamp_millis(int(now.timestamp() * 1000)),
+                        values=[
+                            ChannelValuePy(name="velocity", value=ValuePy.Double(velocity)),
+                            ChannelValuePy(name="temperature", value=ValuePy.Double(temperature)),
+                        ],
+                    )
                 )
-            )
 
-            print(
-                f"[SENT {now.isoformat()}] "
-                f"velocity={velocity:.2f} m/s | "
-                f"temperature={temperature:.2f} C"
-            )
+                print(
+                    f"[SENT {now.isoformat()}] "
+                    f"velocity={velocity:.2f} m/s | "
+                    f"temperature={temperature:.2f} C"
+                )
 
-            # Control sampling rate
-            await asyncio.sleep(SEND_INTERVAL_SECONDS)
+                # Control sampling rate
+                await asyncio.sleep(SEND_INTERVAL_SECONDS)
+        except (KeyboardInterrupt, asyncio.CancelledError):
+            pass
 
     print("Streaming session closed.")
 
@@ -220,8 +227,11 @@ async def main() -> None:
 # Standard Python entry point
 # ---------------------------------------------------------------------
 # asyncio.run() starts the async ingestion workflow.
+# The outer exception handler suppresses noise from the async shutdown
+# sequence that may occur after the streaming client has already been
+# finished by the context manager.
 if __name__ == "__main__":
     try:
         asyncio.run(main())
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, RuntimeError):
         print("\nStreaming stopped by user.")
