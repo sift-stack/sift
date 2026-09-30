@@ -92,13 +92,13 @@ class LogTracking:
     file itself is append-only and stores only API-call data lines.
 
     * ``last_uploaded_line`` is the count of data lines that have been
-      successfully replayed against the server, in log order. Each data line
-      corresponds to a single API call, so line granularity matches the atomic
-      unit of work: a line is either fully replayed or must be retried in its
-      entirety. Data lines are strictly append-only, so this counter is stable
-      across runs. A batch upload creates in collapsed order rather than log
-      order and so leaves it at zero; ``complete`` is what marks that upload
-      finished.
+      successfully replayed against the server, in log order. A line is either
+      fully replayed or must be retried in its entirety. Most lines are one API
+      call, and a run of consecutive measurement lines is one batch call, so the
+      counter advances by the whole run once that call returns. Data lines are
+      strictly append-only, so this counter is stable across runs. A batch upload
+      creates in collapsed order rather than log order and so leaves it at zero;
+      ``complete`` is what marks that upload finished.
     * ``id_map`` maps simulated response IDs (created during the original test
       run) to the real IDs assigned by the server during replay. Subsequent
       ``Update*`` entries consult this map to translate IDs, and a resumed

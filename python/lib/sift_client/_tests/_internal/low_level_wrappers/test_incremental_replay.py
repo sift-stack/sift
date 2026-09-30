@@ -14,11 +14,12 @@ import json
 import logging
 from contextlib import contextmanager
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from grpc import RpcError, StatusCode
 
+from sift_client._internal.low_level_wrappers import test_results as test_results_module
 from sift_client._internal.low_level_wrappers._test_results_log import LogTracking
 from sift_client._internal.low_level_wrappers.test_results import (
     # Aliased so pytest doesn't try to collect the `Test`-prefixed client as a suite.
@@ -287,16 +288,29 @@ def _answer_real_creates(client, *, report_id, step_ids=(), measurement_ids=()):
     with ``simulate=True``, so a blanket mock would swallow those too. Returns
     the list that records the name of each real create, in order; the report is
     recorded as ``"report"`` since a report create carries no step name.
+
+    Replay creates measurements through the batch endpoint only, so
+    ``measurement_ids`` is drained by ``create_test_measurements``, one ID per
+    measurement in the request, and one name per measurement is recorded. Supply
+    as many IDs as the log holds measurements; running short raises
+    ``StopIteration``.
     """
     created: list[str] = []
 
-    def answer(name, canned_ids, describe):
+    def answer(name, canned, describe, *, many=False):
         real = getattr(client, name)
-        remaining = iter(canned_ids)
+        remaining = iter(canned)
 
         async def call(*args, **kwargs):
             if kwargs.get("simulate") or kwargs.get("log_file"):
                 return await real(*args, **kwargs)
+            if many:
+                # The batch endpoint answers one call with a count and one ID per
+                # measurement sent, rather than a single entity.
+                protos = kwargs["request"].test_measurements
+                created.extend(describe(proto) for proto in protos)
+                real_ids = [next(remaining) for _ in protos]
+                return len(real_ids), real_ids
             created.append(describe(*args))
             return next(remaining)
 
@@ -305,9 +319,10 @@ def _answer_real_creates(client, *, report_id, step_ids=(), measurement_ids=()):
     answer("create_test_report", [_make_report(report_id)], lambda *_: "report")
     answer("create_test_step", [_make_step(sid) for sid in step_ids], lambda create: create.name)
     answer(
-        "create_test_measurement",
-        [_make_measurement(mid) for mid in measurement_ids],
-        lambda create: create.name,
+        "create_test_measurements",
+        list(measurement_ids),
+        lambda proto: proto.name,
+        many=True,
     )
     return created
 
@@ -516,11 +531,11 @@ async def test_resume_into_deleted_report_explains_the_override(tmp_path):
     client.create_test_step.assert_not_awaited()
 
 
-async def _build_measurement_log(client, log_file, *, batched):
-    """Write a log holding a report, one step, and three measurements.
+async def _build_measurement_log(client, log_file, *, batched, count=3):
+    """Write a log holding a report, one step, and ``count`` measurements.
 
     ``batched`` picks how the measurements are logged: one ``CreateTestMeasurements``
-    line covering all three, or a separate ``CreateTestMeasurement`` line each.
+    line covering all of them, or a separate ``CreateTestMeasurement`` line each.
     """
     report = await client.create_test_report(test_report=_report_create(), log_file=log_file)
     step = await client.create_test_step(
@@ -543,7 +558,7 @@ async def _build_measurement_log(client, log_file, *, batched):
             timestamp=T0,
             numeric_value=float(index),
         )
-        for index in (1, 2, 3)
+        for index in range(1, count + 1)
     ]
     if batched:
         _, measurement_ids = await client.create_test_measurements(
@@ -596,7 +611,11 @@ async def test_resume_sends_only_the_missing_part_of_a_batched_line(tmp_path):
 
 @pytest.mark.asyncio
 async def test_resume_skips_a_measurement_already_created(tmp_path):
-    """A measurement logged on its own line is skipped once it is in the id map."""
+    """A measurement logged on its own line is skipped once it is in the id map.
+
+    The one measurement left over goes through the batch endpoint like any other
+    group, so a resume does not send it somewhere a fuller run would not.
+    """
     log_file = tmp_path / "single_measurements.jsonl"
     client = ResultsLowLevelClient(grpc_client=MagicMock())
     report, step, measurement_ids = await _build_measurement_log(client, log_file, batched=False)
@@ -611,14 +630,262 @@ async def test_resume_skips_a_measurement_already_created(tmp_path):
     ).save(log_file)
 
     client.get_test_report = AsyncMock(return_value=_make_report("real-report"))
-    client.create_test_measurement = AsyncMock(return_value=_make_measurement("real-meas-3"))
+    client.create_test_measurement = AsyncMock()
+    client.create_test_measurements = AsyncMock(return_value=(1, ["real-meas-3"]))
 
     await client.import_log_file(log_file)
 
-    client.create_test_measurement.assert_awaited_once()
-    sent = client.create_test_measurement.await_args.kwargs["request"]
-    assert sent.test_measurement.name == "m3"
-    assert sent.test_measurement.test_step_id == "real-step"
+    client.create_test_measurement.assert_not_awaited()
+    client.create_test_measurements.assert_awaited_once()
+    sent = client.create_test_measurements.await_args.kwargs["request"]
+    assert [m.name for m in sent.test_measurements] == ["m3"]
+    assert sent.test_measurements[0].test_step_id == "real-step"
+
+
+@pytest.mark.asyncio
+async def test_measurement_run_goes_out_as_one_call(tmp_path):
+    """Consecutive single-measurement lines reach the server as one batch call.
+
+    One round-trip per measurement is what made a large log slow to upload: the
+    field report that prompted this had 10,412 of them.
+    """
+    log_file = tmp_path / "run_of_measurements.jsonl"
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+    report, _, measurement_ids = await _build_measurement_log(client, log_file, batched=False)
+
+    LogTracking(last_uploaded_line=2, id_map={report.id_: "real-report"}).save(log_file)
+    client.create_test_measurement = AsyncMock()
+    client.create_test_measurements = AsyncMock(
+        return_value=(3, ["real-meas-1", "real-meas-2", "real-meas-3"])
+    )
+
+    result = await client.import_log_file(log_file, incremental=True)
+
+    client.create_test_measurement.assert_not_awaited()
+    client.create_test_measurements.assert_awaited_once()
+    sent = client.create_test_measurements.await_args.kwargs["request"]
+    assert [m.name for m in sent.test_measurements] == ["m1", "m2", "m3"]
+    tracking = LogTracking.load(log_file)
+    # The cursor covers all three lines, and each logged ID names what it became.
+    assert tracking.last_uploaded_line == 5
+    assert [tracking.id_map[mid] for mid in measurement_ids] == [
+        "real-meas-1",
+        "real-meas-2",
+        "real-meas-3",
+    ]
+    # The batch endpoint returns IDs only, so the entities are rebuilt from what
+    # was sent; the replay result still reports them.
+    assert [m.name for m in result.measurements] == ["m1", "m2", "m3"]
+    assert [m.id_ for m in result.measurements] == ["real-meas-1", "real-meas-2", "real-meas-3"]
+
+
+@pytest.mark.asyncio
+async def test_measurement_run_saves_the_sidecar_once(tmp_path):
+    """The run costs one sidecar write, not one per measurement.
+
+    The sidecar rewrites the whole ID map on every save, so a write per
+    measurement is the other half of what made a large log slow.
+    """
+    log_file = tmp_path / "one_save.jsonl"
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+    report, _, _ = await _build_measurement_log(client, log_file, batched=False)
+
+    LogTracking(last_uploaded_line=2, id_map={report.id_: "real-report"}).save(log_file)
+    client.create_test_measurements = AsyncMock(
+        return_value=(3, ["real-meas-1", "real-meas-2", "real-meas-3"])
+    )
+
+    saves = 0
+    real_save = LogTracking.save
+
+    def counting_save(self, path):
+        nonlocal saves
+        saves += 1
+        real_save(self, path)
+
+    with patch.object(LogTracking, "save", counting_save):
+        await client.import_log_file(log_file, incremental=True)
+
+    assert saves == 1
+
+
+@pytest.mark.asyncio
+async def test_measurement_run_logs_one_audit_row_for_the_span(tmp_path):
+    """One ``replay.upload`` row covers the run, naming the span it advanced.
+
+    Every other row reports a single line, so a reader needs the count and the
+    first line to attribute a run's measurements to the right part of the log.
+    """
+    log_file = tmp_path / "audit_run.jsonl"
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+    report, _, measurement_ids = await _build_measurement_log(client, log_file, batched=False)
+
+    LogTracking(last_uploaded_line=2, id_map={report.id_: "real-report"}).save(log_file)
+    client.create_test_measurements = AsyncMock(
+        return_value=(3, ["real-meas-1", "real-meas-2", "real-meas-3"])
+    )
+
+    with _captured_replay_logs() as messages:
+        await client.import_log_file(log_file, incremental=True)
+
+    rows = [m for m in messages if m.startswith("replay.upload") and "CreateTestMeasurement" in m]
+    assert len(rows) == 1
+    row = rows[0]
+    assert "count=3" in row
+    assert "first_line=3" in row
+    assert "line=5" in row
+    assert "skipped=no" in row
+    # Both sides comma-joined, so the row still names every measurement.
+    assert f"sim_id={','.join(measurement_ids)}" in row
+    assert "real_id=real-meas-1,real-meas-2,real-meas-3" in row
+
+
+@pytest.mark.asyncio
+async def test_run_of_one_measurement_still_uses_the_batch_endpoint(tmp_path):
+    """Run length must not pick the endpoint, even for a run of one.
+
+    The two endpoints build entities differently: the batch one returns IDs, so
+    the entity is rebuilt from what was sent, while the single one returns the
+    server's copy. Choosing by size would make that depend on how many
+    measurements a step happened to record.
+    """
+    log_file = tmp_path / "single_run.jsonl"
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+    report, _, _ = await _build_measurement_log(client, log_file, batched=False, count=1)
+
+    LogTracking(last_uploaded_line=2, id_map={report.id_: "real-report"}).save(log_file)
+    client.create_test_measurement = AsyncMock()
+    client.create_test_measurements = AsyncMock(return_value=(1, ["real-meas-1"]))
+
+    await client.import_log_file(log_file, incremental=True)
+
+    client.create_test_measurement.assert_not_awaited()
+    client.create_test_measurements.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_measurement_run_is_flushed_at_the_step_boundary(tmp_path):
+    """The line that ends a run is sent after the run, not before it.
+
+    The cursor is a single line count, so a line applied out of order would be
+    marked done before the lines ahead of it.
+    """
+    log_file = tmp_path / "step_boundary.jsonl"
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+    report, step, _ = await _build_measurement_log(client, log_file, batched=False, count=2)
+    step_update = StepUpdate(status=TestStatus.FAILED)
+    step_update.resource_id = step.id_
+    await client.update_test_step(update=step_update, log_file=log_file)
+
+    LogTracking(last_uploaded_line=2, id_map={report.id_: "real-report"}).save(log_file)
+
+    order: list[str] = []
+
+    async def create_measurements(*_, **__):
+        order.append("measurements")
+        return 2, ["real-meas-1", "real-meas-2"]
+
+    async def update_step(*_, **__):
+        order.append("update_step")
+        return _make_step("real-step")
+
+    client.create_test_measurements = create_measurements
+    client.update_test_step = update_step
+
+    await client.import_log_file(log_file, incremental=True)
+
+    assert order == ["measurements", "update_step"]
+
+
+@pytest.mark.asyncio
+async def test_run_larger_than_the_batch_size_is_split(tmp_path, monkeypatch):
+    """The size guard splits a long run instead of sending one huge request."""
+    log_file = tmp_path / "split_run.jsonl"
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+    report, _, _ = await _build_measurement_log(client, log_file, batched=False, count=5)
+
+    LogTracking(last_uploaded_line=2, id_map={report.id_: "real-report"}).save(log_file)
+
+    sent_sizes: list[int] = []
+    minted = iter(f"real-meas-{index}" for index in range(1, 6))
+
+    async def create_measurements(*_, request, **__):
+        sent_sizes.append(len(request.test_measurements))
+        return len(request.test_measurements), [next(minted) for _ in request.test_measurements]
+
+    client.create_test_measurements = create_measurements
+
+    monkeypatch.setattr(test_results_module, "_MEASUREMENT_CREATE_BATCH_SIZE", 2)
+    await client.import_log_file(log_file, incremental=True)
+
+    # Two full batches as the buffer hits the cap, then the fifth measurement is
+    # left over at the end of the walk.
+    assert sent_sizes == [2, 2, 1]
+    assert LogTracking.load(log_file).last_uploaded_line == 7
+
+
+@pytest.mark.asyncio
+async def test_resume_sends_only_the_rest_of_a_measurement_run(tmp_path):
+    """A run whose first measurements already reached the server sends the rest."""
+    log_file = tmp_path / "partial_run.jsonl"
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+    report, _, measurement_ids = await _build_measurement_log(
+        client, log_file, batched=False, count=4
+    )
+
+    LogTracking(
+        last_uploaded_line=2,
+        id_map={report.id_: "real-report", measurement_ids[0]: "real-meas-1"},
+    ).save(log_file)
+    client.create_test_measurements = AsyncMock(
+        return_value=(3, ["real-meas-2", "real-meas-3", "real-meas-4"])
+    )
+
+    await client.import_log_file(log_file, incremental=True)
+
+    sent = client.create_test_measurements.await_args.kwargs["request"]
+    assert [m.name for m in sent.test_measurements] == ["m2", "m3", "m4"]
+    # The one that already existed keeps the ID the interrupted run recorded.
+    assert LogTracking.load(log_file).id_map[measurement_ids[0]] == "real-meas-1"
+
+
+@pytest.mark.asyncio
+async def test_failed_measurement_run_leaves_the_cursor_alone(tmp_path):
+    """A run that fails is retried whole, so the cursor must not move past it."""
+    log_file = tmp_path / "failed_run.jsonl"
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+    report, _, _ = await _build_measurement_log(client, log_file, batched=False)
+
+    LogTracking(last_uploaded_line=2, id_map={report.id_: "real-report"}).save(log_file)
+    client.create_test_measurements = AsyncMock(side_effect=_PermissionDeniedError())
+
+    with pytest.raises(RpcError):
+        await client.import_log_file(log_file, incremental=True)
+
+    tracking = LogTracking.load(log_file)
+    assert tracking.last_uploaded_line == 2
+    assert tracking.id_map == {report.id_: "real-report"}
+
+
+@pytest.mark.asyncio
+async def test_short_batch_response_is_rejected(tmp_path):
+    """Fewer IDs than measurements sent must raise, not mis-pair the IDs.
+
+    IDs are matched to measurements by position. Accepting a short response would
+    record real IDs against the wrong measurements, so a later update would
+    target the wrong row.
+    """
+    log_file = tmp_path / "short_response.jsonl"
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+    report, _, _ = await _build_measurement_log(client, log_file, batched=False)
+
+    LogTracking(last_uploaded_line=2, id_map={report.id_: "real-report"}).save(log_file)
+    client.create_test_measurements = AsyncMock(return_value=(2, ["real-meas-1", "real-meas-2"]))
+
+    with pytest.raises(RuntimeError, match="returned 2 IDs for 3 measurements"):
+        await client.import_log_file(log_file, incremental=True)
+
+    assert LogTracking.load(log_file).last_uploaded_line == 2
 
 
 @pytest.mark.asyncio

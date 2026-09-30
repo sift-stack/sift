@@ -7,6 +7,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 - Fix a test-results log that could never finish uploading. An update whose fields were all `None`, or whose keys were not fields of the update model, produced an empty field mask. The client logged it without complaint, then the API rejected it at import. The replay cursor only advances past a line that succeeded, so every retry stopped at the same line and stranded the rest of the log. Such an update is now a no-op that is neither logged nor sent, and a logged one is skipped at import. Re-run `import-test-result-log` to finish a log written by an earlier version.
 - A key that is not a field of a create or update model now warns, instead of being dropped in silence. The warning suggests a near match when the key resembles a real field. Both this and an update that names no fields raise the new `SiftIgnoredInputWarning`. Add `error::sift_client.errors.SiftIgnoredInputWarning` to `filterwarnings` to make either one fail the call.
+- Uploading a test-results log is faster. A run of consecutive measurement lines now reaches the server through `CreateTestMeasurements` as one call, rather than one call per measurement. On a 13,631-line log this cut the calls from 13,628 to 4,021 and the upload from about 12 minutes to about 3.5. Step creates and updates still take one call each.
 
 ## [v0.22.1] - September 29, 2026
 
