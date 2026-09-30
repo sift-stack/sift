@@ -214,11 +214,10 @@ def write_report_summary(
     if offline:
         if log_file is not None:
             terminalreporter.write_sep("-", "to upload to Sift")
-            # The command stays the line prefix so a copied line still runs.
-            terminalreporter.write(f"  >> import-test-result-log {log_file}", cyan=True)
+            # (archived) is its own line so copying the command still runs.
+            terminalreporter.write_line(f"  >> import-test-result-log {log_file}", cyan=True)
             if archived:
-                terminalreporter.write(archived)
-            terminalreporter.write_line("")
+                terminalreporter.write_line(archived)
     else:
         if not report_id:
             # Incremental upload never mapped the report (the worker died before

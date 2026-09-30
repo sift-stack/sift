@@ -267,7 +267,8 @@ production can set `SIFT_REPORT_ARCHIVE_ON_CREATE=false` while the shared TOML
 stays `true`.
 
 The terminal summary prints `(archived)` next to the report link. Offline, the
-same note follows the `import-test-result-log` command. Replay of that log
+same note is the line after the `import-test-result-log` command, so the
+command line itself still runs when copied. Replay of that log
 archives the uploaded report.
 
 ### `name` vs `test_case`

@@ -135,8 +135,9 @@ class Option:
 
         The walk order is :attr:`surfaces`, which puts env before cli by default.
         ``getini`` returns the typed default for unset bool/list keys, so this
-        only returns ini values for booleans (always meaningful), non-empty
-        strings, and non-empty lists.
+        returns ini values for booleans, non-empty strings, and non-empty lists.
+        ``explicit_bool`` is the exception: an ini bool counts only when the key
+        is set, so the registered default does not hide a lower value.
         """
         return self.resolve_with_source(config)[0]
 
