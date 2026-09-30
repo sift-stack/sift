@@ -52,15 +52,21 @@ pub async fn run(ctx: Context, args: McpArgs, app_uri: String) -> Result<ExitCod
     if client_event_config.is_none() {
         tracing::info!("non-essential traffic is disabled");
     }
-    let feature_flags = sift_mcp::FeatureFlags::fetch(&ctx.rest_uri, &ctx.api_key)
-        .await
-        .unwrap_or_else(|error| {
-            tracing::warn!(
-                error = format!("{error:#}"),
-                "failed to fetch feature flags; flag-gated tools are disabled"
-            );
-            sift_mcp::FeatureFlags::default()
-        });
+    let client_name = if args.chat {
+        sift_mcp::ClientName::Chat
+    } else {
+        sift_mcp::ClientName::SiftMcp
+    };
+    let feature_flags =
+        sift_mcp::FeatureFlags::fetch(&ctx.rest_uri, &ctx.api_key, client_name, &cli_version)
+            .await
+            .unwrap_or_else(|error| {
+                tracing::warn!(
+                    error = format!("{error:#}"),
+                    "failed to fetch feature flags; flag-gated tools are disabled"
+                );
+                sift_mcp::FeatureFlags::default()
+            });
 
     let rest_config = sift_mcp::RestConfig::new(ctx.rest_uri.clone(), ctx.api_key.clone());
     let credentials = Credentials::Config {
@@ -79,11 +85,7 @@ pub async fn run(ctx: Context, args: McpArgs, app_uri: String) -> Result<ExitCod
         feature_flags,
         Some(rest_config),
         args.ignore_tool,
-        if args.chat {
-            sift_mcp::ClientName::Chat
-        } else {
-            sift_mcp::ClientName::SiftMcp
-        },
+        client_name,
     )
     .await
     {

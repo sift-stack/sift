@@ -7,6 +7,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- `sift-cli mcp` now sends a `User-Agent` when it fetches account feature flags.
+  Hosts that reject requests without one no longer disable flag-gated tools.
+
 ## [v0.7.1] - September 22, 2026
 
 ### What's New

@@ -1,7 +1,10 @@
 use std::{collections::HashMap, time::Duration};
 
 use anyhow::{Context, Result};
+use reqwest::header::USER_AGENT;
 use serde::Deserialize;
+
+use crate::ClientName;
 
 const FEATURE_FLAGS_PATH: &str = "/api/v1/feature-flags/variants";
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
@@ -41,12 +44,21 @@ impl FeatureFlags {
             .is_some_and(|variant| !variant.value.is_empty() && variant.value != "off")
     }
 
-    pub async fn fetch(rest_uri: &str, api_key: &str) -> Result<Self> {
+    pub async fn fetch(
+        rest_uri: &str,
+        api_key: &str,
+        client_name: ClientName,
+        cli_version: &str,
+    ) -> Result<Self> {
         let endpoint = format!("{}{FEATURE_FLAGS_PATH}", rest_uri.trim_end_matches('/'));
         reqwest::Client::new()
             .get(endpoint)
             .timeout(REQUEST_TIMEOUT)
             .bearer_auth(api_key)
+            .header(
+                USER_AGENT,
+                format!("{}/{cli_version}", client_name.as_str()),
+            )
             .send()
             .await
             .context("feature flag request failed")?
@@ -63,7 +75,7 @@ mod tests {
     use std::collections::HashMap;
 
     use super::{FeatureFlagVariant, FeatureFlags};
-    use crate::client_event::start_http_server;
+    use crate::{ClientName, client_event::start_http_server};
 
     fn response(status: &str, body: &str) -> Vec<u8> {
         format!(
@@ -121,9 +133,14 @@ mod tests {
         ))
         .await;
 
-        let flags = FeatureFlags::fetch(&format!("{rest_uri}/"), "test-key")
-            .await
-            .unwrap();
+        let flags = FeatureFlags::fetch(
+            &format!("{rest_uri}/"),
+            "test-key",
+            ClientName::SiftMcp,
+            "1.2.3",
+        )
+        .await
+        .unwrap();
         assert!(flags.enabled("test-reports"));
 
         let request = String::from_utf8(server.await.unwrap()).unwrap();
@@ -134,10 +151,19 @@ mod tests {
                 .lines()
                 .any(|line| line.eq_ignore_ascii_case("authorization: Bearer test-key"))
         );
+        assert!(
+            headers
+                .lines()
+                .any(|line| line.eq_ignore_ascii_case("user-agent: sift_mcp/1.2.3"))
+        );
 
         let (rest_uri, server) =
             start_http_server(response("500 Internal Server Error", "{}")).await;
-        assert!(FeatureFlags::fetch(&rest_uri, "test-key").await.is_err());
+        assert!(
+            FeatureFlags::fetch(&rest_uri, "test-key", ClientName::SiftMcp, "1.2.3")
+                .await
+                .is_err()
+        );
         server.await.unwrap();
     }
 }
