@@ -24,7 +24,7 @@ from sift_client._internal.low_level_wrappers.test_results import (
     # Aliased so pytest doesn't try to collect the `Test`-prefixed client as a suite.
     TestResultsLowLevelClient as ResultsLowLevelClient,
 )
-from sift_client.errors import SiftWarning
+from sift_client.errors import SiftIgnoredInputWarning
 from sift_client.sift_types.test_report import (
     TestMeasurement,
     TestMeasurementCreate,
@@ -776,7 +776,7 @@ async def test_update_with_no_fields_is_not_logged(tmp_path):
 
     update = TestReportUpdate(run_id=None)
     update.resource_id = report.id_
-    with pytest.warns(SiftWarning, match="requested no field changes"):
+    with pytest.warns(SiftIgnoredInputWarning, match="requested no field changes"):
         returned = await client.update_test_report(
             update=update, log_file=log_file, existing=report
         )

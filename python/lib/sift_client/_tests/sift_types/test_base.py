@@ -16,13 +16,14 @@ from sift.calculated_channels.v2.calculated_channels_pb2 import (
     CreateCalculatedChannelRequest,
 )
 
-from sift_client.errors import SiftWarning
+from sift_client.errors import SiftIgnoredInputWarning
 from sift_client.sift_types._base import (
     BaseType,
     MappingHelper,
     ModelCreate,
     ModelUpdate,
 )
+from sift_client.sift_types.annotation import PhaseCreate
 
 
 class SimpleCreateModel(ModelCreate[CreateCalculatedChannelRequest]):
@@ -234,7 +235,9 @@ class TestUnknownKeys:
 
     def test_unknown_key_warns_and_is_ignored(self):
         """An unrecognized key contributes nothing to the field mask."""
-        with pytest.warns(SiftWarning, match="Unknown field `tags` for SimpleUpdateModel"):
+        with pytest.warns(
+            SiftIgnoredInputWarning, match="Unknown field `tags` for SimpleUpdateModel"
+        ):
             model = SimpleUpdateModel.model_validate({"tags": ["a"], "name": "new_name"})
 
         model.resource_id = "test_id"
@@ -243,18 +246,20 @@ class TestUnknownKeys:
 
     def test_unknown_key_suggests_a_near_match(self):
         """A misspelled or camelCase key is usually a typo for a real field."""
-        with pytest.warns(SiftWarning, match=r"did you mean `description`\?"):
+        with pytest.warns(SiftIgnoredInputWarning, match=r"did you mean `description`\?"):
             SimpleUpdateModel.model_validate({"descriptionn": "x"})
 
     def test_unknown_key_on_a_create_model_warns(self):
         """A create drops the key too, which loses the value instead of no-opping."""
-        with pytest.warns(SiftWarning, match="Unknown field `unit` for SimpleCreateModel"):
+        with pytest.warns(
+            SiftIgnoredInputWarning, match="Unknown field `unit` for SimpleCreateModel"
+        ):
             SimpleCreateModel.model_validate({"name": "n", "unit": "volts"})
 
     def test_known_keys_do_not_warn(self):
         """The common case stays quiet, including a field explicitly set to None."""
         with warnings.catch_warnings():
-            warnings.simplefilter("error", SiftWarning)
+            warnings.simplefilter("error", SiftIgnoredInputWarning)
             SimpleUpdateModel.model_validate({"name": "new_name", "description": None})
 
     def test_extra_forbid_model_is_left_to_raise(self):
@@ -264,9 +269,21 @@ class TestUnknownKeys:
             model_config = ConfigDict(extra="forbid")
 
         with warnings.catch_warnings():
-            warnings.simplefilter("error", SiftWarning)
+            warnings.simplefilter("error", SiftIgnoredInputWarning)
             with pytest.raises(ValidationError):
                 StrictUpdateModel.model_validate({"tags": ["a"]})
+
+    def test_extra_forbid_is_detected_through_inheritance(self):
+        """The real forbid model sets the config on a parent, not on itself.
+
+        ``PhaseCreate`` inherits from ``AnnotationCreateBase``, so the skip relies
+        on pydantic merging parent config into the subclass. Asserting it against
+        a locally defined model would not exercise that merge.
+        """
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", SiftIgnoredInputWarning)
+            with pytest.raises(ValidationError):
+                PhaseCreate.model_validate({"name": "p", "state": "open"})
 
 
 class TestMappingHelper:

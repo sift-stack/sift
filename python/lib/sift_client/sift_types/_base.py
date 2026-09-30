@@ -18,7 +18,8 @@ from typing import (
 from google.protobuf import field_mask_pb2, message
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 
-from sift_client.errors import SiftWarning, caller_stacklevel
+from sift_client._internal.util.util import caller_stacklevel
+from sift_client.errors import SiftIgnoredInputWarning
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -127,18 +128,23 @@ class ModelCreateUpdateBase(BaseModel, ABC):
         field mask, which the API rejects.
 
         Warn rather than raise, since a reporting mistake must not fail a test
-        run in progress. ``filterwarnings`` promotes it to an error. Models that
-        set ``extra="forbid"`` raise on their own, so they are left alone.
+        run in progress. ``filterwarnings`` promotes it to an error. A model that
+        sets ``extra="forbid"`` raises on its own and is left alone; that is what
+        ``PhaseCreate`` does, and forbidding here instead would abort a live test
+        run over a dropped field.
         """
         if not isinstance(data, dict) or cls.model_config.get("extra") == "forbid":
             return data
+        unknown = [key for key in data if key not in cls.model_fields]
+        if not unknown:
+            return data
         known = sorted(cls.model_fields)
-        for key in [key for key in data if key not in cls.model_fields]:
+        for key in unknown:
             close = difflib.get_close_matches(str(key), known, n=1, cutoff=0.6)
             hint = f" (did you mean `{close[0]}`?)" if close else ""
             warnings.warn(
                 f"Unknown field `{key}` for {cls.__name__}{hint}; ignored.",
-                SiftWarning,
+                SiftIgnoredInputWarning,
                 stacklevel=caller_stacklevel(),
             )
         return data

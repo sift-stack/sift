@@ -3,10 +3,10 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## Unreleased
+## [Unreleased]
 
 - Fix a test-results log that could never finish uploading. An update whose fields were all `None`, or whose keys were not fields of the update model, produced an empty field mask. The client logged it without complaint, then the API rejected it at import. The replay cursor only advances past a line that succeeded, so every retry stopped at the same line and stranded the rest of the log. Such an update is now a no-op that is neither logged nor sent, and a logged one is skipped at import. Re-run `import-test-result-log` to finish a log written by an earlier version.
-- A key that is not a field of a create or update model now warns, instead of being dropped in silence. The warning suggests a near match when the key resembles a real field. Add `error::sift_client.errors.SiftWarning` to `filterwarnings` to make it fail the call.
+- A key that is not a field of a create or update model now warns, instead of being dropped in silence. The warning suggests a near match when the key resembles a real field. Both this and an update that names no fields raise the new `SiftIgnoredInputWarning`. Add `error::sift_client.errors.SiftIgnoredInputWarning` to `filterwarnings` to make either one fail the call.
 
 ## [v0.22.1] - September 29, 2026
 

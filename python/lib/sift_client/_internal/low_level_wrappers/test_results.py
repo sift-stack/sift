@@ -4,7 +4,7 @@ import logging
 import uuid
 import warnings
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, NamedTuple, TypeVar, cast
+from typing import TYPE_CHECKING, Any, NamedTuple, TypeVar, cast
 
 from google.protobuf import json_format
 from grpc import RpcError, StatusCode
@@ -52,7 +52,8 @@ from sift_client._internal.low_level_wrappers._test_results_log import (
 )
 from sift_client._internal.low_level_wrappers.base import DEFAULT_PAGE_SIZE, LowLevelClientBase
 from sift_client._internal.pytest_plugin.audit_log import log_event
-from sift_client.errors import SiftWarning, caller_stacklevel
+from sift_client._internal.util.util import caller_stacklevel
+from sift_client.errors import SiftIgnoredInputWarning
 from sift_client.sift_types.test_report import (
     TestMeasurement,
     TestMeasurementCreate,
@@ -125,11 +126,11 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         return instance
 
     @classmethod
-    def _no_op_update(
+    def _skip_empty_update(
         cls,
         entity_name: str,
         existing: _EntityT | None,
-        simulated: Callable[[], _EntityT],
+        simulated: _EntityT | None,
     ) -> _EntityT:
         """Short-circuit an update whose field mask is empty.
 
@@ -138,18 +139,31 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         replay at its line, and no retry gets past it.
 
         Warn, since either every field was ``None`` or the keys were dropped as
-        unknown (see ``ModelCreateUpdateBase._warn_on_unknown_keys``). Return
-        ``existing`` when the caller has it, otherwise a response built from the
-        request and stamped simulated, since it never reached Sift.
+        unknown (see ``ModelCreateUpdateBase._warn_on_unknown_keys``), then return
+        the entity unchanged. ``simulated`` is the response to hand back on the
+        log and simulate paths, where a synthesized entity is the correct answer,
+        and None on a live call, where it would not be.
+
+        Raises:
+            ValueError: On a live call with no ``existing`` entity. Nothing
+                changed server-side and there is no entity to return, so the
+                alternative is a fabricated one, which callers cannot tell from a
+                real read.
         """
         warnings.warn(
             f"Update to {entity_name} requested no field changes; ignored.",
-            SiftWarning,
+            SiftIgnoredInputWarning,
             stacklevel=caller_stacklevel(),
         )
         if existing is not None:
             return existing
-        return cls._mark_simulated(simulated())
+        if simulated is not None:
+            return cls._mark_simulated(simulated)
+        raise ValueError(
+            f"Update to {entity_name} named no fields to change. Pass the "
+            f"{entity_name} rather than its ID to get it back unchanged, or name "
+            "at least one field to update."
+        )
 
     @staticmethod
     def simulate_create_test_report_response(
@@ -564,7 +578,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         Returns:
             The updated TestReport, or the report unchanged when the update names
-            no fields (see ``_no_op_update``).
+            no fields (see ``_skip_empty_update``).
         """
         if request is None:
             if update is None:
@@ -572,11 +586,12 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             test_report_proto, field_mask = update.to_proto_with_mask()
             request = UpdateTestReportRequest(test_report=test_report_proto, update_mask=field_mask)
 
+        simulating = log_file is not None or simulate
         if not request.update_mask.paths:
-            return self._no_op_update(
+            return self._skip_empty_update(
                 "TestReport",
                 existing,
-                lambda: self.simulate_update_test_report_response(request),
+                self.simulate_update_test_report_response(request) if simulating else None,
             )
 
         if log_file is not None or simulate:
@@ -727,7 +742,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         Returns:
             The updated TestStep, or the step unchanged when the update names no
-            fields (see ``_no_op_update``).
+            fields (see ``_skip_empty_update``).
         """
         if request is None:
             if update is None:
@@ -738,11 +753,12 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 field_mask.paths.append("error_info")
             request = UpdateTestStepRequest(test_step=test_step_proto, update_mask=field_mask)
 
+        simulating = log_file is not None or simulate
         if not request.update_mask.paths:
-            return self._no_op_update(
+            return self._skip_empty_update(
                 "TestStep",
                 existing,
-                lambda: self.simulate_update_test_step_response(request),
+                self.simulate_update_test_step_response(request) if simulating else None,
             )
 
         if log_file is not None or simulate:
@@ -938,7 +954,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         Returns:
             The updated TestMeasurement, or the measurement unchanged when the
-            update names no fields (see ``_no_op_update``).
+            update names no fields (see ``_skip_empty_update``).
         """
         if request is None:
             if update is None:
@@ -948,11 +964,12 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 test_measurement=test_measurement_proto, update_mask=field_mask
             )
 
+        simulating = log_file is not None or simulate
         if not request.update_mask.paths:
-            return self._no_op_update(
+            return self._skip_empty_update(
                 "TestMeasurement",
                 existing,
-                lambda: self.simulate_update_test_measurement_response(request),
+                self.simulate_update_test_measurement_response(request) if simulating else None,
             )
 
         if log_file is not None or simulate:
