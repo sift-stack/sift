@@ -240,6 +240,7 @@ class ReportContext(AbstractContextManager):
         metadata: dict[str, str | float | bool] | None = None,
         audit_log: str | Path | None = None,
         defer_finalize: bool = False,
+        archive_on_create: bool = False,
     ):
         """Initialize a new report context.
 
@@ -270,6 +271,9 @@ class ReportContext(AbstractContextManager):
             defer_finalize: When True, ``__exit__`` finalizes nothing and the
                 caller must call ``finalize`` once no further status changes can
                 arrive. See the attribute of the same name.
+            archive_on_create: If true, archive the report immediately after
+                creating it. If the archive call fails, log a warning and leave
+                the report unarchived. If false, leave the report unarchived.
         """
         self.client = client
         self.replay_log_file = replay_log_file
@@ -318,6 +322,24 @@ class ReportContext(AbstractContextManager):
             metadata=combined_metadata or None,  # type: ignore
         )
         self.report = client.test_results.create(create, log_file=self.log_file)
+        if archive_on_create:
+            self._archive_report()
+
+    def _archive_report(self) -> None:
+        """Archive the report. Create has no archive field, so this is a second call.
+
+        A failure warns and leaves the report unarchived.
+        """
+        try:
+            self.report.archive()
+        except Exception as exc:
+            log_event(logger, logging.WARNING, "report.archive_failed", error=repr(exc))
+            warnings.warn(
+                f"Could not archive the Sift test report: {exc}. "
+                "The session continues, and the report stays unarchived.",
+                SiftWarning,
+                stacklevel=2,
+            )
 
     def _build_replay_command(self) -> list[str]:
         """Build the argv for the background replay worker subprocess.

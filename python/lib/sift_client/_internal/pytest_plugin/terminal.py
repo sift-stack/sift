@@ -136,6 +136,13 @@ def write_disabled_summary(terminalreporter: Any) -> None:
     terminalreporter.write_line("Sift disabled — no test report created.")
 
 
+def archived_suffix(report: Any) -> str:
+    """``  (archived)`` when the report is archived, else empty."""
+    if getattr(report, "is_archived", False):
+        return "  (archived)"
+    return ""
+
+
 def write_report_summary(
     terminalreporter: Any,
     context: Any,
@@ -203,10 +210,15 @@ def write_report_summary(
     if log_file is not None:
         sift_kv(terminalreporter, "Log file", str(log_file))
 
+    archived = archived_suffix(report)
     if offline:
         if log_file is not None:
             terminalreporter.write_sep("-", "to upload to Sift")
-            terminalreporter.write_line(f"  >> import-test-result-log {log_file}", cyan=True)
+            # The command stays the line prefix so a copied line still runs.
+            terminalreporter.write(f"  >> import-test-result-log {log_file}", cyan=True)
+            if archived:
+                terminalreporter.write(archived)
+            terminalreporter.write_line("")
     else:
         if not report_id:
             # Incremental upload never mapped the report (the worker died before
@@ -214,16 +226,16 @@ def write_report_summary(
             sift_kv(
                 terminalreporter,
                 "Report",
-                f"not uploaded — replay with: import-test-result-log {log_file}",
+                f"not uploaded — replay with: import-test-result-log {log_file}{archived}",
                 yellow=True,
             )
         elif report_url is not None:
-            sift_kv(terminalreporter, "Report", report_url, cyan=True)
+            sift_kv(terminalreporter, "Report", f"{report_url}{archived}", cyan=True)
         else:
             sift_kv(
                 terminalreporter,
                 "Report",
-                f"id {report_id}  (set sift_app_url for a clickable link)",
+                f"id {report_id}  (set sift_app_url for a clickable link){archived}",
             )
 
         if report_id and getattr(context, "replay_incomplete", False) and log_file is not None:

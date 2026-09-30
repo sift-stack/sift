@@ -23,6 +23,7 @@ from sift_client import SiftClient, SiftConnectionConfig
 from sift_client._internal.pytest_plugin.audit_log import log_event
 from sift_client._internal.pytest_plugin.modes import is_offline
 from sift_client._internal.pytest_plugin.options import (
+    ARCHIVE_ON_CREATE_OPTION,
     GIT_METADATA_OPTION,
     LOG_FILE_OPTION,
     METADATA_OPTION,
@@ -474,6 +475,7 @@ def report_context_impl(
         replay_log_file=not (disabled or offline),
         metadata=report_metadata,
         audit_log=audit_log,
+        archive_on_create=bool(ARCHIVE_ON_CREATE_OPTION.resolve(pytestconfig)),
         # pytest tears this session-scoped fixture down during the LAST item's
         # teardown phase but reports that phase's outcome afterwards, so a
         # teardown failure on the final test is unknown here. The plugin's
@@ -494,6 +496,7 @@ def report_context_impl(
             serial=report.serial_number or "-",
             part=report.part_number or "-",
             metadata=meta_kv,
+            archived=report.is_archived,
         )
         # What actually happens with the JSONL log, not the raw setting: the
         # effective path (temp or pinned), or "disabled", plus whether the

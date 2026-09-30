@@ -93,6 +93,9 @@ class Option:
     toml: tuple[str, ...] | None = None
     env: str | None = None
     merge: bool = False
+    # False counts as set. An unset ini default does not, so a lower TOML true
+    # can still apply.
+    explicit_bool: bool = False
     surfaces: tuple[str, ...] = ("env", "cli", "ini", "toml")
 
     @property
@@ -157,13 +160,19 @@ class Option:
             if not self.env:
                 return None
             env_value = os.getenv(self.env)
-            return env_value if env_value else None
+            if not env_value:
+                return None
+            if self.explicit_bool:
+                return _coerce_explicit_bool(env_value, source=self.env)
+            return env_value
         if config is None:
             return None
         if surface == "cli":
             return config.getoption(self.cli_dest, default=None) if self.cli else None
         if surface == "ini":
             if not self.ini:
+                return None
+            if self.explicit_bool and not _ini_explicitly_set(config, self.ini):
                 return None
             try:
                 ini_value = config.getini(self.ini)
@@ -177,6 +186,9 @@ class Option:
         if not self.toml:
             return None
         toml_value = _walk_toml(tool_sift(config), self.toml)
+        if self.explicit_bool:
+            source = "tool.sift." + ".".join(self.toml)
+            return _coerce_explicit_bool(toml_value, source=source)
         return toml_value if toml_value not in (None, "") else None
 
     def resolve_merged(self, config: pytest.Config | None) -> dict[str, str | float | bool]:
@@ -206,6 +218,65 @@ class Option:
                         stacklevel=2,
                     )
         return result
+
+
+_BOOL_TRUE = frozenset({"1", "true", "t", "yes", "y", "on"})
+_BOOL_FALSE = frozenset({"0", "false", "f", "no", "n", "off"})
+
+
+def _parse_bool_token(raw: str) -> bool | None:
+    """Parse a boolean token. ``None`` when ``raw`` is not a boolean word."""
+    token = raw.strip().lower()
+    if token in _BOOL_TRUE:
+        return True
+    if token in _BOOL_FALSE:
+        return False
+    return None
+
+
+def _coerce_explicit_bool(value: Any, *, source: str) -> bool | None:
+    """Coerce one surface's value to bool. Unset stays ``None``.
+
+    A string ``false`` is ``False``, not a truthy string. Anything that is not
+    a bool or a boolean word warns and counts as unset.
+    """
+    if isinstance(value, bool):
+        return value
+    if value is None or value == "":
+        return None
+    if isinstance(value, str):
+        parsed = _parse_bool_token(value)
+        if parsed is not None:
+            return parsed
+    from sift_client.pytest_plugin import SiftPytestPluginWarning
+
+    log_event(
+        logger,
+        logging.WARNING,
+        "config.bool",
+        name=source,
+        value=repr(value),
+    )
+    warnings.warn(
+        f"Ignoring {source}={value!r}: expected true or false.",
+        SiftPytestPluginWarning,
+        stacklevel=2,
+    )
+    return None
+
+
+def _ini_explicitly_set(config: pytest.Config, name: str) -> bool:
+    """Whether ``name`` was set in the ini file or via ``-o``, not just defaulted."""
+    override = getattr(config, "_get_override_ini_value", None)
+    if override is not None and override(name) is not None:
+        return True
+    inicfg = getattr(config, "inicfg", None)
+    if inicfg is None:
+        return False
+    try:
+        return name in inicfg
+    except TypeError:
+        return False
 
 
 def _walk_toml(data: dict[str, Any], path: tuple[str, ...]) -> Any:
@@ -445,6 +516,22 @@ PART_NUMBER_OPTION = Option(
     env="SIFT_REPORT_PART_NUMBER",
     toml=("pytest", "report", "part_number"),
 )
+# The ini default is false. explicit_bool keeps that default from hiding TOML.
+ARCHIVE_ON_CREATE_OPTION = Option(
+    name="archive_on_create",
+    category=CAT_REPORT,
+    help="Archive the report right after creating it, so it drops out of the "
+    "default Test Results views. An explicit false overrides a true from a "
+    "lower-precedence source.",
+    cli="--sift-archive-on-create",
+    cli_action="store_true",
+    ini="sift_archive_on_create",
+    ini_type="bool",
+    ini_default=False,
+    env="SIFT_REPORT_ARCHIVE_ON_CREATE",
+    toml=("pytest", "report", "archive_on_create"),
+    explicit_bool=True,
+)
 METADATA_OPTION = Option(
     name="metadata",
     category=CAT_REPORT,
@@ -478,6 +565,7 @@ PLUGIN_OPTIONS: tuple[Option, ...] = (
     SYSTEM_OPERATOR_OPTION,
     SERIAL_NUMBER_OPTION,
     PART_NUMBER_OPTION,
+    ARCHIVE_ON_CREATE_OPTION,
     METADATA_OPTION,
 )
 
@@ -565,6 +653,8 @@ def render_settings_reference() -> str:
             ("Env var", _env_cell),
         ],
         CAT_REPORT: [
+            ("CLI flag", _cli_cell),
+            ("Ini (`[tool.pytest.ini_options]`)", _ini_cell),
             ("TOML (`[tool.sift...]`)", _toml_cell),
             ("Env var", _env_cell),
         ],
