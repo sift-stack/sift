@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## Unreleased
+
+- Fix a test-results log that could never finish uploading. An update whose fields were all `None`, or whose keys were not fields of the update model, produced an empty field mask. The client logged it without complaint, then the API rejected it at import. The replay cursor only advances past a line that succeeded, so every retry stopped at the same line and stranded the rest of the log. Such an update is now a no-op that is neither logged nor sent, and a logged one is skipped at import. Re-run `import-test-result-log` to finish a log written by an earlier version.
+- A key that is not a field of a create or update model now warns, instead of being dropped in silence. The warning suggests a near match when the key resembles a real field. Add `error::sift_client.errors.SiftWarning` to `filterwarnings` to make it fail the call.
+
 ## [v0.22.1] - September 29, 2026
 
 - Fix streaming ingestion processes crashing with SIGSEGV or SIGABRT at interpreter exit. The `sift-stream-bindings` tokio runtime was never shut down, so a runtime thread that finished work while Python was finalizing re-entered the interpreter and killed the process after the program had completed. The bindings now stop the runtime from an `atexit` hook and expose `shutdown(timeout=5.0)` for callers that exit with `os._exit()`. If runtime threads outlive the timeout, `shutdown()` issues a `RuntimeWarning`. Requires `sift-stream-bindings` 0.5.2. ([#804](https://github.com/sift-stack/sift/pull/804))

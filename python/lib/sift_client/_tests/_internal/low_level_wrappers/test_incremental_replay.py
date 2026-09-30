@@ -24,6 +24,7 @@ from sift_client._internal.low_level_wrappers.test_results import (
     # Aliased so pytest doesn't try to collect the `Test`-prefixed client as a suite.
     TestResultsLowLevelClient as ResultsLowLevelClient,
 )
+from sift_client.errors import SiftWarning
 from sift_client.sift_types.test_report import (
     TestMeasurement,
     TestMeasurementCreate,
@@ -721,6 +722,67 @@ async def test_resume_propagates_errors_other_than_a_missing_report(tmp_path):
 
     with pytest.raises(RpcError):
         await client.import_log_file(log_file)
+
+
+@pytest.mark.asyncio
+async def test_resume_skips_an_update_with_an_empty_mask(tmp_path):
+    """A logged update carrying no field paths is skipped, not sent.
+
+    Clients before the write-time guard logged one whenever every field of an
+    update was None, or its keys were dropped as unknown. The API rejects an
+    empty mask, and the cursor only advances past a line that succeeded, so such
+    a line stranded the rest of the log on every retry.
+    """
+    log_file = tmp_path / "empty_mask.jsonl"
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+
+    report = await client.create_test_report(test_report=_report_create(), log_file=log_file)
+    # Written by hand: the guard in update_test_report now refuses to log this.
+    with log_file.open("a") as handle:
+        handle.write(
+            f'[UpdateTestReport] {{"testReport":{{"testReportId":"{report.id_}"}},'
+            '"updateMask":""}\n'
+        )
+    update = TestReportUpdate(status=TestStatus.FAILED)
+    update.resource_id = report.id_
+    await client.update_test_report(update=update, log_file=log_file)
+
+    LogTracking(last_uploaded_line=1, id_map={report.id_: "real-report"}).save(log_file)
+
+    client.update_test_report = AsyncMock(return_value=_make_report("real-report"))
+
+    await client.import_log_file(log_file, incremental=True)
+
+    # Only the real update was sent; the empty-mask line never reached the API.
+    client.update_test_report.assert_awaited_once()
+    sent = client.update_test_report.await_args.kwargs["request"]
+    assert sent.test_report.status == TestStatus.FAILED.value
+    # Both remaining lines are behind the cursor, so a later tick re-sends neither.
+    assert LogTracking.load(log_file).last_uploaded_line == 3
+
+
+@pytest.mark.asyncio
+async def test_update_with_no_fields_is_not_logged(tmp_path):
+    """An update that changes nothing writes no log entry and returns the entity.
+
+    The API rejects a no-op update, so logging one plants an entry that can never
+    replay. The caller gets the entity back unchanged, plus a warning.
+    """
+    log_file = tmp_path / "no_fields.jsonl"
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+
+    report = await client.create_test_report(test_report=_report_create(), log_file=log_file)
+    lines_before = log_file.read_text().count("\n")
+
+    update = TestReportUpdate(run_id=None)
+    update.resource_id = report.id_
+    with pytest.warns(SiftWarning, match="requested no field changes"):
+        returned = await client.update_test_report(
+            update=update, log_file=log_file, existing=report
+        )
+
+    assert returned is report
+    assert log_file.read_text().count("\n") == lines_before
 
 
 @pytest.mark.asyncio
