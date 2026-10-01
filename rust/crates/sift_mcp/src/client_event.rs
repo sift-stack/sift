@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::LazyLock, time::Duration};
 use reqwest::header::USER_AGENT;
 use serde::Serialize;
 
-use crate::ClientName;
+use crate::{ClientName, scope_to_organization};
 
 const CLIENT_EVENT_PATH: &str = "/api/v1/analytics/client-events";
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(2);
@@ -16,11 +16,16 @@ static TOOL_EVENTS: LazyLock<HashMap<String, String>> = LazyLock::new(|| {
 pub struct ClientEventConfig {
     rest_uri: String,
     api_key: String,
+    pub(crate) organization_id: Option<String>,
 }
 
 impl ClientEventConfig {
     pub fn new(rest_uri: String, api_key: String) -> Self {
-        Self { rest_uri, api_key }
+        Self {
+            rest_uri,
+            api_key,
+            organization_id: None,
+        }
     }
 }
 
@@ -36,6 +41,7 @@ struct ClientEventTarget {
     client: reqwest::Client,
     endpoint: String,
     api_key: String,
+    organization_id: Option<String>,
     user_agent: String,
 }
 
@@ -69,6 +75,7 @@ impl ClientEventReporter {
                 client: reqwest::Client::new(),
                 endpoint,
                 api_key: config.api_key,
+                organization_id: config.organization_id,
                 user_agent: format!("{}/{cli_version}", client_name.as_str()),
             }),
         }
@@ -87,13 +94,14 @@ impl ClientEventReporter {
             return Ok(());
         };
 
-        target
+        let request = target
             .client
             .post(&target.endpoint)
             .timeout(REQUEST_TIMEOUT)
             .bearer_auth(&target.api_key)
             .header(USER_AGENT, &target.user_agent)
-            .json(&ClientEventRequest { event })
+            .json(&ClientEventRequest { event });
+        scope_to_organization(request, target.organization_id.as_deref())
             .send()
             .await?
             .error_for_status()?;
@@ -210,6 +218,10 @@ mod tests {
                 .lines()
                 .any(|line| line.eq_ignore_ascii_case("user-agent: sift_mcp/7.8.9"))
         );
+        assert!(!headers.lines().any(|line| {
+            line.to_ascii_lowercase()
+                .starts_with("current-organization-id:")
+        }));
         assert_eq!(
             serde_json::from_str::<serde_json::Value>(body).unwrap(),
             serde_json::json!({
@@ -235,6 +247,30 @@ mod tests {
             headers
                 .lines()
                 .any(|line| line.eq_ignore_ascii_case("user-agent: chat/7.8.9"))
+        );
+    }
+
+    #[tokio::test]
+    async fn sends_the_organization_header_when_scoped() {
+        let (rest_uri, server) = start_event_server().await;
+        let reporter = ClientEventReporter::new(
+            {
+                let mut config = ClientEventConfig::new(rest_uri, "test-key".to_string());
+                config.organization_id = Some("org-123".to_string());
+                config
+            },
+            ClientName::SiftMcp,
+            "7.8.9",
+        );
+
+        reporter.send("list_assets").await.unwrap();
+        let request = String::from_utf8(server.await.unwrap()).unwrap();
+        let (headers, _) = request.split_once("\r\n\r\n").unwrap();
+
+        assert!(
+            headers
+                .lines()
+                .any(|line| line.eq_ignore_ascii_case("current-organization-id: org-123"))
         );
     }
 

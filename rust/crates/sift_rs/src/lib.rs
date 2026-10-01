@@ -53,6 +53,6 @@ pub mod wrappers;
 pub mod retry;
 
 pub use retry::{DefaultGrpcRetry, RetryConfig, RetryDecider, RetryExt, Retrying};
-pub use sift_connect::{Credentials, SiftChannel, SiftChannelBuilder};
+pub use sift_connect::{Credentials, ORGANIZATION_ID_HEADER, SiftChannel, SiftChannelBuilder};
 pub use tonic::codec::CompressionEncoding;
 pub use tonic::{Code as GrpcCode, Status as GrpcStatus};

@@ -4,7 +4,7 @@ use std::time::Duration;
 use anyhow::{Context, Result, bail};
 use reqwest::header::USER_AGENT;
 
-use crate::ClientName;
+use crate::{ClientName, scope_to_organization};
 
 const UPLOAD_PATH: &str = "/api/v0/remote-files/upload";
 /// Client-side cap on one uploaded file. The server allows more, but an
@@ -29,6 +29,8 @@ pub struct RestConfig {
     pub rest_uri: String,
     pub api_key: String,
     pub client_name: ClientName,
+    /// The organization every request runs in, sent as `current-organization-id`.
+    pub organization_id: Option<String>,
 }
 
 impl RestConfig {
@@ -37,6 +39,7 @@ impl RestConfig {
             rest_uri,
             api_key,
             client_name: ClientName::default(),
+            organization_id: None,
         }
     }
 }
@@ -49,6 +52,7 @@ pub struct RemoteFileUploader {
     client: reqwest::Client,
     endpoint: String,
     api_key: String,
+    organization_id: Option<String>,
     user_agent: String,
 }
 
@@ -58,6 +62,7 @@ impl RemoteFileUploader {
             client: reqwest::Client::new(),
             endpoint: format!("{}{UPLOAD_PATH}", config.rest_uri.trim_end_matches('/')),
             api_key: config.api_key,
+            organization_id: config.organization_id,
             user_agent: format!("{}/{cli_version}", config.client_name.as_str()),
         }
     }
@@ -94,13 +99,14 @@ impl RemoteFileUploader {
             .text("entityType", "artifact_versions")
             .part("file", part);
 
-        let response = self
+        let request = self
             .client
             .post(&self.endpoint)
             .timeout(UPLOAD_TIMEOUT)
             .bearer_auth(&self.api_key)
             .header(USER_AGENT, &self.user_agent)
-            .multipart(form)
+            .multipart(form);
+        let response = scope_to_organization(request, self.organization_id.as_deref())
             .send()
             .await
             .context("failed to reach the remote-file upload endpoint")?;

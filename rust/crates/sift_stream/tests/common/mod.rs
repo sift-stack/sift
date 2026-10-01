@@ -383,6 +383,7 @@ pub async fn start_test_ingest_server<I: IngestService>(
         .layer(tonic::service::interceptor::InterceptorLayer::new(
             AuthInterceptor {
                 apikey: "apikey".to_string(),
+                organization_id: None,
             },
         ))
         .service(channel);

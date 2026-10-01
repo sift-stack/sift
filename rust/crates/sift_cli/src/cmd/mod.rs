@@ -23,6 +23,25 @@ pub struct Context {
     #[allow(dead_code)]
     pub rest_uri: String,
     pub app_uri: Option<String>,
+    /// The organization `mcp` scopes every request to. Unset sends no header.
+    pub organization_id: Option<String>,
+}
+
+/// The profile key that names the organization `mcp` scopes requests to.
+pub(super) const ORGANIZATION_ID_KEY: &str = "organization_id";
+
+/// Accepts an organization ID only if it can travel as a header value as is.
+/// A typo here would otherwise surface as a failed request on every call.
+pub fn parse_organization_id(value: &str) -> Result<String> {
+    if value.is_empty() {
+        return Err(anyhow!("the organization ID is empty"));
+    }
+    if !value.bytes().all(|byte| byte.is_ascii_graphic()) {
+        return Err(anyhow!(
+            "the organization ID may contain only visible ASCII characters"
+        ));
+    }
+    Ok(value.to_string())
 }
 
 /// The canonical TOML key for the API key. It matches the `api_key` spelling
@@ -116,6 +135,21 @@ impl Context {
             .and_then(normalize_app_uri)
             .map(str::to_string);
 
+        let organization_id = match target_profile.get(ORGANIZATION_ID_KEY) {
+            None => None,
+            Some(Value::String(value)) => {
+                Some(parse_organization_id(value).with_context(|| {
+                    format!("invalid '{}' in '{p}'", ORGANIZATION_ID_KEY.yellow())
+                })?)
+            }
+            Some(_) => {
+                return Err(anyhow!(
+                    "Expected value of '{}' to be a string",
+                    ORGANIZATION_ID_KEY.yellow()
+                ));
+            }
+        };
+
         let Some(Value::String(api_key)) = profile_api_key(target_profile) else {
             return Err(anyhow!(
                 "Expected value of '{}' to be a string",
@@ -135,6 +169,7 @@ impl Context {
             api_key,
             disable_tls,
             app_uri,
+            organization_id,
         })
     }
 
@@ -205,6 +240,35 @@ apikey = "mission-key"
         assert_eq!(mission.rest_uri, "https://api.example.net");
         assert_eq!(mission.app_uri.as_deref(), Some("https://sift.example.net"));
         assert_eq!(mission.api_key, "mission-key");
+    }
+
+    #[test]
+    fn loads_an_optional_organization_id() {
+        assert_eq!(
+            context(COMPLETE_CONFIG, None).unwrap().organization_id,
+            None
+        );
+
+        let scoped = format!("{COMPLETE_CONFIG}organization_id = \"org-123\"\n");
+        assert_eq!(
+            context(&scoped, Some("mission"))
+                .unwrap()
+                .organization_id
+                .as_deref(),
+            Some("org-123")
+        );
+    }
+
+    #[test]
+    fn rejects_an_unusable_organization_id() {
+        for value in ["\"\"", "\"org 123\"", "42"] {
+            let config = format!("{COMPLETE_CONFIG}organization_id = {value}\n");
+            let message = format!("{:#}", context(&config, Some("mission")).err().unwrap());
+            assert!(
+                message.contains("organization_id"),
+                "value: {value}, error: {message}"
+            );
+        }
     }
 
     #[test]

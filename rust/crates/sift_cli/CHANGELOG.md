@@ -7,6 +7,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- `sift-cli mcp` can scope every request to one organization. Set
+  `organization_id` in the profile or pass `--organization-id <ID>`, and the
+  server sends `current-organization-id` on every gRPC and REST call. The flag
+  overrides the profile. Platform admins should set it.
+
 ## [v0.7.2] - September 29, 2026
 
 ### What's New

@@ -62,7 +62,7 @@ async fn uploads_the_file_as_one_multipart_request() {
 }
 
 #[tokio::test]
-async fn a_chat_upload_identifies_as_chat() {
+async fn a_scoped_chat_upload_sends_its_user_agent_and_organization() {
     let (rest_uri, server) = start_http_server(
         b"HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: 2\r\nconnection: close\r\n\r\n{}"
             .to_vec(),
@@ -73,6 +73,7 @@ async fn a_chat_upload_identifies_as_chat() {
 
     let config = RestConfig {
         client_name: crate::ClientName::Chat,
+        organization_id: Some("org-1".into()),
         ..RestConfig::new(rest_uri, "test-key".into())
     };
     RemoteFileUploader::new(config, "1.2.3")
@@ -86,6 +87,11 @@ async fn a_chat_upload_identifies_as_chat() {
         headers
             .lines()
             .any(|line| line.eq_ignore_ascii_case("user-agent: chat/1.2.3"))
+    );
+    assert!(
+        headers
+            .lines()
+            .any(|line| line.eq_ignore_ascii_case("current-organization-id: org-1"))
     );
 }
 

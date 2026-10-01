@@ -112,6 +112,15 @@ pub struct McpArgs {
 
     #[arg(long, hide = true)]
     pub chat: bool,
+
+    /// Run every request in this organization by sending it as the
+    /// `current-organization-id` header. Overrides the profile's `organization_id`.
+    #[arg(long, value_parser = parse_organization_id)]
+    pub organization_id: Option<String>,
+}
+
+fn parse_organization_id(value: &str) -> Result<String, String> {
+    crate::cmd::parse_organization_id(value).map_err(|error| error.to_string())
 }
 
 /// Serve the bundled Sift CLI user documentation over HTTP.

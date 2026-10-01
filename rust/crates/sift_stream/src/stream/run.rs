@@ -461,6 +461,7 @@ mod tests {
             .layer(tonic::service::interceptor::InterceptorLayer::new(
                 AuthInterceptor {
                     apikey: "test_api_key".to_string(),
+                    organization_id: None,
                 },
             ))
             .service(channel);

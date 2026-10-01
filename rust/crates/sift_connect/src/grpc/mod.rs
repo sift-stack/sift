@@ -15,7 +15,7 @@ pub use config::Credentials;
 
 /// Interceptors for [SiftChannel].
 pub mod interceptor;
-pub use interceptor::AuthInterceptor;
+pub use interceptor::{AuthInterceptor, ORGANIZATION_ID_HEADER};
 
 /// A pre-configured gRPC channel to conveniently establish a connection to Sift's gRPC API.
 ///
@@ -96,6 +96,7 @@ pub struct SiftChannelBuilder {
     keep_alive_timeout: Duration,
     keep_alive_interval: Duration,
     user_agent: String,
+    organization_id: Option<String>,
 }
 
 impl SiftChannelBuilder {
@@ -136,6 +137,7 @@ impl SiftChannelBuilder {
             keep_alive_while_idle: true,
             keep_alive_timeout: Duration::from_secs(20),
             keep_alive_interval: Duration::from_secs(20),
+            organization_id: None,
         }
     }
 
@@ -155,6 +157,7 @@ impl SiftChannelBuilder {
     /// - The URI is invalid
     /// - Credentials cannot be loaded (for profile-based credentials)
     /// - TLS configuration fails
+    /// - The organization ID is not a valid header value
     ///
     /// # Example
     ///
@@ -173,6 +176,13 @@ impl SiftChannelBuilder {
     pub fn build(self) -> Result<SiftChannel> {
         let config::SiftChannelConfig { uri, apikey } =
             config::SiftChannelConfig::try_from(self.credentials)?;
+
+        if let Some(organization_id) = &self.organization_id {
+            tonic::metadata::AsciiMetadataValue::try_from(organization_id.as_str())
+                .map_err(|e| Error::new(ErrorKind::ConfigError, e))
+                .context("the organization ID is not a valid header value")
+                .help("double check the organization ID")?;
+        }
 
         let channel = Endpoint::from_shared(uri)
             .map(|conn| {
@@ -197,7 +207,10 @@ impl SiftChannelBuilder {
 
         let intercepted_channel = ServiceBuilder::new()
             .layer(tonic::service::interceptor::InterceptorLayer::new(
-                AuthInterceptor { apikey },
+                AuthInterceptor {
+                    apikey,
+                    organization_id: self.organization_id,
+                },
             ))
             .service(channel);
 
@@ -234,6 +247,29 @@ impl SiftChannelBuilder {
     /// ```
     pub fn user_agent<S: AsRef<str>>(mut self, user_agent: S) -> Self {
         self.user_agent = user_agent.as_ref().to_string();
+        self
+    }
+
+    /// Sends [`ORGANIZATION_ID_HEADER`] on every request so it runs in that organization.
+    ///
+    /// # Arguments
+    ///
+    /// * `organization_id` - The ID of the organization every request runs in
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use sift_connect::{Credentials, SiftChannelBuilder};
+    ///
+    /// # let credentials = Credentials::Config {
+    /// #     uri: "https://api.siftstack.com".to_string(),
+    /// #     apikey: "your-api-key".to_string(),
+    /// # };
+    /// let builder = SiftChannelBuilder::new(credentials)
+    ///     .organization_id("your-organization-id");
+    /// ```
+    pub fn organization_id<S: Into<String>>(mut self, organization_id: S) -> Self {
+        self.organization_id = Some(organization_id.into());
         self
     }
 

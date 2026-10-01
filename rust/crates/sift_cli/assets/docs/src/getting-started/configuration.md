@@ -25,6 +25,20 @@ reason. `sift-cli agent doctor` treats a missing or unusable value as an error.
 
 You can generate an API key from the Sift web app under your account settings.
 
+## Scoping MCP to one organization
+
+Set the optional `organization_id` field to run every `sift-cli mcp` request in
+one organization. The server sends it as the `current-organization-id` header on
+each gRPC and REST call. Platform admins should set it, since an admin key
+otherwise reaches every organization.
+
+```toml
+organization_id = "<your organization ID>"
+```
+
+`sift-cli mcp --organization-id <ID>` overrides the profile value for one
+server. The organization stays fixed for the life of the server.
+
 ## The config file
 
 Settings live in a TOML file named `sift.toml` inside your OS config directory:

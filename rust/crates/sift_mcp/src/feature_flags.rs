@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use reqwest::header::USER_AGENT;
 use serde::Deserialize;
 
-use crate::ClientName;
+use crate::{ClientName, scope_to_organization};
 
 const FEATURE_FLAGS_PATH: &str = "/api/v1/feature-flags/variants";
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
@@ -47,18 +47,20 @@ impl FeatureFlags {
     pub async fn fetch(
         rest_uri: &str,
         api_key: &str,
+        organization_id: Option<&str>,
         client_name: ClientName,
         cli_version: &str,
     ) -> Result<Self> {
         let endpoint = format!("{}{FEATURE_FLAGS_PATH}", rest_uri.trim_end_matches('/'));
-        reqwest::Client::new()
+        let request = reqwest::Client::new()
             .get(endpoint)
             .timeout(REQUEST_TIMEOUT)
             .bearer_auth(api_key)
             .header(
                 USER_AGENT,
                 format!("{}/{cli_version}", client_name.as_str()),
-            )
+            );
+        scope_to_organization(request, organization_id)
             .send()
             .await
             .context("feature flag request failed")?
@@ -136,6 +138,7 @@ mod tests {
         let flags = FeatureFlags::fetch(
             &format!("{rest_uri}/"),
             "test-key",
+            Some("org-123"),
             ClientName::SiftMcp,
             "1.2.3",
         )
@@ -156,11 +159,16 @@ mod tests {
                 .lines()
                 .any(|line| line.eq_ignore_ascii_case("user-agent: sift_mcp/1.2.3"))
         );
+        assert!(
+            headers
+                .lines()
+                .any(|line| line.eq_ignore_ascii_case("current-organization-id: org-123"))
+        );
 
         let (rest_uri, server) =
             start_http_server(response("500 Internal Server Error", "{}")).await;
         assert!(
-            FeatureFlags::fetch(&rest_uri, "test-key", ClientName::SiftMcp, "1.2.3")
+            FeatureFlags::fetch(&rest_uri, "test-key", None, ClientName::SiftMcp, "1.2.3")
                 .await
                 .is_err()
         );

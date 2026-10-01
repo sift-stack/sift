@@ -34,6 +34,7 @@ pub async fn memory_sift_channel(client: tokio::io::DuplexStream) -> sift_connec
     ServiceBuilder::new()
         .layer(InterceptorLayer::new(AuthInterceptor {
             apikey: "sift-api-key".into(),
+            organization_id: None,
         }))
         .service(channel)
 }

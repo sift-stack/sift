@@ -503,6 +503,7 @@ pub(crate) async fn create_mock_grpc_channel_with_ingestion_service(
         .layer(tonic::service::interceptor::InterceptorLayer::new(
             AuthInterceptor {
                 apikey: "test-api-key".to_string(),
+                organization_id: None,
             },
         ))
         .service(channel);
@@ -552,6 +553,7 @@ pub(crate) async fn create_mock_grpc_channel_with_service() -> (SiftChannel, Moc
         .layer(tonic::service::interceptor::InterceptorLayer::new(
             AuthInterceptor {
                 apikey: "test-api-key".to_string(),
+                organization_id: None,
             },
         ))
         .service(channel);

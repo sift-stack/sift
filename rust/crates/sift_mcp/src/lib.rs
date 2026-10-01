@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use clap::crate_version;
 use rmcp::{ServiceExt, transport::stdio};
 use serde::Serialize;
-use sift_rs::{Credentials, SiftChannelBuilder};
+use sift_rs::{Credentials, ORGANIZATION_ID_HEADER, SiftChannelBuilder};
 use tokio::sync::watch;
 
 mod client_event;
@@ -136,13 +136,16 @@ pub async fn run_with_update_check(
         None,
         Vec::new(),
         ClientName::default(),
+        None,
     )
     .await
 }
 
 /// Runs the server, reporting anonymous tool-call events only when a client
 /// event config is supplied. `None` leaves the server silent, which is what
-/// `sift-cli mcp --disable-nonessential-traffic` passes.
+/// `sift-cli mcp --disable-nonessential-traffic` passes. `organization_id`
+/// scopes every gRPC and REST request to one organization; `None` sends no
+/// organization header.
 #[allow(clippy::too_many_arguments)]
 pub async fn run_with_client_events(
     credentials: Credentials,
@@ -157,7 +160,12 @@ pub async fn run_with_client_events(
     rest_config: Option<RestConfig>,
     ignored_tools: Vec<String>,
     client_name: ClientName,
+    organization_id: Option<String>,
 ) -> Result<()> {
+    let client_event_config = client_event_config.map(|mut config| {
+        config.organization_id = organization_id.clone();
+        config
+    });
     let client_event_reporter = client_event::ClientEventReporter::from_config(
         client_event_config,
         client_name,
@@ -165,6 +173,7 @@ pub async fn run_with_client_events(
     );
     let rest_config = rest_config.map(|config| RestConfig {
         client_name,
+        organization_id: organization_id.clone(),
         ..config
     });
     run_server(
@@ -181,6 +190,7 @@ pub async fn run_with_client_events(
             rest_config,
             ignored_tools,
             client_name,
+            organization_id,
         },
     )
     .await
@@ -197,12 +207,17 @@ struct RunConfig {
     rest_config: Option<RestConfig>,
     ignored_tools: Vec<String>,
     client_name: ClientName,
+    organization_id: Option<String>,
 }
 
 async fn run_server(credentials: Credentials, use_tls: bool, config: RunConfig) -> Result<()> {
-    let channel = SiftChannelBuilder::new(credentials)
+    let mut channel = SiftChannelBuilder::new(credentials)
         .use_tls(use_tls)
-        .user_agent(grpc_user_agent(config.client_name))
+        .user_agent(grpc_user_agent(config.client_name));
+    if let Some(organization_id) = &config.organization_id {
+        channel = channel.organization_id(organization_id);
+    }
+    let channel = channel
         .build()
         .context("failed to build gRPC channel to connect to Sift")?;
 
@@ -228,6 +243,18 @@ async fn run_server(credentials: Credentials, use_tls: bool, config: RunConfig) 
         .context("MCP server terminated unexpectedly")?;
 
     Ok(())
+}
+
+/// Adds [`ORGANIZATION_ID_HEADER`] to a REST request when the server runs in
+/// one organization, matching what the gRPC channel sends.
+pub(crate) fn scope_to_organization(
+    request: reqwest::RequestBuilder,
+    organization_id: Option<&str>,
+) -> reqwest::RequestBuilder {
+    match organization_id {
+        Some(organization_id) => request.header(ORGANIZATION_ID_HEADER, organization_id),
+        None => request,
+    }
 }
 
 fn grpc_user_agent(client_name: ClientName) -> String {

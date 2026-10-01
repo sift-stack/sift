@@ -457,6 +457,7 @@ async fn start_full_server(
         .layer(tonic::service::interceptor::InterceptorLayer::new(
             AuthInterceptor {
                 apikey: "test".to_string(),
+                organization_id: None,
             },
         ))
         .service(channel);
@@ -989,6 +990,7 @@ async fn start_server_with_capturing(
         .layer(tonic::service::interceptor::InterceptorLayer::new(
             AuthInterceptor {
                 apikey: "test".to_string(),
+                organization_id: None,
             },
         ))
         .service(channel);

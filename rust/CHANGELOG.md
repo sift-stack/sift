@@ -6,6 +6,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### What's New
 
+#### `SiftChannelBuilder` can scope requests to one organization
+
+`SiftChannelBuilder::organization_id` sends the `current-organization-id` header on every
+request, exported as `ORGANIZATION_ID_HEADER`. `AuthInterceptor` gains a public
+`organization_id: Option<String>` field, so code that builds it with a struct literal must add
+`organization_id: None`.
+
 #### MCP tools present Sift entities as named Markdown links
 
 Tool results that carry a Sift web link now tell the model to present the entity as
