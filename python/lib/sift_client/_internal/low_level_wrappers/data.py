@@ -36,9 +36,7 @@ CHANNELS_DEFAULT_PAGE_SIZE = 100_000
 # paging seems to omit all but a single channel. We can increase this batch size once that issue
 # has been resolved. In the mean time each channel gets its own request.
 REQUEST_BATCH_SIZE = 1
-# Caps concurrent wire requests to avoid exhausting the backend rate limiter.
-# The limiter defaults to 200ms tokens per query; at 500 parallel requests that
-# is 100s, safely under the 120s burst limit with headroom for partial-gap fetches.
+# Caps concurrent wire requests to stay within backend rate limits.
 MAX_PARALLEL_DATA_REQUESTS = 500
 
 
