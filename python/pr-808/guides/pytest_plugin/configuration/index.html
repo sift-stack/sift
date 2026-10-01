@@ -1767,8 +1767,6 @@ suggestion, so typos like <code>SIFT_REPORT_SERIALNUM</code> surface immediately
 <thead>
 <tr>
 <th>Setting</th>
-<th>CLI flag</th>
-<th>Ini (<code>[tool.pytest.ini_options]</code>)</th>
 <th>TOML (<code>[tool.sift...]</code>)</th>
 <th>Env var</th>
 </tr>
@@ -1776,57 +1774,41 @@ suggestion, so typos like <code>SIFT_REPORT_SERIALNUM</code> surface immediately
 <tbody>
 <tr>
 <td>Template for the report display name. Placeholders: {target}, {command}, {args}, {rootdir}, {timestamp}, {count}, {git_repo}, {git_branch}, {git_commit}.</td>
-<td>—</td>
-<td>—</td>
 <td><code>[tool.sift.pytest.report] name</code></td>
 <td>—</td>
 </tr>
 <tr>
 <td>Template for the report's test_case field (same placeholders as report_name).</td>
-<td>—</td>
-<td>—</td>
 <td><code>[tool.sift.pytest.report] test_case</code></td>
 <td>—</td>
 </tr>
 <tr>
 <td>Name of the test system / rig. Defaults to the host's name.</td>
-<td>—</td>
-<td>—</td>
 <td><code>[tool.sift.pytest.report] test_system_name</code></td>
 <td><code>SIFT_REPORT_TEST_SYSTEM_NAME</code></td>
 </tr>
 <tr>
 <td>Operator running the test. Defaults to the OS user.</td>
-<td>—</td>
-<td>—</td>
 <td><code>[tool.sift.pytest.report] system_operator</code></td>
 <td><code>SIFT_REPORT_SYSTEM_OPERATOR</code></td>
 </tr>
 <tr>
 <td>Serial number of the unit under test.</td>
-<td>—</td>
-<td>—</td>
 <td><code>[tool.sift.pytest.report] serial_number</code></td>
 <td><code>SIFT_REPORT_SERIAL_NUMBER</code></td>
 </tr>
 <tr>
 <td>Part number of the unit under test.</td>
-<td>—</td>
-<td>—</td>
 <td><code>[tool.sift.pytest.report] part_number</code></td>
 <td><code>SIFT_REPORT_PART_NUMBER</code></td>
 </tr>
 <tr>
 <td>Archive the report right after creating it, so it drops out of the default Test Results views. An explicit false overrides a true from a lower-precedence source.</td>
-<td><code>--sift-archive-on-create</code></td>
-<td><code>sift_archive_on_create</code></td>
 <td><code>[tool.sift.pytest.report] archive_on_create</code></td>
 <td><code>SIFT_REPORT_ARCHIVE_ON_CREATE</code></td>
 </tr>
 <tr>
 <td>Free-form report metadata, as a TOML table of scalar values. For dynamic per-run keys, override the sift_report_metadata fixture in conftest.</td>
-<td>—</td>
-<td>—</td>
 <td><code>[tool.sift.pytest.report.metadata]</code> (table)</td>
 <td>—</td>
 </tr>
@@ -1834,6 +1816,9 @@ suggestion, so typos like <code>SIFT_REPORT_SERIALNUM</code> surface immediately
 </table>
 <!-- END settings-reference -->
 
+<p><code>archive_on_create</code> can also be set with <code>--sift-archive-on-create</code> or with
+<code>sift_archive_on_create</code> in <code>[tool.pytest.ini_options]</code>. The table omits those
+columns because the other report settings do not use them.</p>
 <h3 id="quick-start-examples">Quick-start examples<a class="headerlink" href="#quick-start-examples" title="Permanent link">&para;</a></h3>
 <div class="language-toml highlight"><span class="filename">pyproject.toml</span><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">[tool.pytest.ini_options]</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">sift_offline</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
@@ -1893,9 +1878,7 @@ Precedence is the environment variable, then the CLI flag, then the ini key,
 then TOML. An explicit <code>false</code> overrides a <code>true</code> from a lower source, so
 production can set <code>SIFT_REPORT_ARCHIVE_ON_CREATE=false</code> while the shared TOML
 stays <code>true</code>.</p>
-<p>The terminal summary prints <code>(archived)</code> next to the report link. Offline, the
-same note is the line after the <code>import-test-result-log</code> command, so the
-command line itself still runs when copied. Replay of that log
+<p>The terminal summary prints <code>· archived</code> on the status row. Replay of that log
 archives the uploaded report.</p>
 <h3 id="name-vs-test_case"><code>name</code> vs <code>test_case</code><a class="headerlink" href="#name-vs-test_case" title="Permanent link">&para;</a></h3>
 <p>The two fields look similar but serve opposite purposes:</p>
