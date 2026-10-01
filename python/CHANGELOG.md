@@ -3,10 +3,12 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased]
+## [v0.23.0] - October 1, 2026
 
-- Fix issue where a test-results log containing an update that named no fields could never finish importing. Re-run `import-test-result-log` to finish a log written by an earlier version.
-- A key that is not a field of a create or update model now warns with `SiftIgnoredInputWarning`, and suggests a near match.
+- Fix issue where a test-results log containing an update that named no fields could never finish importing. Re-run `import-test-result-log` to finish a log written by an earlier version. ([#809](https://github.com/sift-stack/sift/pull/809))
+- A key that is not a field of a create or update model now warns with `SiftIgnoredInputWarning`, and suggests a near match. ([#809](https://github.com/sift-stack/sift/pull/809))
+- The pytest plugin can archive a report as soon as it creates it, so the run stays out of the default Test Results views. Set `archive_on_create` under `[tool.sift.pytest.report]`, or the matching CLI flag, ini key, or environment variable. Off by default. See [Archiving a run at creation](https://sift-stack.github.io/sift/python/latest/guides/pytest_plugin/configuration/#archiving-a-run-at-creation). ([#808](https://github.com/sift-stack/sift/pull/808))
+- Data reads cap concurrent channel requests at 500, so a query that spans many channels no longer trips backend rate limits. ([#788](https://github.com/sift-stack/sift/pull/788))
 
 ## [v0.22.1] - September 29, 2026
 
