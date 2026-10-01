@@ -1410,7 +1410,7 @@ You're not viewing the latest version.
             <td><code><a class="autorefs autorefs-internal" title="            SiftIgnoredInputWarning (sift_client.errors.SiftIgnoredInputWarning)" href="#sift_client.errors.SiftIgnoredInputWarning">SiftIgnoredInputWarning</a></code></td>
             <td class="doc-class-details">
               <div class="doc-md-description">
-                <p>Input the SDK accepted but could not act on.</p>
+                <p>Warning for input the SDK ignored.</p>
               </div>
             </td>
           </tr>
@@ -1530,13 +1530,9 @@ You're not viewing the latest version.
 
 
 
-        <p>Input the SDK accepted but could not act on.</p>
-<p>Raised for a key that is not a field of a create or update model, and for an
-update that names no fields to change. Both are caller mistakes that the SDK
-tolerates rather than fails, so this class exists to let a caller promote
-exactly these to errors without also promoting unrelated Sift warnings::</p>
-<div class="language-text highlight"><pre><span></span><code>filterwarnings = error::sift_client.errors.SiftIgnoredInputWarning
-</code></pre></div>
+        <p>Warning for input the SDK ignored.</p>
+<p>Covers an unrecognized field on a Create/Update pydantic model, and an update
+that names no fields to change.</p>
 
 
 
