@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
+import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, NamedTuple, TypeVar, cast
 
@@ -51,6 +52,8 @@ from sift_client._internal.low_level_wrappers._test_results_log import (
 )
 from sift_client._internal.low_level_wrappers.base import DEFAULT_PAGE_SIZE, LowLevelClientBase
 from sift_client._internal.pytest_plugin.audit_log import log_event
+from sift_client._internal.util.util import caller_stacklevel
+from sift_client.errors import SiftIgnoredInputWarning
 from sift_client.sift_types.test_report import (
     TestMeasurement,
     TestMeasurementCreate,
@@ -121,6 +124,36 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         """
         instance.__dict__["_simulated"] = True
         return instance
+
+    @classmethod
+    def _skip_empty_update(
+        cls,
+        entity_name: str,
+        existing: _EntityT | None,
+        simulated: _EntityT | None,
+    ) -> _EntityT:
+        """Short-circuit an update whose field mask is empty.
+
+        Raises:
+            ValueError: On a live call with no ``existing`` entity. Nothing
+                changed server-side and there is no entity to return, so the
+                alternative is a fabricated one, which callers cannot tell from a
+                real read.
+        """
+        warnings.warn(
+            f"Update to {entity_name} requested no field changes and was ignored.",
+            SiftIgnoredInputWarning,
+            stacklevel=caller_stacklevel(),
+        )
+        if existing is not None:
+            return existing
+        if simulated is not None:
+            return cls._mark_simulated(simulated)
+        raise ValueError(
+            f"Update to {entity_name} named no fields to change. Pass the "
+            f"{entity_name} rather than its ID to get it back unchanged, or name "
+            "at least one field to update."
+        )
 
     @staticmethod
     def simulate_create_test_report_response(
@@ -534,7 +567,8 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             simulate: If True, return a simulated response without making an API call.
 
         Returns:
-            The updated TestReport.
+            The updated TestReport, or the report unchanged when the update names
+            no fields (see ``_skip_empty_update``).
         """
         if request is None:
             if update is None:
@@ -542,7 +576,15 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             test_report_proto, field_mask = update.to_proto_with_mask()
             request = UpdateTestReportRequest(test_report=test_report_proto, update_mask=field_mask)
 
-        if log_file is not None or simulate:
+        simulating = log_file is not None or simulate
+        if not request.update_mask.paths:
+            return self._skip_empty_update(
+                "TestReport",
+                existing,
+                self.simulate_update_test_report_response(request) if simulating else None,
+            )
+
+        if simulating:
             if log_file is not None:
                 await log_request_to_file(log_file, "UpdateTestReport", request)
             return self._mark_simulated(
@@ -689,7 +731,8 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             simulate: If True, return a simulated response without making an API call.
 
         Returns:
-            The updated TestStep.
+            The updated TestStep, or the step unchanged when the update names no
+            fields (see ``_skip_empty_update``).
         """
         if request is None:
             if update is None:
@@ -700,7 +743,15 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 field_mask.paths.append("error_info")
             request = UpdateTestStepRequest(test_step=test_step_proto, update_mask=field_mask)
 
-        if log_file is not None or simulate:
+        simulating = log_file is not None or simulate
+        if not request.update_mask.paths:
+            return self._skip_empty_update(
+                "TestStep",
+                existing,
+                self.simulate_update_test_step_response(request) if simulating else None,
+            )
+
+        if simulating:
             if log_file is not None:
                 await log_request_to_file(log_file, "UpdateTestStep", request)
             return self._mark_simulated(
@@ -892,7 +943,8 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             simulate: If True, return a simulated response without making an API call.
 
         Returns:
-            The updated TestMeasurement.
+            The updated TestMeasurement, or the measurement unchanged when the
+            update names no fields (see ``_skip_empty_update``).
         """
         if request is None:
             if update is None:
@@ -902,7 +954,15 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 test_measurement=test_measurement_proto, update_mask=field_mask
             )
 
-        if log_file is not None or simulate:
+        simulating = log_file is not None or simulate
+        if not request.update_mask.paths:
+            return self._skip_empty_update(
+                "TestMeasurement",
+                existing,
+                self.simulate_update_test_measurement_response(request) if simulating else None,
+            )
+
+        if simulating:
             if log_file is not None:
                 await log_request_to_file(log_file, "UpdateTestMeasurement", request)
             return self._mark_simulated(
@@ -1226,6 +1286,12 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         orig_report_id = request.test_report.test_report_id
         mapped_report_id = self._map_id(id_map, orig_report_id)
         request.test_report.test_report_id = mapped_report_id
+        # An empty mask asks the server to change nothing, and the API rejects it.
+        # Clients before the write-time guard logged such entries, and the cursor
+        # only advances past a line that succeeded, so one of them stopped every
+        # retry at the same place. Nothing to apply here, so count it skipped.
+        if not request.update_mask.paths:
+            return _EntryIds(orig_report_id or None, mapped_report_id or None, skipped=True)
         # Batch/simulate replays the whole log in order, so a missing report means
         # the log is malformed. Incremental replay may have created the report on an
         # earlier tick (its real ID lives in id_map), so state.report is legitimately
@@ -1251,6 +1317,9 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         orig_step_id = request.test_step.test_step_id
         mapped_step_id = self._map_id(id_map, orig_step_id)
         request.test_step.test_step_id = mapped_step_id
+        # No paths means nothing to apply; see _replay_update_report.
+        if not request.update_mask.paths:
+            return _EntryIds(orig_step_id or None, mapped_step_id or None, skipped=True)
         existing_step = state.steps_by_id.get(mapped_step_id)
         if simulate and existing_step is None:
             raise ValueError(f"UpdateTestStep for unknown step: {orig_step_id}")
@@ -1275,6 +1344,9 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         orig_meas_id = request.test_measurement.measurement_id
         mapped_meas_id = self._map_id(id_map, orig_meas_id)
         request.test_measurement.measurement_id = mapped_meas_id
+        # No paths means nothing to apply; see _replay_update_report.
+        if not request.update_mask.paths:
+            return _EntryIds(orig_meas_id or None, mapped_meas_id or None, skipped=True)
         existing_meas = state.measurements_by_id.get(mapped_meas_id)
         if simulate and existing_meas is None:
             raise ValueError(f"UpdateTestMeasurement for unknown measurement: {orig_meas_id}")

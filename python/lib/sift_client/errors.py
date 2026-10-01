@@ -11,6 +11,14 @@ class SiftExperimentalWarning(SiftWarning):
     """Warning for experimental features."""
 
 
+class SiftIgnoredInputWarning(SiftWarning):
+    """Warning for input the SDK ignored.
+
+    Covers an unrecognized field on a Create/Update pydantic model, and an update
+    that names no fields to change.
+    """
+
+
 class SiftCredentialsError(ValueError):
     """Raised when Sift credentials cannot be resolved.
 
