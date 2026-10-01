@@ -584,7 +584,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 self.simulate_update_test_report_response(request) if simulating else None,
             )
 
-        if log_file is not None or simulate:
+        if simulating:
             if log_file is not None:
                 await log_request_to_file(log_file, "UpdateTestReport", request)
             return self._mark_simulated(
@@ -751,7 +751,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 self.simulate_update_test_step_response(request) if simulating else None,
             )
 
-        if log_file is not None or simulate:
+        if simulating:
             if log_file is not None:
                 await log_request_to_file(log_file, "UpdateTestStep", request)
             return self._mark_simulated(
@@ -962,7 +962,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 self.simulate_update_test_measurement_response(request) if simulating else None,
             )
 
-        if log_file is not None or simulate:
+        if simulating:
             if log_file is not None:
                 await log_request_to_file(log_file, "UpdateTestMeasurement", request)
             return self._mark_simulated(
