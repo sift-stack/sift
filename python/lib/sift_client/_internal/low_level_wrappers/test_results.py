@@ -134,16 +134,6 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     ) -> _EntityT:
         """Short-circuit an update whose field mask is empty.
 
-        An empty mask asks the API to change nothing, and the API rejects it.
-        Logging one is worse than sending it: at import the entry stops the
-        replay at its line, and no retry gets past it.
-
-        Warn, since either every field was ``None`` or the keys were dropped as
-        unknown (see ``ModelCreateUpdateBase._warn_on_unknown_keys``), then return
-        the entity unchanged. ``simulated`` is the response to hand back on the
-        log and simulate paths, where a synthesized entity is the correct answer,
-        and None on a live call, where it would not be.
-
         Raises:
             ValueError: On a live call with no ``existing`` entity. Nothing
                 changed server-side and there is no entity to return, so the
@@ -151,7 +141,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 real read.
         """
         warnings.warn(
-            f"Update to {entity_name} requested no field changes; ignored.",
+            f"Update to {entity_name} requested no field changes and was ignored.",
             SiftIgnoredInputWarning,
             stacklevel=caller_stacklevel(),
         )

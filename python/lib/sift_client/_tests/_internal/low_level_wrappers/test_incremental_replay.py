@@ -726,13 +726,7 @@ async def test_resume_propagates_errors_other_than_a_missing_report(tmp_path):
 
 @pytest.mark.asyncio
 async def test_resume_skips_an_update_with_an_empty_mask(tmp_path):
-    """A logged update carrying no field paths is skipped, not sent.
-
-    Clients before the write-time guard logged one whenever every field of an
-    update was None, or its keys were dropped as unknown. The API rejects an
-    empty mask, and the cursor only advances past a line that succeeded, so such
-    a line stranded the rest of the log on every retry.
-    """
+    """A logged update carrying no field paths is skipped, not sent."""
     log_file = tmp_path / "empty_mask.jsonl"
     client = ResultsLowLevelClient(grpc_client=MagicMock())
 
@@ -763,11 +757,7 @@ async def test_resume_skips_an_update_with_an_empty_mask(tmp_path):
 
 @pytest.mark.asyncio
 async def test_update_with_no_fields_is_not_logged(tmp_path):
-    """An update that changes nothing writes no log entry and returns the entity.
-
-    The API rejects a no-op update, so logging one plants an entry that can never
-    replay. The caller gets the entity back unchanged, plus a warning.
-    """
+    """An update that changes nothing writes no log entry and returns the entity."""
     log_file = tmp_path / "no_fields.jsonl"
     client = ResultsLowLevelClient(grpc_client=MagicMock())
 

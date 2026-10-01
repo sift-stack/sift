@@ -12,14 +12,10 @@ class SiftExperimentalWarning(SiftWarning):
 
 
 class SiftIgnoredInputWarning(SiftWarning):
-    """Input the SDK accepted but could not act on.
+    """Warning for input the SDK ignored.
 
-    Raised for a key that is not a field of a create or update model, and for an
-    update that names no fields to change. Both are caller mistakes that the SDK
-    tolerates rather than fails, so this class exists to let a caller promote
-    exactly these to errors without also promoting unrelated Sift warnings::
-
-        filterwarnings = error::sift_client.errors.SiftIgnoredInputWarning
+    Covers an unrecognized field on a Create/Update pydantic model, and an update
+    that names no fields to change.
     """
 
 
