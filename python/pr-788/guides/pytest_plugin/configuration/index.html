@@ -700,6 +700,34 @@ You're not viewing the latest version.
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../../credentials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credentials and profiles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -723,10 +751,10 @@ You're not viewing the latest version.
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_2" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5_3" id="__nav_5_3_label" tabindex="">
             
   
   
@@ -744,8 +772,8 @@ You're not viewing the latest version.
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_5_2">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5_3">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1672,28 +1700,39 @@ suggestion, so typos like <code>SIFT_REPORT_SERIALNUM</code> surface immediately
 <thead>
 <tr>
 <th>Setting</th>
+<th>CLI flag</th>
 <th>Ini (<code>[tool.pytest.ini_options]</code>)</th>
 <th>Env var</th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td>Name of a sift.toml profile that supplies credentials, as with <code>sift-cli --profile</code>.</td>
+<td><code>--sift-profile</code></td>
+<td><code>sift_profile</code></td>
+<td><code>SIFT_PROFILE</code></td>
+</tr>
+<tr>
 <td>Sift API key (secret, env-only).</td>
+<td>—</td>
 <td>—</td>
 <td><code>SIFT_API_KEY</code></td>
 </tr>
 <tr>
 <td>Sift gRPC endpoint URI.</td>
+<td>—</td>
 <td><code>sift_grpc_uri</code></td>
 <td><code>SIFT_GRPC_URI</code></td>
 </tr>
 <tr>
 <td>Sift REST endpoint URI.</td>
+<td>—</td>
 <td><code>sift_rest_uri</code></td>
 <td><code>SIFT_REST_URI</code></td>
 </tr>
 <tr>
 <td>Sift web-app origin for the report link in the terminal footer (e.g. https://app.siftstack.com). When unset, the link is derived from the REST URI for known Sift hosts.</td>
+<td>—</td>
 <td><code>sift_app_url</code></td>
 <td><code>SIFT_APP_URL</code></td>
 </tr>
