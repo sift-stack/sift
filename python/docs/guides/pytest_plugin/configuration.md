@@ -131,11 +131,13 @@ Each kind has a home chosen for a specific workflow:
 
 - **Pytest behavior** lives in `[tool.pytest.ini_options]` (log/offline/disabled/git/`*_step`/autouse/parametrize). A CLI flag exists for the ones with a real ad-hoc override workflow.
 - **Connection** comes from the environment first, falling back to the ini keys; the API key is env-only so secrets stay out of committed files.
-- **Report content** takes static defaults from `[tool.sift.pytest.report]` and per-run dynamic values from `SIFT_REPORT_*` env vars (CI builds, hardware cycling, anything `.env`-driven; pytest-dotenv loads `.env` for local dev).
+- **Report content** takes static defaults from `[tool.sift.pytest.report]` and per-run dynamic values from `SIFT_REPORT_*` env vars (CI builds, hardware cycling, anything `.env`-driven; pytest-dotenv loads `.env` for local dev). `archive_on_create` also accepts a CLI flag and an ini key.
 
 Precedence within a setting runs env > CLI flag > ini key > TOML > built-in
-default. No setting exposes both env and CLI, so the chain isn't ambiguous in
-practice.
+default. For a boolean, an explicit `false` is a value: it overrides a `true`
+from a lower-precedence source. `archive_on_create` uses every surface, so a
+shared `pyproject.toml` can archive dev runs while production sets
+`SIFT_REPORT_ARCHIVE_ON_CREATE=false`.
 
 The plugin scans `SIFT_*` env vars and `[tool.sift.pytest.*]` keys at session
 start; anything outside these tables fires a warning with a closest-match
@@ -179,9 +181,14 @@ suggestion, so typos like `SIFT_REPORT_SERIALNUM` surface immediately.
 | Operator running the test. Defaults to the OS user. | `[tool.sift.pytest.report] system_operator` | `SIFT_REPORT_SYSTEM_OPERATOR` |
 | Serial number of the unit under test. | `[tool.sift.pytest.report] serial_number` | `SIFT_REPORT_SERIAL_NUMBER` |
 | Part number of the unit under test. | `[tool.sift.pytest.report] part_number` | `SIFT_REPORT_PART_NUMBER` |
+| Archive the report right after creating it, so it drops out of the default Test Results views. An explicit false overrides a true from a lower-precedence source. | `[tool.sift.pytest.report] archive_on_create` | `SIFT_REPORT_ARCHIVE_ON_CREATE` |
 | Free-form report metadata, as a TOML table of scalar values. For dynamic per-run keys, override the sift_report_metadata fixture in conftest. | `[tool.sift.pytest.report.metadata]` (table) | — |
 
 <!-- END settings-reference -->
+
+`archive_on_create` can also be set with `--sift-archive-on-create` or with
+`sift_archive_on_create` in `[tool.pytest.ini_options]`. The table omits those
+columns because the other report settings do not use them.
 
 ### Quick-start examples
 
@@ -242,6 +249,29 @@ SIFT_REPORT_SERIAL_NUMBER=$UNIT_SN \
 SIFT_REPORT_SYSTEM_OPERATOR=$CI_ACTOR \
 pytest tests/
 ```
+
+### Archiving a run at creation
+
+`archive_on_create` archives the report immediately after the plugin creates
+it. Archived reports drop out of the default Test Results views. The plugin
+creates the report, then archives it in a second call. If that call fails, the
+plugin logs a warning and the test session continues with the report
+unarchived.
+
+```toml title="pyproject.toml"
+[tool.sift.pytest.report]
+archive_on_create = true
+```
+
+You can also pass `--sift-archive-on-create`, set `sift_archive_on_create`
+under `[tool.pytest.ini_options]`, or set `SIFT_REPORT_ARCHIVE_ON_CREATE`.
+Precedence is the environment variable, then the CLI flag, then the ini key,
+then TOML. An explicit `false` overrides a `true` from a lower source, so
+production can set `SIFT_REPORT_ARCHIVE_ON_CREATE=false` while the shared TOML
+stays `true`.
+
+The terminal summary prints `· archived` on the status row. Replay of that log
+archives the uploaded report.
 
 ### `name` vs `test_case`
 

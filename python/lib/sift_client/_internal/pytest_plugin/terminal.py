@@ -162,13 +162,14 @@ def write_report_summary(
         status_word, status_markup = "PASSED", {"green": True, "bold": True}
     # Offline results live only in the local log until replayed, so the status
     # row calls that out instead of repeating the version (already in the header).
-    status_context = (
-        f"{mode_label(config)} · not uploaded"
-        if offline
-        else f"{mode_label(config)} · sift-stack-py {sdk_version()}"
-    )
-
+    # Archived rides on this row too. The upload lines below are copied as commands.
     report = context.report
+    archived = " · archived" if getattr(report, "is_archived", False) else ""
+    status_context = (
+        f"{mode_label(config)} · not uploaded{archived}"
+        if offline
+        else f"{mode_label(config)} · sift-stack-py {sdk_version()}{archived}"
+    )
 
     terminalreporter.write_sep(
         "=", report_panel_title(report, terminalreporter), cyan=True, bold=True

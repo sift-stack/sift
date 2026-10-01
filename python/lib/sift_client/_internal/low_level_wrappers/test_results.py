@@ -1410,6 +1410,11 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         real_report = await self._create_report_from_simulated(state.report)
         real_report_id = real_report._id_or_error
         record_created(state.report._id_or_error, real_report_id)
+        # Create has no is_archived field, so the collapsed flag goes out as an update.
+        if state.report.is_archived:
+            archive_update = TestReportUpdate(is_archived=True)
+            archive_update.resource_id = real_report_id
+            real_report = await self.update_test_report(archive_update, existing=real_report)
 
         real_steps: list[TestStep] = []
         for sim_step_id in state.steps_order:
