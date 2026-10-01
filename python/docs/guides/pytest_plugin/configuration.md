@@ -173,18 +173,22 @@ suggestion, so typos like `SIFT_REPORT_SERIALNUM` surface immediately.
 
 ### Report content
 
-| Setting | CLI flag | Ini (`[tool.pytest.ini_options]`) | TOML (`[tool.sift...]`) | Env var |
-|---|---|---|---|---|
-| Template for the report display name. Placeholders: {target}, {command}, {args}, {rootdir}, {timestamp}, {count}, {git_repo}, {git_branch}, {git_commit}. | — | — | `[tool.sift.pytest.report] name` | — |
-| Template for the report's test_case field (same placeholders as report_name). | — | — | `[tool.sift.pytest.report] test_case` | — |
-| Name of the test system / rig. Defaults to the host's name. | — | — | `[tool.sift.pytest.report] test_system_name` | `SIFT_REPORT_TEST_SYSTEM_NAME` |
-| Operator running the test. Defaults to the OS user. | — | — | `[tool.sift.pytest.report] system_operator` | `SIFT_REPORT_SYSTEM_OPERATOR` |
-| Serial number of the unit under test. | — | — | `[tool.sift.pytest.report] serial_number` | `SIFT_REPORT_SERIAL_NUMBER` |
-| Part number of the unit under test. | — | — | `[tool.sift.pytest.report] part_number` | `SIFT_REPORT_PART_NUMBER` |
-| Archive the report right after creating it, so it drops out of the default Test Results views. An explicit false overrides a true from a lower-precedence source. | `--sift-archive-on-create` | `sift_archive_on_create` | `[tool.sift.pytest.report] archive_on_create` | `SIFT_REPORT_ARCHIVE_ON_CREATE` |
-| Free-form report metadata, as a TOML table of scalar values. For dynamic per-run keys, override the sift_report_metadata fixture in conftest. | — | — | `[tool.sift.pytest.report.metadata]` (table) | — |
+| Setting | TOML (`[tool.sift...]`) | Env var |
+|---|---|---|
+| Template for the report display name. Placeholders: {target}, {command}, {args}, {rootdir}, {timestamp}, {count}, {git_repo}, {git_branch}, {git_commit}. | `[tool.sift.pytest.report] name` | — |
+| Template for the report's test_case field (same placeholders as report_name). | `[tool.sift.pytest.report] test_case` | — |
+| Name of the test system / rig. Defaults to the host's name. | `[tool.sift.pytest.report] test_system_name` | `SIFT_REPORT_TEST_SYSTEM_NAME` |
+| Operator running the test. Defaults to the OS user. | `[tool.sift.pytest.report] system_operator` | `SIFT_REPORT_SYSTEM_OPERATOR` |
+| Serial number of the unit under test. | `[tool.sift.pytest.report] serial_number` | `SIFT_REPORT_SERIAL_NUMBER` |
+| Part number of the unit under test. | `[tool.sift.pytest.report] part_number` | `SIFT_REPORT_PART_NUMBER` |
+| Archive the report right after creating it, so it drops out of the default Test Results views. An explicit false overrides a true from a lower-precedence source. | `[tool.sift.pytest.report] archive_on_create` | `SIFT_REPORT_ARCHIVE_ON_CREATE` |
+| Free-form report metadata, as a TOML table of scalar values. For dynamic per-run keys, override the sift_report_metadata fixture in conftest. | `[tool.sift.pytest.report.metadata]` (table) | — |
 
 <!-- END settings-reference -->
+
+`archive_on_create` can also be set with `--sift-archive-on-create` or with
+`sift_archive_on_create` in `[tool.pytest.ini_options]`. The table omits those
+columns because the other report settings do not use them.
 
 ### Quick-start examples
 
@@ -266,9 +270,7 @@ then TOML. An explicit `false` overrides a `true` from a lower source, so
 production can set `SIFT_REPORT_ARCHIVE_ON_CREATE=false` while the shared TOML
 stays `true`.
 
-The terminal summary prints `(archived)` next to the report link. Offline, the
-same note is the line after the `import-test-result-log` command, so the
-command line itself still runs when copied. Replay of that log
+The terminal summary prints `· archived` on the status row. Replay of that log
 archives the uploaded report.
 
 ### `name` vs `test_case`

@@ -172,7 +172,7 @@ class TestArchiveOnCreateReport:
         create_at = log_text.index("[CreateTestReport:")
         archive_at = log_text.index('"isArchived":true')
         assert create_at < archive_at
-        result.stdout.fnmatch_lines(["*(archived)*"])
+        result.stdout.fnmatch_lines(["*· archived*"])
 
     def test_env_false_skips_archive(
         self,
@@ -198,4 +198,4 @@ class TestArchiveOnCreateReport:
         result.assert_outcomes(passed=1)
         log_text = run_jsonl(out_dir).read_text()
         assert '"isArchived":true' not in log_text
-        result.stdout.no_fnmatch_line("*(archived)*")
+        result.stdout.no_fnmatch_line("*· archived*")

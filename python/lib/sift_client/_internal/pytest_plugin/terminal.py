@@ -136,13 +136,6 @@ def write_disabled_summary(terminalreporter: Any) -> None:
     terminalreporter.write_line("Sift disabled — no test report created.")
 
 
-def archived_suffix(report: Any) -> str:
-    """``  (archived)`` when the report is archived, else empty."""
-    if getattr(report, "is_archived", False):
-        return "  (archived)"
-    return ""
-
-
 def write_report_summary(
     terminalreporter: Any,
     context: Any,
@@ -169,13 +162,14 @@ def write_report_summary(
         status_word, status_markup = "PASSED", {"green": True, "bold": True}
     # Offline results live only in the local log until replayed, so the status
     # row calls that out instead of repeating the version (already in the header).
-    status_context = (
-        f"{mode_label(config)} · not uploaded"
-        if offline
-        else f"{mode_label(config)} · sift-stack-py {sdk_version()}"
-    )
-
+    # Archived rides on this row too. The upload lines below are copied as commands.
     report = context.report
+    archived = " · archived" if getattr(report, "is_archived", False) else ""
+    status_context = (
+        f"{mode_label(config)} · not uploaded{archived}"
+        if offline
+        else f"{mode_label(config)} · sift-stack-py {sdk_version()}{archived}"
+    )
 
     terminalreporter.write_sep(
         "=", report_panel_title(report, terminalreporter), cyan=True, bold=True
@@ -210,14 +204,10 @@ def write_report_summary(
     if log_file is not None:
         sift_kv(terminalreporter, "Log file", str(log_file))
 
-    archived = archived_suffix(report)
     if offline:
         if log_file is not None:
             terminalreporter.write_sep("-", "to upload to Sift")
-            # (archived) is its own line so copying the command still runs.
             terminalreporter.write_line(f"  >> import-test-result-log {log_file}", cyan=True)
-            if archived:
-                terminalreporter.write_line(archived)
     else:
         if not report_id:
             # Incremental upload never mapped the report (the worker died before
@@ -225,16 +215,16 @@ def write_report_summary(
             sift_kv(
                 terminalreporter,
                 "Report",
-                f"not uploaded — replay with: import-test-result-log {log_file}{archived}",
+                f"not uploaded — replay with: import-test-result-log {log_file}",
                 yellow=True,
             )
         elif report_url is not None:
-            sift_kv(terminalreporter, "Report", f"{report_url}{archived}", cyan=True)
+            sift_kv(terminalreporter, "Report", report_url, cyan=True)
         else:
             sift_kv(
                 terminalreporter,
                 "Report",
-                f"id {report_id}  (set sift_app_url for a clickable link){archived}",
+                f"id {report_id}  (set sift_app_url for a clickable link)",
             )
 
         if report_id and getattr(context, "replay_incomplete", False) and log_file is not None:

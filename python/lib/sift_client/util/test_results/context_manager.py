@@ -240,6 +240,7 @@ class ReportContext(AbstractContextManager):
         metadata: dict[str, str | float | bool] | None = None,
         audit_log: str | Path | None = None,
         defer_finalize: bool = False,
+        *,
         archive_on_create: bool = False,
     ):
         """Initialize a new report context.

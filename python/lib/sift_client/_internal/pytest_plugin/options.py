@@ -75,6 +75,8 @@ class Option:
     - ``toml``: tuple path under ``[tool.sift...]``, e.g.
       ``("pytest", "report", "name")`` -> ``tool.sift.pytest.report.name``.
     - ``env``: full env var name, e.g. ``"SIFT_API_KEY"``.
+    - ``value_type``: how to read env and TOML values. ``"bool"`` accepts
+      true/false words. Ini values use ``ini_type`` instead.
     - ``surfaces``: the precedence order. The default puts env before cli.
       Override it if a flag that the user types must outrank an environment
       variable, as ``profile`` does.
@@ -93,9 +95,7 @@ class Option:
     toml: tuple[str, ...] | None = None
     env: str | None = None
     merge: bool = False
-    # False counts as set. An unset ini default does not, so a lower TOML true
-    # can still apply.
-    explicit_bool: bool = False
+    value_type: str | None = None
     surfaces: tuple[str, ...] = ("env", "cli", "ini", "toml")
 
     @property
@@ -120,6 +120,8 @@ class Option:
             raise ValueError(f"Option({self.name!r}): ini_type requires ini")
         if self.merge and not self.toml:
             raise ValueError(f"Option({self.name!r}): merge=True needs toml")
+        if self.value_type not in (None, "bool"):
+            raise ValueError(f"Option({self.name!r}): value_type must be None or 'bool'")
         if not any([self.cli, self.ini, self.toml, self.env]):
             raise ValueError(f"Option({self.name!r}): declares no surfaces")
         if self.category not in CATEGORIES:
@@ -136,8 +138,7 @@ class Option:
         The walk order is :attr:`surfaces`, which puts env before cli by default.
         ``getini`` returns the typed default for unset bool/list keys, so this
         returns ini values for booleans, non-empty strings, and non-empty lists.
-        ``explicit_bool`` is the exception: an ini bool counts only when the key
-        is set, so the registered default does not hide a lower value.
+        A ``None`` ini default counts as unset, so a lower value can still apply.
         """
         return self.resolve_with_source(config)[0]
 
@@ -163,8 +164,8 @@ class Option:
             env_value = os.getenv(self.env)
             if not env_value:
                 return None
-            if self.explicit_bool:
-                return _coerce_explicit_bool(env_value, source=self.env)
+            if self.value_type == "bool":
+                return _coerce_bool(env_value, source=self.env)
             return env_value
         if config is None:
             return None
@@ -172,8 +173,6 @@ class Option:
             return config.getoption(self.cli_dest, default=None) if self.cli else None
         if surface == "ini":
             if not self.ini:
-                return None
-            if self.explicit_bool and not _ini_explicitly_set(config, self.ini):
                 return None
             try:
                 ini_value = config.getini(self.ini)
@@ -187,9 +186,9 @@ class Option:
         if not self.toml:
             return None
         toml_value = _walk_toml(tool_sift(config), self.toml)
-        if self.explicit_bool:
+        if self.value_type == "bool":
             source = "tool.sift." + ".".join(self.toml)
-            return _coerce_explicit_bool(toml_value, source=source)
+            return _coerce_bool(toml_value, source=source)
         return toml_value if toml_value not in (None, "") else None
 
     def resolve_merged(self, config: pytest.Config | None) -> dict[str, str | float | bool]:
@@ -235,7 +234,7 @@ def _parse_bool_token(raw: str) -> bool | None:
     return None
 
 
-def _coerce_explicit_bool(value: Any, *, source: str) -> bool | None:
+def _coerce_bool(value: Any, *, source: str) -> bool | None:
     """Coerce one surface's value to bool. Unset stays ``None``.
 
     A string ``false`` is ``False``, not a truthy string. Anything that is not
@@ -264,20 +263,6 @@ def _coerce_explicit_bool(value: Any, *, source: str) -> bool | None:
         stacklevel=2,
     )
     return None
-
-
-def _ini_explicitly_set(config: pytest.Config, name: str) -> bool:
-    """Whether ``name`` was set in the ini file or via ``-o``, not just defaulted."""
-    override = getattr(config, "_get_override_ini_value", None)
-    if override is not None and override(name) is not None:
-        return True
-    inicfg = getattr(config, "inicfg", None)
-    if inicfg is None:
-        return False
-    try:
-        return name in inicfg
-    except TypeError:
-        return False
 
 
 def _walk_toml(data: dict[str, Any], path: tuple[str, ...]) -> Any:
@@ -517,7 +502,7 @@ PART_NUMBER_OPTION = Option(
     env="SIFT_REPORT_PART_NUMBER",
     toml=("pytest", "report", "part_number"),
 )
-# The ini default is false. explicit_bool keeps that default from hiding TOML.
+# None, not False: an unset ini key must not hide a TOML true.
 ARCHIVE_ON_CREATE_OPTION = Option(
     name="archive_on_create",
     category=CAT_REPORT,
@@ -528,10 +513,10 @@ ARCHIVE_ON_CREATE_OPTION = Option(
     cli_action="store_true",
     ini="sift_archive_on_create",
     ini_type="bool",
-    ini_default=False,
+    ini_default=None,
     env="SIFT_REPORT_ARCHIVE_ON_CREATE",
     toml=("pytest", "report", "archive_on_create"),
-    explicit_bool=True,
+    value_type="bool",
 )
 METADATA_OPTION = Option(
     name="metadata",
@@ -654,8 +639,6 @@ def render_settings_reference() -> str:
             ("Env var", _env_cell),
         ],
         CAT_REPORT: [
-            ("CLI flag", _cli_cell),
-            ("Ini (`[tool.pytest.ini_options]`)", _ini_cell),
             ("TOML (`[tool.sift...]`)", _toml_cell),
             ("Env var", _env_cell),
         ],
