@@ -10,12 +10,19 @@ These tests demonstrate and validate the usage of the Runs API including:
 from datetime import datetime, timedelta, timezone
 
 import pytest
+from google.protobuf.field_mask_pb2 import FieldMask
+from grpc import StatusCode
 from grpc.aio import AioRpcError
+from sift.metadata.v1.metadata_pb2 import METADATA_KEY_TYPE_STRING, MetadataKey, MetadataValue
+from sift.runs.v2.runs_pb2 import Run as RunProto
+from sift.runs.v2.runs_pb2 import UpdateRunRequest
+from sift.runs.v2.runs_pb2_grpc import RunServiceStub
 
 from sift_client import SiftClient
 from sift_client.resources import RunsAPI, RunsAPIAsync
 from sift_client.sift_types import Run
 from sift_client.sift_types.run import RunCreate, RunUpdate
+from sift_client.util.metadata import Metadata
 
 pytestmark = pytest.mark.integration
 
@@ -390,6 +397,69 @@ class TestRunsAPIAsync:
 
                 assert updated_run.id_ == new_run.id_
                 assert updated_run.description == "Updated via ID string"
+            finally:
+                await runs_api_async.archive(new_run.id_)
+
+    class TestMultiValueMetadata:
+        """Read-side tests for multi-value metadata.
+
+        The public write path is scalar-only (list values land in ENG-13281
+        Phase 3), so these tests seed duplicate-key metadata through the raw
+        `UpdateRun` proto. Storing multiple values per key requires the
+        backend's org-scoped `multi-value-metadata` flag; against a backend
+        without it the seed either fails or collapses to one value, and the
+        test skips instead of failing.
+        """
+
+        @pytest.mark.asyncio
+        async def test_get_run_exposes_all_values_via_getall(
+            self, sift_client, runs_api_async, new_run
+        ):
+            """Reading a run with duplicate-key metadata yields every value."""
+            values = ["flux_capacitor", "lightsaber"]
+            request = UpdateRunRequest(
+                run=RunProto(
+                    run_id=new_run.id_,
+                    metadata=[
+                        MetadataValue(
+                            key=MetadataKey(name="part_number", type=METADATA_KEY_TYPE_STRING),
+                            string_value=value,
+                        )
+                        for value in values
+                    ],
+                ),
+                update_mask=FieldMask(paths=["metadata"]),
+            )
+            try:
+                try:
+                    response = await sift_client.grpc_client.get_stub(RunServiceStub).UpdateRun(
+                        request
+                    )
+                except AioRpcError as exc:
+                    if exc.code() == StatusCode.INVALID_ARGUMENT:
+                        pytest.skip(
+                            "backend rejected duplicate metadata keys; "
+                            "multi-value-metadata flag not enabled"
+                        )
+                    raise
+                stored = [
+                    entry.string_value
+                    for entry in response.run.metadata
+                    if entry.key.name == "part_number"
+                ]
+                if stored != values:
+                    pytest.skip(
+                        "backend did not store duplicate metadata keys; "
+                        "multi-value-metadata flag not enabled"
+                    )
+
+                run = await runs_api_async.get(run_id=new_run.id_)
+                metadata = run.metadata
+                assert isinstance(metadata, Metadata)
+                assert metadata["part_number"] == values[0]
+                assert metadata.getall("part_number") == values
+                assert metadata["part_number"] == metadata.getall("part_number")[0]
+                assert metadata.getall("missing") == []
             finally:
                 await runs_api_async.archive(new_run.id_)
 

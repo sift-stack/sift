@@ -11,7 +11,7 @@ from sift.reports.v1.reports_pb2 import ReportTag as ReportTagProto
 
 from sift_client.sift_types._base import BaseType, MappingHelper, ModelUpdate
 from sift_client.sift_types.tag import Tag
-from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
+from sift_client.util.metadata import Metadata, metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -110,7 +110,7 @@ class Report(BaseType[ReportProto, "Report"]):
     rerun_from_report_id: str | None = None
     # NOTE: update() replaces this map wholesale. See TODO(metadata-mixin) in
     # sift_types/_mixins/metadata.py before adding keys at runtime.
-    metadata: dict[str, str | float | bool]
+    metadata: Metadata
     job_id: str
     archived_date: datetime | None = None
     is_archived: bool
