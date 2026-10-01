@@ -1,0 +1,166 @@
+schema:
+  description: |
+    A formal specification to create a telemetry config which is used
+    to stream data and evaluate rules using Sift's gRPC API.
+
+  asset_name:
+    type: string
+    description: The name of the asset to telemeter.
+
+  ingestion_client_key:
+    type: string
+    description: User-defined string-key that uniquely identifies this telemetry config.
+
+  organization_id:
+    type: string
+    description: Optional ID of user's organization. Required if user belongs to multiple organizations.
+
+  channels:
+    type: array
+    description: Sensors that send the data.
+    items:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the channel.
+        description:
+          type: string
+          description: Description of the channel.
+        unit:
+          type: string
+          description: Unit of measurement.
+        component:
+          type: string
+          description: Name of the component that the channel belongs to.
+        data_type:
+          type: string
+          enum: ["double", "string", "enum", "bit_field", "bool", "float", "int32", "int64", "uint32", "uint64"]
+          description: Type of the data associated with the channel.
+        enum_types:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                description: Name of the enum type.
+              key:
+                type: integer
+                description: Key of the enum type.
+          description: Required if `data_type` is `enum`.
+        bit_field_elements:
+          type: array
+          description: Required if `data_type` is `bit_field`.
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                description: Name of the bit-field element.
+              index:
+                type: integer
+                description: Index of the bit-field element.
+              bit_count:
+                type: integer
+                description: Bit count of the bit-field element.
+
+  rules:
+    type: array
+    description: Rules that, when evaluated to a true, will perform some sort of action.
+    items:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the rule.
+        description:
+          type: string
+          description: Description of the rule.
+        expression:
+          oneOf:
+            - type: string
+              description: A string expression defining the rule logic.
+            - type: object
+              description: A reference to a named expression.
+              properties:
+                name:
+                  type: string
+                  description: Name of the named expression.
+        type:
+          type: string
+          enum: [phase, review]
+          description: Determines the action to perform if a rule gets evaluated to true.
+        assignee:
+          type: string
+          description: If 'type' is 'review', determines who to notify. Expects an email.
+        tags:
+          type: array
+          items:
+            type: string
+          description: Tags to associate with the rule.
+        channel_references:
+          type: array
+          description: A list of channel references that map to an actual channel. Use YAML anchors to reference channels.
+          items:
+            type: object
+            description: |
+              Key-value pair of string to channel. The channel should be a YAML anchor to a previously declared channel
+              in the top-level 'channels' property. The key should take the form of '$1', '$2', '$11', and do on. In YAML
+              it would look something like this:
+
+              ```yaml
+              channel_references:
+                - $1: *vehicle_state_channel
+                - $2: *voltage_channel
+              ```
+        sub_expressions:
+          type: array
+          description: A list of sub-expressions which is a mapping of place-holders to sub-expressions.
+          items:
+            type: object
+            description: |
+              A sub-expression is made up of two components: A reference and the actual sub-expression. The sub-expression reference is
+              a string with a "$" prepended to another string comprised of characters in the following character set: `[a-zA-Z0-9_]`.
+              This reference should be mapped to the actual sub-expression. For example, say you have kinematic equations in `kinematics.yml`,
+              and the equation you're interested in using looks like the following:
+
+              ```yaml
+              kinetic_energy_gt:
+                0.5 * $mass * $1 * $1 > $threshold
+              ```
+
+              To properly use `kinetic_energy_gt` in your rule, it would look like the following:
+
+              ```yaml
+              rules:
+                - name: kinetic_energy
+                  description: Tracks high energy output while in motion
+                  type: review
+                  assignee: bob@example.com
+                  expression:
+                    name: kinetic_energy_gt
+                  channel_references:
+                    - $1: *velocity_channel
+                  sub_expressions:
+                    - $mass: 10
+                    - $threshold: 470
+                  tags:
+                      - nostromo
+              ```
+  flows:
+    type: array
+    description: A list of named groups of channels that send data together.
+    items:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the flow.
+        channels:
+          type: array
+          items:
+            type: object
+            description: |
+              List of channels included in the flow. Should be a YAML anchor from a previously declared channel
+              in the top-level 'channels' property.
