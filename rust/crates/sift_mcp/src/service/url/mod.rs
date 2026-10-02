@@ -138,6 +138,11 @@ impl UrlService {
         Ok(format!("{host}/explore?{query}"))
     }
 
+    pub fn build_share_url(&self, short_link: &str) -> Result<String, ErrorData> {
+        let host = self.app_host()?;
+        Ok(format!("{host}/share/{}", encode_value(short_link)))
+    }
+
     pub fn build_report_url(&self, report_id: &str) -> Result<String, ErrorData> {
         let host = self.app_host()?;
         Ok(format!("{host}/reports/{}", encode_value(report_id)))

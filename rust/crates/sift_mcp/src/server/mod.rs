@@ -48,7 +48,7 @@ pub(crate) const BASE_INSTRUCTIONS: &str = concat!(
 use crate::service::{
     annotations::AnnotationService, artifacts::ArtifactService, assets::AssetService,
     calculated_channels::CalculatedChannelService, channels::ChannelService, data::DataService,
-    docs::DocsService, ingest::IngestService, ping::PingService,
+    declarative::DeclarativeService, docs::DocsService, ingest::IngestService, ping::PingService,
     report_templates::ReportTemplateService, reports::ReportService,
     rule_evaluation::RuleEvaluationService, rules::RuleService, runs::RunService,
     test_reports::TestReportService, url::UrlService,
@@ -66,6 +66,7 @@ pub struct SiftMcpServer {
     pub calculated_channel_service: CalculatedChannelService,
     pub channel_service: ChannelService,
     pub data_service: DataService,
+    pub declarative_service: DeclarativeService,
     pub url_service: UrlService,
     pub ingest_service: IngestService,
     pub ping_service: PingService,
@@ -276,6 +277,7 @@ impl SiftMcpServer {
 
         let annotation_service = AnnotationService::new(channel.clone(), retry_policy.clone());
         let mut artifact_service = ArtifactService::new(channel.clone(), retry_policy.clone());
+        let declarative_service = DeclarativeService::new(rest_config.clone(), &cli_version);
         if let Some(rest_config) = rest_config {
             artifact_service = artifact_service.with_uploader(
                 crate::service::remote_files::RemoteFileUploader::new(rest_config, &cli_version),
@@ -309,6 +311,7 @@ impl SiftMcpServer {
             calculated_channel_service,
             channel_service,
             data_service,
+            declarative_service,
             url_service,
             ingest_service,
             ping_service,
