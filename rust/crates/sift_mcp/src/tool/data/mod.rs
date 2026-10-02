@@ -193,17 +193,17 @@ impl SiftMcpServer {
                 Narrow `channel_regex`, pass explicit `channel_names` or `channel_ids`, or split the request.
 
             Guidance:
-              - If the user's intent is to view/plot/graph/visualize the data in a UI, call `explore_url` first
-                instead — it returns a Sift Explore deep-link and skips the download entirely. Use `get_data` only
-                when the bytes are needed locally for SQL, custom analysis, or a static artifact the user explicitly
-                asked for.
+              - When the user wants to plot, chart, graph, or visualize data, call `create_declarative_chart`
+                with a spec instead — it validates the chart and skips download. For quick links to Sift Explore,
+                call `explore_url` instead. Use `get_data` only when the bytes are needed locally for SQL, custom
+                analysis, or a static artifact the user explicitly asked for.
               - Data is buffered in memory until size/row thresholds are hit, so very large time ranges or wide
                 channel sets can be slow or memory-heavy. For large pulls, split the time range into successive calls
                 with disjoint `[start, end)` windows. A long call can also hit the client's request timeout and lose
                 everything it fetched. Each shorter window keeps its own result.
               - Analysis needs `sample_ms = 0`. Reserve `sample_ms > 0` for data used exclusively to draw a
-                picture, and prefer `explore_url` over `get_data` entirely when that is the goal. An overview,
-                a summary and a quick look are all analysis: they end in numbers, and numbers taken off
+                picture, and prefer `create_declarative_chart` to render a chart instead of downloading decimated data.
+                An overview, a summary and a quick look are all analysis: they end in numbers, and numbers taken off
                 decimated data are wrong.
               - The result reports `sample_ms_applied` and `decimated`. Check them before quoting any statistic:
                 a non-zero applied rate means means, standard deviations and trends from that file are not valid.

@@ -49,8 +49,11 @@ Sift-entity request always wins.
 
 - **None:** lookups, explanations, how-to answers, and one-off numbers or
   short analysis. Do not wrap a chat-sized answer in a file.
-- **Explore links:** plots and timeseries the user wants to inspect. Use native
-  Sift app visualizations instead of creating an intermediate image or HTML.
+- **Declarative charts:** plots, charts, and timeseries the user wants to see.
+  Build or pass a spec to `create_declarative_chart`.
+- **Explore links:** quick deep-links to specific assets, runs, or channels the
+  user wants to inspect in the Sift web app. Use native Sift app
+  visualizations instead of creating an intermediate image or HTML.
 - **Calculated channels:** reusable CEL transforms (unit conversions, rolling
   windows, derived signals, and simple filters) that should be plottable or
   usable by rules on later runs. List existing calculated channels first to
@@ -109,6 +112,7 @@ tool.
   to enable them, then restart the MCP client.
 - **Data:** `get_data` writes channel data to a Parquet file. `sql` queries
   Parquet files. `upload_dataset` streams a Parquet dataset into Sift.
+- **Charts:** `create_declarative_chart`.
 - **Links:** `explore_url`.
 - **Docs:** `search_docs`.
 - **Writes:** `create_rule`, `update_rule`, `archive_rule`, `unarchive_rule`,
@@ -224,8 +228,10 @@ tool.
   listings without deleting its versions, links, or files. Find archived
   artifacts with `list_artifacts` and `include_archived=true`, then restore one
   with `unarchive_artifact`. Both writes need `--allow-destructive`.
-- **Produce a chart.** Build a link with `explore_url`. When the user wants a
-  chart and numbers, do both and give the user both.
+- **Produce a chart.** Use `create_declarative_chart` with a spec (see
+  references/declarative-charts.md). For quick links to Sift Explore, use
+  `explore_url` instead. When the user wants a chart and numbers, do both and
+  give the user both.
 - **Answer a question about how Sift works.** Call `search_docs`. Do not answer
   from memory, and cite the page you used.
 - **Create an asset.** There is no `create_asset` MCP tool because Sift creates
@@ -254,9 +260,11 @@ tool.
 - **Stop on empty list results.** If any `list_*` tool returns no items, tell
   the user that nothing matched and ask how to proceed. Do not make subsequent
   tool calls using an empty or placeholder name or id from the missing result.
-- **Surface URLs as plain text, in full.** The link from `explore_url` and the
+- **Surface tool-returned URLs; never invent one.** The link from `explore_url` and the
   `View in Sift:` line from `sift-cli import` are deliverables. Never invent a
-  URL that a tool did not return.
+  URL that a tool did not return. Chart links from `create_declarative_chart`
+  follow the tool's `next_step` (render as a clickable markdown link with
+  descriptive text, mentioned once).
 - **Confirm every write before you run it.** Show the user the proposed change
   and its target, then wait for approval.
 - **Write tools are off by default.** Read-only is the default access mode.
@@ -291,6 +299,7 @@ Read the file that matches the task in front of you. Do not read them all.
 | When the task is | Read |
 |---|---|
 | any `sift-cli` invocation: import, export, config | [references/cli.md](references/cli.md) |
-| a chart, a plot, or an Explore link | [references/explore-links.md](references/explore-links.md) |
+| a declarative chart spec | [references/declarative-charts.md](references/declarative-charts.md) |
+| a quick Explore link | [references/explore-links.md](references/explore-links.md) |
 | install, update, or diagnose the Sift integration | [references/agent-setup.md](references/agent-setup.md) |
 | code written against Sift's libraries or REST API | [references/integration-code.md](references/integration-code.md) |

@@ -5,11 +5,27 @@ use rmcp::{
     tool, tool_router,
 };
 use serde::Deserialize;
+use serde_json::{Value, json};
 
-use crate::{error, server::SiftMcpServer, service::url::ExploreUrlRequest};
+use crate::{
+    error,
+    server::SiftMcpServer,
+    service::{
+        declarative::{Issue, ShareLinkResult},
+        url::ExploreUrlRequest,
+    },
+};
 
 #[cfg(test)]
 mod test;
+
+/// Failed attempts the agent gets to repair a spec before it must report the problem to the user.
+const MAX_REPAIR_ATTEMPTS: u32 = 3;
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct CreateDeclarativeChartParams {
+    spec: String,
+}
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct ExploreUrlParams {
@@ -27,9 +43,10 @@ impl SiftMcpServer {
     #[tool(
         name = "explore_url",
         description = "
-            Build a Sift Explore deep-link URL for the given asset/run/channel selection. Pure URL construction — no
-            API call is made. Hand the returned URL to the user verbatim, rendered inline as a clickable link, so
-            they can open the view in the Sift web app.
+            Build a quick Sift Explore deep-link URL that opens specific assets, runs, or channels. Pure URL
+            construction — no API call is made. Hand the returned URL to the user verbatim, rendered inline as a
+            clickable link, so they can open the view in the Sift web app. To plot, chart, graph, or visualize
+            data, call `create_declarative_chart` instead.
 
             Output:
               - `{ \"url\": \"<url>\", \"next_step\": \"...\", \"start_time_unix_nanos\": <i64>?,
@@ -64,9 +81,10 @@ impl SiftMcpServer {
                 known set, or if `end_time_unix_nanos < start_time_unix_nanos`.
 
             Guidance:
-              - Reach for this tool when the user asks to \"see\", \"view\", \"graph\", \"plot\", \"visualize\", or
-                \"open\" data in Sift. Pair it with `get_data` only when the user also wants the data locally for
-                SQL or further processing.
+              - Reach for this tool when the user asks to \"open\" or \"link to\" specific assets, runs, or channels
+                in Sift. Requests to \"plot\", \"chart\", \"graph\", or \"visualize\" data belong to
+                `create_declarative_chart`. Pair this tool with `get_data` only when the user also wants the data
+                locally for SQL or further processing.
               - Do not add the asset alongside a run to be thorough. A run is already scoped to its asset, so
                 the asset adds a second, wider source to the view. Send both only on an explicit request for
                 both.
@@ -137,6 +155,192 @@ impl SiftMcpServer {
         result.content = vec![ContentBlock::text(next_step)];
         Ok(result)
     }
+
+    #[tool(
+        name = "create_declarative_chart",
+        description = "
+            Validate a declarative chart spec (YAML or JSON) against the Sift schema, migrating it to the latest
+            version first, then create a shareable Sift Explore link for it. A valid result hands back the
+            migrated spec and the link.
+
+            Output:
+              - Valid: `{ \"valid\": true, \"spec\": \"<migrated spec>\", \"shortLink\", \"exploreUrl\",
+                \"warnings\": [{\"path\", \"message\"}], \"sourceVersion\", \"targetVersion\", \"next_step\" }`.
+                `exploreUrl` is the link that opens the chart in Sift.
+              - Invalid: `{ \"valid\": false, \"reason\": \"invalid_spec\", \"issues\": [{\"path\", \"message\"}],
+                \"next_step\" }`. `path` locates the problem in the spec; `/` means the whole spec.
+              - Unavailable: `{ \"valid\": false, \"reason\": \"service_unavailable\", \"issues\": [...],
+                \"next_step\" }` when the validation or link service could not be reached.
+
+            Parameters:
+              - `spec`: the complete spec as a YAML or JSON string. The Sift backend decides what is valid; the
+                tool does not pre-check the spec, so multi-chart specs and a top-level `layout` are accepted.
+
+            Errors:
+              - A bad spec is not an MCP error. It returns `valid: false` with `issues` so you can fix and retry.
+              - `INVALID_PARAMS` is returned only when `spec` is missing or not a string.
+
+            Guidance:
+              - Resolve run IDs and channel names with `list_runs`, `list_channels`, and
+                `list_calculated_channels` before writing the spec. Never invent them.
+              - Bind a calculated channel with `calculatedChannelId`, not by name.
+              - A spec with exactly one chart displays inline in Sift agent chat. Specs with several charts or a
+                `layout` still return a working Explore link.
+              - Prefer YAML. JSON is accepted.
+              - On `invalid_spec`, fix every listed path and resend the complete spec. After 3 failed attempts,
+                stop and summarize the problem to the user instead of retrying.
+              - Omit `sampling`, `maxGap`, and axis `min`/`max` unless the user asked for them.
+              - On a valid result, render `exploreUrl` once as a clickable markdown link with descriptive text, such
+                as what the chart plots. Do not paste the spec into your reply.
+        ",
+        annotations(
+            title = "explore/create_declarative_chart",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false
+        )
+    )]
+    pub async fn create_declarative_chart(
+        &self,
+        params: Parameters<CreateDeclarativeChartParams>,
+    ) -> error::McpResult {
+        let Parameters(CreateDeclarativeChartParams { spec }) = params;
+
+        let migration = match self.declarative_service.migrate(&spec).await {
+            Ok(migration) => migration,
+            Err(error) => return Ok(service_unavailable_result(&error)),
+        };
+        if !migration.valid || !migration.errors.is_empty() {
+            return Ok(invalid_spec_result(issues_or(
+                &migration.errors,
+                "the spec could not be migrated",
+            )));
+        }
+        let migrated_spec = if migration.migrated_spec.is_empty() {
+            spec
+        } else {
+            migration.migrated_spec
+        };
+
+        let validation = match self.declarative_service.validate(&migrated_spec).await {
+            Ok(validation) => validation,
+            Err(error) => return Ok(service_unavailable_result(&error)),
+        };
+        if !validation.valid || !validation.errors.is_empty() {
+            return Ok(invalid_spec_result(issues_or(
+                &validation.errors,
+                "the spec failed validation",
+            )));
+        }
+
+        let short_link = match self
+            .declarative_service
+            .create_share_link(&migrated_spec)
+            .await
+        {
+            Ok(ShareLinkResult::Ok { short_link }) => short_link,
+            Ok(ShareLinkResult::Invalid { message }) => {
+                return Ok(invalid_spec_result(vec![issue("/", &message)]));
+            }
+            Err(error) => return Ok(service_unavailable_result(&error)),
+        };
+        let explore_url = self.url_service.build_share_url(&short_link)?;
+
+        let mut warnings = issues_json(&migration.warnings);
+        warnings.extend(issues_json(&validation.warnings));
+
+        let next_step = format!(
+            "The chart spec validated and a Sift link was created: {explore_url}\n\nRender this URL \
+             in your response as a clickable markdown link with descriptive text naming what the \
+             chart plots, never the word \"link\" or the bare URL. Mention it once. Do not paste \
+             the spec into your response."
+        );
+        let mut result = CallToolResult::structured(json!({
+            "valid": true,
+            "spec": migrated_spec,
+            "shortLink": short_link,
+            "exploreUrl": explore_url,
+            "warnings": warnings,
+            "sourceVersion": migration.source_version,
+            "targetVersion": migration.target_version,
+            "next_step": next_step,
+        }));
+        result.content = vec![ContentBlock::text(next_step)];
+        Ok(result)
+    }
+}
+
+fn issue(path: &str, message: &str) -> Value {
+    json!({ "path": path, "message": message })
+}
+
+fn issues_json(issues: &[Issue]) -> Vec<Value> {
+    issues
+        .iter()
+        .map(|found| {
+            let path = if found.path.is_empty() {
+                "/"
+            } else {
+                found.path.as_str()
+            };
+            issue(path, &found.message)
+        })
+        .collect()
+}
+
+/// The service's issues, or one whole-spec issue carrying `fallback` when it listed none.
+fn issues_or(issues: &[Issue], fallback: &str) -> Vec<Value> {
+    if issues.is_empty() {
+        vec![issue("/", fallback)]
+    } else {
+        issues_json(issues)
+    }
+}
+
+/// A non-error result the client can act on: `reason`, the `issues`, and a `next_step` that is
+/// also the text content.
+fn failure_result(reason: &str, issues: Vec<Value>, next_step: String) -> CallToolResult {
+    let listing = issues
+        .iter()
+        .map(|found| {
+            let path = found["path"].as_str().unwrap_or("/");
+            let message = found["message"].as_str().unwrap_or_default();
+            format!("{path}: {message}")
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    let mut result = CallToolResult::structured(json!({
+        "valid": false,
+        "reason": reason,
+        "issues": issues,
+        "next_step": next_step,
+    }));
+    result.content = vec![ContentBlock::text(format!("{listing}\n\n{next_step}"))];
+    result
+}
+
+fn invalid_spec_result(issues: Vec<Value>) -> CallToolResult {
+    failure_result(
+        "invalid_spec",
+        issues,
+        format!(
+            "The spec is not valid yet. Fix every listed path and resend the complete spec. After \
+             {MAX_REPAIR_ATTEMPTS} failed attempts, stop retrying and summarize the problem to the user."
+        ),
+    )
+}
+
+// TODO: Non-retryable 4xx responses (401, 403, 404: bad API key, missing permission, or a backend
+// without the declarative endpoint) also land here and tell the agent to retry. Tag them in
+// DeclarativeService with a typed error and map them to a no-retry, check-credentials result.
+fn service_unavailable_result(error: &anyhow::Error) -> CallToolResult {
+    failure_result(
+        "service_unavailable",
+        vec![issue("/", &format!("{error:#}"))],
+        "The spec could not be checked because the validation service failed, which is not a problem \
+         with the spec. Retry once; if it fails again, tell the user the chart could not be validated."
+            .to_string(),
+    )
 }
 
 /// Explore URLs carry ISO 8601 timestamps with millisecond precision, so the URL service drops
