@@ -1,5 +1,7 @@
 # Sift Explore links
 
+To plot, chart, graph, or visualize data, use `create_declarative_chart` with a spec (see [references/declarative-charts.md](declarative-charts.md)). Use `explore_url` to build a quick deep-link that opens specific assets, runs, or channels.
+
 Build the link with `explore_url`, then surface the URL to the user as plain
 text, in full.
 
