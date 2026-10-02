@@ -95,7 +95,10 @@ impl ServerHandler for SiftMcpServer {
         request: CallToolRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<CallToolResponse, ErrorData> {
-        let _ = self.client_event_reporter.send(request.name.as_ref()).await;
+        let _ = self
+            .client_event_reporter
+            .send(request.name.as_ref(), request.arguments.as_ref())
+            .await;
 
         let context = ToolCallContext::new(self, request, context);
         self.tool_router.call(context).await
