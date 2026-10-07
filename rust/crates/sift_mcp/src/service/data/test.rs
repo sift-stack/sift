@@ -109,6 +109,80 @@ fn double_page(channel_id: &str, channel_name: &str, samples: Vec<(i64, f64)>) -
     }
 }
 
+fn received_extra(received_nanos: &[Option<i64>]) -> sift_rs::data::v2::DimensionIndividualWrapper {
+    use sift_rs::data::v2::{
+        DimensionIndividualWrapper, DimensionProtoTimestampValues,
+        dimension_individual_wrapper::{Type, ValueWrapper},
+        dimension_proto_timestamp_values::DimensionProtoTimestampValue,
+    };
+
+    DimensionIndividualWrapper {
+        label: "sift_received_at".into(),
+        r#type: Type::AdditionalTimestampNanos as i32,
+        value_wrapper: Some(ValueWrapper::DimensionProtoTimestampValues(
+            DimensionProtoTimestampValues {
+                values: received_nanos
+                    .iter()
+                    .copied()
+                    .map(|nanos| DimensionProtoTimestampValue {
+                        value: nanos.map(|n| {
+                            let (seconds, nanos) = unix_nanos_to_secs_and_subsec_nanos(n);
+                            Timestamp { seconds, nanos }
+                        }),
+                    })
+                    .collect(),
+            },
+        )),
+    }
+}
+
+/// `samples` keeps samples with no generation timestamp so receipt times stay
+/// aligned with the protobuf values array, which is how the API returns them.
+fn double_page_with_received(
+    channel_id: &str,
+    channel_name: &str,
+    samples: Vec<(Option<i64>, f64)>,
+    received: &[Option<i64>],
+) -> Any {
+    let values = samples
+        .into_iter()
+        .map(|(ts_nanos, value)| DoubleValue {
+            timestamp: ts_nanos.map(|n| {
+                let (seconds, nanos) = unix_nanos_to_secs_and_subsec_nanos(n);
+                Timestamp { seconds, nanos }
+            }),
+            value,
+        })
+        .collect();
+
+    let payload = DoubleValues {
+        metadata: Some(Metadata {
+            channel: Some(metadata::Channel {
+                channel_id: channel_id.into(),
+                name: channel_name.into(),
+                ..Default::default()
+            }),
+            ..Default::default()
+        }),
+        values,
+        extras: vec![received_extra(received)],
+    };
+
+    Any {
+        type_url: "sift.data.v2.DoubleValues".into(),
+        value: Bytes::from(payload.encode_to_vec()),
+    }
+}
+
+fn column_index(batch: &RecordBatch, fragment: &str) -> usize {
+    batch
+        .schema()
+        .fields()
+        .iter()
+        .position(|field| field.name().contains(fragment))
+        .unwrap_or_else(|| panic!("missing column containing `{fragment}`"))
+}
+
 /// Like `double_page`, but sets `Metadata.sampled_ms` — the rate the service
 /// says it actually applied, which is what the caller is told about.
 fn double_page_sampled(
@@ -165,7 +239,7 @@ async fn get_data_empty_inputs_errors() {
 
     let mut buffer = Vec::new();
     let err = service
-        .get_data(&[], asset_range(0, 1_000_000_000), 0, &mut buffer)
+        .get_data(&[], asset_range(0, 1_000_000_000), 0, false, &mut buffer)
         .await
         .expect_err("expected error on empty channel_inputs");
 
@@ -195,6 +269,7 @@ async fn get_data_writes_double_channel_to_parquet() {
             &[raw_channel("c1")],
             asset_range(0, 3_000_000_000),
             0,
+            false,
             &mut buffer,
         )
         .await
@@ -240,6 +315,7 @@ async fn get_data_merges_disjoint_timestamps_with_nulls() {
             &[raw_channel("c1"), raw_channel("c2")],
             asset_range(0, 4_000_000_000),
             0,
+            false,
             &mut buffer,
         )
         .await
@@ -311,6 +387,7 @@ async fn get_data_paginates_until_token_empty() {
             &[raw_channel("c1")],
             asset_range(0, 3_000_000_000),
             0,
+            false,
             &mut buffer,
         )
         .await
@@ -337,6 +414,7 @@ async fn get_data_propagates_grpc_error() {
             &[raw_channel("c1")],
             asset_range(0, 1_000_000_000),
             0,
+            false,
             &mut buffer,
         )
         .await
@@ -363,7 +441,7 @@ async fn get_data_run_without_start_time_errors() {
 
     let mut buffer = Vec::new();
     let err = service
-        .get_data(&[raw_channel("c1")], time_range, 0, &mut buffer)
+        .get_data(&[raw_channel("c1")], time_range, 0, false, &mut buffer)
         .await
         .expect_err("expected error for run with no start_time");
 
@@ -393,6 +471,7 @@ async fn get_data_identifies_channels_that_returned_no_samples() {
             ],
             asset_range(0, 4_000_000_000),
             0,
+            false,
             &mut buffer,
         )
         .await
@@ -439,6 +518,7 @@ async fn get_data_does_not_report_a_calculated_channel_that_returned_data() {
             }],
             asset_range(0, 4_000_000_000),
             0,
+            false,
             &mut buffer,
         )
         .await
@@ -471,6 +551,7 @@ async fn get_data_reports_nothing_empty_when_every_channel_has_samples() {
             &[named_raw_channel("c1", "a"), named_raw_channel("c2", "b")],
             asset_range(0, 4_000_000_000),
             0,
+            false,
             &mut buffer,
         )
         .await
@@ -498,6 +579,7 @@ async fn get_data_reports_empty_registration_ids_and_calculation_keys() {
             ],
             asset_range(0, 4_000_000_000),
             0,
+            false,
             &mut Vec::new(),
         )
         .await
@@ -530,6 +612,7 @@ async fn get_data_no_samples_error_identifies_every_channel() {
             ],
             asset_range(0, 4_000_000_000),
             0,
+            false,
             &mut buffer,
         )
         .await
@@ -559,7 +642,13 @@ async fn get_data_no_samples_error_caps_the_channel_list() {
     let (service, _h) = service_with_mock(mock).await;
     let mut buffer = Vec::new();
     let err = service
-        .get_data(&inputs, asset_range(0, 4_000_000_000), 0, &mut buffer)
+        .get_data(
+            &inputs,
+            asset_range(0, 4_000_000_000),
+            0,
+            false,
+            &mut buffer,
+        )
         .await
         .expect_err("expected an error when nothing returned samples");
 
@@ -747,6 +836,7 @@ async fn get_data_sends_saved_calculation_query() {
             &[saved_calculation("thrust_margin", "$1 * 2", "c1")],
             asset_range(0, 3_000_000_000),
             0,
+            false,
             &mut buffer,
         )
         .await
@@ -786,6 +876,7 @@ async fn get_data_reports_the_applied_sample_rate() {
             &[raw_channel("c1")],
             asset_range(0, 3_000_000_000),
             100,
+            false,
             &mut buffer,
         )
         .await
@@ -820,6 +911,7 @@ async fn get_data_reports_raw_when_nothing_was_decimated() {
             &[raw_channel("c1")],
             asset_range(0, 3_000_000_000),
             0,
+            false,
             &mut buffer,
         )
         .await
@@ -854,6 +946,7 @@ async fn get_data_flags_a_file_that_mixes_decimated_and_raw_channels() {
             &[raw_channel("c1"), raw_channel("c2")],
             asset_range(0, 3_000_000_000),
             100,
+            false,
             &mut buffer,
         )
         .await
@@ -864,4 +957,253 @@ async fn get_data_flags_a_file_that_mixes_decimated_and_raw_channels() {
     assert_eq!(output.applied_sample_ms.highest(), Some(100));
     assert!(output.applied_sample_ms.decimated());
     assert!(output.applied_sample_ms.mixed());
+}
+
+#[tokio::test]
+async fn get_data_ignores_received_at_unless_asked() {
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data().times(1).returning(|req| {
+        assert_eq!(req.get_ref().include_received_at, None);
+        Ok(Response::new(GetDataResponse {
+            data: vec![double_page_with_received(
+                "c1",
+                "temp",
+                vec![(Some(1_000_000_000), 10.0)],
+                &[Some(1_500_000_000)],
+            )],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    service
+        .get_data(
+            &[raw_channel("c1")],
+            asset_range(0, 2_000_000_000),
+            0,
+            false,
+            &mut buffer,
+        )
+        .await
+        .expect("get_data failed");
+
+    let batches = read_parquet(buffer);
+    let batch = &batches[0];
+    assert_eq!(batch.num_columns(), 2);
+    assert!(
+        batch
+            .schema()
+            .fields()
+            .iter()
+            .all(|field| !field.name().contains("received_at"))
+    );
+}
+
+#[tokio::test]
+async fn get_data_writes_received_at_beside_the_channel() {
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data().times(1).returning(|req| {
+        assert_eq!(req.get_ref().include_received_at, Some(true));
+        Ok(Response::new(GetDataResponse {
+            data: vec![double_page_with_received(
+                "c1",
+                "temp",
+                vec![(Some(1_000_000_000), 10.0), (Some(2_000_000_000), 11.0)],
+                &[Some(1_500_000_000), None],
+            )],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    service
+        .get_data(
+            &[named_raw_channel("c1", "temp")],
+            asset_range(0, 3_000_000_000),
+            0,
+            true,
+            &mut buffer,
+        )
+        .await
+        .expect("get_data failed");
+
+    let batches = read_parquet(buffer);
+    let batch = &batches[0];
+    assert_eq!(batch.num_columns(), 3);
+    let received_idx = column_index(batch, "received_at=\"true\"");
+    let schema = batch.schema();
+    let field = schema.field(received_idx);
+    assert_eq!(field.data_type(), &DataType::Int64);
+    assert!(field.is_nullable());
+    assert_eq!(
+        field.name(),
+        "temp {channel_id=\"c1\", received_at=\"true\"}"
+    );
+
+    let received = batch.column(received_idx).as_primitive::<Int64Type>();
+    assert_eq!(received.value(0), 1_500_000_000);
+    assert!(received.is_null(1));
+
+    let value_idx = batch
+        .schema()
+        .fields()
+        .iter()
+        .position(|field| {
+            field.name().contains("channel_id=\"c1\"") && !field.name().contains("received_at")
+        })
+        .expect("missing value column");
+    let values = batch.column(value_idx).as_primitive::<Float64Type>();
+    assert_eq!(values.value(0), 10.0);
+    assert_eq!(values.value(1), 11.0);
+}
+
+/// Receipt times are aligned with the protobuf values, including samples the
+/// writer drops because they have no generation timestamp. Dropping one must
+/// not shift the next sample's receipt time onto it.
+#[tokio::test]
+async fn get_data_keeps_received_at_aligned_when_a_timestamp_is_missing() {
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data().returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![double_page_with_received(
+                "c1",
+                "temp",
+                vec![
+                    (Some(1_000_000_000), 10.0),
+                    (None, 11.0),
+                    (Some(3_000_000_000), 12.0),
+                ],
+                &[Some(100), Some(200), Some(300)],
+            )],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    service
+        .get_data(
+            &[raw_channel("c1")],
+            asset_range(0, 4_000_000_000),
+            0,
+            true,
+            &mut buffer,
+        )
+        .await
+        .expect("get_data failed");
+
+    let batches = read_parquet(buffer);
+    let batch = &batches[0];
+    assert_eq!(batch.num_rows(), 2);
+    let timestamps = batch.column(0).as_primitive::<Int64Type>();
+    assert_eq!(timestamps.values(), &[1_000_000_000, 3_000_000_000]);
+    let received = batch
+        .column(column_index(batch, "received_at=\"true\""))
+        .as_primitive::<Int64Type>();
+    assert_eq!(received.values(), &[100, 300]);
+}
+
+#[tokio::test]
+async fn get_data_nulls_received_at_where_the_channel_has_no_sample() {
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data().returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![
+                double_page_with_received(
+                    "c1",
+                    "temp",
+                    vec![(Some(1_000_000_000), 1.0), (Some(3_000_000_000), 3.0)],
+                    &[Some(11), Some(33)],
+                ),
+                double_page("c2", "pressure", vec![(2_000_000_000, 20.0)]),
+            ],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    service
+        .get_data(
+            &[raw_channel("c1"), raw_channel("c2")],
+            asset_range(0, 4_000_000_000),
+            0,
+            true,
+            &mut buffer,
+        )
+        .await
+        .expect("get_data failed");
+
+    let batches = read_parquet(buffer);
+    let batch = &batches[0];
+    assert_eq!(batch.num_rows(), 3);
+    assert_eq!(batch.num_columns(), 4);
+    assert!(
+        batch
+            .schema()
+            .fields()
+            .iter()
+            .filter(|field| field.name().contains("received_at"))
+            .all(|field| field.name().contains("channel_id=\"c1\""))
+    );
+
+    let received = batch
+        .column(column_index(batch, "received_at=\"true\""))
+        .as_primitive::<Int64Type>();
+    assert_eq!(received.value(0), 11);
+    assert!(received.is_null(1));
+    assert_eq!(received.value(2), 33);
+}
+
+#[tokio::test]
+async fn get_data_appends_received_at_across_pages_and_backfills_gaps() {
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data().returning(|req| {
+        let req = req.into_inner();
+        assert_eq!(req.include_received_at, Some(true));
+        let (pages, next) = match req.page_token.as_str() {
+            "" => (
+                vec![double_page("c1", "temp", vec![(1_000_000_000, 1.0)])],
+                "page-2".to_string(),
+            ),
+            "page-2" => (
+                vec![double_page_with_received(
+                    "c1",
+                    "temp",
+                    vec![(Some(2_000_000_000), 2.0)],
+                    &[Some(2_500_000_000)],
+                )],
+                String::new(),
+            ),
+            other => return Err(Status::invalid_argument(format!("bad token: {other}"))),
+        };
+        Ok(Response::new(GetDataResponse {
+            data: pages,
+            next_page_token: next,
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    service
+        .get_data(
+            &[raw_channel("c1")],
+            asset_range(0, 3_000_000_000),
+            0,
+            true,
+            &mut buffer,
+        )
+        .await
+        .expect("get_data failed");
+
+    let batches = read_parquet(buffer);
+    let batch = &batches[0];
+    assert_eq!(batch.num_rows(), 2);
+    let received = batch
+        .column(column_index(batch, "received_at=\"true\""))
+        .as_primitive::<Int64Type>();
+    assert!(received.is_null(0));
+    assert_eq!(received.value(1), 2_500_000_000);
 }

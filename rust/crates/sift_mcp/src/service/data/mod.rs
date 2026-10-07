@@ -29,10 +29,11 @@ use sift_rs::{
     channels::v3::Channel,
     data::v2::{
         BitFieldElementValues, BitFieldValue, BitFieldValues, BoolValue, BoolValues, BytesValue,
-        BytesValues, CalculatedChannelQuery, ChannelQuery, DoubleValue, DoubleValues, EnumValue,
-        EnumValues, FloatValue, FloatValues, GetDataRequest, GetDataResponse, Int32Value,
-        Int32Values, Int64Value, Int64Values, Query, StringValue, StringValues, Uint32Value,
-        Uint32Values, Uint64Value, Uint64Values, data_service_client::DataServiceClient, metadata,
+        BytesValues, CalculatedChannelQuery, ChannelQuery, DimensionIndividualWrapper, DoubleValue,
+        DoubleValues, EnumValue, EnumValues, FloatValue, FloatValues, GetDataRequest,
+        GetDataResponse, Int32Value, Int32Values, Int64Value, Int64Values, Query, StringValue,
+        StringValues, Uint32Value, Uint32Values, Uint64Value, Uint64Values,
+        data_service_client::DataServiceClient, dimension_individual_wrapper, metadata,
         query::Query as QueryKind,
     },
     runs::v2::Run,
@@ -170,11 +171,150 @@ pub enum TimeRange {
     },
 }
 
+struct OutputCursor {
+    data_type: DataType,
+    samples: std::iter::Peekable<std::vec::IntoIter<(i64, ChannelValue)>>,
+    received_at: Option<Vec<Option<i64>>>,
+    received_index: usize,
+    value_builder: usize,
+    received_builder: Option<usize>,
+}
+
 struct ChannelColumn {
     json_metadata: Option<String>,
     /// unix nanos to value
     values: Vec<(i64, ChannelValue)>,
+    /// Receipt time in unix nanos, aligned with `values`, when this channel
+    /// returned `sift_received_at`. `None` means the service sent no receipt times.
+    received_at: Option<Vec<Option<i64>>>,
     data_type: DataType,
+}
+
+const SIFT_RECEIVED_AT_LABEL: &str = "sift_received_at";
+
+/// Index-aligned receipt times from a `sift_received_at` extra, or `None` when
+/// that extra is absent. Entries line up with the protobuf values, including
+/// samples whose generation timestamp is missing.
+fn received_at_by_index(
+    extras: &[DimensionIndividualWrapper],
+    len: usize,
+) -> Option<Vec<Option<i64>>> {
+    let extra = extras
+        .iter()
+        .find(|extra| extra.label == SIFT_RECEIVED_AT_LABEL)?;
+    let Some(dimension_individual_wrapper::ValueWrapper::DimensionProtoTimestampValues(stamps)) =
+        &extra.value_wrapper
+    else {
+        return None;
+    };
+
+    Some(
+        (0..len)
+            .map(|index| {
+                stamps.values.get(index).and_then(|sample| {
+                    sample.value.map(|Timestamp { seconds, nanos }| {
+                        secs_and_subsec_nanos_to_unix_nanos(seconds, nanos)
+                    })
+                })
+            })
+            .collect(),
+    )
+}
+
+/// Drops samples with no generation timestamp and keeps receipt times aligned
+/// with the samples that remain.
+fn take_samples<T, I>(
+    values: I,
+    extras: &[DimensionIndividualWrapper],
+    include_received_at: bool,
+    to_value: impl Fn(T) -> ChannelValue,
+) -> (Vec<(i64, ChannelValue)>, Option<Vec<Option<i64>>>)
+where
+    I: IntoIterator<Item = (Option<Timestamp>, T)>,
+{
+    let values = values.into_iter().collect::<Vec<_>>();
+    let received = if include_received_at {
+        received_at_by_index(extras, values.len())
+    } else {
+        None
+    };
+
+    let mut samples = Vec::new();
+    let mut received_out = received.as_ref().map(|_| Vec::new());
+    for (index, (timestamp, value)) in values.into_iter().enumerate() {
+        let Some(timestamp) = timestamp else {
+            continue;
+        };
+        samples.push((
+            secs_and_subsec_nanos_to_unix_nanos(timestamp.seconds, timestamp.nanos),
+            to_value(value),
+        ));
+        if let Some(out) = received_out.as_mut() {
+            out.push(
+                received
+                    .as_ref()
+                    .and_then(|series| series.get(index).copied())
+                    .flatten(),
+            );
+        }
+    }
+    (samples, received_out)
+}
+
+fn new_column_builder(data_type: &DataType) -> Result<Box<dyn ArrayBuilder>> {
+    Ok(match data_type {
+        DataType::Float32 => Box::new(Float32Builder::new()),
+        DataType::Float64 => Box::new(Float64Builder::new()),
+        DataType::Int32 => Box::new(Int32Builder::new()),
+        DataType::Int64 => Box::new(Int64Builder::new()),
+        DataType::UInt32 => Box::new(UInt32Builder::new()),
+        DataType::UInt64 => Box::new(UInt64Builder::new()),
+        DataType::Utf8 => Box::new(StringBuilder::new()),
+        DataType::Boolean => Box::new(BooleanBuilder::new()),
+        DataType::Binary => Box::new(BinaryBuilder::new()),
+        other => bail!("unsupported column data type: {other:?}"),
+    })
+}
+
+fn store_column(
+    columns: &mut HashMap<ColumnName, ChannelColumn>,
+    column_name: ColumnName,
+    data_type: DataType,
+    json_metadata: Option<String>,
+    samples: Vec<(i64, ChannelValue)>,
+    received_at: Option<Vec<Option<i64>>>,
+) {
+    let received_at = received_at.map(|mut series| {
+        series.truncate(samples.len());
+        if series.len() < samples.len() {
+            series.resize(samples.len(), None);
+        }
+        series
+    });
+
+    if let Some(column) = columns.get_mut(&column_name) {
+        match (column.received_at.as_mut(), received_at) {
+            (Some(existing), Some(incoming)) => existing.extend(incoming),
+            (Some(existing), None) => existing.resize(existing.len() + samples.len(), None),
+            (None, Some(incoming)) => {
+                let mut series = vec![None; column.values.len()];
+                series.extend(incoming);
+                column.received_at = Some(series);
+            }
+            (None, None) => {}
+        }
+        column.values.extend(samples);
+    } else {
+        columns.insert(
+            column_name,
+            ChannelColumn {
+                values: samples,
+                json_metadata,
+                data_type,
+                received_at,
+            },
+        );
+    }
 }
 
 enum ChannelValue {
@@ -242,12 +382,15 @@ impl DataService {
     }
 
     /// Retrieves data for provided parameters and writes out the data in a buffered manner to the
-    /// provided buffer as arrow. The first column is int64, `timestamp_unix_nanos`.
+    /// provided buffer as arrow. The first column is int64, `timestamp_unix_nanos` (generation
+    /// time). When `include_received_at` is set, each channel that returns `sift_received_at`
+    /// also gets an Int64 column of receipt time in unix nanos.
     pub async fn get_data<W: Write + Send>(
         &self,
         channel_inputs: &[ChannelInput],
         time_range: TimeRange,
         sample_ms: u32,
+        include_received_at: bool,
         buffer: &mut W,
     ) -> Result<DataOutput> {
         if channel_inputs.is_empty() {
@@ -383,7 +526,7 @@ impl DataService {
                             start_time: Some(start_time),
                             end_time: Some(end_time),
                             page_size: PAGE_SIZE,
-                            include_received_at: None,
+                            include_received_at: include_received_at.then_some(true),
                         })
                         .await
                         .map(|resp| resp.into_inner())
@@ -403,7 +546,7 @@ impl DataService {
                         let BytesValues {
                             metadata,
                             values,
-                            extras: _,
+                            extras,
                         } = BytesValues::decode(channel_page.value)
                             .context("failed to decode channel page")?;
 
@@ -422,30 +565,22 @@ impl DataService {
                                 .units(channel.unit.as_ref().map(|u| u.name.as_str()))
                                 .build();
 
-                        let values = values
-                            .into_iter()
-                            .flat_map(|BytesValue { timestamp, value }| {
-                                timestamp.map(|Timestamp { seconds, nanos }| {
-                                    (
-                                        secs_and_subsec_nanos_to_unix_nanos(seconds, nanos),
-                                        ChannelValue::Bytes(value),
-                                    )
-                                })
-                            })
-                            .collect::<Vec<_>>();
-
-                        if let Some(channel_column) = columns.get_mut(&column_name) {
-                            channel_column.values.extend(values);
-                        } else {
-                            columns.insert(
-                                column_name,
-                                ChannelColumn {
-                                    values,
-                                    json_metadata: None,
-                                    data_type: DataType::Binary,
-                                },
-                            );
-                        }
+                        let (values, received_at) = take_samples(
+                            values
+                                .into_iter()
+                                .map(|BytesValue { timestamp, value }| (timestamp, value)),
+                            &extras,
+                            include_received_at,
+                            ChannelValue::Bytes,
+                        );
+                        store_column(
+                            &mut columns,
+                            column_name,
+                            DataType::Binary,
+                            None,
+                            values,
+                            received_at,
+                        );
                     }
                     "sift.data.v2.EnumValues" => {
                         let EnumValues { metadata, values } =
@@ -496,18 +631,14 @@ impl DataService {
                             })
                             .collect::<Vec<_>>();
 
-                        if let Some(channel_column) = columns.get_mut(&column_name) {
-                            channel_column.values.extend(values);
-                        } else {
-                            columns.insert(
-                                column_name,
-                                ChannelColumn {
-                                    values,
-                                    json_metadata: Some(enum_config_md),
-                                    data_type: DataType::Utf8,
-                                },
-                            );
-                        }
+                        store_column(
+                            &mut columns,
+                            column_name,
+                            DataType::Utf8,
+                            Some(enum_config_md),
+                            values,
+                            None,
+                        );
                     }
                     "sift.data.v2.BitFieldValues" => {
                         let BitFieldValues { metadata, values } =
@@ -554,25 +685,21 @@ impl DataService {
                                 })
                                 .collect::<Vec<_>>();
 
-                            if let Some(channel_column) = columns.get_mut(&column_name) {
-                                channel_column.values.extend(values);
-                            } else {
-                                columns.insert(
-                                    column_name,
-                                    ChannelColumn {
-                                        values,
-                                        json_metadata: Some(bit_field_element_md.clone()),
-                                        data_type: DataType::UInt32,
-                                    },
-                                );
-                            }
+                            store_column(
+                                &mut columns,
+                                column_name,
+                                DataType::UInt32,
+                                Some(bit_field_element_md.clone()),
+                                values,
+                                None,
+                            );
                         }
                     }
                     "sift.data.v2.DoubleValues" => {
                         let DoubleValues {
                             metadata,
                             values,
-                            extras: _,
+                            extras,
                         } = DoubleValues::decode(channel_page.value)
                             .context("failed to decode channel page")?;
 
@@ -591,36 +718,28 @@ impl DataService {
                                 .units(channel.unit.as_ref().map(|u| u.name.as_str()))
                                 .build();
 
-                        let values = values
-                            .into_iter()
-                            .flat_map(|DoubleValue { timestamp, value }| {
-                                timestamp.map(|Timestamp { seconds, nanos }| {
-                                    (
-                                        secs_and_subsec_nanos_to_unix_nanos(seconds, nanos),
-                                        ChannelValue::F64(value),
-                                    )
-                                })
-                            })
-                            .collect::<Vec<_>>();
-
-                        if let Some(channel_column) = columns.get_mut(&column_name) {
-                            channel_column.values.extend(values);
-                        } else {
-                            columns.insert(
-                                column_name,
-                                ChannelColumn {
-                                    values,
-                                    json_metadata: None,
-                                    data_type: DataType::Float64,
-                                },
-                            );
-                        }
+                        let (values, received_at) = take_samples(
+                            values
+                                .into_iter()
+                                .map(|DoubleValue { timestamp, value }| (timestamp, value)),
+                            &extras,
+                            include_received_at,
+                            ChannelValue::F64,
+                        );
+                        store_column(
+                            &mut columns,
+                            column_name,
+                            DataType::Float64,
+                            None,
+                            values,
+                            received_at,
+                        );
                     }
                     "sift.data.v2.FloatValues" => {
                         let FloatValues {
                             metadata,
                             values,
-                            extras: _,
+                            extras,
                         } = FloatValues::decode(channel_page.value)
                             .context("failed to decode channel page")?;
 
@@ -639,36 +758,28 @@ impl DataService {
                                 .units(channel.unit.as_ref().map(|u| u.name.as_str()))
                                 .build();
 
-                        let values = values
-                            .into_iter()
-                            .flat_map(|FloatValue { timestamp, value }| {
-                                timestamp.map(|Timestamp { seconds, nanos }| {
-                                    (
-                                        secs_and_subsec_nanos_to_unix_nanos(seconds, nanos),
-                                        ChannelValue::F32(value),
-                                    )
-                                })
-                            })
-                            .collect::<Vec<_>>();
-
-                        if let Some(channel_column) = columns.get_mut(&column_name) {
-                            channel_column.values.extend(values);
-                        } else {
-                            columns.insert(
-                                column_name,
-                                ChannelColumn {
-                                    values,
-                                    json_metadata: None,
-                                    data_type: DataType::Float32,
-                                },
-                            );
-                        }
+                        let (values, received_at) = take_samples(
+                            values
+                                .into_iter()
+                                .map(|FloatValue { timestamp, value }| (timestamp, value)),
+                            &extras,
+                            include_received_at,
+                            ChannelValue::F32,
+                        );
+                        store_column(
+                            &mut columns,
+                            column_name,
+                            DataType::Float32,
+                            None,
+                            values,
+                            received_at,
+                        );
                     }
                     "sift.data.v2.StringValues" => {
                         let StringValues {
                             metadata,
                             values,
-                            extras: _,
+                            extras,
                         } = StringValues::decode(channel_page.value)
                             .context("failed to decode channel page")?;
 
@@ -687,36 +798,28 @@ impl DataService {
                                 .units(channel.unit.as_ref().map(|u| u.name.as_str()))
                                 .build();
 
-                        let values = values
-                            .into_iter()
-                            .flat_map(|StringValue { timestamp, value }| {
-                                timestamp.map(|Timestamp { seconds, nanos }| {
-                                    (
-                                        secs_and_subsec_nanos_to_unix_nanos(seconds, nanos),
-                                        ChannelValue::String(value),
-                                    )
-                                })
-                            })
-                            .collect::<Vec<_>>();
-
-                        if let Some(channel_column) = columns.get_mut(&column_name) {
-                            channel_column.values.extend(values);
-                        } else {
-                            columns.insert(
-                                column_name,
-                                ChannelColumn {
-                                    values,
-                                    json_metadata: None,
-                                    data_type: DataType::Utf8,
-                                },
-                            );
-                        }
+                        let (values, received_at) = take_samples(
+                            values
+                                .into_iter()
+                                .map(|StringValue { timestamp, value }| (timestamp, value)),
+                            &extras,
+                            include_received_at,
+                            ChannelValue::String,
+                        );
+                        store_column(
+                            &mut columns,
+                            column_name,
+                            DataType::Utf8,
+                            None,
+                            values,
+                            received_at,
+                        );
                     }
                     "sift.data.v2.BoolValues" => {
                         let BoolValues {
                             metadata,
                             values,
-                            extras: _,
+                            extras,
                         } = BoolValues::decode(channel_page.value)
                             .context("failed to decode channel page")?;
 
@@ -735,36 +838,28 @@ impl DataService {
                                 .units(channel.unit.as_ref().map(|u| u.name.as_str()))
                                 .build();
 
-                        let values = values
-                            .into_iter()
-                            .flat_map(|BoolValue { timestamp, value }| {
-                                timestamp.map(|Timestamp { seconds, nanos }| {
-                                    (
-                                        secs_and_subsec_nanos_to_unix_nanos(seconds, nanos),
-                                        ChannelValue::Bool(value),
-                                    )
-                                })
-                            })
-                            .collect::<Vec<_>>();
-
-                        if let Some(channel_column) = columns.get_mut(&column_name) {
-                            channel_column.values.extend(values);
-                        } else {
-                            columns.insert(
-                                column_name,
-                                ChannelColumn {
-                                    values,
-                                    json_metadata: None,
-                                    data_type: DataType::Boolean,
-                                },
-                            );
-                        }
+                        let (values, received_at) = take_samples(
+                            values
+                                .into_iter()
+                                .map(|BoolValue { timestamp, value }| (timestamp, value)),
+                            &extras,
+                            include_received_at,
+                            ChannelValue::Bool,
+                        );
+                        store_column(
+                            &mut columns,
+                            column_name,
+                            DataType::Boolean,
+                            None,
+                            values,
+                            received_at,
+                        );
                     }
                     "sift.data.v2.Int32Values" => {
                         let Int32Values {
                             metadata,
                             values,
-                            extras: _,
+                            extras,
                         } = Int32Values::decode(channel_page.value)
                             .context("failed to decode channel page")?;
 
@@ -783,36 +878,28 @@ impl DataService {
                                 .units(channel.unit.as_ref().map(|u| u.name.as_str()))
                                 .build();
 
-                        let values = values
-                            .into_iter()
-                            .flat_map(|Int32Value { timestamp, value }| {
-                                timestamp.map(|Timestamp { seconds, nanos }| {
-                                    (
-                                        secs_and_subsec_nanos_to_unix_nanos(seconds, nanos),
-                                        ChannelValue::I32(value),
-                                    )
-                                })
-                            })
-                            .collect::<Vec<_>>();
-
-                        if let Some(channel_column) = columns.get_mut(&column_name) {
-                            channel_column.values.extend(values);
-                        } else {
-                            columns.insert(
-                                column_name,
-                                ChannelColumn {
-                                    values,
-                                    json_metadata: None,
-                                    data_type: DataType::Int32,
-                                },
-                            );
-                        }
+                        let (values, received_at) = take_samples(
+                            values
+                                .into_iter()
+                                .map(|Int32Value { timestamp, value }| (timestamp, value)),
+                            &extras,
+                            include_received_at,
+                            ChannelValue::I32,
+                        );
+                        store_column(
+                            &mut columns,
+                            column_name,
+                            DataType::Int32,
+                            None,
+                            values,
+                            received_at,
+                        );
                     }
                     "sift.data.v2.Int64Values" => {
                         let Int64Values {
                             metadata,
                             values,
-                            extras: _,
+                            extras,
                         } = Int64Values::decode(channel_page.value)
                             .context("failed to decode channel page")?;
 
@@ -831,36 +918,28 @@ impl DataService {
                                 .units(channel.unit.as_ref().map(|u| u.name.as_str()))
                                 .build();
 
-                        let values = values
-                            .into_iter()
-                            .flat_map(|Int64Value { timestamp, value }| {
-                                timestamp.map(|Timestamp { seconds, nanos }| {
-                                    (
-                                        secs_and_subsec_nanos_to_unix_nanos(seconds, nanos),
-                                        ChannelValue::I64(value),
-                                    )
-                                })
-                            })
-                            .collect::<Vec<_>>();
-
-                        if let Some(channel_column) = columns.get_mut(&column_name) {
-                            channel_column.values.extend(values);
-                        } else {
-                            columns.insert(
-                                column_name,
-                                ChannelColumn {
-                                    values,
-                                    json_metadata: None,
-                                    data_type: DataType::Int64,
-                                },
-                            );
-                        }
+                        let (values, received_at) = take_samples(
+                            values
+                                .into_iter()
+                                .map(|Int64Value { timestamp, value }| (timestamp, value)),
+                            &extras,
+                            include_received_at,
+                            ChannelValue::I64,
+                        );
+                        store_column(
+                            &mut columns,
+                            column_name,
+                            DataType::Int64,
+                            None,
+                            values,
+                            received_at,
+                        );
                     }
                     "sift.data.v2.Uint32Values" => {
                         let Uint32Values {
                             metadata,
                             values,
-                            extras: _,
+                            extras,
                         } = Uint32Values::decode(channel_page.value)
                             .context("failed to decode channel page")?;
 
@@ -879,36 +958,28 @@ impl DataService {
                                 .units(channel.unit.as_ref().map(|u| u.name.as_str()))
                                 .build();
 
-                        let values = values
-                            .into_iter()
-                            .flat_map(|Uint32Value { timestamp, value }| {
-                                timestamp.map(|Timestamp { seconds, nanos }| {
-                                    (
-                                        secs_and_subsec_nanos_to_unix_nanos(seconds, nanos),
-                                        ChannelValue::U32(value),
-                                    )
-                                })
-                            })
-                            .collect::<Vec<_>>();
-
-                        if let Some(channel_column) = columns.get_mut(&column_name) {
-                            channel_column.values.extend(values);
-                        } else {
-                            columns.insert(
-                                column_name,
-                                ChannelColumn {
-                                    values,
-                                    json_metadata: None,
-                                    data_type: DataType::UInt32,
-                                },
-                            );
-                        }
+                        let (values, received_at) = take_samples(
+                            values
+                                .into_iter()
+                                .map(|Uint32Value { timestamp, value }| (timestamp, value)),
+                            &extras,
+                            include_received_at,
+                            ChannelValue::U32,
+                        );
+                        store_column(
+                            &mut columns,
+                            column_name,
+                            DataType::UInt32,
+                            None,
+                            values,
+                            received_at,
+                        );
                     }
                     "sift.data.v2.Uint64Values" => {
                         let Uint64Values {
                             metadata,
                             values,
-                            extras: _,
+                            extras,
                         } = Uint64Values::decode(channel_page.value)
                             .context("failed to decode channel page")?;
 
@@ -927,30 +998,22 @@ impl DataService {
                                 .units(channel.unit.as_ref().map(|u| u.name.as_str()))
                                 .build();
 
-                        let values = values
-                            .into_iter()
-                            .flat_map(|Uint64Value { timestamp, value }| {
-                                timestamp.map(|Timestamp { seconds, nanos }| {
-                                    (
-                                        secs_and_subsec_nanos_to_unix_nanos(seconds, nanos),
-                                        ChannelValue::U64(value),
-                                    )
-                                })
-                            })
-                            .collect::<Vec<_>>();
-
-                        if let Some(channel_column) = columns.get_mut(&column_name) {
-                            channel_column.values.extend(values);
-                        } else {
-                            columns.insert(
-                                column_name,
-                                ChannelColumn {
-                                    values,
-                                    json_metadata: None,
-                                    data_type: DataType::UInt64,
-                                },
-                            );
-                        }
+                        let (values, received_at) = take_samples(
+                            values
+                                .into_iter()
+                                .map(|Uint64Value { timestamp, value }| (timestamp, value)),
+                            &extras,
+                            include_received_at,
+                            ChannelValue::U64,
+                        );
+                        store_column(
+                            &mut columns,
+                            column_name,
+                            DataType::UInt64,
+                            None,
+                            values,
+                            received_at,
+                        );
                     }
                     _ => bail!("queried an unsupported channel type"),
                 }
@@ -994,24 +1057,24 @@ impl DataService {
 
         let mut array_builders = Vec::<Box<dyn ArrayBuilder>>::new();
         let mut time_col_builder = Int64Builder::new();
+        let mut cursors = Vec::with_capacity(columns.len());
 
-        for (column_name, column) in &columns {
+        for (column_name, column) in columns {
             let Some((_, first_val)) = column.values.first() else {
                 bail!("unexpected empty column encountered")
             };
-
-            match &column.data_type {
-                DataType::Float32 => array_builders.push(Box::new(Float32Builder::new())),
-                DataType::Float64 => array_builders.push(Box::new(Float64Builder::new())),
-                DataType::Int32 => array_builders.push(Box::new(Int32Builder::new())),
-                DataType::Int64 => array_builders.push(Box::new(Int64Builder::new())),
-                DataType::UInt32 => array_builders.push(Box::new(UInt32Builder::new())),
-                DataType::UInt64 => array_builders.push(Box::new(UInt64Builder::new())),
-                DataType::Utf8 => array_builders.push(Box::new(StringBuilder::new())),
-                DataType::Boolean => array_builders.push(Box::new(BooleanBuilder::new())),
-                DataType::Binary => array_builders.push(Box::new(BinaryBuilder::new())),
-                _ => bail!("unsupported column data type: {:?}", column.data_type),
+            if let Some(received) = &column.received_at {
+                if received.len() != column.values.len() {
+                    bail!(
+                        "received timestamps ({}) do not align with samples ({}) for {column_name}",
+                        received.len(),
+                        column.values.len(),
+                    );
+                }
             }
+
+            let value_builder = array_builders.len();
+            array_builders.push(new_column_builder(&column.data_type)?);
 
             let mut field = Field::new(column_name.clone(), column.data_type.clone(), true);
 
@@ -1034,14 +1097,31 @@ impl DataService {
             }
 
             fields.push(field);
+
+            let received_builder = if column.received_at.is_some() {
+                let index = array_builders.len();
+                array_builders.push(Box::new(Int64Builder::new()));
+                fields.push(Field::new(
+                    column_name.with_received_at(),
+                    DataType::Int64,
+                    true,
+                ));
+                Some(index)
+            } else {
+                None
+            };
+
+            cursors.push(OutputCursor {
+                data_type: column.data_type,
+                samples: column.values.into_iter().peekable(),
+                received_at: column.received_at,
+                received_index: 0,
+                value_builder,
+                received_builder,
+            });
         }
 
         let schema = Arc::new(Schema::new(fields));
-
-        let mut col_iters = columns
-            .into_iter()
-            .map(|(_, col)| (col.data_type, col.values.into_iter().peekable()))
-            .collect::<Vec<_>>();
 
         let mut rows_since_flush = 0;
         let mut size_since_flush = 0;
@@ -1067,9 +1147,9 @@ impl DataService {
         }
 
         loop {
-            let maybe_current_ts = col_iters
+            let maybe_current_ts = cursors
                 .iter_mut()
-                .filter_map(|(_, it)| it.peek().map(|(ts, _)| *ts))
+                .filter_map(|cursor| cursor.samples.peek().map(|(ts, _)| *ts))
                 .min();
 
             let Some(current_ts) = maybe_current_ts else {
@@ -1078,22 +1158,36 @@ impl DataService {
 
             time_col_builder.append_value(current_ts);
 
-            for (i, (data_type, col_iter)) in col_iters.iter_mut().enumerate() {
-                let builder = &mut array_builders[i];
+            for cursor in &mut cursors {
+                let data_type = cursor.data_type.clone();
+                let value_builder = cursor.value_builder;
+                let received_builder = cursor.received_builder;
+                let peeked_ts = cursor.samples.peek().map(|(ts, _)| *ts);
 
-                let Some((ts, val)) = col_iter.peek() else {
-                    Self::append_null_to_builder(data_type, builder)?;
-                    continue;
-                };
-
-                if *ts == current_ts {
-                    Self::append_to_builder(val, builder)?;
+                if peeked_ts == Some(current_ts) {
+                    let (_, val) = cursor.samples.next().expect("peeked sample");
+                    let received = received_builder.map(|_| {
+                        let value = cursor
+                            .received_at
+                            .as_ref()
+                            .and_then(|series| series.get(cursor.received_index).copied())
+                            .flatten();
+                        cursor.received_index += 1;
+                        value
+                    });
                     size_since_flush += val.data_size();
-
-                    // Advance the iterator
-                    col_iter.next();
+                    if received.flatten().is_some() {
+                        size_since_flush += mem::size_of::<i64>();
+                    }
+                    Self::append_to_builder(&val, &mut array_builders[value_builder])?;
+                    if let Some(index) = received_builder {
+                        Self::append_i64_option(&mut array_builders[index], received.flatten())?;
+                    }
                 } else {
-                    Self::append_null_to_builder(data_type, builder)?;
+                    Self::append_null_to_builder(&data_type, &mut array_builders[value_builder])?;
+                    if let Some(index) = received_builder {
+                        Self::append_null_to_builder(&DataType::Int64, &mut array_builders[index])?;
+                    }
                 }
             }
             rows_since_flush += 1;
@@ -1117,6 +1211,15 @@ impl DataService {
             empty_channels,
             applied_sample_ms,
         })
+    }
+
+    fn append_i64_option(builder: &mut Box<dyn ArrayBuilder>, value: Option<i64>) -> Result<()> {
+        builder
+            .as_any_mut()
+            .downcast_mut::<Int64Builder>()
+            .context("failed to downcast array builder to int64")?
+            .append_option(value);
+        Ok(())
     }
 
     fn append_null_to_builder(

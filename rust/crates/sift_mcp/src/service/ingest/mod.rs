@@ -113,17 +113,27 @@ impl IngestService {
         }
 
         let mut channel_configs = Vec::with_capacity(fields.len() - 1);
-        let mut column_encodings = Vec::with_capacity(fields.len() - 1);
+        // `None` marks a receipt-time column. It rides along in the file and is
+        // not a channel, so it is neither hashed into the flow nor ingested.
+        let mut column_roles = Vec::with_capacity(fields.len() - 1);
 
         let mut hasher = DefaultHasher::new();
 
         // Skip the time column
         for field in fields.iter().skip(1) {
+            if ColumnName::try_from(field.name().as_str()).is_ok_and(|name| name.received_at()) {
+                column_roles.push(None);
+                continue;
+            }
             let (config, encoding) = Self::arrow_field_to_channel_config(field)?;
             let wf = config.encode_to_vec();
             hasher.write(&wf);
             channel_configs.push(config);
-            column_encodings.push(encoding);
+            column_roles.push(Some(encoding));
+        }
+
+        if channel_configs.is_empty() {
+            bail!("parquet file must have at least one channel column")
         }
 
         let hash = format!(
@@ -201,11 +211,11 @@ impl IngestService {
                 let columns = record_batch.columns();
                 let data_columns = &columns[1..];
 
-                if data_columns.len() != column_encodings.len() {
+                if data_columns.len() != column_roles.len() {
                     bail!(
                         "parquet record batch has {} data columns but channel config expected {}",
                         data_columns.len(),
-                        column_encodings.len(),
+                        column_roles.len(),
                     );
                 }
 
@@ -221,7 +231,10 @@ impl IngestService {
 
                     let mut channel_values = Vec::with_capacity(data_columns.len());
 
-                    for (col, encoding) in data_columns.iter().zip(column_encodings.iter()) {
+                    for (col, role) in data_columns.iter().zip(column_roles.iter()) {
+                        let Some(encoding) = role else {
+                            continue;
+                        };
                         let val = Self::channel_value_from_arrow_array(encoding, col, i)?;
                         channel_values.push(val);
                     }
