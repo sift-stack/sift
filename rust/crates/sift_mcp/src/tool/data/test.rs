@@ -1453,6 +1453,144 @@ fn unpersisted_output_is_removed_and_leaves_the_existing_file() {
     assert_eq!(dir_entries(&dir), vec![path]);
 }
 
+#[cfg(unix)]
+#[test]
+fn persist_through_a_symlink_replaces_the_target_and_keeps_the_link() {
+    let dir = TempDir::new("sift-mcp-output-symlink").expect("temp dir");
+    let target = dir.path().join("laptimes.parquet");
+    let link = dir.path().join("latest.parquet");
+    std::fs::write(&target, b"stale").expect("seed file");
+    std::os::unix::fs::symlink("laptimes.parquet", &link).expect("symlink");
+
+    let mut output = PendingOutput::create(&link).expect("symlinked output path");
+    output.file().write_all(b"fresh").expect("write");
+    output.persist().expect("persist");
+
+    let link_meta = std::fs::symlink_metadata(&link).expect("link metadata");
+    assert!(link_meta.file_type().is_symlink(), "the link was replaced");
+    assert_eq!(
+        std::fs::read_link(&link).expect("read link"),
+        PathBuf::from("laptimes.parquet")
+    );
+    assert_eq!(std::fs::read(&target).expect("read target"), b"fresh");
+    assert_eq!(dir_entries(&dir).len(), 2, "{:?}", dir_entries(&dir));
+}
+
+#[cfg(unix)]
+#[test]
+fn persist_through_a_dangling_symlink_creates_the_target() {
+    let dir = TempDir::new("sift-mcp-output-dangling").expect("temp dir");
+    let target = dir.path().join("runs").join("laptimes.parquet");
+    let link = dir.path().join("latest.parquet");
+    std::os::unix::fs::symlink(&target, &link).expect("symlink");
+
+    let mut output = PendingOutput::create(&link).expect("dangling output path");
+    output.file().write_all(b"fresh").expect("write");
+    output.persist().expect("persist");
+
+    assert!(
+        std::fs::symlink_metadata(&link)
+            .expect("link metadata")
+            .file_type()
+            .is_symlink()
+    );
+    assert_eq!(std::fs::read(&target).expect("read target"), b"fresh");
+}
+
+#[cfg(unix)]
+#[test]
+fn persist_keeps_the_permissions_of_the_file_it_replaces() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let dir = TempDir::new("sift-mcp-output-mode").expect("temp dir");
+    let path = dir.path().join("laptimes.parquet");
+    std::fs::write(&path, b"stale").expect("seed file");
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).expect("chmod");
+
+    let mut output = PendingOutput::create(&path).expect("existing output path");
+    output.file().write_all(b"fresh").expect("write");
+    output.persist().expect("persist");
+
+    let mode = std::fs::metadata(&path)
+        .expect("metadata")
+        .permissions()
+        .mode();
+    assert_eq!(mode & 0o777, 0o600);
+    assert_eq!(std::fs::read(&path).expect("read"), b"fresh");
+}
+
+/// The fetch succeeded but the file could not be moved into place. The error
+/// must still carry the channel report every other `get_data` failure carries.
+#[tokio::test]
+async fn get_data_persist_failure_keeps_the_channel_report() {
+    let mut channels = MockChannelServiceImpl::new();
+    channels.expect_list_channels().returning(|_| {
+        Ok(Response::new(ListChannelsResponse {
+            channels: vec![Channel {
+                channel_id: "ch-1".into(),
+                name: "pressure".into(),
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data().returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![double_page("ch-1", "pressure", vec![(1_000_000_000, 1.0)])],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let dir = TempDir::new("sift-mcp-persist-failure").expect("temp dir");
+    // A directory at `output` makes the final rename fail on every platform.
+    let output = dir.path().join("out.parquet");
+    std::fs::create_dir(&output).expect("directory at output");
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        channels,
+        MockRunServiceImpl::new(),
+        no_calculation_mock(),
+        data,
+    )
+    .await;
+
+    let err = server
+        .get_data(Parameters(GetDataParams {
+            asset_name: Some("bench".into()),
+            asset_id: None,
+            run_name: None,
+            start_time_unix_nanos: Some(0),
+            end_time_unix_nanos: Some(2_000_000_000),
+            sample_ms: 0,
+            channel_names: Some(vec!["pressure".into(), "presure".into()]),
+            channel_regex: None,
+            channel_id: None,
+            channel_ids: None,
+            output: output.clone(),
+        }))
+        .await
+        .expect_err("the output cannot be moved onto a directory");
+
+    assert!(
+        err.message.contains("failed to move output into place"),
+        "{}",
+        err.message
+    );
+    let data = err.data.expect("error must carry the channel report");
+    assert_eq!(data["empty_channels"], serde_json::json!([]));
+    assert_eq!(
+        data["unmatched_channel_names"],
+        serde_json::json!(["presure"])
+    );
+    assert_eq!(
+        dir_entries(&dir),
+        vec![output],
+        "the partial file was removed"
+    );
+}
+
 #[tokio::test]
 async fn get_data_leaves_no_file_when_the_data_call_fails() {
     let mut channels = MockChannelServiceImpl::new();
