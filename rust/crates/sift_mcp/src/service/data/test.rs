@@ -20,7 +20,7 @@ use tempdir::TempDir;
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
-use super::{ChannelInput, DataService, TimeRange};
+use super::{ChannelInput, DataService, GET_DATA_PAGE_SIZE, TimeRange};
 use crate::service::common::unix_nanos_to_secs_and_subsec_nanos;
 
 async fn service_with_mock(mock: MockDataServiceImpl) -> (DataService, JoinHandle<()>) {
@@ -322,6 +322,34 @@ async fn get_data_paginates_until_token_empty() {
         .flat_map(|b| b.column(0).as_primitive::<Int64Type>().values().to_vec())
         .collect();
     assert_eq!(timestamps, vec![1_000_000_000, 2_000_000_000]);
+}
+
+/// Every page costs a round trip, so `get_data` must request its own large
+/// page size rather than the small limit meant for list calls.
+#[tokio::test]
+async fn get_data_requests_large_pages() {
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data()
+        .times(1)
+        .withf(|req| req.get_ref().page_size == GET_DATA_PAGE_SIZE)
+        .returning(|_| {
+            Ok(Response::new(GetDataResponse {
+                data: vec![double_page("c1", "temp", vec![(1_000_000_000, 1.0)])],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    service
+        .get_data(
+            &[raw_channel("c1")],
+            asset_range(0, 3_000_000_000),
+            0,
+            &mut buffer,
+        )
+        .await
+        .expect("get_data failed");
 }
 
 #[tokio::test]

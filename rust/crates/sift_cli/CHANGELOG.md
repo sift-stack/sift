@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- `get_data` now requests 100,000 values per page instead of 200, so large pulls
+  take far fewer round trips and are much less likely to hit the MCP client's
+  request timeout.
+
 ## [v0.7.2] - September 29, 2026
 
 ### What's New
