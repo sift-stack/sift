@@ -40,13 +40,18 @@ use sift_rs::{
 
 use crate::policy::{RetryPolicy, with_retry};
 use crate::service::common::{
-    BIT_FIELD_METADATA_KEY, ColumnName, ENUM_METADATA_KEY, PAGE_SIZE, TS_COLUMN_NAME, name_list,
+    BIT_FIELD_METADATA_KEY, ColumnName, ENUM_METADATA_KEY, TS_COLUMN_NAME, name_list,
     secs_and_subsec_nanos_to_unix_nanos, unix_nanos_to_secs_and_subsec_nanos,
 };
 
 #[cfg(test)]
 mod test;
 
+/// Values requested per `GetData` page. The service caps each page at this many
+/// values across every query in the request, and each page is a round trip with
+/// fixed server-side overhead, so a small page turns one pull into thousands of
+/// sequential requests. 100,000 numeric values come to about 3 MB per page.
+const GET_DATA_PAGE_SIZE: u32 = 100_000;
 const ROW_FLUSH_THRESHOLD: usize = 1_000_000;
 const SIZE_FLUSH_THRESHOLD: usize = 64 << 20;
 
@@ -382,7 +387,7 @@ impl DataService {
                             queries,
                             start_time: Some(start_time),
                             end_time: Some(end_time),
-                            page_size: PAGE_SIZE,
+                            page_size: GET_DATA_PAGE_SIZE,
                             include_received_at: None,
                         })
                         .await
