@@ -1,5 +1,6 @@
 use std::{
     collections::HashSet,
+    ffi::OsString,
     fs::{self, File},
     path::{Path, PathBuf},
 };
@@ -29,20 +30,75 @@ use crate::{
     tool::common::{MetadataEntry, url_clause},
 };
 
-fn create_output_file(path: &Path) -> anyhow::Result<File> {
-    if let Some(parent) = path
-        .parent()
-        .filter(|parent| !parent.as_os_str().is_empty())
-    {
-        fs::create_dir_all(parent)
-            .with_context(|| format!("failed to create output directory `{}`", parent.display()))?;
+/// An output file written to a hidden sibling of its destination and moved into
+/// place by `persist`. Dropping it unpersisted, on an error or when a cancelled
+/// request drops the future, removes the partial file, so a failed call leaves
+/// nothing at the destination and an earlier result there survives.
+struct PendingOutput {
+    path: PathBuf,
+    temp_path: PathBuf,
+    file: Option<File>,
+    persisted: bool,
+}
+
+impl PendingOutput {
+    fn create(path: &Path) -> anyhow::Result<Self> {
+        let file_name = path
+            .file_name()
+            .with_context(|| format!("output path `{}` has no file name", path.display()))?;
+        if let Some(parent) = path
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+        {
+            fs::create_dir_all(parent).with_context(|| {
+                format!("failed to create output directory `{}`", parent.display())
+            })?;
+        }
+
+        let mut temp_name = OsString::from(".");
+        temp_name.push(file_name);
+        temp_name.push(format!(".{:016x}.partial", rand::random::<u64>()));
+        let temp_path = path.with_file_name(temp_name);
+
+        let file = File::options()
+            .write(true)
+            .create_new(true)
+            .open(&temp_path)
+            .context("failed to open output parquet file")?;
+
+        Ok(Self {
+            path: path.to_path_buf(),
+            temp_path,
+            file: Some(file),
+            persisted: false,
+        })
     }
-    File::options()
-        .create(true)
-        .write(true)
-        .truncate(true)
-        .open(path)
-        .context("failed to open output parquet file")
+
+    fn file(&mut self) -> &mut File {
+        self.file.as_mut().expect("file is open until persisted")
+    }
+
+    fn persist(mut self) -> anyhow::Result<()> {
+        // Close the handle first: Windows refuses to rename an open file.
+        drop(self.file.take());
+        fs::rename(&self.temp_path, &self.path).with_context(|| {
+            format!(
+                "failed to move output into place at `{}`",
+                self.path.display()
+            )
+        })?;
+        self.persisted = true;
+        Ok(())
+    }
+}
+
+impl Drop for PendingOutput {
+    fn drop(&mut self) {
+        if !self.persisted {
+            drop(self.file.take());
+            let _ = fs::remove_file(&self.temp_path);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -171,8 +227,9 @@ impl SiftMcpServer {
                 without name-based resolution or calculated-channel fallback.
               - `channel_ids`: optional non-empty array of exact raw channel IDs on the specified asset.
                 Selects only those registrations. Every ID must exist on the asset; duplicate IDs are queried once.
-              - `output`: filesystem path for the Parquet file. The file is opened in truncate mode; existing
-                contents are overwritten. The tool creates missing parent directories.
+              - `output`: filesystem path for the Parquet file. Replaced only when the call succeeds; a failed
+                or cancelled call leaves no file and keeps any existing one. The tool creates missing parent
+                directories.
 
             Errors:
               - `RESOURCE_NOT_FOUND` if the asset or run is missing, there are no matching channels, or any
@@ -505,14 +562,17 @@ impl SiftMcpServer {
             },
         };
 
-        let mut file = create_output_file(&output).map_err(from_anyhow)?;
+        let mut output_file = PendingOutput::create(&output).map_err(from_anyhow)?;
 
         let data_output = match self
             .data_service
-            .get_data(&channel_inputs, time_range, sample_ms, &mut file)
+            .get_data(&channel_inputs, time_range, sample_ms, output_file.file())
             .await
         {
-            Ok(output) => output,
+            Ok(data_output) => {
+                output_file.persist().map_err(from_anyhow)?;
+                data_output
+            }
             Err(err) => {
                 let empty_channels = err
                     .downcast_ref::<NoChannelData>()
@@ -653,8 +713,8 @@ impl SiftMcpServer {
                 identifier (e.g. `t`, `samples`).
               - `query`: Polars SQL query. The relation `table_name` is the only registered table. Supports
                 SELECT/WHERE/GROUP BY/ORDER BY/aggregates and the rest of standard SQL.
-              - `output`: filesystem path for the result Parquet file. The file is opened in truncate mode; existing
-                contents are overwritten. The tool creates missing parent directories.
+              - `output`: filesystem path for the result Parquet file. Replaced only when the query succeeds; a
+                failed call leaves no file and keeps any existing one. The tool creates missing parent directories.
 
             Errors:
               - `INVALID_PARAMS` if `inputs` is empty.
@@ -692,8 +752,9 @@ impl SiftMcpServer {
 
         let output_for_task = output.clone();
         tokio::task::spawn_blocking(move || -> anyhow::Result<()> {
-            let mut file = create_output_file(&output_for_task)?;
-            DataService::sql(inputs, &mut file, &table_name, &query)
+            let mut output_file = PendingOutput::create(&output_for_task)?;
+            DataService::sql(inputs, output_file.file(), &table_name, &query)?;
+            output_file.persist()
         })
         .await
         .map_err(|e| ErrorData::internal_error(format!("sql task panicked: {e}"), None))?
