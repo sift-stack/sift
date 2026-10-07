@@ -1063,7 +1063,7 @@ class McapComplexTypesImportMode(Enum):
 class McapDataColumn(DataColumnBase):
     """A single MCAP channel selection.
 
-    Channels are selected by topic and flattened field path, as returned by
+    Channels are selected by topicf and flattened field path, as returned by
     ``detect_config``. A variable-cardinality field is selected whole by its
     base path and imports per its ``data_type``: ``BYTES`` (Arrow IPC) or
     ``STRING`` (JSON), which ``complex_types_import_mode`` must allow.
