@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+## [v0.7.3] - October 7, 2026
+
+### What's New
+
 - `get_data` and `sql` no longer leave an empty Parquet file at `output` when a
   call fails. A failed call also keeps any existing file there.
 - `get_data` now requests 100,000 values per page instead of 200, so large pulls
