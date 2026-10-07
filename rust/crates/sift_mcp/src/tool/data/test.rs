@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{io::Write, path::PathBuf};
 
 use arrow::array::{Array, AsArray};
 use arrow::datatypes::Float64Type;
@@ -38,7 +38,7 @@ use tempdir::TempDir;
 use tokio::task::JoinHandle;
 use tonic::{Response, transport::Server};
 
-use super::{GetDataParams, create_output_file};
+use super::{GetDataParams, PendingOutput, SqlParams};
 use crate::{
     server::SiftMcpServer, service::common::PAGE_SIZE, tool::common::test_support::structured,
 };
@@ -1401,6 +1401,13 @@ async fn no_data_error_reports_both_the_empty_and_the_unmatched_channels() {
     );
 }
 
+fn dir_entries(dir: &TempDir) -> Vec<PathBuf> {
+    std::fs::read_dir(dir.path())
+        .expect("read dir")
+        .map(|entry| entry.expect("dir entry").path())
+        .collect()
+}
+
 #[test]
 fn output_file_creates_missing_parent_directories() {
     let dir = TempDir::new("sift-mcp-output-dirs").expect("temp dir");
@@ -1410,20 +1417,313 @@ fn output_file_creates_missing_parent_directories() {
         .join("monza")
         .join("laptimes.parquet");
 
-    create_output_file(&nested).expect("nested output path");
+    PendingOutput::create(&nested)
+        .expect("nested output path")
+        .persist()
+        .expect("persist");
 
     assert!(nested.exists());
 }
 
 #[test]
-fn output_file_truncates_an_existing_file() {
-    let dir = TempDir::new("sift-mcp-output-truncate").expect("temp dir");
+fn output_file_replaces_an_existing_file_on_persist() {
+    let dir = TempDir::new("sift-mcp-output-replace").expect("temp dir");
     let path = dir.path().join("laptimes.parquet");
     std::fs::write(&path, b"stale").expect("seed file");
 
-    create_output_file(&path).expect("existing output path");
+    let mut output = PendingOutput::create(&path).expect("existing output path");
+    output.file().write_all(b"fresh").expect("write");
+    output.persist().expect("persist");
 
-    assert_eq!(std::fs::metadata(&path).expect("metadata").len(), 0);
+    assert_eq!(std::fs::read(&path).expect("read"), b"fresh");
+    assert_eq!(dir_entries(&dir), vec![path]);
+}
+
+#[test]
+fn unpersisted_output_is_removed_and_leaves_the_existing_file() {
+    let dir = TempDir::new("sift-mcp-output-drop").expect("temp dir");
+    let path = dir.path().join("laptimes.parquet");
+    std::fs::write(&path, b"stale").expect("seed file");
+
+    let mut output = PendingOutput::create(&path).expect("existing output path");
+    output.file().write_all(b"partial").expect("write");
+    drop(output);
+
+    assert_eq!(std::fs::read(&path).expect("read"), b"stale");
+    assert_eq!(dir_entries(&dir), vec![path]);
+}
+
+#[cfg(unix)]
+#[test]
+fn persist_through_a_symlink_replaces_the_target_and_keeps_the_link() {
+    let dir = TempDir::new("sift-mcp-output-symlink").expect("temp dir");
+    let target = dir.path().join("laptimes.parquet");
+    let link = dir.path().join("latest.parquet");
+    std::fs::write(&target, b"stale").expect("seed file");
+    std::os::unix::fs::symlink("laptimes.parquet", &link).expect("symlink");
+
+    let mut output = PendingOutput::create(&link).expect("symlinked output path");
+    output.file().write_all(b"fresh").expect("write");
+    output.persist().expect("persist");
+
+    let link_meta = std::fs::symlink_metadata(&link).expect("link metadata");
+    assert!(link_meta.file_type().is_symlink(), "the link was replaced");
+    assert_eq!(
+        std::fs::read_link(&link).expect("read link"),
+        PathBuf::from("laptimes.parquet")
+    );
+    assert_eq!(std::fs::read(&target).expect("read target"), b"fresh");
+    assert_eq!(dir_entries(&dir).len(), 2, "{:?}", dir_entries(&dir));
+}
+
+#[cfg(unix)]
+#[test]
+fn persist_through_a_dangling_symlink_creates_the_target() {
+    let dir = TempDir::new("sift-mcp-output-dangling").expect("temp dir");
+    let target = dir.path().join("runs").join("laptimes.parquet");
+    let link = dir.path().join("latest.parquet");
+    std::os::unix::fs::symlink(&target, &link).expect("symlink");
+
+    let mut output = PendingOutput::create(&link).expect("dangling output path");
+    output.file().write_all(b"fresh").expect("write");
+    output.persist().expect("persist");
+
+    assert!(
+        std::fs::symlink_metadata(&link)
+            .expect("link metadata")
+            .file_type()
+            .is_symlink()
+    );
+    assert_eq!(std::fs::read(&target).expect("read target"), b"fresh");
+}
+
+#[cfg(unix)]
+#[test]
+fn persist_keeps_the_permissions_of_the_file_it_replaces() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let dir = TempDir::new("sift-mcp-output-mode").expect("temp dir");
+    let path = dir.path().join("laptimes.parquet");
+    std::fs::write(&path, b"stale").expect("seed file");
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).expect("chmod");
+
+    let mut output = PendingOutput::create(&path).expect("existing output path");
+    output.file().write_all(b"fresh").expect("write");
+    output.persist().expect("persist");
+
+    let mode = std::fs::metadata(&path)
+        .expect("metadata")
+        .permissions()
+        .mode();
+    assert_eq!(mode & 0o777, 0o600);
+    assert_eq!(std::fs::read(&path).expect("read"), b"fresh");
+}
+
+/// The fetch succeeded but the file could not be moved into place. The error
+/// must still carry the channel report every other `get_data` failure carries.
+#[tokio::test]
+async fn get_data_persist_failure_keeps_the_channel_report() {
+    let mut channels = MockChannelServiceImpl::new();
+    channels.expect_list_channels().returning(|_| {
+        Ok(Response::new(ListChannelsResponse {
+            channels: vec![Channel {
+                channel_id: "ch-1".into(),
+                name: "pressure".into(),
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data().returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![double_page("ch-1", "pressure", vec![(1_000_000_000, 1.0)])],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let dir = TempDir::new("sift-mcp-persist-failure").expect("temp dir");
+    // A directory at `output` makes the final rename fail on every platform.
+    let output = dir.path().join("out.parquet");
+    std::fs::create_dir(&output).expect("directory at output");
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        channels,
+        MockRunServiceImpl::new(),
+        no_calculation_mock(),
+        data,
+    )
+    .await;
+
+    let err = server
+        .get_data(Parameters(GetDataParams {
+            asset_name: Some("bench".into()),
+            asset_id: None,
+            run_name: None,
+            start_time_unix_nanos: Some(0),
+            end_time_unix_nanos: Some(2_000_000_000),
+            sample_ms: 0,
+            channel_names: Some(vec!["pressure".into(), "presure".into()]),
+            channel_regex: None,
+            channel_id: None,
+            channel_ids: None,
+            output: output.clone(),
+        }))
+        .await
+        .expect_err("the output cannot be moved onto a directory");
+
+    assert!(
+        err.message.contains("failed to move output into place"),
+        "{}",
+        err.message
+    );
+    let data = err.data.expect("error must carry the channel report");
+    assert_eq!(data["empty_channels"], serde_json::json!([]));
+    assert_eq!(
+        data["unmatched_channel_names"],
+        serde_json::json!(["presure"])
+    );
+    assert_eq!(
+        dir_entries(&dir),
+        vec![output],
+        "the partial file was removed"
+    );
+}
+
+#[tokio::test]
+async fn get_data_leaves_no_file_when_the_data_call_fails() {
+    let mut channels = MockChannelServiceImpl::new();
+    channels.expect_list_channels().returning(|_| {
+        Ok(Response::new(ListChannelsResponse {
+            channels: vec![Channel {
+                channel_id: "ch-1".into(),
+                name: "pressure".into(),
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data()
+        .returning(|_| Err(tonic::Status::internal("query failed")));
+
+    let dir = TempDir::new("sift-mcp-get-data-failure").expect("temp dir");
+    let (server, _h) = server_with_all_mocks(one_asset_mock(), channels, data).await;
+
+    server
+        .get_data(Parameters(GetDataParams {
+            asset_name: Some("bench".into()),
+            asset_id: None,
+            run_name: None,
+            start_time_unix_nanos: Some(0),
+            end_time_unix_nanos: Some(2_000_000_000),
+            sample_ms: 0,
+            channel_names: Some(vec!["pressure".into()]),
+            channel_regex: None,
+            channel_id: None,
+            channel_ids: None,
+            output: dir.path().join("out.parquet"),
+        }))
+        .await
+        .expect_err("the data call failed");
+
+    assert!(dir_entries(&dir).is_empty(), "{:?}", dir_entries(&dir));
+}
+
+/// A cancelled request drops the `get_data` future while the data call is in
+/// flight. Nothing it started writing may outlive it.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn get_data_leaves_no_file_when_the_request_is_cancelled() {
+    let mut channels = MockChannelServiceImpl::new();
+    channels.expect_list_channels().returning(|_| {
+        Ok(Response::new(ListChannelsResponse {
+            channels: vec![Channel {
+                channel_id: "ch-1".into(),
+                name: "pressure".into(),
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (started_tx, started_rx) = tokio::sync::oneshot::channel();
+    let started_tx = std::sync::Mutex::new(Some(started_tx));
+    let (release_tx, release_rx) = std::sync::mpsc::channel::<()>();
+    let release_rx = std::sync::Mutex::new(release_rx);
+
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data().returning(move |_| {
+        if let Some(tx) = started_tx.lock().unwrap().take() {
+            let _ = tx.send(());
+        }
+        // Hold the call open until the test has cancelled the request.
+        let _ = release_rx
+            .lock()
+            .unwrap()
+            .recv_timeout(std::time::Duration::from_secs(5));
+        Err(tonic::Status::internal("released after cancellation"))
+    });
+
+    let dir = TempDir::new("sift-mcp-get-data-cancel").expect("temp dir");
+    let output = dir.path().join("out.parquet");
+    let (server, _h) = server_with_all_mocks(one_asset_mock(), channels, data).await;
+
+    let params = Parameters(GetDataParams {
+        asset_name: Some("bench".into()),
+        asset_id: None,
+        run_name: None,
+        start_time_unix_nanos: Some(0),
+        end_time_unix_nanos: Some(2_000_000_000),
+        sample_ms: 0,
+        channel_names: Some(vec!["pressure".into()]),
+        channel_regex: None,
+        channel_id: None,
+        channel_ids: None,
+        output: output.clone(),
+    });
+    let request = tokio::spawn(async move { server.get_data(params).await });
+
+    started_rx.await.expect("data call started");
+    assert!(
+        !output.exists(),
+        "output must not appear before the call succeeds"
+    );
+    assert_eq!(
+        dir_entries(&dir).len(),
+        1,
+        "the partial file is in progress"
+    );
+
+    request.abort();
+    assert!(request.await.expect_err("aborted").is_cancelled());
+    let _ = release_tx.send(());
+
+    assert!(dir_entries(&dir).is_empty(), "{:?}", dir_entries(&dir));
+}
+
+#[tokio::test]
+async fn sql_leaves_no_file_when_the_query_fails() {
+    let dir = TempDir::new("sift-mcp-sql-failure").expect("temp dir");
+    let (server, _h) = server_with_all_mocks(
+        MockAssetServiceImpl::new(),
+        MockChannelServiceImpl::new(),
+        MockDataServiceImpl::new(),
+    )
+    .await;
+
+    server
+        .sql(Parameters(SqlParams {
+            inputs: vec![dir.path().join("missing.parquet")],
+            table_name: "t".into(),
+            query: "SELECT * FROM t".into(),
+            output: dir.path().join("out.parquet"),
+        }))
+        .await
+        .expect_err("the input does not exist");
+
+    assert!(dir_entries(&dir).is_empty(), "{:?}", dir_entries(&dir));
 }
 
 #[tokio::test]

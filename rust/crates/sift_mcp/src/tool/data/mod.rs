@@ -1,6 +1,8 @@
 use std::{
     collections::HashSet,
+    ffi::OsString,
     fs::{self, File},
+    io::ErrorKind,
     path::{Path, PathBuf},
 };
 
@@ -29,20 +31,122 @@ use crate::{
     tool::common::{MetadataEntry, url_clause},
 };
 
-fn create_output_file(path: &Path) -> anyhow::Result<File> {
-    if let Some(parent) = path
-        .parent()
-        .filter(|parent| !parent.as_os_str().is_empty())
-    {
-        fs::create_dir_all(parent)
-            .with_context(|| format!("failed to create output directory `{}`", parent.display()))?;
+/// Matches the usual `ELOOP` limit, so a symlink cycle fails instead of spinning.
+const MAX_SYMLINK_HOPS: usize = 40;
+
+/// An output file written to a hidden sibling of its destination and moved into
+/// place by `persist`. Dropping it unpersisted, on an error or when the request
+/// future is dropped, removes the partial file, so a failed call leaves nothing
+/// at the destination and an earlier result there survives.
+struct PendingOutput {
+    path: PathBuf,
+    temp_path: PathBuf,
+    file: Option<File>,
+    persisted: bool,
+}
+
+impl PendingOutput {
+    fn create(path: &Path) -> anyhow::Result<Self> {
+        // Write next to the file a symlink names, not next to the link, so the
+        // rename replaces the target and the link survives.
+        let path = resolve_symlinks(path)?;
+        let file_name = path
+            .file_name()
+            .with_context(|| format!("output path `{}` has no file name", path.display()))?;
+        if let Some(parent) = path
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+        {
+            fs::create_dir_all(parent).with_context(|| {
+                format!("failed to create output directory `{}`", parent.display())
+            })?;
+        }
+
+        let mut temp_name = OsString::from(".");
+        temp_name.push(file_name);
+        temp_name.push(format!(".{:016x}.partial", rand::random::<u64>()));
+        let temp_path = path.with_file_name(temp_name);
+
+        let file = File::options()
+            .write(true)
+            .create_new(true)
+            .open(&temp_path)
+            .context("failed to open output parquet file")?;
+
+        Ok(Self {
+            path,
+            temp_path,
+            file: Some(file),
+            persisted: false,
+        })
     }
-    File::options()
-        .create(true)
-        .write(true)
-        .truncate(true)
-        .open(path)
-        .context("failed to open output parquet file")
+
+    fn file(&mut self) -> &mut File {
+        self.file.as_mut().expect("file is open until persisted")
+    }
+
+    fn persist(mut self) -> anyhow::Result<()> {
+        if let Some(file) = self.file.take() {
+            // Some filesystems can commit the rename before the data, so a
+            // crash right after it would leave an empty or truncated output.
+            file.sync_all()
+                .context("failed to flush output parquet file to disk")?;
+            // Closed before the rename: Windows refuses to rename an open file.
+        }
+
+        // Keep the mode of the file being replaced. Ownership and ACLs are not
+        // carried over: changing them needs privileges the server lacks.
+        match fs::metadata(&self.path) {
+            Ok(existing) => fs::set_permissions(&self.temp_path, existing.permissions())
+                .context("failed to copy permissions from the existing output file")?,
+            Err(err) if err.kind() == ErrorKind::NotFound => {}
+            Err(err) => {
+                return Err(err).with_context(|| {
+                    format!("failed to read existing output `{}`", self.path.display())
+                });
+            }
+        }
+
+        fs::rename(&self.temp_path, &self.path).with_context(|| {
+            format!(
+                "failed to move output into place at `{}`",
+                self.path.display()
+            )
+        })?;
+        self.persisted = true;
+        Ok(())
+    }
+}
+
+/// Follows `path` through any symlinks to the file they name. A dangling link
+/// resolves to its missing target, which the write then creates, as opening the
+/// link for writing would have.
+fn resolve_symlinks(path: &Path) -> anyhow::Result<PathBuf> {
+    let mut resolved = path.to_path_buf();
+    for _ in 0..MAX_SYMLINK_HOPS {
+        match fs::symlink_metadata(&resolved) {
+            Ok(meta) if meta.file_type().is_symlink() => {
+                let target = fs::read_link(&resolved)
+                    .with_context(|| format!("failed to read symlink `{}`", resolved.display()))?;
+                // `join` keeps an absolute target as is.
+                resolved = match resolved.parent() {
+                    Some(parent) => parent.join(target),
+                    None => target,
+                };
+            }
+            _ => return Ok(resolved),
+        }
+    }
+    anyhow::bail!("too many levels of symbolic links at `{}`", path.display())
+}
+
+impl Drop for PendingOutput {
+    fn drop(&mut self) {
+        if !self.persisted {
+            drop(self.file.take());
+            let _ = fs::remove_file(&self.temp_path);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -171,8 +275,9 @@ impl SiftMcpServer {
                 without name-based resolution or calculated-channel fallback.
               - `channel_ids`: optional non-empty array of exact raw channel IDs on the specified asset.
                 Selects only those registrations. Every ID must exist on the asset; duplicate IDs are queried once.
-              - `output`: filesystem path for the Parquet file. The file is opened in truncate mode; existing
-                contents are overwritten. The tool creates missing parent directories.
+              - `output`: filesystem path for the Parquet file. Replaced only when the call succeeds; a failed
+                call leaves no partial file and keeps any existing one. The tool creates missing parent
+                directories.
 
             Errors:
               - `RESOURCE_NOT_FOUND` if the asset or run is missing, there are no matching channels, or any
@@ -505,32 +610,40 @@ impl SiftMcpServer {
             },
         };
 
-        let mut file = create_output_file(&output).map_err(from_anyhow)?;
+        // A failure here says nothing about channels that were never queried,
+        // so carry the report into it. Otherwise an empty window reads as "the
+        // asset has no data" when part of the request never resolved.
+        let gap_error = |err: anyhow::Error, empty_channels: Option<Vec<String>>| {
+            let err = match unresolved_report.as_ref() {
+                Some(report) => err.context(report.clone()),
+                None => err,
+            };
+            let mut error = from_anyhow(err);
+            error.data = gap_report(empty_channels, &unmatched_channel_names);
+            error
+        };
+
+        let mut output_file = PendingOutput::create(&output).map_err(from_anyhow)?;
 
         let data_output = match self
             .data_service
-            .get_data(&channel_inputs, time_range, sample_ms, &mut file)
+            .get_data(&channel_inputs, time_range, sample_ms, output_file.file())
             .await
         {
-            Ok(output) => output,
+            Ok(data_output) => data_output,
             Err(err) => {
                 let empty_channels = err
                     .downcast_ref::<NoChannelData>()
                     .map(|no_data| no_data.empty_channels.clone());
-                let err = err.context("get data call failure - data_router");
-                // A failure here says nothing about channels that were never
-                // queried, so carry the report into it. Otherwise an empty window
-                // reads as "the asset has no data" when part of the request never
-                // resolved.
-                let err = match unresolved_report.as_ref() {
-                    Some(report) => err.context(report.clone()),
-                    None => err,
-                };
-                let mut error = from_anyhow(err);
-                error.data = gap_report(empty_channels, &unmatched_channel_names);
-                return Err(error);
+                return Err(gap_error(
+                    err.context("get data call failure - data_router"),
+                    empty_channels,
+                ));
             }
         };
+        output_file
+            .persist()
+            .map_err(|err| gap_error(err, Some(data_output.empty_channels.clone())))?;
 
         let output_str = output.to_string_lossy().into_owned();
 
@@ -653,8 +766,8 @@ impl SiftMcpServer {
                 identifier (e.g. `t`, `samples`).
               - `query`: Polars SQL query. The relation `table_name` is the only registered table. Supports
                 SELECT/WHERE/GROUP BY/ORDER BY/aggregates and the rest of standard SQL.
-              - `output`: filesystem path for the result Parquet file. The file is opened in truncate mode; existing
-                contents are overwritten. The tool creates missing parent directories.
+              - `output`: filesystem path for the result Parquet file. Replaced only when the query succeeds; a
+                failed call leaves no file and keeps any existing one. The tool creates missing parent directories.
 
             Errors:
               - `INVALID_PARAMS` if `inputs` is empty.
@@ -692,8 +805,9 @@ impl SiftMcpServer {
 
         let output_for_task = output.clone();
         tokio::task::spawn_blocking(move || -> anyhow::Result<()> {
-            let mut file = create_output_file(&output_for_task)?;
-            DataService::sql(inputs, &mut file, &table_name, &query)
+            let mut output_file = PendingOutput::create(&output_for_task)?;
+            DataService::sql(inputs, output_file.file(), &table_name, &query)?;
+            output_file.persist()
         })
         .await
         .map_err(|e| ErrorData::internal_error(format!("sql task panicked: {e}"), None))?
