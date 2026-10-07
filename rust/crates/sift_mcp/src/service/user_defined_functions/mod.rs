@@ -48,9 +48,9 @@ impl UserDefinedFunctionService {
         &self,
         filter: String,
         order_by: Option<String>,
-        limit: Option<u32>,
+        limit: impl Into<common::Limit>,
     ) -> Result<common::Page<UserDefinedFunction>> {
-        let (page_size, record_limit) = common::paging(limit);
+        let (page_size, record_limit) = limit.into().paging();
 
         let mut page_token = String::new();
         let mut results = Vec::new();

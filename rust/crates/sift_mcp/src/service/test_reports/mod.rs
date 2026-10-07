@@ -120,10 +120,10 @@ impl TestReportService {
         &self,
         filter: String,
         order_by: Option<String>,
-        limit: Option<u32>,
+        limit: impl Into<common::Limit>,
     ) -> Result<common::Page<TestReport>> {
         let filter = normalize_enum_filter(&filter);
-        let (page_size, record_limit) = common::paging(limit);
+        let (page_size, record_limit) = limit.into().paging();
         let order_by = order_by.unwrap_or_default();
         let mut page_token = String::new();
         let mut results = Vec::new();

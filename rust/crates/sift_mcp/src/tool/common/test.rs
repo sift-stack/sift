@@ -1,4 +1,5 @@
-use super::{ListParams, list_body, project_fields, url_clause};
+use super::{ListParams, count_body, list_body, list_limit, project_fields, url_clause};
+use crate::service::common::Limit;
 use serde_json::{Value, json};
 
 /// `filter` is deliberately required on list tools: the caller must choose a
@@ -20,6 +21,32 @@ fn list_params_accept_empty_filter() {
         serde_json::from_value(serde_json::json!({ "filter": "" })).expect("empty filter is valid");
     assert_eq!(params.filter, "");
     assert_eq!(params.limit, None);
+}
+
+#[test]
+fn list_params_accept_count_only() {
+    let params: ListParams =
+        serde_json::from_value(serde_json::json!({ "filter": "", "count_only": true }))
+            .expect("count_only is valid");
+    assert_eq!(params.count_only, Some(true));
+}
+
+#[test]
+fn list_limit_selects_count_only_when_set() {
+    assert!(matches!(list_limit(Some(5), Some(true)), Limit::Count));
+    assert!(matches!(
+        list_limit(Some(5), Some(false)),
+        Limit::Records(Some(5))
+    ));
+    assert!(matches!(list_limit(None, None), Limit::Records(None)));
+}
+
+#[test]
+fn count_body_carries_only_the_count() {
+    assert_eq!(
+        count_body(450, false),
+        json!({ "count": 450, "has_more": false })
+    );
 }
 
 #[test]

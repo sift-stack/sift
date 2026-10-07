@@ -11,6 +11,11 @@ pub const PAGE_SIZE: u32 = 200;
 /// the `list_*` tool descriptions advise, so a caller that ignores that advice
 /// cannot trigger an unbounded query.
 pub const DEFAULT_LIMIT: u32 = 50;
+/// Record limit for a count. A count pages through matches without returning
+/// them, so it can go past [`PAGE_SIZE`], but it still stops here so that one
+/// call cannot page without bound. The `count_only` bullet in each list tool
+/// description states this value.
+pub const COUNT_LIMIT: usize = 10_000;
 pub const BIT_FIELD_METADATA_KEY: &str = "bit_field_elements";
 pub const ENUM_METADATA_KEY: &str = "enum_config";
 pub const TS_COLUMN_NAME: &str = "timestamp_unix_nanos";
@@ -55,6 +60,31 @@ pub fn name_list(names: &[String]) -> String {
 pub fn paging(limit: Option<u32>) -> (u32, usize) {
     let limit = limit.unwrap_or(DEFAULT_LIMIT).clamp(1, PAGE_SIZE);
     (limit, limit as usize)
+}
+
+/// How many matches a list call collects.
+#[derive(Debug, Clone, Copy)]
+pub enum Limit {
+    /// Return up to `limit` records, clamped by [`paging`].
+    Records(Option<u32>),
+    /// Collect matches up to [`COUNT_LIMIT`] so the caller can count them.
+    Count,
+}
+
+impl From<Option<u32>> for Limit {
+    fn from(limit: Option<u32>) -> Self {
+        Self::Records(limit)
+    }
+}
+
+impl Limit {
+    /// Returns page size and record limit.
+    pub fn paging(self) -> (u32, usize) {
+        match self {
+            Self::Records(limit) => paging(limit),
+            Self::Count => (PAGE_SIZE, COUNT_LIMIT),
+        }
+    }
 }
 
 /// Escapes a value for interpolation into a double-quoted CEL string literal.

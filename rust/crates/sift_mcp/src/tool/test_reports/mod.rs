@@ -11,7 +11,7 @@ use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::test_reports::spec::{self, ReportSpec},
-    tool::common::{ListParams, list_body, to_values, url_clause},
+    tool::common::{ListParams, count_body, list_body, list_limit, to_values, url_clause},
 };
 
 #[cfg(test)]
@@ -62,6 +62,7 @@ impl SiftMcpServer {
               - `has_more`: `true` when the service hit `limit` with matches left over, so
                 this page is not the whole set. Never report `count` as a total while
                 `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
+                To learn how many items match, set `count_only`.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
@@ -89,6 +90,10 @@ impl SiftMcpServer {
                 says nothing about whether a name was spelled right.
                 Reach for this whenever you need only a few fields: full objects are wide,
                 and a large listing can exceed the response size limit without it.
+              - `count_only`: set `true` to count matches instead of listing them. The tool pages
+                through every match and returns only `{ \"count\": N, \"has_more\": bool }`. `limit`
+                and `fields` are ignored. The count stops at 10000: if `has_more` is `true`, at least
+                that many match. Use it when the user asks how many items match.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an unknown field.
@@ -108,13 +113,21 @@ impl SiftMcpServer {
             order_by,
             limit,
             fields,
+            count_only,
         }) = params;
 
         let page = self
             .test_report_service
-            .list_test_reports(filter, order_by, limit)
+            .list_test_reports(filter, order_by, list_limit(limit, count_only))
             .await
             .map_err(from_anyhow)?;
+
+        if count_only == Some(true) {
+            return Ok(CallToolResult::structured(count_body(
+                page.items.len(),
+                page.has_more,
+            )));
+        }
 
         let test_reports = to_values(&page.items)?;
 
@@ -145,6 +158,7 @@ impl SiftMcpServer {
               - `has_more`: `true` when the service hit `limit` with matches left over, so
                 this page is not the whole set. Never report `count` as a total while
                 `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
+                To learn how many items match, set `count_only`.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything (rarely useful; almost always
@@ -172,6 +186,9 @@ impl SiftMcpServer {
                 says nothing about whether a name was spelled right.
                 Reach for this whenever you need only a few fields: full objects are wide,
                 and a large listing can exceed the response size limit without it.
+              - `count_only`: set `true` to return only the exact number of matching steps as
+                `{ \"count\": N, \"has_more\": false }`. `order_by`, `limit`, and `fields` are ignored.
+                The count is the same as `count_test_steps`.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an unknown field.
@@ -189,7 +206,17 @@ impl SiftMcpServer {
             order_by,
             limit,
             fields,
+            count_only,
         }) = params;
+
+        if count_only == Some(true) {
+            let count = self
+                .test_report_service
+                .count_test_steps(filter)
+                .await
+                .map_err(from_anyhow)?;
+            return Ok(CallToolResult::structured(count_body(count, false)));
+        }
 
         let page = self
             .test_report_service
@@ -227,6 +254,7 @@ impl SiftMcpServer {
               - `has_more`: `true` when the service hit `limit` with matches left over, so
                 this page is not the whole set. Never report `count` as a total while
                 `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
+                To learn how many items match, set `count_only`.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything (almost always scope by
@@ -253,6 +281,9 @@ impl SiftMcpServer {
                 says nothing about whether a name was spelled right.
                 Reach for this whenever you need only a few fields: full objects are wide,
                 and a large listing can exceed the response size limit without it.
+              - `count_only`: set `true` to return only the exact number of matching measurements as
+                `{ \"count\": N, \"has_more\": false }`. `order_by`, `limit`, and `fields` are ignored.
+                The count is the same as `count_test_measurements`.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an unknown field.
@@ -270,7 +301,17 @@ impl SiftMcpServer {
             order_by,
             limit,
             fields,
+            count_only,
         }) = params;
+
+        if count_only == Some(true) {
+            let count = self
+                .test_report_service
+                .count_test_measurements(filter)
+                .await
+                .map_err(from_anyhow)?;
+            return Ok(CallToolResult::structured(count_body(count, false)));
+        }
 
         let page = self
             .test_report_service

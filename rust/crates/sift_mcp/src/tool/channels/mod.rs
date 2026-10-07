@@ -3,7 +3,7 @@ use rmcp::{handler::server::wrapper::Parameters, model::CallToolResult, tool, to
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
-    tool::common::{ListParams, list_body, to_values},
+    tool::common::{ListParams, count_body, list_body, list_limit, to_values},
 };
 
 #[cfg(test)]
@@ -26,6 +26,7 @@ impl SiftMcpServer {
               - `has_more`: `true` when the service hit `limit` with matches left over, so
                 this page is not the whole set. Never report `count` as a total while
                 `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
+                To learn how many items match, set `count_only`.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
@@ -48,6 +49,10 @@ impl SiftMcpServer {
                 says nothing about whether a name was spelled right.
                 Reach for this whenever you need only a few fields: full objects are wide,
                 and a large listing can exceed the response size limit without it.
+              - `count_only`: set `true` to count matches instead of listing them. The tool pages
+                through every match and returns only `{ \"count\": N, \"has_more\": bool }`. `limit`
+                and `fields` are ignored. The count stops at 10000: if `has_more` is `true`, at least
+                that many match. Use it when the user asks how many items match.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression or `order_by` references an unknown field.
@@ -66,13 +71,21 @@ impl SiftMcpServer {
             order_by,
             limit,
             fields,
+            count_only,
         }) = params;
 
         let page = self
             .channel_service
-            .list_channels(filter, order_by, limit)
+            .list_channels(filter, order_by, list_limit(limit, count_only))
             .await
             .map_err(from_anyhow)?;
+
+        if count_only == Some(true) {
+            return Ok(CallToolResult::structured(count_body(
+                page.items.len(),
+                page.has_more,
+            )));
+        }
 
         let channels = to_values(&page.items)?;
 

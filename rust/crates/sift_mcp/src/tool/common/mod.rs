@@ -6,6 +6,8 @@ use sift_rs::metadata::v1::{
     MetadataKey, MetadataKeyType, MetadataValue, metadata_value::Value as MetadataValueInner,
 };
 
+use crate::service::common::Limit;
+
 /// Shared parameters for the simple `list_*` tools (assets, runs, channels).
 /// Resources with extra knobs (e.g. reports' `organization_id`) define their own
 /// params struct in their domain module.
@@ -15,6 +17,26 @@ pub struct ListParams {
     pub(crate) order_by: Option<String>,
     pub(crate) limit: Option<u32>,
     pub(crate) fields: Option<Vec<String>>,
+    pub(crate) count_only: Option<bool>,
+}
+
+/// The service limit for a `list_*` call. `count_only` overrides `limit`.
+pub(crate) fn list_limit(limit: Option<u32>, count_only: Option<bool>) -> Limit {
+    if count_only == Some(true) {
+        Limit::Count
+    } else {
+        Limit::Records(limit)
+    }
+}
+
+/// The body of a `count_only` listing: the number of matches and no items.
+/// `has_more` is `true` when the count stopped at [`COUNT_LIMIT`], so the count
+/// is a lower bound.
+///
+/// [`COUNT_LIMIT`]: crate::service::common::COUNT_LIMIT
+pub(crate) fn count_body(count: impl Into<Value>, has_more: bool) -> Value {
+    let count = count.into();
+    serde_json::json!({ "count": count, "has_more": has_more })
 }
 
 /// A single metadata scalar as it arrives over the wire. Flat (untagged) so the
@@ -238,6 +260,7 @@ pub(crate) mod test_support {
             order_by: None,
             limit,
             fields: None,
+            count_only: None,
         })
     }
 
@@ -248,6 +271,7 @@ pub(crate) mod test_support {
             order_by: None,
             limit: None,
             fields: Some(fields.iter().map(|f| (*f).to_string()).collect()),
+            count_only: None,
         })
     }
 

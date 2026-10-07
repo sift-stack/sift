@@ -131,10 +131,12 @@ tool.
 - **Search a list.** Filter with a pattern rather than an exact match. Each
   tool's description names its own filterable fields. When the request is too
   vague to filter on, sample with a small `limit` and ask the user to narrow
-  it. For `list_channels`, request only the fields needed (usually `name` and
-  `dataType`) on the first call; do not fetch the full payload and retry. Never
-  invent or guess a channel selection for a downstream call: if the user's
-  request is ambiguous, ask which verified channel they mean.
+  it. To answer how many items match, pass `count_only: true` instead of
+  counting a capped page. For `list_channels`, request only the fields needed
+  (usually `name` and `dataType`) on the first call; do not fetch the full
+  payload and retry. Never invent or guess a channel selection for a
+  downstream call: if the user's request is ambiguous, ask which verified
+  channel they mean.
 - **Attribute something to a person.** Resolve the person with `list_users`,
   then filter another list on `created_by_user_id`. For "runs I created", pass
   `me: true`. Never guess which listed user is the caller.

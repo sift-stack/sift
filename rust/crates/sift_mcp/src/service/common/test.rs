@@ -1,4 +1,4 @@
-use super::{ColumnName, DEFAULT_LIMIT, PAGE_SIZE, paging};
+use super::{COUNT_LIMIT, ColumnName, DEFAULT_LIMIT, Limit, PAGE_SIZE, paging};
 
 #[test]
 fn paging_uses_default_limit_when_unset() {
@@ -22,6 +22,19 @@ fn paging_clamps_limit_above_page_size() {
 #[test]
 fn paging_clamps_zero_limit_to_one() {
     assert_eq!(paging(Some(0)), (1, 1));
+}
+
+#[test]
+fn limit_records_matches_paging() {
+    assert_eq!(Limit::from(None).paging(), paging(None));
+    assert_eq!(Limit::from(Some(125)).paging(), paging(Some(125)));
+    assert_eq!(Limit::from(Some(50_000)).paging(), paging(Some(50_000)));
+}
+
+#[test]
+fn limit_count_pages_at_max_size_up_to_count_limit() {
+    assert_eq!(COUNT_LIMIT, 10_000);
+    assert_eq!(Limit::Count.paging(), (PAGE_SIZE, COUNT_LIMIT));
 }
 
 #[test]

@@ -10,6 +10,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - `get_data` now requests 100,000 values per page instead of 200, so large pulls
   take far fewer round trips and are much less likely to hit the MCP client's
   request timeout.
+- Most MCP `list_*` tools, including `list_rules`, `list_assets`, `list_runs`,
+  and `list_channels`, now take `count_only`. It returns how many items match
+  the filter, past the 200-item list cap, without returning the items.
 
 ## [v0.7.2] - September 29, 2026
 

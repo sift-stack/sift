@@ -499,6 +499,9 @@ When you add or update a list tool:
    - Limit: describe the clamp in `service::common::paging`. Any value is bounded to `1..=200`,
      and omitting `limit` falls back to `DEFAULT_LIMIT` (50), so no call is ever unbounded. This
      differs from the proto's raw `page_size` (it caps higher for some services).
+   - Count: a tool that takes the shared `ListParams` also takes `count_only`. Pass
+     `list_limit(limit, count_only)` to the service and return `count_body` when it is set, or the
+     flag is silently ignored. If the proto has a `Count<Resource>` RPC, call it instead.
 4. **Re-read the proto whenever the resource changes.** If a filterable or orderable field is
    added to the proto, update the tool description in the same change. A stale description is
    worse than a missing one, because agents trust it.

@@ -10,7 +10,7 @@ use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
 use super::RuleService;
-use crate::service::common::DEFAULT_LIMIT;
+use crate::service::common::{COUNT_LIMIT, DEFAULT_LIMIT, Limit, PAGE_SIZE};
 
 async fn service_with_mock(mock: MockRuleServiceImpl) -> (RuleService, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
@@ -82,6 +82,92 @@ async fn list_rules_forwards_order_by() {
         .items;
 
     assert_eq!(rules.len(), 1);
+}
+
+fn rules(count: usize) -> Vec<Rule> {
+    (0..count)
+        .map(|i| Rule {
+            rule_id: format!("rule{i}"),
+            ..Default::default()
+        })
+        .collect()
+}
+
+#[tokio::test]
+async fn list_rules_count_pages_through_every_match() {
+    let mut mock = MockRuleServiceImpl::new();
+    mock.expect_list_rules()
+        .times(3)
+        .withf(|req| {
+            let req = req.get_ref();
+            req.filter == "is_archived == false" && req.page_size == PAGE_SIZE
+        })
+        .returning(|req| {
+            let (rules, next) = match req.get_ref().page_token.as_str() {
+                "" => (rules(200), "page-2"),
+                "page-2" => (rules(200), "page-3"),
+                _ => (rules(50), ""),
+            };
+            Ok(Response::new(ListRulesResponse {
+                rules,
+                next_page_token: next.to_string(),
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let page = service
+        .list_rules("is_archived == false".to_string(), None, Limit::Count)
+        .await
+        .expect("list_rules failed");
+
+    assert_eq!(page.items.len(), 450);
+    assert!(!page.has_more);
+}
+
+#[tokio::test]
+async fn list_rules_count_stops_at_count_limit() {
+    let mut mock = MockRuleServiceImpl::new();
+    mock.expect_list_rules().returning(|_| {
+        Ok(Response::new(ListRulesResponse {
+            rules: rules(PAGE_SIZE as usize),
+            next_page_token: "more".to_string(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let page = service
+        .list_rules(String::new(), None, Limit::Count)
+        .await
+        .expect("list_rules failed");
+
+    assert_eq!(page.items.len(), COUNT_LIMIT);
+    assert!(page.has_more);
+}
+
+#[tokio::test]
+async fn list_rules_default_limit_is_unchanged() {
+    let mut mock = MockRuleServiceImpl::new();
+    mock.expect_list_rules()
+        .times(1)
+        .withf(|req| req.get_ref().page_size == DEFAULT_LIMIT)
+        .returning(|_| {
+            Ok(Response::new(ListRulesResponse {
+                rules: rules(DEFAULT_LIMIT as usize),
+                next_page_token: "more".to_string(),
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let page = service
+        .list_rules(String::new(), None, None)
+        .await
+        .expect("list_rules failed");
+
+    assert_eq!(page.items.len(), DEFAULT_LIMIT as usize);
+    assert!(page.has_more);
 }
 
 #[tokio::test]
