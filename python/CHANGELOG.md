@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.23.1] - October 8, 2026
+
+- Test-results steps updated out of order now have their statuses corrected before the report is finalized, with a `SiftReportLifecycleWarning`. ([#821](https://github.com/sift-stack/sift/pull/821))
+
 ## [v0.23.0] - October 1, 2026
 
 - Fix issue where a test-results log containing an update that named no fields could never finish importing. Re-run `import-test-result-log` to finish a log written by an earlier version. ([#809](https://github.com/sift-stack/sift/pull/809))
