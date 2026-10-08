@@ -17,10 +17,12 @@ remaining gaps are visible without running the suite.
 from __future__ import annotations
 
 import textwrap
+import warnings
 
 import pytest
 
 from sift_client._tests.pytest_plugin import _step_status_capture as capture
+from sift_client.errors import SiftReportLifecycleWarning
 from sift_client.sift_types.test_report import TestStatus
 
 pytest_plugins = ["pytester"]
@@ -731,7 +733,7 @@ def test_session_abort_rolls_up_to_parents(inner):
     assert substep.statuses[-1] == TestStatus.FAILED
     assert klass.statuses[-1] == TestStatus.FAILED
     # The module step is the shallowest; it inherits the failure too.
-    module = min(capture._steps().values(), key=lambda s: s.step_path.count("."))
+    module = capture.module_step()
     assert module.statuses[-1] == TestStatus.FAILED
 
 
@@ -761,7 +763,7 @@ def test_keyboard_interrupt_rolls_up_to_parents(inner):
     assert leaf.statuses[-1] == TestStatus.ABORTED
     assert substep.statuses[-1] == TestStatus.FAILED
     assert klass.statuses[-1] == TestStatus.ABORTED
-    module = min(capture._steps().values(), key=lambda s: s.step_path.count("."))
+    module = capture.module_step()
     assert module.statuses[-1] == TestStatus.ABORTED
 
 
@@ -787,5 +789,127 @@ def test_abort_helper_rolls_up_aborted(inner):
     assert klass is not None
     assert leaf.statuses[-1] == TestStatus.ABORTED
     assert klass.statuses[-1] == TestStatus.ABORTED
-    module = min(capture._steps().values(), key=lambda s: s.step_path.count("."))
+    module = capture.module_step()
     assert module.statuses[-1] == TestStatus.ABORTED
+
+
+# ---------------------------------------------------------------------------
+# Steps used after their ``with`` block exited
+# ---------------------------------------------------------------------------
+
+
+def test_late_failure_corrects_closed_step_and_ancestors(inner):
+    # Case: API-10
+    _run(
+        inner,
+        """
+        def test_x(step):
+            with step.substep(name="inner") as s:
+                pass
+            s.measure(name="m", value=10.0, bounds={"min": 0.0, "max": 5.0})
+        """,
+    )
+    # The substep already resolved PASSED on close, so nothing was left to read
+    # the failure flag; it is corrected in place instead. The chain above it is
+    # still open at that point and resolves FAILED through the normal path, so
+    # the roll-up reaches the module step rather than only the report.
+    substep = next(iter(capture.steps_by_name("inner")), None)
+    assert substep is not None
+    assert substep.statuses[-2:] == [TestStatus.PASSED, TestStatus.FAILED]
+    assert capture.final_status("test_x") == TestStatus.FAILED
+    module = capture.module_step()
+    assert module.statuses[-1] == TestStatus.FAILED
+
+
+def test_late_passing_measurement_leaves_statuses_alone(inner):
+    # Case: API-11
+    _run(
+        inner,
+        """
+        def test_x(step):
+            with step.substep(name="inner") as s:
+                pass
+            s.measure(name="m", value=1.0, bounds={"min": 0.0, "max": 5.0})
+        """,
+    )
+    # The same mis-ordering with an in-bounds value: the measurement attaches to
+    # the right step and there is nothing to correct. Only the warning separates
+    # this from API-10, which is why it fires on the ordering and not the outcome.
+    substep = next(iter(capture.steps_by_name("inner")), None)
+    assert substep is not None
+    assert substep.statuses[-1] == TestStatus.PASSED
+    assert capture.final_status("test_x") == TestStatus.PASSED
+
+
+@pytest.fixture
+def simulate_context():
+    """A real ``ReportContext`` on the ``--sift-disabled`` simulate path.
+
+    Exercises the actual ``TestStep`` objects and statuses without contacting Sift.
+    """
+    from sift_client._internal.pytest_plugin.report import build_disabled_client
+    from sift_client.util.test_results import ReportContext
+
+    return ReportContext(build_disabled_client(), name="n", log_file=False)
+
+
+@pytest.fixture
+def closed_step(simulate_context):
+    """A step whose ``with`` block has already exited."""
+    step = simulate_context.new_step(name="s")
+    with step:
+        pass
+    return step
+
+
+class TestClosedStepWarning:
+    """Using a step after its ``with`` block exited warns, whatever the outcome."""
+
+    def test_warning_is_latched_per_operation(self, closed_step) -> None:
+        with pytest.warns(SiftReportLifecycleWarning, match=r"a result was recorded on step 's'"):
+            closed_step.measure(name="a", value=1.0, bounds={"min": 0.0, "max": 5.0})
+        # A repeat is latched: a wrapper doing this on every step would otherwise
+        # flood the runner's warning summary. The per-call record is in the audit
+        # log instead.
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", SiftReportLifecycleWarning)
+            closed_step.measure(name="b", value=1.0, bounds={"min": 0.0, "max": 5.0})
+        # A substep records no outcome, so it never reaches the chokepoint the
+        # measure family shares, and it fails differently (it mis-parents as well
+        # as losing the status). Its own guard, its own signal.
+        with pytest.warns(SiftReportLifecycleWarning, match="a substep was recorded"):
+            closed_step.substep(name="late")
+
+    def test_measure_all_warns_even_when_it_records_nothing(self, closed_step) -> None:
+        # An all-in-bounds series records no measurement, so the delegated
+        # ``measure`` never runs; the trailing ``record_step_outcome`` still does.
+        with pytest.warns(SiftReportLifecycleWarning, match="a result was recorded"):
+            closed_step.measure_all(name="m", values=[1.0, 2.0], bounds={"min": 0.0, "max": 5.0})
+
+    def test_open_step_does_not_warn(self, simulate_context) -> None:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", SiftReportLifecycleWarning)
+            with simulate_context.new_step(name="s") as step:
+                step.measure(name="m", value=1.0, bounds={"min": 0.0, "max": 5.0})
+                step.measure_all(name="series", values=[1.0], bounds={"min": 0.0, "max": 5.0})
+                step.measure_avg(name="avg", values=[1.0], bounds={"min": 0.0, "max": 5.0})
+                step.report_outcome(name="check", result=True)
+                with step.substep(name="inner"):
+                    pass
+
+    def test_late_failure_after_finalize_warns_and_writes_nothing(
+        self, simulate_context, closed_step
+    ) -> None:
+        current = closed_step.current_step
+        assert current is not None
+        simulate_context.finalize()
+        with pytest.warns(SiftReportLifecycleWarning) as recorded:
+            closed_step.measure(name="m", value=10.0, bounds={"min": 0.0, "max": 5.0})
+        # Both signals fire: the call is mis-ordered, and the correction that would
+        # normally absorb that has nowhere left to go.
+        messages = [str(w.message) for w in recorded]
+        assert any("a result was recorded" in m for m in messages)
+        assert any("after the report was finalized" in m for m in messages)
+        # Past finalize the report status is already written, so the step keeps what
+        # it closed with.
+        assert current.status == TestStatus.PASSED

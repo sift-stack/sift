@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 
 from sift_client._internal.pytest_plugin.audit_log import _make_session_dir, log_event
-from sift_client.errors import SiftWarning
+from sift_client.errors import SiftReportLifecycleWarning, SiftWarning
 from sift_client.sift_types.test_report import (
     ErrorInfo,
     NumericBounds,
@@ -195,6 +195,8 @@ class ReportContext(AbstractContextManager):
     # statuses. ``update`` mutates step instances in place, so these references
     # reflect late status changes (e.g. a teardown-phase failure).
     created_steps: list[TestStep]
+    # The same steps keyed by ``step_path``
+    _steps_by_path: dict[str, TestStep]
     # Every measurement recorded in this report, retained for end-of-run
     # summaries. Appended in ``NewStep.measure``. A measurement's ``passed`` is
     # fixed at creation, so the retained references stay accurate.
@@ -215,6 +217,11 @@ class ReportContext(AbstractContextManager):
     # entry is written.
     defer_finalize: bool = False
     _finalized: bool = False
+    # One-shot latches for ``_warn_once``, keyed by caller-chosen string. Held per
+    # report rather than in module state because a process can run several
+    # sessions back to back (pytester drives inner sessions in-process), and a
+    # module-level latch would silence the second session's first warning.
+    _warned: set
     # Whether the ``with`` block exited with an exception; folded into the
     # report's status by ``finalize``.
     _exit_failed: bool = False
@@ -287,11 +294,13 @@ class ReportContext(AbstractContextManager):
         self.any_failures = False
         self.session_aborted = False
         self.created_steps = []
+        self._steps_by_path = {}
         self.created_measurements = []
         self.replay_incomplete = False
         self.defer_finalize = defer_finalize
         self._finalized = False
         self._exit_failed = False
+        self._warned = set()
 
         if log_file is True:
             session_dir = _make_session_dir()
@@ -636,73 +645,111 @@ class ReportContext(AbstractContextManager):
         self.open_step_results[step.step_path] = True
         # Retained for end-of-run tallies; never popped (unlike step_stack).
         self.created_steps.append(step)
+        self._steps_by_path[step.step_path] = step
 
         return step
 
+    def _warn_once(self, key: str, message: str, category: type[Warning] = SiftWarning) -> None:
+        """Emit ``message`` the first time ``key`` is seen in this report."""
+        if key in self._warned:
+            return
+        self._warned.add(key)
+        warnings.warn(message, category, stacklevel=3)
+
+    def _warn_step_closed(self, step: TestStep, kind: str) -> None:
+        """Warn that a ``kind`` ("result", "substep") reached ``step`` after it closed."""
+        log_event(
+            logger,
+            logging.DEBUG,
+            "step.after_close",
+            step_path=step.step_path,
+            kind=kind,
+        )
+        key = f"after_close:{kind}"
+        if key in self._warned:
+            return
+        self._warn_once(
+            key,
+            f"Sift: a {kind} was recorded on step {step.name!r} "
+            f"({step.step_path}) after its `with` block exited. Move the call "
+            "inside the block so the result reaches the step and its parents. ",
+            SiftReportLifecycleWarning,
+        )
+
+    def _is_step_open(self, step_path: str) -> bool:
+        """Whether ``step_path`` is still inside its ``with`` block."""
+        return step_path in self.open_step_results
+
+    def _fail_ancestors(self, step_path: str) -> list[str]:
+        """Mark every ancestor of ``step_path`` failed."""
+        ancestors = _ancestor_paths(step_path)
+        for ancestor_path in ancestors:
+            if self._is_step_open(ancestor_path):
+                self.open_step_results[ancestor_path] = False
+                continue
+            ancestor = self._steps_by_path.get(ancestor_path)
+            if ancestor is not None and ancestor.status == TestStatus.PASSED:
+                ancestor.update({"status": TestStatus.FAILED})
+        return ancestors
+
     def record_step_outcome(self, outcome: bool, step: TestStep):
-        """Report a failure to the report context."""
-        # Failures will be propogated when the step exits.
-        if not outcome:
-            self.open_step_results[step.step_path] = False
-            self.any_failures = True
-            # Diagnostic: a failure recorded on this step's OWN scope (a failing
-            # report_outcome or an out-of-bounds measure), as distinct from one
-            # inherited from a child (which shows up as a step.propagate line).
-            # Lets a reader tell why a later step.resolve marks the step failed.
-            log_event(
-                logger,
-                logging.DEBUG,
-                "step.outcome",
-                step_path=step.step_path,
-                result="fail",
-            )
+        """Report an outcome for ``step`` to the report context."""
+        # Failures will be propogated when the step exits
+        if not self._is_step_open(step.step_path):
+            self._warn_step_closed(step, "result")
+            if not outcome:
+                # Nothing is left to read the flag and roll the failure up.
+                self._record_late_failure(step)
+            return
+        if outcome:
+            return
+        self.open_step_results[step.step_path] = False
+        self.any_failures = True
+        # Diagnostic: a failure recorded on this step's OWN scope (a failing
+        # report_outcome or an out-of-bounds measure), as distinct from one
+        # inherited from a child (which shows up as a step.propagate line).
+        # Lets a reader tell why a later step.resolve marks the step failed.
+        log_event(
+            logger,
+            logging.DEBUG,
+            "step.outcome",
+            step_path=step.step_path,
+            result="fail",
+        )
 
     def record_measurement(self, measurement: TestMeasurement) -> None:
         """Retain a recorded measurement for end-of-run summaries."""
         self.created_measurements.append(measurement)
 
     def mark_step_failed_after_close(self, step: TestStep):
-        """Roll a failure up the ancestor chain after the step was already closed.
+        """Roll a failure up the ancestor chain after the step was already closed."""
+        self._record_late_failure(step, signal="teardown_fail")
 
-        Used by the pytest plugin when a teardown-phase report fires after the
-        fixture's ``__exit__`` has already resolved and exited the step.
-
-        Every ancestor is walked, not just the immediate parent. A teardown
-        failure can surface after ``finalize_parents`` has closed the whole chain
-        (for the last item in a session it always does), and those ancestors have
-        already been written out as PASSED. Marking ``open_step_results`` alone
-        would change nothing server-side, so each closed ancestor is re-updated
-        to FAILED. Ancestors still open are left to ``propagate_step_result``,
-        which picks up the ``open_step_results`` flag when they close.
-
-        The report's own status is not touched here; it is derived from
-        ``any_failures`` in ``finalize``.
-        """
+    def _record_late_failure(self, step: TestStep, signal: str = "after_close") -> None:
+        """Record a failure reported against ``step`` after it already closed."""
         self.any_failures = True
-        ancestors = _ancestor_paths(step.step_path)
-        if not ancestors:
+        if self._finalized:
+            # The report status is already written and the replay worker drained,
+            # so there is nowhere left to put the correction.
+            self._warn_once(
+                "late_failure_after_finalize",
+                f"Sift: a failure was recorded on step {step.name!r} "
+                f"({step.step_path}) after the report was finalized. The report "
+                "keeps the status it was closed with; this failure is not in it.",
+                SiftReportLifecycleWarning,
+            )
             return
-        by_path = {s.step_path: s for s in self.created_steps}
-        for ancestor_path in ancestors:
-            self.open_step_results[ancestor_path] = False
-            ancestor = by_path.get(ancestor_path)
-            # Only a cleanly-closed ancestor needs the correction. One still open
-            # resolves through the normal path, and one already FAILED/ABORTED
-            # must not be downgraded.
-            if ancestor is not None and ancestor.status == TestStatus.PASSED:
-                ancestor.update({"status": TestStatus.FAILED})
-        # Diagnostic: a teardown-phase failure fires after the step's own
-        # __exit__ has resolved, so it never runs through propagate_step_result.
-        # One line for the whole chain, so a deep hierarchy does not bury the
-        # single signal it represents.
+        if step.status == TestStatus.PASSED:
+            step.update({"status": TestStatus.FAILED})
+        ancestors = self._fail_ancestors(step.step_path)
         log_event(
             logger,
             logging.DEBUG,
             "step.propagate",
             step_path=step.step_path,
             status=step.status.name,
-            signal="teardown_fail",
-            parents=",".join(ancestors),
+            signal=signal,
+            parents=",".join(ancestors) or "-",
         )
 
     def propagate_step_result(self, step: TestStep, status: TestStatus) -> bool:
@@ -717,13 +764,11 @@ class ReportContext(AbstractContextManager):
         if not succeeded:
             self.any_failures = True
             self.open_step_results[step.step_path] = False
-            path_parts = step.step_path.split(".")
-            if len(path_parts) > 1:
-                parent_path = ".".join(path_parts[:-1])
-                self.open_step_results[parent_path] = False
-                # Diagnostic: record the child→parent roll-up so the parent's
+            ancestors = self._fail_ancestors(step.step_path)
+            if ancestors:
+                # Diagnostic: record the child→ancestor roll-up so an ancestor's
                 # eventual ``cause=child_failed`` can be traced back to the step
-                # that triggered it. The parent inherits a not-pass signal only;
+                # that triggered it. Ancestors inherit a not-pass signal only;
                 # ABORTED stays on the step in whose scope the exit fired (and the
                 # substeps the exception unwinds through), so an aborted child
                 # still rolls up to its container parent as FAILED. ``signal``
@@ -735,7 +780,7 @@ class ReportContext(AbstractContextManager):
                     step_path=step.step_path,
                     status=status.name,
                     signal="abort" if status == TestStatus.ABORTED else "fail",
-                    parent=parent_path,
+                    parents=",".join(ancestors),
                 )
         return succeeded
 
@@ -1287,7 +1332,16 @@ class NewStep(AbstractContextManager):
         description: str | None = None,
         metadata: dict[str, str | float | bool] | None = None,
     ) -> NewStep:
-        """Alias to return a new step context manager from the current step. The ReportContext will manage nesting of steps."""
+        """Alias to return a new step context manager from the current step. The ReportContext will manage nesting of steps.
+
+        Called on a closed step this also mis-parents: with no explicit ``parent``
+        the new step attaches to whatever is on top of the step stack, which by
+        then is this step's own parent. Hence the warning; ``report_outcome``
+        reaches it through here too.
+        """
+        step = self.current_step
+        if step is not None and not self.report_context._is_step_open(step.step_path):
+            self.report_context._warn_step_closed(step, "substep")
         return self.report_context.new_step(
             name=name,
             description=description,
