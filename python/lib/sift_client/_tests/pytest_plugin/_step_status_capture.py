@@ -160,6 +160,11 @@ def test_step(name: str) -> CapturedStep | None:
     return min(matches, key=lambda s: s.step_path.count("."))
 
 
+def module_step() -> CapturedStep:
+    """The outermost step in the run: the module parent, shallowest by path depth."""
+    return min(_steps().values(), key=lambda s: s.step_path.count("."))
+
+
 def final_status(name: str) -> TestStatus | None:
     step = test_step(name)
     return step.statuses[-1] if step and step.statuses else None
