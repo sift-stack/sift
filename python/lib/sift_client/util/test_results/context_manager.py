@@ -672,10 +672,7 @@ class ReportContext(AbstractContextManager):
             key,
             f"Sift: a {kind} was recorded on step {step.name!r} "
             f"({step.step_path}) after its `with` block exited. Move the call "
-            "inside the block so the result reaches the step and its parents. "
-            "Recorded data is kept and a failure is rolled up where it still can "
-            "be, but the step's own timing and the pytest verdict are already "
-            "fixed by this point.",
+            "inside the block so the result reaches the step and its parents. ",
             SiftReportLifecycleWarning,
         )
 
