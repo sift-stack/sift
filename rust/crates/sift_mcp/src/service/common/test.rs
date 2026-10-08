@@ -1,4 +1,9 @@
-use super::{ColumnName, DEFAULT_LIMIT, PAGE_SIZE, paging};
+use std::collections::HashMap;
+
+use super::{
+    CHANNEL_ID_METADATA_KEY, CHANNEL_NAME_METADATA_KEY, ColumnName, ColumnNameStyle, DEFAULT_LIMIT,
+    PAGE_SIZE, RESERVED_SQL_WORDS, RUN_METADATA_KEY, UNITS_METADATA_KEY, paging,
+};
 
 #[test]
 fn paging_uses_default_limit_when_unset() {
@@ -145,6 +150,148 @@ fn column_name_try_from_unknown_key_errors() {
         err.to_string().contains("unknown attribute key `flavor`"),
         "unexpected error: {err}"
     );
+}
+
+#[test]
+fn column_name_sql_identifier_keeps_plain_names() {
+    let out = ColumnName::builder("temp", "c1").build();
+    assert_eq!(out.sql_identifier(), "temp");
+    assert_eq!(
+        ColumnName::field_names(&[&out], ColumnNameStyle::Sql),
+        vec!["temp".to_string()]
+    );
+}
+
+#[test]
+fn column_name_sql_identifier_sanitizes_punctuation() {
+    let out = ColumnName::builder("PT-PC", "c1")
+        .run(Some("fc1b4ea8-1111"))
+        .units(Some("psia"))
+        .build();
+    assert_eq!(out.sql_identifier(), "PT_PC");
+    assert_eq!(
+        ColumnName::builder("motor.d.current", "c1")
+            .build()
+            .sql_identifier(),
+        "motor_d_current"
+    );
+    assert_eq!(
+        ColumnName::builder("status", "c1")
+            .bit_field_element(Some("fault-a"))
+            .build()
+            .sql_identifier(),
+        "status_fault_a"
+    );
+    assert_eq!(
+        ColumnName::builder("1temp", "c1").build().sql_identifier(),
+        "_1temp"
+    );
+    assert_eq!(
+        ColumnName::builder("***", "c1").build().sql_identifier(),
+        "_"
+    );
+}
+
+#[test]
+fn column_name_sql_identifier_prefixes_reserved_words() {
+    assert_eq!(
+        ColumnName::builder("select", "c1").build().sql_identifier(),
+        "col_select"
+    );
+    assert_eq!(
+        ColumnName::builder("ORDER", "c1").build().sql_identifier(),
+        "col_ORDER"
+    );
+}
+
+#[test]
+fn reserved_sql_words_are_sorted_and_unique() {
+    let mut sorted = RESERVED_SQL_WORDS.to_vec();
+    sorted.sort_unstable();
+    sorted.dedup();
+    assert_eq!(RESERVED_SQL_WORDS, sorted.as_slice());
+}
+
+#[test]
+fn column_name_field_names_suffix_collisions_stably() {
+    let left = ColumnName::builder("PT-PC", "c1").build();
+    let right = ColumnName::builder("PT_PC", "c2").build();
+    assert_eq!(
+        ColumnName::field_names(&[&left, &right], ColumnNameStyle::Sql),
+        vec!["PT_PC_c1".to_string(), "PT_PC_c2".to_string()]
+    );
+    assert_eq!(
+        ColumnName::field_names(&[&right, &left], ColumnNameStyle::Sql),
+        vec!["PT_PC_c2".to_string(), "PT_PC_c1".to_string()]
+    );
+}
+
+#[test]
+fn column_name_legacy_field_names_keep_the_brace_form() {
+    let out = ColumnName::builder("temp", "c1").build();
+    assert_eq!(
+        ColumnName::field_names(&[&out], ColumnNameStyle::Legacy),
+        vec![out.to_string()]
+    );
+}
+
+#[test]
+fn column_name_identity_metadata_omits_empty_optionals() {
+    let out = ColumnName::builder("PT-PC", "c1")
+        .run(Some("r1"))
+        .units(Some("psia"))
+        .build();
+    let metadata = out.identity_metadata();
+    assert_eq!(
+        metadata.get(CHANNEL_NAME_METADATA_KEY).map(String::as_str),
+        Some("PT-PC")
+    );
+    assert_eq!(
+        metadata.get(CHANNEL_ID_METADATA_KEY).map(String::as_str),
+        Some("c1")
+    );
+    assert_eq!(
+        metadata.get(RUN_METADATA_KEY).map(String::as_str),
+        Some("r1")
+    );
+    assert_eq!(
+        metadata.get(UNITS_METADATA_KEY).map(String::as_str),
+        Some("psia")
+    );
+    assert!(!metadata.contains_key("bit_field_element"));
+}
+
+#[test]
+fn column_name_from_field_parts_prefers_metadata() {
+    let original = ColumnName::builder("PT-PC", "c1")
+        .run(Some("r1"))
+        .units(Some("psia"))
+        .build();
+    let parsed = ColumnName::from_field_parts("PT_PC", &original.identity_metadata())
+        .expect("metadata should rebuild the column");
+    assert_eq!(parsed, original);
+}
+
+#[test]
+fn column_name_from_field_parts_falls_back_to_legacy_name() {
+    let original = ColumnName::builder("temp", "c1").build();
+    let parsed = ColumnName::from_field_parts(&original.to_string(), &HashMap::new())
+        .expect("legacy column name should parse");
+    assert_eq!(parsed, original);
+}
+
+#[test]
+fn column_name_style_parse_defaults_to_sql() {
+    assert_eq!(ColumnNameStyle::parse(None).unwrap(), ColumnNameStyle::Sql);
+    assert_eq!(
+        ColumnNameStyle::parse(Some(" sql ")).unwrap(),
+        ColumnNameStyle::Sql
+    );
+    assert_eq!(
+        ColumnNameStyle::parse(Some("legacy")).unwrap(),
+        ColumnNameStyle::Legacy
+    );
+    assert!(ColumnNameStyle::parse(Some("quoted")).is_err());
 }
 
 #[test]

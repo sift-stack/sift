@@ -165,6 +165,9 @@ pub struct GetDataParams {
     channel_id: Option<String>,
     channel_ids: Option<Vec<String>>,
     output: PathBuf,
+    /// `sql` (default) or `legacy`. See the tool description.
+    #[serde(default)]
+    column_names: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -228,16 +231,21 @@ impl SiftMcpServer {
             Output schema:
               - Column 0 is `timestamp_unix_nanos` (Int64, non-null) holding the merged ascending timestamps across all
                 requested channels.
-              - One column per matched channel, named `<channel_name> {channel_id=\"...\", run=\"...\", units=\"...\"}`.
-                Cells are null where that channel has no sample at the row's timestamp. A saved calculated channel
-                has no channel id, so its column carries the calculated channel's name in both places.
-              - Enum and BitField channels carry their decode config in field metadata under the `enum_config` and
-                `bit_field_elements` keys respectively.
+              - One column per matched channel. Cells are null where that channel has no sample at the row's
+                timestamp. The column name is a plain SQL identifier derived from the channel name: letters,
+                digits, and `_` stay, every other character becomes `_`, and a leading digit or a reserved word
+                is prefixed (`PT-PC` becomes `PT_PC`). Reference it directly in `sql` (`SELECT PT_PC FROM t`).
+                When two columns would share that identifier, both gain `_` plus the channel id.
+                A saved calculated channel has no channel id of its own; its column is named from the calculated
+                channel's name, and `channel_id` metadata holds that same name.
+              - `channel_id` and the original `channel_name` are Parquet field metadata. `run`, `units`, and
+                `bit_field_element` are stored there when set. Enum and BitField channels also carry decode
+                config under `enum_config` and `bit_field_elements`.
               - A requested channel that produced no samples has NO column at all, not an all-null one. The tool
                 result reports these so they never have to be inferred from the schema:
                 `unmatched_channel_names` lists requested names served by neither a raw channel nor a saved
                 calculated channel. `empty_channels` lists raw channel IDs that returned no samples in the window;
-                for calculated channels it lists query keys, matching the Parquet `channel_id` attribute.
+                for calculated channels it lists query keys, matching the Parquet `channel_id` field metadata.
                 Both keys are ALWAYS present. Two empty arrays mean every selected channel returned samples.
                 Report empty registrations by ID: another registration with the same name may have data.
               - `unresolved_calculated_channels` (`[{ \"name\", \"reason\" }]`) is present when a requested name
@@ -278,6 +286,9 @@ impl SiftMcpServer {
               - `output`: filesystem path for the Parquet file. Replaced only when the call succeeds; a failed
                 call leaves no partial file and keeps any existing one. The tool creates missing parent
                 directories.
+              - `column_names`: optional, `sql` (default) or `legacy`. `sql` emits the plain identifiers above.
+                `legacy` restores `<channel_name> {channel_id=\"...\", run=\"...\", units=\"...\"}` in the column
+                name and omits the identity metadata. Use `legacy` only for a caller that parses that format.
 
             Errors:
               - `RESOURCE_NOT_FOUND` if the asset or run is missing, there are no matching channels, or any
@@ -294,6 +305,7 @@ impl SiftMcpServer {
               - `INVALID_PARAMS` if neither `asset_name` nor `asset_id` is set, or if both are set.
               - `INVALID_PARAMS` if `run_name` is absent and the full time range is not supplied, if not exactly
                 one channel selector is set, if a selection array is empty, or if a channel ID is blank.
+              - `INVALID_PARAMS` if `column_names` is set to anything other than `sql` or `legacy`.
               - `INVALID_PARAMS` if the channel selection matches more than 200 channels and would be incomplete.
                 Narrow `channel_regex`, pass explicit `channel_names` or `channel_ids`, or split the request.
 
@@ -341,7 +353,14 @@ impl SiftMcpServer {
             end_time_unix_nanos,
             sample_ms,
             output,
+            column_names,
         }) = params;
+
+        let column_names =
+            match crate::service::common::ColumnNameStyle::parse(column_names.as_deref()) {
+                Ok(style) => style,
+                Err(err) => return Err(ErrorData::invalid_params(err.to_string(), None)),
+            };
 
         if run_name.is_none() && (start_time_unix_nanos.is_none() || end_time_unix_nanos.is_none())
         {
@@ -627,7 +646,13 @@ impl SiftMcpServer {
 
         let data_output = match self
             .data_service
-            .get_data(&channel_inputs, time_range, sample_ms, output_file.file())
+            .get_data_with_column_names(
+                &channel_inputs,
+                time_range,
+                sample_ms,
+                output_file.file(),
+                column_names,
+            )
             .await
         {
             Ok(data_output) => data_output,
@@ -843,13 +868,16 @@ impl SiftMcpServer {
               - The file MUST have at least two columns: `timestamp_unix_nanos` plus one channel column.
               - Column 0 MUST be `timestamp_unix_nanos` (Int64) and MUST be declared non-nullable in the
                 Parquet schema.
-              - Every other column MUST carry the brace-delimited attribute block in its column name:
+              - Every other column is one channel. When the field metadata contains `channel_id`, the channel
+                name is `channel_name` (or the column name when that key is absent) and the unit is `units`.
+                This is the form `get_data` writes by default.
+              - Otherwise the column name MUST be the legacy brace-delimited form
                 `<channel_name> {channel_id=\"...\"[, bit_field_element=\"...\"][, run=\"...\"][, units=\"...\"]}`.
-                The single space before `{` is required; a bare column name without the ` {...}` block is
-                rejected.
-              - `channel_id` is REQUIRED inside the block; the bracketed attributes are optional. This is the
-                canonical form produced by `get_data`. Enum and BitField channels are recognized via field
-                metadata under the `enum_config` and `bit_field_elements` keys respectively.
+                The single space before `{` is required, and `channel_id` is required inside the block. A bare
+                column name with neither form is rejected. `get_data` writes this form when `column_names` is
+                `legacy`, and older files use it.
+              - Enum and BitField channels are recognized via field metadata under the `enum_config` and
+                `bit_field_elements` keys respectively.
 
             Output:
               - `{ \"input\": \"<path>\", \"asset_name\": \"...\", \"asset_id\": \"...\", \"asset_url\": string|null,
