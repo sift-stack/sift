@@ -18,6 +18,7 @@ from sift.channels.v3.channels_pb2_grpc import ChannelServiceStub
 from sift.common.type.v1.user_pb2 import User as UserPb
 from sift.rules.v1.rules_pb2 import (
     ANNOTATION,
+    NOTIFICATION,
     AnnotationActionConfiguration,
     BatchUpdateRulesRequest,
     BatchUpdateRulesResponse,
@@ -26,6 +27,7 @@ from sift.rules.v1.rules_pb2 import (
     CreateRuleRequest,
     GetRuleRequest,
     GetRuleResponse,
+    NotificationActionConfiguration,
     Rule,
     RuleActionConfiguration,
     RuleAssetConfiguration,
@@ -53,6 +55,7 @@ from sift_py.rule.config import (
     RuleAction,
     RuleActionAnnotationKind,
     RuleActionCreateDataReviewAnnotation,
+    RuleActionCreateNotification,
     RuleActionCreatePhaseAnnotation,
     RuleActionKind,
     RuleConfig,
@@ -425,10 +428,30 @@ class RuleService:
 
         actions = []
         if config.action.kind() == RuleActionKind.NOTIFICATION:
-            raise NotImplementedError(
-                "Notification actions are not yet supported."
-                "Please contact the Sift team for assistance."
+            if not isinstance(config.action, RuleActionCreateNotification):
+                raise TypeError(
+                    f"Expected RuleActionCreateNotification for notification action, "
+                    f"got {type(config.action).__name__}."
+                )
+
+            recipient_user_ids: List[str] = []
+            for email in config.action.recipients:
+                users = self._get_active_users(filter=f"name=='{email}'")
+                if not users:
+                    raise ValueError(f"Cannot find user '{email}'.")
+                if len(users) > 1:
+                    raise ValueError(f"Multiple users found with name '{email}'.")
+                recipient_user_ids.append(users[0].user_id)
+
+            action_config = UpdateActionRequest(
+                action_type=NOTIFICATION,
+                configuration=RuleActionConfiguration(
+                    notification=NotificationActionConfiguration(
+                        recipient_user_ids=recipient_user_ids,
+                    )
+                ),
             )
+            actions.append(action_config)
         elif config.action.kind() == RuleActionKind.ANNOTATION:
             annotation_tag_ids = (
                 [tag.tag_id for tag in annotation_tags] if annotation_tags else None
