@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.data_imports import DataImportsLowLevelClient
 from sift_client._internal.util.executor import run_sync_function
 from sift_client._internal.util.file import extract_parquet_footer, upload_file
+from sift_client._internal.util.util import caller_stacklevel
+from sift_client.errors import SiftIgnoredInputWarning
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.channel import ChannelDataType
@@ -23,6 +26,7 @@ from sift_client.sift_types.data_import import (
     ParquetTimeColumn,
     TdmsImportConfig,
     TimeFormat,
+    TimeFormatProto,
     UlogImportConfig,
 )
 from sift_client.sift_types.run import Run
@@ -30,6 +34,7 @@ from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
+    from datetime import datetime
 
     from sift_client.client import SiftClient
     from sift_client.sift_types.data_import import DataImportStatus
@@ -58,6 +63,7 @@ class DataImportAPIAsync(ResourceBase):
         config: ImportConfig | None = None,
         data_type: DataTypeKey | None = None,
         time_format: TimeFormat | None = None,
+        relative_start_time: datetime | None = None,
         run: Run | str | None = None,
         run_name: str | None = None,
         show_progress: bool | None = None,
@@ -124,6 +130,11 @@ class DataImportAPIAsync(ResourceBase):
                 ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``. TDMS keeps its
                 detected/default time handling. Only used when ``config`` is
                 not provided.
+            relative_start_time: Start time for a relative time format.
+                Parquet only; ignored with a warning for other formats or
+                when the time format is absolute. Required for Parquet files
+                with a relative time column. Only used when ``config`` is not
+                provided.
             run: ``Run`` object or run ID string to import into an existing
                 run. Mutually exclusive with ``run_name``.
             run_name: Name for a new run. Defaults to the filename if
@@ -148,6 +159,7 @@ class DataImportAPIAsync(ResourceBase):
                 file_path,
                 data_type=data_type,
                 time_format=time_format,
+                relative_start_time=relative_start_time,
             )
             if isinstance(config, (UlogImportConfig, McapImportConfig)):
                 # An empty channel list imports every channel
@@ -321,6 +333,8 @@ class DataImportAPIAsync(ResourceBase):
         file_path: str | Path,
         data_type: DataTypeKey | None = None,
         time_format: TimeFormat | None = None,
+        *,
+        relative_start_time: datetime | None = None,
     ) -> ImportConfig:
         """Auto-detect import configuration from a file.
 
@@ -379,6 +393,10 @@ class DataImportAPIAsync(ResourceBase):
                 HDF5 use the detected format if available, otherwise
                 ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``. TDMS keeps its
                 detected/default time handling.
+            relative_start_time: Start time for a relative time format.
+                Parquet only; ignored with a warning for other formats or
+                when the time format is absolute. Required for Parquet files
+                with a relative time column.
 
         Returns:
             The detected import config.
@@ -394,7 +412,7 @@ class DataImportAPIAsync(ResourceBase):
             raise FileNotFoundError(f"File not found: {file_path}")
 
         data_type_key = _resolve_data_type_key(path.suffix.lower(), data_type)
-        config = await self._detect_config_for_type(path, data_type_key)
+        config = await self._detect_config_for_type(path, data_type_key, relative_start_time)
         if time_format is not None:
             _apply_time_format(config, time_format)
         elif (
@@ -402,12 +420,15 @@ class DataImportAPIAsync(ResourceBase):
             and _get_time_format(config) is None
         ):
             _apply_time_format(config, TimeFormat.ABSOLUTE_UNIX_NANOSECONDS)
+        if relative_start_time is not None:
+            _apply_relative_start_time(config, relative_start_time)
         return config
 
     async def _detect_config_for_type(
         self,
         path: Path,
         data_type_key: DataTypeKey,
+        relative_start_time: datetime | None = None,
     ) -> ImportConfig:
         if data_type_key in (
             DataTypeKey.HDF5_ONE_D,
@@ -449,7 +470,17 @@ class DataImportAPIAsync(ResourceBase):
                     "Install them via `pip install sift-stack-py[mcap]`."
                 ) from e
             return await run_sync_function(lambda: detect_mcap_config(path))
-
+        if data_type_key == DataTypeKey.PARQUET_FLATDATASET:
+            try:
+                from sift_client._internal.util.parquet import detect_flat_parquet_config
+            except ImportError as e:
+                raise RuntimeError(
+                    "pyarrow is required for Parquet import. "
+                    "Install it via `pip install sift-stack-py[parquet]`."
+                ) from e
+            return await run_sync_function(
+                lambda: detect_flat_parquet_config(path, relative_start_time)
+            )
         is_parquet = data_type_key in (
             DataTypeKey.PARQUET_FLATDATASET,
             DataTypeKey.PARQUET_SINGLE_CHANNEL_PER_ROW,
@@ -506,6 +537,34 @@ def _apply_time_format(config: ImportConfig, time_format: TimeFormat) -> None:
         config.time_format = time_format
 
 
+def _apply_relative_start_time(config: ImportConfig, relative_start_time: datetime) -> None:
+    """Set the relative start time on a detected Parquet config with a relative time format.
+
+    Warns and leaves the config unchanged for other formats, or when the time
+    format is absolute or unset.
+    """
+    if not isinstance(
+        config, (ParquetFlatDatasetImportConfig, ParquetSingleChannelPerRowImportConfig)
+    ):
+        warnings.warn(
+            "'relative_start_time' is ignored because it is not supported for "
+            f"{type(config).__name__}.",
+            SiftIgnoredInputWarning,
+            stacklevel=caller_stacklevel(),
+        )
+        return
+    time_format = config.time_column.format
+    if time_format is None or not time_format.name.startswith("RELATIVE_"):
+        warnings.warn(
+            "'relative_start_time' is ignored because the time format "
+            f"({time_format.name if time_format else 'unset'}) is not relative.",
+            SiftIgnoredInputWarning,
+            stacklevel=caller_stacklevel(),
+        )
+        return
+    config.time_column.relative_start_time = relative_start_time
+
+
 def _get_time_format(config: ImportConfig) -> TimeFormat | None:
     """Read the current time format off a config, regardless of where it's stored."""
     if isinstance(
@@ -544,6 +603,10 @@ def _resolve_data_type_key(ext: str, data_type: DataTypeKey | None) -> DataTypeK
 
 def _parse_csv_detect_response(proto) -> CsvImportConfig:
     """Parse a CSV DetectConfig response into a config."""
+    if proto.time_column.format == TimeFormatProto.TIME_FORMAT_UNSPECIFIED:
+        raise ValueError(
+            "timestamp format is not supported. Please specify the time format explicitly."
+        )
     csv_config = CsvImportConfig._from_proto(proto)
     time_col = csv_config.time_column.column
     csv_config.data_columns = [dc for dc in csv_config.data_columns if dc.column != time_col]
