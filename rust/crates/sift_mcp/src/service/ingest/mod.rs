@@ -430,7 +430,7 @@ impl IngestService {
         let mut bit_field_elements = None;
         let mut encoding = ColumnEncoding::Plain;
 
-        let column_name = ColumnName::try_from(field.name().as_str())
+        let column_name = ColumnName::from_field_parts(field.name(), field.metadata())
             .context("encountered an invalid column name in parquet file")?;
 
         let data_type = match field.data_type() {
