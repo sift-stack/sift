@@ -205,6 +205,9 @@ openssl = [
     'pyOpenSSL<24.0.0',
     'types-pyOpenSSL<24.0.0',
 ]
+parquet = [
+    'pyarrow>=17.0.0',
+]
 rosbags = [
     "rosbags~=0.0 ; python_full_version >= '3.8.2'",
 ]
