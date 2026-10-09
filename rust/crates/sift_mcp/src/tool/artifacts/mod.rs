@@ -692,12 +692,11 @@ impl SiftMcpServer {
               - `links`: optional list of `{ \"relation\", \"entity_type\", \"entity_id\" }` entries. `relation`
                 accepts `attached_to`, `source`, or `derived_from`, plus proto names. `entity_type` accepts
                 `conversation`, `canvas`, `run`, `asset`, `artifact`, or `tool_use`, plus proto names.
-                  - `source` records what the artifact was built from, such as the `run` or `asset` whose
-                    data it summarizes.
-                  - `derived_from` is only for another artifact (`entity_type: \"artifact\"`); the server
-                    rejects it for any other entity type.
-                  - `attached_to` places the artifact where it surfaces, such as a `conversation` or
-                    `canvas`. Prefer `conversation_id` over an explicit conversation link.
+                Use `source` for what the artifact was built from, such as the `run` or `asset` whose data
+                it summarizes. `derived_from` is only for another artifact (`entity_type: \"artifact\"`);
+                the server rejects it for any other entity type. `attached_to` places the artifact where it
+                surfaces, such as a `conversation` or `canvas`; prefer `conversation_id` over an explicit
+                conversation link.
               - `file_path`: optional absolute or relative path of a local file to upload as this
                 version\'s content. The file streams to Sift\'s file store; its name and extension drive
                 the mime type and how the UI previews it. Regular, non-empty files up to 1 GiB.
