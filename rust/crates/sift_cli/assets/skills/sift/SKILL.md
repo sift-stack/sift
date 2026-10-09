@@ -212,7 +212,10 @@ tool.
   `storage_class=blob` for opaque intermediates. `structured` requires a
   payload and rejects `file_path`. `created_via` defaults to `agent`; set it
   only for `canvas` or direct `upload` writes. Link entity types are
-  `conversation`, `canvas`, `run`, `asset`, `artifact`, and `tool_use`. Pass
+  `conversation`, `canvas`, `run`, `asset`, `artifact`, and `tool_use`.
+  Record what an artifact was built from with relation `source` and the run
+  or asset id. `derived_from` is only for another artifact; the server
+  rejects it for runs and assets. Pass
   `conversation_id` to link a new artifact to a chat, and set
   `authoring_kind=agent` when a Sift agent produced it. Append a version with
   `artifact_id`. Creating needs `--allow-create`; appending also needs

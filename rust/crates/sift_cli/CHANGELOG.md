@@ -7,6 +7,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- `create_artifact` and the Sift skill now say which link relation to use:
+  `source` for the run or asset an artifact was built from, and `derived_from`
+  only for another artifact. Agents no longer send `derived_from` for a run and
+  get the call rejected.
+
 ## [v0.7.3] - October 7, 2026
 
 ### What's New
