@@ -205,6 +205,9 @@ openssl = [
     'pyOpenSSL<24.0.0',
     'types-pyOpenSSL<24.0.0',
 ]
+parquet = [
+    'pyarrow>=17.0.0',
+]
 rosbags = [
     "rosbags~=0.0 ; python_full_version >= '3.8.2'",
 ]
@@ -265,6 +268,7 @@ hdf5 = ["h5py~=3.11", "polars~=1.8"]  # polars is only used by sift_py; remove o
 ulog = ["pyulog~=1.2.2"]
 mcap = ["mcap~=1.4", "mcap-ros2-support~=0.5.7"]
 data-review = ["pyarrow>=17.0.0"]
+parquet = ["pyarrow>=17.0.0"]
 
 [tool.sift.extras.combine]
 # Combined extras configurations and aliases can be defined here
