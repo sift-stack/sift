@@ -6,6 +6,7 @@ import json
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
+import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
@@ -66,12 +67,22 @@ def _channel_field(name: str, data_type: str | None = "CHANNEL_DATA_TYPE_DOUBLE"
     return _embedded_field(name, pa.float64(), _CHANNEL_CONFIG, config)
 
 
+def _parquet_writes_view_types() -> bool:
+    """Whether the installed pyarrow can write view types (pyarrow 17 on Python 3.8 cannot)."""
+    try:
+        pq.write_table(pa.table({"s": pa.array([""], pa.string_view())}), pa.BufferOutputStream())
+    except pa.ArrowNotImplementedError:
+        return False
+    return True
+
+
 class TestDataTypes:
     def test_scalar_types(self, create_parquet_file):
         table = pa.table(
             {
                 "bool": pa.array([True]),
-                "f16": pa.array([1.0], pa.float16()),
+                # pyarrow 17 (installed on Python 3.8) only builds float16 from numpy values.
+                "f16": pa.array(np.array([1.0], dtype=np.float16)),
                 "f32": pa.array([1.0], pa.float32()),
                 "f64": pa.array([1.0], pa.float64()),
                 "i8": pa.array([1], pa.int8()),
@@ -84,10 +95,8 @@ class TestDataTypes:
                 "u64": pa.array([1], pa.uint64()),
                 "string": pa.array(["a"], pa.string()),
                 "large_string": pa.array(["a"], pa.large_string()),
-                "string_view": pa.array(["a"], pa.string_view()),
                 "binary": pa.array([b"a"], pa.binary()),
                 "large_binary": pa.array([b"a"], pa.large_binary()),
-                "binary_view": pa.array([b"a"], pa.binary_view()),
                 "fixed_binary": pa.array([b"ab"], pa.binary(2)),
             }
         )
@@ -108,11 +117,27 @@ class TestDataTypes:
             "u64": ChannelDataType.UINT_64,
             "string": ChannelDataType.STRING,
             "large_string": ChannelDataType.STRING,
-            "string_view": ChannelDataType.STRING,
             "binary": ChannelDataType.BYTES,
             "large_binary": ChannelDataType.BYTES,
-            "binary_view": ChannelDataType.BYTES,
             "fixed_binary": ChannelDataType.BYTES,
+        }
+
+    @pytest.mark.skipif(
+        not _parquet_writes_view_types(),
+        reason="this pyarrow version cannot write view types to Parquet",
+    )
+    def test_view_types(self, create_parquet_file):
+        table = pa.table(
+            {
+                "string_view": pa.array(["a"], pa.string_view()),
+                "binary_view": pa.array([b"a"], pa.binary_view()),
+            }
+        )
+        config = detect_flat_parquet_config(create_parquet_file(table))
+
+        assert {path: data_type for path, (_, data_type) in _columns(config).items()} == {
+            "string_view": ChannelDataType.STRING,
+            "binary_view": ChannelDataType.BYTES,
         }
 
     def test_time_types_are_int64(self, create_parquet_file):
