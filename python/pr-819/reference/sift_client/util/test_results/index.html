@@ -2734,6 +2734,8 @@ You're not viewing the latest version.
 </span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>            <span class="n">result</span> <span class="o">=</span> <span class="n">substep</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ec</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">pos_channel</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mf">74.9</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mf">75.1</span><span class="p">))</span>
 </span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>            <span class="k">return</span> <span class="n">result</span> <span class="c1"># This is optional for other uses, but the step and its parents will be updated correctly i.e. failed if the measurement fails.</span>
 </span></code></pre></div>
+<p>Measure inside the step's <code>with</code> block. Closing a step resolves its status and
+rolls the result up to its parents.</p>
 <h5 id="sift_client.util.test_results--manually-updating-underlyling-report">Manually Updating Underlyling Report<a class="headerlink" href="#sift_client.util.test_results--manually-updating-underlyling-report" title="Permanent link">&para;</a></h5>
 <p>You can also manually update the underlying report or steps by accessing the context manager's attributes.
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">with</span> <span class="n">ReportContext</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"Example Report"</span><span class="p">)</span> <span class="k">as</span> <span class="n">rc</span><span class="p">:</span>
@@ -4269,6 +4271,10 @@ each out-of-bounds measurement.</p>
     <div class="doc doc-contents ">
 
         <p>Alias to return a new step context manager from the current step. The ReportContext will manage nesting of steps.</p>
+<p>Called on a closed step this also mis-parents: with no explicit <code>parent</code>
+the new step attaches to whatever is on top of the step stack, which by
+then is this step's own parent. Hence the warning; <code>report_outcome</code>
+reaches it through here too.</p>
 
 
     </div>
@@ -4675,7 +4681,7 @@ the report unarchived. If false, leave the report unarchived.</p>
               <td><code><a class="autorefs autorefs-internal" title="            record_step_outcome (sift_client.util.test_results.ReportContext.record_step_outcome)" href="#sift_client.util.test_results.ReportContext.record_step_outcome">record_step_outcome</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Report a failure to the report context.</p>
+                  <p>Report an outcome for <code>step</code> to the report context.</p>
                 </div>
               </td>
             </tr>
@@ -5890,7 +5896,7 @@ trap unrelated steps beneath them.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Report a failure to the report context.</p>
+        <p>Report an outcome for <code>step</code> to the report context.</p>
 
 
     </div>
@@ -5941,17 +5947,6 @@ trap unrelated steps beneath them.</p>
     <div class="doc doc-contents ">
 
         <p>Roll a failure up the ancestor chain after the step was already closed.</p>
-<p>Used by the pytest plugin when a teardown-phase report fires after the
-fixture's <code>__exit__</code> has already resolved and exited the step.</p>
-<p>Every ancestor is walked, not just the immediate parent. A teardown
-failure can surface after <code>finalize_parents</code> has closed the whole chain
-(for the last item in a session it always does), and those ancestors have
-already been written out as PASSED. Marking <code>open_step_results</code> alone
-would change nothing server-side, so each closed ancestor is re-updated
-to FAILED. Ancestors still open are left to <code>propagate_step_result</code>,
-which picks up the <code>open_step_results</code> flag when they close.</p>
-<p>The report's own status is not touched here; it is derived from
-<code>any_failures</code> in <code>finalize</code>.</p>
 
 
     </div>
