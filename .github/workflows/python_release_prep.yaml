@@ -1,0 +1,70 @@
+name: Python Release Prep
+
+# Renders the changelog fragments in python/changelog.d into python/CHANGELOG.md and opens a
+# pull request. Merging that pull request starts the Python Release Tag workflow.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Optional explicit X.Y.Z. Skips the automatic bump from the fragment types.
+        type: string
+        required: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  prep:
+    name: Open release prep PR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          # The next version comes from the latest tag, so the full history is needed.
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compute next version
+        id: version
+        env:
+          VERSION_OVERRIDE: ${{ inputs.version }}
+        run: |
+          version=$(python python/scripts/release_version.py --version "$VERSION_OVERRIDE")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Next version: $version"
+
+      - name: Render changelog
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          pip install "towncrier==26.9.0"
+          cd python
+          towncrier build --yes --version "$VERSION" --date "$(date '+%B %-d, %Y')"
+
+      - name: Open pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          BASE_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          branch="release/python-v${VERSION}"
+          title="Python(chore): v${VERSION} release prep"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add -A python/CHANGELOG.md python/changelog.d
+          git commit -m "$title"
+          git push origin "$branch"
+          gh pr create \
+            --base "$BASE_BRANCH" \
+            --head "$branch" \
+            --title "$title" \
+            --body "Renders the changelog fragments for v${VERSION}. Review the entries before merging. Merging this pull request creates the \`python/v${VERSION}\` tag and starts the publish workflow."

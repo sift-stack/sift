@@ -1,0 +1,37 @@
+name: python-changelog-check
+
+# Every pull request that changes python/ must add a changelog fragment in python/changelog.d.
+# An empty <PR>.chore.md fragment marks a change with no user-visible effect.
+# See python/changelog.d/README.md.
+
+on:
+  pull_request:
+    paths:
+      - 'python/**'
+
+permissions:
+  contents: read
+
+jobs:
+  fragment:
+    name: Changelog fragment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install towncrier
+        run: pip install "towncrier==26.9.0"
+
+      - name: Check for a fragment
+        run: towncrier check --dir python --config python/pyproject.toml --compare-with "origin/${{ github.base_ref }}"
+
+      - name: Check that the fragments render
+        run: towncrier build --dir python --config python/pyproject.toml --draft --version 0.0.0 --date "Draft" > /dev/null

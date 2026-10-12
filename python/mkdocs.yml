@@ -73,6 +73,7 @@ nav:
           - Running Modes: guides/pytest_plugin/running_modes.md
           - Report Structure: guides/pytest_plugin/report_structure.md
           - Pass/Fail Behavior: guides/pytest_plugin/pass_fail_behavior.md
+  - Changelog: changelog.md
 #  - Guides:
 #      - Logging
 #      - Error Handling

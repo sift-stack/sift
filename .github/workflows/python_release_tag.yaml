@@ -1,0 +1,52 @@
+name: Python Release Tag
+
+# Tags a Python release when a new version section reaches python/CHANGELOG.md on the default
+# branch, then starts the PyPI Publish workflow on that tag. The Python Release Prep workflow
+# opens the pull request that adds the section.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'python/CHANGELOG.md'
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: python-release-tag
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    name: Create tag and start publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create tag
+        id: tag
+        run: |
+          version=$(grep -m1 -oP '^## \[v\K[^\]]+' python/CHANGELOG.md)
+          tag="python/v${version}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if [[ -n "$(git ls-remote --tags origin "refs/tags/${tag}")" ]]; then
+            echo "Tag ${tag} already exists. Nothing to release."
+            echo "created=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git tag "$tag" "$GITHUB_SHA"
+          git push origin "refs/tags/${tag}"
+          echo "created=true" >> "$GITHUB_OUTPUT"
+
+      # A tag pushed with the default token does not start other workflows, so start the
+      # publish workflow explicitly. It requires a tag ref.
+      - name: Start PyPI Publish
+        if: steps.tag.outputs.created == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: gh workflow run python_release.yaml --ref "$TAG"
