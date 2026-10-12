@@ -3526,10 +3526,10 @@ every cell contains valid JSON that describes either a time column
 or a data column. When present, <code>first_data_row</code> in the returned
 config is set to the row after the metadata row.</p>
 <p>Each data column cell is a JSON <code>ChannelConfig</code>::</p>
-<div class="language-text highlight"><pre><span></span><code>{"name": "speed", "units": "m/s", "dataType": "CHANNEL_DATA_TYPE_DOUBLE"}
+<div class="language-text highlight"><pre><span></span><code>{&quot;name&quot;: &quot;speed&quot;, &quot;units&quot;: &quot;m/s&quot;, &quot;dataType&quot;: &quot;CHANNEL_DATA_TYPE_DOUBLE&quot;}
 </code></pre></div>
 <p>The time column cell is a JSON <code>CsvTimeColumn</code>::</p>
-<div class="language-text highlight"><pre><span></span><code>{"format": "TIME_FORMAT_ABSOLUTE_RFC3339"}
+<div class="language-text highlight"><pre><span></span><code>{&quot;format&quot;: &quot;TIME_FORMAT_ABSOLUTE_RFC3339&quot;}
 </code></pre></div>
 <p>Enum type definitions and bit field elements can also be specified
 in the metadata row; they are applied server-side during import
