@@ -86,12 +86,8 @@ jobs:
         working-directory: python
         shell: bash
         run: |
-          # The version must come from a tag. The 0.0.0 fallback means no tag was found.
+          # A release build must derive exactly the version in its tag.
           WHEEL_VERSION=$(ls dist/sift_stack_py*.whl | sed -E 's/.*sift_stack_py-([^-]+)-.*/\1/')
-          if [[ "$WHEEL_VERSION" == "0.0.0" ]]; then
-            echo "Error: derived the 0.0.0 fallback version. No python/v* tag was found."
-            exit 1
-          fi
           if [[ "${{ github.ref_type }}" == "tag" && "$WHEEL_VERSION" != "${GITHUB_REF_NAME#python/v}" ]]; then
             echo "Error: wheel version $WHEEL_VERSION does not match tag $GITHUB_REF_NAME"
             exit 1

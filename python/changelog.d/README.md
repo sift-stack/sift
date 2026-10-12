@@ -5,7 +5,7 @@ renders the fragments into `CHANGELOG.md` and deletes them. Do not edit `CHANGEL
 
 ## Add a fragment
 
-Name the file `<PR number>.<type>.md`. Run these commands from `python/`:
+Name the file `<PR number>.<type>.md`. From `python/`, run:
 
 ```bash
 uvx towncrier create 830.feat.md --content "Added \`client.webhooks\`."
@@ -13,7 +13,7 @@ uvx towncrier create 830.feat.md --content "Added \`client.webhooks\`."
 
 | Type       | Use for                          | Version bump |
 | ---------- | -------------------------------- | ------------ |
-| `breaking` | A change that breaks callers     | minor        |
+| `breaking` | A change that breaks callers     | major        |
 | `feat`     | New user-facing behavior         | minor        |
 | `fix`      | A bug fix users can see          | patch        |
 | `chore`    | No user-visible change           | none         |
@@ -41,3 +41,6 @@ Run the Python Release Prep workflow. It computes the next version from the late
 `python/v*` tag and the fragment types, renders `CHANGELOG.md`, and opens a pull request. After
 that PR merges, the Python Release Tag workflow creates the `python/vX.Y.Z` tag and starts
 the publish workflow.
+
+Merge the release pull request before other changes to `python/`. A change merged first ships in
+that release, but its entry appears under the next version.
