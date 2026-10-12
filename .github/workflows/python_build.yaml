@@ -81,6 +81,17 @@ jobs:
             exit 1
           fi
 
+          # A release must include every changelog fragment. A leftover fragment means a change
+          # merged after the release PR was opened and would ship without an entry.
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            FRAGMENTS=$(find changelog.d -type f ! -name README.md ! -name template.md.jinja)
+            if [[ -n "$FRAGMENTS" ]]; then
+              echo "Error: unreleased changelog fragments at $GITHUB_REF_NAME:"
+              echo "$FRAGMENTS"
+              exit 1
+            fi
+          fi
+
           # Check all distributions with twine
           twine check dist/*
 

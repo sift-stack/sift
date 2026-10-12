@@ -70,4 +70,4 @@ jobs:
             --base "$BASE_BRANCH" \
             --head "$branch" \
             --title "$title" \
-            --body "Sets the version to ${VERSION} and renders its changelog fragments. Review the version and entries before merging. Merging this pull request creates the \`python/v${VERSION}\` tag and starts the publish workflow. Merge it before other changes to \`python/\`, or those changes ship in this release without an entry."
+            --body "Sets the version to ${VERSION} and renders its changelog fragments. Review the version and entries before merging. Merging this pull request creates the \`python/v${VERSION}\` tag and starts the publish workflow. If another change to \`python/\` merges first, the changelog check fails. Close this pull request and run Python Release Prep again."

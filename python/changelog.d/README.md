@@ -42,5 +42,7 @@ Run the Python Release Prep workflow. It computes the next version from the curr
 `CHANGELOG.md`, and opens a pull request. After that PR merges, the Python Release Tag workflow
 creates the `python/vX.Y.Z` tag and starts the publish workflow.
 
-Merge the release pull request before other changes to `python/`. A change merged first ships in
-that release, but its entry appears under the next version.
+If another change to `python/` merges while the release pull request is open, that change would
+ship without its entry. The changelog check fails the release pull request in that case, and the
+publish workflow refuses a tag with leftover fragments. Close the release pull request and run
+Python Release Prep again.

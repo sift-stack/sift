@@ -33,5 +33,19 @@ jobs:
       - name: Check for a fragment
         run: towncrier check --dir python --config python/pyproject.toml --compare-with "origin/${{ github.base_ref }}"
 
+      # A release PR renders and deletes every fragment. A fragment in the merge result means
+      # another change merged after the release PR was opened and would ship without an entry.
+      - name: Check that a release PR includes every fragment
+        run: |
+          if git diff "origin/${{ github.base_ref }}...HEAD" -- python/CHANGELOG.md | grep -q '^+## \[v'; then
+            fragments=$(find python/changelog.d -type f ! -name README.md ! -name template.md.jinja)
+            if [[ -n "$fragments" ]]; then
+              echo "Error: fragments merged after this release PR was opened:"
+              echo "$fragments"
+              echo "Close this PR and run Python Release Prep again."
+              exit 1
+            fi
+          fi
+
       - name: Check that the fragments render
         run: towncrier build --dir python --config python/pyproject.toml --draft --version 0.0.0 --date "Draft" > /dev/null
