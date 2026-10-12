@@ -189,6 +189,7 @@ file-imports = [
     'mcap~=1.4',
     'npTDMS~=1.9',
     'polars~=1.8',
+    'pyarrow>=17.0.0',
     'pyulog~=1.2.2',
     "rosbags~=0.0 ; python_full_version >= '3.8.2'",
 ]
@@ -278,7 +279,7 @@ dev = ["development"]
 sift-stream-bindings = ["sift-stream"]
 
 # combinations
-file-imports = ["tdms", "rosbags", "hdf5", "ulog", "mcap"]
+file-imports = ["tdms", "rosbags", "hdf5", "ulog", "mcap", "parquet"]
 all = ["openssl", "sift-stream", "file-imports", "data-review"]
 
 dev-all = ["development", "all", "build"]
