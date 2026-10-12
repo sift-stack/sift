@@ -131,10 +131,10 @@ class DataImportAPIAsync(ResourceBase):
                 detected/default time handling. Only used when ``config`` is
                 not provided.
             relative_start_time: Start time for a relative time format.
-                Parquet only; ignored with a warning for other formats or
-                when the time format is absolute. Required for Parquet files
-                with a relative time column. Only used when ``config`` is not
-                provided.
+                Flat dataset Parquet only; ignored with a warning for other
+                formats or when the time format is absolute. Required for
+                Parquet files with a relative time column. Only used when
+                ``config`` is not provided.
             run: ``Run`` object or run ID string to import into an existing
                 run. Mutually exclusive with ``run_name``.
             run_name: Name for a new run. Defaults to the filename if
@@ -394,9 +394,9 @@ class DataImportAPIAsync(ResourceBase):
                 ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``. TDMS keeps its
                 detected/default time handling.
             relative_start_time: Start time for a relative time format.
-                Parquet only; ignored with a warning for other formats or
-                when the time format is absolute. Required for Parquet files
-                with a relative time column.
+                Flat dataset Parquet only; ignored with a warning for other
+                formats or when the time format is absolute. Required for
+                Parquet files with a relative time column.
 
         Returns:
             The detected import config.
@@ -538,14 +538,13 @@ def _apply_time_format(config: ImportConfig, time_format: TimeFormat) -> None:
 
 
 def _apply_relative_start_time(config: ImportConfig, relative_start_time: datetime) -> None:
-    """Set the relative start time on a detected Parquet config with a relative time format.
+    """Set the relative start time on a detected flat dataset Parquet config.
 
-    Warns and leaves the config unchanged for other formats, or when the time
-    format is absolute or unset.
+    Warns and leaves the config unchanged for other formats, including
+    single channel per row Parquet, or when the time format is absolute or
+    unset.
     """
-    if not isinstance(
-        config, (ParquetFlatDatasetImportConfig, ParquetSingleChannelPerRowImportConfig)
-    ):
+    if not isinstance(config, ParquetFlatDatasetImportConfig):
         warnings.warn(
             "'relative_start_time' is ignored because it is not supported for "
             f"{type(config).__name__}.",

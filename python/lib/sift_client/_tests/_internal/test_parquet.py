@@ -20,6 +20,9 @@ from sift_client.sift_types.data_import import (
     CsvImportConfig,
     CsvTimeColumn,
     DataTypeKey,
+    ParquetSingleChannelConfig,
+    ParquetSingleChannelPerRowImportConfig,
+    ParquetTimeColumn,
     TimeFormat,
 )
 
@@ -614,6 +617,23 @@ class TestDetectConfigRelativeStartTime:
         config.time_column.format = TimeFormat.RELATIVE_SECONDS
 
         with pytest.warns(UserWarning, match="not supported for CsvImportConfig"):
+            _apply_relative_start_time(config, self.START)
+
+        assert config.time_column.relative_start_time is None
+
+    def test_single_channel_per_row_config_warns_and_ignores_start_time(self):
+        config = ParquetSingleChannelPerRowImportConfig(
+            asset_name="a",
+            time_column=ParquetTimeColumn(path="t", format=TimeFormat.ABSOLUTE_UNIX_NANOSECONDS),
+            single_channel=ParquetSingleChannelConfig(
+                data_path="v", name="v", data_type=ChannelDataType.DOUBLE
+            ),
+        )
+        config.time_column.format = TimeFormat.RELATIVE_SECONDS
+
+        with pytest.warns(
+            UserWarning, match="not supported for ParquetSingleChannelPerRowImportConfig"
+        ):
             _apply_relative_start_time(config, self.START)
 
         assert config.time_column.relative_start_time is None

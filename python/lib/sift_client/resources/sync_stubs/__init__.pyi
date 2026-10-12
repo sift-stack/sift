@@ -1314,9 +1314,9 @@ class DataImportAPI:
                 ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``. TDMS keeps its
                 detected/default time handling.
             relative_start_time: Start time for a relative time format.
-                Parquet only; ignored with a warning for other formats or
-                when the time format is absolute. Required for Parquet files
-                with a relative time column.
+                Flat dataset Parquet only; ignored with a warning for other
+                formats or when the time format is absolute. Required for
+                Parquet files with a relative time column.
 
         Returns:
             The detected import config.
@@ -1453,10 +1453,10 @@ class DataImportAPI:
                 detected/default time handling. Only used when ``config`` is
                 not provided.
             relative_start_time: Start time for a relative time format.
-                Parquet only; ignored with a warning for other formats or
-                when the time format is absolute. Required for Parquet files
-                with a relative time column. Only used when ``config`` is not
-                provided.
+                Flat dataset Parquet only; ignored with a warning for other
+                formats or when the time format is absolute. Required for
+                Parquet files with a relative time column. Only used when
+                ``config`` is not provided.
             run: ``Run`` object or run ID string to import into an existing
                 run. Mutually exclusive with ``run_name``.
             run_name: Name for a new run. Defaults to the filename if
