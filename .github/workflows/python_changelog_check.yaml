@@ -17,35 +17,28 @@ jobs:
     name: Changelog fragment
     runs-on: ubuntu-latest
     steps:
+      # HEAD is the merge of the PR into the base branch, and HEAD^1 is the base branch tip.
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 2
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install towncrier
-        run: pip install "towncrier==26.9.0"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
 
       - name: Check for a fragment
-        run: towncrier check --dir python --config python/pyproject.toml --compare-with "origin/${{ github.base_ref }}"
+        run: uvx towncrier@26.9.0 check --dir python --config python/pyproject.toml --compare-with HEAD^1
 
-      # A release PR renders and deletes every fragment. A fragment in the merge result means
-      # another change merged after the release PR was opened and would ship without an entry.
+      # A release PR adds a version heading to the changelog. See python/changelog.d/README.md.
       - name: Check that a release PR includes every fragment
         run: |
-          if git diff "origin/${{ github.base_ref }}...HEAD" -- python/CHANGELOG.md | grep -q '^+## \[v'; then
-            fragments=$(find python/changelog.d -type f ! -name README.md ! -name template.md.jinja)
-            if [[ -n "$fragments" ]]; then
-              echo "Error: fragments merged after this release PR was opened:"
-              echo "$fragments"
+          if git diff HEAD^1 HEAD -- python/CHANGELOG.md | grep -q '^+## \[v'; then
+            if ! python3 python/scripts/release_version.py --leftover; then
+              echo "Error: the fragments above merged after this release PR was opened."
               echo "Close this PR and run Python Release Prep again."
               exit 1
             fi
           fi
 
       - name: Check that the fragments render
-        run: towncrier build --dir python --config python/pyproject.toml --draft --version 0.0.0 --date "Draft" > /dev/null
+        run: uvx towncrier@26.9.0 build --dir python --config python/pyproject.toml --draft --version 0.0.0 --date "Draft" > /dev/null

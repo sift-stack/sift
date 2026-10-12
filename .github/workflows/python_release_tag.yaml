@@ -10,6 +10,7 @@ on:
       - main
     paths:
       - 'python/pyproject.toml'
+      - 'python/CHANGELOG.md'
 
 permissions:
   contents: write
@@ -27,26 +28,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Create tag
-        id: tag
+      # A tag pushed with the default token does not start other workflows, so this starts the
+      # publish workflow explicitly. It requires a tag ref.
+      - name: Create tag and start publish
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          version=$(grep '^version = ' python/pyproject.toml | sed 's/version = "\(.*\)"/\1/')
-          tag="python/v${version}"
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          tag="python/v$(python3 python/scripts/release_version.py --current)"
           if [[ -n "$(git ls-remote --tags origin "refs/tags/${tag}")" ]]; then
             echo "Tag ${tag} already exists. Nothing to release."
-            echo "created=false" >> "$GITHUB_OUTPUT"
             exit 0
+          fi
+          # See python/changelog.d/README.md.
+          if ! python3 python/scripts/release_version.py --leftover; then
+            echo "Error: the fragments above are not in the changelog for ${tag}. Not tagging."
+            exit 1
           fi
           git tag "$tag" "$GITHUB_SHA"
           git push origin "refs/tags/${tag}"
-          echo "created=true" >> "$GITHUB_OUTPUT"
-
-      # A tag pushed with the default token does not start other workflows, so start the
-      # publish workflow explicitly. It requires a tag ref.
-      - name: Start PyPI Publish
-        if: steps.tag.outputs.created == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.tag.outputs.tag }}
-        run: gh workflow run python_release.yaml --ref "$TAG"
+          gh workflow run python_release.yaml --ref "$tag"
