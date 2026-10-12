@@ -31165,40 +31165,40 @@ convenience.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sift_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">SiftClient</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sift_client.sift_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">RunCreate</span><span class="p">,</span> <span class="n">AssetUpdate</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">client</span> <span class="o">=</span> <span class="n">SiftClient</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="s2">"..."</span><span class="p">,</span> <span class="n">grpc_url</span><span class="o">=</span><span class="s2">"..."</span><span class="p">,</span> <span class="n">rest_url</span><span class="o">=</span><span class="s2">"..."</span><span class="p">)</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">client</span> <span class="o">=</span> <span class="n">SiftClient</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;...&quot;</span><span class="p">,</span> <span class="n">grpc_url</span><span class="o">=</span><span class="s2">&quot;...&quot;</span><span class="p">,</span> <span class="n">rest_url</span><span class="o">=</span><span class="s2">&quot;...&quot;</span><span class="p">)</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1"># Using Create types - typed approach</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">run</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">runs</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">RunCreate</span><span class="p">(</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">"Test Run"</span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="n">description</span><span class="o">=</span><span class="s2">"A test run"</span><span class="p">,</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="n">asset_ids</span><span class="o">=</span><span class="p">[</span><span class="s2">"asset123"</span><span class="p">],</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Test Run&quot;</span><span class="p">,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;A test run&quot;</span><span class="p">,</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="n">asset_ids</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;asset123&quot;</span><span class="p">],</span>
 </span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="n">start_time</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(),</span>
 </span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="p">)</span>
 </span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="p">)</span>
 </span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
 </span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="c1"># Using Create types - dict approach (more convenient)</span>
 </span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="n">run</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">runs</span><span class="o">.</span><span class="n">create</span><span class="p">({</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"Test Run"</span><span class="p">,</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"A test run"</span><span class="p">,</span>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="s2">"asset_ids"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"asset123"</span><span class="p">],</span>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>    <span class="s2">"start_time"</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(),</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Test Run&quot;</span><span class="p">,</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;A test run&quot;</span><span class="p">,</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="s2">&quot;asset_ids&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;asset123&quot;</span><span class="p">],</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>    <span class="s2">&quot;start_time&quot;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(),</span>
 </span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="p">})</span>
 </span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>
 </span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="c1"># Using Update types - typed approach</span>
 </span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="n">asset</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">assets</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>    <span class="n">asset</span><span class="o">=</span><span class="s2">"asset123"</span><span class="p">,</span>
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>    <span class="n">update</span><span class="o">=</span><span class="n">AssetUpdate</span><span class="p">(</span><span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">"production"</span><span class="p">,</span> <span class="s2">"v2"</span><span class="p">])</span>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>    <span class="n">asset</span><span class="o">=</span><span class="s2">&quot;asset123&quot;</span><span class="p">,</span>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>    <span class="n">update</span><span class="o">=</span><span class="n">AssetUpdate</span><span class="p">(</span><span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;production&quot;</span><span class="p">,</span> <span class="s2">&quot;v2&quot;</span><span class="p">])</span>
 </span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="p">)</span>
 </span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>
 </span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="c1"># Using Update types - dict approach (more convenient)</span>
 </span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="n">asset</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">assets</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
-</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>    <span class="n">asset</span><span class="o">=</span><span class="s2">"asset123"</span><span class="p">,</span>
-</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>    <span class="n">update</span><span class="o">=</span><span class="p">{</span><span class="s2">"tags"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"production"</span><span class="p">,</span> <span class="s2">"v2"</span><span class="p">]}</span>
+</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>    <span class="n">asset</span><span class="o">=</span><span class="s2">&quot;asset123&quot;</span><span class="p">,</span>
+</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>    <span class="n">update</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;tags&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;production&quot;</span><span class="p">,</span> <span class="s2">&quot;v2&quot;</span><span class="p">]}</span>
 </span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a><span class="p">)</span>
 </span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>
 </span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a><span class="c1"># Using convenience methods on resource instances</span>
-</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a><span class="n">asset</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">"tags"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"production"</span><span class="p">,</span> <span class="s2">"v3"</span><span class="p">]})</span>
+</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a><span class="n">asset</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;tags&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;production&quot;</span><span class="p">,</span> <span class="s2">&quot;v3&quot;</span><span class="p">]})</span>
 </span></code></pre></div>
 <h3 id="sift_client.sift_types--helper-types">Helper Types<a class="headerlink" href="#sift_client.sift_types--helper-types" title="Permanent link">&para;</a></h3>
 <p>Additional types are provided for specific use cases. For example:</p>
@@ -31226,12 +31226,12 @@ convenience.</p>
 <p>Resource BaseTypes (Asset, Run, etc.) are immutable by default. To update a resource,
 use the <code>update()</code> method, which will update the instance in-place by replacing its
 internal state with the updated values from the API.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">asset</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">assets</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">asset_id</span><span class="o">=</span><span class="s2">"asset123"</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">asset</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">assets</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">asset_id</span><span class="o">=</span><span class="s2">&quot;asset123&quot;</span><span class="p">)</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="c1"># This will raise an error - assets are immutable</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1"># asset.name = "New Name"</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1"># asset.name = &quot;New Name&quot;</span>
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="c1"># Instead, use the update method</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">asset</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">"tags"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"new-tag"</span><span class="p">]})</span>  <span class="c1"># Updates the instance in-place</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">asset</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;tags&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;new-tag&quot;</span><span class="p">]})</span>  <span class="c1"># Updates the instance in-place</span>
 </span></code></pre></div>
 
 
@@ -32864,7 +32864,7 @@ internal state with the updated values from the API.</p>
   
       pydantic-model
    (sift_client.sift_types.principal_attribute.PrincipalAttributeEnumValue)" href="principal_attribute/#sift_client.sift_types.principal_attribute.PrincipalAttributeEnumValue">PrincipalAttributeEnumValue</a></span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="s2">"list[PrincipalAttributeEnumValue | str]"</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="s2">&quot;list[PrincipalAttributeEnumValue | str]&quot;</span><span class="p">,</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">]</span>
 </span></code></pre></div>
 
@@ -32897,7 +32897,7 @@ internal state with the updated values from the API.</p>
   
       pydantic-model
    (sift_client.sift_types.resource_attribute.ResourceAttributeEnumValue)" href="resource_attribute/#sift_client.sift_types.resource_attribute.ResourceAttributeEnumValue">ResourceAttributeEnumValue</a></span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="s2">"list[ResourceAttributeEnumValue | str]"</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="s2">&quot;list[ResourceAttributeEnumValue | str]&quot;</span><span class="p">,</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">]</span>
 </span></code></pre></div>
 
@@ -35064,15 +35064,13 @@ internal state with the updated values from the API.</p>
   
       class-attribute
       instance-attribute
-   (sift_client.sift_types.annotation.AnnotationType.DATA_REVIEW)" href="annotation/#sift_client.sift_types.annotation.AnnotationType.DATA_REVIEW">DATA_REVIEW</a></span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n"><a class="autorefs autorefs-internal" title="            AnnotationType (sift_client.sift_types.annotation.AnnotationType)" href="annotation/#sift_client.sift_types.annotation.AnnotationType">AnnotationType</a></span><span class="o">.</span><span class="n"><a class="autorefs autorefs-internal" title="            DATA_REVIEW
+   (sift_client.sift_types.annotation.AnnotationType.DATA_REVIEW)" href="annotation/#sift_client.sift_types.annotation.AnnotationType.DATA_REVIEW">DATA_REVIEW</a></span><span class="p">]</span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            DATA_REVIEW
 
 
   
       class-attribute
       instance-attribute
    (sift_client.sift_types.annotation.AnnotationType.DATA_REVIEW)" href="annotation/#sift_client.sift_types.annotation.AnnotationType.DATA_REVIEW">DATA_REVIEW</a></span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -36427,9 +36425,7 @@ internal state with the updated values from the API.</p>
   </span>
 
 <a href="#sift_client.sift_types.AnnotationLogKind.UNSPECIFIED" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">UNSPECIFIED</span> <span class="o">=</span> <span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogKind">AnnotationLogKindProto</span></span><span class="o">.</span><span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogKind.ANNOTATION_LOG_KIND_UNSPECIFIED">ANNOTATION_LOG_KIND_UNSPECIFIED</span></span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">UNSPECIFIED</span> <span class="o">=</span> <span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogKind.ANNOTATION_LOG_KIND_UNSPECIFIED">ANNOTATION_LOG_KIND_UNSPECIFIED</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -36452,7 +36448,7 @@ internal state with the updated values from the API.</p>
   </span>
 
 <a href="#sift_client.sift_types.AnnotationLogKind.COMMENT" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">COMMENT</span> <span class="o">=</span> <span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogKind">AnnotationLogKindProto</span></span><span class="o">.</span><span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogKind.ANNOTATION_LOG_KIND_COMMENT">ANNOTATION_LOG_KIND_COMMENT</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">COMMENT</span> <span class="o">=</span> <span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogKind.ANNOTATION_LOG_KIND_COMMENT">ANNOTATION_LOG_KIND_COMMENT</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -36475,9 +36471,7 @@ internal state with the updated values from the API.</p>
   </span>
 
 <a href="#sift_client.sift_types.AnnotationLogKind.STATE_UPDATE" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">STATE_UPDATE</span> <span class="o">=</span> <span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogKind">AnnotationLogKindProto</span></span><span class="o">.</span><span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogKind.ANNOTATION_LOG_KIND_STATE_UPDATE">ANNOTATION_LOG_KIND_STATE_UPDATE</span></span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">STATE_UPDATE</span> <span class="o">=</span> <span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogKind.ANNOTATION_LOG_KIND_STATE_UPDATE">ANNOTATION_LOG_KIND_STATE_UPDATE</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -36500,9 +36494,7 @@ internal state with the updated values from the API.</p>
   </span>
 
 <a href="#sift_client.sift_types.AnnotationLogKind.ASSIGNED" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">ASSIGNED</span> <span class="o">=</span> <span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogKind">AnnotationLogKindProto</span></span><span class="o">.</span><span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogKind.ANNOTATION_LOG_KIND_ASSIGNED">ANNOTATION_LOG_KIND_ASSIGNED</span></span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">ASSIGNED</span> <span class="o">=</span> <span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogKind.ANNOTATION_LOG_KIND_ASSIGNED">ANNOTATION_LOG_KIND_ASSIGNED</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -36692,9 +36684,7 @@ take the full enum value name.</p>
   </span>
 
 <a href="#sift_client.sift_types.AnnotationLogState.UNSPECIFIED" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">UNSPECIFIED</span> <span class="o">=</span> <span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogState">AnnotationLogStateProto</span></span><span class="o">.</span><span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogState.ANNOTATION_LOG_STATE_UNSPECIFIED">ANNOTATION_LOG_STATE_UNSPECIFIED</span></span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">UNSPECIFIED</span> <span class="o">=</span> <span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogState.ANNOTATION_LOG_STATE_UNSPECIFIED">ANNOTATION_LOG_STATE_UNSPECIFIED</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -36717,9 +36707,7 @@ take the full enum value name.</p>
   </span>
 
 <a href="#sift_client.sift_types.AnnotationLogState.CREATED" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">CREATED</span> <span class="o">=</span> <span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogState">AnnotationLogStateProto</span></span><span class="o">.</span><span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogState.ANNOTATION_LOG_STATE_CREATED">ANNOTATION_LOG_STATE_CREATED</span></span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">CREATED</span> <span class="o">=</span> <span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogState.ANNOTATION_LOG_STATE_CREATED">ANNOTATION_LOG_STATE_CREATED</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -36742,7 +36730,7 @@ take the full enum value name.</p>
   </span>
 
 <a href="#sift_client.sift_types.AnnotationLogState.OPEN" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">OPEN</span> <span class="o">=</span> <span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogState">AnnotationLogStateProto</span></span><span class="o">.</span><span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogState.ANNOTATION_LOG_STATE_OPEN">ANNOTATION_LOG_STATE_OPEN</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">OPEN</span> <span class="o">=</span> <span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogState.ANNOTATION_LOG_STATE_OPEN">ANNOTATION_LOG_STATE_OPEN</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -36765,9 +36753,7 @@ take the full enum value name.</p>
   </span>
 
 <a href="#sift_client.sift_types.AnnotationLogState.FAILED" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">FAILED</span> <span class="o">=</span> <span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogState">AnnotationLogStateProto</span></span><span class="o">.</span><span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogState.ANNOTATION_LOG_STATE_FLAGGED">ANNOTATION_LOG_STATE_FLAGGED</span></span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">FAILED</span> <span class="o">=</span> <span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogState.ANNOTATION_LOG_STATE_FLAGGED">ANNOTATION_LOG_STATE_FLAGGED</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -36790,9 +36776,7 @@ take the full enum value name.</p>
   </span>
 
 <a href="#sift_client.sift_types.AnnotationLogState.ACCEPTED" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">ACCEPTED</span> <span class="o">=</span> <span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogState">AnnotationLogStateProto</span></span><span class="o">.</span><span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogState.ANNOTATION_LOG_STATE_RESOLVED">ANNOTATION_LOG_STATE_RESOLVED</span></span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">ACCEPTED</span> <span class="o">=</span> <span class="n"><span title="sift.annotation_logs.v1.annotation_logs_pb2.AnnotationLogState.ANNOTATION_LOG_STATE_RESOLVED">ANNOTATION_LOG_STATE_RESOLVED</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -36965,9 +36949,7 @@ take the full enum value name.</p>
   </span>
 
 <a href="#sift_client.sift_types.AnnotationState.UNSPECIFIED" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">UNSPECIFIED</span> <span class="o">=</span> <span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n"><span title="sift.annotations.v1.annotations_pb2.AnnotationState">AnnotationStateProto</span></span><span class="o">.</span><span class="n"><span title="sift.annotations.v1.annotations_pb2.AnnotationState.ANNOTATION_STATE_UNSPECIFIED">ANNOTATION_STATE_UNSPECIFIED</span></span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">UNSPECIFIED</span> <span class="o">=</span> <span class="n"><span title="sift.annotations.v1.annotations_pb2.AnnotationState.ANNOTATION_STATE_UNSPECIFIED">ANNOTATION_STATE_UNSPECIFIED</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -36990,7 +36972,7 @@ take the full enum value name.</p>
   </span>
 
 <a href="#sift_client.sift_types.AnnotationState.OPEN" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">OPEN</span> <span class="o">=</span> <span class="n"><span title="sift.annotations.v1.annotations_pb2.AnnotationState">AnnotationStateProto</span></span><span class="o">.</span><span class="n"><span title="sift.annotations.v1.annotations_pb2.AnnotationState.ANNOTATION_STATE_OPEN">ANNOTATION_STATE_OPEN</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">OPEN</span> <span class="o">=</span> <span class="n"><span title="sift.annotations.v1.annotations_pb2.AnnotationState.ANNOTATION_STATE_OPEN">ANNOTATION_STATE_OPEN</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -37013,7 +36995,7 @@ take the full enum value name.</p>
   </span>
 
 <a href="#sift_client.sift_types.AnnotationState.FAILED" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">FAILED</span> <span class="o">=</span> <span class="n"><span title="sift.annotations.v1.annotations_pb2.AnnotationState">AnnotationStateProto</span></span><span class="o">.</span><span class="n"><span title="sift.annotations.v1.annotations_pb2.AnnotationState.ANNOTATION_STATE_FLAGGED">ANNOTATION_STATE_FLAGGED</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">FAILED</span> <span class="o">=</span> <span class="n"><span title="sift.annotations.v1.annotations_pb2.AnnotationState.ANNOTATION_STATE_FLAGGED">ANNOTATION_STATE_FLAGGED</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -37036,7 +37018,7 @@ take the full enum value name.</p>
   </span>
 
 <a href="#sift_client.sift_types.AnnotationState.ACCEPTED" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">ACCEPTED</span> <span class="o">=</span> <span class="n"><span title="sift.annotations.v1.annotations_pb2.AnnotationState">AnnotationStateProto</span></span><span class="o">.</span><span class="n"><span title="sift.annotations.v1.annotations_pb2.AnnotationState.ANNOTATION_STATE_RESOLVED">ANNOTATION_STATE_RESOLVED</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">ACCEPTED</span> <span class="o">=</span> <span class="n"><span title="sift.annotations.v1.annotations_pb2.AnnotationState.ANNOTATION_STATE_RESOLVED">ANNOTATION_STATE_RESOLVED</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -37212,9 +37194,7 @@ take the full enum value name.</p>
   </span>
 
 <a href="#sift_client.sift_types.AnnotationType.UNSPECIFIED" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">UNSPECIFIED</span> <span class="o">=</span> <span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n"><span title="sift.annotations.v1.annotations_pb2.AnnotationType">AnnotationTypeProto</span></span><span class="o">.</span><span class="n"><span title="sift.annotations.v1.annotations_pb2.AnnotationType.ANNOTATION_TYPE_UNSPECIFIED">ANNOTATION_TYPE_UNSPECIFIED</span></span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">UNSPECIFIED</span> <span class="o">=</span> <span class="n"><span title="sift.annotations.v1.annotations_pb2.AnnotationType.ANNOTATION_TYPE_UNSPECIFIED">ANNOTATION_TYPE_UNSPECIFIED</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -37237,9 +37217,7 @@ take the full enum value name.</p>
   </span>
 
 <a href="#sift_client.sift_types.AnnotationType.DATA_REVIEW" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">DATA_REVIEW</span> <span class="o">=</span> <span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n"><span title="sift.annotations.v1.annotations_pb2.AnnotationType">AnnotationTypeProto</span></span><span class="o">.</span><span class="n"><span title="sift.annotations.v1.annotations_pb2.AnnotationType.ANNOTATION_TYPE_DATA_REVIEW">ANNOTATION_TYPE_DATA_REVIEW</span></span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">DATA_REVIEW</span> <span class="o">=</span> <span class="n"><span title="sift.annotations.v1.annotations_pb2.AnnotationType.ANNOTATION_TYPE_DATA_REVIEW">ANNOTATION_TYPE_DATA_REVIEW</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -37262,7 +37240,7 @@ take the full enum value name.</p>
   </span>
 
 <a href="#sift_client.sift_types.AnnotationType.PHASE" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">PHASE</span> <span class="o">=</span> <span class="n"><span title="sift.annotations.v1.annotations_pb2.AnnotationType">AnnotationTypeProto</span></span><span class="o">.</span><span class="n"><span title="sift.annotations.v1.annotations_pb2.AnnotationType.ANNOTATION_TYPE_PHASE">ANNOTATION_TYPE_PHASE</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">PHASE</span> <span class="o">=</span> <span class="n"><span title="sift.annotations.v1.annotations_pb2.AnnotationType.ANNOTATION_TYPE_PHASE">ANNOTATION_TYPE_PHASE</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -38323,7 +38301,7 @@ take the full enum value name.</p>
   </span>
 
 <a href="#sift_client.sift_types.PhaseCreate.model_config" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">model_config</span> <span class="o">=</span> <span class="n"><span title="pydantic.ConfigDict">ConfigDict</span></span><span class="p">(</span><span class="n"><span title="pydantic.ConfigDict(extra)">extra</span></span><span class="o">=</span><span class="s1">'forbid'</span><span class="p">)</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">model_config</span> <span class="o">=</span> <span class="n"><span title="pydantic.ConfigDict">ConfigDict</span></span><span class="p">(</span><span class="n"><span title="pydantic.ConfigDict(extra)">extra</span></span><span class="o">=</span><span class="s1">&#39;forbid&#39;</span><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -38351,7 +38329,7 @@ take the full enum value name.</p>
   
       class-attribute
       instance-attribute
-   (sift_client.sift_types.annotation.AnnotationType.PHASE)" href="annotation/#sift_client.sift_types.annotation.AnnotationType.PHASE">PHASE</a></span><span class="p">]</span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            AnnotationType (sift_client.sift_types.annotation.AnnotationType)" href="annotation/#sift_client.sift_types.annotation.AnnotationType">AnnotationType</a></span><span class="o">.</span><span class="n"><a class="autorefs autorefs-internal" title="            PHASE
+   (sift_client.sift_types.annotation.AnnotationType.PHASE)" href="annotation/#sift_client.sift_types.annotation.AnnotationType.PHASE">PHASE</a></span><span class="p">]</span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            PHASE
 
 
   
@@ -43168,7 +43146,7 @@ take the full enum value name.</p>
   </span>
 
 <a href="#sift_client.sift_types.CampaignReportSummary.report_name" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">report_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="s1">''</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">report_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -45256,7 +45234,7 @@ may come back in a different order.</p>
   </span>
 
 <a href="#sift_client.sift_types.ChannelDataType.DOUBLE" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">DOUBLE</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.channel_data_type_pb2">channel_pb</span></span><span class="o">.</span><span class="n"><span title="sift.common.type.v1.channel_data_type_pb2.CHANNEL_DATA_TYPE_DOUBLE">CHANNEL_DATA_TYPE_DOUBLE</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">DOUBLE</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.channel_data_type_pb2.CHANNEL_DATA_TYPE_DOUBLE">CHANNEL_DATA_TYPE_DOUBLE</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -45279,7 +45257,7 @@ may come back in a different order.</p>
   </span>
 
 <a href="#sift_client.sift_types.ChannelDataType.STRING" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">STRING</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.channel_data_type_pb2">channel_pb</span></span><span class="o">.</span><span class="n"><span title="sift.common.type.v1.channel_data_type_pb2.CHANNEL_DATA_TYPE_STRING">CHANNEL_DATA_TYPE_STRING</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">STRING</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.channel_data_type_pb2.CHANNEL_DATA_TYPE_STRING">CHANNEL_DATA_TYPE_STRING</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -45302,7 +45280,7 @@ may come back in a different order.</p>
   </span>
 
 <a href="#sift_client.sift_types.ChannelDataType.ENUM" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">ENUM</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.channel_data_type_pb2">channel_pb</span></span><span class="o">.</span><span class="n"><span title="sift.common.type.v1.channel_data_type_pb2.CHANNEL_DATA_TYPE_ENUM">CHANNEL_DATA_TYPE_ENUM</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">ENUM</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.channel_data_type_pb2.CHANNEL_DATA_TYPE_ENUM">CHANNEL_DATA_TYPE_ENUM</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -45325,7 +45303,7 @@ may come back in a different order.</p>
   </span>
 
 <a href="#sift_client.sift_types.ChannelDataType.BIT_FIELD" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">BIT_FIELD</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.channel_data_type_pb2">channel_pb</span></span><span class="o">.</span><span class="n"><span title="sift.common.type.v1.channel_data_type_pb2.CHANNEL_DATA_TYPE_BIT_FIELD">CHANNEL_DATA_TYPE_BIT_FIELD</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">BIT_FIELD</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.channel_data_type_pb2.CHANNEL_DATA_TYPE_BIT_FIELD">CHANNEL_DATA_TYPE_BIT_FIELD</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -45348,7 +45326,7 @@ may come back in a different order.</p>
   </span>
 
 <a href="#sift_client.sift_types.ChannelDataType.BOOL" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">BOOL</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.channel_data_type_pb2">channel_pb</span></span><span class="o">.</span><span class="n"><span title="sift.common.type.v1.channel_data_type_pb2.CHANNEL_DATA_TYPE_BOOL">CHANNEL_DATA_TYPE_BOOL</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">BOOL</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.channel_data_type_pb2.CHANNEL_DATA_TYPE_BOOL">CHANNEL_DATA_TYPE_BOOL</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -45371,7 +45349,7 @@ may come back in a different order.</p>
   </span>
 
 <a href="#sift_client.sift_types.ChannelDataType.FLOAT" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">FLOAT</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.channel_data_type_pb2">channel_pb</span></span><span class="o">.</span><span class="n"><span title="sift.common.type.v1.channel_data_type_pb2.CHANNEL_DATA_TYPE_FLOAT">CHANNEL_DATA_TYPE_FLOAT</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">FLOAT</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.channel_data_type_pb2.CHANNEL_DATA_TYPE_FLOAT">CHANNEL_DATA_TYPE_FLOAT</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -45394,7 +45372,7 @@ may come back in a different order.</p>
   </span>
 
 <a href="#sift_client.sift_types.ChannelDataType.INT_32" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">INT_32</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.channel_data_type_pb2">channel_pb</span></span><span class="o">.</span><span class="n"><span title="sift.common.type.v1.channel_data_type_pb2.CHANNEL_DATA_TYPE_INT_32">CHANNEL_DATA_TYPE_INT_32</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">INT_32</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.channel_data_type_pb2.CHANNEL_DATA_TYPE_INT_32">CHANNEL_DATA_TYPE_INT_32</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -45417,7 +45395,7 @@ may come back in a different order.</p>
   </span>
 
 <a href="#sift_client.sift_types.ChannelDataType.INT_64" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">INT_64</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.channel_data_type_pb2">channel_pb</span></span><span class="o">.</span><span class="n"><span title="sift.common.type.v1.channel_data_type_pb2.CHANNEL_DATA_TYPE_INT_64">CHANNEL_DATA_TYPE_INT_64</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">INT_64</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.channel_data_type_pb2.CHANNEL_DATA_TYPE_INT_64">CHANNEL_DATA_TYPE_INT_64</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -45440,7 +45418,7 @@ may come back in a different order.</p>
   </span>
 
 <a href="#sift_client.sift_types.ChannelDataType.UINT_32" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">UINT_32</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.channel_data_type_pb2">channel_pb</span></span><span class="o">.</span><span class="n"><span title="sift.common.type.v1.channel_data_type_pb2.CHANNEL_DATA_TYPE_UINT_32">CHANNEL_DATA_TYPE_UINT_32</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">UINT_32</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.channel_data_type_pb2.CHANNEL_DATA_TYPE_UINT_32">CHANNEL_DATA_TYPE_UINT_32</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -45463,7 +45441,7 @@ may come back in a different order.</p>
   </span>
 
 <a href="#sift_client.sift_types.ChannelDataType.UINT_64" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">UINT_64</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.channel_data_type_pb2">channel_pb</span></span><span class="o">.</span><span class="n"><span title="sift.common.type.v1.channel_data_type_pb2.CHANNEL_DATA_TYPE_UINT_64">CHANNEL_DATA_TYPE_UINT_64</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">UINT_64</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.channel_data_type_pb2.CHANNEL_DATA_TYPE_UINT_64">CHANNEL_DATA_TYPE_UINT_64</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -45486,7 +45464,7 @@ may come back in a different order.</p>
   </span>
 
 <a href="#sift_client.sift_types.ChannelDataType.BYTES" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">BYTES</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.channel_data_type_pb2">channel_pb</span></span><span class="o">.</span><span class="n"><span title="sift.common.type.v1.channel_data_type_pb2.CHANNEL_DATA_TYPE_BYTES">CHANNEL_DATA_TYPE_BYTES</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">BYTES</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.channel_data_type_pb2.CHANNEL_DATA_TYPE_BYTES">CHANNEL_DATA_TYPE_BYTES</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -47040,7 +47018,7 @@ Sift app shows in place of the canonical one.</p>
   </span>
 
 <a href="#sift_client.sift_types.DataImportStatus.UNSPECIFIED" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">UNSPECIFIED</span> <span class="o">=</span> <span class="s1">'UNSPECIFIED'</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">UNSPECIFIED</span> <span class="o">=</span> <span class="s1">&#39;UNSPECIFIED&#39;</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -47063,7 +47041,7 @@ Sift app shows in place of the canonical one.</p>
   </span>
 
 <a href="#sift_client.sift_types.DataImportStatus.PENDING" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">PENDING</span> <span class="o">=</span> <span class="s1">'PENDING'</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">PENDING</span> <span class="o">=</span> <span class="s1">&#39;PENDING&#39;</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -47086,7 +47064,7 @@ Sift app shows in place of the canonical one.</p>
   </span>
 
 <a href="#sift_client.sift_types.DataImportStatus.IN_PROGRESS" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">IN_PROGRESS</span> <span class="o">=</span> <span class="s1">'IN_PROGRESS'</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">IN_PROGRESS</span> <span class="o">=</span> <span class="s1">&#39;IN_PROGRESS&#39;</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -47109,7 +47087,7 @@ Sift app shows in place of the canonical one.</p>
   </span>
 
 <a href="#sift_client.sift_types.DataImportStatus.SUCCEEDED" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">SUCCEEDED</span> <span class="o">=</span> <span class="s1">'SUCCEEDED'</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">SUCCEEDED</span> <span class="o">=</span> <span class="s1">&#39;SUCCEEDED&#39;</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -47132,7 +47110,7 @@ Sift app shows in place of the canonical one.</p>
   </span>
 
 <a href="#sift_client.sift_types.DataImportStatus.FAILED" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">FAILED</span> <span class="o">=</span> <span class="s1">'FAILED'</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">FAILED</span> <span class="o">=</span> <span class="s1">&#39;FAILED&#39;</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -50798,7 +50776,7 @@ of this flag.</p>
   </span>
 
 <a href="#sift_client.sift_types.JobStatus.CREATED" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">CREATED</span> <span class="o">=</span> <span class="s1">'CREATED'</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">CREATED</span> <span class="o">=</span> <span class="s1">&#39;CREATED&#39;</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -50821,7 +50799,7 @@ of this flag.</p>
   </span>
 
 <a href="#sift_client.sift_types.JobStatus.RUNNING" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">RUNNING</span> <span class="o">=</span> <span class="s1">'RUNNING'</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">RUNNING</span> <span class="o">=</span> <span class="s1">&#39;RUNNING&#39;</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -50844,7 +50822,7 @@ of this flag.</p>
   </span>
 
 <a href="#sift_client.sift_types.JobStatus.FINISHED" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">FINISHED</span> <span class="o">=</span> <span class="s1">'FINISHED'</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">FINISHED</span> <span class="o">=</span> <span class="s1">&#39;FINISHED&#39;</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -50867,7 +50845,7 @@ of this flag.</p>
   </span>
 
 <a href="#sift_client.sift_types.JobStatus.FAILED" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">FAILED</span> <span class="o">=</span> <span class="s1">'FAILED'</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">FAILED</span> <span class="o">=</span> <span class="s1">&#39;FAILED&#39;</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -50890,7 +50868,7 @@ of this flag.</p>
   </span>
 
 <a href="#sift_client.sift_types.JobStatus.CANCELLED" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">CANCELLED</span> <span class="o">=</span> <span class="s1">'CANCELLED'</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">CANCELLED</span> <span class="o">=</span> <span class="s1">&#39;CANCELLED&#39;</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -50913,7 +50891,7 @@ of this flag.</p>
   </span>
 
 <a href="#sift_client.sift_types.JobStatus.CANCEL_REQUESTED" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">CANCEL_REQUESTED</span> <span class="o">=</span> <span class="s1">'CANCEL_REQUESTED'</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">CANCEL_REQUESTED</span> <span class="o">=</span> <span class="s1">&#39;CANCEL_REQUESTED&#39;</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -51134,7 +51112,7 @@ of this flag.</p>
   </span>
 
 <a href="#sift_client.sift_types.JobType.RULE_EVALUATION" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">RULE_EVALUATION</span> <span class="o">=</span> <span class="s1">'RULE_EVALUATION'</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">RULE_EVALUATION</span> <span class="o">=</span> <span class="s1">&#39;RULE_EVALUATION&#39;</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -51157,7 +51135,7 @@ of this flag.</p>
   </span>
 
 <a href="#sift_client.sift_types.JobType.DATA_IMPORT" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">DATA_IMPORT</span> <span class="o">=</span> <span class="s1">'DATA_IMPORT'</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">DATA_IMPORT</span> <span class="o">=</span> <span class="s1">&#39;DATA_IMPORT&#39;</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -51180,7 +51158,7 @@ of this flag.</p>
   </span>
 
 <a href="#sift_client.sift_types.JobType.DATA_EXPORT" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">DATA_EXPORT</span> <span class="o">=</span> <span class="s1">'DATA_EXPORT'</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">DATA_EXPORT</span> <span class="o">=</span> <span class="s1">&#39;DATA_EXPORT&#39;</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -53076,7 +53054,7 @@ reassigned to. If None, assignments using this value are archived.</p>
 
 <a href="#sift_client.sift_types.PrincipalAttributeKey.create_enum_value" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">create_enum_value</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">display_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">description</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="s2">""</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">display_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">description</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            PrincipalAttributeEnumValue
 
 
@@ -53796,7 +53774,7 @@ replaces the full set on each principal.</p>
   </span>
 
 <a href="#sift_client.sift_types.PrincipalAttributeValueType.ENUM" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">ENUM</span> <span class="o">=</span> <span class="n"><span title="sift.principal_attributes.v1.principal_attributes_pb2">pa_pb</span></span><span class="o">.</span><span class="n"><span title="sift.principal_attributes.v1.principal_attributes_pb2.PRINCIPAL_ATTRIBUTE_VALUE_TYPE_ENUM">PRINCIPAL_ATTRIBUTE_VALUE_TYPE_ENUM</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">ENUM</span> <span class="o">=</span> <span class="n"><span title="sift.principal_attributes.v1.principal_attributes_pb2.PRINCIPAL_ATTRIBUTE_VALUE_TYPE_ENUM">PRINCIPAL_ATTRIBUTE_VALUE_TYPE_ENUM</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -53819,7 +53797,7 @@ replaces the full set on each principal.</p>
   </span>
 
 <a href="#sift_client.sift_types.PrincipalAttributeValueType.BOOLEAN" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">BOOLEAN</span> <span class="o">=</span> <span class="n"><span title="sift.principal_attributes.v1.principal_attributes_pb2">pa_pb</span></span><span class="o">.</span><span class="n"><span title="sift.principal_attributes.v1.principal_attributes_pb2.PRINCIPAL_ATTRIBUTE_VALUE_TYPE_BOOLEAN">PRINCIPAL_ATTRIBUTE_VALUE_TYPE_BOOLEAN</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">BOOLEAN</span> <span class="o">=</span> <span class="n"><span title="sift.principal_attributes.v1.principal_attributes_pb2.PRINCIPAL_ATTRIBUTE_VALUE_TYPE_BOOLEAN">PRINCIPAL_ATTRIBUTE_VALUE_TYPE_BOOLEAN</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -53842,7 +53820,7 @@ replaces the full set on each principal.</p>
   </span>
 
 <a href="#sift_client.sift_types.PrincipalAttributeValueType.NUMBER" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">NUMBER</span> <span class="o">=</span> <span class="n"><span title="sift.principal_attributes.v1.principal_attributes_pb2">pa_pb</span></span><span class="o">.</span><span class="n"><span title="sift.principal_attributes.v1.principal_attributes_pb2.PRINCIPAL_ATTRIBUTE_VALUE_TYPE_NUMBER">PRINCIPAL_ATTRIBUTE_VALUE_TYPE_NUMBER</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">NUMBER</span> <span class="o">=</span> <span class="n"><span title="sift.principal_attributes.v1.principal_attributes_pb2.PRINCIPAL_ATTRIBUTE_VALUE_TYPE_NUMBER">PRINCIPAL_ATTRIBUTE_VALUE_TYPE_NUMBER</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -53865,9 +53843,7 @@ replaces the full set on each principal.</p>
   </span>
 
 <a href="#sift_client.sift_types.PrincipalAttributeValueType.SET_OF_ENUM" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">SET_OF_ENUM</span> <span class="o">=</span> <span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n"><span title="sift.principal_attributes.v1.principal_attributes_pb2">pa_pb</span></span><span class="o">.</span><span class="n"><span title="sift.principal_attributes.v1.principal_attributes_pb2.PRINCIPAL_ATTRIBUTE_VALUE_TYPE_SET_OF_ENUM">PRINCIPAL_ATTRIBUTE_VALUE_TYPE_SET_OF_ENUM</span></span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">SET_OF_ENUM</span> <span class="o">=</span> <span class="n"><span title="sift.principal_attributes.v1.principal_attributes_pb2.PRINCIPAL_ATTRIBUTE_VALUE_TYPE_SET_OF_ENUM">PRINCIPAL_ATTRIBUTE_VALUE_TYPE_SET_OF_ENUM</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -54161,7 +54137,7 @@ replaces the full set on each principal.</p>
   </span>
 
 <a href="#sift_client.sift_types.PrincipalType.USER" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">USER</span> <span class="o">=</span> <span class="n"><span title="sift.principal_attributes.v1.principal_attributes_pb2">pa_pb</span></span><span class="o">.</span><span class="n"><span title="sift.principal_attributes.v1.principal_attributes_pb2.PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER">PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">USER</span> <span class="o">=</span> <span class="n"><span title="sift.principal_attributes.v1.principal_attributes_pb2.PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER">PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -54184,9 +54160,7 @@ replaces the full set on each principal.</p>
   </span>
 
 <a href="#sift_client.sift_types.PrincipalType.USER_GROUP" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">USER_GROUP</span> <span class="o">=</span> <span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n"><span title="sift.principal_attributes.v1.principal_attributes_pb2">pa_pb</span></span><span class="o">.</span><span class="n"><span title="sift.principal_attributes.v1.principal_attributes_pb2.PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER_GROUP">PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER_GROUP</span></span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">USER_GROUP</span> <span class="o">=</span> <span class="n"><span title="sift.principal_attributes.v1.principal_attributes_pb2.PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER_GROUP">PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER_GROUP</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -59054,7 +59028,7 @@ not returned), a bool for <code>BOOLEAN</code> keys, or an int for <code>NUMBER<
   </span>
 
 <a href="#sift_client.sift_types.ResourceAttributeEntityType.ASSET" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">ASSET</span> <span class="o">=</span> <span class="n"><span title="sift.resource_attribute.v1.resource_attribute_pb2">ra_pb</span></span><span class="o">.</span><span class="n"><span title="sift.resource_attribute.v1.resource_attribute_pb2.RESOURCE_ATTRIBUTE_ENTITY_TYPE_ASSET">RESOURCE_ATTRIBUTE_ENTITY_TYPE_ASSET</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">ASSET</span> <span class="o">=</span> <span class="n"><span title="sift.resource_attribute.v1.resource_attribute_pb2.RESOURCE_ATTRIBUTE_ENTITY_TYPE_ASSET">RESOURCE_ATTRIBUTE_ENTITY_TYPE_ASSET</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -59077,7 +59051,7 @@ not returned), a bool for <code>BOOLEAN</code> keys, or an int for <code>NUMBER<
   </span>
 
 <a href="#sift_client.sift_types.ResourceAttributeEntityType.CHANNEL" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">CHANNEL</span> <span class="o">=</span> <span class="n"><span title="sift.resource_attribute.v1.resource_attribute_pb2">ra_pb</span></span><span class="o">.</span><span class="n"><span title="sift.resource_attribute.v1.resource_attribute_pb2.RESOURCE_ATTRIBUTE_ENTITY_TYPE_CHANNEL">RESOURCE_ATTRIBUTE_ENTITY_TYPE_CHANNEL</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">CHANNEL</span> <span class="o">=</span> <span class="n"><span title="sift.resource_attribute.v1.resource_attribute_pb2.RESOURCE_ATTRIBUTE_ENTITY_TYPE_CHANNEL">RESOURCE_ATTRIBUTE_ENTITY_TYPE_CHANNEL</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -59100,7 +59074,7 @@ not returned), a bool for <code>BOOLEAN</code> keys, or an int for <code>NUMBER<
   </span>
 
 <a href="#sift_client.sift_types.ResourceAttributeEntityType.RUN" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">RUN</span> <span class="o">=</span> <span class="n"><span title="sift.resource_attribute.v1.resource_attribute_pb2">ra_pb</span></span><span class="o">.</span><span class="n"><span title="sift.resource_attribute.v1.resource_attribute_pb2.RESOURCE_ATTRIBUTE_ENTITY_TYPE_RUN">RESOURCE_ATTRIBUTE_ENTITY_TYPE_RUN</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">RUN</span> <span class="o">=</span> <span class="n"><span title="sift.resource_attribute.v1.resource_attribute_pb2.RESOURCE_ATTRIBUTE_ENTITY_TYPE_RUN">RESOURCE_ATTRIBUTE_ENTITY_TYPE_RUN</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -60153,7 +60127,7 @@ reassigned to. If None, assignments using this value are archived.</p>
 
 <a href="#sift_client.sift_types.ResourceAttributeKey.create_enum_value" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">create_enum_value</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">display_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">description</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="s2">""</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">display_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">description</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            ResourceAttributeEnumValue
 
 
@@ -60886,7 +60860,7 @@ replaces the full set on each resource.</p>
   </span>
 
 <a href="#sift_client.sift_types.ResourceAttributeValueType.ENUM" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">ENUM</span> <span class="o">=</span> <span class="n"><span title="sift.resource_attribute.v1.resource_attribute_pb2">ra_pb</span></span><span class="o">.</span><span class="n"><span title="sift.resource_attribute.v1.resource_attribute_pb2.RESOURCE_ATTRIBUTE_KEY_TYPE_ENUM">RESOURCE_ATTRIBUTE_KEY_TYPE_ENUM</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">ENUM</span> <span class="o">=</span> <span class="n"><span title="sift.resource_attribute.v1.resource_attribute_pb2.RESOURCE_ATTRIBUTE_KEY_TYPE_ENUM">RESOURCE_ATTRIBUTE_KEY_TYPE_ENUM</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -60909,7 +60883,7 @@ replaces the full set on each resource.</p>
   </span>
 
 <a href="#sift_client.sift_types.ResourceAttributeValueType.BOOLEAN" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">BOOLEAN</span> <span class="o">=</span> <span class="n"><span title="sift.resource_attribute.v1.resource_attribute_pb2">ra_pb</span></span><span class="o">.</span><span class="n"><span title="sift.resource_attribute.v1.resource_attribute_pb2.RESOURCE_ATTRIBUTE_KEY_TYPE_BOOLEAN">RESOURCE_ATTRIBUTE_KEY_TYPE_BOOLEAN</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">BOOLEAN</span> <span class="o">=</span> <span class="n"><span title="sift.resource_attribute.v1.resource_attribute_pb2.RESOURCE_ATTRIBUTE_KEY_TYPE_BOOLEAN">RESOURCE_ATTRIBUTE_KEY_TYPE_BOOLEAN</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -60932,7 +60906,7 @@ replaces the full set on each resource.</p>
   </span>
 
 <a href="#sift_client.sift_types.ResourceAttributeValueType.NUMBER" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">NUMBER</span> <span class="o">=</span> <span class="n"><span title="sift.resource_attribute.v1.resource_attribute_pb2">ra_pb</span></span><span class="o">.</span><span class="n"><span title="sift.resource_attribute.v1.resource_attribute_pb2.RESOURCE_ATTRIBUTE_KEY_TYPE_NUMBER">RESOURCE_ATTRIBUTE_KEY_TYPE_NUMBER</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">NUMBER</span> <span class="o">=</span> <span class="n"><span title="sift.resource_attribute.v1.resource_attribute_pb2.RESOURCE_ATTRIBUTE_KEY_TYPE_NUMBER">RESOURCE_ATTRIBUTE_KEY_TYPE_NUMBER</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -60955,7 +60929,7 @@ replaces the full set on each resource.</p>
   </span>
 
 <a href="#sift_client.sift_types.ResourceAttributeValueType.SET_OF_ENUM" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">SET_OF_ENUM</span> <span class="o">=</span> <span class="n"><span title="sift.resource_attribute.v1.resource_attribute_pb2">ra_pb</span></span><span class="o">.</span><span class="n"><span title="sift.resource_attribute.v1.resource_attribute_pb2.RESOURCE_ATTRIBUTE_KEY_TYPE_SET_OF_ENUM">RESOURCE_ATTRIBUTE_KEY_TYPE_SET_OF_ENUM</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">SET_OF_ENUM</span> <span class="o">=</span> <span class="n"><span title="sift.resource_attribute.v1.resource_attribute_pb2.RESOURCE_ATTRIBUTE_KEY_TYPE_SET_OF_ENUM">RESOURCE_ATTRIBUTE_KEY_TYPE_SET_OF_ENUM</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -62918,7 +62892,7 @@ replaces the full set on each resource.</p>
   </span>
 
 <a href="#sift_client.sift_types.RuleActionType.UNSPECIFIED" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">UNSPECIFIED</span> <span class="o">=</span> <span class="n"><span title="sift.rules.v1.rules_pb2.ActionKind">ActionKind</span></span><span class="o">.</span><span class="n"><span title="sift.rules.v1.rules_pb2.ActionKind.ACTION_KIND_UNSPECIFIED">ACTION_KIND_UNSPECIFIED</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">UNSPECIFIED</span> <span class="o">=</span> <span class="n"><span title="sift.rules.v1.rules_pb2.ActionKind.ACTION_KIND_UNSPECIFIED">ACTION_KIND_UNSPECIFIED</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -62941,7 +62915,7 @@ replaces the full set on each resource.</p>
   </span>
 
 <a href="#sift_client.sift_types.RuleActionType.ANNOTATION" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">ANNOTATION</span> <span class="o">=</span> <span class="n"><span title="sift.rules.v1.rules_pb2.ActionKind">ActionKind</span></span><span class="o">.</span><span class="n"><span title="sift.rules.v1.rules_pb2.ActionKind.ANNOTATION">ANNOTATION</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">ANNOTATION</span> <span class="o">=</span> <span class="n"><span title="sift.rules.v1.rules_pb2.ActionKind.ANNOTATION">ANNOTATION</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -62964,7 +62938,7 @@ replaces the full set on each resource.</p>
   </span>
 
 <a href="#sift_client.sift_types.RuleActionType.WEBHOOK" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">WEBHOOK</span> <span class="o">=</span> <span class="n"><span title="sift.rules.v1.rules_pb2.ActionKind">ActionKind</span></span><span class="o">.</span><span class="n"><span title="sift.rules.v1.rules_pb2.ActionKind.WEBHOOK">WEBHOOK</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">WEBHOOK</span> <span class="o">=</span> <span class="n"><span title="sift.rules.v1.rules_pb2.ActionKind.WEBHOOK">WEBHOOK</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -73996,9 +73970,7 @@ cached on <code>self</code> from the create call (offline/logging mode).</p>
   </span>
 
 <a href="#sift_client.sift_types.FunctionDataType.UNSPECIFIED" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">UNSPECIFIED</span> <span class="o">=</span> <span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n"><span title="sift.common.type.v1.user_defined_functions_pb2.FunctionDataType">FunctionDataTypeProto</span></span><span class="o">.</span><span class="n"><span title="sift.common.type.v1.user_defined_functions_pb2.FunctionDataType.FUNCTION_DATA_TYPE_UNSPECIFIED">FUNCTION_DATA_TYPE_UNSPECIFIED</span></span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">UNSPECIFIED</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.user_defined_functions_pb2.FunctionDataType.FUNCTION_DATA_TYPE_UNSPECIFIED">FUNCTION_DATA_TYPE_UNSPECIFIED</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -74021,7 +73993,7 @@ cached on <code>self</code> from the create call (offline/logging mode).</p>
   </span>
 
 <a href="#sift_client.sift_types.FunctionDataType.NUMERIC" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">NUMERIC</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.user_defined_functions_pb2.FunctionDataType">FunctionDataTypeProto</span></span><span class="o">.</span><span class="n"><span title="sift.common.type.v1.user_defined_functions_pb2.FunctionDataType.FUNCTION_DATA_TYPE_NUMERIC">FUNCTION_DATA_TYPE_NUMERIC</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">NUMERIC</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.user_defined_functions_pb2.FunctionDataType.FUNCTION_DATA_TYPE_NUMERIC">FUNCTION_DATA_TYPE_NUMERIC</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -74044,7 +74016,7 @@ cached on <code>self</code> from the create call (offline/logging mode).</p>
   </span>
 
 <a href="#sift_client.sift_types.FunctionDataType.STRING" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">STRING</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.user_defined_functions_pb2.FunctionDataType">FunctionDataTypeProto</span></span><span class="o">.</span><span class="n"><span title="sift.common.type.v1.user_defined_functions_pb2.FunctionDataType.FUNCTION_DATA_TYPE_STRING">FUNCTION_DATA_TYPE_STRING</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">STRING</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.user_defined_functions_pb2.FunctionDataType.FUNCTION_DATA_TYPE_STRING">FUNCTION_DATA_TYPE_STRING</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -74067,7 +74039,7 @@ cached on <code>self</code> from the create call (offline/logging mode).</p>
   </span>
 
 <a href="#sift_client.sift_types.FunctionDataType.BOOL" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">BOOL</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.user_defined_functions_pb2.FunctionDataType">FunctionDataTypeProto</span></span><span class="o">.</span><span class="n"><span title="sift.common.type.v1.user_defined_functions_pb2.FunctionDataType.FUNCTION_DATA_TYPE_BOOL">FUNCTION_DATA_TYPE_BOOL</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">BOOL</span> <span class="o">=</span> <span class="n"><span title="sift.common.type.v1.user_defined_functions_pb2.FunctionDataType.FUNCTION_DATA_TYPE_BOOL">FUNCTION_DATA_TYPE_BOOL</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -74256,7 +74228,7 @@ cached on <code>self</code> from the create call (offline/logging mode).</p>
   </span>
 
 <a href="#sift_client.sift_types.FunctionInput.data_type" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">data_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            FunctionDataType (sift_client.sift_types.user_defined_function.FunctionDataType)" href="user_defined_function/#sift_client.sift_types.user_defined_function.FunctionDataType">FunctionDataType</a></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            FunctionDataType (sift_client.sift_types.user_defined_function.FunctionDataType)" href="user_defined_function/#sift_client.sift_types.user_defined_function.FunctionDataType">FunctionDataType</a></span><span class="o">.</span><span class="n"><a class="autorefs autorefs-internal" title="            NUMERIC
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">data_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            FunctionDataType (sift_client.sift_types.user_defined_function.FunctionDataType)" href="user_defined_function/#sift_client.sift_types.user_defined_function.FunctionDataType">FunctionDataType</a></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            NUMERIC
 
 
   
@@ -77966,9 +77938,7 @@ cached on <code>self</code> from the create call (offline/logging mode).</p>
   </span>
 
 <a href="#sift_client.sift_types.WebhookEventType.RULE_VIOLATION" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">RULE_VIOLATION</span> <span class="o">=</span> <span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n"><span title="sift.webhooks.v1.webhooks_pb2.WebhookEventType">WebhookEventTypeProto</span></span><span class="o">.</span><span class="n"><span title="sift.webhooks.v1.webhooks_pb2.WebhookEventType.WEBHOOK_EVENT_TYPE_RULE_VIOLATION">WEBHOOK_EVENT_TYPE_RULE_VIOLATION</span></span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">RULE_VIOLATION</span> <span class="o">=</span> <span class="n"><span title="sift.webhooks.v1.webhooks_pb2.WebhookEventType.WEBHOOK_EVENT_TYPE_RULE_VIOLATION">WEBHOOK_EVENT_TYPE_RULE_VIOLATION</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
