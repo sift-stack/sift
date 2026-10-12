@@ -137,7 +137,10 @@ class DataImportAPIAsync(ResourceBase):
             relative_start_time: Start time for a relative time format.
                 A string is parsed with ``pd.Timestamp``; a string or
                 ``pd.Timestamp`` keeps nanosecond precision.
-                For ULog and MCAP, this is the log start time. For other
+                For ULog, this is the log start time and takes precedence
+                over the log's GPS fix. For MCAP, set it only for logs whose
+                ``log_time`` is not on the Unix epoch; ``log_time`` is then
+                read as nanoseconds elapsed from this time. For other
                 formats, it is required with a relative time format and
                 ignored with a warning otherwise. Only used when ``config``
                 is not provided.
@@ -403,7 +406,10 @@ class DataImportAPIAsync(ResourceBase):
             relative_start_time: Start time for a relative time format.
                 A string is parsed with ``pd.Timestamp``; a string or
                 ``pd.Timestamp`` keeps nanosecond precision.
-                For ULog and MCAP, this is the log start time. For other
+                For ULog, this is the log start time and takes precedence
+                over the log's GPS fix. For MCAP, set it only for logs whose
+                ``log_time`` is not on the Unix epoch; ``log_time`` is then
+                read as nanoseconds elapsed from this time. For other
                 formats, it is required with a relative time format and
                 ignored with a warning otherwise.
 

@@ -27,9 +27,11 @@ def apply_relative_start_time(
 ) -> None:
     """Set the relative start time on a detected config, dispatching by config type.
 
-    ULog and MCAP always take it as the log start time. Other formats take it
-    only when ``time_format``, the config's current format, is relative;
-    otherwise it is ignored with a warning.
+    ULog and MCAP always take it, regardless of ``time_format``: ULog as the
+    log start time, MCAP as the start that non-Unix-epoch ``log_time`` values
+    are measured from. Other formats take it only when ``time_format``, the
+    config's current format, is relative; otherwise it is ignored with a
+    warning.
     """
     if isinstance(config, (UlogImportConfig, McapImportConfig)):
         config.relative_start_time = relative_start_time
