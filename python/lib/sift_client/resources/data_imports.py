@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.data_imports import DataImportsLowLevelClient
+from sift_client._internal.time import to_timestamp_nanos
 from sift_client._internal.util.executor import run_sync_function
 from sift_client._internal.util.file import extract_parquet_footer, upload_file
 from sift_client._internal.util.time_column import infer_time_column
@@ -36,6 +37,8 @@ from sift_client.util import cel_utils as cel
 if TYPE_CHECKING:
     from datetime import datetime
 
+    import pandas as pd
+
     from sift_client.client import SiftClient
     from sift_client.sift_types.data_import import DataImportStatus
     from sift_client.sift_types.job import Job
@@ -63,7 +66,7 @@ class DataImportAPIAsync(ResourceBase):
         config: ImportConfig | None = None,
         data_type: DataTypeKey | None = None,
         time_format: TimeFormat | None = None,
-        relative_start_time: datetime | None = None,
+        relative_start_time: pd.Timestamp | datetime | str | None = None,
         run: Run | str | None = None,
         run_name: str | None = None,
         show_progress: bool | None = None,
@@ -131,6 +134,8 @@ class DataImportAPIAsync(ResourceBase):
                 detected/default time handling. Only used when ``config`` is
                 not provided.
             relative_start_time: Start time for a relative time format.
+                A string is parsed with ``pd.Timestamp``; a string or
+                ``pd.Timestamp`` keeps nanosecond precision.
                 Flat dataset Parquet only; ignored with a warning for other
                 formats or when the time format is absolute. Required for
                 Parquet files with a relative time column. Only used when
@@ -334,7 +339,7 @@ class DataImportAPIAsync(ResourceBase):
         data_type: DataTypeKey | None = None,
         time_format: TimeFormat | None = None,
         *,
-        relative_start_time: datetime | None = None,
+        relative_start_time: pd.Timestamp | datetime | str | None = None,
     ) -> ImportConfig:
         """Auto-detect import configuration from a file.
 
@@ -394,6 +399,8 @@ class DataImportAPIAsync(ResourceBase):
                 ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``. TDMS keeps its
                 detected/default time handling.
             relative_start_time: Start time for a relative time format.
+                A string is parsed with ``pd.Timestamp``; a string or
+                ``pd.Timestamp`` keeps nanosecond precision.
                 Flat dataset Parquet only; ignored with a warning for other
                 formats or when the time format is absolute. Required for
                 Parquet files with a relative time column.
@@ -412,6 +419,8 @@ class DataImportAPIAsync(ResourceBase):
             raise FileNotFoundError(f"File not found: {file_path}")
 
         data_type_key = _resolve_data_type_key(path.suffix.lower(), data_type)
+        if isinstance(relative_start_time, str):
+            relative_start_time = to_timestamp_nanos(relative_start_time)
         config = await self._detect_config_for_type(
             path, data_type_key, relative_start_time=relative_start_time
         )

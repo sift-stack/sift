@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pandas as pd
 import pytest
 from sift.common.type.v1.channel_config_pb2 import ChannelConfig as ChannelConfigProto
 from sift.data_imports.v2.data_imports_pb2 import (
@@ -396,6 +397,17 @@ class TestUlogConfig:
         restored = UlogImportConfig._from_proto(proto)
         assert restored.relative_start_time == config.relative_start_time
 
+    def test_relative_start_time_round_trips_nanoseconds(self):
+        config = UlogImportConfig(
+            asset_name="a",
+            relative_start_time=pd.Timestamp("2026-01-01T00:00:00.000000001Z"),
+        )
+        proto = config._to_proto()
+        assert proto.relative_start_time.nanos == 1
+        restored = UlogImportConfig._from_proto(proto)
+        assert isinstance(restored.relative_start_time, pd.Timestamp)
+        assert restored.relative_start_time == config.relative_start_time
+
     def test_from_proto_round_trip(self):
         config = self._config()
         restored = UlogImportConfig._from_proto(config._to_proto())
@@ -538,6 +550,17 @@ class TestMcapConfig:
         proto = config._to_proto()
         assert proto.HasField("relative_start_time")
         restored = McapImportConfig._from_proto(proto)
+        assert restored.relative_start_time == config.relative_start_time
+
+    def test_relative_start_time_round_trips_nanoseconds(self):
+        config = McapImportConfig(
+            asset_name="a",
+            relative_start_time=pd.Timestamp("2026-01-01T00:00:00.000000001Z"),
+        )
+        proto = config._to_proto()
+        assert proto.relative_start_time.nanos == 1
+        restored = McapImportConfig._from_proto(proto)
+        assert isinstance(restored.relative_start_time, pd.Timestamp)
         assert restored.relative_start_time == config.relative_start_time
 
     def test_from_proto_round_trip(self):

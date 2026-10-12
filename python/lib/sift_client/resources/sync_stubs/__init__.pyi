@@ -1254,7 +1254,7 @@ class DataImportAPI:
         data_type: DataTypeKey | None = None,
         time_format: TimeFormat | None = None,
         *,
-        relative_start_time: datetime | None = None,
+        relative_start_time: pd.Timestamp | datetime | str | None = None,
     ) -> ImportConfig:
         """Auto-detect import configuration from a file.
 
@@ -1314,6 +1314,8 @@ class DataImportAPI:
                 ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``. TDMS keeps its
                 detected/default time handling.
             relative_start_time: Start time for a relative time format.
+                A string is parsed with ``pd.Timestamp``; a string or
+                ``pd.Timestamp`` keeps nanosecond precision.
                 Flat dataset Parquet only; ignored with a warning for other
                 formats or when the time format is absolute. Required for
                 Parquet files with a relative time column.
@@ -1385,7 +1387,7 @@ class DataImportAPI:
         config: ImportConfig | None = None,
         data_type: DataTypeKey | None = None,
         time_format: TimeFormat | None = None,
-        relative_start_time: datetime | None = None,
+        relative_start_time: pd.Timestamp | datetime | str | None = None,
         run: Run | str | None = None,
         run_name: str | None = None,
         show_progress: bool | None = None,
@@ -1453,6 +1455,8 @@ class DataImportAPI:
                 detected/default time handling. Only used when ``config`` is
                 not provided.
             relative_start_time: Start time for a relative time format.
+                A string is parsed with ``pd.Timestamp``; a string or
+                ``pd.Timestamp`` keeps nanosecond precision.
                 Flat dataset Parquet only; ignored with a warning for other
                 formats or when the time format is absolute. Required for
                 Parquet files with a relative time column. Only used when

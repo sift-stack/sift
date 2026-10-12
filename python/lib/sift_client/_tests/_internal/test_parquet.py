@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import numpy as np
+import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
@@ -365,7 +366,7 @@ class TestEmbeddedConfig:
                     _TIME_CONFIG,
                     {
                         "time_format": "TIME_FORMAT_RELATIVE_SECONDS",
-                        "relative_start_time": "2024-01-01T00:00:00Z",
+                        "relative_start_time": "2024-01-01T00:00:00.000000001Z",
                     },
                 ),
                 _embedded_field(
@@ -395,7 +396,9 @@ class TestEmbeddedConfig:
 
         assert config.time_column.path == "time"
         assert config.time_column.format == TimeFormat.RELATIVE_SECONDS
-        assert config.time_column.relative_start_time == datetime(2024, 1, 1, tzinfo=timezone.utc)
+        assert config.time_column.relative_start_time == pd.Timestamp(
+            "2024-01-01T00:00:00.000000001Z"
+        )
         assert _columns(config) == {
             "x": ("x.renamed", ChannelDataType.DOUBLE),
             "state": ("state", ChannelDataType.ENUM),
@@ -592,6 +595,47 @@ class TestDetectConfigRelativeStartTime:
         assert config.time_column.path == "timestamp"
         assert config.time_column.format == TimeFormat.RELATIVE_SECONDS
         assert config.time_column.relative_start_time == self.START
+
+    @pytest.mark.asyncio
+    async def test_string_start_time_keeps_nanoseconds(self, create_parquet_file):
+        path = create_parquet_file(_with_time(pa.array([0, 1], pa.time64("us"))))
+        api = DataImportAPIAsync(MagicMock())
+
+        config = await api.detect_config(
+            path,
+            data_type=DataTypeKey.PARQUET_FLATDATASET,
+            relative_start_time="2024-01-01T00:00:00.000000001Z",
+        )
+
+        start = config.time_column.relative_start_time
+        assert start == pd.Timestamp("2024-01-01T00:00:00.000000001Z")
+        assert config.time_column._to_proto().relative_start_time.nanos == 1
+
+    @pytest.mark.asyncio
+    async def test_string_start_time_with_time_format_override(self, create_parquet_file):
+        table = pa.table({"timestamp": pa.array([0, 1], pa.int64()), "v": pa.array([1.0, 2.0])})
+        api = DataImportAPIAsync(MagicMock())
+
+        config = await api.detect_config(
+            create_parquet_file(table),
+            data_type=DataTypeKey.PARQUET_FLATDATASET,
+            time_format=TimeFormat.RELATIVE_SECONDS,
+            relative_start_time="2024-01-01T00:00:00.000000001Z",
+        )
+
+        assert config.time_column._to_proto().relative_start_time.nanos == 1
+
+    @pytest.mark.asyncio
+    async def test_invalid_string_start_time_raises(self, create_parquet_file):
+        path = create_parquet_file(_with_time(pa.array([0, 1], pa.time64("us"))))
+        api = DataImportAPIAsync(MagicMock())
+
+        with pytest.raises(ValueError, match="not a timestamp"):
+            await api.detect_config(
+                path,
+                data_type=DataTypeKey.PARQUET_FLATDATASET,
+                relative_start_time="not a timestamp",
+            )
 
     @pytest.mark.asyncio
     async def test_absolute_column_warns_and_ignores_start_time(self, create_parquet_file):

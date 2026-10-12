@@ -5,7 +5,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING, Union
 
-from pydantic import BaseModel, model_validator
+import pandas as pd  # noqa: TC002
+from pydantic import BaseModel, ConfigDict, model_validator
 from sift.common.type.v1.channel_config_pb2 import ChannelConfig as ChannelConfigProto
 from sift.common.type.v1.channel_enum_type_pb2 import ChannelEnumType as ChannelEnumTypeProto
 from sift.data_imports.v2.data_imports_pb2 import (
@@ -65,7 +66,7 @@ from sift.data_imports.v2.data_imports_pb2 import TimeFormat as TimeFormatProto
 from sift.data_imports.v2.data_imports_pb2 import UlogConfig as UlogConfigProto
 from sift.data_imports.v2.data_imports_pb2 import UlogDataConfig as UlogDataConfigProto
 
-from sift_client._internal.time import to_timestamp_pb
+from sift_client._internal.time import to_timestamp_nanos, to_timestamp_pb
 from sift_client.sift_types._base import BaseType
 from sift_client.sift_types.channel import ChannelDataType
 
@@ -131,10 +132,14 @@ class TimeColumnBase(BaseModel, ABC):
     Attributes:
         format: The time format used in this column.
         relative_start_time: Required when using a relative time format.
+            Pass a ``pd.Timestamp`` for nanosecond precision.
     """
 
+    # pd.Timestamp has no pydantic schema, so it is validated with isinstance.
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     format: TimeFormat
-    relative_start_time: datetime | None = None
+    relative_start_time: pd.Timestamp | datetime | None = None
 
     @model_validator(mode="after")
     def _check_relative_start_time(self) -> TimeColumnBase:
@@ -209,6 +214,10 @@ class ImportConfigBase(BaseModel, ABC):
         run_name: Name for the run. Ignored if ``run_id`` is set.
         run_id: ID of an existing run to append data to.
     """
+
+    # pd.Timestamp (relative_start_time) has no pydantic schema, so it is
+    # validated with isinstance.
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     asset_name: str
     run_name: str | None = None
@@ -286,11 +295,7 @@ class CsvImportConfig(ImportConfigBase):
         """Create from a proto CsvConfig (e.g. from DetectConfig response)."""
         relative_start_time = None
         if proto.time_column.HasField("relative_start_time"):
-            from datetime import timezone
-
-            relative_start_time = proto.time_column.relative_start_time.ToDatetime(
-                tzinfo=timezone.utc
-            )
+            relative_start_time = to_timestamp_nanos(proto.time_column.relative_start_time)
         time_column = CsvTimeColumn(
             column=proto.time_column.column_number,
             format=TimeFormat(proto.time_column.format),
@@ -362,9 +367,7 @@ class ParquetTimeColumn(TimeColumnBase):
     def _from_proto(cls, proto: ParquetTimeColumnProto) -> ParquetTimeColumn:
         relative_start_time = None
         if proto.HasField("relative_start_time"):
-            from datetime import timezone
-
-            relative_start_time = proto.relative_start_time.ToDatetime(tzinfo=timezone.utc)
+            relative_start_time = to_timestamp_nanos(proto.relative_start_time)
 
         fmt = TimeFormat(proto.format) if proto.format else None
         return cls(
@@ -675,6 +678,7 @@ class TdmsImportConfig(ImportConfigBase):
         fallback_method: How to handle channels with missing timing information.
         time_format: Time format for time channels not using the TDMS timestamp type.
         relative_start_time: Relative start time for channels using a non-standard time channel.
+            Pass a ``pd.Timestamp`` for nanosecond precision.
         import_file_properties: If true, imports TDMS file properties as run metadata.
     """
 
@@ -682,7 +686,7 @@ class TdmsImportConfig(ImportConfigBase):
     data: list[TdmsDataColumn] = []
     fallback_method: TdmsFallbackMethod = TdmsFallbackMethod.FAIL_ON_ERROR
     time_format: TimeFormat | None = None
-    relative_start_time: datetime | None = None
+    relative_start_time: pd.Timestamp | datetime | None = None
     import_file_properties: bool = False
 
     def __getitem__(self, name: str) -> TdmsDataColumn:
@@ -732,9 +736,7 @@ class TdmsImportConfig(ImportConfigBase):
 
         relative_start_time = None
         if proto.HasField("relative_start_time"):
-            from datetime import timezone
-
-            relative_start_time = proto.relative_start_time.ToDatetime(tzinfo=timezone.utc)
+            relative_start_time = to_timestamp_nanos(proto.relative_start_time)
 
         data = []
         for d in proto.data:
@@ -812,11 +814,12 @@ class Hdf5ImportConfig(ImportConfigBase):
             so the caller must set this before importing. Importing without it
             raises ``ValueError``.
         relative_start_time: Required when using a relative time format.
+            Pass a ``pd.Timestamp`` for nanosecond precision.
     """
 
     data: list[Hdf5DataColumn]
     time_format: TimeFormat | None = None
-    relative_start_time: datetime | None = None
+    relative_start_time: pd.Timestamp | datetime | None = None
 
     def __getitem__(self, name: str) -> Hdf5DataColumn:
         """Look up a data column by channel name.
@@ -941,6 +944,7 @@ class UlogImportConfig(ImportConfigBase):
             are relative to boot time. When set, this anchors the timeline and
             takes precedence over the log's GPS fix; otherwise the GPS fix
             anchors the timeline. The import fails if neither is available.
+            Pass a ``pd.Timestamp`` for nanosecond precision.
         info_keys: Info (``I``/``M``) message keys to import as run metadata,
             stored as ``info.<key>``. Requires ``run_name`` or ``run_id``.
         param_keys: Parameter (``P``) names to import as run metadata, stored
@@ -950,7 +954,7 @@ class UlogImportConfig(ImportConfigBase):
     """
 
     data: list[UlogDataColumn] = []
-    relative_start_time: datetime | None = None
+    relative_start_time: pd.Timestamp | datetime | None = None
     info_keys: list[str] = []
     param_keys: list[str] = []
     parse_error_policy: UlogParseErrorPolicy = UlogParseErrorPolicy.FAIL_ON_ERROR
@@ -994,9 +998,7 @@ class UlogImportConfig(ImportConfigBase):
         """Create from a proto UlogConfig (e.g. from a GetDataImport response)."""
         relative_start_time = None
         if proto.HasField("relative_start_time"):
-            from datetime import timezone
-
-            relative_start_time = proto.relative_start_time.ToDatetime(tzinfo=timezone.utc)
+            relative_start_time = to_timestamp_nanos(proto.relative_start_time)
 
         parse_error_policy = UlogParseErrorPolicy.FAIL_ON_ERROR
         if proto.parse_error_policy == ULOG_PARSE_ERROR_POLICY_IGNORE_ERROR:
@@ -1108,7 +1110,7 @@ class McapImportConfig(ImportConfigBase):
             channels.
         relative_start_time: Log-start UTC, only for logs on a non-Unix epoch.
             When set, ``log_time`` is reinterpreted as elapsed nanoseconds from
-            this start.
+            this start. Pass a ``pd.Timestamp`` for nanosecond precision.
         metadata_records: Metadata records to import as run metadata. Every key
             of each named record is stored as ``<record_name>.<key>``. Empty
             imports none.
@@ -1121,7 +1123,7 @@ class McapImportConfig(ImportConfigBase):
     """
 
     data: list[McapDataColumn] = []
-    relative_start_time: datetime | None = None
+    relative_start_time: pd.Timestamp | datetime | None = None
     metadata_records: list[str] = []
     parse_error_policy: McapParseErrorPolicy = McapParseErrorPolicy.FAIL_ON_ERROR
     complex_types_import_mode: McapComplexTypesImportMode = McapComplexTypesImportMode.BOTH
@@ -1203,9 +1205,7 @@ class McapImportConfig(ImportConfigBase):
         """Create from a proto McapConfig (e.g. from a GetDataImport response)."""
         relative_start_time = None
         if proto.HasField("relative_start_time"):
-            from datetime import timezone
-
-            relative_start_time = proto.relative_start_time.ToDatetime(tzinfo=timezone.utc)
+            relative_start_time = to_timestamp_nanos(proto.relative_start_time)
 
         parse_error_policy = McapParseErrorPolicy.FAIL_ON_ERROR
         if proto.parse_error_policy == MCAP_PARSE_ERROR_POLICY_IGNORE_ERROR:

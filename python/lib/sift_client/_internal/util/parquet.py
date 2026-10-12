@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import json
 import warnings
-from datetime import datetime, timezone
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -17,6 +17,7 @@ from google.protobuf import json_format
 from google.protobuf.timestamp_pb2 import Timestamp as TimestampPb
 from sift.common.type.v1.channel_config_pb2 import ChannelConfig as ChannelConfigProto
 
+from sift_client._internal.time import to_timestamp_nanos
 from sift_client._internal.util.file import extract_parquet_footer
 from sift_client._internal.util.time_column import infer_time_column
 from sift_client.sift_types.channel import ChannelDataType
@@ -28,6 +29,9 @@ from sift_client.sift_types.data_import import (
     TimeFormatProto,
     _enum_types_from_proto,
 )
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 # Separator used in column paths to address nested struct fields. Channel
 # names replace it with "." since Sift forbids "|" in channel names.
@@ -194,7 +198,7 @@ def _parse_embedded_time_column(path: str, raw: bytes) -> ParquetTimeColumn:
     if raw_start:
         start = TimestampPb()
         start.FromJsonString(raw_start)
-        relative_start_time = start.ToDatetime(tzinfo=timezone.utc)
+        relative_start_time = to_timestamp_nanos(start)
 
     return ParquetTimeColumn(path=path, format=fmt, relative_start_time=relative_start_time)
 
