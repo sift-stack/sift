@@ -37,10 +37,10 @@ Name the file `+<short-name>.<type>.md`. The entry has no PR link.
 
 ## Release
 
-Run the Python Release Prep workflow. It computes the next version from the latest
-`python/v*` tag and the fragment types, renders `CHANGELOG.md`, and opens a pull request. After
-that PR merges, the Python Release Tag workflow creates the `python/vX.Y.Z` tag and starts
-the publish workflow.
+Run the Python Release Prep workflow. It computes the next version from the current version in
+`pyproject.toml` and the fragment types, sets it in `pyproject.toml` and `uv.lock`, renders
+`CHANGELOG.md`, and opens a pull request. After that PR merges, the Python Release Tag workflow
+creates the `python/vX.Y.Z` tag and starts the publish workflow.
 
 Merge the release pull request before other changes to `python/`. A change merged first ships in
 that release, but its entry appears under the next version.

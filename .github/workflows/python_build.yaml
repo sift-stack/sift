@@ -19,15 +19,7 @@ jobs:
       platforms: ${{ steps.set-matrix.outputs.matrix }}
       sift_package_version: ${{ steps.get-sift-version.outputs.version }}
     steps:
-      # The package version comes from git tags, so the full history is needed.
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
 
       - name: Get supported Python versions from pyproject.toml
         id: get-python-versions
@@ -35,12 +27,10 @@ jobs:
           versions=$(grep "Programming Language :: Python :: " python/pyproject.toml | sed 's/.*Python :: \([0-9.]*\).*/\1/' | jq -R -s -c 'split("\n")[:-1]')
           echo "versions=$versions" >> $GITHUB_OUTPUT
 
-      - name: Get sift-stack-py package version from git tags
+      - name: Get sift-stack-py package version from pyproject.toml
         id: get-sift-version
-        working-directory: python
         run: |
-          pip install "setuptools-scm>=8,<11"
-          version=$(python -m setuptools_scm)
+          version=$(grep '^version = ' python/pyproject.toml | sed 's/version = "\(.*\)"/\1/')
           echo "version=$version" >> $GITHUB_OUTPUT
 
       # We define the platforms here so we can reuse the matrix in multiple jobs
@@ -64,8 +54,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -86,7 +74,7 @@ jobs:
         working-directory: python
         shell: bash
         run: |
-          # A release build must derive exactly the version in its tag.
+          # A release build must match the version in its tag.
           WHEEL_VERSION=$(ls dist/sift_stack_py*.whl | sed -E 's/.*sift_stack_py-([^-]+)-.*/\1/')
           if [[ "${{ github.ref_type }}" == "tag" && "$WHEEL_VERSION" != "${GITHUB_REF_NAME#python/v}" ]]; then
             echo "Error: wheel version $WHEEL_VERSION does not match tag $GITHUB_REF_NAME"

@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm>=8,<11"]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "sift_stack_py"
-dynamic = ["version"]
+version = "0.23.1"
 description = "Python client library for the Sift API"
 requires-python = ">=3.8"
 readme = { file = "README.md", content-type = "text/markdown" }
@@ -415,16 +415,6 @@ ignore_errors = true
 module = "mcap.writer"
 follow_imports = "skip"
 
-[tool.setuptools_scm]
-# The version comes from the latest ``python/v*`` git tag. ``.git`` lives one level above this
-# package, so ``root`` points there. A checkout with no matching tag, such as a shallow CI
-# clone, derives ``0.0.1.devN``. ``fallback_version`` applies only to a source tree with no git
-# metadata at all.
-root = ".."
-tag_regex = "^python/v(?P<version>.+)$"
-git_describe_command = ["git", "describe", "--dirty", "--tags", "--long", "--match", "python/v*"]
-fallback_version = "0.0.0"
-
 [tool.towncrier]
 # Changelog entries are fragments in ``changelog.d``. See ``changelog.d/README.md``.
 directory = "changelog.d"
@@ -453,11 +443,6 @@ showcontent = true
 directory = "chore"
 name = "Chores"
 showcontent = false
-
-[tool.setuptools]
-# setuptools-scm reports every git-tracked file to setuptools. Ship only the package data listed
-# below, so tests and docs under the packages stay out of the wheel.
-include-package-data = false
 
 [tool.setuptools.packages.find]
 where = ["lib"]

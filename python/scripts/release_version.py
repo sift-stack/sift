@@ -1,30 +1,25 @@
-"""Print the next Python release version, from the latest `python/v*` tag and the fragment
-types in `python/changelog.d`. Run from the repository root. Uses only the standard library."""
+"""Print the next Python release version, from the version in `python/pyproject.toml` and the
+fragment types in `python/changelog.d`. Run from the repository root. Uses only the standard
+library."""
 
 from __future__ import annotations
 
 import argparse
 import re
-import subprocess
 import sys
 from pathlib import Path
 
+PYPROJECT = Path("python/pyproject.toml")
 FRAGMENTS_DIR = Path("python/changelog.d")
-TAG_PREFIX = "python/v"
 FRAGMENT_TYPES = {"breaking", "feat", "fix", "chore"}
 STABLE = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 
 
-def latest_version() -> tuple[int, int, int]:
-    tag = subprocess.run(
-        ["git", "describe", "--tags", "--abbrev=0", "--match", f"{TAG_PREFIX}[0-9]*"],
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
-    match = STABLE.match(tag[len(TAG_PREFIX) :])
+def current_version() -> tuple[int, int, int]:
+    version = re.search(r'^version = "(.+)"$', PYPROJECT.read_text(), re.MULTILINE).group(1)
+    match = STABLE.match(version)
     if not match:
-        sys.exit(f"Latest tag {tag} is not a stable X.Y.Z version. Pass --version.")
+        sys.exit(f"Current version {version} is not a stable X.Y.Z version. Pass --version.")
     major, minor, patch = (int(part) for part in match.groups())
     return major, minor, patch
 
@@ -49,7 +44,7 @@ def next_version(explicit: str) -> str:
         if not STABLE.match(explicit):
             sys.exit(f"--version {explicit} is not X.Y.Z.")
         return explicit
-    major, minor, patch = latest_version()
+    major, minor, patch = current_version()
     if "breaking" in types and major >= 1:
         return f"{major + 1}.0.0"
     if types & {"breaking", "feat"}:

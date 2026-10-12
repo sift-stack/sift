@@ -1,15 +1,15 @@
 name: Python Release Tag
 
-# Tags a Python release when a new version section reaches python/CHANGELOG.md on the default
-# branch, then starts the PyPI Publish workflow on that tag. The Python Release Prep workflow
-# opens the pull request that adds the section.
+# Tags a Python release when python/pyproject.toml on the default branch has a version with no tag
+# yet, then starts the PyPI Publish workflow on that tag. The Python Release Prep workflow opens the
+# pull request that sets the version.
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'python/CHANGELOG.md'
+      - 'python/pyproject.toml'
 
 permissions:
   contents: write
@@ -30,7 +30,7 @@ jobs:
       - name: Create tag
         id: tag
         run: |
-          version=$(grep -m1 -oP '^## \[v\K[^\]]+' python/CHANGELOG.md)
+          version=$(grep '^version = ' python/pyproject.toml | sed 's/version = "\(.*\)"/\1/')
           tag="python/v${version}"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           if [[ -n "$(git ls-remote --tags origin "refs/tags/${tag}")" ]]; then
