@@ -412,7 +412,9 @@ class DataImportAPIAsync(ResourceBase):
             raise FileNotFoundError(f"File not found: {file_path}")
 
         data_type_key = _resolve_data_type_key(path.suffix.lower(), data_type)
-        config = await self._detect_config_for_type(path, data_type_key, relative_start_time)
+        config = await self._detect_config_for_type(
+            path, data_type_key, relative_start_time=relative_start_time
+        )
         if time_format is not None:
             _apply_time_format(config, time_format)
         elif (
@@ -428,6 +430,7 @@ class DataImportAPIAsync(ResourceBase):
         self,
         path: Path,
         data_type_key: DataTypeKey,
+        *,
         relative_start_time: datetime | None = None,
     ) -> ImportConfig:
         if data_type_key in (
@@ -479,7 +482,7 @@ class DataImportAPIAsync(ResourceBase):
                     "Install it via `pip install sift-stack-py[parquet]`."
                 ) from e
             return await run_sync_function(
-                lambda: detect_flat_parquet_config(path, relative_start_time)
+                lambda: detect_flat_parquet_config(path, relative_start_time=relative_start_time)
             )
         is_parquet = data_type_key in (
             DataTypeKey.PARQUET_FLATDATASET,

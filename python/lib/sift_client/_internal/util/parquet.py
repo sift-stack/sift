@@ -114,7 +114,9 @@ def _is_supported_type(t: pa.DataType) -> bool:
     return pa.types.is_struct(t) or _arrow_to_sift_type(t) is not None
 
 
-def _add_fields(columns: list[ParquetDataColumn], field: pa.Field, parent_path: str = "") -> None:
+def _add_fields(
+    columns: list[ParquetDataColumn], field: pa.Field, *, parent_path: str = ""
+) -> None:
     """Append a column per leaf of ``field``, flattening structs.
 
     Nested paths are joined with ``PATH_SEPARATOR``; channel names use ``.``.
@@ -124,7 +126,7 @@ def _add_fields(columns: list[ParquetDataColumn], field: pa.Field, parent_path: 
 
     if pa.types.is_struct(field.type):
         for i in range(field.type.num_fields):
-            _add_fields(columns, field.type.field(i), full_path)
+            _add_fields(columns, field.type.field(i), parent_path=full_path)
         return
 
     name = full_path.replace(PATH_SEPARATOR, ".")
@@ -135,7 +137,7 @@ def _add_fields(columns: list[ParquetDataColumn], field: pa.Field, parent_path: 
 
 
 def _detect_time_column(
-    field: pa.Field, relative_start_time: datetime | None = None
+    field: pa.Field, *, relative_start_time: datetime | None = None
 ) -> ParquetTimeColumn | None:
     """Return a time column for ``field`` if it has a time type.
 
@@ -248,7 +250,7 @@ def _embedded_flat_dataset_config(
 
 
 def detect_flat_parquet_config(
-    file_path: str | Path, relative_start_time: datetime | None = None
+    file_path: str | Path, *, relative_start_time: datetime | None = None
 ) -> ParquetFlatDatasetImportConfig:
     """Detect the flat dataset import configuration of a Parquet file.
 
@@ -295,7 +297,7 @@ def detect_flat_parquet_config(
 
             # Select the first encountered time column, if it exists.
             if not time_column.path:
-                detected = _detect_time_column(field, relative_start_time)
+                detected = _detect_time_column(field, relative_start_time=relative_start_time)
                 if detected is not None:
                     time_column = detected
 
