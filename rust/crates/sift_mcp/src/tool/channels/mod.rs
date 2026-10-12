@@ -56,6 +56,9 @@ impl SiftMcpServer {
             Guidance:
               - Always scope with `asset_id == \"...\"` when the asset is known — channel namespaces are per-asset
                 and unscoped queries return cross-asset results.
+              - Unscoped name searches scan every channel in the org and can time out in large orgs. Resolve
+                candidate assets with `list_assets` first, then search each with `asset_id == \"...\" && name.matches(...)`.
+                A timeout means the filter was too broad, not that the parameters were wrong; narrow it before retrying.
               - To enumerate channels recorded by a specific run, filter on `run_id` rather than joining client-side.
         ",
         annotations(title = "channels/list_channels", read_only_hint = true)
