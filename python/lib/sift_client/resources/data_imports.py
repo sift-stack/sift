@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from sift_client._internal.low_level_wrappers.data_imports import DataImportsLowLevelClient
 from sift_client._internal.util.executor import run_sync_function
 from sift_client._internal.util.file import extract_parquet_footer, upload_file
+from sift_client._internal.util.time_column import infer_time_column
 from sift_client._internal.util.util import caller_stacklevel
 from sift_client.errors import SiftIgnoredInputWarning
 from sift_client.resources._base import ResourceBase
@@ -33,7 +34,6 @@ from sift_client.sift_types.run import Run
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
     from datetime import datetime
 
     from sift_client.client import SiftClient
@@ -612,28 +612,6 @@ def _parse_csv_detect_response(proto) -> CsvImportConfig:
     return csv_config
 
 
-_TIME_COLUMN_NAMES: frozenset[str] = frozenset({"ts", "timestamp", "time"})
-_TIME_COLUMN_TYPES: frozenset[ChannelDataType] = frozenset(
-    {ChannelDataType.INT_64, ChannelDataType.UINT_64}
-)
-
-
-def _infer_time_column(
-    columns: Iterable[tuple[str, ChannelDataType, str]],
-) -> str | None:
-    """Pick a likely time column when the server couldn't identify one.
-
-    Returns the path of an INT64 or UINT64 column whose name
-    (case-insensitive) matches one of ``ts``, ``timestamp``, or ``time``.
-    Returns None otherwise.
-    """
-    data_columns = sorted(columns, key=lambda c: c[0].lower())
-    for name, data_type, path in data_columns:
-        if data_type in _TIME_COLUMN_TYPES and name.lower() in _TIME_COLUMN_NAMES:
-            return path
-    return None
-
-
 def _parse_parquet_detect_response(
     proto, filename: str, footer_offset: int, footer_length: int
 ) -> ParquetFlatDatasetImportConfig | ParquetSingleChannelPerRowImportConfig:
@@ -644,7 +622,7 @@ def _parse_parquet_detect_response(
         )
         time_path: str | None = parquet_config.time_column.path
         if not time_path:
-            time_path = _infer_time_column(
+            time_path = infer_time_column(
                 (dc.name, dc.data_type, dc.path) for dc in parquet_config.data_columns
             )
             if time_path:
@@ -659,7 +637,7 @@ def _parse_parquet_detect_response(
             proto, footer_offset=footer_offset, footer_length=footer_length
         )
         if not scpr_config.time_column.path:
-            time_path = _infer_time_column(
+            time_path = infer_time_column(
                 (col.column_config.name, ChannelDataType(col.column_config.data_type), col.path)
                 for col in proto.single_channel_per_row.columns
             )

@@ -25,9 +25,9 @@ from sift.data_imports.v2.data_imports_pb2 import (
     ParquetTimeColumn as ParquetTimeColumnProto,
 )
 
+from sift_client._internal.util.time_column import infer_time_column
 from sift_client.resources import DataImportAPI, DataImportAPIAsync
 from sift_client.resources.data_imports import (
-    _infer_time_column,
     _parse_parquet_detect_response,
     _resolve_data_type_key,
 )
@@ -754,7 +754,7 @@ class TestResolveDataTypeKey:
 
 class TestInferTimeColumn:
     def test_picks_canonical_skips_other_columns(self):
-        path = _infer_time_column(
+        path = infer_time_column(
             [
                 ("delta_time", ChannelDataType.INT_64, "delta_time"),
                 ("voltage", ChannelDataType.DOUBLE, "voltage"),
@@ -764,15 +764,15 @@ class TestInferTimeColumn:
         assert path == "timestamp"
 
     def test_accepts_uint64(self):
-        path = _infer_time_column([("time", ChannelDataType.UINT_64, "time")])
+        path = infer_time_column([("time", ChannelDataType.UINT_64, "time")])
         assert path == "time"
 
     def test_case_insensitive(self):
-        path = _infer_time_column([("TimeStamp", ChannelDataType.INT_64, "TimeStamp")])
+        path = infer_time_column([("TimeStamp", ChannelDataType.INT_64, "TimeStamp")])
         assert path == "TimeStamp"
 
     def test_multiple_candidates_sorted_alphabetically(self):
-        path = _infer_time_column(
+        path = infer_time_column(
             [
                 ("timestamp", ChannelDataType.INT_64, "timestamp"),
                 ("time", ChannelDataType.INT_64, "time"),
@@ -782,7 +782,7 @@ class TestInferTimeColumn:
         assert path == "time"
 
     def test_returns_none_when_no_canonical_int_column(self):
-        path = _infer_time_column(
+        path = infer_time_column(
             [
                 ("timestamp", ChannelDataType.DOUBLE, "timestamp"),
                 ("event_time", ChannelDataType.INT_64, "event_time"),

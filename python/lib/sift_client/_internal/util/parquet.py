@@ -18,7 +18,7 @@ from google.protobuf.timestamp_pb2 import Timestamp as TimestampPb
 from sift.common.type.v1.channel_config_pb2 import ChannelConfig as ChannelConfigProto
 
 from sift_client._internal.util.file import extract_parquet_footer
-from sift_client.resources.data_imports import _infer_time_column
+from sift_client._internal.util.time_column import infer_time_column
 from sift_client.sift_types.channel import ChannelDataType
 from sift_client.sift_types.data_import import (
     ParquetDataColumn,
@@ -300,7 +300,7 @@ def detect_flat_parquet_config(
                     time_column = detected
 
         if not time_column.path:
-            inferred = _infer_time_column((dc.name, dc.data_type, dc.path) for dc in data_columns)
+            inferred = infer_time_column((dc.name, dc.data_type, dc.path) for dc in data_columns)
             if inferred:
                 time_column = ParquetTimeColumn(path=inferred)
         data_columns = [dc for dc in data_columns if dc.path != time_column.path]
