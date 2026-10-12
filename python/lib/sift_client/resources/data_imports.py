@@ -28,7 +28,6 @@ from sift_client.sift_types.data_import import (
     ParquetTimeColumn,
     TdmsImportConfig,
     TimeFormat,
-    TimeFormatProto,
     UlogImportConfig,
 )
 from sift_client.sift_types.run import Run
@@ -426,10 +425,9 @@ class DataImportAPIAsync(ResourceBase):
         )
         if time_format is not None:
             _apply_time_format(config, time_format)
-        elif (
-            not isinstance(config, (TdmsImportConfig, UlogImportConfig, McapImportConfig))
-            and _get_time_format(config) is None
-        ):
+        elif not isinstance(
+            config, (TdmsImportConfig, UlogImportConfig, McapImportConfig)
+        ) and _get_time_format(config) in (None, TimeFormat.UNSPECIFIED):
             _apply_time_format(config, TimeFormat.ABSOLUTE_UNIX_NANOSECONDS)
         if relative_start_time is not None:
             _apply_relative_start_time(config, relative_start_time)
@@ -614,10 +612,6 @@ def _resolve_data_type_key(ext: str, data_type: DataTypeKey | None) -> DataTypeK
 
 def _parse_csv_detect_response(proto) -> CsvImportConfig:
     """Parse a CSV DetectConfig response into a config."""
-    if proto.time_column.format == TimeFormatProto.TIME_FORMAT_UNSPECIFIED:
-        raise ValueError(
-            "timestamp format is not supported. Please specify the time format explicitly."
-        )
     csv_config = CsvImportConfig._from_proto(proto)
     time_col = csv_config.time_column.column
     csv_config.data_columns = [dc for dc in csv_config.data_columns if dc.column != time_col]

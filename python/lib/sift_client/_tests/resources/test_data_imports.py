@@ -13,11 +13,15 @@ from sift.data_imports.v2.data_imports_pb2 import (
     DATA_IMPORT_STATUS_FAILED,
     DATA_IMPORT_STATUS_SUCCEEDED,
     DATA_IMPORT_STATUS_UNSPECIFIED,
+    TIME_FORMAT_UNSPECIFIED,
+    CsvConfig,
+    DetectConfigResponse,
     ParquetColumn,
     ParquetConfig,
     ParquetFlatDatasetConfig,
     ParquetSingleChannelPerRowConfig,
 )
+from sift.data_imports.v2.data_imports_pb2 import CsvTimeColumn as CsvTimeColumnProto
 from sift.data_imports.v2.data_imports_pb2 import DataImport as DataImportProto
 from sift.data_imports.v2.data_imports_pb2 import (
     ParquetDataColumn as ParquetDataColumnProto,
@@ -67,6 +71,9 @@ if TYPE_CHECKING:
     )
     from sift.data_imports.v2.data_imports_pb2 import (
         DataImportStatus as DataImportStatusProto,
+    )
+    from sift.data_imports.v2.data_imports_pb2 import (
+        TimeFormat as TimeFormatProto,
     )
 
 
@@ -900,6 +907,66 @@ class TestParseParquetDetectResponseTimeFallback:
         config = _parse_parquet_detect_response(proto, "file.parquet", 0, 0)
         assert isinstance(config, ParquetSingleChannelPerRowImportConfig)
         assert config.time_column.path == "timestamp"
+
+
+def _csv_detect_response(time_format: TimeFormatProto.ValueType) -> DetectConfigResponse:
+    return DetectConfigResponse(
+        csv_config=CsvConfig(
+            first_data_row=2,
+            time_column=CsvTimeColumnProto(column_number=1, format=time_format),
+            data_columns={
+                2: ChannelConfigProto(name="voltage", data_type=ChannelDataType.DOUBLE.value)
+            },
+        )
+    )
+
+
+class TestUnspecifiedTimeFormat:
+    def test_maps_from_proto_zero(self):
+        assert TimeFormat(TIME_FORMAT_UNSPECIFIED) == TimeFormat.UNSPECIFIED
+
+    @pytest.mark.asyncio
+    async def test_csv_detect_falls_back_to_unix_nanoseconds(self, tmp_path):
+        path = tmp_path / "data.csv"
+        path.write_text("time,voltage\n2026-01-01,1.0\n")
+        api = _data_imports_api(MagicMock())
+        api._low_level_client.detect_config = AsyncMock(
+            return_value=_csv_detect_response(TIME_FORMAT_UNSPECIFIED)
+        )
+
+        config = await api.detect_config(path)
+
+        assert isinstance(config, CsvImportConfig)
+        assert config.time_column.format == TimeFormat.ABSOLUTE_UNIX_NANOSECONDS
+        assert [dc.name for dc in config.data_columns] == ["voltage"]
+
+    @pytest.mark.asyncio
+    async def test_csv_detect_uses_caller_time_format(self, tmp_path):
+        path = tmp_path / "data.csv"
+        path.write_text("time,voltage\n2026-01-01,1.0\n")
+        api = _data_imports_api(MagicMock())
+        api._low_level_client.detect_config = AsyncMock(
+            return_value=_csv_detect_response(TIME_FORMAT_UNSPECIFIED)
+        )
+
+        config = await api.detect_config(path, time_format=TimeFormat.ABSOLUTE_RFC3339)
+
+        assert config.time_column.format == TimeFormat.ABSOLUTE_RFC3339
+
+    def test_csv_to_proto_rejects_unspecified(self):
+        col = CsvTimeColumn(column=1, format=TimeFormat.UNSPECIFIED)
+        with pytest.raises(ValueError, match="CsvTimeColumn.format must be set"):
+            col._to_proto()
+
+    def test_parquet_to_proto_rejects_unspecified(self):
+        col = ParquetTimeColumn(path="timestamp", format=TimeFormat.UNSPECIFIED)
+        with pytest.raises(ValueError, match="ParquetTimeColumn.format must be set"):
+            col._to_proto()
+
+    def test_hdf5_to_proto_rejects_unspecified(self):
+        config = Hdf5ImportConfig(asset_name="a", data=[], time_format=TimeFormat.UNSPECIFIED)
+        with pytest.raises(ValueError, match="time_format is required"):
+            config._to_proto()
 
 
 def _data_import_proto(

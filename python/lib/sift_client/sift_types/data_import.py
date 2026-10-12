@@ -77,6 +77,7 @@ if TYPE_CHECKING:
 class TimeFormat(Enum):
     """Supported time formats for data import columns."""
 
+    UNSPECIFIED = TimeFormatProto.TIME_FORMAT_UNSPECIFIED
     RELATIVE_NANOSECONDS = TimeFormatProto.TIME_FORMAT_RELATIVE_NANOSECONDS
     RELATIVE_MICROSECONDS = TimeFormatProto.TIME_FORMAT_RELATIVE_MICROSECONDS
     RELATIVE_MILLISECONDS = TimeFormatProto.TIME_FORMAT_RELATIVE_MILLISECONDS
@@ -234,6 +235,12 @@ class CsvTimeColumn(TimeColumnBase):
     column: int
 
     def _to_proto(self) -> CsvTimeColumnProto:
+        if self.format == TimeFormat.UNSPECIFIED:
+            raise ValueError(
+                "CsvTimeColumn.format must be set before importing. "
+                "Pass time_format to detect_config/import_from_path, or set "
+                "config.time_column.format explicitly."
+            )
         proto = CsvTimeColumnProto(
             column_number=self.column,
             format=self.format.value,
@@ -349,7 +356,7 @@ class ParquetTimeColumn(TimeColumnBase):
     def _to_proto(self) -> ParquetTimeColumnProto:
         if not self.path:
             raise ValueError("ParquetTimeColumn.path must be set before importing.")
-        if self.format is None:
+        if self.format is None or self.format == TimeFormat.UNSPECIFIED:
             raise ValueError(
                 "ParquetTimeColumn.format must be set before importing. "
                 "Pass time_format to detect_config/import_from_path, or set "
@@ -846,7 +853,7 @@ class Hdf5ImportConfig(ImportConfigBase):
         return self
 
     def _to_proto(self) -> Hdf5ConfigProto:
-        if self.time_format is None:
+        if self.time_format is None or self.time_format == TimeFormat.UNSPECIFIED:
             raise ValueError(
                 "time_format is required to import HDF5 files. Set "
                 "config.time_format explicitly (e.g. TimeFormat.ABSOLUTE_UNIX_NANOSECONDS "
