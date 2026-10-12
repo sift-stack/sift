@@ -425,9 +425,10 @@ class DataImportAPIAsync(ResourceBase):
         )
         if time_format is not None:
             _apply_time_format(config, time_format)
-        elif not isinstance(
-            config, (TdmsImportConfig, UlogImportConfig, McapImportConfig)
-        ) and _get_time_format(config) in (None, TimeFormat.UNSPECIFIED):
+        elif (
+            not isinstance(config, (TdmsImportConfig, UlogImportConfig, McapImportConfig))
+            and _get_time_format(config) is None
+        ):
             _apply_time_format(config, TimeFormat.ABSOLUTE_UNIX_NANOSECONDS)
         if relative_start_time is not None:
             _apply_relative_start_time(config, relative_start_time)

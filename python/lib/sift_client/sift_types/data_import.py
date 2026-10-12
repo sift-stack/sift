@@ -77,7 +77,6 @@ if TYPE_CHECKING:
 class TimeFormat(Enum):
     """Supported time formats for data import columns."""
 
-    UNSPECIFIED = TimeFormatProto.TIME_FORMAT_UNSPECIFIED
     RELATIVE_NANOSECONDS = TimeFormatProto.TIME_FORMAT_RELATIVE_NANOSECONDS
     RELATIVE_MICROSECONDS = TimeFormatProto.TIME_FORMAT_RELATIVE_MICROSECONDS
     RELATIVE_MILLISECONDS = TimeFormatProto.TIME_FORMAT_RELATIVE_MILLISECONDS
@@ -136,7 +135,11 @@ class TimeColumnBase(BaseModel, ABC):
     """Base class for time column configurations.
 
     Attributes:
-        format: The time format used in this column.
+        format: The time format used in this column. Optional at construction
+            so that ``detect_config`` can apply the standard precedence chain
+            (caller-passed ``time_format`` > server-detected format >
+            ``ABSOLUTE_UNIX_NANOSECONDS`` fallback). Importing without a
+            format set raises ``ValueError``.
         relative_start_time: Required when using a relative time format.
             Pass a ``pd.Timestamp`` for nanosecond precision.
     """
@@ -144,7 +147,7 @@ class TimeColumnBase(BaseModel, ABC):
     # pd.Timestamp has no pydantic schema, so it is validated with isinstance.
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    format: TimeFormat
+    format: TimeFormat | None = None
     relative_start_time: pd.Timestamp | datetime | None = None
 
     @model_validator(mode="after")
@@ -236,7 +239,7 @@ class CsvTimeColumn(TimeColumnBase):
     column: int
 
     def _to_proto(self) -> CsvTimeColumnProto:
-        if self.format == TimeFormat.UNSPECIFIED:
+        if self.format is None:
             raise ValueError(
                 "CsvTimeColumn.format must be set before importing. "
                 "Pass time_format to detect_config/import_from_path, or set "
@@ -304,9 +307,13 @@ class CsvImportConfig(ImportConfigBase):
         relative_start_time = None
         if proto.time_column.HasField("relative_start_time"):
             relative_start_time = to_timestamp_nanos(proto.time_column.relative_start_time)
+        try:
+            time_format = TimeFormat(proto.time_column.format)
+        except ValueError:
+            time_format = None
         time_column = CsvTimeColumn(
             column=proto.time_column.column_number,
-            format=TimeFormat(proto.time_column.format),
+            format=time_format,
             relative_start_time=relative_start_time,
         )
         data_columns = [
@@ -344,20 +351,14 @@ class ParquetTimeColumn(TimeColumnBase):
 
     Attributes:
         path: The column path in the Parquet schema (e.g. ``"timestamp"``).
-        format: The time format. Optional at construction so that
-            ``detect_config`` / ``import_from_path`` can apply the standard
-            precedence chain (caller-passed ``time_format`` > server-detected
-            format > ``ABSOLUTE_UNIX_NANOSECONDS`` fallback). Importing
-            without a format set raises ``ValueError``.
     """
 
     path: str
-    format: TimeFormat | None = None  # type: ignore[assignment]
 
     def _to_proto(self) -> ParquetTimeColumnProto:
         if not self.path:
             raise ValueError("ParquetTimeColumn.path must be set before importing.")
-        if self.format is None or self.format == TimeFormat.UNSPECIFIED:
+        if self.format is None:
             raise ValueError(
                 "ParquetTimeColumn.format must be set before importing. "
                 "Pass time_format to detect_config/import_from_path, or set "
@@ -854,7 +855,7 @@ class Hdf5ImportConfig(ImportConfigBase):
         return self
 
     def _to_proto(self) -> Hdf5ConfigProto:
-        if self.time_format is None or self.time_format == TimeFormat.UNSPECIFIED:
+        if self.time_format is None:
             raise ValueError(
                 "time_format is required to import HDF5 files. Set "
                 "config.time_format explicitly (e.g. TimeFormat.ABSOLUTE_UNIX_NANOSECONDS "

@@ -922,8 +922,11 @@ def _csv_detect_response(time_format: TimeFormatProto.ValueType) -> DetectConfig
 
 
 class TestUnspecifiedTimeFormat:
-    def test_maps_from_proto_zero(self):
-        assert TimeFormat(TIME_FORMAT_UNSPECIFIED) == TimeFormat.UNSPECIFIED
+    def test_csv_from_proto_maps_unspecified_to_none(self):
+        config = CsvImportConfig._from_proto(
+            _csv_detect_response(TIME_FORMAT_UNSPECIFIED).csv_config
+        )
+        assert config.time_column.format is None
 
     @pytest.mark.asyncio
     async def test_csv_detect_falls_back_to_unix_nanoseconds(self, tmp_path):
@@ -953,18 +956,18 @@ class TestUnspecifiedTimeFormat:
 
         assert config.time_column.format == TimeFormat.ABSOLUTE_RFC3339
 
-    def test_csv_to_proto_rejects_unspecified(self):
-        col = CsvTimeColumn(column=1, format=TimeFormat.UNSPECIFIED)
+    def test_csv_to_proto_rejects_missing_format(self):
+        col = CsvTimeColumn(column=1, format=None)
         with pytest.raises(ValueError, match="CsvTimeColumn.format must be set"):
             col._to_proto()
 
-    def test_parquet_to_proto_rejects_unspecified(self):
-        col = ParquetTimeColumn(path="timestamp", format=TimeFormat.UNSPECIFIED)
+    def test_parquet_to_proto_rejects_missing_format(self):
+        col = ParquetTimeColumn(path="timestamp", format=None)
         with pytest.raises(ValueError, match="ParquetTimeColumn.format must be set"):
             col._to_proto()
 
-    def test_hdf5_to_proto_rejects_unspecified(self):
-        config = Hdf5ImportConfig(asset_name="a", data=[], time_format=TimeFormat.UNSPECIFIED)
+    def test_hdf5_to_proto_rejects_missing_format(self):
+        config = Hdf5ImportConfig(asset_name="a", data=[], time_format=None)
         with pytest.raises(ValueError, match="time_format is required"):
             config._to_proto()
 
