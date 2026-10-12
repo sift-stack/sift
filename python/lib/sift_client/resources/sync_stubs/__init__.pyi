@@ -1316,9 +1316,9 @@ class DataImportAPI:
             relative_start_time: Start time for a relative time format.
                 A string is parsed with ``pd.Timestamp``; a string or
                 ``pd.Timestamp`` keeps nanosecond precision.
-                Flat dataset Parquet only; ignored with a warning for other
-                formats or when the time format is absolute. Required for
-                Parquet files with a relative time column.
+                For ULog and MCAP, this is the log start time. For other
+                formats, it is required with a relative time format and
+                ignored with a warning otherwise.
 
         Returns:
             The detected import config.
@@ -1457,10 +1457,10 @@ class DataImportAPI:
             relative_start_time: Start time for a relative time format.
                 A string is parsed with ``pd.Timestamp``; a string or
                 ``pd.Timestamp`` keeps nanosecond precision.
-                Flat dataset Parquet only; ignored with a warning for other
-                formats or when the time format is absolute. Required for
-                Parquet files with a relative time column. Only used when
-                ``config`` is not provided.
+                For ULog and MCAP, this is the log start time. For other
+                formats, it is required with a relative time format and
+                ignored with a warning otherwise. Only used when ``config``
+                is not provided.
             run: ``Run`` object or run ID string to import into an existing
                 run. Mutually exclusive with ``run_name``.
             run_name: Name for a new run. Defaults to the filename if

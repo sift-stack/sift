@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, cast
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -13,6 +14,8 @@ from sift.data_imports.v2.data_imports_pb2 import (
     DATA_IMPORT_STATUS_FAILED,
     DATA_IMPORT_STATUS_SUCCEEDED,
     DATA_IMPORT_STATUS_UNSPECIFIED,
+    TIME_FORMAT_ABSOLUTE_RFC3339,
+    TIME_FORMAT_RELATIVE_SECONDS,
     TIME_FORMAT_UNSPECIFIED,
     CsvConfig,
     DetectConfigResponse,
@@ -30,6 +33,7 @@ from sift.data_imports.v2.data_imports_pb2 import (
     ParquetTimeColumn as ParquetTimeColumnProto,
 )
 
+from sift_client._internal.util.data_imports import apply_relative_start_time
 from sift_client._internal.util.time_column import infer_time_column
 from sift_client.resources import DataImportAPI, DataImportAPIAsync
 from sift_client.resources.data_imports import (
@@ -970,6 +974,227 @@ class TestUnspecifiedTimeFormat:
         config = Hdf5ImportConfig(asset_name="a", data=[], time_format=None)
         with pytest.raises(ValueError, match="time_format is required"):
             config._to_proto()
+
+
+class TestDetectConfigRelativeStartTime:
+    START = pd.Timestamp("2026-01-01T00:00:00.000000001Z")
+
+    @pytest.fixture
+    def csv_path(self, tmp_path):
+        path = tmp_path / "data.csv"
+        path.write_text("time,voltage\n0,1.0\n")
+        return path
+
+    @pytest.mark.asyncio
+    async def test_csv_detected_relative_format_uses_start_time(self, csv_path):
+        api = _data_imports_api(MagicMock())
+        api._low_level_client.detect_config = AsyncMock(
+            return_value=_csv_detect_response(TIME_FORMAT_RELATIVE_SECONDS)
+        )
+
+        config = await api.detect_config(csv_path, relative_start_time=self.START)
+
+        assert config.time_column.format == TimeFormat.RELATIVE_SECONDS
+        assert config.time_column.relative_start_time == self.START
+
+    @pytest.mark.asyncio
+    async def test_csv_detected_relative_format_without_start_time_raises(self, csv_path):
+        api = _data_imports_api(MagicMock())
+        api._low_level_client.detect_config = AsyncMock(
+            return_value=_csv_detect_response(TIME_FORMAT_RELATIVE_SECONDS)
+        )
+
+        with pytest.raises(ValueError, match="relative_start_time"):
+            await api.detect_config(csv_path)
+
+    @pytest.mark.asyncio
+    async def test_csv_relative_time_format_override_uses_start_time(self, csv_path):
+        api = _data_imports_api(MagicMock())
+        api._low_level_client.detect_config = AsyncMock(
+            return_value=_csv_detect_response(TIME_FORMAT_ABSOLUTE_RFC3339)
+        )
+
+        config = await api.detect_config(
+            csv_path, time_format=TimeFormat.RELATIVE_SECONDS, relative_start_time=self.START
+        )
+
+        assert config.time_column.format == TimeFormat.RELATIVE_SECONDS
+        assert config.time_column._to_proto().relative_start_time.nanos == 1
+
+    @pytest.mark.asyncio
+    async def test_relative_time_format_override_without_start_time_can_be_set_later(
+        self, csv_path
+    ):
+        # Without relative_start_time, the caller sets it on the detected config.
+        api = _data_imports_api(MagicMock())
+        api._low_level_client.detect_config = AsyncMock(
+            return_value=_csv_detect_response(TIME_FORMAT_ABSOLUTE_RFC3339)
+        )
+
+        config = await api.detect_config(csv_path, time_format=TimeFormat.RELATIVE_SECONDS)
+        assert config.time_column.relative_start_time is None
+
+        config.time_column.relative_start_time = self.START
+        assert config._to_proto().time_column.relative_start_time.nanos == 1
+
+    @pytest.mark.asyncio
+    async def test_import_relative_time_format_without_start_time_raises(self, csv_path):
+        api = _data_imports_api(MagicMock())
+        api._low_level_client.detect_config = AsyncMock(
+            return_value=_csv_detect_response(TIME_FORMAT_ABSOLUTE_RFC3339)
+        )
+        api._low_level_client.create_from_upload = AsyncMock()
+
+        with pytest.raises(ValueError, match="relative_start_time"):
+            await api.import_from_path(csv_path, asset="a", time_format=TimeFormat.RELATIVE_SECONDS)
+        api._low_level_client.create_from_upload.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_csv_absolute_format_warns_and_ignores_start_time(self, csv_path):
+        api = _data_imports_api(MagicMock())
+        api._low_level_client.detect_config = AsyncMock(
+            return_value=_csv_detect_response(TIME_FORMAT_ABSOLUTE_RFC3339)
+        )
+
+        with pytest.warns(UserWarning, match="ABSOLUTE_RFC3339"):
+            config = await api.detect_config(csv_path, relative_start_time=self.START)
+
+        assert config.time_column.relative_start_time is None
+
+    def test_single_channel_per_row_detected_relative_format_uses_start_time(self):
+        proto = ParquetConfig(
+            single_channel_per_row=ParquetSingleChannelPerRowConfig(
+                time_column=ParquetTimeColumnProto(
+                    path="timestamp", format=TIME_FORMAT_RELATIVE_SECONDS
+                )
+            )
+        )
+
+        config = _parse_parquet_detect_response(
+            proto, "file.parquet", 0, 0, relative_start_time=self.START
+        )
+
+        assert config.time_column.relative_start_time == self.START
+
+    @pytest.mark.parametrize("config_cls", [Hdf5ImportConfig, TdmsImportConfig])
+    def test_relative_time_format_uses_start_time(self, config_cls):
+        config = config_cls(asset_name="a", data=[])
+        config.time_format = TimeFormat.RELATIVE_SECONDS
+
+        apply_relative_start_time(config, self.START, config.time_format)
+
+        assert config.relative_start_time == self.START
+
+    @pytest.mark.parametrize("config_cls", [Hdf5ImportConfig, TdmsImportConfig])
+    def test_unset_time_format_warns_and_ignores_start_time(self, config_cls):
+        config = config_cls(asset_name="a", data=[])
+
+        with pytest.warns(UserWarning, match="unset"):
+            apply_relative_start_time(config, self.START, config.time_format)
+
+        assert config.relative_start_time is None
+
+    @pytest.mark.parametrize("config_cls", [UlogImportConfig, McapImportConfig])
+    def test_log_formats_always_use_start_time(self, config_cls):
+        config = config_cls(asset_name="a")
+
+        apply_relative_start_time(config, self.START, None)
+
+        assert config.relative_start_time == self.START
+
+
+_DETECTORS = {
+    "hdf5": "sift_client._internal.util.hdf5.detect_hdf5_config",
+    "tdms": "sift_client._internal.util.tdms.detect_tdms_config",
+    "ulg": "sift_client._internal.util.ulog.detect_ulog_config",
+    "mcap": "sift_client._internal.util.mcap.detect_mcap_config",
+}
+
+
+class TestDetectConfigRelativeStartTimeByFormat:
+    """``relative_start_time`` through ``detect_config`` for client-detected formats."""
+
+    START = pd.Timestamp("2026-01-01T00:00:00.000000001Z")
+
+    async def _detect(self, tmp_path, monkeypatch, ext, detected, **kwargs):
+        path = tmp_path / f"data.{ext}"
+        path.write_bytes(b"")
+        monkeypatch.setattr(_DETECTORS[ext], lambda *a, **k: detected)
+        data_type = DataTypeKey.HDF5_ONE_D if ext == "hdf5" else None
+        return await DataImportAPIAsync(MagicMock()).detect_config(
+            path, data_type=data_type, **kwargs
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("ext", "detected"),
+        [
+            ("hdf5", Hdf5ImportConfig(asset_name="a", data=[])),
+            ("tdms", TdmsImportConfig(asset_name="a")),
+        ],
+    )
+    async def test_relative_time_format_uses_start_time(self, tmp_path, monkeypatch, ext, detected):
+        config = await self._detect(
+            tmp_path,
+            monkeypatch,
+            ext,
+            detected,
+            time_format=TimeFormat.RELATIVE_SECONDS,
+            relative_start_time="2026-01-01T00:00:00.000000001Z",
+        )
+
+        assert config.relative_start_time == self.START
+        assert config._to_proto().relative_start_time.nanos == 1
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("ext", "detected"),
+        [("ulg", UlogImportConfig(asset_name="a")), ("mcap", McapImportConfig(asset_name="a"))],
+    )
+    async def test_log_formats_use_start_time(self, tmp_path, monkeypatch, ext, detected):
+        config = await self._detect(
+            tmp_path, monkeypatch, ext, detected, relative_start_time=self.START
+        )
+
+        assert config.relative_start_time == self.START
+        assert config._to_proto().relative_start_time.nanos == 1
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("ext", "detected"),
+        [
+            ("hdf5", Hdf5ImportConfig(asset_name="a", data=[])),
+            ("tdms", TdmsImportConfig(asset_name="a")),
+            ("ulg", UlogImportConfig(asset_name="a")),
+            ("mcap", McapImportConfig(asset_name="a")),
+        ],
+    )
+    async def test_without_start_time_is_unchanged(self, tmp_path, monkeypatch, ext, detected):
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            config = await self._detect(tmp_path, monkeypatch, ext, detected)
+
+        assert config.relative_start_time is None
+
+    @pytest.mark.asyncio
+    async def test_import_from_path_passes_start_time(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(
+            "sift_client.resources.data_imports.upload_file", lambda *a, **k: {"jobId": "j1"}
+        )
+        path = tmp_path / "log.ulg"
+        path.write_bytes(b"")
+        monkeypatch.setattr(_DETECTORS["ulg"], lambda *a, **k: UlogImportConfig(asset_name=""))
+        api = DataImportAPIAsync(MagicMock())
+        api._low_level_client = MagicMock()
+        api._low_level_client.create_from_upload = AsyncMock(return_value=("import_1", "url"))
+        api.client.async_.jobs.get = AsyncMock(return_value=MagicMock())
+
+        await api.import_from_path(
+            path, asset="a", relative_start_time=self.START, show_progress=False
+        )
+
+        (sent_config,) = api._low_level_client.create_from_upload.call_args.args
+        assert sent_config.relative_start_time == self.START
 
 
 def _data_import_proto(

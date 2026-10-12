@@ -1,16 +1,18 @@
 from __future__ import annotations
 
-import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.data_imports import DataImportsLowLevelClient
 from sift_client._internal.time import to_timestamp_nanos
+from sift_client._internal.util.data_imports import (
+    apply_relative_start_time,
+    check_relative_start_time,
+    set_detected_start_time,
+)
 from sift_client._internal.util.executor import run_sync_function
 from sift_client._internal.util.file import extract_parquet_footer, upload_file
 from sift_client._internal.util.time_column import infer_time_column
-from sift_client._internal.util.util import caller_stacklevel
-from sift_client.errors import SiftIgnoredInputWarning
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.channel import ChannelDataType
@@ -135,10 +137,10 @@ class DataImportAPIAsync(ResourceBase):
             relative_start_time: Start time for a relative time format.
                 A string is parsed with ``pd.Timestamp``; a string or
                 ``pd.Timestamp`` keeps nanosecond precision.
-                Flat dataset Parquet only; ignored with a warning for other
-                formats or when the time format is absolute. Required for
-                Parquet files with a relative time column. Only used when
-                ``config`` is not provided.
+                For ULog and MCAP, this is the log start time. For other
+                formats, it is required with a relative time format and
+                ignored with a warning otherwise. Only used when ``config``
+                is not provided.
             run: ``Run`` object or run ID string to import into an existing
                 run. Mutually exclusive with ``run_name``.
             run_name: Name for a new run. Defaults to the filename if
@@ -165,6 +167,7 @@ class DataImportAPIAsync(ResourceBase):
                 time_format=time_format,
                 relative_start_time=relative_start_time,
             )
+            check_relative_start_time(config, _get_time_format(config))
             if isinstance(config, (UlogImportConfig, McapImportConfig)):
                 # An empty channel list imports every channel
                 config.data = []
@@ -400,9 +403,9 @@ class DataImportAPIAsync(ResourceBase):
             relative_start_time: Start time for a relative time format.
                 A string is parsed with ``pd.Timestamp``; a string or
                 ``pd.Timestamp`` keeps nanosecond precision.
-                Flat dataset Parquet only; ignored with a warning for other
-                formats or when the time format is absolute. Required for
-                Parquet files with a relative time column.
+                For ULog and MCAP, this is the log start time. For other
+                formats, it is required with a relative time format and
+                ignored with a warning otherwise.
 
         Returns:
             The detected import config.
@@ -431,7 +434,7 @@ class DataImportAPIAsync(ResourceBase):
         ):
             _apply_time_format(config, TimeFormat.ABSOLUTE_UNIX_NANOSECONDS)
         if relative_start_time is not None:
-            _apply_relative_start_time(config, relative_start_time)
+            apply_relative_start_time(config, relative_start_time, _get_time_format(config))
         return config
 
     async def _detect_config_for_type(
@@ -519,11 +522,15 @@ class DataImportAPIAsync(ResourceBase):
         )
 
         if response.HasField("csv_config"):
-            return _parse_csv_detect_response(response.csv_config)
+            return _parse_csv_detect_response(response.csv_config, relative_start_time)
 
         if response.HasField("parquet_config"):
             return _parse_parquet_detect_response(
-                response.parquet_config, path.name, footer_offset, footer_length
+                response.parquet_config,
+                path.name,
+                footer_offset,
+                footer_length,
+                relative_start_time=relative_start_time,
             )
 
         raise ValueError(
@@ -546,33 +553,6 @@ def _apply_time_format(config: ImportConfig, time_format: TimeFormat) -> None:
         config.time_column.format = time_format
     elif isinstance(config, (TdmsImportConfig, Hdf5ImportConfig)):
         config.time_format = time_format
-
-
-def _apply_relative_start_time(config: ImportConfig, relative_start_time: datetime) -> None:
-    """Set the relative start time on a detected flat dataset Parquet config.
-
-    Warns and leaves the config unchanged for other formats, including
-    single channel per row Parquet, or when the time format is absolute or
-    unset.
-    """
-    if not isinstance(config, ParquetFlatDatasetImportConfig):
-        warnings.warn(
-            "'relative_start_time' is ignored because it is not supported for "
-            f"{type(config).__name__}.",
-            SiftIgnoredInputWarning,
-            stacklevel=caller_stacklevel(),
-        )
-        return
-    time_format = config.time_column.format
-    if time_format is None or not time_format.is_relative:
-        warnings.warn(
-            "'relative_start_time' is ignored because the time format "
-            f"({time_format.name if time_format else 'unset'}) is not relative.",
-            SiftIgnoredInputWarning,
-            stacklevel=caller_stacklevel(),
-        )
-        return
-    config.time_column.relative_start_time = relative_start_time
 
 
 def _get_time_format(config: ImportConfig) -> TimeFormat | None:
@@ -611,8 +591,11 @@ def _resolve_data_type_key(ext: str, data_type: DataTypeKey | None) -> DataTypeK
     return EXTENSION_TO_DATA_TYPE_KEY[ext]
 
 
-def _parse_csv_detect_response(proto) -> CsvImportConfig:
+def _parse_csv_detect_response(
+    proto, relative_start_time: datetime | None = None
+) -> CsvImportConfig:
     """Parse a CSV DetectConfig response into a config."""
+    set_detected_start_time(proto.time_column, relative_start_time)
     csv_config = CsvImportConfig._from_proto(proto)
     time_col = csv_config.time_column.column
     csv_config.data_columns = [dc for dc in csv_config.data_columns if dc.column != time_col]
@@ -620,10 +603,16 @@ def _parse_csv_detect_response(proto) -> CsvImportConfig:
 
 
 def _parse_parquet_detect_response(
-    proto, filename: str, footer_offset: int, footer_length: int
+    proto,
+    filename: str,
+    footer_offset: int,
+    footer_length: int,
+    *,
+    relative_start_time: datetime | None = None,
 ) -> ParquetFlatDatasetImportConfig | ParquetSingleChannelPerRowImportConfig:
     """Parse a Parquet DetectConfig response into a config."""
     if proto.HasField("flat_dataset"):
+        set_detected_start_time(proto.flat_dataset.time_column, relative_start_time)
         parquet_config = ParquetFlatDatasetImportConfig._from_proto(
             proto, footer_offset=footer_offset, footer_length=footer_length
         )
@@ -640,6 +629,7 @@ def _parse_parquet_detect_response(
             ]
         return parquet_config
     elif proto.HasField("single_channel_per_row"):
+        set_detected_start_time(proto.single_channel_per_row.time_column, relative_start_time)
         scpr_config = ParquetSingleChannelPerRowImportConfig._from_proto(
             proto, footer_offset=footer_offset, footer_length=footer_length
         )

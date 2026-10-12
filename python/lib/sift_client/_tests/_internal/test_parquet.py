@@ -15,11 +15,8 @@ from pydantic import ValidationError
 
 from sift_client._internal.util.parquet import detect_flat_parquet_config
 from sift_client.resources import DataImportAPIAsync
-from sift_client.resources.data_imports import _apply_relative_start_time
 from sift_client.sift_types.channel import ChannelDataType
 from sift_client.sift_types.data_import import (
-    CsvImportConfig,
-    CsvTimeColumn,
     DataTypeKey,
     TimeFormat,
 )
@@ -646,18 +643,5 @@ class TestDetectConfigRelativeStartTime:
             config = await api.detect_config(
                 path, data_type=DataTypeKey.PARQUET_FLATDATASET, relative_start_time=self.START
             )
-
-        assert config.time_column.relative_start_time is None
-
-    def test_non_parquet_config_warns_and_ignores_start_time(self):
-        config = CsvImportConfig(
-            asset_name="a",
-            time_column=CsvTimeColumn(column=1, format=TimeFormat.ABSOLUTE_RFC3339),
-            data_columns=[],
-        )
-        config.time_column.format = TimeFormat.RELATIVE_SECONDS
-
-        with pytest.warns(UserWarning, match="not supported for CsvImportConfig"):
-            _apply_relative_start_time(config, self.START)
 
         assert config.time_column.relative_start_time is None
