@@ -91,6 +91,11 @@ class TimeFormat(Enum):
     ABSOLUTE_UNIX_MICROSECONDS = TimeFormatProto.TIME_FORMAT_ABSOLUTE_UNIX_MICROSECONDS
     ABSOLUTE_UNIX_NANOSECONDS = TimeFormatProto.TIME_FORMAT_ABSOLUTE_UNIX_NANOSECONDS
 
+    @property
+    def is_relative(self) -> bool:
+        """Checks if the time format is relative based on name prefix."""
+        return self.name.startswith("RELATIVE_")
+
 
 class DataTypeKey(Enum):
     """Supported file types and layouts for data import detection."""
@@ -144,11 +149,7 @@ class TimeColumnBase(BaseModel, ABC):
 
     @model_validator(mode="after")
     def _check_relative_start_time(self) -> TimeColumnBase:
-        if (
-            self.format is not None
-            and self.format.name.startswith("RELATIVE_")
-            and self.relative_start_time is None
-        ):
+        if self.format is not None and self.format.is_relative and self.relative_start_time is None:
             raise ValueError(
                 f"'relative_start_time' is required when using a relative time format ({self.format.name})."
             )
@@ -844,7 +845,7 @@ class Hdf5ImportConfig(ImportConfigBase):
     def _check_relative_start_time(self) -> Hdf5ImportConfig:
         if (
             self.time_format is not None
-            and self.time_format.name.startswith("RELATIVE_")
+            and self.time_format.is_relative
             and self.relative_start_time is None
         ):
             raise ValueError(

@@ -563,7 +563,7 @@ def _apply_relative_start_time(config: ImportConfig, relative_start_time: dateti
         )
         return
     time_format = config.time_column.format
-    if time_format is None or not time_format.name.startswith("RELATIVE_"):
+    if time_format is None or not time_format.is_relative:
         warnings.warn(
             "'relative_start_time' is ignored because the time format "
             f"({time_format.name if time_format else 'unset'}) is not relative.",
