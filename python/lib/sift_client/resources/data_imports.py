@@ -522,7 +522,7 @@ class DataImportAPIAsync(ResourceBase):
         )
 
         if response.HasField("csv_config"):
-            return _parse_csv_detect_response(response.csv_config, relative_start_time)
+            return _parse_csv_detect_response(response.csv_config, path.name, relative_start_time)
 
         if response.HasField("parquet_config"):
             return _parse_parquet_detect_response(
@@ -592,9 +592,14 @@ def _resolve_data_type_key(ext: str, data_type: DataTypeKey | None) -> DataTypeK
 
 
 def _parse_csv_detect_response(
-    proto, relative_start_time: datetime | None = None
+    proto, filename: str, relative_start_time: datetime | None = None
 ) -> CsvImportConfig:
     """Parse a CSV DetectConfig response into a config."""
+    if proto.time_column.column_number < 1:
+        raise ValueError(
+            f"No time column detected in '{filename}'. Build a CsvImportConfig with "
+            "time_column set and pass it to import_from_path as config."
+        )
     set_detected_start_time(proto.time_column, relative_start_time)
     csv_config = CsvImportConfig._from_proto(proto)
     time_col = csv_config.time_column.column

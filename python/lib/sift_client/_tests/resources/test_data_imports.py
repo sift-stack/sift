@@ -960,6 +960,18 @@ class TestUnspecifiedTimeFormat:
 
         assert config.time_column.format == TimeFormat.ABSOLUTE_RFC3339
 
+    @pytest.mark.asyncio
+    async def test_csv_detect_raises_without_time_column(self, tmp_path):
+        path = tmp_path / "data.csv"
+        path.write_text("elapsed,voltage\n0.5,1.0\n")
+        response = _csv_detect_response(TIME_FORMAT_UNSPECIFIED)
+        response.csv_config.time_column.column_number = 0
+        api = _data_imports_api(MagicMock())
+        api._low_level_client.detect_config = AsyncMock(return_value=response)
+
+        with pytest.raises(ValueError, match=r"No time column detected in 'data\.csv'"):
+            await api.detect_config(path, time_format=TimeFormat.RELATIVE_SECONDS)
+
     def test_csv_to_proto_rejects_missing_format(self):
         col = CsvTimeColumn(column=1, format=None)
         with pytest.raises(ValueError, match="CsvTimeColumn.format must be set"):
