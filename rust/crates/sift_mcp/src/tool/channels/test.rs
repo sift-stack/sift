@@ -247,3 +247,32 @@ async fn list_channels_reports_a_field_that_matched_nothing() {
     );
     assert_eq!(body["unmatched_fields"], serde_json::json!(["nmae"]));
 }
+
+#[test]
+fn tool_description_warns_that_unscoped_name_searches_can_time_out() {
+    let tools = SiftMcpServer::channels_router().list_all();
+    let tool = tools
+        .iter()
+        .find(|tool| tool.name == "list_channels")
+        .expect("list_channels is routed");
+    let description = tool
+        .description
+        .as_deref()
+        .expect("list_channels has a description");
+
+    assert!(
+        description
+            .contains("Unscoped name searches scan every channel in the org and can time out"),
+        "the description must warn that unscoped name searches can time out"
+    );
+    assert!(
+        description.contains("candidate assets with `list_assets` first"),
+        "the description must tell the agent to resolve assets before searching"
+    );
+    assert!(
+        description.contains(
+            "A timeout means the filter was too broad, not that the parameters were wrong"
+        ),
+        "the description must say a timeout calls for a narrower filter"
+    );
+}
