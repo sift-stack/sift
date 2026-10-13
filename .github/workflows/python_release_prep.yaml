@@ -59,7 +59,12 @@ jobs:
           git checkout -b "$branch"
           git add -A python/pyproject.toml python/uv.lock python/CHANGELOG.md python/changelog.d
           git commit -m "$title"
-          git push origin "$branch"
+          # A rerun for the same version replaces the branch and updates its open pull request.
+          git push --force origin "$branch"
+          if [[ "$(gh pr view "$branch" --json state -q .state 2>/dev/null)" == "OPEN" ]]; then
+            echo "Updated the open pull request for ${branch}."
+            exit 0
+          fi
           gh pr create \
             --base "$BASE_BRANCH" \
             --head "$branch" \

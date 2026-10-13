@@ -43,8 +43,10 @@ jobs:
   build-offline-archives:
     if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/tags')
     needs: python-ci
+    # python_build.yaml nests python_ci.yaml, which needs pull-requests: read even when skipped.
     permissions:
       contents: read
+      pull-requests: read
     uses: ./.github/workflows/python_build.yaml
     secrets: inherit
 

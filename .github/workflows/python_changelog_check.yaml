@@ -35,7 +35,7 @@ jobs:
           if git diff HEAD^1 HEAD -- python/CHANGELOG.md | grep -q '^+## \[v'; then
             if ! python3 python/scripts/release_version.py --leftover; then
               echo "Error: the fragments above merged after this release PR was opened."
-              echo "Close this PR and run Python Release Prep again."
+              echo "Run Python Release Prep again to update this PR."
               exit 1
             fi
           fi
