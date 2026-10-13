@@ -39,10 +39,12 @@ impl SiftMcpServer {
 
             Output:
               - `{ \"runs\": [Run, ...] }`. Each item is the full Sift `Run` shape including `run_id`, `name`,
-                `asset_id`/`asset_name`, `client_key`, `start_time`, `stop_time`, duration, annotation state, tags,
-                and metadata, plus an added `url` field with the run's Sift web link (`<host>/run/<run_id>`). `url`
-                is omitted when the host can't be derived. Present each run to the user as a Markdown link with
-                its name as the text and `url` as the target.
+                `description`, `asset_ids`, `client_key`, `start_time`, `stop_time`, `duration`, `is_pinned`,
+                `is_adhoc`, tags, metadata, timestamps, and archive state, plus an added `url` field with the
+                run's Sift web link (`<host>/run/<run_id>`). `url` is omitted when the host can't be derived.
+                Present each run to the user as a Markdown link with its name as the text and `url` as the target.
+              - `asset_ids` is an array of asset IDs. Runs carry no asset names: to show them, call
+                `list_assets` with `asset_id in [\"...\", ...]` built from the collected `asset_ids`.
               - `count`: how many items THIS response carries — read it instead of
                 counting the array yourself. It is the size of the page you got back, not
                 how many items match `filter`.
@@ -69,8 +71,10 @@ impl SiftMcpServer {
                 and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
               - `fields`: optional array of field names to keep on each item, e.g.
                 `[\"name\"]`. Omit it for the full object. Names match case-insensitively
-                and ignore underscores and hyphens, so `asset_id`, `assetId` and
-                `asset-id` all work. Any name that matched nothing on any returned item
+                and ignore underscores and hyphens, so `asset_ids`, `assetIds` and
+                `asset-ids` all work. Name output fields, not filter fields: `asset_id`,
+                `asset_name`, and `annotation_state` filter runs but are not on the item.
+                Any name that matched nothing on any returned item
                 is listed in `unmatched_fields`; an empty page reports none, since it
                 says nothing about whether a name was spelled right.
                 Reach for this whenever you need only a few fields: full objects are wide,
