@@ -187,6 +187,12 @@ fn report_url_uses_configured_app_uri() {
 }
 
 #[test]
+fn share_url_uses_configured_app_uri() {
+    let url = service().build_share_url("abc123").unwrap();
+    assert_eq!(url, "https://app.siftstack.com/share/abc123");
+}
+
+#[test]
 fn rule_url_uses_configured_app_uri() {
     let url = service().build_rule_url("rule-123").unwrap();
     assert_eq!(url, "https://app.siftstack.com/rules/rule-123");
