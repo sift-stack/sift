@@ -68,7 +68,7 @@ impl SiftMcpServer {
                 `test_report_id`, `status`, `name`, `test_system_name`, `test_case`, `start_time`, `end_time`,
                 `serial_number`, `part_number`, `system_operator`, `run_id`, `archived_date`,
                 `created_by_user_id`, `modified_by_user_id`, `metadata`. Reference metadata entries as
-                `metadata.{key}`. `status` matches the `TestStatus` enum: `TEST_STATUS_DRAFT`,
+                `metadata[\"<key>\"]`. `status` matches the `TestStatus` enum: `TEST_STATUS_DRAFT`,
                 `TEST_STATUS_PASSED`, `TEST_STATUS_FAILED`, `TEST_STATUS_ABORTED`, `TEST_STATUS_ERROR`,
                 `TEST_STATUS_IN_PROGRESS`, `TEST_STATUS_SKIPPED`. Filtering `test_report_id == \"...\"` fetches one
                 report (there is no separate get tool).
@@ -150,9 +150,10 @@ impl SiftMcpServer {
               - `filter`: CEL expression. Pass an empty string to list everything (rarely useful; almost always
                 scope by `test_report_id`). Filterable fields: `test_step_id`, `test_report_id`, `parent_step_id`,
                 `name`, `description`, `step_type`, `step_path`, `status`, `start_time`, `end_time`, `error_code`,
-                `error_message`, `created_date`, `modified_date`, `metadata`. `step_type` matches the
-                `TestStepType` enum: `TEST_STEP_TYPE_SEQUENCE`, `TEST_STEP_TYPE_GROUP`, `TEST_STEP_TYPE_ACTION`,
-                `TEST_STEP_TYPE_FLOW_CONTROL`. `status` matches `TestStatus` (see `list_test_reports`).
+                `error_message`, `created_date`, `modified_date`, `metadata`. Reference metadata entries as
+                `metadata[\"<key>\"]`. `step_type` matches the `TestStepType` enum: `TEST_STEP_TYPE_SEQUENCE`,
+                `TEST_STEP_TYPE_GROUP`, `TEST_STEP_TYPE_ACTION`, `TEST_STEP_TYPE_FLOW_CONTROL`. `status` matches
+                `TestStatus` (see `list_test_reports`).
                 When filtering or searching `name`, `description`, or `error_message`, use
                 `name.matches(\"(?i)power\")`, not `==`. Use `==` only for an exact value from a prior result.
                 `contains`/`startsWith`/`endsWith` are case-SENSITIVE: `contains(\"Power\")` silently misses
@@ -232,9 +233,10 @@ impl SiftMcpServer {
               - `filter`: CEL expression. Pass an empty string to list everything (almost always scope by
                 `test_report_id` or `test_step_id`). Filterable fields: `measurement_id`, `measurement_type`,
                 `name`, `test_step_id`, `test_report_id`, `numeric_value`, `string_value`, `boolean_value`,
-                `passed`, `timestamp`, `created_date`, `modified_date`, `metadata`. `measurement_type` matches the
-                `TestMeasurementType` enum: `TEST_MEASUREMENT_TYPE_DOUBLE`, `TEST_MEASUREMENT_TYPE_STRING`,
-                `TEST_MEASUREMENT_TYPE_BOOLEAN`, `TEST_MEASUREMENT_TYPE_LIMIT`.
+                `passed`, `timestamp`, `created_date`, `modified_date`, `metadata`. Reference metadata entries as
+                `metadata[\"<key>\"]`. `measurement_type` matches the `TestMeasurementType` enum:
+                `TEST_MEASUREMENT_TYPE_DOUBLE`, `TEST_MEASUREMENT_TYPE_STRING`, `TEST_MEASUREMENT_TYPE_BOOLEAN`,
+                `TEST_MEASUREMENT_TYPE_LIMIT`.
                 When filtering or searching `name`, use `name.matches(\"(?i)voltage\")`, not `==`. Use `==` only
                 for an exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
                 `contains(\"Voltage\")` silently misses `voltage_bus_a`.
@@ -302,10 +304,10 @@ impl SiftMcpServer {
               - `filter`: CEL expression. Pass an empty string to count all steps. Filterable fields are identical
                 to `list_test_steps`: `test_step_id`, `test_report_id`, `parent_step_id`, `name`, `description`,
                 `step_type`, `step_path`, `status`, `start_time`, `end_time`, `error_code`, `error_message`,
-                `created_date`, `modified_date`, `metadata`. When filtering `name`, `description`, or
-                `error_message`, use `name.matches(\"(?i)power\")`, not `==`. Use `==` only for an exact value from
-                a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE: `contains(\"Power\")`
-                silently misses `power-on`.
+                `created_date`, `modified_date`, `metadata`. Reference metadata entries as `metadata[\"<key>\"]`.
+                When filtering `name`, `description`, or `error_message`, use `name.matches(\"(?i)power\")`, not
+                `==`. Use `==` only for an exact value from a prior result. `contains`/`startsWith`/`endsWith` are
+                case-SENSITIVE: `contains(\"Power\")` silently misses `power-on`.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression.
@@ -340,10 +342,10 @@ impl SiftMcpServer {
               - `filter`: CEL expression. Pass an empty string to count all measurements. Filterable fields are
                 identical to `list_test_measurements`: `measurement_id`, `measurement_type`, `name`,
                 `test_step_id`, `test_report_id`, `numeric_value`, `string_value`, `boolean_value`, `passed`,
-                `timestamp`, `created_date`, `modified_date`, `metadata`. When filtering `name`, use
-                `name.matches(\"(?i)voltage\")`, not `==`. Use `==` only for an exact value from a prior result.
-                `contains`/`startsWith`/`endsWith` are case-SENSITIVE: `contains(\"Voltage\")` silently misses
-                `voltage_bus_a`.
+                `timestamp`, `created_date`, `modified_date`, `metadata`. Reference metadata entries as
+                `metadata[\"<key>\"]`. When filtering `name`, use `name.matches(\"(?i)voltage\")`, not `==`. Use
+                `==` only for an exact value from a prior result. `contains`/`startsWith`/`endsWith` are
+                case-SENSITIVE: `contains(\"Voltage\")` silently misses `voltage_bus_a`.
 
             Errors:
               - `INVALID_PARAMS` if `filter` is not a valid CEL expression.

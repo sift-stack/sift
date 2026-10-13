@@ -47,7 +47,7 @@ impl SiftMcpServer {
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
                 `asset_id`, `name`, `name_lower`, `tag_id`, `tag_name`, `created_date`, `modified_date`,
                 `archived_date`, `is_archived`, `created_by_user_id`, `modified_by_user_id`, `metadata`.
-                Reference metadata entries as `metadata.{key}` (e.g. `metadata.vehicle_type == \"rover\"`).
+                Reference metadata entries as `metadata[\"<key>\"]` (e.g. `metadata[\"vehicle_type\"] == \"rover\"`).
                 When searching by name, use `name_lower.contains(\"rover\")`: `name_lower` is an indexed lowercase
                 copy of `name` and exists only on assets. On any other text field use `name.matches(\"(?i)rover\")`.
                 Use `==` only for an exact value from a prior result. `contains`/`startsWith`/`endsWith` are
