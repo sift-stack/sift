@@ -17,7 +17,7 @@ use rmcp::{
 use serde::Deserialize;
 use serde_json::Value;
 
-use sift_rs::metadata::v1::MetadataValue;
+use sift_rs::{assets::v1::Asset, metadata::v1::MetadataValue, runs::v2::Run};
 
 use crate::{
     error::{self, from_anyhow},
@@ -157,6 +157,7 @@ pub struct GetDataParams {
     asset_name: Option<String>,
     asset_id: Option<String>,
     run_name: Option<String>,
+    run_id: Option<String>,
     start_time_unix_nanos: Option<i64>,
     end_time_unix_nanos: Option<i64>,
     sample_ms: u32,
@@ -165,6 +166,12 @@ pub struct GetDataParams {
     channel_id: Option<String>,
     channel_ids: Option<Vec<String>>,
     output: PathBuf,
+}
+
+/// Which run scopes a `get_data` call, before it is resolved on the asset.
+enum RunSelector {
+    Id(String),
+    Name(String),
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -247,6 +254,8 @@ impl SiftMcpServer {
                 always what was requested: `sample_ms` is ignored for data types that cannot be sampled. Both
                 keys are ALWAYS present; `sample_ms_applied` is null when no page reported a rate.
                 `mixed_sample_rates` appears when some channels came back decimated and others raw.
+              - `run_id` names the run that scoped the query, when one did. `run_archived` is `true` when that
+                run is archived.
 
             Parameters:
               - `asset_name`: optional, exact asset name (not a pattern). Mutually exclusive with `asset_id`;
@@ -254,9 +263,11 @@ impl SiftMcpServer {
               - `asset_id`: optional, asset UUID. Mutually exclusive with `asset_name`; exactly one of the two
                 MUST be set. Runs reference assets by id (`list_runs` returns `asset_id`, not a name), so pass
                 that id here directly instead of guessing a name.
-              - `run_name`: optional, exact run name within the asset. When provided, the run's start/stop bounds are
-                used as the time range; `start_time_unix_nanos` and/or `end_time_unix_nanos` may narrow either side.
-                When omitted, BOTH `start_time_unix_nanos` and `end_time_unix_nanos` are required.
+              - `run_name`: optional, exact name of an active (non-archived) run on the asset. The run's start/stop
+                bounds become the time range; `start_time_unix_nanos`/`end_time_unix_nanos` may narrow either side.
+                Set at most one of `run_name` and `run_id`; with neither, BOTH time bounds are required.
+              - `run_id`: optional, run UUID from `list_runs`. Same as `run_name`, but also reaches archived runs.
+                Prefer it when known: names are not unique.
               - `sample_ms`: decimation interval in milliseconds. Set this to `0` unless the data will be used
                 EXCLUSIVELY to generate a visualization. Decimation applies LTTB, which selects shape-defining
                 extremes rather than representative samples: counts, means, standard deviations and trends
@@ -292,8 +303,10 @@ impl SiftMcpServer {
                 channel does not apply when the asset is outside its scope or lacks a channel its expression
                 references. Verify the name with `list_calculated_channels` filtered by `asset_id`.
               - `INVALID_PARAMS` if neither `asset_name` nor `asset_id` is set, or if both are set.
-              - `INVALID_PARAMS` if `run_name` is absent and the full time range is not supplied, if not exactly
-                one channel selector is set, if a selection array is empty, or if a channel ID is blank.
+              - `INVALID_PARAMS` if both `run_name` and `run_id` are set or either is blank, if `run_name`
+                matches more than one active run (the message lists their ids), if neither is set and the full
+                time range is not supplied, if not exactly one channel selector is set, if a selection array is
+                empty, or if a channel ID is blank.
               - `INVALID_PARAMS` if the channel selection matches more than 200 channels and would be incomplete.
                 Narrow `channel_regex`, pass explicit `channel_names` or `channel_ids`, or split the request.
 
@@ -333,6 +346,7 @@ impl SiftMcpServer {
             asset_name,
             asset_id,
             run_name,
+            run_id,
             channel_names,
             channel_regex,
             channel_id,
@@ -343,13 +357,36 @@ impl SiftMcpServer {
             output,
         }) = params;
 
-        if run_name.is_none() && (start_time_unix_nanos.is_none() || end_time_unix_nanos.is_none())
+        if run_name
+            .iter()
+            .chain(&run_id)
+            .any(|value| value.trim().is_empty())
         {
             return Err(ErrorData::invalid_params(
-                "start_time_unix_nanos and end_time_unix_nanos are required when run_name is not provided",
+                "`run_name` and `run_id` must not be blank; omit the one you are not using",
                 None,
             ));
         }
+
+        let run_selector = match (run_name, run_id) {
+            (Some(_), Some(_)) => {
+                return Err(ErrorData::invalid_params(
+                    "set at most one of `run_name` or `run_id`, not both",
+                    None,
+                ));
+            }
+            (Some(name), None) => Some(RunSelector::Name(name)),
+            (None, Some(id)) => Some(RunSelector::Id(id)),
+            (None, None) => {
+                if start_time_unix_nanos.is_none() || end_time_unix_nanos.is_none() {
+                    return Err(ErrorData::invalid_params(
+                        "start_time_unix_nanos and end_time_unix_nanos are required when neither run_name nor run_id is provided",
+                        None,
+                    ));
+                }
+                None
+            }
+        };
 
         if [
             channel_names.is_some(),
@@ -441,29 +478,8 @@ impl SiftMcpServer {
                 ErrorData::resource_not_found(format!("{asset_label} not found"), None)
             })?;
 
-        let run = match run_name.as_deref() {
-            Some(name) => {
-                let filter = format!(
-                    "name == \"{}\" && asset_id == \"{}\"",
-                    cel_escape(name),
-                    asset.asset_id,
-                );
-                let run = self
-                    .run_service
-                    .list_runs(filter, None, Some(1))
-                    .await
-                    .map_err(from_anyhow)?
-                    .items
-                    .into_iter()
-                    .next()
-                    .ok_or_else(|| {
-                        ErrorData::resource_not_found(
-                            format!("run '{name}' not found for asset '{}'", asset.name),
-                            None,
-                        )
-                    })?;
-                Some(run)
-            }
+        let run = match run_selector {
+            Some(selector) => Some(self.resolve_run(&asset, selector).await?),
             None => None,
         };
 
@@ -576,7 +592,7 @@ impl SiftMcpServer {
         }
 
         let unresolved_report = (!unresolved.is_empty())
-            .then(|| unresolved_message(&unresolved, &asset.name, run_name.as_deref()));
+            .then(|| unresolved_message(&unresolved, &asset.name, run.as_ref()));
 
         if channel_inputs.is_empty() {
             return Err(ErrorData::resource_not_found(
@@ -597,6 +613,17 @@ impl SiftMcpServer {
             .iter()
             .map(|entry| entry.name.clone())
             .collect::<Vec<_>>();
+
+        // Only an explicit `run_id` reaches an archived run; say so in the
+        // result so the caller does not present it as the active one.
+        let run_id = run.as_ref().map(|run| run.run_id.clone());
+        let archived_note = run.as_ref().filter(|run| run.is_archived).map(|run| {
+            format!(
+                " Run `{}` (id `{}`) is ARCHIVED. Tell the user this data comes from an \
+                 archived run.",
+                run.name, run.run_id,
+            )
+        });
 
         let time_range = match run {
             Some(run) => TimeRange::Run {
@@ -663,6 +690,9 @@ impl SiftMcpServer {
 
         let mut next_step =
             format!("Wrote channel data to `{output_str}`. Inform the user where the data lives.");
+        if let Some(note) = &archived_note {
+            next_step.push_str(note);
+        }
         // The caller asked for a rate; the service reports what it actually
         // applied, and the two are not the same thing for a data type it cannot
         // sample. Saying so here is the difference between an agent that knows
@@ -726,6 +756,12 @@ impl SiftMcpServer {
         body.insert("decimated".to_string(), Value::from(applied.decimated()));
         if applied.mixed() {
             body.insert("mixed_sample_rates".to_string(), Value::from(true));
+        }
+        if let Some(run_id) = run_id {
+            body.insert("run_id".to_string(), Value::from(run_id));
+        }
+        if archived_note.is_some() {
+            body.insert("run_archived".to_string(), Value::from(true));
         }
 
         if !unresolved.is_empty() {
@@ -969,16 +1005,117 @@ impl SiftMcpServer {
     }
 }
 
+impl SiftMcpServer {
+    /// Resolve a run selector to a run on `asset`.
+    async fn resolve_run(&self, asset: &Asset, selector: RunSelector) -> Result<Run, ErrorData> {
+        match selector {
+            // An explicit id is honored even when the run is archived.
+            RunSelector::Id(id) => {
+                let filter = format!(
+                    "run_id == \"{}\" && asset_id == \"{}\"",
+                    cel_escape(&id),
+                    asset.asset_id,
+                );
+                self.run_service
+                    .list_runs(filter, None, Some(1))
+                    .await
+                    .map_err(from_anyhow)?
+                    .items
+                    .into_iter()
+                    .next()
+                    .ok_or_else(|| {
+                        ErrorData::resource_not_found(
+                            format!("run with id '{id}' not found for asset '{}'", asset.name),
+                            None,
+                        )
+                    })
+            }
+            // Names are not unique. An archived duplicate must never stand in
+            // for the active run, and two active matches are ambiguous, so the
+            // lookup excludes archived runs and fetches two to detect a tie.
+            RunSelector::Name(name) => {
+                let filter = format!(
+                    "name == \"{}\" && asset_id == \"{}\" && is_archived == false",
+                    cel_escape(&name),
+                    asset.asset_id,
+                );
+                let page = self
+                    .run_service
+                    .list_runs(filter, None, Some(2))
+                    .await
+                    .map_err(from_anyhow)?;
+                if page.items.len() > 1 {
+                    let ids = page
+                        .items
+                        .iter()
+                        .map(|r| r.run_id.clone())
+                        .collect::<Vec<_>>();
+                    let more = if page.has_more { " and more" } else { "" };
+                    return Err(ErrorData::invalid_params(
+                        format!(
+                            "run name '{name}' matches more than one active run on asset '{}' \
+                             (ids {}{more}); pick one with `list_runs` and pass it as `run_id`",
+                            asset.name,
+                            common::name_list(&ids),
+                        ),
+                        None,
+                    ));
+                }
+                if let Some(run) = page.items.into_iter().next() {
+                    return Ok(run);
+                }
+
+                // Point at an archived run only when one holds the name, so a
+                // typo does not send the caller after archived data. The check
+                // is best effort: if it fails, report the plain miss.
+                let archived_filter = format!(
+                    "name == \"{}\" && asset_id == \"{}\" && is_archived == true",
+                    cel_escape(&name),
+                    asset.asset_id,
+                );
+                let archived = self
+                    .run_service
+                    .list_runs(archived_filter, None, Some(1))
+                    .await
+                    .ok()
+                    .and_then(|page| page.items.into_iter().next());
+                let hint = match archived {
+                    Some(run) => format!(
+                        "; an archived run has that name (id '{}'). Archived runs are not matched \
+                         by name; pass it as `run_id` only if the user asked for archived data",
+                        run.run_id
+                    ),
+                    None => "; check the name with `list_runs`".to_string(),
+                };
+                Err(ErrorData::resource_not_found(
+                    format!(
+                        "no active run named '{name}' found for asset '{}'{hint}",
+                        asset.name
+                    ),
+                    None,
+                ))
+            }
+        }
+    }
+}
+
 /// One phrasing for calculated channels that yielded no data, shared by the
 /// partial-result report and the all-unresolved error so the caller reads the
 /// same wording either way.
 fn unresolved_message(
     unresolved: &[UnresolvedCalculation],
     asset_name: &str,
-    run_name: Option<&str>,
+    run: Option<&Run>,
 ) -> String {
-    let scope = match run_name {
-        Some(run) => format!("asset '{asset_name}' (run '{run}')"),
+    // The id and archived flag tell an archived run from an active one that
+    // shares its name.
+    let scope = match run {
+        Some(run) => format!(
+            "asset '{asset_name}' ({}run '{}', id '{}')",
+            if run.is_archived { "archived " } else { "" },
+            run.name,
+            run.run_id,
+        ),
         None => format!("asset '{asset_name}'"),
     };
     let items = unresolved
