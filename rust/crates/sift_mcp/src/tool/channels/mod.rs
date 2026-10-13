@@ -18,8 +18,9 @@ impl SiftMcpServer {
 
             Output:
               - `{ \"channels\": [Channel, ...] }`. Each item is the full Sift `Channel` shape including
-                `channel_id`, `name`, `description`, `asset_id`/`asset_name`, data type, units, enum/bit-field
-                configuration, and timestamps.
+                `channel_id`, `name`, `description`, `asset_id`, data type, `unit_id`, enum/bit-field
+                configuration, and timestamps. Channels carry no asset name: to show it, call `list_assets`
+                with the `asset_id`.
               - `count`: how many items THIS response carries — read it instead of
                 counting the array yourself. It is the size of the page you got back, not
                 how many items match `filter`.

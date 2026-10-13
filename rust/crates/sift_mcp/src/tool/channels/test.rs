@@ -276,3 +276,36 @@ fn tool_description_warns_that_unscoped_name_searches_can_time_out() {
         "the description must say a timeout calls for a narrower filter"
     );
 }
+
+#[tokio::test]
+async fn list_channels_projects_asset_id_and_unit_id_but_not_asset_name() {
+    let mut channel_mock = MockChannelServiceImpl::new();
+    channel_mock.expect_list_channels().returning(|_| {
+        Ok(Response::new(ListChannelsResponse {
+            channels: vec![Channel {
+                channel_id: "c1".into(),
+                asset_id: "a1".into(),
+                unit_id: "u1".into(),
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (server, _h) = server_with_mock(channel_mock).await;
+
+    let resp = server
+        .list_channels(list_params_with_fields(
+            "",
+            &["asset_id", "unit_id", "asset_name"],
+        ))
+        .await
+        .expect("list_channels failed");
+
+    let body = structured(resp);
+    assert_eq!(
+        body["channels"],
+        serde_json::json!([{ "assetId": "a1", "unitId": "u1" }])
+    );
+    assert_eq!(body["unmatched_fields"], serde_json::json!(["asset_name"]));
+}
