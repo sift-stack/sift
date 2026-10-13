@@ -36,14 +36,19 @@ jobs:
         run: |
           tag="python/v$(python3 python/scripts/release_version.py --current)"
           if [[ -n "$(git ls-remote --tags origin "refs/tags/${tag}")" ]]; then
-            echo "Tag ${tag} already exists. Nothing to release."
-            exit 0
+            # A rerun after a failed publish request starts publish for the existing tag.
+            if [[ -n "$(gh run list --workflow python_release.yaml --branch "$tag" --limit 1 --json databaseId -q '.[].databaseId')" ]]; then
+              echo "Tag ${tag} already exists and its publish has started. Nothing to release."
+              exit 0
+            fi
+            echo "Tag ${tag} already exists but was never published. Starting publish."
+          else
+            # See python/changelog.d/README.md.
+            if ! python3 python/scripts/release_version.py --leftover; then
+              echo "Error: the fragments above are not in the changelog for ${tag}. Not tagging."
+              exit 1
+            fi
+            git tag "$tag" "$GITHUB_SHA"
+            git push origin "refs/tags/${tag}"
           fi
-          # See python/changelog.d/README.md.
-          if ! python3 python/scripts/release_version.py --leftover; then
-            echo "Error: the fragments above are not in the changelog for ${tag}. Not tagging."
-            exit 1
-          fi
-          git tag "$tag" "$GITHUB_SHA"
-          git push origin "refs/tags/${tag}"
           gh workflow run python_release.yaml --ref "$tag"
