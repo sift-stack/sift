@@ -33,13 +33,12 @@ from sift.data_imports.v2.data_imports_pb2 import (
     ParquetTimeColumn as ParquetTimeColumnProto,
 )
 
-from sift_client._internal.util.data_imports import apply_relative_start_time
+from sift_client._internal.util.data_imports import (
+    parse_parquet_detect_response,
+    resolve_data_type_key,
+)
 from sift_client._internal.util.time_column import infer_time_column
 from sift_client.resources import DataImportAPI, DataImportAPIAsync
-from sift_client.resources.data_imports import (
-    _parse_parquet_detect_response,
-    _resolve_data_type_key,
-)
 from sift_client.sift_types.channel import ChannelDataType
 from sift_client.sift_types.data_import import (
     CsvDataColumn,
@@ -758,32 +757,32 @@ class TestParquetTimeColumnToProto:
 class TestResolveDataTypeKey:
     def test_parquet_requires_data_type(self):
         with pytest.raises(ValueError, match="data_type"):
-            _resolve_data_type_key(".parquet", None)
+            resolve_data_type_key(".parquet", None)
 
     def test_parquet_with_explicit_data_type(self):
-        result = _resolve_data_type_key(".parquet", DataTypeKey.PARQUET_FLATDATASET)
+        result = resolve_data_type_key(".parquet", DataTypeKey.PARQUET_FLATDATASET)
         assert result == DataTypeKey.PARQUET_FLATDATASET
 
     def test_pqt_requires_data_type(self):
         with pytest.raises(ValueError, match="data_type"):
-            _resolve_data_type_key(".pqt", None)
+            resolve_data_type_key(".pqt", None)
 
     def test_known_extension_uses_map(self):
-        assert _resolve_data_type_key(".csv", None) == DataTypeKey.CSV
+        assert resolve_data_type_key(".csv", None) == DataTypeKey.CSV
 
     def test_ulog_extension_uses_map(self):
-        assert _resolve_data_type_key(".ulg", None) == DataTypeKey.ULOG
+        assert resolve_data_type_key(".ulg", None) == DataTypeKey.ULOG
 
     def test_mcap_extension_uses_map(self):
-        assert _resolve_data_type_key(".mcap", None) == DataTypeKey.MCAP
+        assert resolve_data_type_key(".mcap", None) == DataTypeKey.MCAP
 
     def test_explicit_data_type_overrides_extension(self):
-        result = _resolve_data_type_key(".csv", DataTypeKey.TDMS)
+        result = resolve_data_type_key(".csv", DataTypeKey.TDMS)
         assert result == DataTypeKey.TDMS
 
     def test_unknown_extension_raises(self):
         with pytest.raises(ValueError, match="Unsupported file extension"):
-            _resolve_data_type_key(".xyz", None)
+            resolve_data_type_key(".xyz", None)
 
 
 class TestInferTimeColumn:
@@ -873,7 +872,7 @@ class TestParseParquetDetectResponseTimeFallback:
                 ("status", ChannelDataType.INT_32.value),
             ],
         )
-        config = _parse_parquet_detect_response(proto, "file.parquet", 0, 0)
+        config = parse_parquet_detect_response(proto, "file.parquet", 0, 0)
         assert isinstance(config, ParquetFlatDatasetImportConfig)
         assert config.time_column.path == "timestamp"
         assert [dc.path for dc in config.data_columns] == ["voltage", "status"]
@@ -887,7 +886,7 @@ class TestParseParquetDetectResponseTimeFallback:
                 ("voltage", ChannelDataType.DOUBLE.value),
             ],
         )
-        config = _parse_parquet_detect_response(proto, "file.parquet", 0, 0)
+        config = parse_parquet_detect_response(proto, "file.parquet", 0, 0)
         assert config.time_column.path == "server_ts"
         assert [dc.path for dc in config.data_columns] == ["timestamp", "voltage"]
 
@@ -896,7 +895,7 @@ class TestParseParquetDetectResponseTimeFallback:
             time_path="",
             data_columns=[("voltage", ChannelDataType.DOUBLE.value)],
         )
-        config = _parse_parquet_detect_response(proto, "file.parquet", 0, 0)
+        config = parse_parquet_detect_response(proto, "file.parquet", 0, 0)
         assert config.time_column.path == ""
         assert [dc.path for dc in config.data_columns] == ["voltage"]
 
@@ -908,7 +907,7 @@ class TestParseParquetDetectResponseTimeFallback:
                 ("timestamp", ChannelDataType.INT_64.value),
             ],
         )
-        config = _parse_parquet_detect_response(proto, "file.parquet", 0, 0)
+        config = parse_parquet_detect_response(proto, "file.parquet", 0, 0)
         assert isinstance(config, ParquetSingleChannelPerRowImportConfig)
         assert config.time_column.path == "timestamp"
 
@@ -1082,7 +1081,7 @@ class TestDetectConfigRelativeStartTime:
             )
         )
 
-        config = _parse_parquet_detect_response(
+        config = parse_parquet_detect_response(
             proto, "file.parquet", 0, 0, relative_start_time=self.START
         )
 
@@ -1093,7 +1092,7 @@ class TestDetectConfigRelativeStartTime:
         config = config_cls(asset_name="a", data=[])
         config.time_format = TimeFormat.RELATIVE_SECONDS
 
-        apply_relative_start_time(config, self.START, config.time_format)
+        config._apply_relative_start_time(self.START)
 
         assert config.relative_start_time == self.START
 
@@ -1102,7 +1101,7 @@ class TestDetectConfigRelativeStartTime:
         config = config_cls(asset_name="a", data=[])
 
         with pytest.warns(UserWarning, match="unset"):
-            apply_relative_start_time(config, self.START, config.time_format)
+            config._apply_relative_start_time(self.START)
 
         assert config.relative_start_time is None
 
@@ -1110,7 +1109,7 @@ class TestDetectConfigRelativeStartTime:
     def test_log_formats_always_use_start_time(self, config_cls):
         config = config_cls(asset_name="a")
 
-        apply_relative_start_time(config, self.START, None)
+        config._apply_relative_start_time(self.START)
 
         assert config.relative_start_time == self.START
 
