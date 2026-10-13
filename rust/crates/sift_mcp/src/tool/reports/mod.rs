@@ -73,7 +73,8 @@ impl SiftMcpServer {
                 `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, `report_type`, `is_archived`,
                 `archived_date`, `created_date`, `created_by_user_id`, `metadata`, `modified_date`,
                 `modified_by_user_id`.
-                Reference metadata entries as `metadata.{key}` (e.g. `metadata.batch == \"nightly\"`).
+                Reference metadata entries as `metadata[\"<key>\"]` (e.g. `metadata[\"batch\"] == \"nightly\"`).
+                The dot form `metadata.<key>` is not supported.
                 When filtering or searching, use `name.matches(\"(?i)nightly\")`, not `==`. Use `==` only for an
                 exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
                 `contains(\"Nightly\")` silently misses `nightly-regression`.

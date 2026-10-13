@@ -492,7 +492,8 @@ When you add or update a list tool:
    your own words risks drift; quoting from the proto keeps the tool aligned with the API.
 3. **Map every wrapped field to a bullet** under `Parameters:`, following Step 4's structure:
    - Filter: list every filterable field named in the proto's `filter` comment. Preserve
-     metadata-key syntax (`metadata.{key}`) and CEL helpers (`duration(...)`).
+     metadata-key syntax (`metadata["<key>"]`; the dot form `metadata.<key>` is not supported)
+     and CEL helpers (`duration(...)`).
    - Order-by: list every orderable field, the default sort when the field is empty (assets and
      runs default to `created_date desc`; channels defaults to `created_date` ascending — these
      differ, do not assume), and the `\"FIELD_NAME[ desc],...\"` format.

@@ -68,7 +68,8 @@ impl SiftMcpServer {
                 `test_report_id`, `status`, `name`, `test_system_name`, `test_case`, `start_time`, `end_time`,
                 `serial_number`, `part_number`, `system_operator`, `run_id`, `archived_date`,
                 `created_by_user_id`, `modified_by_user_id`, `metadata`. Reference metadata entries as
-                `metadata.{key}`. `status` matches the `TestStatus` enum: `TEST_STATUS_DRAFT`,
+                `metadata[\"<key>\"]` (e.g. `metadata[\"batch_id\"] == \"B-2207\"`). The dot form
+                `metadata.<key>` is not supported. `status` matches the `TestStatus` enum: `TEST_STATUS_DRAFT`,
                 `TEST_STATUS_PASSED`, `TEST_STATUS_FAILED`, `TEST_STATUS_ABORTED`, `TEST_STATUS_ERROR`,
                 `TEST_STATUS_IN_PROGRESS`, `TEST_STATUS_SKIPPED`. Filtering `test_report_id == \"...\"` fetches one
                 report (there is no separate get tool).

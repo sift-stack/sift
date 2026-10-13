@@ -56,7 +56,8 @@ impl SiftMcpServer {
                 `start_time`, `stop_time`, `duration`, `duration_string`, `tag_id`, `asset_tag_id`,
                 `annotation_comments_count`, `annotation_state`, `created_date`, `modified_date`, `archived_date`,
                 `is_archived`, `created_by_user_id`, `modified_by_user_id`, `metadata`.
-                Reference metadata entries as `metadata.{key}`.
+                Reference metadata entries as `metadata[\"<key>\"]`, e.g.
+                `metadata[\"test_scenario\"] == \"nightly\"`. The dot form `metadata.<key>` is not supported.
                 `duration` is elapsed seconds (numeric). `duration_string` accepts `h`/`m`/`s`/`ms` suffixes via the
                 `duration(...)` helper, e.g. `duration_string > duration('10h')`.
                 When filtering or searching, use `name.matches(\"(?i)rover\")`, not `==`. Use `==` only for an

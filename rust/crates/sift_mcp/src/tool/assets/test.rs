@@ -56,6 +56,51 @@ async fn server_instructions_explain_agent_lifecycle() {
     assert!(instructions.contains("update"));
 }
 
+#[test]
+fn list_tool_descriptions_use_bracket_metadata_syntax() {
+    // The API only accepts `metadata["<key>"]`; `metadata.key` fails with
+    // `unimplemented: SelectKind`, and agents trust the description. Routers
+    // are merged directly so feature-flagged tools (test reports) are covered.
+    let mut router = SiftMcpServer::assets_router();
+    router.merge(SiftMcpServer::runs_router());
+    router.merge(SiftMcpServer::annotations_router());
+    router.merge(SiftMcpServer::rules_router());
+    router.merge(SiftMcpServer::reports_router());
+    router.merge(SiftMcpServer::report_templates_router());
+    router.merge(SiftMcpServer::test_reports_router());
+    let mut documented = Vec::new();
+    for tool in router.list_all() {
+        let description = tool.description.as_deref().unwrap_or_default();
+        assert!(
+            !description.contains("`metadata.{"),
+            "{} documents the unsupported `metadata.{{key}}` filter form",
+            tool.name
+        );
+        if description.contains("Reference metadata entries as") {
+            assert!(
+                description.contains(r#"`metadata["<key>"]`"#),
+                "{} does not document the bracket metadata filter form",
+                tool.name
+            );
+            documented.push(tool.name.to_string());
+        }
+    }
+
+    documented.sort();
+    assert_eq!(
+        documented,
+        [
+            "list_annotations",
+            "list_assets",
+            "list_report_templates",
+            "list_reports",
+            "list_rules",
+            "list_runs",
+            "list_test_reports",
+        ]
+    );
+}
+
 #[tokio::test]
 async fn list_tool_descriptions_advertise_bounded_limits() {
     let (server, _h) = server_with_mock(MockAssetServiceImpl::new()).await;
