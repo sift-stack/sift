@@ -3,12 +3,16 @@
 
 {% endif %}
 {% for category in ["breaking", "feat", "fix"] %}
-{% for text, values in sections[""].get(category, {}).items() %}
+{% if sections[""].get(category) %}
+### {{ definitions[category]["name"] }}
+
+{% for text, values in sections[""][category].items() %}
 {% set lines = text.strip().split("\n", 1) %}
 - {{ lines[0] }}{% if values %} ({{ values|join(", ") }}){% endif %}{{ "" }}
 {% if lines|length > 1 %}
 {{ lines[1] }}
 {% endif %}
 {% endfor %}
+
+{% endif %}
 {% endfor %}
-{{ "\n" }}
