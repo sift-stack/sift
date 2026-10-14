@@ -20,10 +20,11 @@ use tonic::{Response, Status, transport::Server};
 
 use super::{
     ArtifactArchiveParams, ArtifactVersionListParams, CreateArtifactParams, DownloadArtifactParams,
-    UpdateArtifactParams, parse_created_via, parse_storage_class,
+    UpdateArtifactParams, display_name, parse_created_via, parse_storage_class,
 };
 use crate::{
     server::SiftMcpServer,
+    service::artifacts::ArtifactView,
     tool::{
         artifacts::ArtifactListParams,
         common::{
@@ -99,6 +100,29 @@ fn parse_entity_types_uses_the_proto_enum() {
     ] {
         assert_eq!(super::parse_entity_type(value.into()).unwrap(), expected);
     }
+}
+
+#[test]
+fn display_name_falls_back_to_the_file_name_for_a_blank_title() {
+    let view = |title: Option<&str>, file_name: Option<&str>| ArtifactView {
+        details: sample_with(
+            |_| {},
+            |version| {
+                version.title = title.map(Into::into);
+                version.file_name = file_name.map(Into::into);
+            },
+        ),
+        download_url: None,
+    };
+    assert_eq!(
+        display_name(&view(Some("report"), Some("data.csv"))).as_deref(),
+        Some("report")
+    );
+    assert_eq!(
+        display_name(&view(Some("  "), Some("data.csv"))).as_deref(),
+        Some("data.csv")
+    );
+    assert_eq!(display_name(&view(None, None)), None);
 }
 
 async fn server_with_mock(
@@ -185,6 +209,10 @@ async fn list_artifacts_returns_rows() {
     let artifacts = structured_field(resp, "artifacts");
     assert_eq!(artifacts.as_array().unwrap().len(), 1);
     assert_eq!(artifacts[0]["artifactId"], "art-1");
+    assert_eq!(
+        artifacts[0]["url"],
+        "https://app.test.local/artifacts/art-1"
+    );
 }
 
 #[tokio::test]
@@ -240,10 +268,31 @@ async fn get_artifact_returns_snake_case_download_url() {
         }))
         .await
         .expect("get");
-    let artifact = structured_field(resp, "artifact");
+    let body = structured(resp);
+    let artifact = &body["artifact"];
     assert_eq!(artifact["artifactId"], "art-1");
     assert_eq!(artifact["download_url"], "https://files.test.local/rf-1");
     assert!(artifact.get("downloadUrl").is_none());
+    assert_eq!(
+        body["artifact_url"],
+        "https://app.test.local/artifacts/art-1"
+    );
+}
+
+#[tokio::test]
+async fn get_artifact_pins_the_artifact_url_to_a_requested_version() {
+    let (server, _h) = server_with_mock(get_returns(sample_artifact()), false).await;
+    let resp = server
+        .download_artifact(Parameters(DownloadArtifactParams {
+            artifact_id: "art-1".into(),
+            artifact_version_id: Some("ver-1".into()),
+        }))
+        .await
+        .expect("get");
+    assert_eq!(
+        structured_field(resp, "artifact_url"),
+        "https://app.test.local/artifacts/art-1?artifactVersionId=ver-1"
+    );
 }
 
 #[tokio::test]
@@ -343,6 +392,14 @@ async fn list_artifact_versions_returns_rows_newest_first() {
     assert_eq!(rows.len(), 2);
     assert_eq!(rows[0]["artifactVersionId"], "ver-2");
     assert_eq!(rows[1]["artifactVersionId"], "ver-1");
+    assert_eq!(
+        rows[0]["url"],
+        "https://app.test.local/artifacts/art-1?artifactVersionId=ver-2"
+    );
+    assert_eq!(
+        rows[1]["url"],
+        "https://app.test.local/artifacts/art-1?artifactVersionId=ver-1"
+    );
 }
 
 #[tokio::test]
@@ -438,7 +495,15 @@ async fn archive_artifact_returns_structured_result() {
     let body = structured(response);
     assert_eq!(body["artifact_id"], "art-1");
     assert_eq!(body["archived"], true);
-    assert!(body["next_step"].is_string());
+    assert_eq!(
+        body["artifact_url"],
+        "https://app.test.local/artifacts/art-1"
+    );
+    let next_step = body["next_step"].as_str().unwrap();
+    assert!(
+        next_step.contains("https://app.test.local/artifacts/art-1"),
+        "{next_step}"
+    );
 }
 
 #[tokio::test]
@@ -458,7 +523,15 @@ async fn unarchive_artifact_returns_structured_result() {
     let body = structured(response);
     assert_eq!(body["artifact_id"], "art-1");
     assert_eq!(body["unarchived"], true);
-    assert!(body["next_step"].is_string());
+    assert_eq!(
+        body["artifact_url"],
+        "https://app.test.local/artifacts/art-1"
+    );
+    let next_step = body["next_step"].as_str().unwrap();
+    assert!(
+        next_step.contains("https://app.test.local/artifacts/art-1"),
+        "{next_step}"
+    );
 }
 
 #[tokio::test]
@@ -538,10 +611,18 @@ async fn update_artifact_masks_only_what_was_passed() {
     let artifact = structured_field(resp.clone(), "artifact");
     assert_eq!(artifact["version"], 2);
     assert_eq!(artifact["title"], "Renamed");
+    assert_eq!(
+        structured_field(resp.clone(), "artifact_url"),
+        "https://app.test.local/artifacts/art-1"
+    );
     let next_step = structured_field(resp, "next_step");
     let next_step = next_step.as_str().unwrap();
     assert!(
         next_step.starts_with("Wrote version 2 of artifact art-1"),
+        "{next_step}"
+    );
+    assert!(
+        next_step.contains("[Renamed](https://app.test.local/artifacts/art-1)"),
         "{next_step}"
     );
 }
@@ -884,9 +965,18 @@ async fn create_artifact_happy_path() {
         }))
         .await
         .expect("create");
-    let artifact = structured_field(resp, "artifact");
-    assert_eq!(artifact["artifactId"], "art-1");
-    assert!(artifact.get("download_url").is_none());
+    let body = structured(resp);
+    assert_eq!(body["artifact"]["artifactId"], "art-1");
+    assert!(body["artifact"].get("download_url").is_none());
+    assert_eq!(
+        body["artifact_url"],
+        "https://app.test.local/artifacts/art-1"
+    );
+    let next_step = body["next_step"].as_str().unwrap();
+    assert!(
+        next_step.contains("[report](https://app.test.local/artifacts/art-1)"),
+        "{next_step}"
+    );
 }
 
 #[tokio::test]

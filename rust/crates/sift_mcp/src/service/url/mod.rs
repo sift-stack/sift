@@ -179,6 +179,21 @@ impl UrlService {
         Ok(format!("{host}/run/{}", encode_value(run_id)))
     }
 
+    /// The artifact page follows the latest version unless `artifact_version_id`
+    /// pins it to one.
+    pub fn build_artifact_url(
+        &self,
+        artifact_id: &str,
+        artifact_version_id: Option<&str>,
+    ) -> Result<String, ErrorData> {
+        let host = self.app_host()?;
+        let url = format!("{host}/artifacts/{}", encode_value(artifact_id));
+        Ok(match artifact_version_id {
+            Some(version_id) => format!("{url}?artifactVersionId={}", encode_value(version_id)),
+            None => url,
+        })
+    }
+
     fn app_host(&self) -> Result<&str, ErrorData> {
         let host = self.app_uri.trim().trim_end_matches('/');
         (!host.is_empty()).then_some(host).ok_or_else(|| {
