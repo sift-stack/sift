@@ -538,9 +538,10 @@ impl SiftMcpServer {
             Get one artifact by `artifact_id`, resolved to the latest version unless `artifact_version_id` pins one.
 
             Output:
-              - `{ \"artifact\": Artifact, \"artifact_url\": string|null }`. `artifact` has the same chrome as
-                `list_artifacts`, plus `download_url` when the version has uploaded bytes (`remote_file_id` is
-                set). `download_url` is a short-lived signed URL; fetch it only when the user needs the body.
+              - `{ \"artifact\": Artifact, \"artifact_url\": string|null }`. `artifact` has the same fields as
+                a `list_artifacts` row except `url` (the link is `artifact_url` here), plus `download_url` when
+                the version has uploaded bytes (`remote_file_id` is set). `download_url` is a short-lived
+                signed URL; fetch it only when the user needs the body.
                 Structured artifacts carry their JSON `payload` directly. When `remote_file_id` is absent,
                 `download_url` is omitted.
               - `artifact_url` is the artifact's Sift web link (`<host>/artifacts/<artifact_id>`), pinned to
