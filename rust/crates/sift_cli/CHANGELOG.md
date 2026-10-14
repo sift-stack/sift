@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- `get_data` accepts `include_received_at` (alias `includeReceivedAt`). When
+  set, and the data service returns `sift_received_at`, the Parquet file
+  includes a receipt-time column per channel in unix nanos next to the
+  generated `timestamp_unix_nanos`. `upload_dataset` skips those columns.
 - `create_artifact` and the Sift skill now say which link relation to use:
   `source` for the run or asset an artifact was built from, and `derived_from`
   only for another artifact. Agents no longer send `derived_from` for a run and

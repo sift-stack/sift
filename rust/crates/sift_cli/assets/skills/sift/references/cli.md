@@ -129,7 +129,9 @@ If the CLI does not support the user's file type:
 Do not reach for the MCP `upload_dataset` tool to import a user's file. It
 accepts only Sift's canonical Parquet schema — every column named
 `<channel_name> {channel_id="<uuid>"}` — so it round-trips the output of
-`get_data`, and rejects a foreign file with `missing attribute block`.
+`get_data`, and rejects a foreign file with `missing attribute block`. A
+`received_at="true"` column from `get_data` is a receipt time, not a channel,
+and upload skips it.
 
 ### Stream data
 

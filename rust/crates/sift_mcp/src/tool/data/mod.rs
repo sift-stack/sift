@@ -164,6 +164,10 @@ pub struct GetDataParams {
     channel_regex: Option<String>,
     channel_id: Option<String>,
     channel_ids: Option<Vec<String>>,
+    /// When true, request `sift_received_at` and write it as a column when the
+    /// service returns it. `includeReceivedAt` is accepted as an alias.
+    #[serde(default, alias = "includeReceivedAt")]
+    include_received_at: bool,
     output: PathBuf,
 }
 
@@ -233,6 +237,11 @@ impl SiftMcpServer {
                 has no channel id, so its column carries the calculated channel's name in both places.
               - Enum and BitField channels carry their decode config in field metadata under the `enum_config` and
                 `bit_field_elements` keys respectively.
+              - When `include_received_at` is true and the service returns receipt times, each such channel
+                gains a second Int64 column `<channel_name> {channel_id=\"...\", received_at=\"true\", ...}`
+                of unix nanos. Cells are null where that sample has no receipt time, or where the channel
+                has no sample on the row. `timestamp_unix_nanos` stays the generation time. Enum and
+                bit-field channels have no receipt time. The column is omitted when the service returns none.
               - A requested channel that produced no samples has NO column at all, not an all-null one. The tool
                 result reports these so they never have to be inferred from the schema:
                 `unmatched_channel_names` lists requested names served by neither a raw channel nor a saved
@@ -275,6 +284,11 @@ impl SiftMcpServer {
                 without name-based resolution or calculated-channel fallback.
               - `channel_ids`: optional non-empty array of exact raw channel IDs on the specified asset.
                 Selects only those registrations. Every ID must exist on the asset; duplicate IDs are queried once.
+              - `include_received_at`: optional bool, default false. `includeReceivedAt` is accepted as an alias.
+                Set it true to request `sift_received_at` and write receipt time beside each channel that has
+                it, so you can compare generation time (`timestamp_unix_nanos`) with the time Sift received
+                the measurement. Leave it false unless you need that comparison. Latency needs `sample_ms = 0`:
+                a decimated file only has receipt time for the samples LTTB kept.
               - `output`: filesystem path for the Parquet file. Replaced only when the call succeeds; a failed
                 call leaves no partial file and keeps any existing one. The tool creates missing parent
                 directories.
@@ -340,6 +354,7 @@ impl SiftMcpServer {
             start_time_unix_nanos,
             end_time_unix_nanos,
             sample_ms,
+            include_received_at,
             output,
         }) = params;
 
@@ -627,7 +642,13 @@ impl SiftMcpServer {
 
         let data_output = match self
             .data_service
-            .get_data(&channel_inputs, time_range, sample_ms, output_file.file())
+            .get_data(
+                &channel_inputs,
+                time_range,
+                sample_ms,
+                include_received_at,
+                output_file.file(),
+            )
             .await
         {
             Ok(data_output) => data_output,
@@ -850,6 +871,9 @@ impl SiftMcpServer {
               - `channel_id` is REQUIRED inside the block; the bracketed attributes are optional. This is the
                 canonical form produced by `get_data`. Enum and BitField channels are recognized via field
                 metadata under the `enum_config` and `bit_field_elements` keys respectively.
+              - A column with `received_at=\"true\"` is a receipt timestamp from `get_data`, not a channel.
+                Those columns are skipped and are not created in Sift. The file still needs at least one
+                channel column.
 
             Output:
               - `{ \"input\": \"<path>\", \"asset_name\": \"...\", \"asset_id\": \"...\", \"asset_url\": string|null,

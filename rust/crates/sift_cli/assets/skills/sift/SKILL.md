@@ -109,6 +109,13 @@ tool.
   to enable them, then restart the MCP client.
 - **Data:** `get_data` writes channel data to a Parquet file. `sql` queries
   Parquet files. `upload_dataset` streams a Parquet dataset into Sift.
+- **Compare generation time with receipt time.** Call `get_data` with
+  `include_received_at: true` and `sample_ms: 0`. When Sift has a receipt time,
+  the file includes an Int64 column whose name contains `received_at="true"`,
+  in unix nanos, aligned with that channel's samples. `timestamp_unix_nanos` is
+  still when the measurement was generated. The receipt column is absent when
+  the service has no receipt time, including enum and bit-field channels.
+  `upload_dataset` skips receipt columns.
 - **Links:** `explore_url`.
 - **Docs:** `search_docs`.
 - **Writes:** `create_rule`, `update_rule`, `archive_rule`, `unarchive_rule`,
