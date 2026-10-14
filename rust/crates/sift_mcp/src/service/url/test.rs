@@ -214,3 +214,16 @@ fn annotation_asset_run_urls_use_singular_path_segments() {
         "https://app.siftstack.com/run/run-1"
     );
 }
+
+#[test]
+fn artifact_url_pins_a_version_only_when_given_one() {
+    let svc = service();
+    assert_eq!(
+        svc.build_artifact_url("art-1", None).unwrap(),
+        "https://app.siftstack.com/artifacts/art-1"
+    );
+    assert_eq!(
+        svc.build_artifact_url("art-1", Some("ver 2")).unwrap(),
+        "https://app.siftstack.com/artifacts/art-1?artifactVersionId=ver%202"
+    );
+}

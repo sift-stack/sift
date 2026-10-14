@@ -257,9 +257,10 @@ tool.
 - **Stop on empty list results.** If any `list_*` tool returns no items, tell
   the user that nothing matched and ask how to proceed. Do not make subsequent
   tool calls using an empty or placeholder name or id from the missing result.
-- **Surface URLs as plain text, in full.** The link from `explore_url` and the
-  `View in Sift:` line from `sift-cli import` are deliverables. Never invent a
-  URL that a tool did not return.
+- **Present a returned URL as a Markdown link.** Use the item's name as the
+  text, or what an Explore view shows, never a bare id or the word "link". The
+  link from `explore_url` and the `View in Sift:` line from `sift-cli import`
+  are deliverables. Never invent a URL that a tool did not return.
 - **Confirm every write before you run it.** Show the user the proposed change
   and its target, then wait for approval.
 - **Write tools are off by default.** Read-only is the default access mode.

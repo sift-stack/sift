@@ -16,7 +16,7 @@ use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::artifacts::{ArtifactView, CreateArtifactInput, UpdateArtifactInput, UpdatePath},
-    tool::common::{MetadataEntry, list_body, to_values},
+    tool::common::{MetadataEntry, list_body, to_values, url_clause},
 };
 
 #[cfg(test)]
@@ -267,13 +267,45 @@ fn content_note(artifact: &ArtifactView, uploaded: bool) -> &'static str {
     }
 }
 
-fn artifact_result(artifact: &ArtifactView, next_step: String) -> error::McpResult {
+fn artifact_result(
+    artifact: &ArtifactView,
+    artifact_url: Option<String>,
+    next_step: String,
+) -> error::McpResult {
     let mut result = CallToolResult::structured(serde_json::json!({
         "artifact": artifact_view_value(artifact)?,
+        "artifact_url": artifact_url,
         "next_step": next_step,
     }));
     result.content = vec![ContentBlock::text(next_step)];
     Ok(result)
+}
+
+/// Build the web URL for an artifact, pinned to `artifact_version_id` when set.
+/// Returns `None` when `artifact_id` is empty or the host can't be derived, so
+/// URL derivation never fails an operation.
+fn artifact_url_for(
+    server: &SiftMcpServer,
+    artifact_id: &str,
+    artifact_version_id: Option<&str>,
+) -> Option<String> {
+    if artifact_id.is_empty() {
+        return None;
+    }
+    server
+        .url_service
+        .build_artifact_url(artifact_id, artifact_version_id)
+        .ok()
+}
+
+/// The name the Sift UI shows for an artifact: its title, or its file name when
+/// the title is blank.
+fn display_name(artifact: &ArtifactView) -> Option<String> {
+    let version = artifact.version();
+    [version.title, version.file_name]
+        .into_iter()
+        .flatten()
+        .find(|name| !name.trim().is_empty())
 }
 
 fn with_include_archived(filter: String, include_archived: bool) -> String {
@@ -306,7 +338,10 @@ impl SiftMcpServer {
               - `{ \"artifacts\": [Artifact, ...] }`. Each item includes `artifact_id`, `artifact_version_id`,
                 `current_version_id`, `version`, `title`, `summary`, `storage_class`, `created_via`,
                 `metadata`, `file_name`, `file_mime_type`, `remote_file_id`, `created_date`
-                (the artifact's), `version_created_date` (this version's), and `archived_date` when set.
+                (the artifact's), `version_created_date` (this version's), and `archived_date` when set,
+                plus an added `url` field with the artifact's Sift web link (`<host>/artifacts/<artifact_id>`).
+                `url` is omitted when the host can't be derived. Present each artifact to the user as a
+                Markdown link with its title as the text and `url` as the target.
                 `payload` is NOT included, even for structured artifacts: read one with
                 `download_artifact`.
               - `count`: how many items THIS response carries — read it instead of
@@ -392,8 +427,20 @@ impl SiftMcpServer {
         let artifacts = page
             .items
             .iter()
-            .map(artifact_value)
-            .collect::<Result<Vec<_>, _>>()?;
+            .map(|details| {
+                let mut value = artifact_value(details)?;
+                let artifact_id = details
+                    .artifact
+                    .as_ref()
+                    .map_or("", |artifact| artifact.artifact_id.as_str());
+                if let (Value::Object(map), Some(url)) =
+                    (&mut value, artifact_url_for(self, artifact_id, None))
+                {
+                    map.insert("url".to_string(), Value::String(url));
+                }
+                Ok(value)
+            })
+            .collect::<Result<Vec<_>, ErrorData>>()?;
 
         Ok(CallToolResult::structured(list_body(
             "artifacts",
@@ -410,11 +457,14 @@ impl SiftMcpServer {
             version, so this is how you see what changed and when.
 
             Output:
-              - `{ \"artifact_versions\": [ArtifactVersion, ...] }`. Each item carries `artifact_version_id`,
-                `artifact_id`, `version`, `title`, `summary`, `metadata`, `file_name`, `file_mime_type`,
-                `remote_file_id`, `authoring_message_id`, `source_tool_use_ids`, and `created_date`.
+              - `{ \"artifact_versions\": [ArtifactVersion, ...], \"artifact_url\": string|null }`. Each item
+                carries `artifact_version_id`, `artifact_id`, `version`, `title`, `summary`, `metadata`,
+                `file_name`, `file_mime_type`, `remote_file_id`, `authoring_message_id`,
+                `source_tool_use_ids`, and `created_date`.
                 `payload` is NOT included, even for structured artifacts: fetch one version's body with
                 `download_artifact` and its `artifact_version_id`.
+              - `artifact_url`: the artifact's Sift web link (`<host>/artifacts/<artifact_id>`), or null when
+                the host can't be derived.
               - `count`: how many items THIS response carries — read it instead of
                 counting the array yourself. It is the size of the page you got back, not
                 how many versions the artifact has.
@@ -445,7 +495,7 @@ impl SiftMcpServer {
               - The order is fixed newest first; there is no `filter` or `order_by` on this tool. Pass
                 `limit: 1` to read just the current version.
               - Use `download_artifact` with an `artifact_version_id` from here to read that version's bytes
-                or JSON payload.
+                or JSON payload. Its `artifact_url` links that version when the user needs one.
         ",
         annotations(title = "artifacts/list_artifact_versions", read_only_hint = true)
     )]
@@ -459,13 +509,16 @@ impl SiftMcpServer {
             fields,
         }) = params;
 
-        if artifact_id.trim().is_empty() {
+        // The service trims the id, so the link has to use the trimmed value too.
+        let artifact_id = artifact_id.trim().to_owned();
+        if artifact_id.is_empty() {
             return Err(ErrorData::invalid_params(
                 "`artifact_id` must not be empty",
                 None,
             ));
         }
 
+        let artifact_url = artifact_url_for(self, &artifact_id, None);
         let page = self
             .artifact_service
             .list_artifact_versions(artifact_id, limit)
@@ -473,13 +526,12 @@ impl SiftMcpServer {
             .map_err(from_anyhow)?;
 
         let versions = to_values(&page.items)?;
+        let mut body = list_body("artifact_versions", versions, fields, page.has_more);
+        if let Value::Object(map) = &mut body {
+            map.insert("artifact_url".to_string(), serde_json::json!(artifact_url));
+        }
 
-        Ok(CallToolResult::structured(list_body(
-            "artifact_versions",
-            versions,
-            fields,
-            page.has_more,
-        )))
+        Ok(CallToolResult::structured(body))
     }
 
     #[tool(
@@ -488,10 +540,16 @@ impl SiftMcpServer {
             Get one artifact by `artifact_id`, resolved to the latest version unless `artifact_version_id` pins one.
 
             Output:
-              - `{ \"artifact\": Artifact }`. Same chrome as `list_artifacts`, plus `download_url` when the
-                version has uploaded bytes (`remote_file_id` is set). `download_url` is a short-lived signed
-                URL; fetch it only when the user needs the body. Structured artifacts carry their JSON `payload`
-                directly. When `remote_file_id` is absent, `download_url` is omitted.
+              - `{ \"artifact\": Artifact, \"artifact_url\": string|null }`. `artifact` has the same fields as
+                a `list_artifacts` row except `url` (the link is `artifact_url` here), plus `download_url` when
+                the version has uploaded bytes (`remote_file_id` is set). `download_url` is a short-lived
+                signed URL; fetch it only when the user needs the body.
+                Structured artifacts carry their JSON `payload` directly. When `remote_file_id` is absent,
+                `download_url` is omitted.
+              - `artifact_url` is the artifact's Sift web link (`<host>/artifacts/<artifact_id>`), pinned to
+                the version when you passed `artifact_version_id`, or null when the host can't be derived.
+                Present the artifact to the user as a Markdown link with its title as the text and
+                `artifact_url` as the target. Never link `download_url` that way: it expires.
 
             Parameters:
               - `artifact_id`: required stable container id.
@@ -532,15 +590,20 @@ impl SiftMcpServer {
             ));
         }
 
+        let pinned = artifact_version_id.is_some();
         let artifact = self
             .artifact_service
             .download_artifact(artifact_id, artifact_version_id)
             .await
             .map_err(from_anyhow)?;
 
-        Ok(CallToolResult::structured(
-            serde_json::json!({ "artifact": artifact_view_value(&artifact)? }),
-        ))
+        let version_id = pinned.then(|| artifact.version().artifact_version_id);
+        let artifact_url = artifact_url_for(self, &artifact.artifact_id(), version_id.as_deref());
+
+        Ok(CallToolResult::structured(serde_json::json!({
+            "artifact": artifact_view_value(&artifact)?,
+            "artifact_url": artifact_url,
+        })))
     }
 
     #[tool(
@@ -550,7 +613,9 @@ impl SiftMcpServer {
             This is a WRITE. Reversible with `unarchive_artifact`.
 
             Output:
-              - `{ \"artifact_id\": string, \"archived\": true, \"next_step\": string }`.
+              - `{ \"artifact_id\": string, \"archived\": true, \"artifact_url\": string|null,
+                \"next_step\": string }`. `artifact_url` is the artifact's Sift web link
+                (`<host>/artifacts/<artifact_id>`), or null when the host can't be derived.
 
             Parameters:
               - `artifact_id`: required stable artifact id.
@@ -579,24 +644,30 @@ impl SiftMcpServer {
     ) -> error::McpResult {
         self.require_destructive()?;
         let Parameters(ArtifactArchiveParams { artifact_id }) = params;
-        if artifact_id.trim().is_empty() {
+        // The service trims the id, so the link has to use the trimmed value too.
+        let artifact_id = artifact_id.trim().to_owned();
+        if artifact_id.is_empty() {
             return Err(ErrorData::invalid_params(
                 "`artifact_id` must not be empty",
                 None,
             ));
         }
 
+        let artifact_url = artifact_url_for(self, &artifact_id, None);
         self.artifact_service
             .archive_artifact(artifact_id.clone())
             .await
             .map_err(from_anyhow)?;
 
         let next_step = format!(
-            "Archived artifact `{artifact_id}`. Tell the user it is hidden from default artifact listings and that `unarchive_artifact` restores it."
+            "Archived artifact `{artifact_id}`.{} Tell the user it is hidden from default artifact \
+             listings and that `unarchive_artifact` restores it.",
+            url_clause("artifact", None, artifact_url.as_deref()),
         );
         let mut result = CallToolResult::structured(serde_json::json!({
             "artifact_id": artifact_id,
             "archived": true,
+            "artifact_url": artifact_url,
             "next_step": next_step,
         }));
         result.content = vec![ContentBlock::text(next_step)];
@@ -609,7 +680,9 @@ impl SiftMcpServer {
             Restore an archived artifact so it appears in default artifact listings again. This is a WRITE.
 
             Output:
-              - `{ \"artifact_id\": string, \"unarchived\": true, \"next_step\": string }`.
+              - `{ \"artifact_id\": string, \"unarchived\": true, \"artifact_url\": string|null,
+                \"next_step\": string }`. `artifact_url` is the artifact's Sift web link
+                (`<host>/artifacts/<artifact_id>`), or null when the host can't be derived.
 
             Parameters:
               - `artifact_id`: required stable artifact id.
@@ -638,24 +711,30 @@ impl SiftMcpServer {
     ) -> error::McpResult {
         self.require_destructive()?;
         let Parameters(ArtifactArchiveParams { artifact_id }) = params;
-        if artifact_id.trim().is_empty() {
+        // The service trims the id, so the link has to use the trimmed value too.
+        let artifact_id = artifact_id.trim().to_owned();
+        if artifact_id.is_empty() {
             return Err(ErrorData::invalid_params(
                 "`artifact_id` must not be empty",
                 None,
             ));
         }
 
+        let artifact_url = artifact_url_for(self, &artifact_id, None);
         self.artifact_service
             .unarchive_artifact(artifact_id.clone())
             .await
             .map_err(from_anyhow)?;
 
         let next_step = format!(
-            "Unarchived artifact `{artifact_id}`. Tell the user it is restored to default artifact listings."
+            "Unarchived artifact `{artifact_id}`.{} Tell the user it is restored to default artifact \
+             listings.",
+            url_clause("artifact", None, artifact_url.as_deref()),
         );
         let mut result = CallToolResult::structured(serde_json::json!({
             "artifact_id": artifact_id,
             "unarchived": true,
+            "artifact_url": artifact_url,
             "next_step": next_step,
         }));
         result.content = vec![ContentBlock::text(next_step)];
@@ -671,10 +750,11 @@ impl SiftMcpServer {
             with its `artifact_id`; calling this one again mints a duplicate the user has to reconcile.
 
             Output:
-              - `{ \"artifact\": Artifact, \"next_step\": string }`. The returned artifact is version 1,
-                including `artifact_id`, `artifact_version_id`, and `version`. When a file was uploaded it
-                also carries `file_name`, `file_mime_type`, `remote_file_id`, and a short-lived signed
-                `download_url`.
+              - `{ \"artifact\": Artifact, \"artifact_url\": string|null, \"next_step\": string }`. The
+                returned artifact is version 1, including `artifact_id`, `artifact_version_id`, and `version`.
+                When a file was uploaded it also carries `file_name`, `file_mime_type`, `remote_file_id`, and
+                a short-lived signed `download_url`. `artifact_url` is the artifact's Sift web link
+                (`<host>/artifacts/<artifact_id>`), or null when the host can't be derived.
 
             Parameters:
               - `title`: optional display title stored on the version.
@@ -804,14 +884,20 @@ impl SiftMcpServer {
             .await
             .map_err(from_anyhow)?;
 
+        let artifact_url = artifact_url_for(self, &artifact.artifact_id(), None);
         let next_step = format!(
-            "Created artifact {} version {}.{} Surface the title and destination to the \
+            "Created artifact {} version {}.{}{} Surface the title and destination to the \
              user and confirm they match their intent before further edits.",
             artifact.artifact_id(),
             artifact.version().version,
             content_note(&artifact, uploaded),
+            url_clause(
+                "artifact",
+                display_name(&artifact).as_deref(),
+                artifact_url.as_deref()
+            ),
         );
-        artifact_result(&artifact, next_step)
+        artifact_result(&artifact, artifact_url, next_step)
     }
 
     #[tool(
@@ -824,8 +910,9 @@ impl SiftMcpServer {
             nothing for a field means `leave it alone`, never `blank it`.
 
             Output:
-              - `{ \"artifact\": Artifact, \"next_step\": string }`. Same shape as `download_artifact`,
-                resolved to the version this call wrote.
+              - `{ \"artifact\": Artifact, \"artifact_url\": string|null, \"next_step\": string }`. Same
+                shape as `download_artifact`, resolved to the version this call wrote. `artifact_url` links
+                the artifact rather than this version, so it keeps showing the latest.
 
             Parameters:
               - `artifact_id`: required stable container id. Resolve it with `list_artifacts` if you only
@@ -936,13 +1023,19 @@ impl SiftMcpServer {
             .await
             .map_err(from_anyhow)?;
 
+        let artifact_url = artifact_url_for(self, &artifact.artifact_id(), None);
         let next_step = format!(
-            "Wrote version {} of artifact {}.{} Surface the new version to the user and confirm it \
+            "Wrote version {} of artifact {}.{}{} Surface the new version to the user and confirm it \
              matches their intent.",
             artifact.version().version,
             artifact.artifact_id(),
             content_note(&artifact, uploaded),
+            url_clause(
+                "artifact",
+                display_name(&artifact).as_deref(),
+                artifact_url.as_deref()
+            ),
         );
-        artifact_result(&artifact, next_step)
+        artifact_result(&artifact, artifact_url, next_step)
     }
 }

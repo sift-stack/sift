@@ -35,6 +35,18 @@ fn url_clause_with_name_renders_a_named_markdown_link() {
 }
 
 #[test]
+fn url_clause_escapes_brackets_and_backslashes_in_the_name() {
+    assert_eq!(
+        url_clause(
+            "artifact",
+            Some(r"results v2].csv [draft\"),
+            Some("https://app.siftstack.com/artifacts/a-1")
+        ),
+        r" Present it to the user as the Markdown link [results v2\].csv \[draft\\](https://app.siftstack.com/artifacts/a-1)."
+    );
+}
+
+#[test]
 fn url_clause_without_name_asks_the_model_to_name_the_entity() {
     let clause = url_clause("rule", None, Some("https://app.siftstack.com/rules/r-1"));
     assert!(clause.contains("Markdown link to https://app.siftstack.com/rules/r-1"));
