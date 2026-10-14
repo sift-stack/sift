@@ -40,6 +40,12 @@ STDOUT_FORMAT = "Sift audit %(levelname)s: %(message)s"
 EVENT_WIDTH = 16
 # Tag so a re-entered pytest_configure (or both processes) doesn't double-attach.
 HANDLER_TAG = "sift_audit"
+# Prefix for the replay worker's stderr line reporting reconciled
+# measurements on an otherwise clean (exit 0) run; see
+# ``_create_measurement_batch_reconciling``. Lives here rather than in
+# ``replay_worker`` or ``context_manager`` because those two already import
+# each other.
+RECONCILED_MARKER = "SIFT_REPLAY_RECONCILED"
 # Field names whose values should be redacted in audit logs to avoid logging
 # sensitive data. This is a best-effort blacklist; callers should avoid passing
 # sensitive values in the first place.
@@ -88,6 +94,19 @@ def log_event(logger: logging.Logger, level: int, event: str, **fields: object) 
         return
     body = " ".join(_fmt_kv(key, value) for key, value in fields.items())
     logger.log(level, "%-*s %s", EVENT_WIDTH, event, body)
+
+
+def reconciled_warning_message(subject: str, count: int) -> str:
+    """Message for ``SiftReplayReconciledWarning``, shared by both warn sites.
+
+    ``subject`` names what did the reconciling, so the import script and the
+    pytest plugin's background worker can each say which one it was.
+    """
+    return (
+        f"{subject} reconciled {count} measurement(s) against the server rather than "
+        "recreating them, after a batch create's outcome came back unknown. No action "
+        "needed; this is a report that the recovery happened."
+    )
 
 
 class ColumnFormatter(logging.Formatter):

@@ -16,7 +16,7 @@ import warnings
 import pytest
 
 from sift_client import SiftClient, SiftConnectionConfig
-from sift_client.errors import SiftWarning
+from sift_client.errors import SiftReplayReconciledWarning, SiftWarning
 from sift_client.util.test_results import ReportContext
 
 
@@ -63,6 +63,29 @@ def test_worker_clean_exit_is_silent() -> None:
     assert sift_warnings == []
     assert rc._import_proc is not None
     assert rc._import_proc.returncode == 0
+
+
+def test_worker_clean_exit_with_reconciled_measurements_warns() -> None:
+    """A reconciled run exits 0, so the marker on stderr is the only signal.
+
+    ``_import_proc.returncode`` can't carry this: 0 is also what a run with
+    nothing to reconcile returns. ``RECONCILED_MARKER`` on stderr is what
+    `__exit__` has to check regardless of exit code.
+    """
+    rc = _make_context(
+        [
+            sys.executable,
+            "-c",
+            "import sys; sys.stderr.write('SIFT_REPLAY_RECONCILED:3'); sys.exit(0)",
+        ]
+    )
+    with pytest.warns(SiftReplayReconciledWarning) as recorded:
+        with rc:
+            pass
+    assert rc._import_proc is not None
+    assert rc._import_proc.returncode == 0
+    messages = "\n".join(str(w.message) for w in recorded)
+    assert "reconciled 3 measurement(s)" in messages
 
 
 def test_worker_timeout_kills_and_warns() -> None:

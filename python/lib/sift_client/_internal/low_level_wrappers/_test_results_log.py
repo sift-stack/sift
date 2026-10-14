@@ -207,6 +207,14 @@ class ReplayResult:
     report: TestReport | None = None
     steps: list[TestStep] = field(default_factory=list)
     measurements: list[TestMeasurement] = field(default_factory=list)
+    reconciled_count: int = 0
+    """How many measurements were matched on the server instead of recreated.
+
+    Nonzero only after a batch create failed in a way that left the server's
+    state ambiguous (see ``_create_measurement_batch_reconciling``), and the
+    server turned out to already have some or all of them. Callers use this to
+    decide whether to warn.
+    """
 
 
 async def log_request_to_file(

@@ -16,8 +16,13 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
-from sift_client._internal.pytest_plugin.audit_log import _make_session_dir, log_event
-from sift_client.errors import SiftReportLifecycleWarning, SiftWarning
+from sift_client._internal.pytest_plugin.audit_log import (
+    RECONCILED_MARKER,
+    _make_session_dir,
+    log_event,
+    reconciled_warning_message,
+)
+from sift_client.errors import SiftReplayReconciledWarning, SiftReportLifecycleWarning, SiftWarning
 from sift_client.sift_types.test_report import (
     ErrorInfo,
     NumericBounds,
@@ -94,6 +99,26 @@ def log_replay_instructions(log_file: str | Path | None) -> None:
         SiftWarning,
         stacklevel=2,
     )
+
+
+def _parse_reconciled_count(stderr_text: str) -> int:
+    """Read the replay worker's reconciled-measurement count off its stderr.
+
+    The worker's own exit code can't carry this: a reconciled run is a clean
+    exit, with nothing in the usual non-zero-exit stderr handling to surface
+    it. ``RECONCILED_MARKER`` is the only channel back.
+
+    Returns 0 for a line that is missing or malformed, rather than raising
+    over a worker detail that was never essential to parse.
+    """
+    for line in stderr_text.splitlines():
+        prefix = f"{RECONCILED_MARKER}:"
+        if line.startswith(prefix):
+            try:
+                return int(line[len(prefix) :])
+            except ValueError:
+                return 0
+    return 0
 
 
 @contextmanager
@@ -483,11 +508,21 @@ class ReportContext(AbstractContextManager):
                 )
                 log_replay_instructions(self.log_file)
                 return True  # Ensures the session is marked as passed in pytest
+            stderr_text = (
+                stderr_bytes.decode("utf-8", errors="replace").strip() if stderr_bytes else ""
+            )
+            # A reconciled run still exits 0, so this has to run before the
+            # returncode branch below rather than only in its failure half.
+            reconciled_count = _parse_reconciled_count(stderr_text)
+            if reconciled_count:
+                log_event(logger, logging.WARNING, "replay.reconciled", count=reconciled_count)
+                warnings.warn(
+                    reconciled_warning_message("Sift import worker", reconciled_count),
+                    SiftReplayReconciledWarning,
+                    stacklevel=2,
+                )
             if self._import_proc.returncode != 0:
                 self.replay_incomplete = True
-                stderr_text = (
-                    stderr_bytes.decode("utf-8", errors="replace").strip() if stderr_bytes else ""
-                )
                 log_event(
                     logger,
                     logging.WARNING,

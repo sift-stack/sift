@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING
 
 from sift_client import SiftClient, SiftConnectionConfig
 from sift_client._internal.low_level_wrappers._test_results_log import LogTracking
-from sift_client._internal.pytest_plugin.audit_log import log_event
+from sift_client._internal.pytest_plugin.audit_log import RECONCILED_MARKER, log_event
 from sift_client.util.test_results.context_manager import log_replay_instructions
 
 if TYPE_CHECKING:
@@ -77,14 +77,25 @@ def _incremental_import_loop(
 
     When ``keep_log`` is False (audit logging off) the temp log is deleted on a
     clean finish; with audit logging on it's retained alongside the audit trail.
+
+    A tick that reconciled a measurement batch against the server (see
+    ``_create_measurement_batch_reconciling``) still exits cleanly, so the
+    count is summed across ticks and reported on stderr once, at session
+    end - the only channel back to the parent process.
     """
     result = None
+    total_reconciled = 0
     while True:
         received_signal, _, _ = select.select([sys.stdin], [], [], 1.0)
         result = client.test_results.import_log_file(log_file, incremental=True)
+        if result is not None:
+            total_reconciled += result.reconciled_count
         if received_signal:
             break
     log_event(logger, logging.INFO, "replay.complete", log=log_file)
+    if total_reconciled:
+        log_event(logger, logging.WARNING, "replay.reconciled_total", count=total_reconciled)
+        print(f"{RECONCILED_MARKER}:{total_reconciled}", file=sys.stderr, flush=True)
     if not keep_log:
         cleanup_temp_log(log_file)
     return result

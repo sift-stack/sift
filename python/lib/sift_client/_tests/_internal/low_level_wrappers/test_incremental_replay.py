@@ -888,6 +888,162 @@ async def test_short_batch_response_is_rejected(tmp_path):
     assert LogTracking.load(log_file).last_uploaded_line == 2
 
 
+class _UnavailableError(RpcError):
+    """Stand-in for a response lost after the server already committed."""
+
+    def code(self) -> StatusCode:
+        return StatusCode.UNAVAILABLE
+
+
+def _server_measurement(id_: str, *, name: str, numeric_value: float) -> TestMeasurement:
+    return TestMeasurement(
+        id_=id_,
+        test_step_id="real-step",
+        name=name,
+        passed=True,
+        timestamp=T0,
+        numeric_value=numeric_value,
+        measurement_type=TestMeasurementType.DOUBLE,
+    )
+
+
+@pytest.mark.asyncio
+async def test_definite_rejection_does_not_attempt_reconciliation(tmp_path):
+    """A definite rejection skips the reconciliation query entirely.
+
+    PERMISSION_DENIED already tells us the create did not happen; querying
+    first would only spend a round trip finding nothing before the same
+    failure repeats.
+    """
+    log_file = tmp_path / "definite_rejection.jsonl"
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+    report, _, _ = await _build_measurement_log(client, log_file, batched=False)
+
+    LogTracking(last_uploaded_line=2, id_map={report.id_: "real-report"}).save(log_file)
+    client.create_test_measurements = AsyncMock(side_effect=_PermissionDeniedError())
+    client.list_all_test_measurements = AsyncMock()
+
+    with pytest.raises(RpcError):
+        await client.import_log_file(log_file, incremental=True)
+
+    client.list_all_test_measurements.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_ambiguous_measurement_failure_reconciles_against_the_server(tmp_path):
+    """A lost-ack failure is resolved by matching the server, not blindly resent.
+
+    ``create_test_measurements`` raising UNAVAILABLE leaves the outcome
+    unknown: the server may have already committed. The server already having
+    all three means nothing more should be created.
+    """
+    log_file = tmp_path / "ambiguous.jsonl"
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+    report, step, measurement_ids = await _build_measurement_log(
+        client, log_file, batched=False, count=3
+    )
+
+    LogTracking(
+        last_uploaded_line=2,
+        id_map={report.id_: "real-report", step.id_: "real-step"},
+    ).save(log_file)
+    client.create_test_measurements = AsyncMock(side_effect=_UnavailableError())
+    client.list_all_test_measurements = AsyncMock(
+        return_value=[
+            _server_measurement(f"real-meas-{i}", name=f"m{i}", numeric_value=float(i))
+            for i in range(1, 4)
+        ]
+    )
+
+    await client.import_log_file(log_file, incremental=True)
+
+    client.create_test_measurements.assert_awaited_once()  # never resent the batch itself
+    tracking = LogTracking.load(log_file)
+    assert tracking.last_uploaded_line == 5
+    assert [tracking.id_map[mid] for mid in measurement_ids] == [
+        "real-meas-1",
+        "real-meas-2",
+        "real-meas-3",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_ambiguous_measurement_failure_recreates_what_is_still_missing(tmp_path):
+    """Only the measurements the server does not already have are recreated."""
+    log_file = tmp_path / "ambiguous_partial.jsonl"
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+    report, step, measurement_ids = await _build_measurement_log(
+        client, log_file, batched=False, count=3
+    )
+
+    LogTracking(
+        last_uploaded_line=2,
+        id_map={report.id_: "real-report", step.id_: "real-step"},
+    ).save(log_file)
+    client.create_test_measurements = AsyncMock(
+        side_effect=[_UnavailableError(), (1, ["real-meas-3"])]
+    )
+    client.list_all_test_measurements = AsyncMock(
+        return_value=[
+            _server_measurement("real-meas-1", name="m1", numeric_value=1.0),
+            _server_measurement("real-meas-2", name="m2", numeric_value=2.0),
+        ]
+    )
+
+    await client.import_log_file(log_file, incremental=True)
+
+    assert client.create_test_measurements.await_count == 2
+    recreated_protos = client.create_test_measurements.await_args.kwargs[
+        "request"
+    ].test_measurements
+    assert [p.name for p in recreated_protos] == ["m3"]
+    tracking = LogTracking.load(log_file)
+    assert [tracking.id_map[mid] for mid in measurement_ids] == [
+        "real-meas-1",
+        "real-meas-2",
+        "real-meas-3",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_reconcile_measurement_batch_matches_by_natural_key():
+    """Matching is step + name + timestamp + value; a value mismatch stays missing."""
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+    client.list_all_test_measurements = AsyncMock(
+        return_value=[_server_measurement("real-1", name="m", numeric_value=1.0)]
+    )
+    matching = TestMeasurementCreate(
+        name="m", test_step_id="real-step", passed=True, timestamp=T0, numeric_value=1.0
+    ).to_proto()
+    mismatched = TestMeasurementCreate(
+        name="m", test_step_id="real-step", passed=True, timestamp=T0, numeric_value=2.0
+    ).to_proto()
+
+    matches = await client._reconcile_measurement_batch([matching, mismatched])
+
+    assert matches[0] is not None
+    assert matches[0].id_ == "real-1"
+    assert matches[1] is None
+
+
+@pytest.mark.asyncio
+async def test_reconcile_measurement_batch_does_not_double_match_a_coincidental_duplicate():
+    """Two buffered measurements sharing a key must not both claim the one server row."""
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+    client.list_all_test_measurements = AsyncMock(
+        return_value=[_server_measurement("real-1", name="m", numeric_value=1.0)]
+    )
+    proto = TestMeasurementCreate(
+        name="m", test_step_id="real-step", passed=True, timestamp=T0, numeric_value=1.0
+    ).to_proto()
+
+    matches = await client._reconcile_measurement_batch([proto, proto])
+
+    assert matches[0] is not None
+    assert matches[0].id_ == "real-1"
+    assert matches[1] is None
+
+
 @pytest.mark.asyncio
 async def test_batch_upload_records_measurements(tmp_path):
     """Measurements created by a batch upload are recorded like steps are.
@@ -909,6 +1065,46 @@ async def test_batch_upload_records_measurements(tmp_path):
 
     assert created == ["report", "s1", "m1", "m2", "m3"]
     tracking = LogTracking.load(log_file)
+    assert [tracking.id_map[mid] for mid in measurement_ids] == [
+        "real-meas-1",
+        "real-meas-2",
+        "real-meas-3",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_batch_upload_reconciles_an_ambiguous_measurement_failure(tmp_path):
+    """The batch/default path reconciles too, not just the incremental one.
+
+    ``_batch_import_log_file`` creates measurements through
+    ``_create_measurement_batch_reconciling`` as well, so an ambiguous failure
+    there must recover the same way.
+    """
+    log_file = tmp_path / "batch_ambiguous.jsonl"
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+    _, _, measurement_ids = await _build_measurement_log(client, log_file, batched=False, count=3)
+
+    # Report and step must still simulate correctly during the collapse pass,
+    # so this leaves them to the pass-through helper and only overrides
+    # measurements, which the simulate pass for an unbatched log never calls
+    # through the plural endpoint being mocked below.
+    _answer_real_creates(client, report_id="real-report", step_ids=["real-step"])
+    client.create_test_measurements = AsyncMock(
+        side_effect=[_UnavailableError(), (1, ["real-meas-3"])]
+    )
+    client.list_all_test_measurements = AsyncMock(
+        return_value=[
+            _server_measurement("real-meas-1", name="m1", numeric_value=1.0),
+            _server_measurement("real-meas-2", name="m2", numeric_value=2.0),
+        ]
+    )
+
+    result = await client.import_log_file(log_file)
+
+    assert [m.id_ for m in result.measurements] == ["real-meas-1", "real-meas-2", "real-meas-3"]
+    assert result.reconciled_count == 2
+    tracking = LogTracking.load(log_file)
+    assert tracking.complete is True
     assert [tracking.id_map[mid] for mid in measurement_ids] == [
         "real-meas-1",
         "real-meas-2",

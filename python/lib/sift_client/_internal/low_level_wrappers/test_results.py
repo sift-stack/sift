@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 import warnings
+from datetime import timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, NamedTuple, TypeVar, cast
 
@@ -66,6 +67,7 @@ from sift_client.sift_types.test_report import (
     TestStepUpdate,
 )
 from sift_client.transport import WithGrpcClient
+from sift_client.util.cel_utils import and_, in_
 
 if TYPE_CHECKING:
     from sift_client.transport.grpc_transport import GrpcClient
@@ -90,6 +92,26 @@ _WHOLE_ENTRY_CREATES = frozenset({"CreateTestReport", "CreateTestStep", "CreateT
 # can cost, since the sidecar is written once per request.
 _MEASUREMENT_CREATE_BATCH_SIZE = 100
 
+# Status codes that leave the server's handling of a request unknown: the
+# request may never have arrived, or it may have been committed with only the
+# response lost. A code outside this set is a definite rejection - the server
+# told us the create did not happen - so reconciling would only spend a round
+# trip finding nothing before the same failure repeats.
+_AMBIGUOUS_STATUS_CODES = frozenset(
+    {StatusCode.UNAVAILABLE, StatusCode.DEADLINE_EXCEEDED, StatusCode.CANCELLED, StatusCode.UNKNOWN}
+)
+
+
+def _is_ambiguous_grpc_failure(exc: Exception) -> bool:
+    """True when *exc* is an RpcError whose status is in ``_AMBIGUOUS_STATUS_CODES``.
+
+    Anything without a ``code()`` - a local bug such as a response-length
+    mismatch, a plain ``TypeError`` - is treated as definite, not ambiguous:
+    there is no server status to be unsure about.
+    """
+    code = getattr(exc, "code", None)
+    return callable(code) and code() in _AMBIGUOUS_STATUS_CODES
+
 
 class _EntryIds(NamedTuple):
     """The entity a replayed log entry acted on, for the audit trace.
@@ -102,11 +124,17 @@ class _EntryIds(NamedTuple):
 
     ``skipped`` marks an entry a resume found already on the server, so the
     audit trail distinguishes what this run sent from what it inherited.
+
+    ``reconciled`` counts measurements this entry matched on the server
+    instead of recreating, after a batch create's outcome came back unknown.
+    Zero for every entry type except a logged ``CreateTestMeasurements`` line
+    replayed for real; see ``_create_measurement_batch_reconciling``.
     """
 
     sim_id: str | None = None
     real_id: str | None = None
     skipped: bool = False
+    reconciled: int = 0
 
 
 class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
@@ -900,18 +928,134 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             created.append(TestMeasurement._from_proto(proto))
         return created
 
+    async def _reconcile_measurement_batch(
+        self, protos: list[TestMeasurementProto]
+    ) -> list[TestMeasurement | None]:
+        """Match this batch's measurements against what the server already has.
+
+        There is no request ID the API accepts to confirm a create landed, so
+        this falls back to the closest thing the proto has to a natural key:
+        ``test_step_id``, ``name``, ``timestamp``, and whichever value field is
+        set. Timestamps compare as ``ToDatetime(tzinfo=timezone.utc)`` on both
+        sides, the same conversion ``TestMeasurement._from_proto`` uses.
+
+        Matching is by multiset, not a plain lookup: two measurements in the
+        same batch can legitimately share an identical key, and a plain dict
+        would let both claim the same server-side row. Each key's candidates
+        are consumed one at a time, so a second coincidental duplicate is
+        correctly treated as still missing.
+
+        Returns one slot per input proto, in order; ``None`` where nothing on
+        the server matched it.
+        """
+        step_ids = sorted({proto.test_step_id for proto in protos})
+        names = sorted({proto.name for proto in protos})
+        existing = await self.list_all_test_measurements(
+            query_filter=and_(in_("test_step_id", step_ids), in_("name", names))
+        )
+
+        def value_of(numeric: float | None, string: str | None, boolean: bool | None):
+            if numeric is not None:
+                return numeric
+            if string is not None:
+                return string
+            return boolean
+
+        candidates: dict[tuple[str, str, Any, Any], list[TestMeasurement]] = {}
+        for measurement in existing:
+            key = (
+                measurement.test_step_id,
+                measurement.name,
+                measurement.timestamp,
+                value_of(
+                    measurement.numeric_value, measurement.string_value, measurement.boolean_value
+                ),
+            )
+            candidates.setdefault(key, []).append(measurement)
+
+        matches: list[TestMeasurement | None] = []
+        for proto in protos:
+            if proto.HasField("numeric_value"):
+                value = value_of(proto.numeric_value, None, None)
+            elif proto.HasField("string_value"):
+                value = value_of(None, proto.string_value, None)
+            elif proto.HasField("boolean_value"):
+                value = value_of(None, None, proto.boolean_value)
+            else:
+                value = None
+            key = (
+                proto.test_step_id,
+                proto.name,
+                proto.timestamp.ToDatetime(tzinfo=timezone.utc),
+                value,
+            )
+            bucket = candidates.get(key)
+            matches.append(bucket.pop(0) if bucket else None)
+        return matches
+
+    async def _create_measurement_batch_reconciling(
+        self, protos: list[TestMeasurementProto]
+    ) -> tuple[list[TestMeasurement], int]:
+        """Create a batch, reconciling against the server if the call's outcome is unknown.
+
+        ``CreateTestMeasurements`` is not idempotent and the API has no request
+        ID to make a retry safe. A failure whose status is in
+        ``_AMBIGUOUS_STATUS_CODES`` could mean the request never reached the
+        server, or that it did and only the response was lost; blindly
+        resending would duplicate the whole batch in the second case. This
+        reconciles by natural key (see ``_reconcile_measurement_batch``) first
+        and only recreates what is genuinely missing. If the reconciliation
+        query itself fails, that exception propagates too.
+
+        A definite rejection (see ``_is_ambiguous_grpc_failure``) propagates
+        unchanged, including a local bug such as the ID-count mismatch
+        ``_create_measurement_batch`` raises itself.
+
+        Returns the measurements in input order, plus how many were matched on
+        the server instead of recreated (0 on the common, no-failure path).
+        """
+        try:
+            return await self._create_measurement_batch(protos), 0
+        except Exception as exc:
+            if not _is_ambiguous_grpc_failure(exc):
+                raise
+            matches = await self._reconcile_measurement_batch(protos)
+            missing = [proto for proto, match in zip(protos, matches) if match is None]
+            reconciled = len(protos) - len(missing)
+            log_event(
+                logger,
+                logging.WARNING,
+                "replay.reconciled",
+                total=len(protos),
+                reconciled=reconciled,
+                missing=len(missing),
+                error=repr(exc),
+            )
+            if not missing:
+                return cast("list[TestMeasurement]", matches), reconciled
+            recreated = iter(await self._create_measurement_batch(missing))
+            created = [match if match is not None else next(recreated) for match in matches]
+            return created, reconciled
+
     async def _create_measurements_in_batches(
         self, protos: list[TestMeasurementProto]
-    ) -> list[TestMeasurement]:
+    ) -> tuple[list[TestMeasurement], int]:
         """Create measurements over as few batch calls as the size guard allows.
 
         For a caller that holds more measurements than one request should carry,
-        such as a logged batch line of arbitrary length.
+        such as a logged batch line of arbitrary length. Returns the created
+        measurements plus how many were reconciled rather than recreated; see
+        ``_create_measurement_batch_reconciling``.
         """
         created: list[TestMeasurement] = []
+        reconciled_count = 0
         for chunk in chunked(protos, _MEASUREMENT_CREATE_BATCH_SIZE):
-            created.extend(await self._create_measurement_batch(chunk))
-        return created
+            chunk_created, chunk_reconciled = await self._create_measurement_batch_reconciling(
+                chunk
+            )
+            created.extend(chunk_created)
+            reconciled_count += chunk_reconciled
+        return created, reconciled_count
 
     async def list_test_measurements(
         self,
@@ -1279,7 +1423,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         *,
         id_map: dict[str, str],
         state: _ReplayState,
-    ) -> list[str]:
+    ) -> tuple[list[str], int]:
         """Create a group of logged measurements, recording what each one became.
 
         ``pairs`` holds the logged response ID, where the line carried one,
@@ -1296,14 +1440,17 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         different endpoint than the attempt before it.
 
         Returns the real IDs created, in the order they were sent, for the audit
-        trail.
+        trail, plus how many were reconciled rather than recreated (see
+        ``_create_measurement_batch_reconciling``).
         """
         pending = [
             (logged_id, tm) for logged_id, tm in pairs if not (logged_id and logged_id in id_map)
         ]
         if not pending:
-            return []
-        created = await self._create_measurements_in_batches([tm for _, tm in pending])
+            return [], 0
+        created, reconciled_count = await self._create_measurements_in_batches(
+            [tm for _, tm in pending]
+        )
 
         real_ids: list[str] = []
         for (logged_id, _), measurement in zip(pending, created):
@@ -1313,7 +1460,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             state.measurements_by_id[real_id] = measurement
             state.measurements_order.append(real_id)
             real_ids.append(real_id)
-        return real_ids
+        return real_ids, reconciled_count
 
     async def _replay_create_measurements(
         self,
@@ -1340,19 +1487,25 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 state.measurements_by_id[meas._id_or_error] = meas
                 state.measurements_order.append(meas._id_or_error)
                 created_ids.append(meas._id_or_error)
+            reconciled_count = 0
         else:
             pairs = [
                 (original_ids[i] if i < len(original_ids) else None, tm)
                 for i, tm in enumerate(request.test_measurements)
             ]
-            created_ids = await self._replay_create_measurement_group(
+            created_ids, reconciled_count = await self._replay_create_measurement_group(
                 pairs, id_map=id_map, state=state
             )
         # Batch line covers many measurements; comma-join both sides so the
         # audit row still names every entity (fields are space-free, so commas
         # keep it one token). A resume that found the whole line already on the
         # server creates nothing, which is what marks the entry skipped.
-        return _EntryIds(response_id, ",".join(created_ids) or None, skipped=not created_ids)
+        return _EntryIds(
+            response_id,
+            ",".join(created_ids) or None,
+            skipped=not created_ids,
+            reconciled=reconciled_count,
+        )
 
     async def _replay_update_report(
         self,
@@ -1522,6 +1675,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         # once per chunk, so a crash loses at most one request's IDs and the
         # resume recreates those measurements.
         real_measurements: list[TestMeasurement] = []
+        reconciled_count = 0
         for chunk_ids in chunked(state.measurements_order, _MEASUREMENT_CREATE_BATCH_SIZE):
             protos = []
             for sim_measurement_id in chunk_ids:
@@ -1533,8 +1687,9 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                     sim_measurement, real_step_id
                 )
                 protos.append(measurement_create.to_proto())
-            created = await self._create_measurement_batch(protos)
+            created, chunk_reconciled = await self._create_measurement_batch_reconciling(protos)
             real_measurements.extend(created)
+            reconciled_count += chunk_reconciled
             for sim_measurement_id, real_measurement in zip(chunk_ids, created):
                 record_created(sim_measurement_id, real_measurement._id_or_error, save=False)
             tracking.save(log_path)
@@ -1549,6 +1704,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             report=real_report,
             steps=real_steps,
             measurements=real_measurements,
+            reconciled_count=reconciled_count,
         )
 
     # ------------------------------------------------------------------
@@ -1596,22 +1752,23 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         # the server as one batch call. Measurements are the bulk of a log, and
         # one round-trip each is what makes a large log slow to upload.
         buffered_measurements: list[tuple[str | None, TestMeasurementProto]] = []
+        reconciled_count = 0
 
         async def flush_measurements() -> None:
             """Send the buffered run as one group and move the cursor past it.
 
             The cursor advances only after the call returns, so a failure leaves
-            every line of the run to be retried next tick. That widens an existing
-            exposure: a create is not idempotent, so a response lost after the
-            server committed duplicates the measurements on retry. The window was
-            one measurement per line and is now one run. Closing it needs a
-            request ID the API does not accept yet.
+            every line of the run to be retried next tick.
+            ``_replay_create_measurement_group`` already reconciles an ambiguous
+            failure against the server; this still raises only when that
+            reconciliation itself can't be answered.
             """
             if not buffered_measurements:
                 return
+            nonlocal reconciled_count
             first_line = tracking.last_uploaded_line + 1
             try:
-                real_ids = await self._replay_create_measurement_group(
+                real_ids, batch_reconciled = await self._replay_create_measurement_group(
                     buffered_measurements, id_map=id_map, state=state
                 )
             except Exception as exc:
@@ -1625,6 +1782,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                     error=repr(exc),
                 )
                 raise
+            reconciled_count += batch_reconciled
 
             tracking.last_uploaded_line += len(buffered_measurements)
             tracking.save(log_path)
@@ -1692,6 +1850,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
             tracking.last_uploaded_line += 1
             tracking.save(log_path)
+            reconciled_count += entry_ids.reconciled
             # One line per replayed entity: what was sent, the sim->real id of
             # the entity it acted on (the new entity for a create, the target
             # for an update), whether a resume found it already on the server,
@@ -1728,6 +1887,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             report=state.report,
             steps=[state.steps_by_id[sid] for sid in state.steps_order],
             measurements=[state.measurements_by_id[mid] for mid in state.measurements_order],
+            reconciled_count=reconciled_count,
         )
 
     # ------------------------------------------------------------------

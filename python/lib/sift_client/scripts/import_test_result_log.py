@@ -5,13 +5,15 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from sift_client import SiftClient, SiftConnectionConfig
 from sift_client._internal.low_level_wrappers._test_results_log import LogTracking
-from sift_client._internal.pytest_plugin.audit_log import log_event
+from sift_client._internal.pytest_plugin.audit_log import log_event, reconciled_warning_message
 from sift_client._internal.pytest_plugin.replay_worker import cleanup_temp_log
+from sift_client.errors import SiftReplayReconciledWarning
 from sift_client.util.test_results.context_manager import log_replay_instructions
 
 if TYPE_CHECKING:
@@ -109,6 +111,13 @@ def main() -> None:
         log_event(logger, logging.ERROR, "replay.failed", error=repr(e))
         log_replay_instructions(args.log_file)
         raise
+
+    if result and result.reconciled_count:
+        warnings.warn(
+            reconciled_warning_message("import-test-result-log", result.reconciled_count),
+            SiftReplayReconciledWarning,
+            stacklevel=2,
+        )
 
     if result:
         _print_result(result)
