@@ -21,6 +21,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   `unarchive_artifact` return `artifact_url`. `download_artifact` links the
   requested version when `artifact_version_id` is set. Agents link the artifact
   page instead of the Sift home page.
+- A name with a stray `[` or `]`, such as `results v2].csv`, no longer breaks
+  the Markdown link a tool tells the agent to show.
 
 ## [v0.7.3] - October 7, 2026
 
