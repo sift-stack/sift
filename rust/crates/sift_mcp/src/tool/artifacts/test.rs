@@ -387,18 +387,16 @@ async fn list_artifact_versions_returns_rows_newest_first() {
         }))
         .await
         .expect("list versions");
-    let versions = structured_field(resp, "artifact_versions");
-    let rows = versions.as_array().expect("rows");
+    let body = structured(resp);
+    let rows = body["artifact_versions"].as_array().expect("rows");
     assert_eq!(rows.len(), 2);
     assert_eq!(rows[0]["artifactVersionId"], "ver-2");
     assert_eq!(rows[1]["artifactVersionId"], "ver-1");
+    assert!(rows.iter().all(|row| row.get("url").is_none()));
+    assert_eq!(body["count"], 2);
     assert_eq!(
-        rows[0]["url"],
-        "https://app.test.local/artifacts/art-1?artifactVersionId=ver-2"
-    );
-    assert_eq!(
-        rows[1]["url"],
-        "https://app.test.local/artifacts/art-1?artifactVersionId=ver-1"
+        body["artifact_url"],
+        "https://app.test.local/artifacts/art-1"
     );
 }
 

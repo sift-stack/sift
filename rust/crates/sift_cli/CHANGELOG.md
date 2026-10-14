@@ -16,10 +16,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   `url` to each template. Agents no longer link a new template to a report's
   page.
 - The artifact tools now return the artifact's Sift web link. `list_artifacts`
-  rows carry `url`, and `list_artifact_versions` rows carry a `url` pinned to
-  that version. `download_artifact`, `create_artifact`, `update_artifact`,
-  `archive_artifact`, and `unarchive_artifact` return `artifact_url`. Agents
-  link the artifact page instead of the Sift home page.
+  rows carry `url`, and `list_artifact_versions`, `download_artifact`,
+  `create_artifact`, `update_artifact`, `archive_artifact`, and
+  `unarchive_artifact` return `artifact_url`. `download_artifact` links the
+  requested version when `artifact_version_id` is set. Agents link the artifact
+  page instead of the Sift home page.
 
 ## [v0.7.3] - October 7, 2026
 

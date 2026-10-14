@@ -16,7 +16,7 @@ use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::artifacts::{ArtifactView, CreateArtifactInput, UpdateArtifactInput, UpdatePath},
-    tool::common::{MetadataEntry, list_body, url_clause, with_urls},
+    tool::common::{MetadataEntry, list_body, to_values, url_clause},
 };
 
 #[cfg(test)]
@@ -457,15 +457,14 @@ impl SiftMcpServer {
             version, so this is how you see what changed and when.
 
             Output:
-              - `{ \"artifact_versions\": [ArtifactVersion, ...] }`. Each item carries `artifact_version_id`,
-                `artifact_id`, `version`, `title`, `summary`, `metadata`, `file_name`, `file_mime_type`,
-                `remote_file_id`, `authoring_message_id`, `source_tool_use_ids`, and `created_date`, plus an
-                added `url` field with the Sift web link pinned to that version
-                (`<host>/artifacts/<artifact_id>?artifactVersionId=<artifact_version_id>`). `url` is omitted
-                when the host can't be derived. Use it as the Markdown link target when you point the user at
-                one version.
+              - `{ \"artifact_versions\": [ArtifactVersion, ...], \"artifact_url\": string|null }`. Each item
+                carries `artifact_version_id`, `artifact_id`, `version`, `title`, `summary`, `metadata`,
+                `file_name`, `file_mime_type`, `remote_file_id`, `authoring_message_id`,
+                `source_tool_use_ids`, and `created_date`.
                 `payload` is NOT included, even for structured artifacts: fetch one version's body with
                 `download_artifact` and its `artifact_version_id`.
+              - `artifact_url`: the artifact's Sift web link (`<host>/artifacts/<artifact_id>`), or null when
+                the host can't be derived.
               - `count`: how many items THIS response carries — read it instead of
                 counting the array yourself. It is the size of the page you got back, not
                 how many versions the artifact has.
@@ -496,7 +495,7 @@ impl SiftMcpServer {
               - The order is fixed newest first; there is no `filter` or `order_by` on this tool. Pass
                 `limit: 1` to read just the current version.
               - Use `download_artifact` with an `artifact_version_id` from here to read that version's bytes
-                or JSON payload.
+                or JSON payload. Its `artifact_url` links that version when the user needs one.
         ",
         annotations(title = "artifacts/list_artifact_versions", read_only_hint = true)
     )]
@@ -517,26 +516,20 @@ impl SiftMcpServer {
             ));
         }
 
+        let artifact_url = artifact_url_for(self, &artifact_id, None);
         let page = self
             .artifact_service
             .list_artifact_versions(artifact_id, limit)
             .await
             .map_err(from_anyhow)?;
 
-        let versions = with_urls(&page.items, |version| {
-            artifact_url_for(
-                self,
-                &version.artifact_id,
-                Some(&version.artifact_version_id),
-            )
-        })?;
+        let versions = to_values(&page.items)?;
+        let mut body = list_body("artifact_versions", versions, fields, page.has_more);
+        if let Value::Object(map) = &mut body {
+            map.insert("artifact_url".to_string(), serde_json::json!(artifact_url));
+        }
 
-        Ok(CallToolResult::structured(list_body(
-            "artifact_versions",
-            versions,
-            fields,
-            page.has_more,
-        )))
+        Ok(CallToolResult::structured(body))
     }
 
     #[tool(
