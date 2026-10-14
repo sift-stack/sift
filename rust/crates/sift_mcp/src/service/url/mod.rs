@@ -143,6 +143,14 @@ impl UrlService {
         Ok(format!("{host}/reports/{}", encode_value(report_id)))
     }
 
+    pub fn build_report_template_url(&self, report_template_id: &str) -> Result<String, ErrorData> {
+        let host = self.app_host()?;
+        Ok(format!(
+            "{host}/report-templates/{}",
+            encode_value(report_template_id)
+        ))
+    }
+
     pub fn build_test_report_url(&self, test_report_id: &str) -> Result<String, ErrorData> {
         let host = self.app_host()?;
         Ok(format!(

@@ -11,6 +11,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   `source` for the run or asset an artifact was built from, and `derived_from`
   only for another artifact. Agents no longer send `derived_from` for a run and
   get the call rejected.
+- `create_report_template` and `update_report_template` now return a
+  `report_template_url` link to the template, and `list_report_templates` adds a
+  `url` to each template. Agents no longer link a new template to a report's
+  page.
 - `get_data` no longer matches archived runs by `run_name`. Before, an archived
   run with the same name as an active one could supply the data in its place.
   A name that matches more than one active run now fails and lists the

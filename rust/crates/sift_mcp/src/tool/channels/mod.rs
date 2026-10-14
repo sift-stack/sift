@@ -18,8 +18,9 @@ impl SiftMcpServer {
 
             Output:
               - `{ \"channels\": [Channel, ...] }`. Each item is the full Sift `Channel` shape including
-                `channel_id`, `name`, `description`, `asset_id`/`asset_name`, data type, units, enum/bit-field
-                configuration, and timestamps.
+                `channel_id`, `name`, `description`, `asset_id`, data type, `unit_id`, enum/bit-field
+                configuration, and timestamps. Channels carry no asset name: to show it, call `list_assets`
+                with the `asset_id`.
               - `count`: how many items THIS response carries — read it instead of
                 counting the array yourself. It is the size of the page you got back, not
                 how many items match `filter`.
@@ -56,6 +57,9 @@ impl SiftMcpServer {
             Guidance:
               - Always scope with `asset_id == \"...\"` when the asset is known — channel namespaces are per-asset
                 and unscoped queries return cross-asset results.
+              - Unscoped name searches scan every channel in the org and can time out in large orgs. Resolve
+                candidate assets with `list_assets` first, then search each with `asset_id == \"...\" && name.matches(...)`.
+                A timeout means the filter was too broad, not that the parameters were wrong; narrow it before retrying.
               - To enumerate channels recorded by a specific run, filter on `run_id` rather than joining client-side.
         ",
         annotations(title = "channels/list_channels", read_only_hint = true)
