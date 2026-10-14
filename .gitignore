@@ -27,6 +27,7 @@ python/docs/sift_py
 ### C++ template
 # Prerequisites
 *.d
+!changelog.d
 
 # Compiled Object files
 *.slo
