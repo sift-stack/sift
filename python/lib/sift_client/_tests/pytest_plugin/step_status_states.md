@@ -88,6 +88,9 @@ be traced back to its row here without rereading the scenario:
 | `API-07` | `pytest.exit()` after a failed `report_outcome`, in a class | `step.report_outcome(..., False); pytest.exit(...)`            | Failure stop: leaf `ABORTED`; class and module roll up `FAILED`; the failed substep keeps `FAILED`                          |
 | `API-08` | Session-aborting `KeyboardInterrupt` in a class | `step.report_outcome(..., False); raise KeyboardInterrupt`               | System stop: leaf, class, and module all `ABORTED` (the run was cut off, not failed); the failed substep keeps `FAILED`     |
 | `API-09` | Sift `abort()` helper in a class | `from sift_client.pytest_plugin import abort; abort(...)`                          | System stop: leaf, class, module, and the report all `ABORTED`, even with no failing check                                  |
+| `API-10` | Failing measurement recorded after the substep's block exited | `with step.substep(...) as s: pass` then `s.measure(... out-of-bounds)` | `FAILED` on the closed substep and on every ancestor: the late failure is corrected in place rather than reaching only the report |
+| `API-11` | Passing measurement recorded after the substep's block exited | `with step.substep(...) as s: pass` then `s.measure(... in-bounds)`     | Statuses unchanged (`PASSED`); the mis-ordering still warns, since nothing distinguishes it from `API-10` until a value goes out of bounds |
+| `API-12` | `substep` opened on a closed step | `with step.substep(...) as s: pass` then `s.substep(...)`                                 | Warns: the new step attaches to the stack top, which is no longer `s`                                                         |
 
 ## Out of scope
 

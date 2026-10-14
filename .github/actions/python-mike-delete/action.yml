@@ -10,15 +10,15 @@ runs:
   using: composite
   steps:
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: astral-sh/setup-uv@v6
       with:
-        python-version: '3.11'
+        enable-cache: true
 
     - name: Install docs dependencies
       shell: bash
       run: |
         cd python
-        pip install -e .[docs-build]
+        uv sync --frozen --python 3.11 --extra docs-build
 
     - name: Fetch gh-pages branch
       shell: bash
@@ -37,8 +37,8 @@ runs:
       run: |
         cd python
         echo "Deleting docs for: $VERSION"
-        if mike list | grep -q "$VERSION"; then
-          mike delete "$VERSION" --push
+        if uv run --no-sync mike list | grep -q "$VERSION"; then
+          uv run --no-sync mike delete "$VERSION" --push
           echo "Successfully deleted docs for $VERSION"
         else
           echo "No docs found for $VERSION, nothing to delete"
