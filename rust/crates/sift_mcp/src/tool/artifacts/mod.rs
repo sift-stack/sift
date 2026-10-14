@@ -509,7 +509,9 @@ impl SiftMcpServer {
             fields,
         }) = params;
 
-        if artifact_id.trim().is_empty() {
+        // The service trims the id, so the link has to use the trimmed value too.
+        let artifact_id = artifact_id.trim().to_owned();
+        if artifact_id.is_empty() {
             return Err(ErrorData::invalid_params(
                 "`artifact_id` must not be empty",
                 None,
@@ -642,7 +644,9 @@ impl SiftMcpServer {
     ) -> error::McpResult {
         self.require_destructive()?;
         let Parameters(ArtifactArchiveParams { artifact_id }) = params;
-        if artifact_id.trim().is_empty() {
+        // The service trims the id, so the link has to use the trimmed value too.
+        let artifact_id = artifact_id.trim().to_owned();
+        if artifact_id.is_empty() {
             return Err(ErrorData::invalid_params(
                 "`artifact_id` must not be empty",
                 None,
@@ -707,7 +711,9 @@ impl SiftMcpServer {
     ) -> error::McpResult {
         self.require_destructive()?;
         let Parameters(ArtifactArchiveParams { artifact_id }) = params;
-        if artifact_id.trim().is_empty() {
+        // The service trims the id, so the link has to use the trimmed value too.
+        let artifact_id = artifact_id.trim().to_owned();
+        if artifact_id.is_empty() {
             return Err(ErrorData::invalid_params(
                 "`artifact_id` must not be empty",
                 None,

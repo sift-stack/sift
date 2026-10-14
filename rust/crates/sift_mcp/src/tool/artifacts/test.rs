@@ -415,6 +415,33 @@ async fn list_artifact_versions_rejects_empty_artifact_id() {
 }
 
 #[tokio::test]
+async fn list_artifact_versions_trims_the_artifact_id() {
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_list_artifact_versions()
+        .withf(|request| request.get_ref().artifact_id == "art-1")
+        .returning(|_| {
+            Ok(Response::new(ListArtifactVersionsResponse {
+                versions: Vec::new(),
+                next_page_token: String::new(),
+            }))
+        });
+
+    let (server, _h) = server_with_mock(mock, true).await;
+    let resp = server
+        .list_artifact_versions(Parameters(ArtifactVersionListParams {
+            artifact_id: " art-1\n".into(),
+            limit: None,
+            fields: None,
+        }))
+        .await
+        .expect("list versions");
+    assert_eq!(
+        structured_field(resp, "artifact_url"),
+        "https://app.test.local/artifacts/art-1"
+    );
+}
+
+#[tokio::test]
 async fn archive_artifact_blocked_without_allow_destructive() {
     let (server, _h) = server_with_mocks(
         MockArtifactServiceImpl::new(),
@@ -530,6 +557,38 @@ async fn unarchive_artifact_returns_structured_result() {
         next_step.contains("https://app.test.local/artifacts/art-1"),
         "{next_step}"
     );
+}
+
+#[tokio::test]
+async fn archive_and_unarchive_trim_the_artifact_id() {
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_archive_artifact()
+        .withf(|req| req.get_ref().artifact_id == "art-1")
+        .returning(|_| Ok(Response::new(ArchiveArtifactResponse {})));
+    mock.expect_unarchive_artifact()
+        .withf(|req| req.get_ref().artifact_id == "art-1")
+        .returning(|_| Ok(Response::new(UnarchiveArtifactResponse {})));
+
+    let (server, _h) = server_with_mock(mock, true).await;
+    let archived = server
+        .archive_artifact(Parameters(ArtifactArchiveParams {
+            artifact_id: " art-1\n".into(),
+        }))
+        .await
+        .expect("archive");
+    let unarchived = server
+        .unarchive_artifact(Parameters(ArtifactArchiveParams {
+            artifact_id: " art-1\n".into(),
+        }))
+        .await
+        .expect("unarchive");
+    for body in [structured(archived), structured(unarchived)] {
+        assert_eq!(body["artifact_id"], "art-1");
+        assert_eq!(
+            body["artifact_url"],
+            "https://app.test.local/artifacts/art-1"
+        );
+    }
 }
 
 #[tokio::test]
