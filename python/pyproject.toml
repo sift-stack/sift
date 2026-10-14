@@ -268,7 +268,6 @@ sift-stream = ["sift-stream-bindings==0.5.2"]
 hdf5 = ["h5py~=3.11", "polars~=1.8"]  # polars is only used by sift_py; remove once sift_py is fully deprecated
 ulog = ["pyulog~=1.2.2"]
 mcap = ["mcap~=1.4", "mcap-ros2-support~=0.5.7"]
-data-review = ["pyarrow>=17.0.0"]
 parquet = ["pyarrow>=17.0.0"]
 
 [tool.sift.extras.combine]
@@ -277,6 +276,7 @@ parquet = ["pyarrow>=17.0.0"]
 # aliases
 dev = ["development"]
 sift-stream-bindings = ["sift-stream"]
+data-review = ["parquet"]
 
 # combinations
 file-imports = ["tdms", "rosbags", "hdf5", "ulog", "mcap", "parquet"]
