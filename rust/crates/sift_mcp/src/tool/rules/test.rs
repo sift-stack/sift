@@ -159,7 +159,7 @@ fn parse_rule_definition_accepts_the_documented_annotation_action() {
 
 #[test]
 fn check_webhooks_accepts_live_webhooks() {
-    let webhooks = check_webhooks(&["wh1".to_string()], vec![webhook("wh1", "alerts")])
+    let webhooks = check_webhooks(&["wh1".to_string()], vec![webhook("wh1", "alerts")], &[])
         .expect("should accept");
     assert_eq!(webhooks[0].name, "alerts");
 }
@@ -169,6 +169,7 @@ fn check_webhooks_rejects_an_unknown_id() {
     let err = check_webhooks(
         &["wh1".to_string(), "wh-missing".to_string()],
         vec![webhook("wh1", "alerts")],
+        &[],
     )
     .expect_err("should reject");
     assert_eq!(err.code, ErrorCode::RESOURCE_NOT_FOUND);
@@ -181,7 +182,7 @@ fn check_webhooks_rejects_an_archived_webhook() {
         is_archived: true,
         ..webhook("wh1", "old alerts")
     };
-    let err = check_webhooks(&["wh1".to_string()], vec![archived]).expect_err("should reject");
+    let err = check_webhooks(&["wh1".to_string()], vec![archived], &[]).expect_err("should reject");
     assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
     assert!(err.message.contains("old alerts"));
 }
@@ -377,7 +378,15 @@ async fn update_rule_replaces_webhooks_and_names_the_detached_one() {
 #[tokio::test]
 async fn update_rule_refuses_an_archived_webhook_before_writing() {
     let mut rule_mock = MockRuleServiceImpl::new();
-    rule_mock.expect_get_rule().times(0);
+    rule_mock.expect_get_rule().returning(|_| {
+        Ok(Response::new(GetRuleResponse {
+            rule: Some(Rule {
+                rule_id: "rule-1".into(),
+                conditions: vec![RuleCondition::default()],
+                ..Default::default()
+            }),
+        }))
+    });
     rule_mock.expect_update_rule().times(0);
 
     let archived = Webhook {
@@ -421,4 +430,106 @@ async fn update_rule_refuses_empty_conditions_json() {
     let err = server.update_rule(params).await.expect_err("should refuse");
 
     assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+}
+
+#[test]
+fn check_webhooks_keeps_an_archived_webhook_already_attached() {
+    let archived = Webhook {
+        is_archived: true,
+        ..webhook("wh1", "old alerts")
+    };
+    let webhooks = check_webhooks(&["wh1".to_string()], vec![archived], &["wh1".to_string()])
+        .expect("an archived webhook the rule already calls may stay");
+    assert_eq!(webhooks.len(), 1);
+}
+
+#[tokio::test]
+async fn create_rule_refuses_a_webhook_action_with_no_configuration() {
+    let (server, _h) =
+        server_with_mocks(MockRuleServiceImpl::new(), MockWebhookServiceImpl::new()).await;
+
+    let rule_json = RULE_JSON.replacen(
+        r#""actions": ["#,
+        r#""actions": [{ "action_type": "WEBHOOK" }, "#,
+        1,
+    );
+    let err = server
+        .create_rule(Parameters(RuleDefinitionParams {
+            rule_json,
+            webhook_ids: None,
+        }))
+        .await
+        .expect_err("should refuse");
+
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+}
+
+#[tokio::test]
+async fn update_rule_keeps_an_archived_webhook_the_rule_already_calls() {
+    let mut rule_mock = MockRuleServiceImpl::new();
+    rule_mock.expect_get_rule().returning(|_| {
+        Ok(Response::new(GetRuleResponse {
+            rule: Some(Rule {
+                rule_id: "rule-1".into(),
+                conditions: vec![RuleCondition {
+                    actions: vec![RuleAction {
+                        rule_action_id: "act-old".into(),
+                        action_type: ActionKind::Webhook as i32,
+                        configuration: Some(RuleActionConfiguration {
+                            configuration: Some(Configuration::Webhook(
+                                WebhookActionConfiguration {
+                                    webhook_id: "wh-old".into(),
+                                },
+                            )),
+                        }),
+                        ..Default::default()
+                    }],
+                    ..Default::default()
+                }],
+                ..Default::default()
+            }),
+        }))
+    });
+    rule_mock
+        .expect_update_rule()
+        .withf(|req| {
+            let actions = &req.get_ref().conditions[0].actions;
+            actions.len() == 2 && actions[0].rule_action_id.as_deref() == Some("act-old")
+        })
+        .returning(|_| {
+            Ok(Response::new(UpdateRuleResponse {
+                rule_id: "rule-1".into(),
+            }))
+        });
+
+    let archived = Webhook {
+        is_archived: true,
+        ..webhook("wh-old", "old alerts")
+    };
+    let (server, _h) = server_with_mocks(
+        rule_mock,
+        webhook_mock_returning(vec![archived, webhook("wh-new", "new alerts")]),
+    )
+    .await;
+
+    let result = server
+        .update_rule(update_params(Some(vec![
+            "wh-old".to_string(),
+            "wh-new".to_string(),
+        ])))
+        .await
+        .expect("update_rule failed");
+
+    let next_step = structured(result)["next_step"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert!(
+        next_step.contains("now calls webhook `new alerts`"),
+        "{next_step}"
+    );
+    assert!(
+        next_step.contains("still lists archived webhook `old alerts`"),
+        "{next_step}"
+    );
 }

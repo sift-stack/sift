@@ -33,6 +33,19 @@ async fn service_with_mock(mock: MockRuleServiceImpl) -> (RuleService, JoinHandl
     )
 }
 
+/// Prepares and saves an update the way `update_rule` does, returning the
+/// saved rule id and the webhooks the update detached.
+async fn update_rule(
+    service: &RuleService,
+    rule_id: &str,
+    changes: RuleUpdate,
+) -> anyhow::Result<(String, Vec<String>)> {
+    let pending = service.prepare_update(rule_id.to_string(), changes).await?;
+    let detached = pending.detached_webhook_ids.clone();
+    let rule_id = service.save_update(pending).await?;
+    Ok((rule_id, detached))
+}
+
 #[tokio::test]
 async fn list_rules_returns_single_page() {
     let mut mock = MockRuleServiceImpl::new();
@@ -326,19 +339,19 @@ async fn update_rule_merges_changes_over_current_definition() {
 
     let (service, _h) = service_with_mock(mock).await;
 
-    let updated = service
-        .update_rule(
-            "rule-1".to_string(),
-            RuleUpdate {
-                name: Some("new name".to_string()),
-                ..Default::default()
-            },
-        )
-        .await
-        .expect("update_rule failed");
+    let updated = update_rule(
+        &service,
+        "rule-1",
+        RuleUpdate {
+            name: Some("new name".to_string()),
+            ..Default::default()
+        },
+    )
+    .await
+    .expect("update_rule failed");
 
-    assert_eq!(updated.rule_id, "rule-1");
-    assert!(updated.detached_webhook_ids.is_empty());
+    assert_eq!(updated.0, "rule-1");
+    assert!(updated.1.is_empty());
 }
 
 #[tokio::test]
@@ -349,16 +362,16 @@ async fn update_rule_errors_when_rule_missing() {
 
     let (service, _h) = service_with_mock(mock).await;
 
-    let err = service
-        .update_rule(
-            "missing".to_string(),
-            RuleUpdate {
-                name: Some("x".to_string()),
-                ..Default::default()
-            },
-        )
-        .await
-        .expect_err("expected error");
+    let err = update_rule(
+        &service,
+        "missing",
+        RuleUpdate {
+            name: Some("x".to_string()),
+            ..Default::default()
+        },
+    )
+    .await
+    .expect_err("expected error");
 
     assert!(err.to_string().contains("not found"));
 }
@@ -568,18 +581,18 @@ async fn update_rule_keeps_existing_actions_when_webhooks_are_replaced() {
 
     let (service, _h) = service_with_mock(mock).await;
 
-    let updated = service
-        .update_rule(
-            "rule-1".to_string(),
-            RuleUpdate {
-                webhook_ids: Some(vec!["wh-old".into(), "wh-new".into(), "wh-new".into()]),
-                ..Default::default()
-            },
-        )
-        .await
-        .expect("update_rule failed");
+    let updated = update_rule(
+        &service,
+        "rule-1",
+        RuleUpdate {
+            webhook_ids: Some(vec!["wh-old".into(), "wh-new".into(), "wh-new".into()]),
+            ..Default::default()
+        },
+    )
+    .await
+    .expect("update_rule failed");
 
-    assert!(updated.detached_webhook_ids.is_empty());
+    assert!(updated.1.is_empty());
 }
 
 #[tokio::test]
@@ -606,18 +619,18 @@ async fn update_rule_reports_the_webhooks_it_detaches() {
 
     let (service, _h) = service_with_mock(mock).await;
 
-    let updated = service
-        .update_rule(
-            "rule-1".to_string(),
-            RuleUpdate {
-                webhook_ids: Some(Vec::new()),
-                ..Default::default()
-            },
-        )
-        .await
-        .expect("update_rule failed");
+    let updated = update_rule(
+        &service,
+        "rule-1",
+        RuleUpdate {
+            webhook_ids: Some(Vec::new()),
+            ..Default::default()
+        },
+    )
+    .await
+    .expect("update_rule failed");
 
-    assert_eq!(updated.detached_webhook_ids, vec!["wh-old".to_string()]);
+    assert_eq!(updated.1, vec!["wh-old".to_string()]);
 }
 
 #[tokio::test]
@@ -646,25 +659,25 @@ async fn update_rule_carries_webhooks_onto_replaced_conditions() {
 
     let (service, _h) = service_with_mock(mock).await;
 
-    let updated = service
-        .update_rule(
-            "rule-1".to_string(),
-            RuleUpdate {
-                conditions: Some(vec![UpdateConditionRequest {
-                    actions: vec![UpdateActionRequest {
-                        action_type: ActionKind::Annotation as i32,
-                        configuration: Some(annotation_config()),
-                        ..Default::default()
-                    }],
+    let updated = update_rule(
+        &service,
+        "rule-1",
+        RuleUpdate {
+            conditions: Some(vec![UpdateConditionRequest {
+                actions: vec![UpdateActionRequest {
+                    action_type: ActionKind::Annotation as i32,
+                    configuration: Some(annotation_config()),
                     ..Default::default()
-                }]),
+                }],
                 ..Default::default()
-            },
-        )
-        .await
-        .expect("update_rule failed");
+            }]),
+            ..Default::default()
+        },
+    )
+    .await
+    .expect("update_rule failed");
 
-    assert!(updated.detached_webhook_ids.is_empty());
+    assert!(updated.1.is_empty());
 }
 
 #[test]
@@ -690,4 +703,126 @@ fn has_webhook_action_finds_only_webhooks() {
         &annotation
     )));
     assert!(super::has_webhook_action(&[annotation, webhook]));
+}
+
+/// `rule_with_webhook` plus a webhook action that has a type but no
+/// configuration, which Sift saves as a webhook action with no webhook.
+fn rule_with_unconfigured_webhook() -> Rule {
+    let mut rule = rule_with_webhook();
+    rule.conditions[0].actions.push(RuleAction {
+        rule_action_id: "act-wh-empty".into(),
+        action_type: ActionKind::Webhook as i32,
+        ..Default::default()
+    });
+    rule
+}
+
+#[tokio::test]
+async fn update_rule_replacing_webhooks_drops_one_with_no_webhook() {
+    let mut mock = MockRuleServiceImpl::new();
+    mock.expect_get_rule().returning(|_| {
+        Ok(Response::new(GetRuleResponse {
+            rule: Some(rule_with_unconfigured_webhook()),
+        }))
+    });
+    mock.expect_update_rule()
+        .withf(|req| {
+            let actions = &req.get_ref().conditions[0].actions;
+            actions.len() == 2
+                && actions
+                    .iter()
+                    .all(|a| a.rule_action_id.as_deref() != Some("act-wh-empty"))
+                && webhook_ids(actions) == vec!["wh-old"]
+        })
+        .returning(|_| {
+            Ok(Response::new(UpdateRuleResponse {
+                rule_id: "rule-1".into(),
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    update_rule(
+        &service,
+        "rule-1",
+        RuleUpdate {
+            webhook_ids: Some(vec!["wh-old".into()]),
+            ..Default::default()
+        },
+    )
+    .await
+    .expect("update_rule failed");
+}
+
+#[tokio::test]
+async fn update_rule_without_webhook_ids_leaves_actions_alone() {
+    let mut mock = MockRuleServiceImpl::new();
+    mock.expect_get_rule().returning(|_| {
+        Ok(Response::new(GetRuleResponse {
+            rule: Some(rule_with_unconfigured_webhook()),
+        }))
+    });
+    mock.expect_update_rule()
+        .withf(|req| {
+            let u = req.get_ref();
+            u.name == "renamed" && u.conditions[0].actions.len() == 3
+        })
+        .returning(|_| {
+            Ok(Response::new(UpdateRuleResponse {
+                rule_id: "rule-1".into(),
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    update_rule(
+        &service,
+        "rule-1",
+        RuleUpdate {
+            name: Some("renamed".into()),
+            ..Default::default()
+        },
+    )
+    .await
+    .expect("update_rule failed");
+}
+
+#[tokio::test]
+async fn prepare_update_reports_current_webhooks_without_writing() {
+    let mut mock = MockRuleServiceImpl::new();
+    mock.expect_get_rule().returning(|_| {
+        Ok(Response::new(GetRuleResponse {
+            rule: Some(rule_with_webhook()),
+        }))
+    });
+    mock.expect_update_rule().times(0);
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let pending = service
+        .prepare_update(
+            "rule-1".to_string(),
+            RuleUpdate {
+                webhook_ids: Some(vec!["wh-new".into()]),
+                ..Default::default()
+            },
+        )
+        .await
+        .expect("prepare_update failed");
+
+    assert_eq!(pending.current_webhook_ids, vec!["wh-old".to_string()]);
+    assert_eq!(pending.detached_webhook_ids, vec!["wh-old".to_string()]);
+}
+
+#[test]
+fn has_webhook_action_counts_a_type_with_no_configuration() {
+    let typed_only = UpdateConditionRequest {
+        actions: vec![UpdateActionRequest {
+            action_type: ActionKind::Webhook as i32,
+            ..Default::default()
+        }],
+        ..Default::default()
+    };
+
+    assert!(super::has_webhook_action(&[typed_only]));
 }

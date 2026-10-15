@@ -269,7 +269,7 @@ impl SiftMcpServer {
         let update = parse_rule_definition(&rule_json)?;
         validate_conditions("rule_json", &update.conditions)?;
         let webhook_ids = webhook_ids.unwrap_or_default();
-        let webhooks = self.resolve_webhooks(&webhook_ids).await?;
+        let webhooks = self.resolve_webhooks(&webhook_ids, &[]).await?;
         let rule_name = update.name.clone();
 
         let rule_id = self
@@ -321,14 +321,15 @@ impl SiftMcpServer {
                 existing conditions unchanged — only provide it when you intend to rewrite the rule's logic.
               - `webhook_ids`: optional. Replaces the rule's set of webhooks, from `list_webhooks`, that it calls
                 when its condition is violated and again when it resolves. Include the ids it already calls
-                (`conditions[].actions[].configuration.webhook.webhook_id` in `list_rules`) to keep them; `[]`
-                removes them all. Omit it to keep the current webhooks, even when `conditions_json` is set.
+                (`conditions[].actions[].configuration.webhook.webhook_id` in `list_rules`), archived ones too, to
+                keep them; `[]` removes them all. Omit it to keep the current webhooks, even when
+                `conditions_json` is set.
               - At least one field besides `rule_id` must be set.
 
             Errors:
               - `INVALID_PARAMS` if no field besides `rule_id` is set, if `conditions_json` is not a valid
-                conditions array of exactly one condition or holds a webhook action, or if a webhook is
-                archived.
+                conditions array of exactly one condition or holds a webhook action, or if a webhook the rule
+                does not already call is archived.
               - `RESOURCE_NOT_FOUND` if no rule has the given `rule_id`, or a `webhook_ids` entry matches no
                 webhook.
               - `INTERNAL_ERROR` for upstream gRPC failures.
@@ -394,17 +395,26 @@ impl SiftMcpServer {
             ));
         }
 
-        let webhooks = match &changes.webhook_ids {
-            Some(webhook_ids) => self.resolve_webhooks(webhook_ids).await?,
-            None => Vec::new(),
-        };
+        let webhook_ids = changes.webhook_ids.clone();
         let rule_name = changes.name.clone();
-        let updated = self
+        let pending = self
             .rule_service
-            .update_rule(rule_id, changes)
+            .prepare_update(rule_id, changes)
             .await
             .map_err(from_anyhow)?;
-        let rule_id = updated.rule_id;
+        let webhooks = match &webhook_ids {
+            Some(webhook_ids) => {
+                self.resolve_webhooks(webhook_ids, &pending.current_webhook_ids)
+                    .await?
+            }
+            None => Vec::new(),
+        };
+        let detached_webhook_ids = pending.detached_webhook_ids.clone();
+        let rule_id = self
+            .rule_service
+            .save_update(pending)
+            .await
+            .map_err(from_anyhow)?;
 
         let rule_url = self.url_service.build_rule_url(&rule_id).ok();
         let next_step = format!(
@@ -413,7 +423,7 @@ impl SiftMcpServer {
              (filter `rule_id == \"{rule_id}\"`).",
             url_clause("rule", rule_name.as_deref(), rule_url.as_deref()),
             webhook_clause("It now calls", &webhooks),
-            self.detached_clause(&updated.detached_webhook_ids).await,
+            self.detached_clause(&detached_webhook_ids).await,
         );
 
         let mut result = CallToolResult::structured(serde_json::json!({
@@ -549,16 +559,22 @@ impl SiftMcpServer {
 }
 
 impl SiftMcpServer {
-    /// Confirms each webhook exists and is live before a rule is pointed at it.
-    /// Sift accepts an archived webhook on a rule and then never calls it, so
-    /// the check has to happen here.
-    async fn resolve_webhooks(&self, webhook_ids: &[String]) -> Result<Vec<Webhook>, ErrorData> {
+    /// Confirms each webhook exists, and that each one not in `already_attached`
+    /// is live, before a rule is pointed at it. Sift accepts an archived webhook
+    /// on a rule and then never calls it, so the check has to happen here. An
+    /// archived webhook the rule already calls may stay, so passing the rule's
+    /// current set back is always safe.
+    async fn resolve_webhooks(
+        &self,
+        webhook_ids: &[String],
+        already_attached: &[String],
+    ) -> Result<Vec<Webhook>, ErrorData> {
         let webhooks = self
             .webhook_service
             .get_webhooks(webhook_ids)
             .await
             .map_err(from_anyhow)?;
-        check_webhooks(webhook_ids, webhooks)
+        check_webhooks(webhook_ids, webhooks, already_attached)
     }
 
     /// A `next_step` sentence naming the webhooks an update detached, so a set
@@ -618,10 +634,12 @@ fn validate_conditions(
 }
 
 /// Fails with `RESOURCE_NOT_FOUND` when an id matches no webhook and with
-/// `INVALID_PARAMS` when a webhook is archived. Returns the webhooks otherwise.
+/// `INVALID_PARAMS` when a webhook outside `already_attached` is archived.
+/// Returns the webhooks otherwise.
 fn check_webhooks(
     webhook_ids: &[String],
     webhooks: Vec<Webhook>,
+    already_attached: &[String],
 ) -> Result<Vec<Webhook>, ErrorData> {
     let missing: Vec<String> = webhook_ids
         .iter()
@@ -640,7 +658,7 @@ fn check_webhooks(
 
     let archived: Vec<String> = webhooks
         .iter()
-        .filter(|w| w.is_archived || w.archived_date.is_some())
+        .filter(|w| is_archived(w) && !already_attached.contains(&w.webhook_id))
         .map(|w| format!("`{}` ({})", w.name, w.webhook_id))
         .collect();
     if !archived.is_empty() {
@@ -657,12 +675,34 @@ fn check_webhooks(
     Ok(webhooks)
 }
 
-/// A `next_step` sentence naming the webhooks a rule calls, so the agent can
-/// tell the user where alerts go. Empty when there are none.
+fn is_archived(webhook: &Webhook) -> bool {
+    webhook.is_archived || webhook.archived_date.is_some()
+}
+
+/// `next_step` sentences naming the webhooks a rule calls, so the agent can
+/// tell the user where alerts go, and any archived ones it keeps, which Sift
+/// never calls. Empty when there are none.
 fn webhook_clause(lead: &str, webhooks: &[Webhook]) -> String {
-    if webhooks.is_empty() {
-        return String::new();
+    let (archived, live): (Vec<&Webhook>, Vec<&Webhook>) =
+        webhooks.iter().partition(|w| is_archived(w));
+    let mut clause = String::new();
+    if !live.is_empty() {
+        clause.push_str(&format!(
+            " {lead} {} when its condition is violated and again when it resolves.",
+            webhook_names(&live)
+        ));
     }
+    if !archived.is_empty() {
+        clause.push_str(&format!(
+            " It still lists archived {}, which Sift never calls.",
+            webhook_names(&archived)
+        ));
+    }
+    clause
+}
+
+/// "webhook `a`" or "webhooks `a`, `b`".
+fn webhook_names(webhooks: &[&Webhook]) -> String {
     let names = webhooks
         .iter()
         .map(|w| format!("`{}`", w.name))
@@ -673,7 +713,7 @@ fn webhook_clause(lead: &str, webhooks: &[Webhook]) -> String {
     } else {
         "webhooks"
     };
-    format!(" {lead} {noun} {names} when its condition is violated and again when it resolves.")
+    format!("{noun} {names}")
 }
 
 /// Build the web URL for a rule when its `rule_id` is known. Returns `None` when
