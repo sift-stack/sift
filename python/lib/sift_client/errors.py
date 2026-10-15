@@ -26,8 +26,9 @@ class SiftReportLifecycleWarning(SiftWarning):
 class SiftReplayReconciledWarning(SiftWarning):
     """A test-results upload recovered from an ambiguous retry.
 
-    Raised once per run, after a batch measurement create's response was
-    lost and the retry found some or all of the batch already on the server.
+    Issued once per run, after a batch measurement create failed with an
+    unknown outcome and the retry found some or all of the batch already on
+    the server.
     """
 
 

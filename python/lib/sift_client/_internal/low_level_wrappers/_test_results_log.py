@@ -210,10 +210,9 @@ class ReplayResult:
     reconciled_count: int = 0
     """How many measurements were matched on the server instead of recreated.
 
-    Nonzero only after a batch create failed in a way that left the server's
-    state ambiguous (see ``_create_measurement_batch_reconciling``), and the
-    server turned out to already have some or all of them. Callers use this to
-    decide whether to warn.
+    Nonzero only after a batch create failed with an unknown outcome (see
+    ``_create_measurement_batch_reconciling``) and the server already had some
+    or all of the batch.
     """
 
 

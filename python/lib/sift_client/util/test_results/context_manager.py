@@ -104,12 +104,7 @@ def log_replay_instructions(log_file: str | Path | None) -> None:
 def _parse_reconciled_count(stderr_text: str) -> int:
     """Read the replay worker's reconciled-measurement count off its stderr.
 
-    The worker's own exit code can't carry this: a reconciled run is a clean
-    exit, with nothing in the usual non-zero-exit stderr handling to surface
-    it. ``RECONCILED_MARKER`` is the only channel back.
-
-    Returns 0 for a line that is missing or malformed, rather than raising
-    over a worker detail that was never essential to parse.
+    Returns 0 if the ``RECONCILED_MARKER`` line is missing or malformed.
     """
     for line in stderr_text.splitlines():
         prefix = f"{RECONCILED_MARKER}:"

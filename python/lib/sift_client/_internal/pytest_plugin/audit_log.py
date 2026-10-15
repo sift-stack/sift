@@ -40,11 +40,9 @@ STDOUT_FORMAT = "Sift audit %(levelname)s: %(message)s"
 EVENT_WIDTH = 16
 # Tag so a re-entered pytest_configure (or both processes) doesn't double-attach.
 HANDLER_TAG = "sift_audit"
-# Prefix for the replay worker's stderr line reporting reconciled
-# measurements on an otherwise clean (exit 0) run; see
-# ``_create_measurement_batch_reconciling``. Lives here rather than in
-# ``replay_worker`` or ``context_manager`` because those two already import
-# each other.
+# Prefix for the replay worker's stderr line reporting reconciled measurements
+# on an otherwise clean (exit 0) run. Lives here because ``replay_worker`` and
+# ``context_manager`` already import each other.
 RECONCILED_MARKER = "SIFT_REPLAY_RECONCILED"
 # Field names whose values should be redacted in audit logs to avoid logging
 # sensitive data. This is a best-effort blacklist; callers should avoid passing

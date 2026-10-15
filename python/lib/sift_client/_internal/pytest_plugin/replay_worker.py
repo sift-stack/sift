@@ -78,10 +78,10 @@ def _incremental_import_loop(
     When ``keep_log`` is False (audit logging off) the temp log is deleted on a
     clean finish; with audit logging on it's retained alongside the audit trail.
 
-    A tick that reconciled a measurement batch against the server (see
-    ``_create_measurement_batch_reconciling``) still exits cleanly, so the
-    count is summed across ticks and reported on stderr once, at session
-    end - the only channel back to the parent process.
+    Measurements reconciled against the server (see
+    ``_create_measurement_batch_reconciling``) are summed across ticks and
+    reported once on stderr at session end, which is the only channel back to
+    the parent process.
     """
     result = None
     total_reconciled = 0
