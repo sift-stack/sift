@@ -354,8 +354,9 @@ impl IngestionTask {
             retry_policy.backoff(current_wait)
         };
 
-        // Never retry sooner than Sift asked. The next backoff is still capped by `max_backoff`.
-        Ok(server_delay.map_or(backoff, |delay| delay.max(backoff)))
+        // Wait for Sift's requested delay plus a margin, capped at `max_backoff`. A longer
+        // rate limit fails the next attempt and is retried again, like any other failure.
+        Ok(retry_policy.wait_for_retry(backoff, server_delay))
     }
 
     /// Shuts down the ingestion task by awaiting the stream one last time and sending the final checkpoint complete signal to the backup manager.
@@ -1213,25 +1214,39 @@ mod tests {
                 .unwrap()
         };
 
-        // The server delay wins when it is longer than the backoff, even beyond `max_backoff`.
-        let status = rate_limited_status(Duration::from_secs(8));
+        // The server delay plus the margin wins when it is longer than the backoff.
+        let status = rate_limited_status(Duration::from_secs(3));
         assert_eq!(
             wait(&mut task, &status, Instant::now()),
-            Duration::from_secs(8)
+            Duration::from_millis(3100)
         );
 
-        // The backoff wins when it is longer than the server delay.
-        let status = rate_limited_status(Duration::from_millis(10));
+        // A zero server delay still waits for the margin when it exceeds the backoff.
+        let status = rate_limited_status(Duration::ZERO);
         assert_eq!(
             wait(&mut task, &status, Instant::now()),
-            Duration::from_millis(50)
+            Duration::from_millis(100)
         );
+
+        // The backoff wins when it is longer than the server delay plus the margin.
+        let status = rate_limited_status(Duration::from_millis(10));
+        let next = task
+            .handle_failed_stream(&status, Instant::now(), Duration::from_secs(1), 0, 0)
+            .unwrap();
+        assert_eq!(next, Duration::from_secs(5));
 
         // Other failures use the backoff alone.
         let status = GrpcStatus::unavailable("unavailable");
         assert_eq!(
             wait(&mut task, &status, Instant::now()),
             Duration::from_millis(50)
+        );
+
+        // A server delay longer than `max_backoff` is capped at `max_backoff`.
+        let status = rate_limited_status(Duration::from_secs(60));
+        assert_eq!(
+            wait(&mut task, &status, Instant::now()),
+            Duration::from_secs(5)
         );
 
         // A stream that was healthy long enough resets the backoff to zero, but the server
@@ -1242,8 +1257,64 @@ mod tests {
         let status = rate_limited_status(Duration::from_secs(3));
         assert_eq!(
             wait(&mut task, &status, healthy_since),
-            Duration::from_secs(3)
+            Duration::from_millis(3100)
         );
+    }
+
+    /// A rate limit longer than `max_backoff` does not end the stream: the task reconnects after
+    /// `max_backoff` and keeps ingesting.
+    #[tokio::test]
+    async fn test_rate_limit_longer_than_max_backoff_is_retried_after_max_backoff() {
+        use crate::test::rate_limited_status;
+
+        let (ingestion_channel, mock_service) =
+            crate::test::create_mock_grpc_channel_with_service().await;
+        let (control_tx, _control_rx) = broadcast::channel(1024);
+        let (data_tx, data_rx) = async_channel::bounded(1024);
+        let metrics = Arc::new(SiftStreamMetrics::default());
+        let mut config = make_live_only_ingestion_task_config(ingestion_channel, metrics.clone());
+        config.retry_policy = Some(RetryPolicy {
+            max_attempts: 3,
+            initial_backoff: Duration::from_millis(1),
+            max_backoff: Duration::from_millis(10),
+            backoff_multiplier: 2,
+        });
+
+        // Sift asks for a minute, far longer than `max_backoff`.
+        mock_service.set_error_status(rate_limited_status(Duration::from_secs(60)));
+        mock_service.set_num_errors_to_return(1);
+
+        let control_rx_task = control_tx.subscribe();
+        let mut ingestion_task =
+            IngestionTask::new(control_tx.clone(), control_rx_task, data_rx, config);
+        let handle = tokio::spawn(async move { ingestion_task.run().await });
+
+        // Wait for the rate limit, then send data that only a reconnected stream can carry.
+        let resource_exhausted = GrpcCode::ResourceExhausted as usize;
+        tokio::time::timeout(Duration::from_secs(5), async {
+            while metrics.grpc_status_counts[resource_exhausted].get() == 0 {
+                tokio::time::sleep(Duration::from_millis(1)).await;
+            }
+        })
+        .await
+        .expect("the first stream should be rate limited");
+        send_messages_for_ingestion(&data_tx, 10).await;
+
+        tokio::time::timeout(Duration::from_secs(5), async {
+            while mock_service.get_captured_data().len() < 10 {
+                tokio::time::sleep(Duration::from_millis(1)).await;
+            }
+        })
+        .await
+        .expect("the task should reconnect after max_backoff, not the requested minute");
+
+        data_tx.close();
+        assert!(control_tx.send(ControlMessage::Shutdown).is_ok());
+        let res = tokio::time::timeout(Duration::from_secs(10), handle)
+            .await
+            .expect("ingestion task should not hang")
+            .expect("ingestion task should not panic");
+        assert!(res.is_ok(), "the stream should finish cleanly: {res:?}");
     }
 
     #[tokio::test]

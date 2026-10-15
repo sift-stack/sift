@@ -24,8 +24,23 @@ keeps its original kind and is not retried as a rate limit.
 
 `SiftStream` handles rate limits on control-plane calls (connecting, creating or fetching the
 ingestion config, flows, run, and asset during `build`, plus `attach_run` and `add_new_flows`)
-without code changes. By default it retries after waiting the larger of Sift's delay and the
-normal backoff. Callers that cannot afford to wait can opt out:
+without code changes. By default it retries after waiting the larger of Sift's delay plus some
+margin and the normal backoff, so the retry lands after the rate-limit window rather than at its
+edge. The wait never exceeds a maximum delay, so a very long or faulty delay cannot block a call
+for that long. A retry made before Sift's delay has passed may be rate limited again, and the
+error is returned once the attempts run out. Both are configurable, and default to a 10 second
+maximum delay and a 100ms margin:
+
+```rust
+use sift_stream::RateLimitPolicy;
+use std::time::Duration;
+
+let policy = RateLimitPolicy::retry()
+    .with_max_delay(Duration::from_secs(30))
+    .with_margin(Duration::from_millis(250));
+```
+
+Callers that cannot afford to wait can opt out:
 
 ```rust
 use sift_stream::RateLimitPolicy;
@@ -44,10 +59,10 @@ if let Err(err) = &result
 }
 ```
 
-`RateLimitPolicy::RetryIfDelayAtMost(duration)` retries only when the wait is within a bound.
 Streaming ingestion is governed by the mode's `RetryPolicy` instead. A rate-limited stream waits
-at least the requested delay before reconnecting, and with retries disabled `finish` reports
-`RateLimitedError`.
+the requested delay plus the same margin before reconnecting, capped at the policy's
+`max_backoff` instead of the policy's maximum delay, and keeps retrying as it does for any other
+failure. Backup re-ingestion waits the same way between attempts. With retries disabled, `finish` reports `RateLimitedError`.
 
 Behavior changes to be aware of:
 
@@ -71,8 +86,9 @@ updates are now retried, which is safe because Sift rejects them before processi
 ##### `sift-stream-bindings`
 
 `SiftStreamBuilderPy` and `StreamConfigBuilderPy` have a new `rate_limit_policy` field that takes
-a `RateLimitPolicyPy`, created with `RateLimitPolicyPy.retry()` (default),
-`RateLimitPolicyPy.retry_if_delay_at_most(DurationPy(...))`, or `RateLimitPolicyPy.return_error()`.
+a `RateLimitPolicyPy`, created with `RateLimitPolicyPy.retry()` (default) or
+`RateLimitPolicyPy.return_error()`. Adjust the retrying policy with `with_max_delay(DurationPy(...))`
+(default 10 seconds) and `with_margin(DurationPy(...))` (default 100ms).
 Rate-limit errors are raised as `RuntimeError` with a message starting with `[RateLimitedError]`
 that includes the requested delay.
 

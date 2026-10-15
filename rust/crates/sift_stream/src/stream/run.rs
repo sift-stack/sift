@@ -954,7 +954,7 @@ mod tests {
         let (channel, server) = start_mock_run_service(mock_service.clone()).await;
 
         let start = Instant::now();
-        let run = load_run_by_form(channel, new_run_form("new_key"), RateLimitPolicy::Retry)
+        let run = load_run_by_form(channel, new_run_form("new_key"), RateLimitPolicy::retry())
             .await
             .unwrap();
 

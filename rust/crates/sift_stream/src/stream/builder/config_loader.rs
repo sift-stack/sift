@@ -676,7 +676,7 @@ mod tests {
     // a rate limit, so it is neither retried nor reported as RateLimitedError.
     #[tokio::test]
     async fn test_load_ingestion_config_resource_exhausted_without_retry_info_is_not_retried() {
-        for policy in [RateLimitPolicy::Retry, RateLimitPolicy::ReturnError] {
+        for policy in [RateLimitPolicy::retry(), RateLimitPolicy::ReturnError] {
             let service = MockIngestionConfigService::with_flow_create_statuses(vec![(
                 "too_large_flow",
                 Status::resource_exhausted(

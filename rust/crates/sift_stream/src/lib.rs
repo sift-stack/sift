@@ -423,9 +423,12 @@
 //! [`add_new_flows`](IngestionConfigEncoder::add_new_flows) calls:
 //!
 //! - [`RateLimitPolicy::Retry`] (default) retries after waiting the larger of Sift's requested
-//!   delay and the normal backoff. No code changes are needed to benefit from this.
-//! - [`RateLimitPolicy::RetryIfDelayAtMost`] retries only if that wait is within a bound, and
-//!   otherwise returns the error immediately.
+//!   delay plus a margin and the normal backoff, but never longer than a maximum delay. No code
+//!   changes are needed to benefit from this. The maximum delay (10 seconds by default) keeps a
+//!   very long or faulty delay from blocking the call; a retry made before Sift's delay has
+//!   passed may be rate limited again, and the error is returned once the attempts run out.
+//!   Adjust it with [`RateLimitPolicy::with_max_delay`] and the margin (100ms by default) with
+//!   [`RateLimitPolicy::with_margin`].
 //! - [`RateLimitPolicy::ReturnError`] never retries, so callers that cannot afford to wait can
 //!   decide what to do instead.
 //!
@@ -453,8 +456,10 @@
 //! creation failures.
 //!
 //! Streaming ingestion is governed by the mode's [RetryPolicy] instead. When Sift rate limits an
-//! ingestion stream, the next attempt waits at least the requested delay. With retries disabled,
-//! [`finish`](stream::SiftStream::finish) reports the failure as `RateLimitedError`.
+//! ingestion stream, the next attempt waits the requested delay plus the same 100ms margin, capped
+//! at the policy's `max_backoff`. A longer requested delay does not end the stream; it reconnects
+//! after `max_backoff` and keeps retrying as it does for any other failure. With retries
+//! disabled, [`finish`](stream::SiftStream::finish) reports the failure as `RateLimitedError`.
 //!
 //! ## Checkpoints
 //!

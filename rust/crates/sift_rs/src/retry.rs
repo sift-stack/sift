@@ -46,8 +46,10 @@
 //! When Sift rate limits a request it returns `ResourceExhausted` with a `google.rpc.RetryInfo`
 //! detail, which the wrappers surface as
 //! [`ErrorKind::RateLimitedError`](sift_error::ErrorKind::RateLimitedError). By default, [`Retrying`]
-//! retries these errors after waiting the larger of the server's `retry_delay` and the configured
-//! backoff. Use [`Retrying::with_rate_limit_policy`] to cap or disable it:
+//! retries these errors after waiting the larger of the server's `retry_delay` plus some margin
+//! and the configured backoff, but no longer than 10 seconds. Use
+//! [`Retrying::with_rate_limit_policy`] to change the maximum delay or the margin, or to disable
+//! retries:
 //!
 //! ```no_run
 //! use sift_rs::retry::{RateLimitPolicy, RetryConfig, RetryExt};
@@ -128,19 +130,104 @@ impl RetryConfig {
 }
 
 /// How [`Retrying`] handles errors that its decider reports as rate limited.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+///
+/// Create a retrying policy with [`RateLimitPolicy::retry`] and adjust it with
+/// [`with_max_delay`](RateLimitPolicy::with_max_delay) and
+/// [`with_margin`](RateLimitPolicy::with_margin):
+///
+/// ```
+/// use sift_rs::retry::RateLimitPolicy;
+/// use std::time::Duration;
+///
+/// let policy = RateLimitPolicy::retry()
+///     .with_max_delay(Duration::from_secs(30))
+///     .with_margin(Duration::from_millis(250));
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RateLimitPolicy {
-    /// Retry after waiting the larger of the server's `retry_delay` and the configured backoff.
-    /// The server's delay is not capped by [`RetryConfig::max_delay`]. Rate-limited retries count
-    /// against [`RetryConfig::max_attempts`].
-    #[default]
-    Retry,
-    /// Retry only if the wait computed as for [`RateLimitPolicy::Retry`] is at most this duration;
-    /// otherwise return the error immediately.
-    RetryIfDelayAtMost(Duration),
+    /// Retry after waiting the larger of the server's `retry_delay` plus `margin` and the
+    /// configured backoff, but never longer than `max_delay`. The margin makes the retry land
+    /// after the server's rate-limit window has passed rather than at its edge, and only applies
+    /// to a server-provided delay.
+    ///
+    /// This `max_delay` is separate from [`RetryConfig::max_delay`], which only caps the
+    /// configured backoff. A server delay longer than [`RetryConfig::max_delay`] is still
+    /// honored, up to this `max_delay`, so a very long or faulty server delay cannot block the
+    /// call for longer than `max_delay`. A retry made before the server's delay has passed may
+    /// be rate limited again. Rate-limited retries count against [`RetryConfig::max_attempts`],
+    /// and the last rate-limit error is returned once they run out.
+    Retry {
+        /// The longest wait before a retry, including the margin and the configured backoff.
+        /// Defaults to [`RateLimitPolicy::DEFAULT_MAX_DELAY`].
+        max_delay: Duration,
+        /// Extra time to wait on top of the server's `retry_delay`, up to `max_delay`. Defaults
+        /// to [`RateLimitPolicy::DEFAULT_MARGIN`].
+        margin: Duration,
+    },
     /// Never retry rate-limited errors; return them immediately so the caller can decide what to
     /// do, for example using [`sift_error::Error::retry_delay`].
     ReturnError,
+}
+
+impl RateLimitPolicy {
+    /// The default longest wait before a rate-limited retry.
+    pub const DEFAULT_MAX_DELAY: Duration = Duration::from_secs(10);
+
+    /// The default margin added to the server's `retry_delay`.
+    pub const DEFAULT_MARGIN: Duration = Duration::from_millis(100);
+
+    /// [`RateLimitPolicy::Retry`] with [`RateLimitPolicy::DEFAULT_MAX_DELAY`] and
+    /// [`RateLimitPolicy::DEFAULT_MARGIN`].
+    pub const fn retry() -> Self {
+        Self::Retry {
+            max_delay: Self::DEFAULT_MAX_DELAY,
+            margin: Self::DEFAULT_MARGIN,
+        }
+    }
+
+    /// Sets the longest wait before a retry. Has no effect on [`RateLimitPolicy::ReturnError`].
+    pub const fn with_max_delay(self, max_delay: Duration) -> Self {
+        match self {
+            Self::Retry { margin, .. } => Self::Retry { max_delay, margin },
+            Self::ReturnError => self,
+        }
+    }
+
+    /// Sets the margin added to the server's `retry_delay`. Has no effect on
+    /// [`RateLimitPolicy::ReturnError`].
+    pub const fn with_margin(self, margin: Duration) -> Self {
+        match self {
+            Self::Retry { max_delay, .. } => Self::Retry { max_delay, margin },
+            Self::ReturnError => self,
+        }
+    }
+
+    /// Returns how long to wait before retrying a rate-limited call, or `None` if this policy
+    /// declines to retry it.
+    ///
+    /// `server_delay` is the server's requested `retry_delay`, if it sent one, and `backoff` is
+    /// the caller's normal backoff for this attempt.
+    pub fn retry_wait(
+        &self,
+        server_delay: Option<Duration>,
+        backoff: Duration,
+    ) -> Option<Duration> {
+        match *self {
+            Self::Retry { max_delay, margin } => {
+                let wait =
+                    server_delay.map_or(backoff, |delay| delay.saturating_add(margin).max(backoff));
+                Some(wait.min(max_delay))
+            }
+            Self::ReturnError => None,
+        }
+    }
+}
+
+impl Default for RateLimitPolicy {
+    /// [`RateLimitPolicy::retry`].
+    fn default() -> Self {
+        Self::retry()
+    }
 }
 
 /// Trait for determining whether an error should trigger a retry.
@@ -259,7 +346,7 @@ impl<T, D> Retrying<T, D> {
         }
     }
 
-    /// Sets how rate-limited errors are handled. Defaults to [`RateLimitPolicy::Retry`].
+    /// Sets how rate-limited errors are handled. Defaults to [`RateLimitPolicy::retry`].
     pub fn with_rate_limit_policy(mut self, policy: RateLimitPolicy) -> Self {
         self.rate_limit_policy = policy;
         self
@@ -281,8 +368,8 @@ where
     /// error, the function decides whether to retry:
     ///
     /// - If the decider reports the error as rate limited, the [`RateLimitPolicy`] applies. When
-    ///   it allows a retry, the function waits the larger of the server's retry delay and the
-    ///   calculated backoff delay.
+    ///   it allows a retry, the function waits the larger of the server's retry delay plus the
+    ///   policy's margin and the calculated backoff delay.
     /// - Otherwise, if the decider indicates the error is retryable, the function waits for the
     ///   calculated backoff delay before retrying.
     ///
@@ -315,17 +402,14 @@ where
             }
 
             let delay = if self.decider.is_rate_limited(&err) {
+                // The server's delay is a floor, so it is not capped by `RetryConfig::max_delay`.
                 let backoff = self.cfg.backoff(attempt);
-                // The server's delay is a floor, so it is not capped by `max_delay`.
-                let delay = self
-                    .decider
-                    .retry_delay(&err)
-                    .map_or(backoff, |server_delay| server_delay.max(backoff));
-
-                match self.rate_limit_policy {
-                    RateLimitPolicy::Retry => delay,
-                    RateLimitPolicy::RetryIfDelayAtMost(limit) if delay <= limit => delay,
-                    _ => return Err(err),
+                match self
+                    .rate_limit_policy
+                    .retry_wait(self.decider.retry_delay(&err), backoff)
+                {
+                    Some(delay) => delay,
+                    None => return Err(err),
                 }
             } else if self.decider.should_retry(&err) {
                 self.cfg.backoff(attempt)
@@ -592,7 +676,7 @@ mod tests {
     }
 
     #[tokio::test(start_paused = true)]
-    async fn test_rate_limited_waits_for_server_delay() {
+    async fn test_rate_limited_waits_for_server_delay_plus_margin() {
         let retrying = Retrying::new((), test_cfg(3));
         let (result, attempts, elapsed) = run(&retrying, |n| {
             (n == 1).then(|| rate_limited(Some(Duration::from_secs(3))))
@@ -601,24 +685,53 @@ mod tests {
 
         assert!(result.is_ok());
         assert_eq!(attempts, 2);
-        assert_elapsed(elapsed, Duration::from_secs(3));
+        assert_elapsed(elapsed, Duration::from_millis(3100));
     }
 
     #[tokio::test(start_paused = true)]
-    async fn test_rate_limited_server_delay_is_not_capped_by_max_delay() {
-        let retrying = Retrying::new((), test_cfg(3));
+    async fn test_rate_limited_uses_configured_margin() {
+        let retrying = Retrying::new((), test_cfg(3)).with_rate_limit_policy(
+            RateLimitPolicy::retry().with_margin(Duration::from_millis(500)),
+        );
         let (result, _, elapsed) = run(&retrying, |n| {
-            (n == 1).then(|| rate_limited(Some(Duration::from_secs(10))))
+            (n == 1).then(|| rate_limited(Some(Duration::from_secs(1))))
         })
         .await;
 
         assert!(result.is_ok());
-        assert_elapsed(elapsed, Duration::from_secs(10));
+        assert_elapsed(elapsed, Duration::from_millis(1500));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn test_rate_limited_server_delay_is_not_capped_by_backoff_max_delay() {
+        // `RetryConfig::max_delay` is 5s; only the policy's 10s `max_delay` caps the server delay.
+        let retrying = Retrying::new((), test_cfg(3));
+        let (result, _, elapsed) = run(&retrying, |n| {
+            (n == 1).then(|| rate_limited(Some(Duration::from_secs(8))))
+        })
+        .await;
+
+        assert!(result.is_ok());
+        assert_elapsed(elapsed, Duration::from_millis(8100));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn test_rate_limited_default_max_delay_caps_the_wait() {
+        let retrying = Retrying::new((), test_cfg(3));
+        let (result, attempts, elapsed) = run(&retrying, |n| {
+            (n == 1).then(|| rate_limited(Some(Duration::from_secs(3600))))
+        })
+        .await;
+
+        assert!(result.is_ok());
+        assert_eq!(attempts, 2);
+        assert_elapsed(elapsed, RateLimitPolicy::DEFAULT_MAX_DELAY);
     }
 
     #[tokio::test(start_paused = true)]
     async fn test_rate_limited_uses_backoff_when_larger() {
-        let retrying = Retrying::new((), test_cfg(3));
+        let retrying = Retrying::new((), test_cfg(3))
+            .with_rate_limit_policy(RateLimitPolicy::retry().with_margin(Duration::ZERO));
         let (result, _, elapsed) = run(&retrying, |n| {
             (n == 1).then(|| rate_limited(Some(Duration::from_millis(10))))
         })
@@ -645,10 +758,10 @@ mod tests {
         })
         .await;
 
-        // max(150ms, 100ms) + max(150ms, 200ms)
+        // max(150ms + 100ms, 100ms) + max(150ms + 100ms, 200ms)
         assert!(result.is_ok());
         assert_eq!(attempts, 3);
-        assert_elapsed(elapsed, Duration::from_millis(350));
+        assert_elapsed(elapsed, Duration::from_millis(500));
     }
 
     #[tokio::test(start_paused = true)]
@@ -663,7 +776,7 @@ mod tests {
         assert!(err.is_rate_limited());
         assert_eq!(err.retry_delay(), Some(Duration::from_secs(1)));
         assert_eq!(attempts, 3);
-        assert_elapsed(elapsed, Duration::from_secs(2));
+        assert_elapsed(elapsed, Duration::from_millis(2200));
     }
 
     #[tokio::test(start_paused = true)]
@@ -682,27 +795,110 @@ mod tests {
     }
 
     #[tokio::test(start_paused = true)]
-    async fn test_retry_if_delay_at_most_policy() {
-        let retrying = Retrying::new((), test_cfg(3))
-            .with_rate_limit_policy(RateLimitPolicy::RetryIfDelayAtMost(Duration::from_secs(1)));
-
-        let (result, attempts, _) = run(&retrying, |n| {
-            (n == 1).then(|| rate_limited(Some(Duration::from_secs(3))))
-        })
-        .await;
-        assert_eq!(
-            result.unwrap_err().retry_delay(),
-            Some(Duration::from_secs(3))
+    async fn test_retry_policy_with_max_delay() {
+        let retrying = Retrying::new((), test_cfg(3)).with_rate_limit_policy(
+            RateLimitPolicy::retry().with_max_delay(Duration::from_secs(1)),
         );
-        assert_eq!(attempts, 1);
 
+        // A delay within the bound waits the delay plus the margin.
         let (result, attempts, elapsed) = run(&retrying, |n| {
             (n == 1).then(|| rate_limited(Some(Duration::from_millis(500))))
         })
         .await;
         assert!(result.is_ok());
         assert_eq!(attempts, 2);
-        assert_elapsed(elapsed, Duration::from_millis(500));
+        assert_elapsed(elapsed, Duration::from_millis(600));
+
+        // A longer delay still retries, after `max_delay`.
+        let (result, attempts, elapsed) = run(&retrying, |n| {
+            (n == 1).then(|| rate_limited(Some(Duration::from_secs(3))))
+        })
+        .await;
+        assert!(result.is_ok());
+        assert_eq!(attempts, 2);
+        assert_elapsed(elapsed, Duration::from_secs(1));
+
+        // A rate limit that persists uses up the attempts, waiting at most `max_delay` each time,
+        // and returns the last rate-limit error.
+        let (result, attempts, elapsed) = run(&retrying, |_| {
+            Some(rate_limited(Some(Duration::from_secs(60))))
+        })
+        .await;
+        assert_eq!(
+            result.unwrap_err().retry_delay(),
+            Some(Duration::from_secs(60))
+        );
+        assert_eq!(attempts, 3);
+        assert_elapsed(elapsed, Duration::from_secs(2));
+    }
+
+    #[test]
+    fn test_rate_limit_policy_builder() {
+        let ms = Duration::from_millis;
+
+        assert_eq!(
+            RateLimitPolicy::default(),
+            RateLimitPolicy::Retry {
+                max_delay: Duration::from_secs(10),
+                margin: ms(100),
+            }
+        );
+        assert_eq!(
+            RateLimitPolicy::retry()
+                .with_max_delay(ms(30_000))
+                .with_margin(ms(250)),
+            RateLimitPolicy::Retry {
+                max_delay: ms(30_000),
+                margin: ms(250),
+            }
+        );
+        assert_eq!(
+            RateLimitPolicy::ReturnError
+                .with_max_delay(ms(30_000))
+                .with_margin(ms(250)),
+            RateLimitPolicy::ReturnError
+        );
+    }
+
+    #[test]
+    fn test_retry_wait() {
+        let ms = Duration::from_millis;
+        let backoff = ms(200);
+
+        let retry = RateLimitPolicy::retry();
+        assert_eq!(retry.retry_wait(None, backoff), Some(backoff));
+        assert_eq!(retry.retry_wait(Some(ms(50)), backoff), Some(backoff));
+        assert_eq!(retry.retry_wait(Some(ms(150)), backoff), Some(ms(250)));
+
+        let capped = RateLimitPolicy::retry().with_max_delay(ms(1000));
+        assert_eq!(capped.retry_wait(Some(ms(500)), backoff), Some(ms(600)));
+        assert_eq!(capped.retry_wait(Some(ms(950)), backoff), Some(ms(1000)));
+        assert_eq!(capped.retry_wait(Some(ms(60_000)), backoff), Some(ms(1000)));
+        assert_eq!(capped.retry_wait(None, ms(2000)), Some(ms(1000)));
+
+        assert_eq!(RateLimitPolicy::ReturnError.retry_wait(None, backoff), None);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn test_retry_policy_never_waits_past_max_delay() {
+        let retrying = Retrying::new((), test_cfg(3)).with_rate_limit_policy(
+            RateLimitPolicy::retry().with_max_delay(Duration::from_secs(1)),
+        );
+
+        // The margin is trimmed to the bound, and a longer delay is capped at it.
+        for server_delay in [
+            Duration::from_millis(950),
+            Duration::from_secs(1),
+            Duration::from_secs(3600),
+        ] {
+            let (result, attempts, elapsed) = run(&retrying, |n| {
+                (n == 1).then(|| rate_limited(Some(server_delay)))
+            })
+            .await;
+            assert!(result.is_ok());
+            assert_eq!(attempts, 2);
+            assert_elapsed(elapsed, Duration::from_secs(1));
+        }
     }
 
     #[tokio::test(start_paused = true)]
@@ -742,7 +938,7 @@ mod tests {
         .await;
         assert!(result.is_ok());
         assert_eq!(attempts, 2);
-        assert_elapsed(elapsed, Duration::from_secs(2));
+        assert_elapsed(elapsed, Duration::from_millis(2100));
     }
 
     #[tokio::test(start_paused = true)]

@@ -192,7 +192,7 @@ pub struct StreamConfigBuilder {
     /// When `true`, the scoped dispatch is not created for this stream.
     /// Set by the internal metrics sub-stream builder to prevent recursive event capture.
     pub(crate) disable_scoped_dispatch: bool,
-    /// How rate-limited control-plane calls are handled. Defaults to [`RateLimitPolicy::Retry`].
+    /// How rate-limited control-plane calls are handled. Defaults to [`RateLimitPolicy::retry`].
     pub(crate) rate_limit_policy: RateLimitPolicy,
 }
 
@@ -238,13 +238,15 @@ impl StreamConfigBuilder {
     /// later [`attach_run`](crate::SiftStream::attach_run) and
     /// [`add_new_flows`](crate::IngestionConfigEncoder::add_new_flows) calls.
     ///
-    /// Defaults to [`RateLimitPolicy::Retry`], which retries after waiting at least the delay
-    /// Sift requests. Use [`RateLimitPolicy::ReturnError`] to receive
+    /// Defaults to [`RateLimitPolicy::retry`], which retries after waiting the delay Sift
+    /// requests plus a 100ms margin, but never longer than 10 seconds. Use
+    /// [`RateLimitPolicy::with_max_delay`] and [`RateLimitPolicy::with_margin`] to change those,
+    /// or [`RateLimitPolicy::ReturnError`] to receive
     /// [`ErrorKind::RateLimitedError`](sift_error::ErrorKind::RateLimitedError) immediately and
-    /// read the delay with [`Error::retry_delay`](sift_error::Error::retry_delay), or
-    /// [`RateLimitPolicy::RetryIfDelayAtMost`] to only wait up to a bound.
+    /// read the delay with [`Error::retry_delay`](sift_error::Error::retry_delay).
     ///
-    /// Streaming ingestion is not affected; it is governed by the mode's retry policy.
+    /// Streaming ingestion is not affected; it is governed by the mode's retry policy. See
+    /// [`RetryPolicy`] for how it handles rate limits.
     pub fn rate_limit_policy(mut self, policy: RateLimitPolicy) -> Self {
         self.rate_limit_policy = policy;
         self

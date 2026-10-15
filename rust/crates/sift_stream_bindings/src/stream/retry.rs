@@ -35,6 +35,10 @@ impl DurationPy {
 ///
 /// A retry policy configures the retry behavior of a Sift stream, including the number
 /// of attempts and exponential backoff parameters.
+///
+/// When Sift rate limits a stream, the next attempt waits the requested delay plus a 100ms
+/// margin, capped at `max_backoff`. A longer requested delay does not end the stream; it
+/// reconnects after `max_backoff` and keeps retrying as it does for any other failure.
 #[gen_stub_pyclass]
 #[pyclass(from_py_object)]
 #[derive(Clone, Debug)]
@@ -58,9 +62,12 @@ pub struct RetryPolicyPy {
 ///
 /// Create one with a static constructor:
 ///
-/// - `RateLimitPolicyPy.retry()` (default): retry after waiting at least the delay Sift requests.
-/// - `RateLimitPolicyPy.retry_if_delay_at_most(max_delay)`: retry only if the wait is at most
-///   `max_delay`; otherwise raise immediately.
+/// - `RateLimitPolicyPy.retry()` (default): retry after waiting the delay Sift requests plus a
+///   margin (100ms by default), but never longer than a maximum delay (10 seconds by default).
+///   Change them with `with_max_delay(...)` and `with_margin(...)`, for example
+///   `RateLimitPolicyPy.retry().with_max_delay(DurationPy(30, 0))`. A retry made before Sift's
+///   delay has passed may be rate limited again, and the error is raised once the attempts run
+///   out.
 /// - `RateLimitPolicyPy.return_error()`: never retry; raise immediately.
 ///
 /// A rate-limit error is raised as a `RuntimeError` whose message starts with
@@ -231,18 +238,24 @@ impl RetryPolicyPy {
 #[gen_stub_pymethods]
 #[pymethods]
 impl RateLimitPolicyPy {
-    /// Retry rate-limited calls after waiting at least the delay Sift requests. This is the
-    /// default.
+    /// Retry rate-limited calls after waiting the delay Sift requests plus a 100ms margin, but
+    /// never longer than 10 seconds. This is the default. Change the maximum delay and the margin
+    /// with `with_max_delay` and `with_margin`.
     #[staticmethod]
     pub fn retry() -> Self {
-        RateLimitPolicy::Retry.into()
+        RateLimitPolicy::retry().into()
     }
 
-    /// Retry rate-limited calls only if the wait is at most `max_delay`; otherwise raise the
-    /// rate-limit error immediately.
-    #[staticmethod]
-    pub fn retry_if_delay_at_most(max_delay: DurationPy) -> Self {
-        RateLimitPolicy::RetryIfDelayAtMost(max_delay.into()).into()
+    /// Returns a copy of this policy with the longest wait before a retry set to `max_delay`.
+    /// Has no effect on `return_error()`.
+    pub fn with_max_delay(&self, max_delay: DurationPy) -> Self {
+        self.inner.with_max_delay(max_delay.into()).into()
+    }
+
+    /// Returns a copy of this policy with the margin added to Sift's requested delay set to
+    /// `margin`. Has no effect on `return_error()`.
+    pub fn with_margin(&self, margin: DurationPy) -> Self {
+        self.inner.with_margin(margin.into()).into()
     }
 
     /// Never retry rate-limited calls; raise the rate-limit error immediately.
@@ -257,14 +270,25 @@ impl RateLimitPolicyPy {
     }
 
     pub fn __repr__(&self) -> String {
+        fn duration_repr(duration: std::time::Duration) -> String {
+            let duration = DurationPy::from(duration);
+            format!(
+                "DurationPy(secs={}, nanos={})",
+                duration.secs, duration.nanos
+            )
+        }
+
         match self.inner {
-            RateLimitPolicy::Retry => "RateLimitPolicyPy.retry()".to_string(),
-            RateLimitPolicy::RetryIfDelayAtMost(max_delay) => {
-                let max_delay = DurationPy::from(max_delay);
-                format!(
-                    "RateLimitPolicyPy.retry_if_delay_at_most(DurationPy(secs={}, nanos={}))",
-                    max_delay.secs, max_delay.nanos
-                )
+            RateLimitPolicy::Retry { max_delay, margin } => {
+                // Defaults are omitted to keep the common case short.
+                let mut repr = "RateLimitPolicyPy.retry()".to_string();
+                if max_delay != RateLimitPolicy::DEFAULT_MAX_DELAY {
+                    repr += &format!(".with_max_delay({})", duration_repr(max_delay));
+                }
+                if margin != RateLimitPolicy::DEFAULT_MARGIN {
+                    repr += &format!(".with_margin({})", duration_repr(margin));
+                }
+                repr
             }
             RateLimitPolicy::ReturnError => "RateLimitPolicyPy.return_error()".to_string(),
         }

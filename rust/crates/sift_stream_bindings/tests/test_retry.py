@@ -34,11 +34,31 @@ class TestRetryComponents:
         assert repr(RateLimitPolicyPy.default()) == "RateLimitPolicyPy.retry()"
         assert repr(RateLimitPolicyPy.return_error()) == "RateLimitPolicyPy.return_error()"
 
-        policy = RateLimitPolicyPy.retry_if_delay_at_most(DurationPy(2, 500))
-        assert (
-            repr(policy)
-            == "RateLimitPolicyPy.retry_if_delay_at_most(DurationPy(secs=2, nanos=500))"
+    def test_rate_limit_policy_builder(self):
+        """Test that non-default settings are kept and shown, and defaults are omitted."""
+        policy = RateLimitPolicyPy.retry().with_max_delay(DurationPy(2, 500))
+        assert repr(policy) == (
+            "RateLimitPolicyPy.retry().with_max_delay(DurationPy(secs=2, nanos=500))"
         )
+
+        policy = policy.with_margin(DurationPy(0, 250_000_000))
+        assert repr(policy) == (
+            "RateLimitPolicyPy.retry()"
+            ".with_max_delay(DurationPy(secs=2, nanos=500))"
+            ".with_margin(DurationPy(secs=0, nanos=250000000))"
+        )
+
+        # Setting the defaults explicitly matches the default policy.
+        policy = (
+            RateLimitPolicyPy.retry()
+            .with_max_delay(DurationPy(10, 0))
+            .with_margin(DurationPy(0, 100_000_000))
+        )
+        assert repr(policy) == "RateLimitPolicyPy.retry()"
+
+        # The builder methods do not turn return_error into a retrying policy.
+        policy = RateLimitPolicyPy.return_error().with_max_delay(DurationPy(30, 0))
+        assert repr(policy) == "RateLimitPolicyPy.return_error()"
 
     def test_builders_carry_rate_limit_policy(self):
         """Test that the builders default to retry and carry a configured policy forward."""
@@ -53,9 +73,9 @@ class TestRetryComponents:
         )
         assert repr(config_builder.rate_limit_policy) == "RateLimitPolicyPy.return_error()"
 
-        config_builder.rate_limit_policy = RateLimitPolicyPy.retry_if_delay_at_most(
+        config_builder.rate_limit_policy = RateLimitPolicyPy.retry().with_max_delay(
             DurationPy(1, 0)
         )
         assert repr(config_builder.rate_limit_policy) == (
-            "RateLimitPolicyPy.retry_if_delay_at_most(DurationPy(secs=1, nanos=0))"
+            "RateLimitPolicyPy.retry().with_max_delay(DurationPy(secs=1, nanos=0))"
         )

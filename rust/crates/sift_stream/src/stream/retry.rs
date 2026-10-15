@@ -17,6 +17,11 @@ pub(crate) fn control_plane_retry<T>(inner: T, policy: RateLimitPolicy) -> Retry
 /// The retry policy uses exponential backoff with configurable parameters. When a retryable
 /// error occurs, the stream will wait for the calculated backoff duration before retrying.
 ///
+/// When Sift rate limits a stream, the next attempt waits the larger of Sift's requested delay
+/// plus [`RateLimitPolicy::DEFAULT_MARGIN`] and the backoff, but never longer than
+/// `max_backoff`. If Sift asks to wait longer than `max_backoff`, the stream still reconnects
+/// after `max_backoff` and keeps retrying as it does for any other failure.
+///
 /// # Example
 ///
 /// ```
@@ -95,6 +100,28 @@ impl RetryPolicy {
         }
         (current_wait * u32::from(self.backoff_multiplier)).min(self.max_backoff)
     }
+
+    /// How long to wait before the next streaming attempt, given this attempt's `backoff` and
+    /// the delay Sift requested if it rate limited the attempt.
+    ///
+    /// This is [`RateLimitPolicy::retry`] with `max_backoff` as the maximum delay: a
+    /// rate-limited attempt waits the larger of Sift's delay plus
+    /// [`RateLimitPolicy::DEFAULT_MARGIN`] and the backoff, but no longer than the backoff can
+    /// reach. If Sift asked for longer, the next attempt may be rate limited again and is retried
+    /// like any other failure.
+    pub(crate) fn wait_for_retry(
+        &self,
+        backoff: Duration,
+        server_delay: Option<Duration>,
+    ) -> Duration {
+        // `initial_backoff` is not capped by `max_backoff`, so the first backoff can exceed it.
+        let max_delay = self.max_backoff.max(backoff);
+        // `RateLimitPolicy::Retry` always retries, so the fallback is never used.
+        RateLimitPolicy::retry()
+            .with_max_delay(max_delay)
+            .retry_wait(server_delay, backoff)
+            .unwrap_or(backoff)
+    }
 }
 
 #[cfg(test)]
@@ -126,5 +153,31 @@ mod test {
         // so if the current wait is zero, the initial backoff should be returned.
         current_wait = policy.backoff(Duration::ZERO);
         assert_eq!(current_wait, policy.initial_backoff);
+    }
+
+    #[test]
+    fn test_wait_for_retry() {
+        let ms = Duration::from_millis;
+        // Default policy: 5s max backoff.
+        let policy = RetryPolicy::default();
+
+        // Without a rate limit, the backoff is used as is.
+        assert_eq!(policy.wait_for_retry(ms(250), None), ms(250));
+
+        // A rate limit waits the larger of Sift's delay plus the margin and the backoff.
+        assert_eq!(policy.wait_for_retry(ms(250), Some(ms(1000))), ms(1100));
+        assert_eq!(policy.wait_for_retry(ms(250), Some(ms(100))), ms(250));
+
+        // The wait, margin included, is capped at `max_backoff`.
+        assert_eq!(policy.wait_for_retry(ms(250), Some(ms(4950))), ms(5000));
+        assert_eq!(policy.wait_for_retry(ms(250), Some(ms(60_000))), ms(5000));
+
+        // An `initial_backoff` above `max_backoff` raises the cap to the backoff.
+        let policy = RetryPolicy {
+            initial_backoff: ms(8000),
+            ..RetryPolicy::default()
+        };
+        assert_eq!(policy.wait_for_retry(ms(8000), Some(ms(6000))), ms(8000));
+        assert_eq!(policy.wait_for_retry(ms(8000), Some(ms(60_000))), ms(8000));
     }
 }

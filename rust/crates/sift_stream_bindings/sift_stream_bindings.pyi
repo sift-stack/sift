@@ -476,9 +476,12 @@ class RateLimitPolicyPy:
     
     Create one with a static constructor:
     
-    - `RateLimitPolicyPy.retry()` (default): retry after waiting at least the delay Sift requests.
-    - `RateLimitPolicyPy.retry_if_delay_at_most(max_delay)`: retry only if the wait is at most
-      `max_delay`; otherwise raise immediately.
+    - `RateLimitPolicyPy.retry()` (default): retry after waiting the delay Sift requests plus a
+      margin (100ms by default), but never longer than a maximum delay (10 seconds by default).
+      Change them with `with_max_delay(...)` and `with_margin(...)`, for example
+      `RateLimitPolicyPy.retry().with_max_delay(DurationPy(30, 0))`. A retry made before Sift's
+      delay has passed may be rate limited again, and the error is raised once the attempts run
+      out.
     - `RateLimitPolicyPy.return_error()`: never retry; raise immediately.
     
     A rate-limit error is raised as a `RuntimeError` whose message starts with
@@ -487,14 +490,19 @@ class RateLimitPolicyPy:
     @staticmethod
     def retry() -> RateLimitPolicyPy:
         r"""
-        Retry rate-limited calls after waiting at least the delay Sift requests. This is the
-        default.
+        Retry rate-limited calls after waiting the delay Sift requests plus a 100ms margin, but
+        never longer than 10 seconds. This is the default. Change the maximum delay and the margin
+        with `with_max_delay` and `with_margin`.
         """
-    @staticmethod
-    def retry_if_delay_at_most(max_delay:DurationPy) -> RateLimitPolicyPy:
+    def with_max_delay(self, max_delay:DurationPy) -> RateLimitPolicyPy:
         r"""
-        Retry rate-limited calls only if the wait is at most `max_delay`; otherwise raise the
-        rate-limit error immediately.
+        Returns a copy of this policy with the longest wait before a retry set to `max_delay`.
+        Has no effect on `return_error()`.
+        """
+    def with_margin(self, margin:DurationPy) -> RateLimitPolicyPy:
+        r"""
+        Returns a copy of this policy with the margin added to Sift's requested delay set to
+        `margin`. Has no effect on `return_error()`.
         """
     @staticmethod
     def return_error() -> RateLimitPolicyPy:
@@ -515,6 +523,10 @@ class RetryPolicyPy:
     
     A retry policy configures the retry behavior of a Sift stream, including the number
     of attempts and exponential backoff parameters.
+    
+    When Sift rate limits a stream, the next attempt waits the requested delay plus a 100ms
+    margin, capped at `max_backoff`. A longer requested delay does not end the stream; it
+    reconnects after `max_backoff` and keeps retrying as it does for any other failure.
     """
     max_attempts: builtins.int
     initial_backoff: DurationPy
