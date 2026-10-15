@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
+from sift_client._internal.low_level_wrappers._test_results_log import LogTracking
 from sift_client._internal.pytest_plugin.audit_log import (
     RECONCILED_MARKER,
     _make_session_dir,
@@ -106,8 +107,8 @@ def _parse_reconciled_count(stderr_text: str) -> int:
 
     Returns 0 if the ``RECONCILED_MARKER`` line is missing or malformed.
     """
+    prefix = f"{RECONCILED_MARKER}:"
     for line in stderr_text.splitlines():
-        prefix = f"{RECONCILED_MARKER}:"
         if line.startswith(prefix):
             try:
                 return int(line[len(prefix) :])
@@ -250,7 +251,10 @@ class ReportContext(AbstractContextManager):
     # the JSONL backlog at session end before killing it. Tests substitute
     # a smaller value (via ``_make_context`` patching) so they don't wait
     # the full window for the timeout branch to trigger.
-    _import_proc_timeout: float = 30.0
+    _import_proc_timeout: float = 120.0
+    # Seconds the worker gets to stop after SIGTERM, which lets it finish the
+    # request in flight and save its progress, before it is killed.
+    _import_proc_stop_grace: float = 30.0
 
     def __init__(
         self,
@@ -411,6 +415,8 @@ class ReportContext(AbstractContextManager):
         # Redact the API key before logging; never log the raw argv.
         api_key = self.client.grpc_client._config.api_key
         safe = ["***" if a == api_key else a for a in self._build_replay_command()]
+        # A stop request left by an earlier run on the same log path.
+        LogTracking.stop_path(self.log_file).unlink(missing_ok=True)
         log_event(logger, logging.INFO, "replay.start", log=self.log_file)
         log_event(logger, logging.DEBUG, "replay.cmd", argv=" ".join(safe))
         try:
@@ -473,8 +479,9 @@ class ReportContext(AbstractContextManager):
             # `import-test-result-log <path>`:
             #   1. Exits cleanly (returncode 0). Silent.
             #   2. Still running after the grace window (TimeoutExpired).
-            #      Healthy worker with a large backlog; kill and surface
-            #      replay instructions. 30 seconds is enough for a normal
+            #      Healthy worker with a large backlog; ask it to stop so it
+            #      saves its progress, kill it if it does not, and surface
+            #      replay instructions. The default window is enough for a normal
             #      test suite to drain; pathological backlogs should opt
             #      into inline mode (`--no-sift-log-file`) instead.
             #   3. Exited with non-zero. Connection failures and API call
@@ -484,8 +491,18 @@ class ReportContext(AbstractContextManager):
             try:
                 _, stderr_bytes = self._import_proc.communicate(timeout=self._import_proc_timeout)
             except subprocess.TimeoutExpired:
-                self._import_proc.kill()
-                self._import_proc.wait()
+                if sys.platform == "win32":
+                    # terminate() is a hard kill on Windows, so ask through a
+                    # file the importer checks between requests.
+                    LogTracking.stop_path(self.log_file).touch()
+                else:
+                    self._import_proc.terminate()
+                try:
+                    self._import_proc.communicate(timeout=self._import_proc_stop_grace)
+                except subprocess.TimeoutExpired:
+                    self._import_proc.kill()
+                    self._import_proc.wait()
+                LogTracking.stop_path(self.log_file).unlink(missing_ok=True)
                 self.replay_incomplete = True
                 log_event(
                     logger,
@@ -496,7 +513,7 @@ class ReportContext(AbstractContextManager):
                 )
                 warnings.warn(
                     f"Sift import worker did not exit in "
-                    f"{self._import_proc_timeout}s; killing it. "
+                    f"{self._import_proc_timeout}s; stopping it. "
                     "Local log file is preserved for manual replay.",
                     SiftWarning,
                     stacklevel=2,
@@ -537,6 +554,13 @@ class ReportContext(AbstractContextManager):
                 log_event(logger, logging.INFO, "replay.done")
 
         return True
+
+    @property
+    def pending_upload_timeout(self) -> float | None:
+        """Seconds ``finalize`` will wait for the import worker, or None if it will not wait."""
+        if self._finalized or self._import_proc is None:
+            return None
+        return self._import_proc_timeout
 
     @property
     def is_simulated(self) -> bool:

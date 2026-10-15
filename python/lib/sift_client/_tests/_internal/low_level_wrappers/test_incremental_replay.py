@@ -20,7 +20,11 @@ import pytest
 from grpc import RpcError, StatusCode
 
 from sift_client._internal.low_level_wrappers import test_results as test_results_module
-from sift_client._internal.low_level_wrappers._test_results_log import LogTracking
+from sift_client._internal.low_level_wrappers._test_results_log import (
+    LogTracking,
+    _replay_stop,
+    request_replay_stop,
+)
 from sift_client._internal.low_level_wrappers.test_results import (
     # Aliased so pytest doesn't try to collect the `Test`-prefixed client as a suite.
     TestResultsLowLevelClient as ResultsLowLevelClient,
@@ -1358,3 +1362,103 @@ def test_cleanup_temp_log_legacy_flat_layout(tmp_path, monkeypatch):
     assert not log.exists()
     assert not tracking.exists()
     assert other.exists()
+
+
+@pytest.mark.asyncio
+async def test_stop_request_ends_replay_after_the_request_in_flight(tmp_path):
+    """A stop request halts replay between requests, with the cursor at what was sent."""
+    log_file = tmp_path / "stop.jsonl"
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+    report, _, _ = await _build_measurement_log(client, log_file, batched=False, count=150)
+
+    LogTracking(last_uploaded_line=2, id_map={report.id_: "real-report"}).save(log_file)
+
+    async def create_and_request_stop(*, request):
+        sent = len(request.test_measurements)
+        request_replay_stop()
+        return sent, [f"real-{i}" for i in range(sent)]
+
+    client.create_test_measurements = AsyncMock(side_effect=create_and_request_stop)
+    try:
+        await client.import_log_file(log_file, incremental=True)
+    finally:
+        _replay_stop.clear()
+
+    # The first full batch went out; the other 50 measurements wait for the next run.
+    client.create_test_measurements.assert_awaited_once()
+    assert LogTracking.load(log_file).last_uploaded_line == 2 + 100
+
+
+@pytest.mark.asyncio
+async def test_stop_file_ends_replay_before_any_request(tmp_path):
+    """The stop file stops replay where a signal cannot reach the worker (Windows)."""
+    log_file = tmp_path / "stop_file.jsonl"
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+    report, _, _ = await _build_measurement_log(client, log_file, batched=False)
+
+    LogTracking(last_uploaded_line=2, id_map={report.id_: "real-report"}).save(log_file)
+    LogTracking.stop_path(log_file).touch()
+    client.create_test_measurements = AsyncMock()
+
+    await client.import_log_file(log_file, incremental=True)
+
+    client.create_test_measurements.assert_not_awaited()
+    assert LogTracking.load(log_file).last_uploaded_line == 2
+
+
+@pytest.mark.asyncio
+async def test_resume_ignores_a_stop_file(tmp_path):
+    """A leftover stop file must not cut short the recovery upload of a final log.
+
+    Stopping early would end the walk before the unsent lines and still mark the
+    upload complete.
+    """
+    log_file = tmp_path / "resume_with_stop_file.jsonl"
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+    await _build_measurement_log(client, log_file, batched=False)
+    created = _answer_real_creates(
+        client,
+        report_id="real-report",
+        step_ids=["real-step"],
+        measurement_ids=["real-meas-1", "real-meas-2", "real-meas-3"],
+    )
+    LogTracking.stop_path(log_file).touch()
+
+    await client.import_log_file(log_file)
+
+    assert created == ["report", "s1", "m1", "m2", "m3"]
+    assert LogTracking.load(log_file).complete
+
+
+def test_worker_loop_keeps_the_log_after_a_stop(monkeypatch, tmp_path):
+    """A stopped worker has not uploaded everything, so the log is left for the resume."""
+    from sift_client._internal.pytest_plugin import replay_worker
+
+    cleaned: list[str] = []
+    monkeypatch.setattr(replay_worker, "cleanup_temp_log", cleaned.append)
+    monkeypatch.setattr(replay_worker.select, "select", lambda *_: ([], [], []))
+    log = tmp_path / "stopped.jsonl"
+    LogTracking.stop_path(log).touch()
+    client = MagicMock()
+    client.test_results.import_log_file.return_value = MagicMock(reconciled_count=0)
+
+    replay_worker._incremental_import_loop(client, str(log), keep_log=False)
+
+    assert cleaned == []
+
+
+def test_worker_loop_reports_reconciled_total_and_cleans_up(monkeypatch, tmp_path, capsys):
+    """A clean finish reports the summed reconciled count on stderr, then reclaims the log."""
+    from sift_client._internal.pytest_plugin import replay_worker
+
+    cleaned: list[str] = []
+    monkeypatch.setattr(replay_worker, "cleanup_temp_log", cleaned.append)
+    monkeypatch.setattr(replay_worker.select, "select", lambda *_: ([object()], [], []))
+    client = MagicMock()
+    client.test_results.import_log_file.return_value = MagicMock(reconciled_count=4)
+    log = str(tmp_path / "done.jsonl")
+
+    replay_worker._incremental_import_loop(client, log, keep_log=False)
+
+    assert "SIFT_REPLAY_RECONCILED:4" in capsys.readouterr().err
+    assert cleaned == [log]

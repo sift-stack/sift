@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 import warnings
+from collections import defaultdict
 from datetime import timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, NamedTuple, TypeVar, cast
@@ -50,6 +51,7 @@ from sift_client._internal.low_level_wrappers._test_results_log import (
     _ReplayState,
     log_request_to_file,
     parse_log_data_lines,
+    replay_stop_requested,
 )
 from sift_client._internal.low_level_wrappers.base import DEFAULT_PAGE_SIZE, LowLevelClientBase
 from sift_client._internal.pytest_plugin.audit_log import log_event
@@ -98,13 +100,21 @@ _AMBIGUOUS_STATUS_CODES = frozenset(
 )
 
 
+def _rpc_code(exc: RpcError) -> StatusCode | None:
+    """Status code of *exc*, or None when it has none.
+
+    RpcError itself carries no status; only the Call subclasses the channel
+    raises do, and the async ones are not ``grpc.Call``.
+    """
+    return getattr(exc, "code", lambda: None)()
+
+
 def _is_ambiguous_grpc_failure(exc: Exception) -> bool:
     """True when *exc* is an RpcError whose status is in ``_AMBIGUOUS_STATUS_CODES``.
 
-    An exception without a ``code()``, such as a local ``TypeError``, is not ambiguous.
+    Any other exception, such as a local ``TypeError``, is not ambiguous.
     """
-    code = getattr(exc, "code", None)
-    return callable(code) and code() in _AMBIGUOUS_STATUS_CODES
+    return isinstance(exc, RpcError) and _rpc_code(exc) in _AMBIGUOUS_STATUS_CODES
 
 
 class _EntryIds(NamedTuple):
@@ -922,6 +932,8 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         The key is ``test_step_id``, ``name``, ``timestamp``, and whichever
         value field is set. Each server row matches at most one proto, so
         identical measurements in one batch need identical rows on the server.
+        Best effort: a value the server stores differently from what was sent
+        does not match.
 
         Returns one slot per input proto, in order; ``None`` where nothing on
         the server matched.
@@ -932,42 +944,29 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             query_filter=and_(in_("test_step_id", step_ids), in_("name", names))
         )
 
-        def value_of(numeric: float | None, string: str | None, boolean: bool | None):
-            if numeric is not None:
-                return numeric
-            if string is not None:
-                return string
-            return boolean
-
-        candidates: dict[tuple[str, str, Any, Any], list[TestMeasurement]] = {}
+        candidates: defaultdict[tuple[str, str, Any, Any], list[TestMeasurement]] = defaultdict(
+            list
+        )
         for measurement in existing:
-            key = (
-                measurement.test_step_id,
-                measurement.name,
-                measurement.timestamp,
-                value_of(
-                    measurement.numeric_value, measurement.string_value, measurement.boolean_value
-                ),
-            )
-            candidates.setdefault(key, []).append(measurement)
+            value = measurement.numeric_value
+            if value is None:
+                value = measurement.string_value
+            if value is None:
+                value = measurement.boolean_value
+            key = (measurement.test_step_id, measurement.name, measurement.timestamp, value)
+            candidates[key].append(measurement)
 
         matches: list[TestMeasurement | None] = []
         for proto in protos:
-            if proto.HasField("numeric_value"):
-                value = value_of(proto.numeric_value, None, None)
-            elif proto.HasField("string_value"):
-                value = value_of(None, proto.string_value, None)
-            elif proto.HasField("boolean_value"):
-                value = value_of(None, None, proto.boolean_value)
-            else:
-                value = None
+            which = proto.WhichOneof("value")
+            value = getattr(proto, which) if which else None
             key = (
                 proto.test_step_id,
                 proto.name,
                 proto.timestamp.ToDatetime(tzinfo=timezone.utc),
                 value,
             )
-            bucket = candidates.get(key)
+            bucket = candidates.get(key)  # get, so a miss does not insert an empty list
             matches.append(bucket.pop(0) if bucket else None)
         return matches
 
@@ -1264,10 +1263,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         try:
             return await self.get_test_report(real_report_id)
         except RpcError as exc:
-            # RpcError itself carries no status; only the Call subclasses the
-            # channel actually raises do, and the async ones are not grpc.Call.
-            code = getattr(exc, "code", lambda: None)()
-            if code != StatusCode.NOT_FOUND:
+            if _rpc_code(exc) != StatusCode.NOT_FOUND:
                 raise
             raise ValueError(
                 f"Test report {real_report_id}, from the interrupted upload recorded in "
@@ -1707,6 +1703,12 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         state = _ReplayState()
 
         raw_lines = await _read_log_lines(log_path)
+
+        def stop_requested() -> bool:
+            # Only the live worker follows a stop request. A resume of a final
+            # log must walk to the end, or it would mark unsent data complete.
+            return not resuming and replay_stop_requested(log_path)
+
         # A run of consecutive single-measurement lines collects here and is sent
         # as one batch call.
         buffered_measurements: list[tuple[str | None, TestMeasurementProto]] = []
@@ -1718,9 +1720,9 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             The cursor advances only after the call returns, so a failure leaves
             every line of the run to be retried next tick.
             """
+            nonlocal reconciled_count
             if not buffered_measurements:
                 return
-            nonlocal reconciled_count
             first_line = tracking.last_uploaded_line + 1
             try:
                 real_ids, batch_reconciled = await self._replay_create_measurement_group(
@@ -1762,6 +1764,8 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         for request_type, response_id, json_str in parse_log_data_lines(
             raw_lines, start_line=tracking.last_uploaded_line
         ):
+            if stop_requested():
+                break
             if request_type == "CreateTestMeasurement":
                 # The step ID is resolvable now because a CreateTestStep line
                 # flushes the buffer before it is imported, so every step a
@@ -1822,13 +1826,17 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 idmap=len(id_map),
             )
 
-        # A log ending in measurement lines leaves a run buffered.
-        await flush_measurements()
+        # A stop leaves any buffered run unsent; the cursor has not moved past it,
+        # so the next run resends it. Otherwise a log ending in measurement lines
+        # leaves a run buffered.
+        stopped = stop_requested()
+        if not stopped:
+            await flush_measurements()
 
         # On a resume tick the CreateTestReport line was consumed on an earlier
         # tick, so state.report is expected to be None; the report already exists
         # on the server. Only a genuine first pass over an empty log is an error.
-        if state.report is None and not report_already_created:
+        if state.report is None and not report_already_created and not stopped:
             raise ValueError("No CreateTestReport found in log file")
 
         if resuming:

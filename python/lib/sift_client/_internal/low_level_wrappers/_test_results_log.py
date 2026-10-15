@@ -54,6 +54,7 @@ import json
 import logging
 import os
 import re
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Generator
@@ -125,6 +126,15 @@ class LogTracking:
         """Return where a sidecar is kept when an upload is restarted (``<log>.tracking.bak``)."""
         sidecar = LogTracking.sidecar_path(log_path)
         return sidecar.with_name(sidecar.name + ".bak")
+
+    @staticmethod
+    def stop_path(log_path: str | Path) -> Path:
+        """Return the file that asks the replay worker to stop (``<log>.stop``).
+
+        Used where the worker cannot be signalled gracefully, which is Windows.
+        """
+        p = Path(log_path)
+        return p.with_name(p.name + ".stop")
 
     @staticmethod
     def archive(log_path: str | Path) -> Path | None:
@@ -214,6 +224,21 @@ class ReplayResult:
     ``_create_measurement_batch_reconciling``) and the server already had some
     or all of the batch.
     """
+
+
+# Set by the replay worker's SIGTERM handler; the incremental importer checks it
+# between requests. Only the dedicated worker process ever sets it.
+_replay_stop = threading.Event()
+
+
+def request_replay_stop() -> None:
+    """Ask the incremental importer to stop after the request in flight."""
+    _replay_stop.set()
+
+
+def replay_stop_requested(log_path: str | Path) -> bool:
+    """True once a stop was requested by signal or by the log's stop file."""
+    return _replay_stop.is_set() or LogTracking.stop_path(log_path).exists()
 
 
 async def log_request_to_file(
