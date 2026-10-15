@@ -78,7 +78,7 @@ impl SiftMcpServer {
                 `rule_id`, `client_key`, `name`, `description`, `is_external`, `asset_id`, `tag_id`,
                 `created_date`, `created_by_user_id`, `metadata`, `modified_date`, `modified_by_user_id`,
                 `deleted_date`, `is_archived`, `archived_date`, `is_live_evaluation_enabled`.
-                Reference metadata entries as `metadata.{key}` (e.g. `metadata.severity == \"high\"`).
+                Reference metadata entries as `metadata[\"<key>\"]` (e.g. `metadata[\"severity\"] == \"high\"`).
                 When filtering or searching, use `name.matches(\"(?i)avionics\")`, not `==`. Use `==` only for an
                 exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
                 `contains(\"Avionics\")` silently misses `avionics-power-limit`.

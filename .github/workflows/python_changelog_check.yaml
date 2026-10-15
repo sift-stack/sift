@@ -1,0 +1,44 @@
+name: python-changelog-check
+
+# Every pull request that changes python/ must add a changelog fragment in python/changelog.d.
+# An empty <PR>.chore.md fragment marks a change with no user-visible effect.
+# See python/changelog.d/README.md.
+
+on:
+  pull_request:
+    paths:
+      - 'python/**'
+
+permissions:
+  contents: read
+
+jobs:
+  fragment:
+    name: Changelog fragment
+    runs-on: ubuntu-latest
+    steps:
+      # HEAD is the merge of the PR into the base branch, and HEAD^1 is the base branch tip.
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Check for a fragment
+        run: uvx towncrier@26.9.0 check --dir python --config python/pyproject.toml --compare-with HEAD^1
+
+      # A release PR adds a version heading to the changelog. See python/changelog.d/README.md.
+      - name: Check that a release PR includes every fragment
+        run: |
+          if git diff HEAD^1 HEAD -- python/CHANGELOG.md | grep -q '^+## \[v'; then
+            if ! python3 python/scripts/release_version.py --leftover; then
+              echo "Error: the fragments above merged after this release PR was opened."
+              echo "Run Python Release Prep again to update this PR."
+              exit 1
+            fi
+          fi
+
+      - name: Check that the fragments render
+        run: uvx towncrier@26.9.0 build --dir python --config python/pyproject.toml --draft --version 0.0.0 --date "Draft" > /dev/null

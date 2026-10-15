@@ -45,12 +45,29 @@ pub(crate) fn url_clause(kind: &str, name: Option<&str>, url: Option<&str>) -> S
         return String::new();
     };
     match name {
-        Some(name) => format!(" Present it to the user as the Markdown link [{name}]({url})."),
+        Some(name) => format!(
+            " Present it to the user as the Markdown link [{}]({url}).",
+            escape_link_text(name)
+        ),
         None => format!(
             " Present the {kind} to the user as a Markdown link to {url} whose text is the {kind}'s \
              name, never a bare id or the word \"link\"."
         ),
     }
+}
+
+/// Backslash-escape the characters that end or nest Markdown link text. An
+/// unbalanced bracket, as in `results v2].csv`, otherwise stops the text from
+/// rendering as a link at all.
+fn escape_link_text(text: &str) -> String {
+    let mut escaped = String::with_capacity(text.len());
+    for c in text.chars() {
+        if matches!(c, '\\' | '[' | ']') {
+            escaped.push('\\');
+        }
+        escaped.push(c);
+    }
+    escaped
 }
 
 /// Serialize each item to JSON and inject a `url` field built by `url_of`, so a

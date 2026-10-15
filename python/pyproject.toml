@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sift_stack_py"
-version = "0.23.0"
+version = "0.23.1"
 description = "Python client library for the Sift API"
 requires-python = ">=3.8"
 readme = { file = "README.md", content-type = "text/markdown" }
@@ -418,6 +418,35 @@ ignore_errors = true
 [[tool.mypy.overrides]]
 module = "mcap.writer"
 follow_imports = "skip"
+
+[tool.towncrier]
+# Changelog entries are fragments in ``changelog.d``. See ``changelog.d/README.md``.
+directory = "changelog.d"
+filename = "CHANGELOG.md"
+start_string = "<!-- towncrier release notes start -->\n"
+template = "changelog.d/template.md.jinja"
+issue_format = "[#{issue}](https://github.com/sift-stack/sift/pull/{issue})"
+
+[[tool.towncrier.type]]
+directory = "breaking"
+name = "Breaking"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "feat"
+name = "Features"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "fix"
+name = "Fixes"
+showcontent = true
+
+# An empty ``chore`` fragment marks a PR with no user-visible change. It is never rendered.
+[[tool.towncrier.type]]
+directory = "chore"
+name = "Chores"
+showcontent = false
 
 [tool.setuptools.packages.find]
 where = ["lib"]

@@ -193,6 +193,58 @@ async fn feature_flag_gates_test_report_tools() {
     enabled_handle.abort();
 }
 
+/// The `filter` parameter bullet of a tool description, up to the next bullet or blank line.
+fn filter_bullet(description: &str) -> String {
+    let mut lines = description
+        .lines()
+        .skip_while(|line| !line.trim_start().starts_with("- `filter`:"));
+    let Some(first) = lines.next() else {
+        return String::new();
+    };
+    let rest = lines.take_while(|line| {
+        let line = line.trim_start();
+        !line.is_empty() && !line.starts_with("- ")
+    });
+    std::iter::once(first)
+        .chain(rest)
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// The filter service only declares metadata keys as `metadata["<key>"]` and rejects
+/// `metadata.<key>`. An agent that copies a dot-form example concludes metadata can't
+/// be filtered, so every `filter` that takes metadata must show the bracket form and no
+/// description may show a dot-form key.
+#[tokio::test]
+async fn tool_descriptions_use_bracket_metadata_syntax() {
+    let (server, handle) =
+        server_with_feature_flags(None, 0, ClientEventReporter::default(), all_feature_flags())
+            .await;
+    let mut metadata_filters = 0;
+    for tool in server.tool_router.list_all() {
+        let description = tool.description.as_deref().unwrap_or_default();
+        let filter = filter_bullet(description);
+        if filter.contains("metadata") {
+            metadata_filters += 1;
+            assert!(
+                filter.contains(r#"`metadata["<key>"]`"#),
+                "{} filters on metadata without showing the bracket syntax",
+                tool.name
+            );
+        }
+        for (i, _) in description.match_indices("metadata.") {
+            let next = description[i + "metadata.".len()..].chars().next();
+            assert!(
+                !next.is_some_and(|c| c == '{' || c == '_' || c.is_ascii_alphanumeric()),
+                "{} shows the unsupported dot metadata syntax",
+                tool.name
+            );
+        }
+    }
+    assert!(metadata_filters > 0, "no `filter` bullet mentions metadata");
+    handle.abort();
+}
+
 #[tokio::test]
 async fn each_feature_flag_gates_only_its_own_tools() {
     for &(_, flag) in TOOL_FEATURE_FLAGS {

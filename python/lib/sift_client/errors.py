@@ -19,6 +19,10 @@ class SiftIgnoredInputWarning(SiftWarning):
     """
 
 
+class SiftReportLifecycleWarning(SiftWarning):
+    """Warning for test-results updates that are out of the intended lifecycle order."""
+
+
 class SiftCredentialsError(ValueError):
     """Raised when Sift credentials cannot be resolved.
 
