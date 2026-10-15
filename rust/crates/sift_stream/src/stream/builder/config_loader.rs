@@ -1,11 +1,14 @@
 use super::IngestionConfigForm;
-use crate::stream::flow::{add_new_flows, validate_flows};
+use crate::stream::{
+    flow::{add_new_flows, validate_flows},
+    retry::control_plane_retry,
+};
 use sift_connect::SiftChannel;
 use sift_error::prelude::*;
 use sift_rs::{
     assets::v1::Asset,
     ingestion_configs::v2::{FlowConfig, IngestionConfig},
-    retry::{RetryConfig, RetryExt},
+    retry::RateLimitPolicy,
     wrappers::{
         ServiceOptions,
         assets::{AssetServiceWrapper, new_asset_service},
@@ -21,6 +24,7 @@ pub async fn load_ingestion_config(
     grpc_channel: SiftChannel,
     ingestion_config: IngestionConfigForm,
     service_options: ServiceOptions,
+    rate_limit_policy: RateLimitPolicy,
 ) -> Result<(IngestionConfig, Vec<FlowConfig>, Asset)> {
     #[cfg(feature = "tracing")]
     tracing::info_span!("load_ingestion_config");
@@ -34,7 +38,7 @@ pub async fn load_ingestion_config(
     let ingestion_config_service_wrapper =
         new_ingestion_config_service_with_options(grpc_channel.clone(), service_options);
     let retrying_ingestion_config =
-        ingestion_config_service_wrapper.retrying(RetryConfig::default());
+        control_plane_retry(ingestion_config_service_wrapper, rate_limit_policy);
 
     let ingestion_config_create_res = {
         let asset_name = asset_name.clone();
@@ -76,7 +80,7 @@ pub async fn load_ingestion_config(
 
     // Get the asset corresponding to the ingestion config.
     let asset_service_wrapper = new_asset_service(grpc_channel.clone());
-    let retrying_asset = asset_service_wrapper.retrying(RetryConfig::default());
+    let retrying_asset = control_plane_retry(asset_service_wrapper, rate_limit_policy);
     let asset = {
         let asset_id = ingestion_config.asset_id.clone();
         retrying_asset
@@ -185,15 +189,22 @@ pub async fn load_ingestion_config(
             grpc_channel.clone(),
             &ingestion_config.ingestion_config_id,
             flows_to_create,
+            rate_limit_policy,
         )
         .await;
 
         let mut flow_create_error = false;
+        let mut rate_limit_error = None;
         for (idx, result) in results.into_iter().enumerate() {
             match result {
                 Ok(Ok(())) => {}
                 // A concurrent SiftStream instance may have won the race to create this flow.
                 Ok(Err(e)) if e.kind() == ErrorKind::AlreadyExistsError => {}
+                Ok(Err(e)) if e.is_rate_limited() => {
+                    #[cfg(feature = "tracing")]
+                    tracing::error!("failed to create flow {}: {e}", flow_names[idx]);
+                    rate_limit_error.get_or_insert(e);
+                }
                 Ok(Err(e)) => {
                     #[cfg(feature = "tracing")]
                     tracing::error!("failed to create flow {}: {e}", flow_names[idx]);
@@ -205,6 +216,14 @@ pub async fn load_ingestion_config(
                     flow_create_error = true;
                 }
             }
+        }
+
+        // Surface the rate limit, with its retry delay, only when it is the sole cause of
+        // failure; otherwise retrying after the delay would not be enough to succeed.
+        if let Some(e) = rate_limit_error
+            && !flow_create_error
+        {
+            return Err(e).context("ingestion config flow creation was rate limited");
         }
 
         if flow_create_error {
@@ -247,10 +266,13 @@ mod tests {
     use super::*;
     use crate::test::{
         MockIngestionConfigService, create_mock_grpc_channel_with_ingestion_service,
-        create_mock_grpc_channel_with_service,
+        create_mock_grpc_channel_with_service, rate_limited_status,
     };
     use sift_rs::common::r#type::v1::ChannelDataType;
     use sift_rs::ingestion_configs::v2::ChannelConfig;
+    use std::sync::atomic::Ordering;
+    use std::time::{Duration, Instant};
+    use tonic::Status;
     use uuid::Uuid;
 
     fn create_test_flow_config(name: &str) -> FlowConfig {
@@ -295,10 +317,14 @@ mod tests {
 
         let form = create_test_ingestion_config_form(asset_name, &client_key, flows.clone());
 
-        let (ingestion_config, returned_flows, asset) =
-            load_ingestion_config(grpc_channel, form, ServiceOptions::default())
-                .await
-                .unwrap();
+        let (ingestion_config, returned_flows, asset) = load_ingestion_config(
+            grpc_channel,
+            form,
+            ServiceOptions::default(),
+            RateLimitPolicy::default(),
+        )
+        .await
+        .unwrap();
 
         assert_eq!(ingestion_config.client_key, client_key);
         assert_eq!(asset.name, asset_name);
@@ -313,10 +339,14 @@ mod tests {
 
         let form = create_test_ingestion_config_form(asset_name, &client_key, vec![]);
 
-        let (ingestion_config, returned_flows, asset) =
-            load_ingestion_config(grpc_channel, form, ServiceOptions::default())
-                .await
-                .unwrap();
+        let (ingestion_config, returned_flows, asset) = load_ingestion_config(
+            grpc_channel,
+            form,
+            ServiceOptions::default(),
+            RateLimitPolicy::default(),
+        )
+        .await
+        .unwrap();
 
         assert_eq!(ingestion_config.client_key, client_key);
         assert_eq!(asset.name, asset_name);
@@ -331,10 +361,14 @@ mod tests {
 
         let form = create_test_ingestion_config_form(asset_name, client_key, vec![]);
 
-        let (ingestion_config, returned_flows, _) =
-            load_ingestion_config(grpc_channel, form, ServiceOptions::default())
-                .await
-                .unwrap();
+        let (ingestion_config, returned_flows, _) = load_ingestion_config(
+            grpc_channel,
+            form,
+            ServiceOptions::default(),
+            RateLimitPolicy::default(),
+        )
+        .await
+        .unwrap();
 
         assert_eq!(ingestion_config.client_key, client_key);
         // Should use existing flows from Sift when no flows provided
@@ -353,10 +387,14 @@ mod tests {
 
         let form = create_test_ingestion_config_form(asset_name, client_key, flows.clone());
 
-        let (ingestion_config, returned_flows, _) =
-            load_ingestion_config(grpc_channel, form, ServiceOptions::default())
-                .await
-                .unwrap();
+        let (ingestion_config, returned_flows, _) = load_ingestion_config(
+            grpc_channel,
+            form,
+            ServiceOptions::default(),
+            RateLimitPolicy::default(),
+        )
+        .await
+        .unwrap();
 
         assert_eq!(ingestion_config.client_key, client_key);
         // Should return flows (either existing or newly created)
@@ -373,7 +411,13 @@ mod tests {
 
         let form = create_test_ingestion_config_form(asset_name, client_key, flows);
 
-        let result = load_ingestion_config(grpc_channel, form, ServiceOptions::default()).await;
+        let result = load_ingestion_config(
+            grpc_channel,
+            form,
+            ServiceOptions::default(),
+            RateLimitPolicy::default(),
+        )
+        .await;
 
         // Should fail with IncompatibleIngestionConfigChange error
         assert!(result.is_err());
@@ -390,10 +434,14 @@ mod tests {
 
         let form = create_test_ingestion_config_form(asset_name, client_key, vec![]);
 
-        let (ingestion_config, _, asset) =
-            load_ingestion_config(grpc_channel, form, ServiceOptions::default())
-                .await
-                .unwrap();
+        let (ingestion_config, _, asset) = load_ingestion_config(
+            grpc_channel,
+            form,
+            ServiceOptions::default(),
+            RateLimitPolicy::default(),
+        )
+        .await
+        .unwrap();
 
         assert_eq!(ingestion_config.client_key, client_key);
         // Sift is the source of truth for the name, so the asset keeps its own casing.
@@ -417,10 +465,14 @@ mod tests {
         }];
         let form = create_test_ingestion_config_form(asset_name, client_key, existing_flows);
 
-        let (ingestion_config, returned_flows, _) =
-            load_ingestion_config(grpc_channel, form, ServiceOptions::default())
-                .await
-                .unwrap();
+        let (ingestion_config, returned_flows, _) = load_ingestion_config(
+            grpc_channel,
+            form,
+            ServiceOptions::default(),
+            RateLimitPolicy::default(),
+        )
+        .await
+        .unwrap();
 
         assert_eq!(ingestion_config.client_key, client_key);
         // Should return existing flows
@@ -435,7 +487,13 @@ mod tests {
         let (grpc_channel, _) = create_mock_grpc_channel_with_service().await;
         let form = create_test_ingestion_config_form("", "some_client_key", vec![]);
 
-        let result = load_ingestion_config(grpc_channel, form, ServiceOptions::default()).await;
+        let result = load_ingestion_config(
+            grpc_channel,
+            form,
+            ServiceOptions::default(),
+            RateLimitPolicy::default(),
+        )
+        .await;
 
         assert!(result.is_err());
         assert_ne!(result.unwrap_err().kind(), ErrorKind::AlreadyExistsError);
@@ -465,7 +523,13 @@ mod tests {
             flows,
         );
 
-        let result = load_ingestion_config(grpc_channel, form, ServiceOptions::default()).await;
+        let result = load_ingestion_config(
+            grpc_channel,
+            form,
+            ServiceOptions::default(),
+            RateLimitPolicy::default(),
+        )
+        .await;
 
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().kind(), ErrorKind::CreateFlowError);
@@ -493,14 +557,141 @@ mod tests {
             vec![race_flow],
         );
 
-        let (ingestion_config, returned_flows, asset) =
-            load_ingestion_config(grpc_channel, form, ServiceOptions::default())
-                .await
-                .unwrap();
+        let (ingestion_config, returned_flows, asset) = load_ingestion_config(
+            grpc_channel,
+            form,
+            ServiceOptions::default(),
+            RateLimitPolicy::default(),
+        )
+        .await
+        .unwrap();
 
         assert_eq!(ingestion_config.client_key, "already_exists_client_key");
         assert_eq!(asset.name, "already_exists_asset");
         assert_eq!(returned_flows.len(), 1);
         assert_eq!(returned_flows[0].name, "race_flow");
+    }
+
+    /// Loads the mock's existing ingestion config with `flow_names` as new flows to create.
+    async fn load_with_new_flows(
+        service: MockIngestionConfigService,
+        flow_names: &[&str],
+        rate_limit_policy: RateLimitPolicy,
+    ) -> Result<(IngestionConfig, Vec<FlowConfig>, Asset)> {
+        let (grpc_channel, _) = create_mock_grpc_channel_with_ingestion_service(service).await;
+        let flows = flow_names
+            .iter()
+            .map(|name| create_test_flow_config(name))
+            .collect();
+        let form = create_test_ingestion_config_form(
+            "already_exists_asset",
+            "already_exists_client_key",
+            flows,
+        );
+        load_ingestion_config(
+            grpc_channel,
+            form,
+            ServiceOptions::default(),
+            rate_limit_policy,
+        )
+        .await
+    }
+
+    // The RetryInfo detail must survive the real gRPC transport and surface as
+    // RateLimitedError with the server's delay instead of a generic CreateFlowError.
+    #[tokio::test]
+    async fn test_load_ingestion_config_rate_limited_flow_creation_returns_retry_delay() {
+        let delay = Duration::from_millis(50);
+        let service = MockIngestionConfigService::with_flow_create_statuses(vec![(
+            "rate_limited_flow",
+            rate_limited_status(delay),
+            usize::MAX,
+        )]);
+        let calls = service.create_flows_call_count();
+
+        let err = load_with_new_flows(
+            service,
+            &["rate_limited_flow"],
+            RateLimitPolicy::ReturnError,
+        )
+        .await
+        .unwrap_err();
+
+        assert_eq!(
+            err.kind(),
+            ErrorKind::RateLimitedError {
+                retry_delay: Some(delay)
+            }
+        );
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn test_load_ingestion_config_rate_limited_flow_creation_is_retried() {
+        let delay = Duration::from_millis(50);
+        let service = MockIngestionConfigService::with_flow_create_statuses(vec![(
+            "rate_limited_flow",
+            rate_limited_status(delay),
+            1,
+        )]);
+        let calls = service.create_flows_call_count();
+
+        let start = Instant::now();
+        let (_, flows, _) =
+            load_with_new_flows(service, &["rate_limited_flow"], RateLimitPolicy::default())
+                .await
+                .unwrap();
+
+        assert!(start.elapsed() >= delay);
+        assert_eq!(calls.load(Ordering::SeqCst), 2);
+        assert_eq!(flows.len(), 1);
+        assert_eq!(flows[0].name, "rate_limited_flow");
+    }
+
+    // A rate limit is only surfaced when it is the sole cause of failure; otherwise waiting
+    // for the retry delay would not be enough to succeed.
+    #[tokio::test]
+    async fn test_load_ingestion_config_mixed_flow_failures_return_create_flow_error() {
+        let service = MockIngestionConfigService::with_flow_create_statuses(vec![
+            (
+                "rate_limited_flow",
+                rate_limited_status(Duration::from_millis(50)),
+                usize::MAX,
+            ),
+            ("broken_flow", Status::internal("boom"), usize::MAX),
+        ]);
+
+        let err = load_with_new_flows(
+            service,
+            &["rate_limited_flow", "broken_flow"],
+            RateLimitPolicy::ReturnError,
+        )
+        .await
+        .unwrap_err();
+
+        assert_eq!(err.kind(), ErrorKind::CreateFlowError);
+    }
+
+    // The server's message size limit returns ResourceExhausted without RetryInfo. It is not
+    // a rate limit, so it is neither retried nor reported as RateLimitedError.
+    #[tokio::test]
+    async fn test_load_ingestion_config_resource_exhausted_without_retry_info_is_not_retried() {
+        for policy in [RateLimitPolicy::Retry, RateLimitPolicy::ReturnError] {
+            let service = MockIngestionConfigService::with_flow_create_statuses(vec![(
+                "too_large_flow",
+                Status::resource_exhausted(
+                    "grpc: received message larger than max for this method",
+                ),
+                usize::MAX,
+            )]);
+            let calls = service.create_flows_call_count();
+
+            let err = load_with_new_flows(service, &["too_large_flow"], policy)
+                .await
+                .unwrap_err();
+
+            assert_eq!(err.kind(), ErrorKind::CreateFlowError, "policy {policy:?}");
+            assert_eq!(calls.load(Ordering::SeqCst), 1, "policy {policy:?}");
+        }
     }
 }

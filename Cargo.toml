@@ -78,6 +78,7 @@ tokio-stream = "0.1"
 toml = "0.9"
 tonic = { version = "^0.14", features = ["gzip"] }
 tonic-prost = "^0.14"
+tonic-types = "^0.14"
 tower = "^0.5"
 tower-serve-static = "0.1"
 tracing = "0.1"

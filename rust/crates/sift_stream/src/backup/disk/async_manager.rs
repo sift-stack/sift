@@ -8,7 +8,7 @@ use chrono::Utc;
 use prost::Message as PbMessage;
 use sift_error::prelude::*;
 use sift_pbfs::{MESSAGE_LENGTH_PREFIX_LEN, chunk::PbfsChunk};
-use sift_rs::CompressionEncoding;
+use sift_rs::{CompressionEncoding, GrpcStatus, rate_limit::retry_delay};
 use sift_rs::{SiftChannel, ingest::v1::ingest_service_client::IngestServiceClient};
 use std::collections::VecDeque;
 use std::ops::RangeInclusive;
@@ -802,6 +802,7 @@ impl BackupIngestTask {
                 });
 
                 let raw_response = client.ingest_with_config_data_stream(iter_stream).await;
+                let failed_status = raw_response.as_ref().err().cloned();
                 let response = raw_response
                     .map(|res| res.into_inner())
                     .map_err(|e| Error::new(ErrorKind::StreamError, e));
@@ -835,7 +836,8 @@ impl BackupIngestTask {
                         );
                         metrics.backups.cur_ingest_retries.add(1);
                         current_wait = retry_policy.backoff(current_wait);
-                        tokio::time::sleep(current_wait).await;
+                        tokio::time::sleep(reingest_wait(current_wait, failed_status.as_ref()))
+                            .await;
                     }
                 }
             }
@@ -843,6 +845,14 @@ impl BackupIngestTask {
 
         Ok(())
     }
+}
+
+/// How long to wait before the next reingestion attempt: the policy backoff, raised to Sift's
+/// requested delay if it rate limited the attempt. The backoff progression itself is unchanged.
+fn reingest_wait(backoff: Duration, failed_status: Option<&GrpcStatus>) -> Duration {
+    failed_status
+        .and_then(retry_delay)
+        .map_or(backoff, |delay| delay.max(backoff))
 }
 
 #[cfg(test)]
@@ -3330,5 +3340,27 @@ mod test {
             backup_manager.file_ctx_buffer.is_empty(),
             "all backup files should be processed after both checkpoints"
         );
+    }
+
+    #[test]
+    fn test_reingest_wait_honors_rate_limit_delay() {
+        use crate::test::rate_limited_status;
+
+        let backoff = Duration::from_millis(500);
+
+        // No failure status, or a failure that is not a rate limit, uses the backoff.
+        assert_eq!(reingest_wait(backoff, None), backoff);
+        let unavailable = GrpcStatus::unavailable("unavailable");
+        assert_eq!(reingest_wait(backoff, Some(&unavailable)), backoff);
+
+        // ResourceExhausted without RetryInfo is not a rate limit.
+        let too_large = GrpcStatus::resource_exhausted("message too large");
+        assert_eq!(reingest_wait(backoff, Some(&too_large)), backoff);
+
+        // A rate limit waits for the larger of the server delay and the backoff.
+        let long = rate_limited_status(Duration::from_secs(20));
+        assert_eq!(reingest_wait(backoff, Some(&long)), Duration::from_secs(20));
+        let short = rate_limited_status(Duration::from_millis(100));
+        assert_eq!(reingest_wait(backoff, Some(&short)), backoff);
     }
 }

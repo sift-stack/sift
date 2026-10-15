@@ -27,6 +27,7 @@ __all__ = [
     "LiveWithBackupsBuilderPy",
     "MetadataPy",
     "MetadataValuePy",
+    "RateLimitPolicyPy",
     "RetryPolicyPy",
     "RollingFilePolicyPy",
     "RunFormPy",
@@ -464,6 +465,47 @@ class MetadataPy:
     def __new__(cls, key:builtins.str, value:MetadataValuePy) -> MetadataPy: ...
 
 @typing.final
+class RateLimitPolicyPy:
+    r"""
+    Python binding for [`RateLimitPolicy`](sift_stream::RateLimitPolicy).
+    
+    Controls how a stream handles Sift rate limits on control-plane calls: connecting, creating
+    or fetching the ingestion config, flows, run, and asset during `build()`, and later
+    `attach_run()` and `add_new_flows()` calls. Streaming ingestion is governed by the retry
+    policy instead.
+    
+    Create one with a static constructor:
+    
+    - `RateLimitPolicyPy.retry()` (default): retry after waiting at least the delay Sift requests.
+    - `RateLimitPolicyPy.retry_if_delay_at_most(max_delay)`: retry only if the wait is at most
+      `max_delay`; otherwise raise immediately.
+    - `RateLimitPolicyPy.return_error()`: never retry; raise immediately.
+    
+    A rate-limit error is raised as a `RuntimeError` whose message starts with
+    `[RateLimitedError]` and includes the delay Sift requested, when provided.
+    """
+    @staticmethod
+    def retry() -> RateLimitPolicyPy:
+        r"""
+        Retry rate-limited calls after waiting at least the delay Sift requests. This is the
+        default.
+        """
+    @staticmethod
+    def retry_if_delay_at_most(max_delay:DurationPy) -> RateLimitPolicyPy:
+        r"""
+        Retry rate-limited calls only if the wait is at most `max_delay`; otherwise raise the
+        rate-limit error immediately.
+        """
+    @staticmethod
+    def return_error() -> RateLimitPolicyPy:
+        r"""
+        Never retry rate-limited calls; raise the rate-limit error immediately.
+        """
+    @staticmethod
+    def default() -> RateLimitPolicyPy: ...
+    def __repr__(self) -> builtins.str: ...
+
+@typing.final
 class RetryPolicyPy:
     r"""
     Python binding for [`RetryPolicy`](sift_stream::RetryPolicy).
@@ -630,6 +672,11 @@ class SiftStreamBuilderPy:
     r"""
     Largest gRPC response, in bytes, this stream will decode. Defaults to 50 MB when `None`.
     """
+    rate_limit_policy: RateLimitPolicyPy
+    r"""
+    How rate-limited control-plane calls are handled. Defaults to
+    `RateLimitPolicyPy.retry()`. See [`RateLimitPolicyPy`].
+    """
     def __new__(cls, uri:builtins.str, apikey:builtins.str) -> SiftStreamBuilderPy: ...
     def build(self) -> typing.Any:
         r"""
@@ -726,6 +773,11 @@ class StreamConfigBuilderPy:
     max_decoding_message_size: typing.Optional[builtins.int]
     r"""
     Largest gRPC response, in bytes, this stream will decode. Defaults to 50 MB when `None`.
+    """
+    rate_limit_policy: RateLimitPolicyPy
+    r"""
+    How rate-limited control-plane calls are handled. Defaults to
+    `RateLimitPolicyPy.retry()`. See [`RateLimitPolicyPy`].
     """
     def live_only(self) -> LiveOnlyBuilderPy:
         r"""

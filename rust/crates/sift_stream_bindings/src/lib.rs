@@ -223,6 +223,7 @@ fn sift_stream_bindings(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<stream::channel::ValuePy>()?;
     m.add_class::<stream::retry::DiskBackupPolicyPy>()?;
     m.add_class::<stream::retry::DurationPy>()?;
+    m.add_class::<stream::retry::RateLimitPolicyPy>()?;
     m.add_class::<stream::retry::RetryPolicyPy>()?;
     m.add_class::<stream::retry::RollingFilePolicyPy>()?;
     m.add_class::<stream::request::IngestWithConfigDataChannelValuePy>()?;

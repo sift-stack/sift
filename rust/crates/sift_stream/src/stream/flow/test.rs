@@ -3,6 +3,7 @@ use crate::TimeValue;
 use crate::stream::channel::ChannelEnum;
 use crate::test::create_mock_grpc_channel_with_service;
 use sift_error::prelude::ErrorKind;
+use sift_rs::RateLimitPolicy;
 use sift_rs::common::r#type::v1::ChannelDataType;
 use sift_rs::ingest::v1::ingest_with_config_data_channel_value::Type;
 use sift_rs::ingestion_configs::v2::{ChannelConfig, FlowConfig};
@@ -860,7 +861,13 @@ async fn test_add_new_flows_creates_flows() {
         },
     ];
 
-    let results = add_new_flows(grpc_channel, "test_config_id", flows).await;
+    let results = add_new_flows(
+        grpc_channel,
+        "test_config_id",
+        flows,
+        RateLimitPolicy::default(),
+    )
+    .await;
 
     assert_eq!(results.len(), 2);
     for result in results {
@@ -881,7 +888,13 @@ async fn test_add_new_flows_returns_already_exists_for_callers_to_handle() {
         channels: vec![],
     }];
 
-    let results = add_new_flows(grpc_channel, "test_config_id", flows).await;
+    let results = add_new_flows(
+        grpc_channel,
+        "test_config_id",
+        flows,
+        RateLimitPolicy::default(),
+    )
+    .await;
 
     assert_eq!(results.len(), 1);
     let result = results.into_iter().next().unwrap();
@@ -894,7 +907,13 @@ async fn test_add_new_flows_returns_already_exists_for_callers_to_handle() {
 #[tokio::test]
 async fn test_add_new_flows_empty_input() {
     let (grpc_channel, _) = create_mock_grpc_channel_with_service().await;
-    let results = add_new_flows(grpc_channel, "test_config_id", vec![]).await;
+    let results = add_new_flows(
+        grpc_channel,
+        "test_config_id",
+        vec![],
+        RateLimitPolicy::default(),
+    )
+    .await;
     assert!(results.is_empty());
 }
 
@@ -914,7 +933,13 @@ async fn test_add_new_flows_mixed_new_and_existing() {
         },
     ];
 
-    let results = add_new_flows(grpc_channel, "test_config_id", flows).await;
+    let results = add_new_flows(
+        grpc_channel,
+        "test_config_id",
+        flows,
+        RateLimitPolicy::default(),
+    )
+    .await;
 
     assert_eq!(results.len(), 2);
     assert!(matches!(results[0], Ok(Ok(()))));

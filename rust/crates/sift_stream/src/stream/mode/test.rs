@@ -164,3 +164,60 @@ fn validate_handling_no_matches_based_on_type() {
         "request should be none because no flows match"
     );
 }
+
+// A rate-limited flow is reported to the caller with its retry delay, while flows that were
+// created in the same call are still registered.
+#[tokio::test]
+async fn add_new_flows_returns_rate_limit_error_and_registers_successful_flows() {
+    use super::ingestion_config::IngestionConfigEncoder;
+    use crate::metrics::SiftStreamMetrics;
+    use crate::test::{
+        MockIngestionConfigService, create_mock_grpc_channel_with_ingestion_service,
+        rate_limited_status,
+    };
+    use sift_error::ErrorKind;
+    use sift_rs::{ingestion_configs::v2::IngestionConfig, retry::RateLimitPolicy};
+    use std::{collections::HashMap, sync::Arc, time::Duration};
+
+    let delay = Duration::from_secs(2);
+    let service = MockIngestionConfigService::with_flow_create_statuses(vec![(
+        "rate_limited_flow",
+        rate_limited_status(delay),
+        usize::MAX,
+    )]);
+    let (grpc_channel, _) = create_mock_grpc_channel_with_ingestion_service(service).await;
+
+    let mut encoder = IngestionConfigEncoder {
+        grpc_channel,
+        flows_by_name: HashMap::new(),
+        ingestion_config: IngestionConfig {
+            ingestion_config_id: "ingestion_config_id".to_string(),
+            ..Default::default()
+        },
+        metrics: Arc::new(SiftStreamMetrics::default()),
+        rate_limit_policy: RateLimitPolicy::ReturnError,
+    };
+
+    let new_flow = |name: &str| FlowConfig {
+        name: name.to_string(),
+        channels: vec![ChannelConfig {
+            name: "channel".to_string(),
+            data_type: ChannelDataType::Double.into(),
+            ..Default::default()
+        }],
+    };
+
+    let err = encoder
+        .add_new_flows(&[new_flow("rate_limited_flow"), new_flow("created_flow")])
+        .await
+        .unwrap_err();
+
+    assert_eq!(
+        err.kind(),
+        ErrorKind::RateLimitedError {
+            retry_delay: Some(delay)
+        }
+    );
+    assert!(encoder.flows_by_name.contains_key("created_flow"));
+    assert!(!encoder.flows_by_name.contains_key("rate_limited_flow"));
+}

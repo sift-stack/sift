@@ -40,6 +40,33 @@
 //!   operations may be executed multiple times if retries occur.
 //! - **Streaming RPCs**: This retry mechanism does not support streaming RPCs.
 //!   Streaming calls require recreating the stream and may have side effects.
+//!
+//! ## Rate Limiting
+//!
+//! When Sift rate limits a request it returns `ResourceExhausted` with a `google.rpc.RetryInfo`
+//! detail, which the wrappers surface as
+//! [`ErrorKind::RateLimitedError`](sift_error::ErrorKind::RateLimitedError). By default, [`Retrying`]
+//! retries these errors after waiting the larger of the server's `retry_delay` and the configured
+//! backoff. Use [`Retrying::with_rate_limit_policy`] to cap or disable it:
+//!
+//! ```no_run
+//! use sift_rs::retry::{RateLimitPolicy, RetryConfig, RetryExt};
+//! use sift_rs::wrappers::assets::{AssetServiceWrapper, new_asset_service};
+//!
+//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+//! # let channel = todo!();
+//! let svc = new_asset_service(channel)
+//!     .retrying(RetryConfig::default())
+//!     .with_rate_limit_policy(RateLimitPolicy::ReturnError);
+//!
+//! match svc.call(|mut w| async move { w.try_get_asset_by_id("asset-123").await }).await {
+//!     Ok(asset) => println!("{}", asset.name),
+//!     Err(err) if err.is_rate_limited() => println!("rate limited; retry in {:?}", err.retry_delay()),
+//!     Err(err) => return Err(err.into()),
+//! }
+//! # Ok(())
+//! # }
+//! ```
 
 use std::error::Error as StdError;
 use std::future::Future;
@@ -100,10 +127,38 @@ impl RetryConfig {
     }
 }
 
+/// How [`Retrying`] handles errors that its decider reports as rate limited.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum RateLimitPolicy {
+    /// Retry after waiting the larger of the server's `retry_delay` and the configured backoff.
+    /// The server's delay is not capped by [`RetryConfig::max_delay`]. Rate-limited retries count
+    /// against [`RetryConfig::max_attempts`].
+    #[default]
+    Retry,
+    /// Retry only if the wait computed as for [`RateLimitPolicy::Retry`] is at most this duration;
+    /// otherwise return the error immediately.
+    RetryIfDelayAtMost(Duration),
+    /// Never retry rate-limited errors; return them immediately so the caller can decide what to
+    /// do, for example using [`sift_error::Error::retry_delay`].
+    ReturnError,
+}
+
 /// Trait for determining whether an error should trigger a retry.
 pub trait RetryDecider<E> {
     /// Returns `true` if the error should trigger a retry attempt.
     fn should_retry(&self, err: &E) -> bool;
+
+    /// Returns `true` if the error is a server rate-limit signal. Rate-limited errors are handled
+    /// by the [`RateLimitPolicy`] of the [`Retrying`] adapter instead of
+    /// [`should_retry`](RetryDecider::should_retry).
+    fn is_rate_limited(&self, _err: &E) -> bool {
+        false
+    }
+
+    /// Returns the minimum delay the server requested before retrying, if known.
+    fn retry_delay(&self, _err: &E) -> Option<Duration> {
+        None
+    }
 }
 
 /// Default retry decider for gRPC errors wrapped in `sift_error::Error`.
@@ -136,7 +191,38 @@ impl RetryDecider<sift_error::Error> for DefaultGrpcRetry {
                 | ErrorKind::RetrieveAssetError
                 | ErrorKind::RetrieveIngestionConfigError
                 | ErrorKind::RetrieveRunError
+                | ErrorKind::RateLimitedError { .. }
         )
+    }
+
+    fn is_rate_limited(&self, err: &sift_error::Error) -> bool {
+        err.is_rate_limited()
+    }
+
+    fn retry_delay(&self, err: &sift_error::Error) -> Option<Duration> {
+        err.retry_delay()
+    }
+}
+
+/// Retry decider that only retries rate-limited errors.
+///
+/// Use this for calls that should fail fast on ordinary errors but still honor a server's
+/// rate limit. Rate-limited errors are handled by the [`RateLimitPolicy`] of the [`Retrying`]
+/// adapter.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct RateLimitOnly;
+
+impl RetryDecider<sift_error::Error> for RateLimitOnly {
+    fn should_retry(&self, _err: &sift_error::Error) -> bool {
+        false
+    }
+
+    fn is_rate_limited(&self, err: &sift_error::Error) -> bool {
+        err.is_rate_limited()
+    }
+
+    fn retry_delay(&self, err: &sift_error::Error) -> Option<Duration> {
+        err.retry_delay()
     }
 }
 
@@ -146,15 +232,18 @@ pub struct Retrying<T, D = DefaultGrpcRetry> {
     inner: T,
     cfg: RetryConfig,
     decider: D,
+    rate_limit_policy: RateLimitPolicy,
 }
 
 impl<T> Retrying<T> {
-    /// Creates a new `Retrying` adapter with the default gRPC retry decider.
+    /// Creates a new `Retrying` adapter with the default gRPC retry decider and the default
+    /// [`RateLimitPolicy`].
     pub fn new(inner: T, cfg: RetryConfig) -> Self {
         Self {
             inner,
             cfg,
             decider: DefaultGrpcRetry,
+            rate_limit_policy: RateLimitPolicy::default(),
         }
     }
 }
@@ -166,7 +255,14 @@ impl<T, D> Retrying<T, D> {
             inner: self.inner,
             cfg: self.cfg,
             decider,
+            rate_limit_policy: self.rate_limit_policy,
         }
+    }
+
+    /// Sets how rate-limited errors are handled. Defaults to [`RateLimitPolicy::Retry`].
+    pub fn with_rate_limit_policy(mut self, policy: RateLimitPolicy) -> Self {
+        self.rate_limit_policy = policy;
+        self
     }
 
     /// Returns a reference to the inner wrapped value.
@@ -181,9 +277,14 @@ where
 {
     /// Executes a closure with retry logic.
     ///
-    /// The closure is called up to `max_attempts` times. If it returns an error
-    /// and the decider indicates the error is retryable, the function waits for
-    /// the calculated backoff delay before retrying.
+    /// The closure is called up to `max_attempts` times, and at least once. If it returns an
+    /// error, the function decides whether to retry:
+    ///
+    /// - If the decider reports the error as rate limited, the [`RateLimitPolicy`] applies. When
+    ///   it allows a retry, the function waits the larger of the server's retry delay and the
+    ///   calculated backoff delay.
+    /// - Otherwise, if the decider indicates the error is retryable, the function waits for the
+    ///   calculated backoff delay before retrying.
     ///
     /// # Arguments
     ///
@@ -193,35 +294,48 @@ where
     ///
     /// # Returns
     ///
-    /// Returns `Ok(result)` if any attempt succeeds, or `Err(error)` if all
-    /// attempts fail or the error is not retryable.
+    /// Returns `Ok(result)` if any attempt succeeds, or `Err(error)` with the last error if all
+    /// attempts fail, the error is not retryable, or the [`RateLimitPolicy`] declines to retry.
     pub async fn call<F, Fut, R, E>(&self, mut f: F) -> StdResult<R, E>
     where
         F: FnMut(T) -> Fut,
         Fut: Future<Output = StdResult<R, E>>,
         D: RetryDecider<E>,
     {
-        let mut last_err = None;
+        let mut attempt = 1;
 
-        for attempt in 1..=self.cfg.max_attempts {
-            let wrapper = self.inner.clone();
-            match f(wrapper).await {
+        loop {
+            let err = match f(self.inner.clone()).await {
                 Ok(result) => return Ok(result),
-                Err(e) => {
-                    last_err = Some(e);
-                    if attempt < self.cfg.max_attempts
-                        && self.decider.should_retry(last_err.as_ref().unwrap())
-                    {
-                        let delay = self.cfg.backoff(attempt);
-                        tokio::time::sleep(delay).await;
-                        continue;
-                    }
-                    break;
-                }
-            }
-        }
+                Err(e) => e,
+            };
 
-        Err(last_err.expect("retry loop invariant violated"))
+            if attempt >= self.cfg.max_attempts {
+                return Err(err);
+            }
+
+            let delay = if self.decider.is_rate_limited(&err) {
+                let backoff = self.cfg.backoff(attempt);
+                // The server's delay is a floor, so it is not capped by `max_delay`.
+                let delay = self
+                    .decider
+                    .retry_delay(&err)
+                    .map_or(backoff, |server_delay| server_delay.max(backoff));
+
+                match self.rate_limit_policy {
+                    RateLimitPolicy::Retry => delay,
+                    RateLimitPolicy::RetryIfDelayAtMost(limit) if delay <= limit => delay,
+                    _ => return Err(err),
+                }
+            } else if self.decider.should_retry(&err) {
+                self.cfg.backoff(attempt)
+            } else {
+                return Err(err);
+            };
+
+            tokio::time::sleep(delay).await;
+            attempt += 1;
+        }
     }
 }
 
@@ -430,5 +544,267 @@ mod tests {
         assert!(result.is_err());
         // Should only attempt once since error is not retryable
         assert_eq!(counter.load(Ordering::SeqCst), 1);
+    }
+
+    fn test_cfg(max_attempts: usize) -> RetryConfig {
+        RetryConfig {
+            max_attempts,
+            base_delay: Duration::from_millis(100),
+            max_delay: Duration::from_secs(5),
+            backoff_multiplier: 2.0,
+        }
+    }
+
+    fn rate_limited(retry_delay: Option<Duration>) -> sift_error::Error {
+        Error::new_rate_limited(
+            tonic::Status::resource_exhausted("Rate limit exceeded"),
+            retry_delay,
+        )
+    }
+
+    /// Runs `retrying.call` where attempt `n` (1-indexed) fails with `errors(n)`, or succeeds once
+    /// `errors` returns `None`. Returns the result, the number of attempts, and the elapsed time.
+    async fn run<D>(
+        retrying: &Retrying<(), D>,
+        errors: impl Fn(usize) -> Option<sift_error::Error>,
+    ) -> (sift_error::Result<()>, usize, Duration)
+    where
+        D: RetryDecider<sift_error::Error>,
+    {
+        let attempts = AtomicUsize::new(0);
+        let start = tokio::time::Instant::now();
+        let result = retrying
+            .call(|_| {
+                let attempt = attempts.fetch_add(1, Ordering::SeqCst) + 1;
+                let outcome = errors(attempt).map_or(Ok(()), Err);
+                async move { outcome }
+            })
+            .await;
+        (result, attempts.load(Ordering::SeqCst), start.elapsed())
+    }
+
+    /// Paused-clock timers can round a deadline up to the next millisecond.
+    fn assert_elapsed(actual: Duration, expected: Duration) {
+        assert!(
+            actual >= expected && actual <= expected + Duration::from_millis(5),
+            "expected about {expected:?}, waited {actual:?}"
+        );
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn test_rate_limited_waits_for_server_delay() {
+        let retrying = Retrying::new((), test_cfg(3));
+        let (result, attempts, elapsed) = run(&retrying, |n| {
+            (n == 1).then(|| rate_limited(Some(Duration::from_secs(3))))
+        })
+        .await;
+
+        assert!(result.is_ok());
+        assert_eq!(attempts, 2);
+        assert_elapsed(elapsed, Duration::from_secs(3));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn test_rate_limited_server_delay_is_not_capped_by_max_delay() {
+        let retrying = Retrying::new((), test_cfg(3));
+        let (result, _, elapsed) = run(&retrying, |n| {
+            (n == 1).then(|| rate_limited(Some(Duration::from_secs(10))))
+        })
+        .await;
+
+        assert!(result.is_ok());
+        assert_elapsed(elapsed, Duration::from_secs(10));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn test_rate_limited_uses_backoff_when_larger() {
+        let retrying = Retrying::new((), test_cfg(3));
+        let (result, _, elapsed) = run(&retrying, |n| {
+            (n == 1).then(|| rate_limited(Some(Duration::from_millis(10))))
+        })
+        .await;
+
+        assert!(result.is_ok());
+        assert_elapsed(elapsed, Duration::from_millis(100));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn test_rate_limited_without_delay_uses_backoff() {
+        let retrying = Retrying::new((), test_cfg(3));
+        let (result, _, elapsed) = run(&retrying, |n| (n == 1).then(|| rate_limited(None))).await;
+
+        assert!(result.is_ok());
+        assert_elapsed(elapsed, Duration::from_millis(100));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn test_rate_limited_each_wait_is_max_of_delay_and_backoff() {
+        let retrying = Retrying::new((), test_cfg(3));
+        let (result, attempts, elapsed) = run(&retrying, |n| {
+            (n <= 2).then(|| rate_limited(Some(Duration::from_millis(150))))
+        })
+        .await;
+
+        // max(150ms, 100ms) + max(150ms, 200ms)
+        assert!(result.is_ok());
+        assert_eq!(attempts, 3);
+        assert_elapsed(elapsed, Duration::from_millis(350));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn test_rate_limited_exhausts_attempts_and_returns_last_error() {
+        let retrying = Retrying::new((), test_cfg(3));
+        let (result, attempts, elapsed) = run(&retrying, |_| {
+            Some(rate_limited(Some(Duration::from_secs(1))))
+        })
+        .await;
+
+        let err = result.unwrap_err();
+        assert!(err.is_rate_limited());
+        assert_eq!(err.retry_delay(), Some(Duration::from_secs(1)));
+        assert_eq!(attempts, 3);
+        assert_elapsed(elapsed, Duration::from_secs(2));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn test_return_error_policy_does_not_retry() {
+        let retrying =
+            Retrying::new((), test_cfg(3)).with_rate_limit_policy(RateLimitPolicy::ReturnError);
+        let (result, attempts, elapsed) = run(&retrying, |_| {
+            Some(rate_limited(Some(Duration::from_secs(3))))
+        })
+        .await;
+
+        let err = result.unwrap_err();
+        assert_eq!(err.retry_delay(), Some(Duration::from_secs(3)));
+        assert_eq!(attempts, 1);
+        assert_eq!(elapsed, Duration::ZERO);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn test_retry_if_delay_at_most_policy() {
+        let retrying = Retrying::new((), test_cfg(3))
+            .with_rate_limit_policy(RateLimitPolicy::RetryIfDelayAtMost(Duration::from_secs(1)));
+
+        let (result, attempts, _) = run(&retrying, |n| {
+            (n == 1).then(|| rate_limited(Some(Duration::from_secs(3))))
+        })
+        .await;
+        assert_eq!(
+            result.unwrap_err().retry_delay(),
+            Some(Duration::from_secs(3))
+        );
+        assert_eq!(attempts, 1);
+
+        let (result, attempts, elapsed) = run(&retrying, |n| {
+            (n == 1).then(|| rate_limited(Some(Duration::from_millis(500))))
+        })
+        .await;
+        assert!(result.is_ok());
+        assert_eq!(attempts, 2);
+        assert_elapsed(elapsed, Duration::from_millis(500));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn test_resource_exhausted_without_retry_info_is_not_retried_for_creates() {
+        // A message-size rejection is `ResourceExhausted` without `RetryInfo`, so it keeps its
+        // create kind and is not retried.
+        let retrying = Retrying::new((), test_cfg(3));
+        let (result, attempts, _) = run(&retrying, |_| {
+            Some(Error::new(
+                ErrorKind::CreateFlowError,
+                tonic::Status::resource_exhausted("grpc: received message larger than max"),
+            ))
+        })
+        .await;
+
+        assert_eq!(result.unwrap_err().kind(), ErrorKind::CreateFlowError);
+        assert_eq!(attempts, 1);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn test_rate_limit_only_decider() {
+        let retrying = Retrying::new((), test_cfg(3)).with_decider(RateLimitOnly);
+
+        let (result, attempts, _) = run(&retrying, |_| {
+            Some(Error::new(
+                ErrorKind::RetrieveAssetError,
+                tonic::Status::unavailable("unavailable"),
+            ))
+        })
+        .await;
+        assert!(result.is_err());
+        assert_eq!(attempts, 1);
+
+        let (result, attempts, elapsed) = run(&retrying, |n| {
+            (n == 1).then(|| rate_limited(Some(Duration::from_secs(2))))
+        })
+        .await;
+        assert!(result.is_ok());
+        assert_eq!(attempts, 2);
+        assert_elapsed(elapsed, Duration::from_secs(2));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn test_with_decider_keeps_rate_limit_policy() {
+        let retrying = Retrying::new((), test_cfg(3))
+            .with_rate_limit_policy(RateLimitPolicy::ReturnError)
+            .with_decider(RateLimitOnly);
+        let (result, attempts, _) = run(&retrying, |_| {
+            Some(rate_limited(Some(Duration::from_secs(1))))
+        })
+        .await;
+
+        assert!(result.unwrap_err().is_rate_limited());
+        assert_eq!(attempts, 1);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn test_custom_decider_without_rate_limit_methods_is_unchanged() {
+        struct AlwaysRetry;
+
+        impl RetryDecider<sift_error::Error> for AlwaysRetry {
+            fn should_retry(&self, _err: &sift_error::Error) -> bool {
+                true
+            }
+        }
+
+        // The default trait methods report no rate limit, so the server delay is ignored and the
+        // plain backoff applies, as before this decider API existed.
+        let retrying = Retrying::new((), test_cfg(3)).with_decider(AlwaysRetry);
+        let (result, attempts, elapsed) = run(&retrying, |n| {
+            (n == 1).then(|| rate_limited(Some(Duration::from_secs(3))))
+        })
+        .await;
+
+        assert!(result.is_ok());
+        assert_eq!(attempts, 2);
+        assert_elapsed(elapsed, Duration::from_millis(100));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn test_zero_max_attempts_makes_one_attempt() {
+        let retrying = Retrying::new((), test_cfg(0));
+        let (result, attempts, _) = run(&retrying, |_| Some(rate_limited(None))).await;
+
+        assert!(result.is_err());
+        assert_eq!(attempts, 1);
+    }
+
+    #[test]
+    fn test_default_grpc_retry_rate_limit_methods() {
+        let decider = DefaultGrpcRetry;
+
+        let err = rate_limited(Some(Duration::from_secs(2)));
+        assert!(decider.is_rate_limited(&err));
+        assert!(decider.should_retry(&err));
+        assert_eq!(decider.retry_delay(&err), Some(Duration::from_secs(2)));
+
+        let err = Error::new(
+            ErrorKind::RetrieveAssetError,
+            tonic::Status::unavailable("unavailable"),
+        );
+        assert!(!decider.is_rate_limited(&err));
+        assert_eq!(decider.retry_delay(&err), None);
     }
 }

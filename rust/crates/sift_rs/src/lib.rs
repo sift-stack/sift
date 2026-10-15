@@ -52,7 +52,12 @@ pub mod wrappers;
 /// Generic retry extension for gRPC wrapper services.
 pub mod retry;
 
-pub use retry::{DefaultGrpcRetry, RetryConfig, RetryDecider, RetryExt, Retrying};
+/// Detection of Sift rate-limit responses and their server-provided retry delay.
+pub mod rate_limit;
+
+pub use retry::{
+    DefaultGrpcRetry, RateLimitOnly, RateLimitPolicy, RetryConfig, RetryDecider, RetryExt, Retrying,
+};
 pub use sift_connect::{Credentials, SiftChannel, SiftChannelBuilder};
 pub use tonic::codec::CompressionEncoding;
 pub use tonic::{Code as GrpcCode, Status as GrpcStatus};

@@ -1,4 +1,13 @@
+use sift_rs::retry::{RateLimitPolicy, RetryConfig, RetryExt, Retrying};
 use std::time::Duration;
+
+/// Wraps a service for control-plane calls (ingestion configs, flows, runs, assets) with the
+/// default retry configuration and the stream's rate-limit policy.
+pub(crate) fn control_plane_retry<T>(inner: T, policy: RateLimitPolicy) -> Retrying<T> {
+    inner
+        .retrying(RetryConfig::default())
+        .with_rate_limit_policy(policy)
+}
 
 /// A retry policy that configures the stream retry behavior of a Sift stream
 /// instance.

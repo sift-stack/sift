@@ -35,12 +35,25 @@ use sift_rs::runs::v2::{
     ListRunsResponse, Run, StopRunRequest, StopRunResponse, UpdateRunRequest, UpdateRunResponse,
     ValidateRunFilterRequest, ValidateRunFilterResponse,
 };
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use tonic::transport::{Endpoint, Server, Uri};
-use tonic::{Request, Response, Status};
+use tonic::{Code, Request, Response, Status};
+use tonic_types::{ErrorDetails, StatusExt};
 use tower::{ServiceBuilder, service_fn};
 use uuid::Uuid;
+
+/// A status matching what Sift returns when it rate limits a request: `ResourceExhausted` with a
+/// `google.rpc.RetryInfo` detail.
+pub(crate) fn rate_limited_status(retry_delay: Duration) -> Status {
+    Status::with_error_details(
+        Code::ResourceExhausted,
+        "Rate limit exceeded",
+        ErrorDetails::with_retry_info(Some(retry_delay)),
+    )
+}
 
 pub(crate) struct MockPingService;
 
@@ -60,6 +73,9 @@ pub(crate) struct MockIngestionConfigService {
     list_flows_call_count: Arc<AtomicUsize>,
     // Non-empty signals race-condition mode: returned on calls after the first.
     deferred_flows: Vec<FlowConfig>,
+    // Flow name -> (status to return, remaining calls that should fail).
+    flow_create_statuses: Arc<Mutex<HashMap<String, (Status, usize)>>>,
+    create_flows_call_count: Arc<AtomicUsize>,
 }
 
 impl Default for MockIngestionConfigService {
@@ -83,6 +99,8 @@ impl Default for MockIngestionConfigService {
             flow_create_error: None,
             list_flows_call_count: Arc::new(AtomicUsize::new(0)),
             deferred_flows: vec![],
+            flow_create_statuses: Arc::new(Mutex::new(HashMap::new())),
+            create_flows_call_count: Arc::new(AtomicUsize::new(0)),
         }
     }
 }
@@ -108,6 +126,8 @@ impl MockIngestionConfigService {
             flow_create_error: Some(err),
             list_flows_call_count: Arc::new(AtomicUsize::new(0)),
             deferred_flows: vec![],
+            flow_create_statuses: Arc::new(Mutex::new(HashMap::new())),
+            create_flows_call_count: Arc::new(AtomicUsize::new(0)),
         }
     }
 
@@ -130,7 +150,28 @@ impl MockIngestionConfigService {
             )),
             list_flows_call_count: Arc::new(AtomicUsize::new(0)),
             deferred_flows,
+            flow_create_statuses: Arc::new(Mutex::new(HashMap::new())),
+            create_flows_call_count: Arc::new(AtomicUsize::new(0)),
         }
+    }
+
+    /// Fails `create_ingestion_config_flows` for the named flows. Each entry is the flow name,
+    /// the status to return, and how many calls for that flow fail before it is created
+    /// (`usize::MAX` fails every call).
+    pub(crate) fn with_flow_create_statuses(statuses: Vec<(&str, Status, usize)>) -> Self {
+        let statuses = statuses
+            .into_iter()
+            .map(|(name, status, failures)| (name.to_string(), (status, failures)))
+            .collect();
+        Self {
+            flow_create_statuses: Arc::new(Mutex::new(statuses)),
+            ..Self::default()
+        }
+    }
+
+    /// Counter of `create_ingestion_config_flows` calls received.
+    pub(crate) fn create_flows_call_count(&self) -> Arc<AtomicUsize> {
+        self.create_flows_call_count.clone()
     }
 }
 
@@ -202,6 +243,20 @@ impl IngestionConfigService for MockIngestionConfigService {
         &self,
         request: Request<CreateIngestionConfigFlowsRequest>,
     ) -> Result<Response<CreateIngestionConfigFlowsResponse>, Status> {
+        self.create_flows_call_count.fetch_add(1, Ordering::SeqCst);
+
+        {
+            let mut statuses = self.flow_create_statuses.lock().unwrap();
+            for flow in request.get_ref().flows.iter() {
+                if let Some((status, remaining)) = statuses.get_mut(&flow.name)
+                    && *remaining > 0
+                {
+                    *remaining -= 1;
+                    return Err(status.clone());
+                }
+            }
+        }
+
         if let Some(err) = &self.flow_create_error {
             return Err(match err.kind() {
                 ErrorKind::AlreadyExistsError => {
@@ -411,6 +466,7 @@ impl RunService for MockRunService {
 pub(crate) struct MockIngestService {
     captured_data: Arc<Mutex<Vec<IngestWithConfigDataStreamRequest>>>,
     num_errors_to_return: Arc<AtomicUsize>,
+    error_status: Arc<Mutex<Status>>,
 }
 
 impl MockIngestService {
@@ -418,6 +474,7 @@ impl MockIngestService {
         Self {
             captured_data: Arc::new(Mutex::new(Vec::new())),
             num_errors_to_return: Arc::new(AtomicUsize::new(0)),
+            error_status: Arc::new(Mutex::new(Status::internal("test error"))),
         }
     }
 
@@ -429,6 +486,11 @@ impl MockIngestService {
         self.num_errors_to_return
             .store(num_errors_to_return, Ordering::Relaxed);
     }
+
+    /// Sets the status returned by failing streams. Defaults to `Status::internal`.
+    pub(crate) fn set_error_status(&self, status: Status) {
+        *self.error_status.lock().unwrap() = status;
+    }
 }
 
 #[tonic::async_trait]
@@ -439,7 +501,7 @@ impl IngestService for MockIngestService {
     ) -> Result<Response<IngestWithConfigDataStreamResponse>, Status> {
         if self.num_errors_to_return.load(Ordering::Relaxed) > 0 {
             self.num_errors_to_return.fetch_sub(1, Ordering::Relaxed);
-            return Err(Status::internal("test error"));
+            return Err(self.error_status.lock().unwrap().clone());
         }
 
         let mut stream = request.into_inner();

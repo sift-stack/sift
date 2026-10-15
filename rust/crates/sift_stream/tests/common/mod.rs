@@ -39,7 +39,7 @@ use uuid::Uuid;
 /// re-exports everything needed to implement an [IngestService].
 pub mod prelude;
 
-pub(crate) struct MockPingService;
+pub struct MockPingService;
 
 #[tonic::async_trait]
 impl PingService for MockPingService {
@@ -50,7 +50,7 @@ impl PingService for MockPingService {
     }
 }
 
-pub(crate) struct MockIngestionConfigService {
+pub struct MockIngestionConfigService {
     existing_flows: Arc<Mutex<Vec<FlowConfig>>>,
     existing_ingestion_configs: Arc<Mutex<Vec<IngestionConfig>>>,
 }
@@ -346,15 +346,21 @@ impl RunService for MockRunService {
 pub async fn start_test_ingest_server<I: IngestService>(
     ingest_service: I,
 ) -> (SiftChannel, JoinHandle<()>) {
+    start_test_server(ingest_service, MockIngestionConfigService::default()).await
+}
+
+/// Like [start_test_ingest_server], but with a caller-provided [IngestionConfigService].
+pub async fn start_test_server<I: IngestService, C: IngestionConfigService>(
+    ingest_service: I,
+    ingestion_config_service: C,
+) -> (SiftChannel, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
 
     let server = tokio::spawn(async move {
         Server::builder()
             .add_service(IngestServiceServer::new(ingest_service))
             .add_service(PingServiceServer::new(MockPingService))
-            .add_service(IngestionConfigServiceServer::new(
-                MockIngestionConfigService::default(),
-            ))
+            .add_service(IngestionConfigServiceServer::new(ingestion_config_service))
             .add_service(AssetServiceServer::new(MockAssetService))
             .add_service(RunServiceServer::new(MockRunService))
             .serve_with_incoming(tokio_stream::once(Ok::<_, IoError>(server)))

@@ -11,6 +11,7 @@ use sift_error::prelude::*;
 use sift_rs::{
     CompressionEncoding, GrpcCode, GrpcStatus,
     ingest::v1::ingest_service_client::IngestServiceClient,
+    rate_limit::{error_from_status, retry_delay},
 };
 use std::{
     future::Future,
@@ -185,7 +186,7 @@ impl IngestionTask {
                                     "stream failed after shutdown began; not retrying"
                                 );
 
-                                return Err(Error::new(ErrorKind::StreamError, e))
+                                return Err(error_from_status(ErrorKind::StreamError, e))
                                     .context("stream to Sift failed during shutdown");
                             }
 
@@ -200,7 +201,7 @@ impl IngestionTask {
                                     "stream failed and retries are disabled"
                                 );
 
-                                return Err(Error::new(ErrorKind::StreamError, e))
+                                return Err(error_from_status(ErrorKind::StreamError, e))
                                     .context("stream to Sift failed and retries are disabled");
                             }
                         }
@@ -305,6 +306,9 @@ impl IngestionTask {
         };
         self.config.metrics.grpc_status_counts[code_idx].increment();
 
+        // Set when Sift rate limited the stream and asked for a minimum wait before retrying.
+        let server_delay = retry_delay(status);
+
         #[cfg(feature = "tracing")]
         {
             let msg = match status.code() {
@@ -315,6 +319,7 @@ impl IngestionTask {
                 sift_stream_id = %self.config.sift_stream_id,
                 retry_counter = self.config.metrics.cur_retry_count.get(),
                 grpc_status = ?status.code(),
+                retry_delay = ?server_delay,
                 msg
             );
         }
@@ -349,7 +354,8 @@ impl IngestionTask {
             retry_policy.backoff(current_wait)
         };
 
-        Ok(backoff)
+        // Never retry sooner than Sift asked. The next backoff is still capped by `max_backoff`.
+        Ok(server_delay.map_or(backoff, |delay| delay.max(backoff)))
     }
 
     /// Shuts down the ingestion task by awaiting the stream one last time and sending the final checkpoint complete signal to the backup manager.
@@ -388,7 +394,7 @@ impl IngestionTask {
                     // this data, so a failed final flush is unrecoverable loss. Surface it so
                     // finish() does not falsely acknowledge delivery.
                     if self.config.checkpoint_interval.is_none() {
-                        return Err(Error::new(ErrorKind::StreamError, e))
+                        return Err(error_from_status(ErrorKind::StreamError, e))
                             .context("final stream flush to Sift failed during shutdown");
                     }
 
@@ -1180,6 +1186,125 @@ mod tests {
         assert!(
             data_tx.is_closed(),
             "the ingestion channel should close once the task stops"
+        );
+    }
+
+    async fn make_live_only_ingestion_task(retry_policy: Option<RetryPolicy>) -> IngestionTask {
+        let (ingestion_channel, _) = crate::test::create_mock_grpc_channel_with_service().await;
+        let (control_tx, _) = broadcast::channel(1024);
+        let (_data_tx, data_rx) = async_channel::bounded::<DataMessage>(1024);
+        let mut config = make_live_only_ingestion_task_config(
+            ingestion_channel,
+            Arc::new(SiftStreamMetrics::default()),
+        );
+        config.retry_policy = retry_policy;
+        let control_rx = control_tx.subscribe();
+        IngestionTask::new(control_tx, control_rx, data_rx, config)
+    }
+
+    #[tokio::test]
+    async fn test_handle_failed_stream_waits_for_rate_limit_delay() {
+        use crate::test::rate_limited_status;
+
+        // Default policy: 50ms initial backoff, 5s max backoff.
+        let mut task = make_live_only_ingestion_task(Some(RetryPolicy::default())).await;
+        let wait = |task: &mut IngestionTask, status: &GrpcStatus, created_at: Instant| {
+            task.handle_failed_stream(status, created_at, Duration::ZERO, 0, 0)
+                .unwrap()
+        };
+
+        // The server delay wins when it is longer than the backoff, even beyond `max_backoff`.
+        let status = rate_limited_status(Duration::from_secs(8));
+        assert_eq!(
+            wait(&mut task, &status, Instant::now()),
+            Duration::from_secs(8)
+        );
+
+        // The backoff wins when it is longer than the server delay.
+        let status = rate_limited_status(Duration::from_millis(10));
+        assert_eq!(
+            wait(&mut task, &status, Instant::now()),
+            Duration::from_millis(50)
+        );
+
+        // Other failures use the backoff alone.
+        let status = GrpcStatus::unavailable("unavailable");
+        assert_eq!(
+            wait(&mut task, &status, Instant::now()),
+            Duration::from_millis(50)
+        );
+
+        // A stream that was healthy long enough resets the backoff to zero, but the server
+        // delay is still honored.
+        let healthy_since = Instant::now()
+            .checked_sub(Duration::from_secs(11))
+            .expect("system uptime exceeds 11 seconds");
+        let status = rate_limited_status(Duration::from_secs(3));
+        assert_eq!(
+            wait(&mut task, &status, healthy_since),
+            Duration::from_secs(3)
+        );
+    }
+
+    #[tokio::test]
+    async fn test_shutdown_live_only_rate_limited_final_flush_returns_retry_delay() {
+        use crate::test::rate_limited_status;
+
+        let mut ingestion_task = make_live_only_ingestion_task(Some(RetryPolicy::default())).await;
+        let failing_stream = Some(Box::pin(async {
+            Err::<(), GrpcStatus>(rate_limited_status(Duration::from_secs(2)))
+        }));
+
+        let err = ingestion_task
+            .shutdown(
+                failing_stream,
+                Arc::new(AtomicU64::new(0)),
+                Arc::new(AtomicU64::new(0)),
+            )
+            .await
+            .unwrap_err();
+
+        assert_eq!(
+            err.kind(),
+            ErrorKind::RateLimitedError {
+                retry_delay: Some(Duration::from_secs(2))
+            }
+        );
+    }
+
+    /// With retries disabled, a rate-limited stream is reported with Sift's retry delay so the
+    /// caller can decide when to try again.
+    #[tokio::test]
+    async fn test_live_only_retries_disabled_reports_rate_limit_delay() {
+        let (ingestion_channel, mock_service) =
+            crate::test::create_mock_grpc_channel_with_service().await;
+        let (control_tx, _control_rx) = broadcast::channel(1024);
+        let (data_tx, data_rx) = async_channel::bounded(1024);
+        let metrics = Arc::new(SiftStreamMetrics::default());
+        let mut config = make_live_only_ingestion_task_config(ingestion_channel, metrics);
+        config.retry_policy = None;
+
+        mock_service.set_error_status(crate::test::rate_limited_status(Duration::from_secs(2)));
+        mock_service.set_num_errors_to_return(1);
+
+        let control_rx_task = control_tx.subscribe();
+        let mut ingestion_task = IngestionTask::new(control_tx, control_rx_task, data_rx, config);
+
+        send_messages_for_ingestion(&data_tx, 10).await;
+
+        let handle = tokio::spawn(async move { ingestion_task.run().await });
+
+        let res = tokio::time::timeout(Duration::from_secs(10), handle)
+            .await
+            .expect("ingestion task should not hang")
+            .expect("ingestion task should not panic");
+
+        let err = res.expect_err("a stream failure with retries disabled must be reported");
+        assert_eq!(
+            err.kind(),
+            ErrorKind::RateLimitedError {
+                retry_delay: Some(Duration::from_secs(2))
+            }
         );
     }
 }

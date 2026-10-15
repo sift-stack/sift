@@ -6,6 +6,10 @@ use super::{
     },
     run::{load_run_by_form, load_run_by_id},
 };
+use sift_rs::{
+    rate_limit::error_from_status,
+    retry::{RateLimitOnly, RateLimitPolicy, RetryConfig, RetryExt},
+};
 use std::collections::HashMap;
 
 mod config_loader;
@@ -156,6 +160,7 @@ impl SiftStreamBuilder {
             #[cfg(feature = "tracing")]
             scoped_dispatch_base: None,
             disable_scoped_dispatch: false,
+            rate_limit_policy: RateLimitPolicy::default(),
         }
     }
 }
@@ -187,6 +192,8 @@ pub struct StreamConfigBuilder {
     /// When `true`, the scoped dispatch is not created for this stream.
     /// Set by the internal metrics sub-stream builder to prevent recursive event capture.
     pub(crate) disable_scoped_dispatch: bool,
+    /// How rate-limited control-plane calls are handled. Defaults to [`RateLimitPolicy::Retry`].
+    pub(crate) rate_limit_policy: RateLimitPolicy,
 }
 
 impl StreamConfigBuilder {
@@ -223,6 +230,23 @@ impl StreamConfigBuilder {
     /// Defaults to [`LogLevel::Info`](crate::logging::LogLevel::Info).
     pub fn log_level_filter(mut self, level: LogLevel) -> Self {
         self.log_level_filter = level;
+        self
+    }
+
+    /// Sets how SiftStream handles Sift rate limits on control-plane calls: connecting,
+    /// creating or fetching the ingestion config, flows, run, and asset during `build`, and
+    /// later [`attach_run`](crate::SiftStream::attach_run) and
+    /// [`add_new_flows`](crate::IngestionConfigEncoder::add_new_flows) calls.
+    ///
+    /// Defaults to [`RateLimitPolicy::Retry`], which retries after waiting at least the delay
+    /// Sift requests. Use [`RateLimitPolicy::ReturnError`] to receive
+    /// [`ErrorKind::RateLimitedError`](sift_error::ErrorKind::RateLimitedError) immediately and
+    /// read the delay with [`Error::retry_delay`](sift_error::Error::retry_delay), or
+    /// [`RateLimitPolicy::RetryIfDelayAtMost`] to only wait up to a bound.
+    ///
+    /// Streaming ingestion is not affected; it is governed by the mode's retry policy.
+    pub fn rate_limit_policy(mut self, policy: RateLimitPolicy) -> Self {
+        self.rate_limit_policy = policy;
         self
     }
 
@@ -398,6 +422,7 @@ impl LiveOnlyBuilder {
             control_channel_capacity: self.control_channel_capacity,
             metrics_streaming_interval: self.metrics_streaming_interval,
             retry_policy: self.retry_policy,
+            rate_limit_policy: setup.rate_limit_policy,
             #[cfg(feature = "tracing")]
             scoped_dispatch: setup.scoped_dispatch,
             log_rx: setup.log_rx,
@@ -548,6 +573,7 @@ impl LiveWithBackupsBuilder {
             ingestion_data_channel_capacity: self.ingestion_data_channel_capacity,
             backup_data_channel_capacity: self.backup_data_channel_capacity,
             metrics_streaming_interval: self.metrics_streaming_interval,
+            rate_limit_policy: setup.rate_limit_policy,
             #[cfg(feature = "tracing")]
             scoped_dispatch: setup.scoped_dispatch,
             log_rx: setup.log_rx,
@@ -643,6 +669,7 @@ impl FileBackupBuilder {
             setup.session_name,
             setup.sift_stream_id,
             setup.metrics,
+            setup.rate_limit_policy,
         )
         .await
     }
@@ -660,6 +687,7 @@ struct CommonSetup {
     metrics: Arc<SiftStreamMetrics>,
     session_name: String,
     sift_stream_id: Uuid,
+    rate_limit_policy: RateLimitPolicy,
     /// Scoped dispatch to install on spawned background task futures.
     /// `None` when the `tracing` feature is disabled or `disable_scoped_dispatch` was set.
     #[cfg(feature = "tracing")]
@@ -703,28 +731,47 @@ async fn setup_common(base: StreamConfigBuilder) -> Result<CommonSetup> {
         }
     };
 
-    // Since the gRPC connection is lazy, connect right away to verify the connection.
+    let rate_limit_policy = base.rate_limit_policy;
+
+    // Since the gRPC connection is lazy, connect right away to verify the connection. Only rate
+    // limits are retried; other failures indicate a configuration problem.
     for channel in [setup_channel.clone(), ingestion_channel.clone()] {
-        PingServiceClient::new(channel)
-            .ping(PingRequest::default())
-            .await
-            .map_err(|e| Error::new(ErrorKind::GrpcConnectError, e))
-            .context("failed to connect to Sift")
-            .help("ensure that your API key and Sift gRPC API URL is correct and TLS is configured properly")?;
+        let ping_res = PingServiceClient::new(channel)
+            .retrying(RetryConfig::default())
+            .with_decider(RateLimitOnly)
+            .with_rate_limit_policy(rate_limit_policy)
+            .call(|mut client| async move {
+                client
+                    .ping(PingRequest::default())
+                    .await
+                    .map_err(|e| error_from_status(ErrorKind::GrpcConnectError, e))
+            })
+            .await;
+
+        match ping_res {
+            Ok(_) => {}
+            Err(e) if e.is_rate_limited() => return Err(e).context("failed to connect to Sift"),
+            Err(e) => {
+                return Err(e)
+                    .context("failed to connect to Sift")
+                    .help("ensure that your API key and Sift gRPC API URL is correct and TLS is configured properly");
+            }
+        }
     }
 
     let (ingestion_config, flows, asset) = load_ingestion_config(
         setup_channel.clone(),
         base.ingestion_config,
         base.service_options,
+        rate_limit_policy,
     )
     .await?;
 
     let run = {
         if let Some(run_id) = base.run_id.as_ref() {
-            Some(load_run_by_id(setup_channel.clone(), run_id).await?)
+            Some(load_run_by_id(setup_channel.clone(), run_id, rate_limit_policy).await?)
         } else if let Some(selector) = base.run {
-            Some(load_run_by_form(setup_channel.clone(), selector).await?)
+            Some(load_run_by_form(setup_channel.clone(), selector, rate_limit_policy).await?)
         } else {
             None
         }
@@ -737,6 +784,7 @@ async fn setup_common(base: StreamConfigBuilder) -> Result<CommonSetup> {
         base.asset_tags,
         base.asset_metadata,
         setup_channel.clone(),
+        rate_limit_policy,
     )
     .await?;
 
@@ -792,6 +840,7 @@ async fn setup_common(base: StreamConfigBuilder) -> Result<CommonSetup> {
         metrics,
         session_name,
         sift_stream_id,
+        rate_limit_policy,
         #[cfg(feature = "tracing")]
         scoped_dispatch,
         log_rx,

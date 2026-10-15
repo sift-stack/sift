@@ -1,6 +1,8 @@
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
-use sift_stream::{DiskBackupPolicy, RetryPolicy, backup::disk::RollingFilePolicy};
+use sift_stream::{
+    DiskBackupPolicy, RateLimitPolicy, RetryPolicy, backup::disk::RollingFilePolicy,
+};
 
 // Type Definitions
 #[gen_stub_pyclass]
@@ -45,6 +47,29 @@ pub struct RetryPolicyPy {
     max_backoff: DurationPy,
     #[pyo3(get, set)]
     backoff_multiplier: u8,
+}
+
+/// Python binding for [`RateLimitPolicy`](sift_stream::RateLimitPolicy).
+///
+/// Controls how a stream handles Sift rate limits on control-plane calls: connecting, creating
+/// or fetching the ingestion config, flows, run, and asset during `build()`, and later
+/// `attach_run()` and `add_new_flows()` calls. Streaming ingestion is governed by the retry
+/// policy instead.
+///
+/// Create one with a static constructor:
+///
+/// - `RateLimitPolicyPy.retry()` (default): retry after waiting at least the delay Sift requests.
+/// - `RateLimitPolicyPy.retry_if_delay_at_most(max_delay)`: retry only if the wait is at most
+///   `max_delay`; otherwise raise immediately.
+/// - `RateLimitPolicyPy.return_error()`: never retry; raise immediately.
+///
+/// A rate-limit error is raised as a `RuntimeError` whose message starts with
+/// `[RateLimitedError]` and includes the delay Sift requested, when provided.
+#[gen_stub_pyclass]
+#[pyclass(from_py_object)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct RateLimitPolicyPy {
+    inner: RateLimitPolicy,
 }
 
 /// Python binding for [`DiskBackupPolicy`](sift_stream::backup::DiskBackupPolicy).
@@ -119,6 +144,18 @@ impl From<RetryPolicy> for RetryPolicyPy {
     }
 }
 
+impl From<RateLimitPolicyPy> for RateLimitPolicy {
+    fn from(policy: RateLimitPolicyPy) -> Self {
+        policy.inner
+    }
+}
+
+impl From<RateLimitPolicy> for RateLimitPolicyPy {
+    fn from(policy: RateLimitPolicy) -> Self {
+        RateLimitPolicyPy { inner: policy }
+    }
+}
+
 impl From<DiskBackupPolicyPy> for DiskBackupPolicy {
     fn from(policy: DiskBackupPolicyPy) -> Self {
         DiskBackupPolicy {
@@ -188,6 +225,49 @@ impl RetryPolicyPy {
     #[staticmethod]
     pub fn default() -> Self {
         RetryPolicy::default().into()
+    }
+}
+
+#[gen_stub_pymethods]
+#[pymethods]
+impl RateLimitPolicyPy {
+    /// Retry rate-limited calls after waiting at least the delay Sift requests. This is the
+    /// default.
+    #[staticmethod]
+    pub fn retry() -> Self {
+        RateLimitPolicy::Retry.into()
+    }
+
+    /// Retry rate-limited calls only if the wait is at most `max_delay`; otherwise raise the
+    /// rate-limit error immediately.
+    #[staticmethod]
+    pub fn retry_if_delay_at_most(max_delay: DurationPy) -> Self {
+        RateLimitPolicy::RetryIfDelayAtMost(max_delay.into()).into()
+    }
+
+    /// Never retry rate-limited calls; raise the rate-limit error immediately.
+    #[staticmethod]
+    pub fn return_error() -> Self {
+        RateLimitPolicy::ReturnError.into()
+    }
+
+    #[staticmethod]
+    pub fn default() -> Self {
+        RateLimitPolicy::default().into()
+    }
+
+    pub fn __repr__(&self) -> String {
+        match self.inner {
+            RateLimitPolicy::Retry => "RateLimitPolicyPy.retry()".to_string(),
+            RateLimitPolicy::RetryIfDelayAtMost(max_delay) => {
+                let max_delay = DurationPy::from(max_delay);
+                format!(
+                    "RateLimitPolicyPy.retry_if_delay_at_most(DurationPy(secs={}, nanos={}))",
+                    max_delay.secs, max_delay.nanos
+                )
+            }
+            RateLimitPolicy::ReturnError => "RateLimitPolicyPy.return_error()".to_string(),
+        }
     }
 }
 
