@@ -1,7 +1,10 @@
 use sift_rs::rules::v1::{
-    ArchiveRuleResponse, CreateRuleResponse, GetRuleResponse, ListRuleVersionsResponse,
-    ListRulesResponse, Rule, RuleAssetConfiguration, RuleVersion, UnarchiveRuleResponse,
-    UpdateRuleRequest, UpdateRuleResponse, rule_service_server::RuleServiceServer,
+    ActionKind, AnnotationActionConfiguration, ArchiveRuleResponse, CreateRuleResponse,
+    GetRuleResponse, ListRuleVersionsResponse, ListRulesResponse, Rule, RuleAction,
+    RuleActionConfiguration, RuleAssetConfiguration, RuleCondition, RuleVersion,
+    UnarchiveRuleResponse, UpdateActionRequest, UpdateConditionRequest, UpdateRuleRequest,
+    UpdateRuleResponse, WebhookActionConfiguration, rule_action_configuration::Configuration,
+    rule_service_server::RuleServiceServer,
 };
 
 use super::RuleUpdate;
@@ -266,11 +269,14 @@ async fn create_rule_forwards_definition_and_returns_id() {
     let (service, _h) = service_with_mock(mock).await;
 
     let rule_id = service
-        .create_rule(UpdateRuleRequest {
-            name: "overtemp".into(),
-            description: "engine over temperature".into(),
-            ..Default::default()
-        })
+        .create_rule(
+            UpdateRuleRequest {
+                name: "overtemp".into(),
+                description: "engine over temperature".into(),
+                ..Default::default()
+            },
+            Vec::new(),
+        )
         .await
         .expect("create_rule failed");
 
@@ -320,7 +326,7 @@ async fn update_rule_merges_changes_over_current_definition() {
 
     let (service, _h) = service_with_mock(mock).await;
 
-    let rule_id = service
+    let updated = service
         .update_rule(
             "rule-1".to_string(),
             RuleUpdate {
@@ -331,7 +337,8 @@ async fn update_rule_merges_changes_over_current_definition() {
         .await
         .expect("update_rule failed");
 
-    assert_eq!(rule_id, "rule-1");
+    assert_eq!(updated.rule_id, "rule-1");
+    assert!(updated.detached_webhook_ids.is_empty());
 }
 
 #[tokio::test]
@@ -422,9 +429,265 @@ async fn create_rule_propagates_grpc_error() {
     let (service, _h) = service_with_mock(mock).await;
 
     let err = service
-        .create_rule(UpdateRuleRequest::default())
+        .create_rule(UpdateRuleRequest::default(), Vec::new())
         .await
         .expect_err("expected error");
 
     assert!(err.to_string().contains("failed to create rule"));
+}
+
+fn annotation_config() -> RuleActionConfiguration {
+    RuleActionConfiguration {
+        configuration: Some(Configuration::Annotation(
+            AnnotationActionConfiguration::default(),
+        )),
+    }
+}
+
+fn webhook_config(webhook_id: &str) -> RuleActionConfiguration {
+    RuleActionConfiguration {
+        configuration: Some(Configuration::Webhook(WebhookActionConfiguration {
+            webhook_id: webhook_id.into(),
+        })),
+    }
+}
+
+/// The webhook ids an action list calls, in order.
+fn webhook_ids(actions: &[UpdateActionRequest]) -> Vec<&str> {
+    actions
+        .iter()
+        .filter_map(
+            |a| match a.configuration.as_ref()?.configuration.as_ref()? {
+                Configuration::Webhook(w) => Some(w.webhook_id.as_str()),
+                _ => None,
+            },
+        )
+        .collect()
+}
+
+/// A rule with one condition holding an annotation action and a webhook
+/// action for `wh-old`, each with its server-assigned id.
+fn rule_with_webhook() -> Rule {
+    Rule {
+        rule_id: "rule-1".into(),
+        name: "overtemp".into(),
+        conditions: vec![RuleCondition {
+            rule_condition_id: "cond-1".into(),
+            actions: vec![
+                RuleAction {
+                    rule_action_id: "act-annotation".into(),
+                    action_type: ActionKind::Annotation as i32,
+                    configuration: Some(annotation_config()),
+                    ..Default::default()
+                },
+                RuleAction {
+                    rule_action_id: "act-wh-old".into(),
+                    action_type: ActionKind::Webhook as i32,
+                    configuration: Some(webhook_config("wh-old")),
+                    ..Default::default()
+                },
+            ],
+            ..Default::default()
+        }],
+        ..Default::default()
+    }
+}
+
+#[tokio::test]
+async fn create_rule_attaches_webhooks_beside_the_annotation() {
+    let mut mock = MockRuleServiceImpl::new();
+    mock.expect_create_rule()
+        .withf(|req| {
+            let update = req.get_ref().update.as_ref().unwrap();
+            let actions = &update.conditions[0].actions;
+            actions.len() == 3
+                && actions[0].action_type == ActionKind::Annotation as i32
+                && webhook_ids(actions) == vec!["wh-1", "wh-2"]
+                && actions[1..].iter().all(|a| {
+                    a.action_type == ActionKind::Webhook as i32 && a.rule_action_id.is_none()
+                })
+        })
+        .returning(|_| {
+            Ok(Response::new(CreateRuleResponse {
+                rule_id: "new-rule".into(),
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let rule_id = service
+        .create_rule(
+            UpdateRuleRequest {
+                name: "overtemp".into(),
+                conditions: vec![UpdateConditionRequest {
+                    actions: vec![UpdateActionRequest {
+                        action_type: ActionKind::Annotation as i32,
+                        configuration: Some(annotation_config()),
+                        ..Default::default()
+                    }],
+                    ..Default::default()
+                }],
+                ..Default::default()
+            },
+            // A repeated id must not attach twice; Sift rejects the rule if it does.
+            vec!["wh-1".into(), "wh-2".into(), "wh-1".into()],
+        )
+        .await
+        .expect("create_rule failed");
+
+    assert_eq!(rule_id, "new-rule");
+}
+
+#[tokio::test]
+async fn update_rule_keeps_existing_actions_when_webhooks_are_replaced() {
+    let mut mock = MockRuleServiceImpl::new();
+    mock.expect_get_rule().returning(|_| {
+        Ok(Response::new(GetRuleResponse {
+            rule: Some(rule_with_webhook()),
+        }))
+    });
+
+    // Sift deletes any action left out of an update, so the existing annotation
+    // and the kept webhook must be resent with their ids, and `wh-old` must not repeat.
+    mock.expect_update_rule()
+        .withf(|req| {
+            let condition = &req.get_ref().conditions[0];
+            let actions = &condition.actions;
+            condition.rule_condition_id.as_deref() == Some("cond-1")
+                && actions.len() == 3
+                && actions[0].rule_action_id.as_deref() == Some("act-annotation")
+                && actions[1].rule_action_id.as_deref() == Some("act-wh-old")
+                && actions[2].rule_action_id.is_none()
+                && webhook_ids(actions) == vec!["wh-old", "wh-new"]
+        })
+        .returning(|_| {
+            Ok(Response::new(UpdateRuleResponse {
+                rule_id: "rule-1".into(),
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let updated = service
+        .update_rule(
+            "rule-1".to_string(),
+            RuleUpdate {
+                webhook_ids: Some(vec!["wh-old".into(), "wh-new".into(), "wh-new".into()]),
+                ..Default::default()
+            },
+        )
+        .await
+        .expect("update_rule failed");
+
+    assert!(updated.detached_webhook_ids.is_empty());
+}
+
+#[tokio::test]
+async fn update_rule_reports_the_webhooks_it_detaches() {
+    let mut mock = MockRuleServiceImpl::new();
+    mock.expect_get_rule().returning(|_| {
+        Ok(Response::new(GetRuleResponse {
+            rule: Some(rule_with_webhook()),
+        }))
+    });
+
+    mock.expect_update_rule()
+        .withf(|req| {
+            let actions = &req.get_ref().conditions[0].actions;
+            actions.len() == 1
+                && actions[0].rule_action_id.as_deref() == Some("act-annotation")
+                && webhook_ids(actions).is_empty()
+        })
+        .returning(|_| {
+            Ok(Response::new(UpdateRuleResponse {
+                rule_id: "rule-1".into(),
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let updated = service
+        .update_rule(
+            "rule-1".to_string(),
+            RuleUpdate {
+                webhook_ids: Some(Vec::new()),
+                ..Default::default()
+            },
+        )
+        .await
+        .expect("update_rule failed");
+
+    assert_eq!(updated.detached_webhook_ids, vec!["wh-old".to_string()]);
+}
+
+#[tokio::test]
+async fn update_rule_carries_webhooks_onto_replaced_conditions() {
+    let mut mock = MockRuleServiceImpl::new();
+    mock.expect_get_rule().returning(|_| {
+        Ok(Response::new(GetRuleResponse {
+            rule: Some(rule_with_webhook()),
+        }))
+    });
+
+    // The new conditions carry only an annotation. Webhooks are set through
+    // `webhook_ids`, so rewriting the logic must not silently drop `wh-old`.
+    mock.expect_update_rule()
+        .withf(|req| {
+            let actions = &req.get_ref().conditions[0].actions;
+            actions.len() == 2
+                && actions[0].action_type == ActionKind::Annotation as i32
+                && webhook_ids(actions) == vec!["wh-old"]
+        })
+        .returning(|_| {
+            Ok(Response::new(UpdateRuleResponse {
+                rule_id: "rule-1".into(),
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let updated = service
+        .update_rule(
+            "rule-1".to_string(),
+            RuleUpdate {
+                conditions: Some(vec![UpdateConditionRequest {
+                    actions: vec![UpdateActionRequest {
+                        action_type: ActionKind::Annotation as i32,
+                        configuration: Some(annotation_config()),
+                        ..Default::default()
+                    }],
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
+        )
+        .await
+        .expect("update_rule failed");
+
+    assert!(updated.detached_webhook_ids.is_empty());
+}
+
+#[test]
+fn has_webhook_action_finds_only_webhooks() {
+    let annotation = UpdateConditionRequest {
+        actions: vec![UpdateActionRequest {
+            action_type: ActionKind::Annotation as i32,
+            configuration: Some(annotation_config()),
+            ..Default::default()
+        }],
+        ..Default::default()
+    };
+    let webhook = UpdateConditionRequest {
+        actions: vec![UpdateActionRequest {
+            action_type: ActionKind::Webhook as i32,
+            configuration: Some(webhook_config("wh-1")),
+            ..Default::default()
+        }],
+        ..Default::default()
+    };
+
+    assert!(!super::has_webhook_action(std::slice::from_ref(
+        &annotation
+    )));
+    assert!(super::has_webhook_action(&[annotation, webhook]));
 }

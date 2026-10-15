@@ -15,6 +15,7 @@ pub mod runs;
 pub mod test_reports;
 pub mod user_defined_functions;
 pub mod users;
+pub mod webhooks;
 
 /// A test demonstrating a little bit of everything of how to leverage the mock API.
 #[cfg(test)]

@@ -85,7 +85,7 @@ tool.
   connectivity check; when it fails, expect every other Sift tool to fail too.
 - **Discovery:** `list_assets`, `list_runs`, `list_channels`, `list_reports`,
   `list_report_templates`, `list_rules`, `list_rule_versions`, `list_annotations`,
-  `list_artifacts`, `list_artifact_versions`.
+  `list_artifacts`, `list_artifact_versions`, `list_webhooks`.
 - **Artifacts:** `download_artifact` (latest version, or pin `artifact_version_id`),
   `list_artifact_versions` for one artifact's history, newest first.
   The artifact tools, including `list_artifacts` and the artifact writes below,
@@ -251,6 +251,12 @@ tool.
   cannot be attached to a template) — skip the template and pass `rule_ids`,
   `rule_client_keys`, or `rule_version_ids` directly to `create_report`. Track
   progress via `list_report_rule_summaries`.
+- **Alert outside Sift when a rule fires.** Find the webhook with
+  `list_webhooks`, then pass its id in `webhook_ids` on `create_rule` or
+  `update_rule`. On `update_rule` it replaces the rule's set, like `asset_ids`,
+  so include the webhooks the rule already calls. Do not write webhook actions
+  into `conditions`. These tools cannot create a webhook; when none fits, tell
+  the user to create one in the Sift web app.
 
 ## Rules that always apply
 

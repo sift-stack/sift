@@ -4,10 +4,11 @@ use anyhow::{Context, Result};
 use sift_rs::{
     SiftChannel,
     rules::v1::{
-        ArchiveRuleRequest, CreateRuleRequest, GetRuleRequest, ListRuleVersionsRequest,
+        ActionKind, ArchiveRuleRequest, CreateRuleRequest, GetRuleRequest, ListRuleVersionsRequest,
         ListRuleVersionsResponse, ListRulesRequest, ListRulesResponse, Rule, RuleAction,
-        RuleCondition, RuleVersion, UnarchiveRuleRequest, UpdateActionRequest,
-        UpdateConditionRequest, UpdateRuleRequest, rule_service_client::RuleServiceClient,
+        RuleActionConfiguration, RuleCondition, RuleVersion, UnarchiveRuleRequest,
+        UpdateActionRequest, UpdateConditionRequest, UpdateRuleRequest, WebhookActionConfiguration,
+        rule_action_configuration::Configuration, rule_service_client::RuleServiceClient,
     },
 };
 
@@ -24,6 +25,17 @@ pub struct RuleUpdate {
     pub asset_ids: Option<Vec<String>>,
     pub tag_ids: Option<Vec<String>>,
     pub conditions: Option<Vec<UpdateConditionRequest>>,
+    /// Replaces the set of webhooks the rule calls. `None` keeps the current
+    /// set, including when `conditions` replaces the actions they sat on.
+    pub webhook_ids: Option<Vec<String>>,
+}
+
+/// The outcome of `update_rule`.
+#[derive(Debug)]
+pub struct UpdatedRule {
+    pub rule_id: String,
+    /// Webhooks the rule called before the update and no longer calls.
+    pub detached_webhook_ids: Vec<String>,
 }
 
 #[cfg(test)]
@@ -110,8 +122,15 @@ impl RuleService {
         })
     }
 
-    /// Creates a rule from a full rule definition. Returns the new `rule_id`.
-    pub async fn create_rule(&self, update: UpdateRuleRequest) -> Result<String> {
+    /// Creates a rule from a full rule definition that calls each of
+    /// `webhook_ids` when it fires. Returns the new `rule_id`.
+    pub async fn create_rule(
+        &self,
+        mut update: UpdateRuleRequest,
+        webhook_ids: Vec<String>,
+    ) -> Result<String> {
+        set_webhooks(&mut update.conditions, &webhook_ids);
+
         let channel = self.channel.clone();
 
         let resp = with_retry(&self.policy, move || {
@@ -136,14 +155,15 @@ impl RuleService {
     /// Safely updates an existing rule by `rule_id`. The underlying `UpdateRule`
     /// RPC is a full replace, so this fetches the current rule, overlays only the
     /// fields set in `changes`, and sends the merged definition back. Fields not
-    /// named in `changes` are preserved. Returns the `rule_id`.
-    pub async fn update_rule(&self, rule_id: String, changes: RuleUpdate) -> Result<String> {
+    /// named in `changes` are preserved.
+    pub async fn update_rule(&self, rule_id: String, changes: RuleUpdate) -> Result<UpdatedRule> {
         let current = self
             .get_rule(rule_id.clone())
             .await?
             .ok_or_else(|| anyhow::anyhow!("rule '{rule_id}' not found"))?;
 
         let mut update = rule_to_update_request(current);
+        let current_webhook_ids = webhook_ids_in(&update.conditions);
 
         let RuleUpdate {
             name,
@@ -153,6 +173,7 @@ impl RuleService {
             asset_ids,
             tag_ids,
             conditions,
+            webhook_ids,
         } = changes;
 
         if let Some(name) = name {
@@ -180,6 +201,12 @@ impl RuleService {
         if let Some(conditions) = conditions {
             update.conditions = conditions;
         }
+        let webhook_ids = webhook_ids.unwrap_or_else(|| current_webhook_ids.clone());
+        set_webhooks(&mut update.conditions, &webhook_ids);
+        let detached_webhook_ids = current_webhook_ids
+            .into_iter()
+            .filter(|id| !webhook_ids.contains(id))
+            .collect();
 
         let channel = self.channel.clone();
         let resp = with_retry(&self.policy, move || {
@@ -196,7 +223,10 @@ impl RuleService {
         .await
         .context("failed to update rule")?;
 
-        Ok(resp.rule_id)
+        Ok(UpdatedRule {
+            rule_id: resp.rule_id,
+            detached_webhook_ids,
+        })
     }
 
     /// Retrieves the latest version of a rule by id, or `None` if it does not exist.
@@ -382,5 +412,73 @@ fn action_to_update(action: RuleAction) -> UpdateActionRequest {
         rule_action_id: (!action.rule_action_id.is_empty()).then_some(action.rule_action_id),
         action_type: action.action_type,
         configuration: action.configuration,
+    }
+}
+
+/// Makes every condition call exactly `webhook_ids`. Sift fires a webhook from
+/// the condition that holds it and allows one condition per rule, so every
+/// condition is that one. An action for a kept webhook keeps its
+/// `rule_action_id`, since Sift deletes any action an update leaves out, and a
+/// repeated id is attached once because Sift rejects the rule otherwise.
+/// Non-webhook actions are left alone.
+fn set_webhooks(conditions: &mut [UpdateConditionRequest], webhook_ids: &[String]) {
+    for condition in conditions {
+        condition.actions.retain(|action| {
+            webhook_id(action).is_none_or(|id| webhook_ids.iter().any(|w| w == id))
+        });
+
+        for id in webhook_ids {
+            let attached = condition
+                .actions
+                .iter()
+                .any(|action| webhook_id(action) == Some(id.as_str()));
+            if !attached {
+                condition.actions.push(webhook_action(id.clone()));
+            }
+        }
+    }
+}
+
+/// Whether any condition carries a webhook action. The rule tools take
+/// webhooks only through `webhook_ids`, so each one is checked before saving.
+pub fn has_webhook_action(conditions: &[UpdateConditionRequest]) -> bool {
+    conditions
+        .iter()
+        .flat_map(|condition| &condition.actions)
+        .any(|action| webhook_id(action).is_some())
+}
+
+/// The webhooks the conditions call, in order, each once.
+fn webhook_ids_in(conditions: &[UpdateConditionRequest]) -> Vec<String> {
+    let mut ids: Vec<String> = Vec::new();
+    for id in conditions
+        .iter()
+        .flat_map(|condition| &condition.actions)
+        .filter_map(webhook_id)
+    {
+        if !ids.iter().any(|existing| existing == id) {
+            ids.push(id.to_string());
+        }
+    }
+    ids
+}
+
+/// The webhook an action calls, or `None` for any other kind of action.
+fn webhook_id(action: &UpdateActionRequest) -> Option<&str> {
+    match action.configuration.as_ref()?.configuration.as_ref()? {
+        Configuration::Webhook(webhook) => Some(webhook.webhook_id.as_str()),
+        _ => None,
+    }
+}
+
+fn webhook_action(webhook_id: String) -> UpdateActionRequest {
+    UpdateActionRequest {
+        rule_action_id: None,
+        action_type: ActionKind::Webhook as i32,
+        configuration: Some(RuleActionConfiguration {
+            configuration: Some(Configuration::Webhook(WebhookActionConfiguration {
+                webhook_id,
+            })),
+        }),
     }
 }

@@ -6,12 +6,15 @@ use rmcp::{
     tool, tool_router,
 };
 use serde::Deserialize;
-use sift_rs::rules::v1::{UpdateConditionRequest, UpdateRuleRequest};
+use sift_rs::{
+    rules::v1::{UpdateConditionRequest, UpdateRuleRequest},
+    webhooks::v1::Webhook,
+};
 
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
-    service::rules::RuleUpdate,
+    service::rules::{RuleUpdate, has_webhook_action},
     tool::common::{ListParams, list_body, url_clause, with_urls},
 };
 
@@ -21,6 +24,7 @@ mod test;
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct RuleDefinitionParams {
     rule_json: String,
+    webhook_ids: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -40,6 +44,7 @@ pub struct UpdateRuleParams {
     asset_ids: Option<Vec<String>>,
     tag_ids: Option<Vec<String>>,
     conditions_json: Option<String>,
+    webhook_ids: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -219,24 +224,32 @@ impl SiftMcpServer {
               - `rule_json`: a JSON object matching `protos/sift/rules/v1/rules.proto::UpdateRuleRequest`. Use the
                 proto field names. Omit `rule_id` (this is a create). Key fields:
                 - `name` (required), `description` (required).
-                - `conditions` (required): array of `{ \"expression\": {...}, \"actions\": [...] }`. The
-                  expression and action shapes are non-trivial; mirror an existing rule retrieved via
+                - `conditions` (required): exactly one `{ \"expression\": {...}, \"actions\": [...] }`; Sift
+                  rejects more. The expression shape is non-trivial; mirror an existing rule retrieved via
                   `list_rules` rather than authoring blind.
+                - `actions`: include one annotation action so violations are recorded:
+                  `{ \"action_type\": \"ANNOTATION\", \"configuration\": { \"annotation\": { \"tag_ids\": [],
+                  \"annotation_type\": \"ANNOTATION_TYPE_DATA_REVIEW\" } } }`. Put webhooks in
+                  `webhook_ids`, not here. Sift rejects `NOTIFICATION` actions on rules.
                 - `asset_configuration`: `{ \"asset_ids\": [...], \"tag_ids\": [...] }` — which assets/tags the
                   rule applies to.
                 - `metadata` (required): array of metadata values (may be empty: `[]`).
                 - `client_key` (optional): a caller-defined identifier. Immutable after creation.
                 - `is_live_evaluation_enabled` (optional): evaluate against live data.
+              - `webhook_ids`: optional. Webhooks from `list_webhooks` to call when the condition is violated and
+                again when it resolves. Use it when the user asks to be notified or alerted outside Sift.
 
             Errors:
-              - `INVALID_PARAMS` if `rule_json` is not valid JSON or does not match the rule schema.
+              - `INVALID_PARAMS` if `rule_json` is not valid JSON, does not match the rule schema, does not hold
+                exactly one condition, or holds a webhook action, or if a webhook is archived.
+              - `RESOURCE_NOT_FOUND` if a `webhook_ids` entry matches no webhook.
               - `INTERNAL_ERROR` for upstream gRPC failures (e.g. a referenced asset does not exist).
 
             Guidance:
-              - Rule definitions are complex. Retrieve a similar rule with `list_rules` first and adapt its shape;
-                do not invent `conditions`/`actions` structures.
-              - This creates a live resource. Confirm the rule's name, the target assets/tags, and the conditions
-                with the user before calling. Do not silently default them.
+              - Rule expressions are complex. Retrieve a similar rule with `list_rules` first and adapt its
+                expression; do not invent one.
+              - This creates a live resource. Confirm the rule's name, the target assets/tags, the conditions, and
+                any webhooks with the user before calling. Do not silently default them.
         ",
         annotations(
             title = "rules/create_rule",
@@ -248,23 +261,30 @@ impl SiftMcpServer {
     pub async fn create_rule(&self, params: Parameters<RuleDefinitionParams>) -> error::McpResult {
         self.require_create()?;
 
-        let Parameters(RuleDefinitionParams { rule_json }) = params;
+        let Parameters(RuleDefinitionParams {
+            rule_json,
+            webhook_ids,
+        }) = params;
 
         let update = parse_rule_definition(&rule_json)?;
+        validate_conditions("rule_json", &update.conditions)?;
+        let webhook_ids = webhook_ids.unwrap_or_default();
+        let webhooks = self.resolve_webhooks(&webhook_ids).await?;
         let rule_name = update.name.clone();
 
         let rule_id = self
             .rule_service
-            .create_rule(update)
+            .create_rule(update, webhook_ids)
             .await
             .map_err(from_anyhow)?;
 
         let rule_url = self.url_service.build_rule_url(&rule_id).ok();
         let next_step = format!(
-            "Created rule with id `{rule_id}`.{} Tell the user the new rule id. If they haven't \
+            "Created rule with id `{rule_id}`.{}{} Tell the user the new rule id. If they haven't \
              indicated a next step, offer to confirm it with `list_rules` \
              (filter `rule_id == \"{rule_id}\"`).",
             url_clause("rule", Some(rule_name.as_str()), rule_url.as_deref()),
+            webhook_clause("It calls", &webhooks),
         );
 
         let mut result = CallToolResult::structured(serde_json::json!({
@@ -297,19 +317,25 @@ impl SiftMcpServer {
               - `asset_ids`: optional. Replaces the rule's set of target asset ids.
               - `tag_ids`: optional. Replaces the rule's set of target tag ids.
               - `conditions_json`: optional. Replaces the rule's conditions. A JSON array matching the
-                `conditions` field of `create_rule`'s `rule_json`. Omit it to keep the existing conditions
-                unchanged — only provide it when you intend to rewrite the rule's logic.
+                `conditions` field of `create_rule`'s `rule_json`, without webhook actions. Omit it to keep the
+                existing conditions unchanged — only provide it when you intend to rewrite the rule's logic.
+              - `webhook_ids`: optional. Replaces the rule's set of webhooks, from `list_webhooks`, that it calls
+                when its condition is violated and again when it resolves. Include the ids it already calls
+                (`conditions[].actions[].configuration.webhook.webhook_id` in `list_rules`) to keep them; `[]`
+                removes them all. Omit it to keep the current webhooks, even when `conditions_json` is set.
               - At least one field besides `rule_id` must be set.
 
             Errors:
-              - `INVALID_PARAMS` if no field besides `rule_id` is set, or if `conditions_json` is not a valid
-                conditions array.
-              - `RESOURCE_NOT_FOUND` if no rule has the given `rule_id`.
+              - `INVALID_PARAMS` if no field besides `rule_id` is set, if `conditions_json` is not a valid
+                conditions array of exactly one condition or holds a webhook action, or if a webhook is
+                archived.
+              - `RESOURCE_NOT_FOUND` if no rule has the given `rule_id`, or a `webhook_ids` entry matches no
+                webhook.
               - `INTERNAL_ERROR` for upstream gRPC failures.
 
             Guidance:
               - Prefer this over recreating a rule. To change only the name, pass `rule_id` and `name`; the
-                conditions, metadata, and asset targeting are preserved automatically.
+                conditions, metadata, webhooks, and asset targeting are preserved automatically.
               - Confirm the intended changes with the user before calling.
         ",
         annotations(
@@ -331,12 +357,16 @@ impl SiftMcpServer {
             asset_ids,
             tag_ids,
             conditions_json,
+            webhook_ids,
         }) = params;
 
         let conditions = conditions_json
             .as_deref()
             .map(parse_conditions)
             .transpose()?;
+        if let Some(conditions) = &conditions {
+            validate_conditions("conditions_json", conditions)?;
+        }
 
         let changes = RuleUpdate {
             name,
@@ -346,6 +376,7 @@ impl SiftMcpServer {
             asset_ids,
             tag_ids,
             conditions,
+            webhook_ids,
         };
 
         let nothing_to_change = changes.name.is_none()
@@ -354,7 +385,8 @@ impl SiftMcpServer {
             && changes.is_live_evaluation_enabled.is_none()
             && changes.asset_ids.is_none()
             && changes.tag_ids.is_none()
-            && changes.conditions.is_none();
+            && changes.conditions.is_none()
+            && changes.webhook_ids.is_none();
         if nothing_to_change {
             return Err(ErrorData::invalid_params(
                 "at least one field besides `rule_id` must be set",
@@ -362,19 +394,26 @@ impl SiftMcpServer {
             ));
         }
 
+        let webhooks = match &changes.webhook_ids {
+            Some(webhook_ids) => self.resolve_webhooks(webhook_ids).await?,
+            None => Vec::new(),
+        };
         let rule_name = changes.name.clone();
-        let rule_id = self
+        let updated = self
             .rule_service
             .update_rule(rule_id, changes)
             .await
             .map_err(from_anyhow)?;
+        let rule_id = updated.rule_id;
 
         let rule_url = self.url_service.build_rule_url(&rule_id).ok();
         let next_step = format!(
-            "Updated rule `{rule_id}`.{} Tell the user the update succeeded. If they haven't \
+            "Updated rule `{rule_id}`.{}{}{} Tell the user the update succeeded. If they haven't \
              indicated a next step, offer to confirm it with `list_rules` \
              (filter `rule_id == \"{rule_id}\"`).",
             url_clause("rule", rule_name.as_deref(), rule_url.as_deref()),
+            webhook_clause("It now calls", &webhooks),
+            self.detached_clause(&updated.detached_webhook_ids).await,
         );
 
         let mut result = CallToolResult::structured(serde_json::json!({
@@ -507,6 +546,134 @@ impl SiftMcpServer {
         result.content = vec![ContentBlock::text(next_step)];
         Ok(result)
     }
+}
+
+impl SiftMcpServer {
+    /// Confirms each webhook exists and is live before a rule is pointed at it.
+    /// Sift accepts an archived webhook on a rule and then never calls it, so
+    /// the check has to happen here.
+    async fn resolve_webhooks(&self, webhook_ids: &[String]) -> Result<Vec<Webhook>, ErrorData> {
+        let webhooks = self
+            .webhook_service
+            .get_webhooks(webhook_ids)
+            .await
+            .map_err(from_anyhow)?;
+        check_webhooks(webhook_ids, webhooks)
+    }
+
+    /// A `next_step` sentence naming the webhooks an update detached, so a set
+    /// replaced without the rule's current ids does not drop one unnoticed.
+    /// The rule is already saved, so a failed name lookup falls back to ids
+    /// instead of failing the call.
+    async fn detached_clause(&self, webhook_ids: &[String]) -> String {
+        if webhook_ids.is_empty() {
+            return String::new();
+        }
+        let webhooks = self
+            .webhook_service
+            .get_webhooks(webhook_ids)
+            .await
+            .unwrap_or_default();
+        let names = webhook_ids
+            .iter()
+            .map(|id| match webhooks.iter().find(|w| &w.webhook_id == id) {
+                Some(webhook) => format!("`{}`", webhook.name),
+                None => format!("`{id}`"),
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+        format!(
+            " It no longer calls {names}. Tell the user, and if they did not ask to remove it, offer \
+             to restore it by passing it in `webhook_ids`."
+        )
+    }
+}
+
+/// Refuses conditions Sift would reject or that would bypass the webhook check.
+/// Sift takes exactly one condition per rule, and answers a rule with none
+/// with an internal error that reads as a backend fault, so the count is
+/// checked here. Webhooks reach a rule only through `webhook_ids`, where each
+/// is checked before saving, so a webhook action written into the conditions
+/// is refused with a pointer to the right parameter.
+fn validate_conditions(
+    param: &str,
+    conditions: &[UpdateConditionRequest],
+) -> Result<(), ErrorData> {
+    if conditions.len() != 1 {
+        return Err(ErrorData::invalid_params(
+            format!(
+                "`{param}` holds {} conditions; a Sift rule takes exactly one",
+                conditions.len()
+            ),
+            None,
+        ));
+    }
+    if has_webhook_action(conditions) {
+        return Err(ErrorData::invalid_params(
+            format!("`{param}` holds a webhook action; pass webhook ids in `webhook_ids` instead"),
+            None,
+        ));
+    }
+    Ok(())
+}
+
+/// Fails with `RESOURCE_NOT_FOUND` when an id matches no webhook and with
+/// `INVALID_PARAMS` when a webhook is archived. Returns the webhooks otherwise.
+fn check_webhooks(
+    webhook_ids: &[String],
+    webhooks: Vec<Webhook>,
+) -> Result<Vec<Webhook>, ErrorData> {
+    let missing: Vec<String> = webhook_ids
+        .iter()
+        .filter(|id| !webhooks.iter().any(|w| &w.webhook_id == *id))
+        .map(|id| format!("`{id}`"))
+        .collect();
+    if !missing.is_empty() {
+        return Err(ErrorData::resource_not_found(
+            format!(
+                "no webhook has id {}. Find webhook ids with `list_webhooks`.",
+                missing.join(", ")
+            ),
+            None,
+        ));
+    }
+
+    let archived: Vec<String> = webhooks
+        .iter()
+        .filter(|w| w.is_archived || w.archived_date.is_some())
+        .map(|w| format!("`{}` ({})", w.name, w.webhook_id))
+        .collect();
+    if !archived.is_empty() {
+        return Err(ErrorData::invalid_params(
+            format!(
+                "webhook {} is archived, and Sift never calls an archived webhook. Ask the user \
+                 to pick a live one from `list_webhooks` with `is_archived == false`.",
+                archived.join(", ")
+            ),
+            None,
+        ));
+    }
+
+    Ok(webhooks)
+}
+
+/// A `next_step` sentence naming the webhooks a rule calls, so the agent can
+/// tell the user where alerts go. Empty when there are none.
+fn webhook_clause(lead: &str, webhooks: &[Webhook]) -> String {
+    if webhooks.is_empty() {
+        return String::new();
+    }
+    let names = webhooks
+        .iter()
+        .map(|w| format!("`{}`", w.name))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let noun = if webhooks.len() == 1 {
+        "webhook"
+    } else {
+        "webhooks"
+    };
+    format!(" {lead} {noun} {names} when its condition is violated and again when it resolves.")
 }
 
 /// Build the web URL for a rule when its `rule_id` is known. Returns `None` when
