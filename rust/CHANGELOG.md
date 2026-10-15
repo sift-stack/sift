@@ -14,6 +14,86 @@ per entity. `upload_dataset` returns `asset_url` and `run_url` and names both in
 before, it returned bare ids with no link. `explore_url` asks for descriptive link text instead of
 the word "link".
 
+#### Rate limits honor Sift's requested retry delay
+
+Sift rate limits a request by returning `ResourceExhausted` with a `google.rpc.RetryInfo` detail
+that says how long to wait. These responses now surface as the new
+`ErrorKind::RateLimitedError { retry_delay }`, and `Error::retry_delay()` returns the requested
+delay. `ResourceExhausted` without `RetryInfo`, such as a request over Sift's message size limit,
+keeps its original kind and is not retried as a rate limit.
+
+`SiftStream` handles rate limits on control-plane calls (connecting, creating or fetching the
+ingestion config, flows, run, and asset during `build`, plus `attach_run` and `add_new_flows`)
+without code changes. By default it retries after waiting the larger of Sift's delay plus some
+margin and the normal backoff, so the retry lands after the rate-limit window rather than at its
+edge. The wait never exceeds a maximum delay, so a very long or faulty delay cannot block a call
+for that long. A retry made before Sift's delay has passed may be rate limited again, and the
+error is returned once the attempts run out. Both are configurable, and default to a 10 second
+maximum delay and a 100ms margin:
+
+```rust
+use sift_stream::RateLimitPolicy;
+use std::time::Duration;
+
+let policy = RateLimitPolicy::retry()
+    .with_max_delay(Duration::from_secs(30))
+    .with_margin(Duration::from_millis(250));
+```
+
+Callers that cannot afford to wait can opt out:
+
+```rust
+use sift_stream::RateLimitPolicy;
+
+let result = SiftStreamBuilder::new(credentials)
+    .ingestion_config(ingestion_config)
+    .rate_limit_policy(RateLimitPolicy::ReturnError)
+    .live_only()
+    .build()
+    .await;
+
+if let Err(err) = &result
+    && let Some(delay) = err.retry_delay()
+{
+    // Do something else, or retry after `delay`.
+}
+```
+
+Streaming ingestion is governed by the mode's `RetryPolicy` instead. A rate-limited stream waits
+the requested delay plus the same margin before reconnecting, capped at the policy's
+`max_backoff` instead of the policy's maximum delay, and keeps retrying as it does for any other
+failure. Backup re-ingestion waits the same way between attempts. With retries disabled, `finish` reports `RateLimitedError`.
+
+Behavior changes to be aware of:
+
+- `IngestionConfigEncoder::add_new_flows` (and so `SiftStream::add_new_flows`) now returns the
+  rate-limit error when a flow is still rate limited after the policy is applied. Flows created in
+  the same call are still registered. Other flow creation failures are still only logged.
+- `ErrorKind` has a new variant, so exhaustive `match` statements on it need a new arm.
+
+##### `sift_rs`
+
+The new `sift_rs::rate_limit` module detects rate-limit responses and converts a `tonic::Status`
+into a `sift_error::Error`. All wrapper methods use it, so their errors carry the retry delay.
+
+`Retrying` honors the delay by default. Configure it with
+`Retrying::with_rate_limit_policy(RateLimitPolicy::...)`. The new `RateLimitOnly` decider retries
+only rate limits. `RetryDecider` gains `is_rate_limited` and `retry_delay` methods with default
+implementations, so existing deciders compile and behave as before. Rate-limited creates and
+updates are now retried, which is safe because Sift rejects them before processing.
+`RetryConfig { max_attempts: 0, .. }` now makes a single attempt instead of panicking.
+
+##### `sift-stream-bindings`
+
+`SiftStreamBuilderPy` and `StreamConfigBuilderPy` have a new `rate_limit_policy` field that takes
+a `RateLimitPolicyPy`, created with `RateLimitPolicyPy.retry()` (default) or
+`RateLimitPolicyPy.return_error()`. Adjust the retrying policy with `with_max_delay(DurationPy(...))`
+(default 10 seconds) and `with_margin(DurationPy(...))` (default 100ms).
+Rate-limit errors are raised as `RateLimitedErrorPy`, a `RuntimeError` subclass, so existing
+`except RuntimeError` handlers still catch them. Its `retry_delay` attribute holds the delay Sift
+requested as a `DurationPy`, or `None` if Sift did not provide one. The message still starts with
+`[RateLimitedError]`.
+
 ### Bug Fixes
 
 #### Runtime threads no longer crash the Python process at interpreter exit

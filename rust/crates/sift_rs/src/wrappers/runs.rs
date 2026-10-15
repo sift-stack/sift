@@ -1,6 +1,7 @@
 use super::{MAX_DECODING_MESSAGE_SIZE, ResourceIdentifier};
 use crate::{
     metadata::v1::MetadataValue,
+    rate_limit::error_from_status,
     runs::v2::{
         CreateRunRequest, GetRunRequest, ListRunsRequest, Run, UpdateRunRequest,
         run_service_client::RunServiceClient,
@@ -178,7 +179,7 @@ impl RunServiceWrapperImpl {
                 .get_run(GetRunRequest { run_id })
                 .await
                 .map(|res| res.into_inner().run)
-                .map_err(|e| Error::new(ErrorKind::RetrieveRunError, e))
+                .map_err(|e| error_from_status(ErrorKind::RetrieveRunError, e))
                 .context("failed to retrieve run")
                 .help("ensure that the provided run ID is valid")?
                 .ok_or_else(|| {
@@ -194,7 +195,7 @@ impl RunServiceWrapperImpl {
                     })
                     .await
                     .map(|res| res.into_inner().runs)
-                    .map_err(|e| Error::new(ErrorKind::RetrieveRunError, e))
+                    .map_err(|e| error_from_status(ErrorKind::RetrieveRunError, e))
                     .context("failed to retrieve run")
                     .help("ensure that the provided client key is valid")?;
 
@@ -241,7 +242,7 @@ impl RunServiceWrapper for RunServiceWrapperImpl {
             })
             .await
             .map(|res| res.into_inner().run)
-            .map_err(|e| Error::new(ErrorKind::CreateRunError, e))
+            .map_err(|e| error_from_status(ErrorKind::CreateRunError, e))
             .context("failed to create run")?;
 
         run.ok_or_else(|| {
@@ -270,7 +271,7 @@ impl RunServiceWrapper for RunServiceWrapperImpl {
             })
             .await
             .map(|res| res.into_inner().run)
-            .map_err(|e| Error::new(ErrorKind::UpdateRunError, e))
+            .map_err(|e| error_from_status(ErrorKind::UpdateRunError, e))
             .context("failed to update run")?;
 
         run.ok_or_else(|| {

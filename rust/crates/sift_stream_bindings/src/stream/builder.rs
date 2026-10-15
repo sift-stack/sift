@@ -1,7 +1,7 @@
 use crate::sift::metadata::MetadataPy;
 use crate::stream::SiftStreamPy;
 use crate::stream::config::{IngestionConfigFormPy, RunFormPy};
-use crate::stream::retry::{DiskBackupPolicyPy, DurationPy, RetryPolicyPy};
+use crate::stream::retry::{DiskBackupPolicyPy, DurationPy, RateLimitPolicyPy, RetryPolicyPy};
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
 use sift_stream::{
@@ -55,6 +55,10 @@ pub struct SiftStreamBuilderPy {
     /// Largest gRPC response, in bytes, this stream will decode. Defaults to 50 MB when `None`.
     #[pyo3(get, set)]
     max_decoding_message_size: Option<usize>,
+    /// How rate-limited control-plane calls are handled. Defaults to
+    /// `RateLimitPolicyPy.retry()`. See [`RateLimitPolicyPy`].
+    #[pyo3(get, set)]
+    rate_limit_policy: RateLimitPolicyPy,
 }
 
 // PyO3 Method Implementations
@@ -73,6 +77,7 @@ impl SiftStreamBuilderPy {
             asset_tags: None,
             metadata: None,
             max_decoding_message_size: None,
+            rate_limit_policy: RateLimitPolicyPy::default(),
         }
     }
 
@@ -104,7 +109,9 @@ impl SiftStreamBuilderPy {
             builder = builder.max_decoding_message_size(bytes);
         }
 
-        let mut config_builder = builder.ingestion_config(ingestion_config.into());
+        let mut config_builder = builder
+            .ingestion_config(ingestion_config.into())
+            .rate_limit_policy(self.rate_limit_policy.into());
 
         if let Some(run) = self.run.as_ref() {
             config_builder = config_builder.attach_run(run.clone().into());
@@ -150,6 +157,7 @@ impl SiftStreamBuilderPy {
             asset_tags: None,
             metadata: None,
             max_decoding_message_size: self.max_decoding_message_size,
+            rate_limit_policy: self.rate_limit_policy,
         }
     }
 }
@@ -171,7 +179,9 @@ fn make_stream_config_builder(base: StreamConfigBuilderPy) -> PyResult<StreamCon
         builder = builder.max_decoding_message_size(bytes);
     }
 
-    let mut config_builder = builder.ingestion_config(base.ingestion_config.into());
+    let mut config_builder = builder
+        .ingestion_config(base.ingestion_config.into())
+        .rate_limit_policy(base.rate_limit_policy.into());
 
     if let Some(run) = base.run {
         config_builder = config_builder.attach_run(run.into());
@@ -231,6 +241,10 @@ pub struct StreamConfigBuilderPy {
     /// Largest gRPC response, in bytes, this stream will decode. Defaults to 50 MB when `None`.
     #[pyo3(get, set)]
     pub max_decoding_message_size: Option<usize>,
+    /// How rate-limited control-plane calls are handled. Defaults to
+    /// `RateLimitPolicyPy.retry()`. See [`RateLimitPolicyPy`].
+    #[pyo3(get, set)]
+    pub rate_limit_policy: RateLimitPolicyPy,
 }
 
 #[gen_stub_pymethods]
