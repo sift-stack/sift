@@ -97,7 +97,10 @@ tool.
   scope it with `entity_ids`. `download_file_attachment` returns a short-lived signed URL
   for one file that you can fetch without Sift credentials. Use these when a
   user asks for a file attached to a run or asset, instead of sending them to
-  the run page to download it.
+  the run page to download it. Artifact files never appear there, so when the
+  user wants everything on a run or asset, also call `list_artifacts` with
+  `links.exists(l, l.entity_type == "RUN" && l.entity_id == "<run id>")`
+  (`"ASSET"` for an asset).
 - **Derived channels:** `list_calculated_channels`,
   `list_calculated_channel_versions`, `list_user_defined_functions`,
   `list_user_defined_function_versions`.
