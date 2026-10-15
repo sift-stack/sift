@@ -290,7 +290,15 @@ async fn download_artifact_rejects_empty_download_url() {
         .download_artifact("art-1".into(), None)
         .await
         .expect_err("empty url is an error");
-    assert!(err.to_string().contains("download url response was empty"));
+    let message = format!("{err:#}");
+    assert!(
+        message.contains("failed to get artifact download url"),
+        "{message}"
+    );
+    assert!(
+        message.contains("download url response was empty"),
+        "{message}"
+    );
 }
 
 #[tokio::test]
