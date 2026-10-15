@@ -7,6 +7,19 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- New `list_webhooks` tool lists the webhooks a rule can call. It withholds
+  credentials: `target_url` keeps only its scheme and the last two labels of
+  its host, each header keeps only its name, and the request body template is
+  left out.
+- `create_rule` and `update_rule` take `webhook_ids`, so an agent can make a
+  rule call a webhook when it fires. On `update_rule` it replaces the rule's
+  set, like `asset_ids`, and the result names any webhook it detached. Both
+  tools check that each webhook exists and is not archived before saving the
+  rule, and refuse webhook actions written into the rule's conditions.
+- `create_rule` now documents the annotation action and says a rule takes
+  exactly one condition. Agents no longer need to copy an existing rule to get
+  the actions right.
+
 ## [v0.7.4] - October 14, 2026
 
 ### What's New

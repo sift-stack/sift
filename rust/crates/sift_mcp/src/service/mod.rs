@@ -17,5 +17,6 @@ pub mod test_reports;
 pub mod url;
 pub mod user_defined_functions;
 pub mod users;
+pub mod webhooks;
 
 pub(crate) mod common;

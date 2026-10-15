@@ -4,15 +4,16 @@ use anyhow::{Context, Result};
 use sift_rs::{
     SiftChannel,
     rules::v1::{
-        ArchiveRuleRequest, CreateRuleRequest, GetRuleRequest, ListRuleVersionsRequest,
+        ActionKind, ArchiveRuleRequest, CreateRuleRequest, GetRuleRequest, ListRuleVersionsRequest,
         ListRuleVersionsResponse, ListRulesRequest, ListRulesResponse, Rule, RuleAction,
-        RuleCondition, RuleVersion, UnarchiveRuleRequest, UpdateActionRequest,
-        UpdateConditionRequest, UpdateRuleRequest, rule_service_client::RuleServiceClient,
+        RuleActionConfiguration, RuleCondition, RuleVersion, UnarchiveRuleRequest,
+        UpdateActionRequest, UpdateConditionRequest, UpdateRuleRequest, WebhookActionConfiguration,
+        rule_action_configuration::Configuration, rule_service_client::RuleServiceClient,
     },
 };
 
 /// A partial set of changes to apply to an existing rule. Every field is
-/// optional; `None` means "leave unchanged". This is what makes `update_rule`
+/// optional; `None` means "leave unchanged". This is what makes an update
 /// safe: only the fields set here are touched, everything else on the rule is
 /// preserved across the full-replace `UpdateRule` RPC.
 #[derive(Debug, Default)]
@@ -24,6 +25,22 @@ pub struct RuleUpdate {
     pub asset_ids: Option<Vec<String>>,
     pub tag_ids: Option<Vec<String>>,
     pub conditions: Option<Vec<UpdateConditionRequest>>,
+    /// Replaces the set of webhooks the rule calls. `None` keeps the current
+    /// set, including when `conditions` replaces the actions they sat on.
+    pub webhook_ids: Option<Vec<String>>,
+}
+
+/// An update merged over the current rule and ready to save with
+/// [`RuleService::save_update`]. Splitting the fetch from the save lets the
+/// caller check the new webhooks against the ones the rule already calls
+/// without fetching the rule twice.
+#[derive(Debug)]
+pub struct PendingRuleUpdate {
+    update: UpdateRuleRequest,
+    /// Webhooks the rule calls before the update.
+    pub current_webhook_ids: Vec<String>,
+    /// Webhooks the rule calls before the update and will no longer call.
+    pub detached_webhook_ids: Vec<String>,
 }
 
 #[cfg(test)]
@@ -110,8 +127,15 @@ impl RuleService {
         })
     }
 
-    /// Creates a rule from a full rule definition. Returns the new `rule_id`.
-    pub async fn create_rule(&self, update: UpdateRuleRequest) -> Result<String> {
+    /// Creates a rule from a full rule definition that calls each of
+    /// `webhook_ids` when it fires. Returns the new `rule_id`.
+    pub async fn create_rule(
+        &self,
+        mut update: UpdateRuleRequest,
+        webhook_ids: Vec<String>,
+    ) -> Result<String> {
+        attach_webhooks(&mut update.conditions, &webhook_ids);
+
         let channel = self.channel.clone();
 
         let resp = with_retry(&self.policy, move || {
@@ -133,17 +157,22 @@ impl RuleService {
         Ok(resp.rule_id)
     }
 
-    /// Safely updates an existing rule by `rule_id`. The underlying `UpdateRule`
-    /// RPC is a full replace, so this fetches the current rule, overlays only the
-    /// fields set in `changes`, and sends the merged definition back. Fields not
-    /// named in `changes` are preserved. Returns the `rule_id`.
-    pub async fn update_rule(&self, rule_id: String, changes: RuleUpdate) -> Result<String> {
+    /// Fetches the rule and overlays only the fields set in `changes`. The
+    /// `UpdateRule` RPC is a full replace, so fields not named in `changes` are
+    /// carried over from the current rule. Nothing is written until
+    /// [`Self::save_update`].
+    pub async fn prepare_update(
+        &self,
+        rule_id: String,
+        changes: RuleUpdate,
+    ) -> Result<PendingRuleUpdate> {
         let current = self
             .get_rule(rule_id.clone())
             .await?
             .ok_or_else(|| anyhow::anyhow!("rule '{rule_id}' not found"))?;
 
         let mut update = rule_to_update_request(current);
+        let current_webhook_ids = webhook_ids_in(&update.conditions);
 
         let RuleUpdate {
             name,
@@ -153,6 +182,7 @@ impl RuleService {
             asset_ids,
             tag_ids,
             conditions,
+            webhook_ids,
         } = changes;
 
         if let Some(name) = name {
@@ -180,7 +210,33 @@ impl RuleService {
         if let Some(conditions) = conditions {
             update.conditions = conditions;
         }
+        let detached_webhook_ids = match webhook_ids {
+            Some(webhook_ids) => {
+                set_webhooks(&mut update.conditions, &webhook_ids);
+                current_webhook_ids
+                    .iter()
+                    .filter(|id| !webhook_ids.contains(id))
+                    .cloned()
+                    .collect()
+            }
+            // Re-attaches the current webhooks when `conditions` replaced the
+            // actions they sat on, and changes nothing otherwise.
+            None => {
+                attach_webhooks(&mut update.conditions, &current_webhook_ids);
+                Vec::new()
+            }
+        };
 
+        Ok(PendingRuleUpdate {
+            update,
+            current_webhook_ids,
+            detached_webhook_ids,
+        })
+    }
+
+    /// Saves an update from [`Self::prepare_update`]. Returns the `rule_id`.
+    pub async fn save_update(&self, pending: PendingRuleUpdate) -> Result<String> {
+        let update = pending.update;
         let channel = self.channel.clone();
         let resp = with_retry(&self.policy, move || {
             let channel = channel.clone();
@@ -337,7 +393,7 @@ impl RuleService {
 
 /// Converts a fetched [`Rule`] into the [`UpdateRuleRequest`] shape so it can be
 /// resent through the full-replace `UpdateRule` RPC. Every meaningful field is
-/// carried over verbatim; this is the base that `update_rule` overlays changes
+/// carried over verbatim; this is the base that `prepare_update` overlays changes
 /// onto so unspecified fields survive the round-trip.
 fn rule_to_update_request(rule: Rule) -> UpdateRuleRequest {
     UpdateRuleRequest {
@@ -382,5 +438,90 @@ fn action_to_update(action: RuleAction) -> UpdateActionRequest {
         rule_action_id: (!action.rule_action_id.is_empty()).then_some(action.rule_action_id),
         action_type: action.action_type,
         configuration: action.configuration,
+    }
+}
+
+/// Makes every condition call exactly `webhook_ids`. Sift fires a webhook from
+/// the condition that holds it and allows one condition per rule, so every
+/// condition is that one. Every other webhook action is dropped, including one
+/// typed `WEBHOOK` that names no webhook, which Sift saves but cannot call.
+/// Non-webhook actions are left alone.
+fn set_webhooks(conditions: &mut [UpdateConditionRequest], webhook_ids: &[String]) {
+    for condition in conditions.iter_mut() {
+        condition.actions.retain(|action| {
+            !is_webhook_action(action)
+                || webhook_id(action).is_some_and(|id| webhook_ids.iter().any(|w| w == id))
+        });
+    }
+    attach_webhooks(conditions, webhook_ids);
+}
+
+/// Attaches each of `webhook_ids` that a condition does not already call. An
+/// action for a webhook already attached keeps its `rule_action_id`, since
+/// Sift deletes any action an update leaves out, and a repeated id is attached
+/// once because Sift rejects the rule otherwise.
+fn attach_webhooks(conditions: &mut [UpdateConditionRequest], webhook_ids: &[String]) {
+    for condition in conditions {
+        for id in webhook_ids {
+            let attached = condition
+                .actions
+                .iter()
+                .any(|action| webhook_id(action) == Some(id.as_str()));
+            if !attached {
+                condition.actions.push(webhook_action(id.clone()));
+            }
+        }
+    }
+}
+
+/// Whether any condition carries a webhook action. The rule tools take
+/// webhooks only through `webhook_ids`, so each one is checked before saving.
+pub fn has_webhook_action(conditions: &[UpdateConditionRequest]) -> bool {
+    conditions
+        .iter()
+        .flat_map(|condition| &condition.actions)
+        .any(is_webhook_action)
+}
+
+/// Whether an action is a webhook action by its type or its configuration.
+/// Sift checks a configuration only when one is set, so an action typed
+/// `WEBHOOK` with no configuration still saves, as a webhook action with no
+/// webhook.
+fn is_webhook_action(action: &UpdateActionRequest) -> bool {
+    action.action_type == ActionKind::Webhook as i32 || webhook_id(action).is_some()
+}
+
+/// The webhooks the conditions call, in order, each once.
+fn webhook_ids_in(conditions: &[UpdateConditionRequest]) -> Vec<String> {
+    let mut ids: Vec<String> = Vec::new();
+    for id in conditions
+        .iter()
+        .flat_map(|condition| &condition.actions)
+        .filter_map(webhook_id)
+    {
+        if !ids.iter().any(|existing| existing == id) {
+            ids.push(id.to_string());
+        }
+    }
+    ids
+}
+
+/// The webhook an action calls, or `None` for any other kind of action.
+fn webhook_id(action: &UpdateActionRequest) -> Option<&str> {
+    match action.configuration.as_ref()?.configuration.as_ref()? {
+        Configuration::Webhook(webhook) => Some(webhook.webhook_id.as_str()),
+        _ => None,
+    }
+}
+
+fn webhook_action(webhook_id: String) -> UpdateActionRequest {
+    UpdateActionRequest {
+        rule_action_id: None,
+        action_type: ActionKind::Webhook as i32,
+        configuration: Some(RuleActionConfiguration {
+            configuration: Some(Configuration::Webhook(WebhookActionConfiguration {
+                webhook_id,
+            })),
+        }),
     }
 }
