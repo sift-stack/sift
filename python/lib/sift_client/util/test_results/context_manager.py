@@ -491,10 +491,13 @@ class ReportContext(AbstractContextManager):
             try:
                 _, stderr_bytes = self._import_proc.communicate(timeout=self._import_proc_timeout)
             except subprocess.TimeoutExpired:
-                if sys.platform == "win32":
+                stop_file = (
+                    LogTracking.stop_path(self.log_file) if self.log_file is not None else None
+                )
+                if sys.platform == "win32" and stop_file is not None:
                     # terminate() is a hard kill on Windows, so ask through a
                     # file the importer checks between requests.
-                    LogTracking.stop_path(self.log_file).touch()
+                    stop_file.touch()
                 else:
                     self._import_proc.terminate()
                 try:
@@ -502,7 +505,8 @@ class ReportContext(AbstractContextManager):
                 except subprocess.TimeoutExpired:
                     self._import_proc.kill()
                     self._import_proc.wait()
-                LogTracking.stop_path(self.log_file).unlink(missing_ok=True)
+                if stop_file is not None:
+                    stop_file.unlink(missing_ok=True)
                 self.replay_incomplete = True
                 log_event(
                     logger,

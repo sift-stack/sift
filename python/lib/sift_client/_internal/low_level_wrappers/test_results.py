@@ -948,7 +948,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             list
         )
         for measurement in existing:
-            value = measurement.numeric_value
+            value: float | str | bool | None = measurement.numeric_value
             if value is None:
                 value = measurement.string_value
             if value is None:
