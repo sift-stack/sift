@@ -73,7 +73,7 @@ impl SiftMcpServer {
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
                 `report_template_id`, `tag_id`, `tag_name`, `client_key`, `metadata`, `name`, `is_archived`.
-                Reference metadata entries as `metadata.{key}` (e.g. `metadata.owner == \"qa-team\"`).
+                Reference metadata entries as `metadata[\"<key>\"]` (e.g. `metadata[\"owner\"] == \"qa-team\"`).
                 When filtering or searching, use `name.matches(\"(?i)avionics\")`, not `==`. Use `==` only for an
                 exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
                 `contains(\"Avionics\")` silently misses `avionics-power-limit`.
