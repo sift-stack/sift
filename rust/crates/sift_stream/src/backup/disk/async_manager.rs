@@ -802,7 +802,8 @@ impl BackupIngestTask {
                 });
 
                 let raw_response = client.ingest_with_config_data_stream(iter_stream).await;
-                let failed_status = raw_response.as_ref().err().cloned();
+                // Set when Sift rate limited the attempt and asked for a minimum wait before retrying.
+                let server_delay = raw_response.as_ref().err().and_then(retry_delay);
                 let response = raw_response
                     .map(|res| res.into_inner())
                     .map_err(|e| Error::new(ErrorKind::StreamError, e));
@@ -839,7 +840,6 @@ impl BackupIngestTask {
                         // The policy backoff, raised to Sift's requested delay plus a margin if it
                         // rate limited the attempt, and capped at `max_backoff`. The backoff
                         // progression itself is unchanged.
-                        let server_delay = failed_status.as_ref().and_then(retry_delay);
                         tokio::time::sleep(retry_policy.wait_for_retry(current_wait, server_delay))
                             .await;
                     }

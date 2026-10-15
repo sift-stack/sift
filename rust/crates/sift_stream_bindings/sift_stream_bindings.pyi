@@ -28,6 +28,7 @@ __all__ = [
     "MetadataPy",
     "MetadataValuePy",
     "RateLimitPolicyPy",
+    "RateLimitedErrorPy",
     "RetryPolicyPy",
     "RollingFilePolicyPy",
     "RunFormPy",
@@ -484,8 +485,9 @@ class RateLimitPolicyPy:
       out.
     - `RateLimitPolicyPy.return_error()`: never retry; raise immediately.
     
-    A rate-limit error is raised as a `RuntimeError` whose message starts with
-    `[RateLimitedError]` and includes the delay Sift requested, when provided.
+    A rate-limit error is raised as `RateLimitedErrorPy`, a `RuntimeError` subclass whose
+    `retry_delay` attribute holds the delay Sift requested, or `None` if Sift did not provide one.
+    Its message starts with `[RateLimitedError]`.
     """
     @staticmethod
     def retry() -> RateLimitPolicyPy:
@@ -512,6 +514,20 @@ class RateLimitPolicyPy:
     @staticmethod
     def default() -> RateLimitPolicyPy: ...
     def __repr__(self) -> builtins.str: ...
+
+@typing.final
+class RateLimitedErrorPy(builtins.RuntimeError):
+    r"""
+    Raised when Sift rate limits a request and the rate-limit policy does not retry it, or the retries run out.
+    
+    Subclasses `RuntimeError`, so existing `except RuntimeError` handlers still catch it. The message starts with `[RateLimitedError]` and includes the delay Sift requested, when provided.
+    """
+    retry_delay: typing.Optional[DurationPy]
+    r"""
+    The minimum wait Sift requested before retrying, or `None` if Sift did not provide one.
+    """
+    def __new__(cls, message:builtins.str, retry_delay:typing.Optional[DurationPy]=None) -> RateLimitedErrorPy: ...
+    def __str__(self) -> builtins.str: ...
 
 @typing.final
 class RetryPolicyPy:

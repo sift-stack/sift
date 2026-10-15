@@ -47,6 +47,16 @@ impl CheckpointTimer {
     }
 }
 
+/// The wait before the next stream attempt after a failure.
+#[derive(Debug, PartialEq)]
+struct RetryWait {
+    /// The policy backoff, which seeds the next failure's backoff.
+    backoff: Duration,
+    /// How long to sleep before the next attempt: the backoff, raised to Sift's requested delay
+    /// plus a margin if it rate limited the stream.
+    sleep: Duration,
+}
+
 /// Only the fields the IngestionTask itself reads during its run loop.
 pub(crate) struct IngestionTaskConfig {
     #[allow(dead_code)]
@@ -96,6 +106,8 @@ impl IngestionTask {
         };
 
         let mut stream_created_at = now;
+        // Kept separate so a rate-limit delay does not raise the backoff for later failures.
+        let mut current_backoff = Duration::ZERO;
         let mut current_wait = Duration::ZERO;
 
         // The stream needs to be kept alive independently from receiving control messages in the
@@ -161,10 +173,11 @@ impl IngestionTask {
                         Ok(_) => {
                             self.config.metrics.grpc_status_counts[0].increment();
                             self.config.metrics.cur_retry_count.set(0);
+                            current_backoff = Duration::ZERO;
                             current_wait = Duration::ZERO;
                         }
                         Err(e) => {
-                            current_wait = self.handle_failed_stream(&e, stream_created_at, current_wait, first_message_id.load(Ordering::Relaxed), last_message_id.load(Ordering::Relaxed))?;
+                            RetryWait { backoff: current_backoff, sleep: current_wait } = self.handle_failed_stream(&e, stream_created_at, current_backoff, first_message_id.load(Ordering::Relaxed), last_message_id.load(Ordering::Relaxed))?;
 
                             // Send CheckpointComplete to pair with the CheckpointNeedsReingestion
                             // sent by handle_failed_stream. Without this, the reingest signal can
@@ -241,7 +254,7 @@ impl IngestionTask {
                     };
 
                     if let Some(status) = checkpoint_failure {
-                        current_wait = self.handle_failed_stream(&status, stream_created_at, current_wait, first_message_id.load(Ordering::Relaxed), last_message_id.load(Ordering::Relaxed))?;
+                        RetryWait { backoff: current_backoff, sleep: current_wait } = self.handle_failed_stream(&status, stream_created_at, current_backoff, first_message_id.load(Ordering::Relaxed), last_message_id.load(Ordering::Relaxed))?;
 
                         // Retries are disabled, so the checkpoint will not be reattempted.
                         if self.config.retry_policy.is_none() {
@@ -294,10 +307,10 @@ impl IngestionTask {
         &mut self,
         status: &GrpcStatus,
         stream_created_at: Instant,
-        current_wait: Duration,
+        current_backoff: Duration,
         first_message_id: u64,
         last_message_id: u64,
-    ) -> Result<Duration> {
+    ) -> Result<RetryWait> {
         let code = i32::from(status.code());
         let code_idx = if (0..=16).contains(&code) {
             code as usize
@@ -342,7 +355,10 @@ impl IngestionTask {
         // With retries disabled the caller reports the failure instead of reconnecting, so
         // there is no backoff to compute and no retry to count.
         let Some(retry_policy) = self.config.retry_policy.as_ref() else {
-            return Ok(Duration::ZERO);
+            return Ok(RetryWait {
+                backoff: Duration::ZERO,
+                sleep: Duration::ZERO,
+            });
         };
 
         // If the stream was healthy for sufficiently long, reset the wait time used for exponential backoff.
@@ -351,12 +367,16 @@ impl IngestionTask {
             Duration::ZERO
         } else {
             self.config.metrics.cur_retry_count.add(1);
-            retry_policy.backoff(current_wait)
+            retry_policy.backoff(current_backoff)
         };
 
         // Wait for Sift's requested delay plus a margin, capped at `max_backoff`. A longer
-        // rate limit fails the next attempt and is retried again, like any other failure.
-        Ok(retry_policy.wait_for_retry(backoff, server_delay))
+        // rate limit fails the next attempt and is retried again, like any other failure. The
+        // backoff progression itself is unchanged.
+        Ok(RetryWait {
+            backoff,
+            sleep: retry_policy.wait_for_retry(backoff, server_delay),
+        })
     }
 
     /// Shuts down the ingestion task by awaiting the stream one last time and sending the final checkpoint complete signal to the backup manager.
@@ -1212,6 +1232,7 @@ mod tests {
         let wait = |task: &mut IngestionTask, status: &GrpcStatus, created_at: Instant| {
             task.handle_failed_stream(status, created_at, Duration::ZERO, 0, 0)
                 .unwrap()
+                .sleep
         };
 
         // The server delay plus the margin wins when it is longer than the backoff.
@@ -1233,7 +1254,7 @@ mod tests {
         let next = task
             .handle_failed_stream(&status, Instant::now(), Duration::from_secs(1), 0, 0)
             .unwrap();
-        assert_eq!(next, Duration::from_secs(5));
+        assert_eq!(next.sleep, Duration::from_secs(5));
 
         // Other failures use the backoff alone.
         let status = GrpcStatus::unavailable("unavailable");
@@ -1258,6 +1279,50 @@ mod tests {
         assert_eq!(
             wait(&mut task, &status, healthy_since),
             Duration::from_millis(3100)
+        );
+    }
+
+    /// A rate limit raises only the next sleep, not the backoff that later failures build on.
+    #[tokio::test]
+    async fn test_handle_failed_stream_rate_limit_does_not_raise_backoff() {
+        use crate::test::rate_limited_status;
+
+        // Default policy: 50ms initial backoff, 5x multiplier, 5s max backoff.
+        let mut task = make_live_only_ingestion_task(Some(RetryPolicy::default())).await;
+
+        let rate_limited = task
+            .handle_failed_stream(
+                &rate_limited_status(Duration::from_secs(3)),
+                Instant::now(),
+                Duration::ZERO,
+                0,
+                0,
+            )
+            .unwrap();
+        assert_eq!(
+            rate_limited,
+            RetryWait {
+                backoff: Duration::from_millis(50),
+                sleep: Duration::from_millis(3100),
+            }
+        );
+
+        // The next failure continues from the 50ms backoff rather than the 3.1s sleep.
+        let next = task
+            .handle_failed_stream(
+                &GrpcStatus::unavailable("unavailable"),
+                Instant::now(),
+                rate_limited.backoff,
+                0,
+                0,
+            )
+            .unwrap();
+        assert_eq!(
+            next,
+            RetryWait {
+                backoff: Duration::from_millis(250),
+                sleep: Duration::from_millis(250),
+            }
         );
     }
 

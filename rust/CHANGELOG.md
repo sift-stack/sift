@@ -89,8 +89,10 @@ updates are now retried, which is safe because Sift rejects them before processi
 a `RateLimitPolicyPy`, created with `RateLimitPolicyPy.retry()` (default) or
 `RateLimitPolicyPy.return_error()`. Adjust the retrying policy with `with_max_delay(DurationPy(...))`
 (default 10 seconds) and `with_margin(DurationPy(...))` (default 100ms).
-Rate-limit errors are raised as `RuntimeError` with a message starting with `[RateLimitedError]`
-that includes the requested delay.
+Rate-limit errors are raised as `RateLimitedErrorPy`, a `RuntimeError` subclass, so existing
+`except RuntimeError` handlers still catch them. Its `retry_delay` attribute holds the delay Sift
+requested as a `DurationPy`, or `None` if Sift did not provide one. The message still starts with
+`[RateLimitedError]`.
 
 ### Bug Fixes
 

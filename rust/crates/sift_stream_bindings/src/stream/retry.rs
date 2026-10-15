@@ -70,8 +70,9 @@ pub struct RetryPolicyPy {
 ///   out.
 /// - `RateLimitPolicyPy.return_error()`: never retry; raise immediately.
 ///
-/// A rate-limit error is raised as a `RuntimeError` whose message starts with
-/// `[RateLimitedError]` and includes the delay Sift requested, when provided.
+/// A rate-limit error is raised as `RateLimitedErrorPy`, a `RuntimeError` subclass whose
+/// `retry_delay` attribute holds the delay Sift requested, or `None` if Sift did not provide one.
+/// Its message starts with `[RateLimitedError]`.
 #[gen_stub_pyclass]
 #[pyclass(from_py_object)]
 #[derive(Clone, Copy, Debug, Default)]

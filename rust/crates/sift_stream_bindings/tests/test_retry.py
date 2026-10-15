@@ -1,6 +1,8 @@
+import pytest
 from sift_stream_bindings import (
     DurationPy,
     IngestionConfigFormPy,
+    RateLimitedErrorPy,
     RateLimitPolicyPy,
     RetryPolicyPy,
     SiftStreamBuilderPy,
@@ -79,3 +81,20 @@ class TestRetryComponents:
         assert repr(config_builder.rate_limit_policy) == (
             "RateLimitPolicyPy.retry().with_max_delay(DurationPy(secs=1, nanos=0))"
         )
+
+    def test_rate_limited_error(self):
+        """Test that RateLimitedErrorPy carries the delay and is caught as a RuntimeError."""
+        message = "[RateLimitedError] rate limited; retry after 2s"
+        with pytest.raises(RuntimeError) as exc_info:
+            raise RateLimitedErrorPy(message, DurationPy(2, 0))
+
+        err = exc_info.value
+        assert isinstance(err, RateLimitedErrorPy)
+        assert str(err) == message
+        assert err.retry_delay.secs == 2
+        assert err.retry_delay.nanos == 0
+
+    def test_rate_limited_error_without_delay(self):
+        """Test that RateLimitedErrorPy reports None when Sift provides no delay."""
+        err = RateLimitedErrorPy("[RateLimitedError] rate limited")
+        assert err.retry_delay is None

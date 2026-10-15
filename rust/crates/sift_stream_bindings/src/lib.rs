@@ -192,6 +192,7 @@ fn is_shut_down() -> bool {
 // https://github.com/PyO3/pyo3/issues/759
 #[pymodule]
 fn sift_stream_bindings(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_class::<error::RateLimitedErrorPy>()?;
     m.add_class::<sift::metadata::MetadataPy>()?;
     m.add_class::<sift::metadata::MetadataValuePy>()?;
     m.add_class::<metrics::SiftStreamMetricsSnapshotPy>()?;
