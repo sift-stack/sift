@@ -7,6 +7,7 @@ pub mod common;
 pub mod data;
 pub mod docs;
 pub mod explore;
+pub mod file_attachments;
 pub mod ping;
 pub mod report_templates;
 pub mod reports;

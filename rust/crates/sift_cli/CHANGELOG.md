@@ -7,6 +7,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- New `list_file_attachments` and `download_file_attachment` tools let agents
+  find the files attached to runs, assets, annotations and their comments, test
+  reports, and test steps, and fetch each one through a short-lived download
+  URL. Agents used to
+  send users to the run page to download these by hand.
+
 ## [v0.7.4] - October 14, 2026
 
 ### What's New
