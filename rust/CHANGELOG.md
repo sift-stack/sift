@@ -4,9 +4,11 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+
+## [v0.14.0] - October 15, 2026
 ### What's New
 
-#### MCP tools present Sift entities as named Markdown links
+#### MCP tools present Sift entities as named Markdown links (PR [#790](https://github.com/sift-stack/sift/pull/790))
 
 Tool results that carry a Sift web link now tell the model to present the entity as
 `[<name>](<url>)` instead of "View it in Sift: <url>", so chat clients render one consistent chip
@@ -14,7 +16,7 @@ per entity. `upload_dataset` returns `asset_url` and `run_url` and names both in
 before, it returned bare ids with no link. `explore_url` asks for descriptive link text instead of
 the word "link".
 
-#### Rate limits honor Sift's requested retry delay
+#### Rate limits honor Sift's requested retry delay (PR [#838](https://github.com/sift-stack/sift/pull/838))
 
 Sift rate limits a request by returning `ResourceExhausted` with a `google.rpc.RetryInfo` detail
 that says how long to wait. These responses now surface as the new
@@ -83,7 +85,7 @@ implementations, so existing deciders compile and behave as before. Rate-limited
 updates are now retried, which is safe because Sift rejects them before processing.
 `RetryConfig { max_attempts: 0, .. }` now makes a single attempt instead of panicking.
 
-##### `sift-stream-bindings`
+##### `sift-stream-bindings` 0.6.0
 
 `SiftStreamBuilderPy` and `StreamConfigBuilderPy` have a new `rate_limit_policy` field that takes
 a `RateLimitPolicyPy`, created with `RateLimitPolicyPy.retry()` (default) or
@@ -96,7 +98,7 @@ requested as a `DurationPy`, or `None` if Sift did not provide one. The message 
 
 ### Bug Fixes
 
-#### Runtime threads no longer crash the Python process at interpreter exit
+#### Runtime threads no longer crash the Python process at interpreter exit (PR [#804](https://github.com/sift-stack/sift/pull/804))
 
 ##### `sift-stream-bindings` 0.5.2
 
@@ -110,7 +112,7 @@ run. Calls that need the runtime raise `RuntimeError` afterwards. If threads are
 the timeout expires, `shutdown()` logs a warning and issues a `RuntimeWarning`, since those threads
 can still crash the process. Runtime threads are now named `sift-stream-worker`.
 
-#### Asset-name check is now case-insensitive
+#### Asset-name check is now case-insensitive (PR [#787](https://github.com/sift-stack/sift/pull/787))
 
 `SiftStream` no longer rejects an ingestion config whose asset name differs from the one in Sift
 only by capitalization.
