@@ -253,6 +253,12 @@ pub struct ExportArgs {
     #[arg(long)]
     pub channel_id: Vec<String>,
 
+    /// Return immediately instead of blocking until the export finishes. The
+    /// file still downloads to --output from a detached background process,
+    /// which logs its progress to a file whose path is printed on exit.
+    #[arg(long)]
+    pub no_wait: bool,
+
     /// Regular expression used to filter calculated channels to include in the export
     #[arg(long)]
     pub calculated_channel_regex: Option<String>,
