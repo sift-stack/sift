@@ -85,13 +85,22 @@ tool.
   connectivity check; when it fails, expect every other Sift tool to fail too.
 - **Discovery:** `list_assets`, `list_runs`, `list_channels`, `list_reports`,
   `list_report_templates`, `list_rules`, `list_rule_versions`, `list_annotations`,
-  `list_artifacts`, `list_artifact_versions`.
+  `list_artifacts`, `list_artifact_versions`, `list_file_attachments`.
 - **Artifacts:** `download_artifact` (latest version, or pin `artifact_version_id`),
   `list_artifact_versions` for one artifact's history, newest first.
   The artifact tools, including `list_artifacts` and the artifact writes below,
   are enabled per account by the agents feature flag resolved when the MCP
   server starts, so they may be absent from the tool list. Enabling them
   requires an account setting and an MCP restart.
+- **File attachments:** `list_file_attachments` lists the files attached to
+  runs, assets, annotations and their comments, test reports, and test steps;
+  scope it with `entity_ids`. `download_file_attachment` returns a short-lived signed URL
+  for one file that you can fetch without Sift credentials. Use these when a
+  user asks for a file attached to a run or asset, instead of sending them to
+  the run page to download it. Artifact files never appear there, so when the
+  user wants everything on a run or asset, also call `list_artifacts` with
+  `links.exists(l, l.entity_type == "RUN" && l.entity_id == "<run id>")`
+  (`"ASSET"` for an asset).
 - **Derived channels:** `list_calculated_channels`,
   `list_calculated_channel_versions`, `list_user_defined_functions`,
   `list_user_defined_function_versions`.

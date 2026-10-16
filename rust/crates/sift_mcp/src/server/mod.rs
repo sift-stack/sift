@@ -48,7 +48,7 @@ pub(crate) const BASE_INSTRUCTIONS: &str = concat!(
 use crate::service::{
     annotations::AnnotationService, artifacts::ArtifactService, assets::AssetService,
     calculated_channels::CalculatedChannelService, channels::ChannelService, data::DataService,
-    docs::DocsService, ingest::IngestService, ping::PingService,
+    docs::DocsService, ingest::IngestService, ping::PingService, remote_files::RemoteFileService,
     report_templates::ReportTemplateService, reports::ReportService,
     rule_evaluation::RuleEvaluationService, rules::RuleService, runs::RunService,
     test_reports::TestReportService, url::UrlService,
@@ -69,6 +69,7 @@ pub struct SiftMcpServer {
     pub url_service: UrlService,
     pub ingest_service: IngestService,
     pub ping_service: PingService,
+    pub remote_file_service: RemoteFileService,
     pub run_service: RunService,
     pub report_service: ReportService,
     pub report_template_service: ReportTemplateService,
@@ -230,6 +231,7 @@ impl SiftMcpServer {
         tool_router.merge(Self::rule_evaluation_router());
         tool_router.merge(Self::annotations_router());
         tool_router.merge(Self::artifacts_router());
+        tool_router.merge(Self::file_attachments_router());
         tool_router.merge(Self::test_reports_router());
         tool_router.merge(Self::docs_router());
         tool_router.merge(Self::user_defined_functions_router());
@@ -289,6 +291,7 @@ impl SiftMcpServer {
         let url_service = UrlService::new(app_uri);
         let ingest_service = IngestService::new(channel.clone());
         let ping_service = PingService::new(channel.clone(), retry_policy.clone());
+        let remote_file_service = RemoteFileService::new(channel.clone(), retry_policy.clone());
         let run_service = RunService::new(channel.clone(), retry_policy.clone());
         let report_service = ReportService::new(channel.clone(), retry_policy.clone());
         let report_template_service =
@@ -312,6 +315,7 @@ impl SiftMcpServer {
             url_service,
             ingest_service,
             ping_service,
+            remote_file_service,
             run_service,
             report_service,
             report_template_service,

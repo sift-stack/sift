@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{Context, Result, anyhow};
 use sift_rs::{
     SiftChannel,
     artifacts::v1::{
@@ -9,16 +9,13 @@ use sift_rs::{
         artifact_service_client::ArtifactServiceClient,
     },
     metadata::v1::MetadataValue,
-    remote_files::v1::{
-        GetRemoteFileDownloadUrlRequest, remote_file_service_client::RemoteFileServiceClient,
-    },
 };
 
 use std::path::Path;
 
 use crate::policy::{RetryPolicy, once, with_retry};
 use crate::service::common;
-use crate::service::remote_files::RemoteFileUploader;
+use crate::service::remote_files::{RemoteFileService, RemoteFileUploader};
 
 #[cfg(test)]
 mod test;
@@ -103,6 +100,7 @@ impl UpdatePath {
 pub struct ArtifactService {
     channel: SiftChannel,
     policy: RetryPolicy,
+    remote_files: RemoteFileService,
     // Absent only when the server runs without a REST endpoint (some tests);
     // creating an artifact with a file requires it.
     uploader: Option<RemoteFileUploader>,
@@ -111,6 +109,7 @@ pub struct ArtifactService {
 impl ArtifactService {
     pub fn new(channel: SiftChannel, policy: RetryPolicy) -> Self {
         Self {
+            remote_files: RemoteFileService::new(channel.clone(), policy.clone()),
             channel,
             policy,
             uploader: None,
@@ -259,7 +258,12 @@ impl ArtifactService {
             .as_ref()
             .and_then(|version| version.remote_file_id.clone());
         let download_url = match remote_file_id {
-            Some(remote_file_id) => Some(self.download_url(remote_file_id).await?),
+            Some(remote_file_id) => Some(
+                self.remote_files
+                    .download_url(remote_file_id)
+                    .await
+                    .context("failed to get artifact download url")?,
+            ),
             None => None,
         };
         Ok(ArtifactView {
@@ -451,7 +455,7 @@ impl ArtifactService {
             .as_ref()
             .and_then(|version| version.remote_file_id.clone());
         let download_url = match remote_file_id {
-            Some(remote_file_id) => self.download_url(remote_file_id).await.ok(),
+            Some(remote_file_id) => self.remote_files.download_url(remote_file_id).await.ok(),
             None => None,
         };
         Ok(ArtifactView {
@@ -485,28 +489,5 @@ impl ArtifactService {
         .context("failed to get artifact")?
         .artifact
         .ok_or_else(|| anyhow!("get artifact response missing artifact"))
-    }
-
-    async fn download_url(&self, remote_file_id: String) -> Result<String> {
-        let channel = self.channel.clone();
-        let resp = with_retry(&self.policy, move || {
-            let channel = channel.clone();
-            let remote_file_id = remote_file_id.clone();
-            async move {
-                let mut client = RemoteFileServiceClient::new(channel);
-                client
-                    .get_remote_file_download_url(GetRemoteFileDownloadUrlRequest {
-                        remote_file_id,
-                    })
-                    .await
-                    .map(|resp| resp.into_inner())
-            }
-        })
-        .await
-        .context("failed to get artifact download url")?;
-        if resp.download_url.is_empty() {
-            bail!("download url response was empty");
-        }
-        Ok(resp.download_url)
     }
 }
