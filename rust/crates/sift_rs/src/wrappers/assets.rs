@@ -9,6 +9,7 @@ use sift_error::prelude::*;
 use crate::assets::v1::{
     Asset, GetAssetRequest, UpdateAssetRequest, asset_service_client::AssetServiceClient,
 };
+use crate::rate_limit::error_from_status;
 
 /// Creates a new asset service wrapper.
 ///
@@ -122,7 +123,7 @@ impl AssetServiceWrapper for AssetServiceImpl {
         let resp = self
             .get_asset(req)
             .await
-            .map_err(|e| Error::new(ErrorKind::RetrieveAssetError, e))?;
+            .map_err(|e| error_from_status(ErrorKind::RetrieveAssetError, e))?;
 
         resp.into_inner().asset.ok_or_else(|| {
             Error::new_empty_response("unexpected empty response from AssetService/GetAsset")
@@ -137,7 +138,7 @@ impl AssetServiceWrapper for AssetServiceImpl {
         let resp = self
             .update_asset(req)
             .await
-            .map_err(|e| Error::new(ErrorKind::UpdateAssetError, e))?;
+            .map_err(|e| error_from_status(ErrorKind::UpdateAssetError, e))?;
 
         resp.into_inner().asset.ok_or_else(|| {
             Error::new_empty_response("unexpected empty response from AssetService/UpdateAsset")

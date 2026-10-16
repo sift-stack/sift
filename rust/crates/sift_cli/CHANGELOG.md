@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- Building `sift-cli` from source works again. crates.io yanked every `zip`
+  release before 9.0.3, so Cargo could no longer resolve the `zip = "8.2"`
+  requirement. The workspace now depends on `zip` 9 and commits its
+  `Cargo.lock`, so a build from a release tag uses the versions pinned there.
 - `get_data` no longer matches archived runs by `run_name`. Before, an archived
   run with the same name as an active one could supply the data in its place.
   A name that matches more than one active run now fails and lists the
