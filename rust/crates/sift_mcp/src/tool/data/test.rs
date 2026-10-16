@@ -99,6 +99,7 @@ fn get_data_params(channel_regex: &str) -> Parameters<GetDataParams> {
         asset_name: Some("bench".into()),
         asset_id: None,
         run_name: None,
+        run_id: None,
         start_time_unix_nanos: Some(0),
         end_time_unix_nanos: Some(1),
         sample_ms: 0,
@@ -604,6 +605,7 @@ fn named_params(
         asset_name: Some("bench".into()),
         asset_id: None,
         run_name: run_name.map(String::from),
+        run_id: None,
         start_time_unix_nanos: Some(0),
         end_time_unix_nanos: Some(3_000_000_000),
         sample_ms: 0,
@@ -636,23 +638,29 @@ fn raw_channel_mock(names: &[&str]) -> MockChannelServiceImpl {
     mock
 }
 
+/// A run spanning 0 to 3 seconds.
+fn run_named(run_id: &str, name: &str, is_archived: bool) -> Run {
+    Run {
+        run_id: run_id.into(),
+        name: name.into(),
+        is_archived,
+        start_time: Some(Timestamp {
+            seconds: 0,
+            nanos: 0,
+        }),
+        stop_time: Some(Timestamp {
+            seconds: 3,
+            nanos: 0,
+        }),
+        ..Default::default()
+    }
+}
+
 fn one_run_mock() -> MockRunServiceImpl {
     let mut runs = MockRunServiceImpl::new();
     runs.expect_list_runs().returning(|_| {
         Ok(Response::new(ListRunsResponse {
-            runs: vec![Run {
-                run_id: "run-1".into(),
-                name: "hotfire-3".into(),
-                start_time: Some(Timestamp {
-                    seconds: 0,
-                    nanos: 0,
-                }),
-                stop_time: Some(Timestamp {
-                    seconds: 3,
-                    nanos: 0,
-                }),
-                ..Default::default()
-            }],
+            runs: vec![run_named("run-1", "hotfire-3", false)],
             next_page_token: String::new(),
         }))
     });
@@ -870,7 +878,7 @@ async fn get_data_reports_unresolved_calculated_channel() {
         .to_string();
     assert!(
         next_step.contains("calculated channel data was not resolved for asset 'bench'")
-            && next_step.contains("hotfire-3")
+            && next_step.contains("(run 'hotfire-3', id 'run-1')")
             && next_step.contains("chamber_delta"),
         "next_step must name what did not resolve, and for which asset and run: {next_step}",
     );
@@ -1178,6 +1186,7 @@ async fn get_data_reports_channel_names_that_matched_nothing() {
             asset_name: Some("bench".into()),
             asset_id: None,
             run_name: None,
+            run_id: None,
             start_time_unix_nanos: Some(0),
             end_time_unix_nanos: Some(2_000_000_000),
             sample_ms: 0,
@@ -1247,6 +1256,7 @@ async fn get_data_reports_no_unmatched_names_for_a_regex_selection() {
             asset_name: Some("bench".into()),
             asset_id: None,
             run_name: None,
+            run_id: None,
             start_time_unix_nanos: Some(0),
             end_time_unix_nanos: Some(2_000_000_000),
             sample_ms: 0,
@@ -1310,6 +1320,7 @@ async fn get_data_reports_matched_channels_that_returned_no_samples() {
             asset_name: Some("bench".into()),
             asset_id: None,
             run_name: None,
+            run_id: None,
             start_time_unix_nanos: Some(0),
             end_time_unix_nanos: Some(2_000_000_000),
             sample_ms: 0,
@@ -1378,6 +1389,7 @@ async fn no_data_error_reports_both_the_empty_and_the_unmatched_channels() {
             asset_name: Some("bench".into()),
             asset_id: None,
             run_name: None,
+            run_id: None,
             start_time_unix_nanos: Some(0),
             end_time_unix_nanos: Some(2_000_000_000),
             sample_ms: 0,
@@ -1561,6 +1573,7 @@ async fn get_data_persist_failure_keeps_the_channel_report() {
             asset_name: Some("bench".into()),
             asset_id: None,
             run_name: None,
+            run_id: None,
             start_time_unix_nanos: Some(0),
             end_time_unix_nanos: Some(2_000_000_000),
             sample_ms: 0,
@@ -1617,6 +1630,7 @@ async fn get_data_leaves_no_file_when_the_data_call_fails() {
             asset_name: Some("bench".into()),
             asset_id: None,
             run_name: None,
+            run_id: None,
             start_time_unix_nanos: Some(0),
             end_time_unix_nanos: Some(2_000_000_000),
             sample_ms: 0,
@@ -1674,6 +1688,7 @@ async fn get_data_leaves_no_file_when_the_request_is_cancelled() {
         asset_name: Some("bench".into()),
         asset_id: None,
         run_name: None,
+        run_id: None,
         start_time_unix_nanos: Some(0),
         end_time_unix_nanos: Some(2_000_000_000),
         sample_ms: 0,
@@ -1764,6 +1779,7 @@ async fn get_data_writes_into_a_directory_that_does_not_exist_yet() {
             asset_name: Some("bench".into()),
             asset_id: None,
             run_name: None,
+            run_id: None,
             start_time_unix_nanos: Some(0),
             end_time_unix_nanos: Some(2_000_000_000),
             sample_ms: 0,
@@ -1777,4 +1793,375 @@ async fn get_data_writes_into_a_directory_that_does_not_exist_yet() {
         .expect("a missing parent directory should not fail the call");
 
     assert!(nested.exists());
+}
+
+/// A data service that asserts every query is scoped to `run_id` and returns
+/// one sample for `ch-0`.
+fn run_scoped_data_mock(run_id: &'static str) -> MockDataServiceImpl {
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data()
+        .times(1)
+        .withf(move |req| {
+            let queries = &req.get_ref().queries;
+            !queries.is_empty()
+                && queries.iter().all(|query| match &query.query {
+                    Some(QueryKind::Channel(channel)) => channel.run_id.as_deref() == Some(run_id),
+                    _ => false,
+                })
+        })
+        .returning(|_| {
+            Ok(Response::new(GetDataResponse {
+                data: vec![double_page("ch-0", "pressure", vec![(1_000_000_000, 1.0)])],
+                next_page_token: String::new(),
+            }))
+        });
+    data
+}
+
+/// `pressure` scoped by a run selector alone, with no explicit time range.
+fn run_params(
+    run_name: Option<&str>,
+    run_id: Option<&str>,
+    output: PathBuf,
+) -> Parameters<GetDataParams> {
+    let Parameters(params) = named_params(&["pressure"], run_name, output);
+    Parameters(GetDataParams {
+        run_id: run_id.map(String::from),
+        start_time_unix_nanos: None,
+        end_time_unix_nanos: None,
+        ..params
+    })
+}
+
+/// An archived run that shares its name with the active one must not stand in
+/// for it: the name lookup excludes archived runs, so the data comes from the
+/// active run.
+#[tokio::test]
+async fn get_data_run_name_skips_an_archived_duplicate() {
+    let mut runs = MockRunServiceImpl::new();
+    runs.expect_list_runs()
+        .times(1)
+        .withf(|req| {
+            let req = req.get_ref();
+            req.filter == "name == \"hotfire-3\" && asset_id == \"asset-1\" && is_archived == false"
+                && req.page_size == 2
+        })
+        .returning(|_| {
+            Ok(Response::new(ListRunsResponse {
+                runs: vec![run_named("run-active", "hotfire-3", false)],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let dir = TempDir::new("sift-mcp-run-archived-dup").expect("temp dir");
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        raw_channel_mock(&["pressure"]),
+        runs,
+        MockCalculatedChannelServiceImpl::new(),
+        run_scoped_data_mock("run-active"),
+    )
+    .await;
+
+    let body = structured(
+        server
+            .get_data(run_params(
+                Some("hotfire-3"),
+                None,
+                dir.path().join("out.parquet"),
+            ))
+            .await
+            .expect("get_data should fetch the active run"),
+    );
+    assert_eq!(body["run_id"], "run-active");
+    assert!(body.get("run_archived").is_none(), "{body}");
+}
+
+/// Two active runs with the same name are ambiguous. Picking either one could
+/// ship the wrong run's data, so the call fails and names both candidates.
+#[tokio::test]
+async fn get_data_run_name_rejects_multiple_active_matches() {
+    let mut runs = MockRunServiceImpl::new();
+    runs.expect_list_runs().times(1).returning(|_| {
+        Ok(Response::new(ListRunsResponse {
+            runs: vec![
+                run_named("run-a", "hotfire-3", false),
+                run_named("run-b", "hotfire-3", false),
+            ],
+            next_page_token: "more".into(),
+        }))
+    });
+
+    let dir = TempDir::new("sift-mcp-run-ambiguous").expect("temp dir");
+    let output = dir.path().join("out.parquet");
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        MockChannelServiceImpl::new(),
+        runs,
+        MockCalculatedChannelServiceImpl::new(),
+        MockDataServiceImpl::new(),
+    )
+    .await;
+
+    let err = server
+        .get_data(run_params(Some("hotfire-3"), None, output.clone()))
+        .await
+        .expect_err("an ambiguous run name must fail");
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+    assert!(err.message.contains("run-a"), "{}", err.message);
+    assert!(err.message.contains("run-b"), "{}", err.message);
+    assert!(err.message.contains("and more"), "{}", err.message);
+    assert!(err.message.contains("`run_id`"), "{}", err.message);
+    assert!(!output.exists(), "no file should be written");
+}
+
+/// A run service where the name lookup finds no active run and the archived
+/// check returns `archived`.
+fn no_active_run_mock(archived: Option<Run>) -> MockRunServiceImpl {
+    let mut runs = MockRunServiceImpl::new();
+    runs.expect_list_runs()
+        .times(1)
+        .withf(|req| req.get_ref().filter.ends_with("is_archived == false"))
+        .returning(|_| {
+            Ok(Response::new(ListRunsResponse {
+                runs: vec![],
+                next_page_token: String::new(),
+            }))
+        });
+    runs.expect_list_runs()
+        .times(1)
+        .withf(|req| req.get_ref().filter.ends_with("is_archived == true"))
+        .returning(move |_| {
+            Ok(Response::new(ListRunsResponse {
+                runs: archived.clone().into_iter().collect(),
+                next_page_token: String::new(),
+            }))
+        });
+    runs
+}
+
+/// When the only run with the name is archived, the name lookup finds nothing
+/// and the error names the archived run's id for `run_id`.
+#[tokio::test]
+async fn get_data_run_name_does_not_match_an_archived_run() {
+    let runs = no_active_run_mock(Some(run_named("run-archived", "hotfire-3", true)));
+
+    let dir = TempDir::new("sift-mcp-run-only-archived").expect("temp dir");
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        MockChannelServiceImpl::new(),
+        runs,
+        MockCalculatedChannelServiceImpl::new(),
+        MockDataServiceImpl::new(),
+    )
+    .await;
+
+    let err = server
+        .get_data(run_params(
+            Some("hotfire-3"),
+            None,
+            dir.path().join("out.parquet"),
+        ))
+        .await
+        .expect_err("no active run matches");
+    assert_eq!(err.code, ErrorCode::RESOURCE_NOT_FOUND);
+    assert!(err.message.contains("run-archived"), "{}", err.message);
+    assert!(err.message.contains("`run_id`"), "{}", err.message);
+}
+
+/// A name no run holds, archived or not, gets a plain miss: pointing at
+/// `run_id` would send the caller looking for archived data that is not there.
+#[tokio::test]
+async fn get_data_run_name_not_found_does_not_suggest_archived_data() {
+    let dir = TempDir::new("sift-mcp-run-missing").expect("temp dir");
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        MockChannelServiceImpl::new(),
+        no_active_run_mock(None),
+        MockCalculatedChannelServiceImpl::new(),
+        MockDataServiceImpl::new(),
+    )
+    .await;
+
+    let err = server
+        .get_data(run_params(
+            Some("hotfire-9"),
+            None,
+            dir.path().join("out.parquet"),
+        ))
+        .await
+        .expect_err("no run has the name");
+    assert_eq!(err.code, ErrorCode::RESOURCE_NOT_FOUND);
+    assert!(!err.message.contains("archived"), "{}", err.message);
+    assert!(err.message.contains("`list_runs`"), "{}", err.message);
+}
+
+/// The unresolved-channel report names the run by id and flags it as
+/// archived, so it is not mistaken for an active run with the same name.
+#[tokio::test]
+async fn get_data_unresolved_report_marks_an_archived_run() {
+    let mut runs = MockRunServiceImpl::new();
+    runs.expect_list_runs().times(1).returning(|_| {
+        Ok(Response::new(ListRunsResponse {
+            runs: vec![run_named("run-archived", "hotfire-3", true)],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let dir = TempDir::new("sift-mcp-run-archived-unresolved").expect("temp dir");
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        raw_channel_mock(&[]),
+        runs,
+        no_calculation_mock(),
+        MockDataServiceImpl::new(),
+    )
+    .await;
+
+    let err = server
+        .get_data(run_params(
+            None,
+            Some("run-archived"),
+            dir.path().join("out.parquet"),
+        ))
+        .await
+        .expect_err("nothing resolves");
+    assert_eq!(err.code, ErrorCode::RESOURCE_NOT_FOUND);
+    assert!(
+        err.message
+            .contains("(archived run 'hotfire-3', id 'run-archived')"),
+        "{}",
+        err.message
+    );
+}
+
+/// `run_id` selects the run directly, archived or not, and the result says
+/// when the run is archived.
+#[tokio::test]
+async fn get_data_run_id_fetches_an_archived_run_and_says_so() {
+    let mut runs = MockRunServiceImpl::new();
+    runs.expect_list_runs()
+        .times(1)
+        .withf(|req| {
+            req.get_ref().filter == "run_id == \"run-archived\" && asset_id == \"asset-1\""
+        })
+        .returning(|_| {
+            Ok(Response::new(ListRunsResponse {
+                runs: vec![run_named("run-archived", "hotfire-3", true)],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let dir = TempDir::new("sift-mcp-run-id").expect("temp dir");
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        raw_channel_mock(&["pressure"]),
+        runs,
+        MockCalculatedChannelServiceImpl::new(),
+        run_scoped_data_mock("run-archived"),
+    )
+    .await;
+
+    let body = structured(
+        server
+            .get_data(run_params(
+                None,
+                Some("run-archived"),
+                dir.path().join("out.parquet"),
+            ))
+            .await
+            .expect("an explicit run_id may name an archived run"),
+    );
+    assert_eq!(body["run_id"], "run-archived");
+    assert_eq!(body["run_archived"], true);
+    let next_step = body["next_step"].as_str().expect("next_step");
+    assert!(next_step.contains("ARCHIVED"), "{next_step}");
+}
+
+#[tokio::test]
+async fn get_data_run_id_not_found_for_asset() {
+    let mut runs = MockRunServiceImpl::new();
+    runs.expect_list_runs().times(1).returning(|_| {
+        Ok(Response::new(ListRunsResponse {
+            runs: vec![],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let dir = TempDir::new("sift-mcp-run-id-missing").expect("temp dir");
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        MockChannelServiceImpl::new(),
+        runs,
+        MockCalculatedChannelServiceImpl::new(),
+        MockDataServiceImpl::new(),
+    )
+    .await;
+
+    let err = server
+        .get_data(run_params(
+            None,
+            Some("run-elsewhere"),
+            dir.path().join("out.parquet"),
+        ))
+        .await
+        .expect_err("a run id not on the asset must fail");
+    assert_eq!(err.code, ErrorCode::RESOURCE_NOT_FOUND);
+    assert!(err.message.contains("run-elsewhere"), "{}", err.message);
+}
+
+#[tokio::test]
+async fn get_data_rejects_both_run_name_and_run_id() {
+    let (server, _h) =
+        server_with_mocks(MockAssetServiceImpl::new(), MockChannelServiceImpl::new()).await;
+
+    let err = server
+        .get_data(run_params(
+            Some("hotfire-3"),
+            Some("run-1"),
+            std::env::temp_dir().join("sift-mcp-get-data-test-never-written.parquet"),
+        ))
+        .await
+        .expect_err("run_name and run_id are mutually exclusive");
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+}
+
+/// A blank run selector is rejected up front rather than sent as a filter or
+/// counted against the other selector.
+#[tokio::test]
+async fn get_data_rejects_a_blank_run_selector() {
+    let (server, _h) =
+        server_with_mocks(MockAssetServiceImpl::new(), MockChannelServiceImpl::new()).await;
+
+    for (run_name, run_id) in [(Some(""), Some("run-1")), (None, Some("  "))] {
+        let err = server
+            .get_data(run_params(
+                run_name,
+                run_id,
+                std::env::temp_dir().join("sift-mcp-get-data-test-never-written.parquet"),
+            ))
+            .await
+            .expect_err("a blank run selector must fail");
+        assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+        assert!(err.message.contains("blank"), "{}", err.message);
+    }
+}
+
+/// Without `run_name` or `run_id` the time range must be explicit, and the
+/// error names both run selectors.
+#[tokio::test]
+async fn get_data_requires_a_time_range_without_a_run() {
+    let (server, _h) =
+        server_with_mocks(MockAssetServiceImpl::new(), MockChannelServiceImpl::new()).await;
+
+    let err = server
+        .get_data(run_params(
+            None,
+            None,
+            std::env::temp_dir().join("sift-mcp-get-data-test-never-written.parquet"),
+        ))
+        .await
+        .expect_err("no run and no time range");
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+    assert!(err.message.contains("run_id"), "{}", err.message);
 }

@@ -47,13 +47,15 @@ impl SiftMcpServer {
              (`name == \"{asset}\"`); if nothing comes back, fall back to a substring match \
              (`name.matches(\"{asset}\")`). When several assets match, ask the user which one they \
              mean before continuing.\n\
-             2. List recent runs with `list_runs` filtered by `asset_id == \"<resolved asset_id>\"`, \
-             ordered `start_time desc`. Run and channel namespaces are per-asset, so always scope by \
-             `asset_id` instead of listing everything.\n\
+             2. List recent runs with `list_runs` filtered by \
+             `asset_id == \"<resolved asset_id>\" && is_archived == false`, ordered `start_time desc`. \
+             Run and channel namespaces are per-asset, so always scope by `asset_id` instead of \
+             listing everything.\n\
              3. List channels with `list_channels` filtered by `asset_id == \"<resolved asset_id>\"`.\n\
              4. Summarize for the user: the resolved asset (name and id), its most recent runs (name, \
-             start/stop, duration), and the channel inventory grouped by data type. Surface the exact \
-             run and channel names so they can be reused with `get_data`.\n\n\
+             start/stop, duration), and the channel inventory grouped by data type. Surface each run's \
+             `run_id` with its name, and the exact channel names, so they can be reused with \
+             `get_data`.\n\n\
              This step is discovery only. Do not pull sample data."
         );
 
@@ -87,10 +89,11 @@ impl SiftMcpServer {
              {question_line}\
              Steps:\n\
              1. Resolve the asset and run. Use `list_assets` (`name == \"{asset}\"`) for the \
-             asset_id, then `list_runs` (`name == \"{run}\" && asset_id == \"...\"`) to confirm the run.\n\
+             asset_id, then `list_runs` (`name == \"{run}\" && asset_id == \"...\" && is_archived == false`) to \
+             confirm the run and take its `run_id`. If more than one run matches, ask the user which one.\n\
              2. Confirm the target channels exist with `list_channels` scoped by `asset_id`. If no \
              channels were named, choose a sensible set and tell the user which you picked.\n\
-             3. Pull data with `get_data`. Pass `run_name` so the run's start/stop bounds apply \
+             3. Pull data with `get_data`. Pass `run_id` so the run's start/stop bounds apply \
              automatically; do not hand-compute timestamps. Use `channel_names` with exact \
              channel names. Pass `sample_ms = 0`: this flow ends in statistics, and statistics taken \
              off decimated data are wrong. If a long run makes the pull too large, narrow the time \
@@ -138,9 +141,12 @@ impl SiftMcpServer {
              Source asset: \"{source_asset}\"\nSource run: \"{source_run}\"\n\
              Transform: \"{transform}\"\n{target_asset_line}\n{target_run_line}\n\n\
              Steps:\n\
-             1. Resolve the source asset and run with `list_assets` and `list_runs`. Identify the \
-             channels the transform needs via `list_channels` scoped by `asset_id`.\n\
-             2. Extract with `get_data`, passing `run_name` so the run bounds apply. Choose \
+             1. Resolve the source asset and run. Use `list_assets` (`name == \"{source_asset}\"`) for \
+             the asset_id, then `list_runs` (`name == \"{source_run}\" && asset_id == \"...\" && \
+             is_archived == false`) to confirm the run and take its `run_id`. If more than one run \
+             matches, ask the user which one. Identify the channels the transform needs via \
+             `list_channels` scoped by `asset_id`.\n\
+             2. Extract with `get_data`, passing `run_id` so the run bounds apply. Choose \
              `channel_names`, and pass `sample_ms = 0` so the transform runs on real samples rather \
              than a decimated approximation of them.\n\
              3. Apply the transform with `sql`. CRITICAL: column 0 of any dataset uploaded to Sift \

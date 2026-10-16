@@ -11,6 +11,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   release before 9.0.3, so Cargo could no longer resolve the `zip = "8.2"`
   requirement. The workspace now depends on `zip` 9 and commits its
   `Cargo.lock`, so a build from a release tag uses the versions pinned there.
+- `get_data` no longer matches archived runs by `run_name`. Before, an archived
+  run with the same name as an active one could supply the data in its place.
+  A name that matches more than one active run now fails and lists the
+  candidate run ids.
+- `get_data` accepts `run_id` in place of `run_name`. It is the only way to
+  fetch an archived run. The result names the run in `run_id` and sets
+  `run_archived` when the run is archived.
 
 ## [v0.7.4] - October 14, 2026
 
