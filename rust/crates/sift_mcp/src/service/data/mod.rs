@@ -1,6 +1,7 @@
 use std::{
     collections::{HashMap, HashSet},
     fmt,
+    fs::File,
     io::Write,
     mem,
     path::PathBuf,
@@ -16,7 +17,8 @@ use arrow::{
     },
     datatypes::{DataType, Field, Schema},
 };
-use parquet::arrow::ArrowWriter;
+use bytes::Bytes;
+use parquet::arrow::{ArrowWriter, arrow_reader::ParquetRecordBatchReaderBuilder};
 use pbjson_types::Timestamp;
 use polars::{
     prelude::{LazyFrame, ParquetWriter, PlRefPath},
@@ -40,8 +42,8 @@ use sift_rs::{
 
 use crate::policy::{RetryPolicy, with_retry};
 use crate::service::common::{
-    BIT_FIELD_METADATA_KEY, ColumnName, ENUM_METADATA_KEY, TS_COLUMN_NAME, name_list,
-    secs_and_subsec_nanos_to_unix_nanos, unix_nanos_to_secs_and_subsec_nanos,
+    BIT_FIELD_METADATA_KEY, ColumnName, ColumnNameStyle, ENUM_METADATA_KEY, TS_COLUMN_NAME,
+    name_list, secs_and_subsec_nanos_to_unix_nanos, unix_nanos_to_secs_and_subsec_nanos,
 };
 
 #[cfg(test)]
@@ -196,12 +198,78 @@ enum ChannelValue {
     Bytes(Vec<u8>),
 }
 
+/// Field metadata from the input files, keyed by column name. The first file to
+/// mention a column wins. A read failure is reported to the caller.
+fn channel_field_metadata(paths: &[PathBuf]) -> Result<HashMap<String, HashMap<String, String>>> {
+    let mut out = HashMap::new();
+    for path in paths {
+        let file = File::open(path).with_context(|| {
+            format!(
+                "failed to read parquet field metadata from {}",
+                path.display()
+            )
+        })?;
+        let builder = ParquetRecordBatchReaderBuilder::try_new(file)
+            .context("failed to read parquet schema")?;
+        for field in builder.schema().fields() {
+            if field.metadata().is_empty() {
+                continue;
+            }
+            out.entry(field.name().clone())
+                .or_insert_with(|| field.metadata().clone());
+        }
+    }
+    Ok(out)
+}
+
+/// Rewrites a Parquet blob so columns whose names match `carried` keep that
+/// field metadata. Polars' writer drops it.
+fn write_with_carried_metadata<W: Write + Send>(
+    raw: &[u8],
+    output: &mut W,
+    carried: &HashMap<String, HashMap<String, String>>,
+) -> Result<()> {
+    let builder = ParquetRecordBatchReaderBuilder::try_new(Bytes::copy_from_slice(raw))
+        .context("failed to reopen SQL result")?;
+    let source_schema = builder.schema().clone();
+    let reader = builder.build().context("failed to read SQL result")?;
+
+    let schema = Arc::new(Schema::new(
+        source_schema
+            .fields()
+            .iter()
+            .map(|field| {
+                let Some(extra) = carried.get(field.name()) else {
+                    return field.as_ref().clone();
+                };
+                let mut metadata = field.metadata().clone();
+                for (key, value) in extra {
+                    metadata.entry(key.clone()).or_insert_with(|| value.clone());
+                }
+                field.as_ref().clone().with_metadata(metadata)
+            })
+            .collect::<Vec<_>>(),
+    ));
+
+    let mut writer =
+        ArrowWriter::try_new(output, schema.clone(), None).context("failed to write SQL result")?;
+    for batch in reader {
+        let batch = batch
+            .context("failed to read SQL result batch")?
+            .with_schema(schema.clone())
+            .context("failed to attach column metadata to SQL result")?;
+        writer.write(&batch).context("failed to write SQL result")?;
+    }
+    writer.close().context("failed to close SQL result")?;
+    Ok(())
+}
+
 impl DataService {
     pub fn new(channel: SiftChannel, policy: RetryPolicy) -> Self {
         Self { channel, policy }
     }
 
-    pub fn sql<W: Write>(
+    pub fn sql<W: Write + Send>(
         input_parquet_files: Vec<PathBuf>,
         output_buffer: &mut W,
         table_name: &str,
@@ -214,8 +282,8 @@ impl DataService {
         let paths = {
             let mut paths = Vec::with_capacity(input_parquet_files.len());
 
-            for path in input_parquet_files {
-                let pl_path = PlRefPath::try_from_pathbuf(path)
+            for path in &input_parquet_files {
+                let pl_path = PlRefPath::try_from_pathbuf(path.clone())
                     .context("invalid parquet file path provided")?;
 
                 paths.push(pl_path);
@@ -239,21 +307,53 @@ impl DataService {
                     .context("failed to execute query on data frame")
             })?;
 
-        ParquetWriter::new(output_buffer)
+        let mut raw = Vec::new();
+        ParquetWriter::new(&mut raw)
             .finish(&mut df)
             .context("failed ot write data frame to parquet")?;
 
-        Ok(())
+        // Polars does not keep Arrow field metadata, which is where channel_id,
+        // run, and units live. Copy them back onto columns the query kept by name
+        // so `get_data` → `sql` → `upload_dataset` still round-trips.
+        let carried = channel_field_metadata(&input_parquet_files)
+            .context("failed to read column metadata from the SQL inputs")?;
+        if carried.is_empty() {
+            output_buffer
+                .write_all(&raw)
+                .context("failed to write SQL result")?;
+            return Ok(());
+        }
+        write_with_carried_metadata(&raw, output_buffer, &carried)
     }
 
     /// Retrieves data for provided parameters and writes out the data in a buffered manner to the
     /// provided buffer as arrow. The first column is int64, `timestamp_unix_nanos`.
+    /// Column names are plain SQL identifiers.
     pub async fn get_data<W: Write + Send>(
         &self,
         channel_inputs: &[ChannelInput],
         time_range: TimeRange,
         sample_ms: u32,
         buffer: &mut W,
+    ) -> Result<DataOutput> {
+        self.get_data_with_column_names(
+            channel_inputs,
+            time_range,
+            sample_ms,
+            buffer,
+            ColumnNameStyle::Sql,
+        )
+        .await
+    }
+
+    /// Same as [`get_data`](Self::get_data), with an explicit [`ColumnNameStyle`].
+    pub async fn get_data_with_column_names<W: Write + Send>(
+        &self,
+        channel_inputs: &[ChannelInput],
+        time_range: TimeRange,
+        sample_ms: u32,
+        buffer: &mut W,
+        column_names: ColumnNameStyle,
     ) -> Result<DataOutput> {
         if channel_inputs.is_empty() {
             bail!("channel inputs cannot be empty");
@@ -994,13 +1094,15 @@ impl DataService {
         }
 
         let columns = columns.into_iter().collect::<Vec<_>>();
+        let name_refs = columns.iter().map(|(name, _)| name).collect::<Vec<_>>();
+        let field_names = ColumnName::field_names(&name_refs, column_names);
 
         let mut fields = vec![Field::new(TS_COLUMN_NAME, DataType::Int64, false)];
 
         let mut array_builders = Vec::<Box<dyn ArrayBuilder>>::new();
         let mut time_col_builder = Int64Builder::new();
 
-        for (column_name, column) in &columns {
+        for (index, (column_name, column)) in columns.iter().enumerate() {
             let Some((_, first_val)) = column.values.first() else {
                 bail!("unexpected empty column encountered")
             };
@@ -1018,24 +1120,24 @@ impl DataService {
                 _ => bail!("unsupported column data type: {:?}", column.data_type),
             }
 
-            let mut field = Field::new(column_name.clone(), column.data_type.clone(), true);
-
+            let mut field = Field::new(&field_names[index], column.data_type.clone(), true);
+            let mut metadata = HashMap::new();
+            if column_names == ColumnNameStyle::Sql {
+                metadata.extend(column_name.identity_metadata());
+            }
             if let Some(json_metadata) = column.json_metadata.as_ref() {
                 match first_val {
                     ChannelValue::BitField(_) => {
-                        field = field.with_metadata(HashMap::from_iter([(
-                            BIT_FIELD_METADATA_KEY.to_string(),
-                            json_metadata.clone(),
-                        )]));
+                        metadata.insert(BIT_FIELD_METADATA_KEY.to_string(), json_metadata.clone());
                     }
                     ChannelValue::Enum(_) => {
-                        field = field.with_metadata(HashMap::from_iter([(
-                            ENUM_METADATA_KEY.to_string(),
-                            json_metadata.clone(),
-                        )]));
+                        metadata.insert(ENUM_METADATA_KEY.to_string(), json_metadata.clone());
                     }
                     _ => (),
                 }
+            }
+            if !metadata.is_empty() {
+                field = field.with_metadata(metadata);
             }
 
             fields.push(field);

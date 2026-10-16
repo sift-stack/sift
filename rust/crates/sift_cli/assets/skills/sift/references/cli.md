@@ -127,9 +127,9 @@ If the CLI does not support the user's file type:
 2. Stream the data into Sift with the Python library.
 
 Do not reach for the MCP `upload_dataset` tool to import a user's file. It
-accepts only Sift's canonical Parquet schema — every column named
-`<channel_name> {channel_id="<uuid>"}` — so it round-trips the output of
-`get_data`, and rejects a foreign file with `missing attribute block`.
+accepts only Sift's canonical Parquet schema — channel columns from
+`get_data`, with `channel_id` in field metadata (or the older brace-delimited
+column name) — so it round-trips `get_data`, and rejects a foreign file.
 
 ### Stream data
 
