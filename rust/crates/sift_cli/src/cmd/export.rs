@@ -246,8 +246,6 @@ pub async fn asset(ctx: Context, args: ExportAssetArgs) -> Result<ExitCode> {
     .await
 }
 
-/// Marks the detached child so it resumes the running export instead of starting
-/// a new one. Doubles as the recursion guard.
 const RESUME_JOB_ID_ENV: &str = "SIFT_CLI_EXPORT_RESUME_JOB_ID";
 
 fn resume_job_id() -> Option<String> {
@@ -291,7 +289,6 @@ async fn export(
     Ok(ExitCode::SUCCESS)
 }
 
-/// Re-executes this binary detached from the terminal. Returns the child's log path.
 fn spawn_detached(job_id: &str) -> Result<PathBuf> {
     let exe = std::env::current_exe().context("failed to locate the sift-cli binary")?;
 
@@ -314,8 +311,6 @@ fn spawn_detached(job_id: &str) -> Result<PathBuf> {
         ))
         .stderr(Stdio::from(log));
 
-    // Leave the shell's process group so closing the terminal does not SIGHUP
-    // the download, and Ctrl-C on the parent does not reach it.
     #[cfg(unix)]
     {
         use std::os::unix::process::CommandExt;
@@ -335,7 +330,6 @@ fn spawn_detached(job_id: &str) -> Result<PathBuf> {
     Ok(log_path)
 }
 
-/// Polls an export job to completion, then downloads and unpacks it into `output`.
 async fn download_export(
     grpc_channel: SiftChannel,
     job_id: String,
@@ -378,8 +372,6 @@ async fn download_export(
         }
     };
 
-    // Keyed by job ID: concurrent exports must not collide, and an absolute
-    // `output` would escape the temp directory via `join`.
     let zip_file_path = temp_dir().join(format!("sift-export-{job_id}.zip"));
     let mut zip_file = match File::create_new(&zip_file_path) {
         Ok(fd) => fd,
@@ -478,7 +470,6 @@ async fn wait_for_export(
                 return Ok(ExitCode::FAILURE);
             }
             JobStatus::Finished => {
-                // Leave the spinner running; the caller reuses it for the download.
                 spinner.set_message(format!("{} export", "Downloading".green()));
                 return Ok(ExitCode::SUCCESS);
             }
