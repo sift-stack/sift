@@ -89,7 +89,7 @@ tracing-test = { version = "0.2", features = ["no-env-filter"] }
 # tinyvec 1.13.0. Workspace crates run with the standard library available.
 tinyvec = { version = "1", features = ["std"] }
 uuid = { version = "1.22", features = ["v4"] }
-zip = "8.2"
+zip = "8.6"
 
 sift_connect = { version = "0.14.0", path = "rust/crates/sift_connect" }
 sift_rs = { version = "0.14.0", path = "rust/crates/sift_rs" }
