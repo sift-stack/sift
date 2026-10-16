@@ -1,6 +1,6 @@
 use std::{
     env::temp_dir,
-    fs::{File, create_dir_all, remove_file},
+    fs::{File, remove_file},
     io::{self, Write},
     path::PathBuf,
     process::{Command, ExitCode, Stdio},
@@ -292,13 +292,7 @@ async fn export(
 fn spawn_detached(job_id: &str) -> Result<PathBuf> {
     let exe = std::env::current_exe().context("failed to locate the sift-cli binary")?;
 
-    let log_dir = dirs::data_dir()
-        .ok_or_else(|| anyhow!("failed to resolve a directory for the background log"))?
-        .join("sift")
-        .join("logs");
-    create_dir_all(&log_dir).context("failed to create the background log directory")?;
-
-    let log_path = log_dir.join(format!("export-{job_id}.log"));
+    let log_path = temp_dir().join(format!("sift-export-{job_id}.log"));
     let log = File::create(&log_path).context("failed to create the background log file")?;
 
     let mut cmd = Command::new(exe);
