@@ -4,7 +4,6 @@ import logging
 import uuid
 import warnings
 from collections import defaultdict
-from datetime import timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, NamedTuple, TypeVar, cast
 
@@ -115,6 +114,31 @@ def _is_ambiguous_grpc_failure(exc: Exception) -> bool:
     Any other exception, such as a local ``TypeError``, is not ambiguous.
     """
     return isinstance(exc, RpcError) and _rpc_code(exc) in _AMBIGUOUS_STATUS_CODES
+
+
+def _measurement_match_key(measurement: TestMeasurement) -> tuple[Any, ...]:
+    """Every field a client sets on a measurement, for reconciliation matching.
+
+    Both sides go through ``TestMeasurement._from_proto`` so they normalize the
+    same way. Server-assigned fields (ID, report ID) are left out.
+    """
+    bounds = measurement.numeric_bounds
+    return (
+        measurement.test_step_id,
+        measurement.name,
+        measurement.measurement_type,
+        measurement.timestamp,
+        measurement.numeric_value,
+        measurement.string_value,
+        measurement.boolean_value,
+        measurement.unit,
+        (bounds.min, bounds.max) if bounds else None,
+        measurement.string_expected_value,
+        measurement.passed,
+        measurement.description,
+        tuple(measurement.channel_names or ()),
+        tuple(sorted((measurement.metadata or {}).items())),
+    )
 
 
 class _EntryIds(NamedTuple):
@@ -925,15 +949,17 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         return created
 
     async def _reconcile_measurement_batch(
-        self, protos: list[TestMeasurementProto]
+        self, protos: list[TestMeasurementProto], claimed_ids: set[str]
     ) -> list[TestMeasurement | None]:
         """Match a batch's measurements against what the server already has.
 
-        The key is ``test_step_id``, ``name``, ``timestamp``, and whichever
-        value field is set. Each server row matches at most one proto, so
-        identical measurements in one batch need identical rows on the server.
-        Best effort: a value the server stores differently from what was sent
-        does not match.
+        The key is every client-set field (see ``_measurement_match_key``).
+        Server rows in ``claimed_ids`` already belong to an earlier create and
+        never match, so a legal repeat of an earlier measurement is recreated
+        instead of adopting that row. Each remaining row matches at most one
+        proto. Rows that share a key are identical in every field the client
+        set, so which proto takes which row does not matter. Best effort: a
+        field the server stores differently from what was sent does not match.
 
         Returns one slot per input proto, in order; ``None`` where nothing on
         the server matched.
@@ -944,42 +970,31 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             query_filter=and_(in_("test_step_id", step_ids), in_("name", names))
         )
 
-        candidates: defaultdict[tuple[str, str, Any, Any], list[TestMeasurement]] = defaultdict(
-            list
-        )
+        candidates: defaultdict[tuple[Any, ...], list[TestMeasurement]] = defaultdict(list)
         for measurement in existing:
-            value: float | str | bool | None = measurement.numeric_value
-            if value is None:
-                value = measurement.string_value
-            if value is None:
-                value = measurement.boolean_value
-            key = (measurement.test_step_id, measurement.name, measurement.timestamp, value)
-            candidates[key].append(measurement)
+            if measurement._id_or_error in claimed_ids:
+                continue
+            candidates[_measurement_match_key(measurement)].append(measurement)
 
         matches: list[TestMeasurement | None] = []
         for proto in protos:
-            which = proto.WhichOneof("value")
-            value = getattr(proto, which) if which else None
-            key = (
-                proto.test_step_id,
-                proto.name,
-                proto.timestamp.ToDatetime(tzinfo=timezone.utc),
-                value,
-            )
+            key = _measurement_match_key(TestMeasurement._from_proto(proto))
             bucket = candidates.get(key)  # get, so a miss does not insert an empty list
             matches.append(bucket.pop(0) if bucket else None)
         return matches
 
     async def _create_measurement_batch_reconciling(
-        self, protos: list[TestMeasurementProto]
+        self, protos: list[TestMeasurementProto], claimed_ids: set[str]
     ) -> tuple[list[TestMeasurement], int]:
         """Create a batch, reconciling against the server if the outcome is unknown.
 
         ``CreateTestMeasurements`` is not idempotent. After an ambiguous failure
         (see ``_is_ambiguous_grpc_failure``), this matches the batch against the
         server (see ``_reconcile_measurement_batch``) and recreates only what is
-        missing. Any other exception, and any failure of the reconciliation
-        query or the recreate, propagates.
+        missing. ``claimed_ids`` holds the real IDs of measurements created
+        before this batch, which reconciliation must not adopt. Any other
+        exception, and any failure of the reconciliation query or the recreate,
+        propagates.
 
         Returns the measurements in input order, plus how many were matched on
         the server instead of recreated.
@@ -989,7 +1004,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         except Exception as exc:
             if not _is_ambiguous_grpc_failure(exc):
                 raise
-            matches = await self._reconcile_measurement_batch(protos)
+            matches = await self._reconcile_measurement_batch(protos, claimed_ids)
             missing = [proto for proto, match in zip(protos, matches) if match is None]
             reconciled = len(protos) - len(missing)
             log_event(
@@ -1008,19 +1023,23 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             return created, reconciled
 
     async def _create_measurements_in_batches(
-        self, protos: list[TestMeasurementProto]
+        self, protos: list[TestMeasurementProto], claimed_ids: set[str]
     ) -> tuple[list[TestMeasurement], int]:
         """Create measurements in chunks of ``_MEASUREMENT_CREATE_BATCH_SIZE``.
+
+        Each chunk also treats the IDs of earlier chunks as claimed.
 
         Returns the created measurements plus how many were reconciled rather
         than recreated; see ``_create_measurement_batch_reconciling``.
         """
+        claimed = set(claimed_ids)
         created: list[TestMeasurement] = []
         reconciled_count = 0
         for chunk in chunked(protos, _MEASUREMENT_CREATE_BATCH_SIZE):
             chunk_created, chunk_reconciled = await self._create_measurement_batch_reconciling(
-                chunk
+                chunk, claimed
             )
+            claimed.update(m._id_or_error for m in chunk_created)
             created.extend(chunk_created)
             reconciled_count += chunk_reconciled
         return created, reconciled_count
@@ -1406,7 +1425,8 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if not pending:
             return [], 0
         created, reconciled_count = await self._create_measurements_in_batches(
-            [tm for _, tm in pending]
+            [tm for _, tm in pending],
+            claimed_ids=set(id_map.values()) | set(state.measurements_by_id),
         )
 
         real_ids: list[str] = []
@@ -1642,7 +1662,10 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                     sim_measurement, real_step_id
                 )
                 protos.append(measurement_create.to_proto())
-            created, chunk_reconciled = await self._create_measurement_batch_reconciling(protos)
+            created, chunk_reconciled = await self._create_measurement_batch_reconciling(
+                protos,
+                claimed_ids=set(real_id_map.values()) | set(tracking.id_map.values()),
+            )
             real_measurements.extend(created)
             reconciled_count += chunk_reconciled
             for sim_measurement_id, real_measurement in zip(chunk_ids, created):

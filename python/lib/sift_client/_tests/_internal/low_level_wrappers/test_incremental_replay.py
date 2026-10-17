@@ -1011,7 +1011,7 @@ async def test_ambiguous_measurement_failure_recreates_what_is_still_missing(tmp
 
 @pytest.mark.asyncio
 async def test_reconcile_measurement_batch_matches_by_natural_key():
-    """Matching is step + name + timestamp + value; a value mismatch stays missing."""
+    """A value mismatch stays missing."""
     client = ResultsLowLevelClient(grpc_client=MagicMock())
     client.list_all_test_measurements = AsyncMock(
         return_value=[_server_measurement("real-1", name="m", numeric_value=1.0)]
@@ -1023,7 +1023,7 @@ async def test_reconcile_measurement_batch_matches_by_natural_key():
         name="m", test_step_id="real-step", passed=True, timestamp=T0, numeric_value=2.0
     ).to_proto()
 
-    matches = await client._reconcile_measurement_batch([matching, mismatched])
+    matches = await client._reconcile_measurement_batch([matching, mismatched], set())
 
     assert matches[0] is not None
     assert matches[0].id_ == "real-1"
@@ -1041,11 +1041,83 @@ async def test_reconcile_measurement_batch_does_not_double_match_a_coincidental_
         name="m", test_step_id="real-step", passed=True, timestamp=T0, numeric_value=1.0
     ).to_proto()
 
-    matches = await client._reconcile_measurement_batch([proto, proto])
+    matches = await client._reconcile_measurement_batch([proto, proto], set())
 
     assert matches[0] is not None
     assert matches[0].id_ == "real-1"
     assert matches[1] is None
+
+
+@pytest.mark.asyncio
+async def test_reconcile_measurement_batch_requires_every_client_field_to_match():
+    """A row that differs only in a non-value field, such as ``passed``, is not adopted."""
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+    client.list_all_test_measurements = AsyncMock(
+        return_value=[_server_measurement("real-1", name="m", numeric_value=1.0)]
+    )
+    failed = TestMeasurementCreate(
+        name="m", test_step_id="real-step", passed=False, timestamp=T0, numeric_value=1.0
+    ).to_proto()
+
+    matches = await client._reconcile_measurement_batch([failed], set())
+
+    assert matches == [None]
+
+
+@pytest.mark.asyncio
+async def test_reconcile_measurement_batch_skips_rows_already_claimed():
+    """A legal repeat of an earlier measurement does not adopt the earlier row.
+
+    ``real-1`` came from an earlier create and is in the claimed set, so the
+    identical measurement in this batch is left to be recreated.
+    """
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+    client.list_all_test_measurements = AsyncMock(
+        return_value=[
+            _server_measurement("real-1", name="m", numeric_value=1.0),
+            _server_measurement("real-2", name="m", numeric_value=1.0),
+        ]
+    )
+    proto = TestMeasurementCreate(
+        name="m", test_step_id="real-step", passed=True, timestamp=T0, numeric_value=1.0
+    ).to_proto()
+
+    matches = await client._reconcile_measurement_batch([proto, proto], {"real-1"})
+
+    assert [m.id_ if m else None for m in matches] == ["real-2", None]
+
+
+@pytest.mark.asyncio
+async def test_ambiguous_failure_does_not_adopt_a_measurement_from_an_earlier_tick(tmp_path):
+    """A row created on an earlier tick is already mapped, so reconciliation ignores it.
+
+    The earlier tick created ``real-meas-1``. This tick repeats the same
+    measurement and the create fails ambiguously without committing, so the
+    measurement must be recreated rather than mapped onto ``real-meas-1``.
+    """
+    log_file = tmp_path / "ambiguous_repeat.jsonl"
+    client = ResultsLowLevelClient(grpc_client=MagicMock())
+    report, step, measurement_ids = await _build_measurement_log(
+        client, log_file, batched=False, count=1
+    )
+    earlier_id = "sim-earlier"
+
+    LogTracking(
+        last_uploaded_line=2,
+        id_map={report.id_: "real-report", step.id_: "real-step", earlier_id: "real-meas-1"},
+    ).save(log_file)
+    client.create_test_measurements = AsyncMock(
+        side_effect=[_UnavailableError(), (1, ["real-meas-2"])]
+    )
+    client.list_all_test_measurements = AsyncMock(
+        return_value=[_server_measurement("real-meas-1", name="m1", numeric_value=1.0)]
+    )
+
+    await client.import_log_file(log_file, incremental=True)
+
+    assert client.create_test_measurements.await_count == 2
+    tracking = LogTracking.load(log_file)
+    assert tracking.id_map[measurement_ids[0]] == "real-meas-2"
 
 
 @pytest.mark.asyncio
