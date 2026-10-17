@@ -23,6 +23,15 @@ class SiftReportLifecycleWarning(SiftWarning):
     """Warning for test-results updates that are out of the intended lifecycle order."""
 
 
+class SiftReplayReconciledWarning(SiftWarning):
+    """A test-results upload recovered from an ambiguous retry.
+
+    Issued once per run, after a batch measurement create failed with an
+    unknown outcome and the retry found some or all of the batch already on
+    the server.
+    """
+
+
 class SiftCredentialsError(ValueError):
     """Raised when Sift credentials cannot be resolved.
 

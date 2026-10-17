@@ -54,6 +54,7 @@ import json
 import logging
 import os
 import re
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Generator
@@ -92,13 +93,13 @@ class LogTracking:
     file itself is append-only and stores only API-call data lines.
 
     * ``last_uploaded_line`` is the count of data lines that have been
-      successfully replayed against the server, in log order. Each data line
-      corresponds to a single API call, so line granularity matches the atomic
-      unit of work: a line is either fully replayed or must be retried in its
-      entirety. Data lines are strictly append-only, so this counter is stable
-      across runs. A batch upload creates in collapsed order rather than log
-      order and so leaves it at zero; ``complete`` is what marks that upload
-      finished.
+      successfully replayed against the server, in log order. A line is either
+      fully replayed or must be retried in its entirety. Most lines are one API
+      call, and a run of consecutive measurement lines is one batch call, so the
+      counter advances by the whole run once that call returns. Data lines are
+      strictly append-only, so this counter is stable across runs. A batch upload
+      creates in collapsed order rather than log order and so leaves it at zero;
+      ``complete`` is what marks that upload finished.
     * ``id_map`` maps simulated response IDs (created during the original test
       run) to the real IDs assigned by the server during replay. Subsequent
       ``Update*`` entries consult this map to translate IDs, and a resumed
@@ -125,6 +126,15 @@ class LogTracking:
         """Return where a sidecar is kept when an upload is restarted (``<log>.tracking.bak``)."""
         sidecar = LogTracking.sidecar_path(log_path)
         return sidecar.with_name(sidecar.name + ".bak")
+
+    @staticmethod
+    def stop_path(log_path: str | Path) -> Path:
+        """Return the file that asks the replay worker to stop (``<log>.stop``).
+
+        Used where the worker cannot be signalled gracefully, which is Windows.
+        """
+        p = Path(log_path)
+        return p.with_name(p.name + ".stop")
 
     @staticmethod
     def archive(log_path: str | Path) -> Path | None:
@@ -207,6 +217,28 @@ class ReplayResult:
     report: TestReport | None = None
     steps: list[TestStep] = field(default_factory=list)
     measurements: list[TestMeasurement] = field(default_factory=list)
+    reconciled_count: int = 0
+    """How many measurements were matched on the server instead of recreated.
+
+    Nonzero only after a batch create failed with an unknown outcome (see
+    ``_create_measurement_batch_reconciling``) and the server already had some
+    or all of the batch.
+    """
+
+
+# Set by the replay worker's SIGTERM handler; the incremental importer checks it
+# between requests. Only the dedicated worker process ever sets it.
+_replay_stop = threading.Event()
+
+
+def request_replay_stop() -> None:
+    """Ask the incremental importer to stop after the request in flight."""
+    _replay_stop.set()
+
+
+def replay_stop_requested(log_path: str | Path) -> bool:
+    """True once a stop was requested by signal or by the log's stop file."""
+    return _replay_stop.is_set() or LogTracking.stop_path(log_path).exists()
 
 
 async def log_request_to_file(

@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 import warnings
+from collections import defaultdict
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, NamedTuple, TypeVar, cast
 
@@ -49,10 +50,11 @@ from sift_client._internal.low_level_wrappers._test_results_log import (
     _ReplayState,
     log_request_to_file,
     parse_log_data_lines,
+    replay_stop_requested,
 )
 from sift_client._internal.low_level_wrappers.base import DEFAULT_PAGE_SIZE, LowLevelClientBase
 from sift_client._internal.pytest_plugin.audit_log import log_event
-from sift_client._internal.util.util import caller_stacklevel
+from sift_client._internal.util.util import caller_stacklevel, chunked
 from sift_client.errors import SiftIgnoredInputWarning
 from sift_client.sift_types.test_report import (
     TestMeasurement,
@@ -66,6 +68,7 @@ from sift_client.sift_types.test_report import (
     TestStepUpdate,
 )
 from sift_client.transport import WithGrpcClient
+from sift_client.util.cel_utils import and_, in_
 
 if TYPE_CHECKING:
     from sift_client.transport.grpc_transport import GrpcClient
@@ -82,6 +85,61 @@ _EntityT = TypeVar("_EntityT", TestReport, TestStep, TestMeasurement)
 # handler filters per measurement instead.
 _WHOLE_ENTRY_CREATES = frozenset({"CreateTestReport", "CreateTestStep", "CreateTestMeasurement"})
 
+# Measurements per CreateTestMeasurements request. One measurement with a full
+# description and metadata is about 2.5KB, so 100 stays well under the 4MB gRPC
+# message limit. It is also the flush threshold for a run of measurement log
+# lines and the most progress a crash can cost, since the sidecar is written
+# once per request.
+_MEASUREMENT_CREATE_BATCH_SIZE = 100
+
+# Status codes where the request may never have arrived or may have been
+# committed with only the response lost. Any other code is a definite rejection.
+_AMBIGUOUS_STATUS_CODES = frozenset(
+    {StatusCode.UNAVAILABLE, StatusCode.DEADLINE_EXCEEDED, StatusCode.CANCELLED, StatusCode.UNKNOWN}
+)
+
+
+def _rpc_code(exc: RpcError) -> StatusCode | None:
+    """Status code of *exc*, or None when it has none.
+
+    RpcError itself carries no status; only the Call subclasses the channel
+    raises do, and the async ones are not ``grpc.Call``.
+    """
+    return getattr(exc, "code", lambda: None)()
+
+
+def _is_ambiguous_grpc_failure(exc: Exception) -> bool:
+    """True when *exc* is an RpcError whose status is in ``_AMBIGUOUS_STATUS_CODES``.
+
+    Any other exception, such as a local ``TypeError``, is not ambiguous.
+    """
+    return isinstance(exc, RpcError) and _rpc_code(exc) in _AMBIGUOUS_STATUS_CODES
+
+
+def _measurement_match_key(measurement: TestMeasurement) -> tuple[Any, ...]:
+    """Every field a client sets on a measurement, for reconciliation matching.
+
+    Both sides go through ``TestMeasurement._from_proto`` so they normalize the
+    same way. Server-assigned fields (ID, report ID) are left out.
+    """
+    bounds = measurement.numeric_bounds
+    return (
+        measurement.test_step_id,
+        measurement.name,
+        measurement.measurement_type,
+        measurement.timestamp,
+        measurement.numeric_value,
+        measurement.string_value,
+        measurement.boolean_value,
+        measurement.unit,
+        (bounds.min, bounds.max) if bounds else None,
+        measurement.string_expected_value,
+        measurement.passed,
+        measurement.description,
+        tuple(measurement.channel_names or ()),
+        tuple(sorted((measurement.metadata or {}).items())),
+    )
+
 
 class _EntryIds(NamedTuple):
     """The entity a replayed log entry acted on, for the audit trace.
@@ -94,11 +152,15 @@ class _EntryIds(NamedTuple):
 
     ``skipped`` marks an entry a resume found already on the server, so the
     audit trail distinguishes what this run sent from what it inherited.
+
+    ``reconciled`` counts measurements this entry matched on the server instead
+    of recreating; see ``_create_measurement_batch_reconciling``.
     """
 
     sim_id: str | None = None
     real_id: str | None = None
     skipped: bool = False
+    reconciled: int = 0
 
 
 class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
@@ -860,6 +922,128 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = cast("CreateTestMeasurementsResponse", response)
         return response.measurements_created_count, list(response.measurement_ids)
 
+    async def _create_measurement_batch(
+        self, protos: list[TestMeasurementProto]
+    ) -> list[TestMeasurement]:
+        """Create measurements in one batch call, returned in request order.
+
+        The response carries only IDs, so each entity is rebuilt from the proto
+        that was sent. Fields the server normalizes hold the values as sent.
+
+        Raises:
+            RuntimeError: If the response has a different number of IDs than
+                measurements sent.
+        """
+        _, real_ids = await self.create_test_measurements(
+            request=CreateTestMeasurementsRequest(test_measurements=protos)
+        )
+        if len(real_ids) != len(protos):
+            raise RuntimeError(
+                f"CreateTestMeasurements returned {len(real_ids)} IDs for "
+                f"{len(protos)} measurements; cannot match IDs to measurements."
+            )
+        created: list[TestMeasurement] = []
+        for proto, real_id in zip(protos, real_ids):
+            proto.measurement_id = real_id
+            created.append(TestMeasurement._from_proto(proto))
+        return created
+
+    async def _reconcile_measurement_batch(
+        self, protos: list[TestMeasurementProto], claimed_ids: set[str]
+    ) -> list[TestMeasurement | None]:
+        """Match a batch's measurements against what the server already has.
+
+        The key is every client-set field (see ``_measurement_match_key``).
+        Server rows in ``claimed_ids`` already belong to an earlier create and
+        never match, so a legal repeat of an earlier measurement is recreated
+        instead of adopting that row. Each remaining row matches at most one
+        proto. Rows that share a key are identical in every field the client
+        set, so which proto takes which row does not matter. Best effort: a
+        field the server stores differently from what was sent does not match.
+
+        Returns one slot per input proto, in order; ``None`` where nothing on
+        the server matched.
+        """
+        step_ids = sorted({proto.test_step_id for proto in protos})
+        names = sorted({proto.name for proto in protos})
+        existing = await self.list_all_test_measurements(
+            query_filter=and_(in_("test_step_id", step_ids), in_("name", names))
+        )
+
+        candidates: defaultdict[tuple[Any, ...], list[TestMeasurement]] = defaultdict(list)
+        for measurement in existing:
+            if measurement._id_or_error in claimed_ids:
+                continue
+            candidates[_measurement_match_key(measurement)].append(measurement)
+
+        matches: list[TestMeasurement | None] = []
+        for proto in protos:
+            key = _measurement_match_key(TestMeasurement._from_proto(proto))
+            bucket = candidates.get(key)  # get, so a miss does not insert an empty list
+            matches.append(bucket.pop(0) if bucket else None)
+        return matches
+
+    async def _create_measurement_batch_reconciling(
+        self, protos: list[TestMeasurementProto], claimed_ids: set[str]
+    ) -> tuple[list[TestMeasurement], int]:
+        """Create a batch, reconciling against the server if the outcome is unknown.
+
+        ``CreateTestMeasurements`` is not idempotent. After an ambiguous failure
+        (see ``_is_ambiguous_grpc_failure``), this matches the batch against the
+        server (see ``_reconcile_measurement_batch``) and recreates only what is
+        missing. ``claimed_ids`` holds the real IDs of measurements created
+        before this batch, which reconciliation must not adopt. Any other
+        exception, and any failure of the reconciliation query or the recreate,
+        propagates.
+
+        Returns the measurements in input order, plus how many were matched on
+        the server instead of recreated.
+        """
+        try:
+            return await self._create_measurement_batch(protos), 0
+        except Exception as exc:
+            if not _is_ambiguous_grpc_failure(exc):
+                raise
+            matches = await self._reconcile_measurement_batch(protos, claimed_ids)
+            missing = [proto for proto, match in zip(protos, matches) if match is None]
+            reconciled = len(protos) - len(missing)
+            log_event(
+                logger,
+                logging.WARNING,
+                "replay.reconciled",
+                total=len(protos),
+                reconciled=reconciled,
+                missing=len(missing),
+                error=repr(exc),
+            )
+            if not missing:
+                return cast("list[TestMeasurement]", matches), reconciled
+            recreated = iter(await self._create_measurement_batch(missing))
+            created = [match if match is not None else next(recreated) for match in matches]
+            return created, reconciled
+
+    async def _create_measurements_in_batches(
+        self, protos: list[TestMeasurementProto], claimed_ids: set[str]
+    ) -> tuple[list[TestMeasurement], int]:
+        """Create measurements in chunks of ``_MEASUREMENT_CREATE_BATCH_SIZE``.
+
+        Each chunk also treats the IDs of earlier chunks as claimed.
+
+        Returns the created measurements plus how many were reconciled rather
+        than recreated; see ``_create_measurement_batch_reconciling``.
+        """
+        claimed = set(claimed_ids)
+        created: list[TestMeasurement] = []
+        reconciled_count = 0
+        for chunk in chunked(protos, _MEASUREMENT_CREATE_BATCH_SIZE):
+            chunk_created, chunk_reconciled = await self._create_measurement_batch_reconciling(
+                chunk, claimed
+            )
+            claimed.update(m._id_or_error for m in chunk_created)
+            created.extend(chunk_created)
+            reconciled_count += chunk_reconciled
+        return created, reconciled_count
+
     async def list_test_measurements(
         self,
         *,
@@ -1098,10 +1282,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         try:
             return await self.get_test_report(real_report_id)
         except RpcError as exc:
-            # RpcError itself carries no status; only the Call subclasses the
-            # channel actually raises do, and the async ones are not grpc.Call.
-            code = getattr(exc, "code", lambda: None)()
-            if code != StatusCode.NOT_FOUND:
+            if _rpc_code(exc) != StatusCode.NOT_FOUND:
                 raise
             raise ValueError(
                 f"Test report {real_report_id}, from the interrupted upload recorded in "
@@ -1220,6 +1401,44 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         state.measurements_order.append(measurement._id_or_error)
         return _EntryIds(response_id, measurement._id_or_error)
 
+    async def _replay_create_measurement_group(
+        self,
+        pairs: list[tuple[str | None, TestMeasurementProto]],
+        *,
+        id_map: dict[str, str],
+        state: _ReplayState,
+    ) -> tuple[list[str], int]:
+        """Create a group of logged measurements, recording what each one became.
+
+        ``pairs`` holds the logged response ID, where the line carried one,
+        against the measurement proto to send. An entry whose logged ID is already
+        in the sidecar map reached the server on an earlier attempt and is not
+        created again.
+
+        Returns the real IDs created, in the order they were sent, plus how many
+        were reconciled rather than recreated (see
+        ``_create_measurement_batch_reconciling``).
+        """
+        pending = [
+            (logged_id, tm) for logged_id, tm in pairs if not (logged_id and logged_id in id_map)
+        ]
+        if not pending:
+            return [], 0
+        created, reconciled_count = await self._create_measurements_in_batches(
+            [tm for _, tm in pending],
+            claimed_ids=set(id_map.values()) | set(state.measurements_by_id),
+        )
+
+        real_ids: list[str] = []
+        for (logged_id, _), measurement in zip(pending, created):
+            real_id = measurement._id_or_error
+            if logged_id:
+                id_map[logged_id] = real_id
+            state.measurements_by_id[real_id] = measurement
+            state.measurements_order.append(real_id)
+            real_ids.append(real_id)
+        return real_ids, reconciled_count
+
     async def _replay_create_measurements(
         self,
         json_str: str,
@@ -1234,8 +1453,8 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         for tm in request.test_measurements:
             tm.test_step_id = self._map_id(id_map, tm.test_step_id)
         original_ids = response_id.split(",") if response_id else []
-        created_ids: list[str] = []
         if simulate:
+            created_ids: list[str] = []
             # Batch endpoint has no simulate path; fan out to per-measurement simulate calls.
             for i, tm_proto in enumerate(request.test_measurements):
                 single_req = CreateTestMeasurementRequest(test_measurement=tm_proto)
@@ -1245,32 +1464,25 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 state.measurements_by_id[meas._id_or_error] = meas
                 state.measurements_order.append(meas._id_or_error)
                 created_ids.append(meas._id_or_error)
+            reconciled_count = 0
         else:
-            # Batch replay creates measurements one at a time, so an interrupted
-            # run can leave part of a batch line already on the server. Re-sending
-            # the whole line would duplicate those, so send only what is missing.
-            pending: list[tuple[str | None, TestMeasurementProto]] = []
-            for i, tm in enumerate(request.test_measurements):
-                logged_id = original_ids[i] if i < len(original_ids) else None
-                if logged_id and logged_id in id_map:
-                    continue
-                pending.append((logged_id, tm))
-            real_ids: list[str] = []
-            if pending:
-                _, real_ids = await self.create_test_measurements(
-                    request=CreateTestMeasurementsRequest(
-                        test_measurements=[tm for _, tm in pending]
-                    )
-                )
-            for (logged_id, _), real_id in zip(pending, real_ids):
-                if logged_id:
-                    id_map[logged_id] = real_id
-                created_ids.append(real_id)
+            pairs = [
+                (original_ids[i] if i < len(original_ids) else None, tm)
+                for i, tm in enumerate(request.test_measurements)
+            ]
+            created_ids, reconciled_count = await self._replay_create_measurement_group(
+                pairs, id_map=id_map, state=state
+            )
         # Batch line covers many measurements; comma-join both sides so the
         # audit row still names every entity (fields are space-free, so commas
         # keep it one token). A resume that found the whole line already on the
         # server creates nothing, which is what marks the entry skipped.
-        return _EntryIds(response_id, ",".join(created_ids) or None, skipped=not created_ids)
+        return _EntryIds(
+            response_id,
+            ",".join(created_ids) or None,
+            skipped=not created_ids,
+            reconciled=reconciled_count,
+        )
 
     async def _replay_update_report(
         self,
@@ -1393,19 +1605,23 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         logged_by_simulated = {simulated: logged for logged, simulated in id_map.items()}
         real_id_map: dict[str, str] = {}
 
-        def record_created(simulated_id: str, real_id: str) -> None:
+        def record_created(simulated_id: str, real_id: str, *, save: bool = True) -> None:
             """Note a real entity against both the in-run map and the sidecar.
 
             The sidecar is saved per entity so an upload interrupted at any point
             is resumable. That is one small atomic rewrite per created entity;
             the incremental path already pays the same cost per log line.
+
+            ``save=False`` records the entity without writing, for a caller that
+            creates a batch in one call and writes once for the whole batch.
             """
             real_id_map[simulated_id] = real_id
             logged_id = logged_by_simulated.get(simulated_id)
             if not logged_id:
                 return
             tracking.id_map[logged_id] = real_id
-            tracking.save(log_path)
+            if save:
+                tracking.save(log_path)
 
         real_report = await self._create_report_from_simulated(state.report)
         real_report_id = real_report._id_or_error
@@ -1431,18 +1647,30 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             real_steps.append(real_step)
             record_created(sim_step_id, real_step._id_or_error)
 
+        # The sidecar is written once per chunk, so a crash loses at most one
+        # request's IDs and the resume recreates those measurements.
         real_measurements: list[TestMeasurement] = []
-        for sim_measurement_id in state.measurements_order:
-            sim_measurement = state.measurements_by_id[sim_measurement_id]
-            real_step_id = real_id_map.get(
-                sim_measurement.test_step_id, sim_measurement.test_step_id
+        reconciled_count = 0
+        for chunk_ids in chunked(state.measurements_order, _MEASUREMENT_CREATE_BATCH_SIZE):
+            protos = []
+            for sim_measurement_id in chunk_ids:
+                sim_measurement = state.measurements_by_id[sim_measurement_id]
+                real_step_id = real_id_map.get(
+                    sim_measurement.test_step_id, sim_measurement.test_step_id
+                )
+                measurement_create = self._measurement_create_from_simulated(
+                    sim_measurement, real_step_id
+                )
+                protos.append(measurement_create.to_proto())
+            created, chunk_reconciled = await self._create_measurement_batch_reconciling(
+                protos,
+                claimed_ids=set(real_id_map.values()) | set(tracking.id_map.values()),
             )
-            measurement_create = self._measurement_create_from_simulated(
-                sim_measurement, real_step_id
-            )
-            real_measurement = await self.create_test_measurement(measurement_create)
-            real_measurements.append(real_measurement)
-            record_created(sim_measurement_id, real_measurement._id_or_error)
+            real_measurements.extend(created)
+            reconciled_count += chunk_reconciled
+            for sim_measurement_id, real_measurement in zip(chunk_ids, created):
+                record_created(sim_measurement_id, real_measurement._id_or_error, save=False)
+            tracking.save(log_path)
 
         # Everything in the log reached the server. The cursor stays at zero
         # because batch created in collapsed order, not log order; the flag is
@@ -1454,6 +1682,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             report=real_report,
             steps=real_steps,
             measurements=real_measurements,
+            reconciled_count=reconciled_count,
         )
 
     # ------------------------------------------------------------------
@@ -1470,10 +1699,10 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         Resumes from ``LogTracking.last_uploaded_line`` (loaded from the
         ``<log>.tracking`` sidecar) so already-uploaded entries are skipped on
-        subsequent ticks rather than re-sent to the server. Each data line is a
-        single atomic API call; if replay of a line fails,
-        ``last_uploaded_line`` is not advanced so the whole line is retried
-        next tick.
+        subsequent ticks rather than re-sent to the server. Most data lines are a
+        single atomic API call, and a run of consecutive measurement lines is one
+        batch call covering the run. If a call fails, ``last_uploaded_line`` is
+        not advanced, so every line it covered is retried next tick.
 
         A batch upload records what it created but keeps its cursor at zero,
         since it creates in collapsed order rather than log order. Finishing one
@@ -1497,9 +1726,86 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         state = _ReplayState()
 
         raw_lines = await _read_log_lines(log_path)
+
+        def stop_requested() -> bool:
+            # Only the live worker follows a stop request. A resume of a final
+            # log must walk to the end, or it would mark unsent data complete.
+            return not resuming and replay_stop_requested(log_path)
+
+        # A run of consecutive single-measurement lines collects here and is sent
+        # as one batch call.
+        buffered_measurements: list[tuple[str | None, TestMeasurementProto]] = []
+        reconciled_count = 0
+
+        async def flush_measurements() -> None:
+            """Send the buffered run as one group and move the cursor past it.
+
+            The cursor advances only after the call returns, so a failure leaves
+            every line of the run to be retried next tick.
+            """
+            nonlocal reconciled_count
+            if not buffered_measurements:
+                return
+            first_line = tracking.last_uploaded_line + 1
+            try:
+                real_ids, batch_reconciled = await self._replay_create_measurement_group(
+                    buffered_measurements, id_map=id_map, state=state
+                )
+            except Exception as exc:
+                log_event(
+                    logger,
+                    logging.WARNING,
+                    "replay.error",
+                    line=first_line,
+                    lines=len(buffered_measurements),
+                    type="CreateTestMeasurement",
+                    error=repr(exc),
+                )
+                raise
+            reconciled_count += batch_reconciled
+
+            tracking.last_uploaded_line += len(buffered_measurements)
+            tracking.save(log_path)
+            # One row per run rather than per line. ``line`` stays the cursor, as
+            # on every other row, and ``first_line`` names where the run started
+            # so a reader can attribute the whole span.
+            log_event(
+                logger,
+                logging.DEBUG,
+                "replay.upload",
+                type="CreateTestMeasurement",
+                line=tracking.last_uploaded_line,
+                first_line=first_line,
+                count=len(buffered_measurements),
+                sim_id=",".join(sid for sid, _ in buffered_measurements if sid) or "-",
+                real_id=",".join(real_ids) or "-",
+                skipped="yes" if not real_ids else "no",
+                idmap=len(id_map),
+            )
+            buffered_measurements.clear()
+
         for request_type, response_id, json_str in parse_log_data_lines(
             raw_lines, start_line=tracking.last_uploaded_line
         ):
+            if stop_requested():
+                break
+            if request_type == "CreateTestMeasurement":
+                # The step ID is resolvable now because a CreateTestStep line
+                # flushes the buffer before it is imported, so every step a
+                # buffered measurement can name is already in the ID map.
+                buffered_request = CreateTestMeasurementRequest()
+                json_format.Parse(json_str, buffered_request)
+                buffered_request.test_measurement.test_step_id = self._map_id(
+                    id_map, buffered_request.test_measurement.test_step_id
+                )
+                buffered_measurements.append((response_id, buffered_request.test_measurement))
+                if len(buffered_measurements) >= _MEASUREMENT_CREATE_BATCH_SIZE:
+                    await flush_measurements()
+                continue
+            # The cursor is a line count, so lines must reach the server in log
+            # order. Flush the run before the line that ended it.
+            await flush_measurements()
+
             line_number = tracking.last_uploaded_line + 1
             try:
                 entry_ids = await self._import_entry(
@@ -1525,6 +1831,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
             tracking.last_uploaded_line += 1
             tracking.save(log_path)
+            reconciled_count += entry_ids.reconciled
             # One line per replayed entity: what was sent, the sim->real id of
             # the entity it acted on (the new entity for a create, the target
             # for an update), whether a resume found it already on the server,
@@ -1542,10 +1849,17 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 idmap=len(id_map),
             )
 
+        # A stop leaves any buffered run unsent; the cursor has not moved past it,
+        # so the next run resends it. Otherwise a log ending in measurement lines
+        # leaves a run buffered.
+        stopped = stop_requested()
+        if not stopped:
+            await flush_measurements()
+
         # On a resume tick the CreateTestReport line was consumed on an earlier
         # tick, so state.report is expected to be None; the report already exists
         # on the server. Only a genuine first pass over an empty log is an error.
-        if state.report is None and not report_already_created:
+        if state.report is None and not report_already_created and not stopped:
             raise ValueError("No CreateTestReport found in log file")
 
         if resuming:
@@ -1558,6 +1872,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             report=state.report,
             steps=[state.steps_by_id[sid] for sid in state.steps_order],
             measurements=[state.measurements_by_id[mid] for mid in state.measurements_order],
+            reconciled_count=reconciled_count,
         )
 
     # ------------------------------------------------------------------
