@@ -6117,7 +6117,7 @@ artifact was fetched with a pinned version.</p>
 
     <div class="doc doc-contents ">
 
-        <p>None for an artifact the client does not model, such as a JSON payload.</p>
+        <p>None for a storage class the client does not model.</p>
 
     </div>
 
@@ -6952,6 +6952,12 @@ was produced from.</p>
             </li>
         </ul>
 
+        <p>Validators:</p>
+        <ul>
+            <li>
+              <code><span title="sift_client.sift_types.artifact.ArtifactCreate._default_created_via">_default_created_via</span></code>
+            </li>
+        </ul>
 
 
 
@@ -6981,7 +6987,7 @@ was produced from.</p>
 
     <div class="doc doc-contents ">
 
-        <p>The surface that wrote the artifact. <code>ArtifactsAPI.create</code> sends <code>UPLOAD</code> when unset.</p>
+        <p>The surface that wrote the artifact. Defaults to <code>UPLOAD</code>.</p>
 
     </div>
 
