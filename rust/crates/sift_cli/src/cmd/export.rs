@@ -3,7 +3,7 @@ use std::{
     fs::{File, remove_file},
     io::{self, Write},
     path::PathBuf,
-    process::{Command, ExitCode, Stdio},
+    process::ExitCode,
     time::Duration,
 };
 
@@ -33,9 +33,10 @@ use crate::{
         api::create_grpc_channel,
         calculated_channel::{ResolveScope, resolve_calculated_channels},
         channel::resolve_channel_ids,
+        explore_url::{build_jobs_url, explore_or_note},
         job::JobServiceWrapper,
         progress::Spinner,
-        tty::Output,
+        tty::{Output, hyperlink, link_style, stdout_is_tty},
     },
 };
 
@@ -43,10 +44,6 @@ use super::Context;
 
 pub async fn run(ctx: Context, args: ExportRunArgs) -> Result<ExitCode> {
     let grpc_channel = create_grpc_channel(&ctx)?;
-
-    if let Some(job_id) = resume_job_id() {
-        return download_export(grpc_channel, job_id, args.common.output).await;
-    }
 
     let mut run_service = RunServiceClient::new(grpc_channel.clone());
 
@@ -153,6 +150,7 @@ pub async fn run(ctx: Context, args: ExportRunArgs) -> Result<ExitCode> {
         export_req,
         args.common.output,
         args.common.no_wait,
+        ctx.app_uri.as_deref(),
     )
     .await
 }
@@ -181,10 +179,6 @@ pub async fn asset(ctx: Context, args: ExportAssetArgs) -> Result<ExitCode> {
         .ok_or_else(|| anyhow!("missing required argument `{}`", "--stop".yellow()))?;
 
     let grpc_channel = create_grpc_channel(&ctx)?;
-
-    if let Some(job_id) = resume_job_id() {
-        return download_export(grpc_channel, job_id, args.common.output).await;
-    }
 
     let mut asset_service = AssetServiceClient::new(grpc_channel.clone());
 
@@ -242,16 +236,9 @@ pub async fn asset(ctx: Context, args: ExportAssetArgs) -> Result<ExitCode> {
         export_req,
         args.common.output,
         args.common.no_wait,
+        ctx.app_uri.as_deref(),
     )
     .await
-}
-
-const RESUME_JOB_ID_ENV: &str = "SIFT_CLI_EXPORT_RESUME_JOB_ID";
-
-fn resume_job_id() -> Option<String> {
-    std::env::var(RESUME_JOB_ID_ENV)
-        .ok()
-        .filter(|job_id| !job_id.is_empty())
 }
 
 async fn export(
@@ -259,6 +246,7 @@ async fn export(
     req: ExportDataRequest,
     output: PathBuf,
     no_wait: bool,
+    app_uri: Option<&str>,
 ) -> Result<ExitCode> {
     let mut export_service = ExportServiceClient::new(grpc_channel.clone());
     let ExportDataResponse { job_id, .. } = export_service
@@ -271,7 +259,17 @@ async fn export(
         return download_export(grpc_channel, job_id, output).await;
     }
 
-    let log_path = spawn_detached(&job_id)?;
+    let tip = match build_jobs_url(app_uri, &job_id) {
+        Some(url) => {
+            let link = if stdout_is_tty() {
+                hyperlink(&link_style(&url), &url)
+            } else {
+                url
+            };
+            format!("Track the export in Sift: {link}")
+        }
+        None => explore_or_note(None),
+    };
 
     Output::new()
         .line(format!(
@@ -279,49 +277,10 @@ async fn export(
             "Started".green(),
             job_id.as_str().cyan()
         ))
-        .tip(format!(
-            "downloading in the background to '{}'; progress is logged to '{}'",
-            output.display().to_string().cyan(),
-            log_path.display().to_string().cyan(),
-        ))
+        .tip(tip)
         .print();
 
     Ok(ExitCode::SUCCESS)
-}
-
-fn spawn_detached(job_id: &str) -> Result<PathBuf> {
-    let exe = std::env::current_exe().context("failed to locate the sift-cli binary")?;
-
-    let log_path = temp_dir().join(format!("sift-export-{job_id}.log"));
-    let log = File::create(&log_path).context("failed to create the background log file")?;
-
-    let mut cmd = Command::new(exe);
-    cmd.args(std::env::args_os().skip(1))
-        .env(RESUME_JOB_ID_ENV, job_id)
-        .stdin(Stdio::null())
-        .stdout(Stdio::from(
-            log.try_clone()
-                .context("failed to open the background log")?,
-        ))
-        .stderr(Stdio::from(log));
-
-    #[cfg(unix)]
-    {
-        use std::os::unix::process::CommandExt;
-        cmd.process_group(0);
-    }
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        const DETACHED_PROCESS: u32 = 0x0000_0008;
-        const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
-        cmd.creation_flags(DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP);
-    }
-
-    cmd.spawn()
-        .context("failed to spawn the background export process")?;
-
-    Ok(log_path)
 }
 
 async fn download_export(
