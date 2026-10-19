@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+## [v0.7.5] - October 19, 2026
+
+### What's New
+
 - Building `sift-cli` from source works again. crates.io yanked every `zip`
   release before 9.0.3, so Cargo could no longer resolve the `zip = "8.2"`
   requirement. The workspace now depends on `zip` 9 and commits its
@@ -18,6 +22,17 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - `get_data` accepts `run_id` in place of `run_name`. It is the only way to
   fetch an archived run. The result names the run in `run_id` and sets
   `run_archived` when the run is archived.
+- The artifact tools now return the artifact's Sift web link. `list_artifacts`
+  rows carry `url`, and `list_artifact_versions`, `download_artifact`,
+  `create_artifact`, `update_artifact`, `archive_artifact`, and
+  `unarchive_artifact` return `artifact_url`. `download_artifact` links the
+  requested version when `artifact_version_id` is set. Agents link the artifact
+  page instead of the Sift home page.
+- A name with a stray `[` or `]`, such as `results v2].csv`, no longer breaks
+  the Markdown link a tool tells the agent to show.
+- The Sift skill now says to present a URL a tool returns as a Markdown link
+  named for the item, the same as the tools say. It used to ask for plain
+  text, so agents got conflicting instructions.
 
 ## [v0.7.4] - October 14, 2026
 
@@ -31,17 +46,6 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   `report_template_url` link to the template, and `list_report_templates` adds a
   `url` to each template. Agents no longer link a new template to a report's
   page.
-- The artifact tools now return the artifact's Sift web link. `list_artifacts`
-  rows carry `url`, and `list_artifact_versions`, `download_artifact`,
-  `create_artifact`, `update_artifact`, `archive_artifact`, and
-  `unarchive_artifact` return `artifact_url`. `download_artifact` links the
-  requested version when `artifact_version_id` is set. Agents link the artifact
-  page instead of the Sift home page.
-- A name with a stray `[` or `]`, such as `results v2].csv`, no longer breaks
-  the Markdown link a tool tells the agent to show.
-- The Sift skill now says to present a URL a tool returns as a Markdown link
-  named for the item, the same as the tools say. It used to ask for plain
-  text, so agents got conflicting instructions.
 
 ## [v0.7.3] - October 7, 2026
 
