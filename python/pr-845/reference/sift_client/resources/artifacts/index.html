@@ -2937,10 +2937,9 @@ You're not viewing the latest version.
     <div class="doc doc-contents ">
 
         <p>List artifact versions, newest first by default.</p>
-<p>Takes the same filters as <code>ArtifactsAPI.list_</code>. They apply to each version, so they
-can match an earlier version that the latest no longer matches: the title, file,
-and links are the version's, while the IDs, creation, <code>created_via</code>, and type are
-the artifact's. <code>ArtifactVersion.is_current</code> marks each artifact's current version.</p>
+<p>Takes the same filters as <code>ArtifactsAPI.list_</code>, evaluated against each version, so a
+filter can match an earlier version that the latest no longer matches.
+<code>ArtifactVersion.is_current</code> marks each artifact's current version.</p>
 
 
 <table>
@@ -3385,10 +3384,9 @@ evaluated against each version.</p>
     <div class="doc doc-contents ">
 
         <p>Write a new latest version that copies an earlier version.</p>
-<p>The new version gets the title, summary, metadata, file, and <code>SOURCE</code> and
-<code>DERIVED_FROM</code> links of <code>version</code>. <code>ATTACHED_TO</code> links carry forward from the
-latest version. Only the artifact's creator can promote, and promoting the latest
-version fails.</p>
+<p>Copies the title, summary, metadata, file, and <code>SOURCE</code> and <code>DERIVED_FROM</code> links of
+<code>version</code>. <code>ATTACHED_TO</code> links stay as on the latest version. Only the artifact's
+creator can promote, and promoting the latest version fails.</p>
 
 
 <table>
@@ -4031,12 +4029,7 @@ they link to.</p>
 
         <p>List artifacts, each resolved to its latest version.</p>
 <p><code>runs</code> and <code>assets</code> match links of any relation. To match one relation, or other
-fields of the linked entity, use <code>filter_query</code> with a comprehension over <code>runs</code>
-(relation, run_id, name, description, client_key, start_time, stop_time), <code>assets</code>
-(relation, asset_id, name), <code>canvases</code> (relation, canvas_id, name, description),
-or <code>links</code> (relation, entity_type, entity_id). For example, artifacts produced
-from a run whose name contains "thermal":
-<code>runs.exists(r, r.relation == "SOURCE" &amp;&amp; r.name.contains("thermal"))</code>.</p>
+fields of the linked entity, use <code>filter_query</code>.</p>
 
 
 <table>
@@ -4313,7 +4306,11 @@ from a run whose name contains "thermal":
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Explicit CEL query to filter artifacts.</p>
+                <p>Explicit CEL query to filter artifacts. Links filter with a
+comprehension over <code>runs</code> (relation, run_id, name, description, client_key,
+start_time, stop_time), <code>assets</code> (relation, asset_id, name), <code>canvases</code>
+(relation, canvas_id, name, description), or <code>links</code> (relation,
+entity_type, entity_id).</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -4421,6 +4418,15 @@ from a run whose name contains "thermal":
       </tbody>
     </table>
 
+
+<details class="example" open>
+  <summary>Example</summary>
+  <p>Artifacts produced from a run whose name contains "thermal":</p>
+<div class="language-text highlight"><pre><span></span><code>client.artifacts.list_(
+    filter_query=&#39;runs.exists(r, r.relation == &quot;SOURCE&quot; &amp;&amp; r.name.contains(&quot;thermal&quot;))&#39;
+)
+</code></pre></div>
+</details>
 
     </div>
 
@@ -4703,12 +4709,9 @@ upload uses the file's own name.</p>
     <div class="doc doc-contents ">
 
         <p>Write a new version of an artifact.</p>
-<p>Fields the update leaves unset are copied from the latest version. <code>ATTACHED_TO</code>
-links carry forward, and <code>links</code> in the update are added to them.</p>
-<p>Without <code>file</code>, the new version keeps the latest version's bytes, and the
-<code>SOURCE</code> and <code>DERIVED_FROM</code> links carry forward with them. With <code>file</code>, the new
-version gets new bytes, and its only <code>SOURCE</code> and <code>DERIVED_FROM</code> links are the
-ones in <code>update.links</code>.</p>
+<p><code>ArtifactUpdate</code> says how each field carries forward. With <code>file</code>, the new version
+gets new bytes, and its only <code>SOURCE</code> and <code>DERIVED_FROM</code> links are the ones in
+<code>update.links</code>.</p>
 
 
 <table>
