@@ -253,9 +253,8 @@ pub struct ExportArgs {
     #[arg(long)]
     pub channel_id: Vec<String>,
 
-    /// Return immediately instead of blocking until the export finishes. The
-    /// file still downloads to --output from a detached background process,
-    /// which logs its progress to a file whose path is printed on exit.
+    /// Print the export job ID and a link to track it in Sift, then exit without
+    /// downloading. Nothing is written to --output
     #[arg(long)]
     pub no_wait: bool,
 
