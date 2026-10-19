@@ -21493,7 +21493,7 @@ they link to.</p>
    (sift_client.sift_types.asset.Asset)" href="../sift_types/asset/#sift_client.sift_types.asset.Asset">Asset</a></span><span class="p">]</span> <span class="o">|</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">file_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">created_via</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ArtifactCreatedVia (sift_client.sift_types.artifact.ArtifactCreatedVia)" href="../sift_types/artifact/#sift_client.sift_types.artifact.ArtifactCreatedVia">ArtifactCreatedVia</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">storage_class</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ArtifactStorageClass (sift_client.sift_types.artifact.ArtifactStorageClass)" href="../sift_types/artifact/#sift_client.sift_types.artifact.ArtifactStorageClass">ArtifactStorageClass</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">artifact_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ArtifactType (sift_client.sift_types.artifact.ArtifactType)" href="../sift_types/artifact/#sift_client.sift_types.artifact.ArtifactType">ArtifactType</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">include_archived</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 </span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">filter_query</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">order_by</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -21749,16 +21749,16 @@ from a run whose name contains "thermal":
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>storage_class</code>
+                <code>artifact_type</code>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Filter to artifacts with this storage class.</p>
+                <p>Filter to artifacts of this type.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-internal" title="            ArtifactStorageClass (sift_client.sift_types.artifact.ArtifactStorageClass)" href="../sift_types/artifact/#sift_client.sift_types.artifact.ArtifactStorageClass">ArtifactStorageClass</a> | None</code>
+                      <code><a class="autorefs autorefs-internal" title="            ArtifactType (sift_client.sift_types.artifact.ArtifactType)" href="../sift_types/artifact/#sift_client.sift_types.artifact.ArtifactType">ArtifactType</a> | None</code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
@@ -22792,7 +22792,7 @@ artifact ID (uses the latest version).</p>
    (sift_client.resources.ArtifactVersionsAPIAsync.promote)" href="#sift_client.resources.ArtifactVersionsAPIAsync.promote">promote</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Make an earlier version's content the artifact's latest version.</p>
+                  <p>Write a new latest version that copies an earlier version.</p>
                 </div>
               </td>
             </tr>
@@ -23192,8 +23192,8 @@ evaluated against each version.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Make an earlier version's content the artifact's latest version.</p>
-<p>Writes a new version with the title, summary, metadata, file, and <code>SOURCE</code> and
+        <p>Write a new latest version that copies an earlier version.</p>
+<p>The new version gets the title, summary, metadata, file, and <code>SOURCE</code> and
 <code>DERIVED_FROM</code> links of <code>version</code>. <code>ATTACHED_TO</code> links carry forward from the
 latest version. Only the artifact's creator can promote, and promoting the latest
 version fails.</p>
@@ -67347,7 +67347,7 @@ artifact ID (uses the latest version).</p>
    (sift_client.sift_types.asset.Asset)" href="../sift_types/asset/#sift_client.sift_types.asset.Asset">Asset</a></span><span class="p">]</span> <span class="o">|</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">file_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">created_via</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ArtifactCreatedVia (sift_client.sift_types.artifact.ArtifactCreatedVia)" href="../sift_types/artifact/#sift_client.sift_types.artifact.ArtifactCreatedVia">ArtifactCreatedVia</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">storage_class</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ArtifactStorageClass (sift_client.sift_types.artifact.ArtifactStorageClass)" href="../sift_types/artifact/#sift_client.sift_types.artifact.ArtifactStorageClass">ArtifactStorageClass</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">artifact_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ArtifactType (sift_client.sift_types.artifact.ArtifactType)" href="../sift_types/artifact/#sift_client.sift_types.artifact.ArtifactType">ArtifactType</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">include_archived</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 </span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">filter_query</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">order_by</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -67603,16 +67603,16 @@ from a run whose name contains "thermal":
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>storage_class</code>
+                <code>artifact_type</code>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Filter to artifacts with this storage class.</p>
+                <p>Filter to artifacts of this type.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-internal" title="            ArtifactStorageClass (sift_client.sift_types.artifact.ArtifactStorageClass)" href="../sift_types/artifact/#sift_client.sift_types.artifact.ArtifactStorageClass">ArtifactStorageClass</a> | None</code>
+                      <code><a class="autorefs autorefs-internal" title="            ArtifactType (sift_client.sift_types.artifact.ArtifactType)" href="../sift_types/artifact/#sift_client.sift_types.artifact.ArtifactType">ArtifactType</a> | None</code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
@@ -68112,7 +68112,7 @@ file's own name.</p>
               <td><code><a class="autorefs autorefs-internal" title="            promote (sift_client.resources.ArtifactVersionsAPI.promote)" href="#sift_client.resources.ArtifactVersionsAPI.promote">promote</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Make an earlier version's content the artifact's latest version.</p>
+                  <p>Write a new latest version that copies an earlier version.</p>
                 </div>
               </td>
             </tr>
@@ -68369,8 +68369,8 @@ evaluated against each version.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Make an earlier version's content the artifact's latest version.</p>
-<p>Writes a new version with the title, summary, metadata, file, and <code>SOURCE</code> and
+        <p>Write a new latest version that copies an earlier version.</p>
+<p>The new version gets the title, summary, metadata, file, and <code>SOURCE</code> and
 <code>DERIVED_FROM</code> links of <code>version</code>. <code>ATTACHED_TO</code> links carry forward from the
 latest version. Only the artifact's creator can promote, and promoting the latest
 version fails.</p>
