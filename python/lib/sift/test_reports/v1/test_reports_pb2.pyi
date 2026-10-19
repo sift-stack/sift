@@ -120,6 +120,7 @@ class TestReport(google.protobuf.message.Message):
     ARCHIVED_DATE_FIELD_NUMBER: builtins.int
     IS_ARCHIVED_FIELD_NUMBER: builtins.int
     RUN_ID_FIELD_NUMBER: builtins.int
+    OVERALL_MODIFIED_DATE_FIELD_NUMBER: builtins.int
     test_report_id: builtins.str
     """Unique identifier for the run"""
     status: global___TestStatus.ValueType
@@ -156,6 +157,12 @@ class TestReport(google.protobuf.message.Message):
     def archived_date(self) -> google.protobuf.timestamp_pb2.Timestamp:
         """The date and time the test run was archived (internal)"""
 
+    @property
+    def overall_modified_date(self) -> google.protobuf.timestamp_pb2.Timestamp:
+        """The most recent write to this report or to any of its steps or measurements.
+        Only populated when GetTestReport is called with include_overall_modified_date.
+        """
+
     def __init__(
         self,
         *,
@@ -173,9 +180,10 @@ class TestReport(google.protobuf.message.Message):
         archived_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         is_archived: builtins.bool = ...,
         run_id: builtins.str = ...,
+        overall_modified_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["archived_date", b"archived_date", "end_time", b"end_time", "start_time", b"start_time"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["archived_date", b"archived_date", "end_time", b"end_time", "is_archived", b"is_archived", "metadata", b"metadata", "name", b"name", "part_number", b"part_number", "run_id", b"run_id", "serial_number", b"serial_number", "start_time", b"start_time", "status", b"status", "system_operator", b"system_operator", "test_case", b"test_case", "test_report_id", b"test_report_id", "test_system_name", b"test_system_name"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["archived_date", b"archived_date", "end_time", b"end_time", "overall_modified_date", b"overall_modified_date", "start_time", b"start_time"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["archived_date", b"archived_date", "end_time", b"end_time", "is_archived", b"is_archived", "metadata", b"metadata", "name", b"name", "overall_modified_date", b"overall_modified_date", "part_number", b"part_number", "run_id", b"run_id", "serial_number", b"serial_number", "start_time", b"start_time", "status", b"status", "system_operator", b"system_operator", "test_case", b"test_case", "test_report_id", b"test_report_id", "test_system_name", b"test_system_name"]) -> None: ...
 
 global___TestReport = TestReport
 
@@ -514,14 +522,20 @@ class GetTestReportRequest(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     TEST_REPORT_ID_FIELD_NUMBER: builtins.int
+    INCLUDE_OVERALL_MODIFIED_DATE_FIELD_NUMBER: builtins.int
     test_report_id: builtins.str
     """The ID of the test report to get"""
+    include_overall_modified_date: builtins.bool
+    """When true, populate TestReport.overall_modified_date. This requires an aggregate over
+    the report's steps and measurements, so it is opt-in.
+    """
     def __init__(
         self,
         *,
         test_report_id: builtins.str = ...,
+        include_overall_modified_date: builtins.bool = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["test_report_id", b"test_report_id"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["include_overall_modified_date", b"include_overall_modified_date", "test_report_id", b"test_report_id"]) -> None: ...
 
 global___GetTestReportRequest = GetTestReportRequest
 
@@ -573,7 +587,8 @@ class ListTestReportsRequest(google.protobuf.message.Message):
     Available fields to filter by are `test_report_id`, `status`, `name`, `test_system_name`,
     `test_case`, `start_time`, `end_time`, `serial_number`, `created_by_user_id`, `modified_by_user_id`,
     `part_number`, `system_operator`, `run_id`, `archived_date`, and `metadata`.
-    Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
+    Metadata can be used in filters by using `metadata["<key name>"]` as the field name,
+    e.g. `metadata["station"] == "bay-3"`. The dot form `metadata.<key name>` is not supported.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     """
     order_by: builtins.str
@@ -670,6 +685,152 @@ class UpdateTestReportResponse(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["test_report", b"test_report"]) -> None: ...
 
 global___UpdateTestReportResponse = UpdateTestReportResponse
+
+@typing.final
+class BatchUpdateTestReportsRequest(google.protobuf.message.Message):
+    """Request message for BatchUpdateTestReports.
+    A maximum of 1000 reports can be updated in one call.
+    """
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    REQUESTS_FIELD_NUMBER: builtins.int
+    @property
+    def requests(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___UpdateTestReportRequest]: ...
+    def __init__(
+        self,
+        *,
+        requests: collections.abc.Iterable[global___UpdateTestReportRequest] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["requests", b"requests"]) -> None: ...
+
+global___BatchUpdateTestReportsRequest = BatchUpdateTestReportsRequest
+
+@typing.final
+class BatchUpdateTestReportFailure(google.protobuf.message.Message):
+    """One report that could not be updated in a BatchUpdateTestReports call."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    TEST_REPORT_ID_FIELD_NUMBER: builtins.int
+    MESSAGE_FIELD_NUMBER: builtins.int
+    test_report_id: builtins.str
+    message: builtins.str
+    def __init__(
+        self,
+        *,
+        test_report_id: builtins.str = ...,
+        message: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["message", b"message", "test_report_id", b"test_report_id"]) -> None: ...
+
+global___BatchUpdateTestReportFailure = BatchUpdateTestReportFailure
+
+@typing.final
+class BatchUpdateTestReportsResponse(google.protobuf.message.Message):
+    """Response message for BatchUpdateTestReports."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    TEST_REPORTS_FIELD_NUMBER: builtins.int
+    FAILURES_FIELD_NUMBER: builtins.int
+    @property
+    def test_reports(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___TestReport]:
+        """Reports that were updated."""
+
+    @property
+    def failures(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___BatchUpdateTestReportFailure]:
+        """Reports that were not updated, with the reason."""
+
+    def __init__(
+        self,
+        *,
+        test_reports: collections.abc.Iterable[global___TestReport] | None = ...,
+        failures: collections.abc.Iterable[global___BatchUpdateTestReportFailure] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["failures", b"failures", "test_reports", b"test_reports"]) -> None: ...
+
+global___BatchUpdateTestReportsResponse = BatchUpdateTestReportsResponse
+
+@typing.final
+class BatchArchiveTestReportsRequest(google.protobuf.message.Message):
+    """Request message for BatchArchiveTestReports."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    TEST_REPORT_IDS_FIELD_NUMBER: builtins.int
+    @property
+    def test_report_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    def __init__(
+        self,
+        *,
+        test_report_ids: collections.abc.Iterable[builtins.str] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["test_report_ids", b"test_report_ids"]) -> None: ...
+
+global___BatchArchiveTestReportsRequest = BatchArchiveTestReportsRequest
+
+@typing.final
+class BatchArchiveTestReportsResponse(google.protobuf.message.Message):
+    """Response message for BatchArchiveTestReports."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    TEST_REPORTS_FIELD_NUMBER: builtins.int
+    FAILURES_FIELD_NUMBER: builtins.int
+    @property
+    def test_reports(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___TestReport]: ...
+    @property
+    def failures(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___BatchUpdateTestReportFailure]: ...
+    def __init__(
+        self,
+        *,
+        test_reports: collections.abc.Iterable[global___TestReport] | None = ...,
+        failures: collections.abc.Iterable[global___BatchUpdateTestReportFailure] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["failures", b"failures", "test_reports", b"test_reports"]) -> None: ...
+
+global___BatchArchiveTestReportsResponse = BatchArchiveTestReportsResponse
+
+@typing.final
+class BatchUnarchiveTestReportsRequest(google.protobuf.message.Message):
+    """Request message for BatchUnarchiveTestReports."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    TEST_REPORT_IDS_FIELD_NUMBER: builtins.int
+    @property
+    def test_report_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    def __init__(
+        self,
+        *,
+        test_report_ids: collections.abc.Iterable[builtins.str] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["test_report_ids", b"test_report_ids"]) -> None: ...
+
+global___BatchUnarchiveTestReportsRequest = BatchUnarchiveTestReportsRequest
+
+@typing.final
+class BatchUnarchiveTestReportsResponse(google.protobuf.message.Message):
+    """Response message for BatchUnarchiveTestReports."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    TEST_REPORTS_FIELD_NUMBER: builtins.int
+    FAILURES_FIELD_NUMBER: builtins.int
+    @property
+    def test_reports(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___TestReport]: ...
+    @property
+    def failures(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___BatchUpdateTestReportFailure]: ...
+    def __init__(
+        self,
+        *,
+        test_reports: collections.abc.Iterable[global___TestReport] | None = ...,
+        failures: collections.abc.Iterable[global___BatchUpdateTestReportFailure] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["failures", b"failures", "test_reports", b"test_reports"]) -> None: ...
+
+global___BatchUnarchiveTestReportsResponse = BatchUnarchiveTestReportsResponse
 
 @typing.final
 class DeleteTestReportRequest(google.protobuf.message.Message):
@@ -772,7 +933,8 @@ class ListTestStepsRequest(google.protobuf.message.Message):
     Available fields to filter by are `test_step_id`, `test_report_id`, `parent_step_id`, `name`,
     `description`, `step_type`, `step_path`, `status`, `start_time`, `end_time`,
     `error_code`, `error_message`, `created_date`, `modified_date`, and `metadata`.
-    Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
+    Metadata can be used in filters by using `metadata["<key name>"]` as the field name,
+    e.g. `metadata["station"] == "bay-3"`. The dot form `metadata.<key name>` is not supported.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     """
     order_by: builtins.str
@@ -1017,7 +1179,8 @@ class ListTestMeasurementsRequest(google.protobuf.message.Message):
     Available fields to filter by are `measurement_id`, `measurement_type`, `name`, `test_step_id`,
     `test_report_id`, `numeric_value`, `string_value`, `boolean_value`, `passed`, `timestamp`,
     `created_date`, `modified_date`, and `metadata`.
-    Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
+    Metadata can be used in filters by using `metadata["<key name>"]` as the field name,
+    e.g. `metadata["station"] == "bay-3"`. The dot form `metadata.<key name>` is not supported.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     """
     order_by: builtins.str
@@ -1076,7 +1239,8 @@ class CountTestStepsRequest(google.protobuf.message.Message):
     Available fields to filter by are `test_step_id`, `test_report_id`, `parent_step_id`, `name`,
     `description`, `step_type`, `step_path`, `status`, `start_time`, `end_time`,
     `error_code`, `error_message`, `created_date`, `modified_date`, and `metadata`.
-    Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
+    Metadata can be used in filters by using `metadata["<key name>"]` as the field name,
+    e.g. `metadata["station"] == "bay-3"`. The dot form `metadata.<key name>` is not supported.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     """
     def __init__(
@@ -1118,7 +1282,8 @@ class CountTestMeasurementsRequest(google.protobuf.message.Message):
     Available fields to filter by are `measurement_id`, `measurement_type`, `name`, `test_step_id`,
     `test_report_id`, `numeric_value`, `string_value`, `boolean_value`, `passed`, `timestamp`,
     `created_date`, `modified_date`, and `metadata`.
-    Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
+    Metadata can be used in filters by using `metadata["<key name>"]` as the field name,
+    e.g. `metadata["station"] == "bay-3"`. The dot form `metadata.<key name>` is not supported.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     """
     def __init__(

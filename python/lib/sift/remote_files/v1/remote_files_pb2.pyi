@@ -67,6 +67,25 @@ class _EntityTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._Enu
     """Reserved for a future cell-output upload path (not used by the report
     attachment UI).
     """
+    ENTITY_TYPE_ARTIFACT_VERSION: _EntityType.ValueType  # 10
+    """Bytes of one artifact version (sift.artifacts.v1.ArtifactService);
+    entity_id is the artifact_version_id.
+    """
+    ENTITY_TYPE_CHAT_CONVERSATION: _EntityType.ValueType  # 11
+    """A file the user attached to an agent conversation
+    (sift_internal.chat.v1.ChatService); entity_id is the conversation_id.
+    Python code attached to a canvas version so cell code can import it;
+    entity_id is the canvas_version_id. Separate from
+    ENTITY_TYPE_CANVAS_VERSION, which holds the canvas's data attachments, so
+    that listing either one never returns the other.
+    Python code uploaded for a canvas but not yet attached to any version;
+    entity_id is the canvas_id. UpdateCanvasDraft turns one of these into an
+    ENTITY_TYPE_CANVAS_DEPENDENCY row on the version it mints, so an upload on
+    its own never changes what an existing version runs.
+    A data file attached to one canvas execution, not to the canvas version.
+    entity_id is the canvas_execution_id. The runner merges these into
+    client.canvas.files for that run and leaves the version's file set alone.
+    """
 
 class EntityType(_EntityType, metaclass=_EntityTypeEnumTypeWrapper): ...
 
@@ -83,6 +102,25 @@ ENTITY_TYPE_CANVAS_CELL_EXECUTION_ATTACHMENT: EntityType.ValueType  # 8
 ENTITY_TYPE_CANVAS_CELL_EXECUTION_OUTPUT: EntityType.ValueType  # 9
 """Reserved for a future cell-output upload path (not used by the report
 attachment UI).
+"""
+ENTITY_TYPE_ARTIFACT_VERSION: EntityType.ValueType  # 10
+"""Bytes of one artifact version (sift.artifacts.v1.ArtifactService);
+entity_id is the artifact_version_id.
+"""
+ENTITY_TYPE_CHAT_CONVERSATION: EntityType.ValueType  # 11
+"""A file the user attached to an agent conversation
+(sift_internal.chat.v1.ChatService); entity_id is the conversation_id.
+Python code attached to a canvas version so cell code can import it;
+entity_id is the canvas_version_id. Separate from
+ENTITY_TYPE_CANVAS_VERSION, which holds the canvas's data attachments, so
+that listing either one never returns the other.
+Python code uploaded for a canvas but not yet attached to any version;
+entity_id is the canvas_id. UpdateCanvasDraft turns one of these into an
+ENTITY_TYPE_CANVAS_DEPENDENCY row on the version it mints, so an upload on
+its own never changes what an existing version runs.
+A data file attached to one canvas execution, not to the canvas version.
+entity_id is the canvas_execution_id. The runner merges these into
+client.canvas.files for that run and leaves the version's file set alone.
 """
 global___EntityType = EntityType
 
@@ -291,6 +329,8 @@ class ListRemoteFilesRequest(google.protobuf.message.Message):
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are `remote_file_id`, `entity_id`, `entity_type`, `metadata`, and `file_name`.
+    Metadata can be used in filters by using `metadata["<key name>"]` as the field name,
+    e.g. `metadata["source"] == "bench-2"`. The dot form `metadata.<key name>` is not supported.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     """
     organization_id: builtins.str

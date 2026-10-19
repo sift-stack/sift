@@ -21,10 +21,12 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
 // artifact.
 //
 // Links are append-only and belong to the version they were written at. A
-// version's rows are its complete link set: ATTACHED_TO rows carry forward to
-// each new version, while SOURCE and DERIVED_FROM rows are a closed account of
-// one version's inputs. Linking and unlinking write a new version whose
-// content is copied from the previous one.
+// version's rows are its complete link set. ATTACHED_TO rows carry forward to
+// each new version until unlinked. SOURCE and DERIVED_FROM rows describe the
+// bytes, so they carry forward while the bytes do: a version with new bytes
+// starts with only the provenance its request supplies, and earlier versions
+// keep theirs. Linking and unlinking write a new version whose content is
+// copied from the previous one.
 //
 // Artifact bytes live in remote_files (entity_type 'artifact_versions',
 // entity_id = artifact_version_id): upload via the remote-files multipart
@@ -85,25 +87,47 @@ service ArtifactService {
   // Returns the fields available to ListArtifacts filter, including the
   // organization's metadata keys as one metadata namespace.
 
-  // Full version history of one artifact, newest first.
+  // Lists artifact versions, newest first by default. artifact_id names one
+  // artifact; unset searches the versions of every artifact in the caller's
+  // organization. filter and order_by apply to each version, so a filter can
+  // match an earlier version that the latest no longer does.
+  // ArtifactVersion.is_current marks each artifact's current version.
   rpc ListArtifactVersions(ListArtifactVersionsRequest) returns (ListArtifactVersionsResponse) {
-    option (google.api.http) = {get: "/api/v1/artifacts/{artifact_id}/versions"};
+    option (google.api.http) = {
+      get: "/api/v1/artifacts/{artifact_id}/versions"
+      additional_bindings: {get: "/api/v1/artifact-versions"}
+    };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "ListArtifactVersions"
-      description: "List the version history of one artifact, newest first."
-      operation_id: "ArtifactService_ListArtifactVersionsV1"
+      description: "List the versions of one artifact, or search the versions of every artifact when artifact_id is unset."
+    };
+  }
+
+  // Returns the fields available to ListArtifactVersions filter. They are the
+  // ListArtifacts fields, evaluated against each version.
+
+  // Makes an older version the latest again by writing a new version whose
+  // title, summary, payload, metadata, bytes, and SOURCE and DERIVED_FROM links
+  // are copied from it. ATTACHED_TO links carry forward from the latest
+  // version. Only the artifact's creator may promote, and promoting the current
+  // latest version is a FailedPrecondition.
+  rpc PromoteArtifactVersion(PromoteArtifactVersionRequest) returns (PromoteArtifactVersionResponse) {
+    option (google.api.http) = {post: "/api/v1/artifacts/{artifact_id}/versions/{artifact_version_id}:promote"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "PromoteArtifactVersion"
+      description: "Write a new latest version of an artifact with the content of an older version."
+      operation_id: "ArtifactService_PromoteArtifactVersionV1"
     };
   }
 
   // Links an artifact to an entity by writing a new version that carries the
-  // previous ATTACHED_TO rows plus this link. An identical link already in the
+  // previous version's links plus this one. An identical link already in the
   // latest version succeeds without writing a version.
 
   // Revokes an ATTACHED_TO link by writing a new version that omits it. The
   // previous version's rows stay in place. A link missing from the latest
   // version succeeds without writing a version. SOURCE and DERIVED_FROM rows
-  // are a closed account of one version's inputs and cannot be unlinked
-  // (InvalidArgument).
+  // record provenance and cannot be unlinked (InvalidArgument).
 
   // Lists the links of one artifact version, the latest by default.
 
@@ -242,6 +266,10 @@ message ArtifactVersion {
   optional google.protobuf.Struct payload = 12 [(google.api.field_behavior) = OPTIONAL];
   // Metadata attached to this version.
   repeated sift.metadata.v1.MetadataValue metadata = 13 [(google.api.field_behavior) = OPTIONAL];
+  // True when this is the artifact's current version, the one GetArtifact
+  // returns without a pin. A version still waiting for its upload is never
+  // current.
+  bool is_current = 15 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // An artifact and one of its versions: the one artifact_version_id pinned, or
@@ -292,9 +320,10 @@ message UpdateArtifactRequest {
   // updatable; the container's own fields are set at create time, and archival
   // has its own RPCs. Leaving it out clears every field the mask names.
   ArtifactDetails artifact = 2 [(google.api.field_behavior) = OPTIONAL];
-  // Links written at the new version, when update_mask names `links`. The
-  // previous version's ATTACHED_TO rows carry forward and these are added to
-  // them.
+  // Links written at the new version, when update_mask names `links`. They are
+  // added to the links that carry forward (see ArtifactService). With
+  // `artifact_version.remote_file_id`, these are the new bytes' only
+  // provenance.
   repeated ArtifactLinkInput links = 3 [(google.api.field_behavior) = OPTIONAL];
   // The fields to write. Available paths are `artifact_version.title`,
   // `artifact_version.summary`, `artifact_version.payload`,
@@ -303,8 +332,10 @@ message UpdateArtifactRequest {
   //
   // `artifact_version.remote_file_id` is a declaration, not a value: it says
   // the caller is about to upload new bytes for the returned version, so the
-  // previous version's remote_files rows are not carried forward. The value on
-  // the request is ignored. Leave it out to keep the existing bytes.
+  // previous version's remote_files rows and its SOURCE and DERIVED_FROM links
+  // are not carried forward. The current version stays unchanged until the
+  // upload commits. The request value is ignored. Leave the path out to keep
+  // the existing bytes.
   google.protobuf.FieldMask update_mask = 4 [(google.api.field_behavior) = REQUIRED];
 }
 
@@ -327,24 +358,36 @@ message ListArtifactsRequest {
   uint32 page_size = 2 [(google.api.field_behavior) = OPTIONAL];
   string page_token = 3 [(google.api.field_behavior) = OPTIONAL];
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec)
-  // filter string. Available fields are artifact_id, organization_id,
-  // created_by_user_id, storage_class, created_via,
-  // title, version, created_date, archived_date, the include_archived
-  // directive, and metadata through `metadata["<key>"]`. Links can be filtered
-  // with a comprehension such as `links.exists(l, l.relation == "ATTACHED_TO"
-  // && l.entity_type == "CONVERSATION" && l.entity_id == "<id>")`. Link
-  // sub-fields are relation, entity_type, entity_id, and artifact_version_id.
-  // Enum fields compare against proto value names without the prefix, for
-  // example `storage_class == "STRUCTURED"`, `relation == "ATTACHED_TO"`, and
-  // `entity_type == "CONVERSATION"`. The conversation_id field on this message
-  // combines with filter.
+  // filter string over the latest version of each artifact. Available fields
+  // are artifact_id, organization_id, created_by_user_id, storage_class,
+  // created_via, title, file_name, file_type, version, created_date,
+  // version_created_date (last updated), archived_date, the include_archived
+  // directive, and metadata through `metadata["<key>"]`. File type is the
+  // lowercase extension or MIME subtype; images use "image", structured
+  // artifacts use "json", and artifacts without a file use "file". Enum fields
+  // compare against proto value names without the prefix, for example
+  // `storage_class == "STRUCTURED"`.
+  //
+  // Links filter with a comprehension. `links` sub-fields are relation,
+  // entity_type, entity_id, and artifact_version_id, for example
+  // `links.exists(l, l.entity_type == "CONVERSATION" && l.entity_id == "<id>")`.
+  // `runs` (relation, run_id, name, description, client_key, start_time,
+  // stop_time), `assets` (relation, asset_id, name), and `canvases` (relation,
+  // canvas_id, name, description) resolve links of any relation to that
+  // entity, for example
+  // `runs.exists(r, r.relation == "SOURCE" && r.name.contains("thermal"))`.
+  // runs and assets only match rows on assets the caller can view; ABAC
+  // policies are not applied to them yet. GetArtifactFilterFields returns the
+  // same fields. The conversation_id field on this message combines with
+  // filter.
   //
   // Archived artifacts are excluded unless the query says otherwise, either
   // through `include_archived == true` or by filtering on archived_date, which
   // governs archival on its own.
   string filter = 4 [(google.api.field_behavior) = OPTIONAL];
   // A comma-separated [AIP-132](https://google.aip.dev/132#ordering) ordering
-  // string over created_date, archived_date, title, and version. Fields
+  // string over created_date, version_created_date (last updated), archived_date,
+  // title, version, and file_type. Fields
   // sort ascending by default and support a `desc` suffix. The default is
   // created_date ascending.
   string order_by = 5 [(google.api.field_behavior) = OPTIONAL];
@@ -356,9 +399,29 @@ message ListArtifactsResponse {
 }
 
 message ListArtifactVersionsRequest {
-  string artifact_id = 1 [(google.api.field_behavior) = REQUIRED];
+  // The artifact whose versions to list. Unset searches the versions of every
+  // artifact in the caller's organization. A named artifact lists its
+  // versions even when it is archived.
+  string artifact_id = 1 [(google.api.field_behavior) = OPTIONAL];
+  // Defaults to 50; values above 200 are treated as 200.
   uint32 page_size = 2 [(google.api.field_behavior) = OPTIONAL];
+  // From a previous response's next_page_token. Offset tokens from before
+  // this field took cursors are rejected (InvalidArgument).
   string page_token = 3 [(google.api.field_behavior) = OPTIONAL];
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec)
+  // filter string with the ListArtifacts fields, evaluated against each
+  // version instead of the latest: title, version, file_name, file_type,
+  // version_created_date, metadata, links, runs, assets, and canvases
+  // describe the version, and the artifact fields describe its container.
+  // GetArtifactVersionFilterFields returns the fields. With artifact_id unset,
+  // versions of archived artifacts are excluded unless the query says
+  // otherwise, as in ListArtifacts.
+  string filter = 4 [(google.api.field_behavior) = OPTIONAL];
+  // A comma-separated [AIP-132](https://google.aip.dev/132#ordering) ordering
+  // string over created_date (when the version was written), version, and
+  // title. Fields sort ascending by default and support a `desc` suffix. The
+  // default is created_date descending.
+  string order_by = 5 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message ListArtifactVersionsResponse {
@@ -379,6 +442,17 @@ message UnlinkArtifactFromConversationRequest {
 }
 
 message UnlinkArtifactFromConversationResponse {}
+
+message PromoteArtifactVersionRequest {
+  string artifact_id = 1 [(google.api.field_behavior) = REQUIRED];
+  // The version whose content becomes the new latest version.
+  string artifact_version_id = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message PromoteArtifactVersionResponse {
+  // The artifact resolved to the version this call wrote.
+  ArtifactDetails artifact = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
 
 message ArchiveArtifactRequest {
   string artifact_id = 1 [(google.api.field_behavior) = REQUIRED];

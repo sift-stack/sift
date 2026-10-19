@@ -1084,11 +1084,11 @@ class UlogConfig(google.protobuf.message.Message):
 
     @property
     def info_keys(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
-        """I/M message info keys to import as run metadata (stored as info.{key}). Empty: none."""
+        """I/M message info keys to import as run metadata (stored as `info.{key}`). Empty: none."""
 
     @property
     def param_keys(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
-        """P parameter names to import as run metadata (stored as param.{name}). Empty: none."""
+        """P parameter names to import as run metadata (stored as `param.{name}`). Empty: none."""
 
     def __init__(
         self,
@@ -1192,7 +1192,7 @@ class McapConfig(google.protobuf.message.Message):
     @property
     def metadata_records(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
         """Metadata records to import as run metadata. Every key of each named
-        record is stored as <record_name>.<key>. Empty imports none.
+        record is stored as `<record_name>.<key>`. Empty imports none.
         """
 
     def __init__(

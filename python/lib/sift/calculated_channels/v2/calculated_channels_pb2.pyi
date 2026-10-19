@@ -435,7 +435,7 @@ class ListCalculatedChannelsRequest(google.protobuf.message.Message):
     """This field is only required if your user belongs to multiple organizations."""
     order_by: builtins.str
     """How to order the retrieved calculated channels. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
-    Available fields to order_by are `created_date`, `modified_date`, `name`, `description`, `units`, and `archived_date`.
+    Available fields to order_by are `created_date` and `modified_date`.
     If left empty, items are ordered by `created_date` in descending order (newest-first).
     For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
     Example: "created_date desc,modified_date"
@@ -575,8 +575,8 @@ class ListCalculatedChannelVersionsRequest(google.protobuf.message.Message):
     """This field is only required if your user belongs to multiple organizations."""
     order_by: builtins.str
     """How to order the retrieved calculated channel versions. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
-    Available fields to order_by are 'version', `created_date`, `modified_date`, `name`, `description`, `units`, and `archived_date`.
-    If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+    Available fields to order_by are `version`, `created_date`, and `modified_date`.
+    If left empty, items are ordered by `version` in ascending order (oldest version first).
     For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
     Example: "created_date desc,modified_date".
     """

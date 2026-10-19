@@ -174,7 +174,9 @@ type ListAssetsRequest struct {
 	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
 	// Available fields to filter by are `asset_id`, `created_by_user_id`, `modified_by_user_id`,
-	// `created_date`, `modified_date`, `name`, 'name_lower', `tag_id`, `tag_name`, 'archived_date', `is_archived`, and `metadata`. Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
+	// `created_date`, `modified_date`, `name`, 'name_lower', `tag_id`, `tag_name`, 'archived_date', `is_archived`, and `metadata`.
+	// Metadata can be used in filters by using `metadata["<key name>"]` as the field name,
+	// e.g. `metadata["vehicle_type"] == "rover"`. The dot form `metadata.<key name>` is not supported.
 	// For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
 	Filter string `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
 	// How to order the retrieved assets. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".

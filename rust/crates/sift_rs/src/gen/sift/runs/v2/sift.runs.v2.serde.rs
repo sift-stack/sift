@@ -1478,6 +1478,12 @@ impl serde::Serialize for Run {
         if self.duration.is_some() {
             len += 1;
         }
+        if self.stopped_date.is_some() {
+            len += 1;
+        }
+        if self.is_stopped {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.runs.v2.Run", len)?;
         if !self.run_id.is_empty() {
             struct_ser.serialize_field("runId", &self.run_id)?;
@@ -1539,6 +1545,12 @@ impl serde::Serialize for Run {
         if let Some(v) = self.duration.as_ref() {
             struct_ser.serialize_field("duration", v)?;
         }
+        if let Some(v) = self.stopped_date.as_ref() {
+            struct_ser.serialize_field("stoppedDate", v)?;
+        }
+        if self.is_stopped {
+            struct_ser.serialize_field("isStopped", &self.is_stopped)?;
+        }
         struct_ser.end()
     }
 }
@@ -1584,6 +1596,10 @@ impl<'de> serde::Deserialize<'de> for Run {
             "is_archived",
             "isArchived",
             "duration",
+            "stopped_date",
+            "stoppedDate",
+            "is_stopped",
+            "isStopped",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1608,6 +1624,8 @@ impl<'de> serde::Deserialize<'de> for Run {
             IsAdhoc,
             IsArchived,
             Duration,
+            StoppedDate,
+            IsStopped,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1649,6 +1667,8 @@ impl<'de> serde::Deserialize<'de> for Run {
                             "isAdhoc" | "is_adhoc" => Ok(GeneratedField::IsAdhoc),
                             "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
                             "duration" => Ok(GeneratedField::Duration),
+                            "stoppedDate" | "stopped_date" => Ok(GeneratedField::StoppedDate),
+                            "isStopped" | "is_stopped" => Ok(GeneratedField::IsStopped),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1688,6 +1708,8 @@ impl<'de> serde::Deserialize<'de> for Run {
                 let mut is_adhoc__ = None;
                 let mut is_archived__ = None;
                 let mut duration__ = None;
+                let mut stopped_date__ = None;
+                let mut is_stopped__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RunId => {
@@ -1810,6 +1832,18 @@ impl<'de> serde::Deserialize<'de> for Run {
                             }
                             duration__ = map_.next_value()?;
                         }
+                        GeneratedField::StoppedDate => {
+                            if stopped_date__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("stoppedDate"));
+                            }
+                            stopped_date__ = map_.next_value()?;
+                        }
+                        GeneratedField::IsStopped => {
+                            if is_stopped__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("isStopped"));
+                            }
+                            is_stopped__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(Run {
@@ -1833,6 +1867,8 @@ impl<'de> serde::Deserialize<'de> for Run {
                     is_adhoc: is_adhoc__.unwrap_or_default(),
                     is_archived: is_archived__.unwrap_or_default(),
                     duration: duration__,
+                    stopped_date: stopped_date__,
+                    is_stopped: is_stopped__.unwrap_or_default(),
                 })
             }
         }

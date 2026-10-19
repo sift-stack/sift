@@ -477,7 +477,8 @@ type ListPanelConfigurationsRequest struct {
 	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string
 	// Available fields to filter by are 'name', 'created_date', 'modified_date', 'is_archived', and `metadata`.
-	// Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
+	// Metadata can be used in filters by using `metadata["<key name>"]` as the field name,
+	// e.g. `metadata["owner"] == "qa-team"`. The dot form `metadata.<key name>` is not supported.
 	// Folder membership is filterable via the `folders` and `activeFolders` fields. Both contain the ids of the folders
 	// the panel configuration belongs to; `activeFolders` excludes archived folders. Use `"<folder_id>" in folders` to
 	// return panel configurations in the given folder, and `size(activeFolders) == 0` to return uncategorized panel

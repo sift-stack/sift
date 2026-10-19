@@ -39,6 +39,21 @@ class TestReportServiceStub(object):
                 request_serializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.UpdateTestReportRequest.SerializeToString,
                 response_deserializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.UpdateTestReportResponse.FromString,
                 )
+        self.BatchUpdateTestReports = channel.unary_unary(
+                '/sift.test_reports.v1.TestReportService/BatchUpdateTestReports',
+                request_serializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.BatchUpdateTestReportsRequest.SerializeToString,
+                response_deserializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.BatchUpdateTestReportsResponse.FromString,
+                )
+        self.BatchArchiveTestReports = channel.unary_unary(
+                '/sift.test_reports.v1.TestReportService/BatchArchiveTestReports',
+                request_serializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.BatchArchiveTestReportsRequest.SerializeToString,
+                response_deserializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.BatchArchiveTestReportsResponse.FromString,
+                )
+        self.BatchUnarchiveTestReports = channel.unary_unary(
+                '/sift.test_reports.v1.TestReportService/BatchUnarchiveTestReports',
+                request_serializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.BatchUnarchiveTestReportsRequest.SerializeToString,
+                response_deserializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.BatchUnarchiveTestReportsResponse.FromString,
+                )
         self.DeleteTestReport = channel.unary_unary(
                 '/sift.test_reports.v1.TestReportService/DeleteTestReport',
                 request_serializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.DeleteTestReportRequest.SerializeToString,
@@ -134,6 +149,29 @@ class TestReportServiceServicer(object):
 
     def UpdateTestReport(self, request, context):
         """Updates a test report
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def BatchUpdateTestReports(self, request, context):
+        """Updates multiple test reports. Each request is applied independently.
+        Failures are returned in the response and do not abort the rest of the batch.
+        A maximum of 1000 reports can be updated in one call.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def BatchArchiveTestReports(self, request, context):
+        """Archives multiple test reports. Failures are returned per report and do not abort the rest of the batch.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def BatchUnarchiveTestReports(self, request, context):
+        """Unarchives multiple test reports. Failures are returned per report and do not abort the rest of the batch.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -250,6 +288,21 @@ def add_TestReportServiceServicer_to_server(servicer, server):
                     servicer.UpdateTestReport,
                     request_deserializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.UpdateTestReportRequest.FromString,
                     response_serializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.UpdateTestReportResponse.SerializeToString,
+            ),
+            'BatchUpdateTestReports': grpc.unary_unary_rpc_method_handler(
+                    servicer.BatchUpdateTestReports,
+                    request_deserializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.BatchUpdateTestReportsRequest.FromString,
+                    response_serializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.BatchUpdateTestReportsResponse.SerializeToString,
+            ),
+            'BatchArchiveTestReports': grpc.unary_unary_rpc_method_handler(
+                    servicer.BatchArchiveTestReports,
+                    request_deserializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.BatchArchiveTestReportsRequest.FromString,
+                    response_serializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.BatchArchiveTestReportsResponse.SerializeToString,
+            ),
+            'BatchUnarchiveTestReports': grpc.unary_unary_rpc_method_handler(
+                    servicer.BatchUnarchiveTestReports,
+                    request_deserializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.BatchUnarchiveTestReportsRequest.FromString,
+                    response_serializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.BatchUnarchiveTestReportsResponse.SerializeToString,
             ),
             'DeleteTestReport': grpc.unary_unary_rpc_method_handler(
                     servicer.DeleteTestReport,
@@ -403,6 +456,57 @@ class TestReportService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.test_reports.v1.TestReportService/UpdateTestReport',
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.UpdateTestReportRequest.SerializeToString,
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.UpdateTestReportResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def BatchUpdateTestReports(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.test_reports.v1.TestReportService/BatchUpdateTestReports',
+            sift_dot_test__reports_dot_v1_dot_test__reports__pb2.BatchUpdateTestReportsRequest.SerializeToString,
+            sift_dot_test__reports_dot_v1_dot_test__reports__pb2.BatchUpdateTestReportsResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def BatchArchiveTestReports(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.test_reports.v1.TestReportService/BatchArchiveTestReports',
+            sift_dot_test__reports_dot_v1_dot_test__reports__pb2.BatchArchiveTestReportsRequest.SerializeToString,
+            sift_dot_test__reports_dot_v1_dot_test__reports__pb2.BatchArchiveTestReportsResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def BatchUnarchiveTestReports(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.test_reports.v1.TestReportService/BatchUnarchiveTestReports',
+            sift_dot_test__reports_dot_v1_dot_test__reports__pb2.BatchUnarchiveTestReportsRequest.SerializeToString,
+            sift_dot_test__reports_dot_v1_dot_test__reports__pb2.BatchUnarchiveTestReportsResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

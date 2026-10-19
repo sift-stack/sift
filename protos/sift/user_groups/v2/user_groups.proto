@@ -103,6 +103,7 @@ message UserGroup {
     bool all_assets = 2 [(google.api.field_behavior) = REQUIRED];
   }
   Resource resources = 6 [(google.api.field_behavior) = OPTIONAL];
+  // Member ids for this group. Each id is an actor: a user or a service account.
   repeated string user_ids = 7 [(google.api.field_behavior) = OPTIONAL];
   bool is_external = 8 [(google.api.field_behavior) = REQUIRED];
 }
@@ -151,6 +152,7 @@ message GetUserGroupResponse {
 }
 
 message UpdateUserUserGroupsRequest {
+  // Actor whose groups to replace. A user id or a service account id.
   string user_id = 1;
   repeated string user_group_ids = 2;
 }
@@ -169,6 +171,7 @@ message UpdateUserGroupRequest {
   UserGroup user_group = 1 [(google.api.field_behavior) = REQUIRED];
 
   // The list of fields to update.
+  // `users` replaces `user_group.user_ids`. Those ids are actors: users or service accounts.
   google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
@@ -184,6 +187,7 @@ message DeleteUserGroupResponse {}
 
 message AddUserToUserGroupRequest {
   string user_group_id = 1 [(google.api.field_behavior) = REQUIRED];
+  // Actor to add. A user id or a service account id.
   string user_id = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
@@ -191,6 +195,7 @@ message AddUserToUserGroupResponse {}
 
 message RemoveUserFromUserGroupRequest {
   string user_group_id = 1 [(google.api.field_behavior) = REQUIRED];
+  // Actor to remove. A user id or a service account id.
   string user_id = 2 [(google.api.field_behavior) = REQUIRED];
 }
 

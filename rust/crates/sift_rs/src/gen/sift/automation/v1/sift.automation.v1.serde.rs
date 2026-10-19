@@ -58,6 +58,24 @@ impl serde::Serialize for AutomationTrigger {
         if !self.notification_recipient_emails.is_empty() {
             len += 1;
         }
+        if self.report_name_template.is_some() {
+            len += 1;
+        }
+        if self.trigger_kind != 0 {
+            len += 1;
+        }
+        if self.cron_expression.is_some() {
+            len += 1;
+        }
+        if self.timezone.is_some() {
+            len += 1;
+        }
+        if self.next_fire_at.is_some() {
+            len += 1;
+        }
+        if self.last_fire_at.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.automation.v1.AutomationTrigger", len)?;
         if !self.automation_trigger_id.is_empty() {
             struct_ser.serialize_field("automationTriggerId", &self.automation_trigger_id)?;
@@ -112,6 +130,26 @@ impl serde::Serialize for AutomationTrigger {
         if !self.notification_recipient_emails.is_empty() {
             struct_ser.serialize_field("notificationRecipientEmails", &self.notification_recipient_emails)?;
         }
+        if let Some(v) = self.report_name_template.as_ref() {
+            struct_ser.serialize_field("reportNameTemplate", v)?;
+        }
+        if self.trigger_kind != 0 {
+            let v = AutomationTriggerKind::try_from(self.trigger_kind)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.trigger_kind)))?;
+            struct_ser.serialize_field("triggerKind", &v)?;
+        }
+        if let Some(v) = self.cron_expression.as_ref() {
+            struct_ser.serialize_field("cronExpression", v)?;
+        }
+        if let Some(v) = self.timezone.as_ref() {
+            struct_ser.serialize_field("timezone", v)?;
+        }
+        if let Some(v) = self.next_fire_at.as_ref() {
+            struct_ser.serialize_field("nextFireAt", v)?;
+        }
+        if let Some(v) = self.last_fire_at.as_ref() {
+            struct_ser.serialize_field("lastFireAt", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -155,6 +193,17 @@ impl<'de> serde::Deserialize<'de> for AutomationTrigger {
             "emailNotificationsEnabled",
             "notification_recipient_emails",
             "notificationRecipientEmails",
+            "report_name_template",
+            "reportNameTemplate",
+            "trigger_kind",
+            "triggerKind",
+            "cron_expression",
+            "cronExpression",
+            "timezone",
+            "next_fire_at",
+            "nextFireAt",
+            "last_fire_at",
+            "lastFireAt",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -176,6 +225,12 @@ impl<'de> serde::Deserialize<'de> for AutomationTrigger {
             ModifiedByUserId,
             EmailNotificationsEnabled,
             NotificationRecipientEmails,
+            ReportNameTemplate,
+            TriggerKind,
+            CronExpression,
+            Timezone,
+            NextFireAt,
+            LastFireAt,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -214,6 +269,12 @@ impl<'de> serde::Deserialize<'de> for AutomationTrigger {
                             "modifiedByUserId" | "modified_by_user_id" => Ok(GeneratedField::ModifiedByUserId),
                             "emailNotificationsEnabled" | "email_notifications_enabled" => Ok(GeneratedField::EmailNotificationsEnabled),
                             "notificationRecipientEmails" | "notification_recipient_emails" => Ok(GeneratedField::NotificationRecipientEmails),
+                            "reportNameTemplate" | "report_name_template" => Ok(GeneratedField::ReportNameTemplate),
+                            "triggerKind" | "trigger_kind" => Ok(GeneratedField::TriggerKind),
+                            "cronExpression" | "cron_expression" => Ok(GeneratedField::CronExpression),
+                            "timezone" => Ok(GeneratedField::Timezone),
+                            "nextFireAt" | "next_fire_at" => Ok(GeneratedField::NextFireAt),
+                            "lastFireAt" | "last_fire_at" => Ok(GeneratedField::LastFireAt),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -250,6 +311,12 @@ impl<'de> serde::Deserialize<'de> for AutomationTrigger {
                 let mut modified_by_user_id__ = None;
                 let mut email_notifications_enabled__ = None;
                 let mut notification_recipient_emails__ = None;
+                let mut report_name_template__ = None;
+                let mut trigger_kind__ = None;
+                let mut cron_expression__ = None;
+                let mut timezone__ = None;
+                let mut next_fire_at__ = None;
+                let mut last_fire_at__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::AutomationTriggerId => {
@@ -354,6 +421,42 @@ impl<'de> serde::Deserialize<'de> for AutomationTrigger {
                             }
                             notification_recipient_emails__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::ReportNameTemplate => {
+                            if report_name_template__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("reportNameTemplate"));
+                            }
+                            report_name_template__ = map_.next_value()?;
+                        }
+                        GeneratedField::TriggerKind => {
+                            if trigger_kind__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("triggerKind"));
+                            }
+                            trigger_kind__ = Some(map_.next_value::<AutomationTriggerKind>()? as i32);
+                        }
+                        GeneratedField::CronExpression => {
+                            if cron_expression__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("cronExpression"));
+                            }
+                            cron_expression__ = map_.next_value()?;
+                        }
+                        GeneratedField::Timezone => {
+                            if timezone__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("timezone"));
+                            }
+                            timezone__ = map_.next_value()?;
+                        }
+                        GeneratedField::NextFireAt => {
+                            if next_fire_at__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("nextFireAt"));
+                            }
+                            next_fire_at__ = map_.next_value()?;
+                        }
+                        GeneratedField::LastFireAt => {
+                            if last_fire_at__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("lastFireAt"));
+                            }
+                            last_fire_at__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(AutomationTrigger {
@@ -374,6 +477,12 @@ impl<'de> serde::Deserialize<'de> for AutomationTrigger {
                     modified_by_user_id: modified_by_user_id__.unwrap_or_default(),
                     email_notifications_enabled: email_notifications_enabled__.unwrap_or_default(),
                     notification_recipient_emails: notification_recipient_emails__.unwrap_or_default(),
+                    report_name_template: report_name_template__,
+                    trigger_kind: trigger_kind__.unwrap_or_default(),
+                    cron_expression: cron_expression__,
+                    timezone: timezone__,
+                    next_fire_at: next_fire_at__,
+                    last_fire_at: last_fire_at__,
                 })
             }
         }
@@ -546,6 +655,80 @@ impl<'de> serde::Deserialize<'de> for AutomationTriggerActionParams {
             }
         }
         deserializer.deserialize_struct("sift.automation.v1.AutomationTriggerActionParams", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for AutomationTriggerKind {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let variant = match self {
+            Self::Unspecified => "AUTOMATION_TRIGGER_KIND_UNSPECIFIED",
+            Self::RunStop => "AUTOMATION_TRIGGER_KIND_RUN_STOP",
+            Self::Schedule => "AUTOMATION_TRIGGER_KIND_SCHEDULE",
+        };
+        serializer.serialize_str(variant)
+    }
+}
+impl<'de> serde::Deserialize<'de> for AutomationTriggerKind {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "AUTOMATION_TRIGGER_KIND_UNSPECIFIED",
+            "AUTOMATION_TRIGGER_KIND_RUN_STOP",
+            "AUTOMATION_TRIGGER_KIND_SCHEDULE",
+        ];
+
+        struct GeneratedVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = AutomationTriggerKind;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "expected one of: {:?}", &FIELDS)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
+                    })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
+                    })
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "AUTOMATION_TRIGGER_KIND_UNSPECIFIED" => Ok(AutomationTriggerKind::Unspecified),
+                    "AUTOMATION_TRIGGER_KIND_RUN_STOP" => Ok(AutomationTriggerKind::RunStop),
+                    "AUTOMATION_TRIGGER_KIND_SCHEDULE" => Ok(AutomationTriggerKind::Schedule),
+                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
+                }
+            }
+        }
+        deserializer.deserialize_any(GeneratedVisitor)
     }
 }
 impl serde::Serialize for AutomationTriggerMatchFilter {
@@ -1208,6 +1391,12 @@ impl serde::Serialize for AutomationTriggeredEvent {
         if !self.modified_by_user_id.is_empty() {
             len += 1;
         }
+        if self.report_id.is_some() {
+            len += 1;
+        }
+        if self.scheduled_for.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.automation.v1.AutomationTriggeredEvent", len)?;
         if !self.automation_triggered_event_id.is_empty() {
             struct_ser.serialize_field("automationTriggeredEventId", &self.automation_triggered_event_id)?;
@@ -1253,6 +1442,12 @@ impl serde::Serialize for AutomationTriggeredEvent {
         if !self.modified_by_user_id.is_empty() {
             struct_ser.serialize_field("modifiedByUserId", &self.modified_by_user_id)?;
         }
+        if let Some(v) = self.report_id.as_ref() {
+            struct_ser.serialize_field("reportId", v)?;
+        }
+        if let Some(v) = self.scheduled_for.as_ref() {
+            struct_ser.serialize_field("scheduledFor", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -1290,6 +1485,10 @@ impl<'de> serde::Deserialize<'de> for AutomationTriggeredEvent {
             "createdByUserId",
             "modified_by_user_id",
             "modifiedByUserId",
+            "report_id",
+            "reportId",
+            "scheduled_for",
+            "scheduledFor",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1308,6 +1507,8 @@ impl<'de> serde::Deserialize<'de> for AutomationTriggeredEvent {
             ModifiedDate,
             CreatedByUserId,
             ModifiedByUserId,
+            ReportId,
+            ScheduledFor,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1343,6 +1544,8 @@ impl<'de> serde::Deserialize<'de> for AutomationTriggeredEvent {
                             "modifiedDate" | "modified_date" => Ok(GeneratedField::ModifiedDate),
                             "createdByUserId" | "created_by_user_id" => Ok(GeneratedField::CreatedByUserId),
                             "modifiedByUserId" | "modified_by_user_id" => Ok(GeneratedField::ModifiedByUserId),
+                            "reportId" | "report_id" => Ok(GeneratedField::ReportId),
+                            "scheduledFor" | "scheduled_for" => Ok(GeneratedField::ScheduledFor),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1376,6 +1579,8 @@ impl<'de> serde::Deserialize<'de> for AutomationTriggeredEvent {
                 let mut modified_date__ = None;
                 let mut created_by_user_id__ = None;
                 let mut modified_by_user_id__ = None;
+                let mut report_id__ = None;
+                let mut scheduled_for__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::AutomationTriggeredEventId => {
@@ -1464,6 +1669,18 @@ impl<'de> serde::Deserialize<'de> for AutomationTriggeredEvent {
                             }
                             modified_by_user_id__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::ReportId => {
+                            if report_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("reportId"));
+                            }
+                            report_id__ = map_.next_value()?;
+                        }
+                        GeneratedField::ScheduledFor => {
+                            if scheduled_for__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("scheduledFor"));
+                            }
+                            scheduled_for__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(AutomationTriggeredEvent {
@@ -1481,6 +1698,8 @@ impl<'de> serde::Deserialize<'de> for AutomationTriggeredEvent {
                     modified_date: modified_date__,
                     created_by_user_id: created_by_user_id__.unwrap_or_default(),
                     modified_by_user_id: modified_by_user_id__.unwrap_or_default(),
+                    report_id: report_id__,
+                    scheduled_for: scheduled_for__,
                 })
             }
         }
@@ -1714,6 +1933,18 @@ impl serde::Serialize for CreateAutomationTriggerRequest {
         if !self.notification_recipient_emails.is_empty() {
             len += 1;
         }
+        if self.report_name_template.is_some() {
+            len += 1;
+        }
+        if self.trigger_kind != 0 {
+            len += 1;
+        }
+        if self.cron_expression.is_some() {
+            len += 1;
+        }
+        if self.timezone.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.automation.v1.CreateAutomationTriggerRequest", len)?;
         if !self.canvas_id.is_empty() {
             struct_ser.serialize_field("canvasId", &self.canvas_id)?;
@@ -1741,6 +1972,20 @@ impl serde::Serialize for CreateAutomationTriggerRequest {
         if !self.notification_recipient_emails.is_empty() {
             struct_ser.serialize_field("notificationRecipientEmails", &self.notification_recipient_emails)?;
         }
+        if let Some(v) = self.report_name_template.as_ref() {
+            struct_ser.serialize_field("reportNameTemplate", v)?;
+        }
+        if self.trigger_kind != 0 {
+            let v = AutomationTriggerKind::try_from(self.trigger_kind)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.trigger_kind)))?;
+            struct_ser.serialize_field("triggerKind", &v)?;
+        }
+        if let Some(v) = self.cron_expression.as_ref() {
+            struct_ser.serialize_field("cronExpression", v)?;
+        }
+        if let Some(v) = self.timezone.as_ref() {
+            struct_ser.serialize_field("timezone", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -1766,6 +2011,13 @@ impl<'de> serde::Deserialize<'de> for CreateAutomationTriggerRequest {
             "emailNotificationsEnabled",
             "notification_recipient_emails",
             "notificationRecipientEmails",
+            "report_name_template",
+            "reportNameTemplate",
+            "trigger_kind",
+            "triggerKind",
+            "cron_expression",
+            "cronExpression",
+            "timezone",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1778,6 +2030,10 @@ impl<'de> serde::Deserialize<'de> for CreateAutomationTriggerRequest {
             IsEnabled,
             EmailNotificationsEnabled,
             NotificationRecipientEmails,
+            ReportNameTemplate,
+            TriggerKind,
+            CronExpression,
+            Timezone,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1807,6 +2063,10 @@ impl<'de> serde::Deserialize<'de> for CreateAutomationTriggerRequest {
                             "isEnabled" | "is_enabled" => Ok(GeneratedField::IsEnabled),
                             "emailNotificationsEnabled" | "email_notifications_enabled" => Ok(GeneratedField::EmailNotificationsEnabled),
                             "notificationRecipientEmails" | "notification_recipient_emails" => Ok(GeneratedField::NotificationRecipientEmails),
+                            "reportNameTemplate" | "report_name_template" => Ok(GeneratedField::ReportNameTemplate),
+                            "triggerKind" | "trigger_kind" => Ok(GeneratedField::TriggerKind),
+                            "cronExpression" | "cron_expression" => Ok(GeneratedField::CronExpression),
+                            "timezone" => Ok(GeneratedField::Timezone),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1834,6 +2094,10 @@ impl<'de> serde::Deserialize<'de> for CreateAutomationTriggerRequest {
                 let mut is_enabled__ = None;
                 let mut email_notifications_enabled__ = None;
                 let mut notification_recipient_emails__ = None;
+                let mut report_name_template__ = None;
+                let mut trigger_kind__ = None;
+                let mut cron_expression__ = None;
+                let mut timezone__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::CanvasId => {
@@ -1884,6 +2148,30 @@ impl<'de> serde::Deserialize<'de> for CreateAutomationTriggerRequest {
                             }
                             notification_recipient_emails__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::ReportNameTemplate => {
+                            if report_name_template__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("reportNameTemplate"));
+                            }
+                            report_name_template__ = map_.next_value()?;
+                        }
+                        GeneratedField::TriggerKind => {
+                            if trigger_kind__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("triggerKind"));
+                            }
+                            trigger_kind__ = Some(map_.next_value::<AutomationTriggerKind>()? as i32);
+                        }
+                        GeneratedField::CronExpression => {
+                            if cron_expression__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("cronExpression"));
+                            }
+                            cron_expression__ = map_.next_value()?;
+                        }
+                        GeneratedField::Timezone => {
+                            if timezone__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("timezone"));
+                            }
+                            timezone__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(CreateAutomationTriggerRequest {
@@ -1895,6 +2183,10 @@ impl<'de> serde::Deserialize<'de> for CreateAutomationTriggerRequest {
                     is_enabled: is_enabled__,
                     email_notifications_enabled: email_notifications_enabled__,
                     notification_recipient_emails: notification_recipient_emails__.unwrap_or_default(),
+                    report_name_template: report_name_template__,
+                    trigger_kind: trigger_kind__.unwrap_or_default(),
+                    cron_expression: cron_expression__,
+                    timezone: timezone__,
                 })
             }
         }

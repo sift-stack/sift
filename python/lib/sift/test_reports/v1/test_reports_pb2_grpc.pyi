@@ -49,6 +49,27 @@ class TestReportServiceStub:
     ]
     """Updates a test report"""
 
+    BatchUpdateTestReports: grpc.UnaryUnaryMultiCallable[
+        sift.test_reports.v1.test_reports_pb2.BatchUpdateTestReportsRequest,
+        sift.test_reports.v1.test_reports_pb2.BatchUpdateTestReportsResponse,
+    ]
+    """Updates multiple test reports. Each request is applied independently.
+    Failures are returned in the response and do not abort the rest of the batch.
+    A maximum of 1000 reports can be updated in one call.
+    """
+
+    BatchArchiveTestReports: grpc.UnaryUnaryMultiCallable[
+        sift.test_reports.v1.test_reports_pb2.BatchArchiveTestReportsRequest,
+        sift.test_reports.v1.test_reports_pb2.BatchArchiveTestReportsResponse,
+    ]
+    """Archives multiple test reports. Failures are returned per report and do not abort the rest of the batch."""
+
+    BatchUnarchiveTestReports: grpc.UnaryUnaryMultiCallable[
+        sift.test_reports.v1.test_reports_pb2.BatchUnarchiveTestReportsRequest,
+        sift.test_reports.v1.test_reports_pb2.BatchUnarchiveTestReportsResponse,
+    ]
+    """Unarchives multiple test reports. Failures are returned per report and do not abort the rest of the batch."""
+
     DeleteTestReport: grpc.UnaryUnaryMultiCallable[
         sift.test_reports.v1.test_reports_pb2.DeleteTestReportRequest,
         sift.test_reports.v1.test_reports_pb2.DeleteTestReportResponse,
@@ -151,6 +172,27 @@ class TestReportServiceAsyncStub:
         sift.test_reports.v1.test_reports_pb2.UpdateTestReportResponse,
     ]
     """Updates a test report"""
+
+    BatchUpdateTestReports: grpc.aio.UnaryUnaryMultiCallable[
+        sift.test_reports.v1.test_reports_pb2.BatchUpdateTestReportsRequest,
+        sift.test_reports.v1.test_reports_pb2.BatchUpdateTestReportsResponse,
+    ]
+    """Updates multiple test reports. Each request is applied independently.
+    Failures are returned in the response and do not abort the rest of the batch.
+    A maximum of 1000 reports can be updated in one call.
+    """
+
+    BatchArchiveTestReports: grpc.aio.UnaryUnaryMultiCallable[
+        sift.test_reports.v1.test_reports_pb2.BatchArchiveTestReportsRequest,
+        sift.test_reports.v1.test_reports_pb2.BatchArchiveTestReportsResponse,
+    ]
+    """Archives multiple test reports. Failures are returned per report and do not abort the rest of the batch."""
+
+    BatchUnarchiveTestReports: grpc.aio.UnaryUnaryMultiCallable[
+        sift.test_reports.v1.test_reports_pb2.BatchUnarchiveTestReportsRequest,
+        sift.test_reports.v1.test_reports_pb2.BatchUnarchiveTestReportsResponse,
+    ]
+    """Unarchives multiple test reports. Failures are returned per report and do not abort the rest of the batch."""
 
     DeleteTestReport: grpc.aio.UnaryUnaryMultiCallable[
         sift.test_reports.v1.test_reports_pb2.DeleteTestReportRequest,
@@ -264,6 +306,33 @@ class TestReportServiceServicer(metaclass=abc.ABCMeta):
         context: _ServicerContext,
     ) -> typing.Union[sift.test_reports.v1.test_reports_pb2.UpdateTestReportResponse, collections.abc.Awaitable[sift.test_reports.v1.test_reports_pb2.UpdateTestReportResponse]]:
         """Updates a test report"""
+
+    @abc.abstractmethod
+    def BatchUpdateTestReports(
+        self,
+        request: sift.test_reports.v1.test_reports_pb2.BatchUpdateTestReportsRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.test_reports.v1.test_reports_pb2.BatchUpdateTestReportsResponse, collections.abc.Awaitable[sift.test_reports.v1.test_reports_pb2.BatchUpdateTestReportsResponse]]:
+        """Updates multiple test reports. Each request is applied independently.
+        Failures are returned in the response and do not abort the rest of the batch.
+        A maximum of 1000 reports can be updated in one call.
+        """
+
+    @abc.abstractmethod
+    def BatchArchiveTestReports(
+        self,
+        request: sift.test_reports.v1.test_reports_pb2.BatchArchiveTestReportsRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.test_reports.v1.test_reports_pb2.BatchArchiveTestReportsResponse, collections.abc.Awaitable[sift.test_reports.v1.test_reports_pb2.BatchArchiveTestReportsResponse]]:
+        """Archives multiple test reports. Failures are returned per report and do not abort the rest of the batch."""
+
+    @abc.abstractmethod
+    def BatchUnarchiveTestReports(
+        self,
+        request: sift.test_reports.v1.test_reports_pb2.BatchUnarchiveTestReportsRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.test_reports.v1.test_reports_pb2.BatchUnarchiveTestReportsResponse, collections.abc.Awaitable[sift.test_reports.v1.test_reports_pb2.BatchUnarchiveTestReportsResponse]]:
+        """Unarchives multiple test reports. Failures are returned per report and do not abort the rest of the batch."""
 
     @abc.abstractmethod
     def DeleteTestReport(

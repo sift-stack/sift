@@ -9,12 +9,9 @@ import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 
-// AutomationService manages Canvas Scheduler automation triggers. An
-// automation trigger fires when a producer (v1: RunService.StopRun)
-// observes a Run whose metadata matches the trigger's match filter; the
-// resulting automation_triggered_events row is dispatched by the
-// automation worker after a bounded wait, currently by calling
-// CanvasService.EvaluateCanvas.
+// AutomationService manages Canvas Scheduler triggers. A matching stopped
+// run or a due SCHEDULE fire enqueues an AutomationTriggeredEvent; the
+// worker dispatches it (v1: EvaluateCanvas).
 service AutomationService {
   // Retrieve an automation trigger by ID.
   rpc GetAutomationTrigger(GetAutomationTriggerRequest) returns (GetAutomationTriggerResponse) {
@@ -37,9 +34,8 @@ service AutomationService {
     };
   }
 
-  // Update select fields of an existing automation trigger. To enable or
-  // disable a trigger set the `is_enabled` field and include `is_enabled` in
-  // the update mask.
+  // Updates fields named in the update mask. Include `is_enabled` to enable
+  // or disable.
   rpc UpdateAutomationTrigger(UpdateAutomationTriggerRequest) returns (UpdateAutomationTriggerResponse) {
     option (google.api.http) = {
       patch: "/api/v1/automation-triggers"
@@ -60,10 +56,7 @@ service AutomationService {
     };
   }
 
-  // Delete an automation trigger. Soft-delete: sets `archived_date` and hides
-  // the trigger from further producer matches. Historical
-  // `automation_triggered_events` rows survive for the retention window so
-  // past dispatches can still be inspected.
+  // Soft-deletes the trigger (sets `archived_date`). History rows stay.
   rpc DeleteAutomationTrigger(DeleteAutomationTriggerRequest) returns (DeleteAutomationTriggerResponse) {
     option (google.api.http) = {delete: "/api/v1/automation-triggers/{automation_trigger_id}"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -72,9 +65,9 @@ service AutomationService {
     };
   }
 
-  // Retrieve and optionally filter a list of automation triggered events
-  // (per-trigger dispatch history). Filter by `automation_trigger_id` to
-  // power the canvas trigger history sidebar.
+  // Lists dispatch history. Filter by `automation_trigger_id` or `state`.
+  // Match/config failures write one FAILED row per trigger; later repeats
+  // are logged only. Dispatch failures set `last_error` on that event.
   rpc ListAutomationTriggeredEvents(ListAutomationTriggeredEventsRequest) returns (ListAutomationTriggeredEventsResponse) {
     option (google.api.http) = {get: "/api/v1/automation-triggered-events"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -84,13 +77,21 @@ service AutomationService {
   }
 }
 
-// AutomationTriggerActionKind is what an automation trigger does when it fires.
-// v1 supports `AUTOMATION_TRIGGER_ACTION_KIND_CANVAS_EVALUATION` only; the
-// enum is kept so future dispatch types (webhook, email, ...) can be added
-// without a breaking change.
+// AutomationTriggerActionKind is what a trigger does when it fires. v1 is
+// CANVAS_EVALUATION only.
 enum AutomationTriggerActionKind {
   AUTOMATION_TRIGGER_ACTION_KIND_UNSPECIFIED = 0;
   AUTOMATION_TRIGGER_ACTION_KIND_CANVAS_EVALUATION = 1;
+}
+
+// AutomationTriggerKind is the source that causes a trigger to fire.
+enum AutomationTriggerKind {
+  AUTOMATION_TRIGGER_KIND_UNSPECIFIED = 0;
+  // Fire after a matching run stops.
+  AUTOMATION_TRIGGER_KIND_RUN_STOP = 1;
+  // Fire on a recurring cron cadence in an IANA timezone.
+  AUTOMATION_TRIGGER_KIND_SCHEDULE = 2;
+  // Reserved. Create/Update reject this value.
 }
 
 // AutomationTriggerRunNameMatchKind is the operator on runs.name in an
@@ -109,33 +110,26 @@ message AutomationTriggerRunNameMatch {
   string value = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
-// AutomationTriggerMetadataMatch is an equality filter against a run's
-// entity-metadata key/value. Key names are case-sensitive. Values are
-// compared as strings (numbers/booleans are stringified with Go's default
-// formatting). All listed matches are AND'd together.
+// AutomationTriggerMetadataMatch is an equality filter on run entity-metadata.
+// Keys are case-sensitive; values compare as Go-stringified strings. Listed
+// matches are AND'd.
 message AutomationTriggerMetadataMatch {
   string key = 1 [(google.api.field_behavior) = REQUIRED];
   string value = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
-// AutomationTriggerMatchFilter is the selector evaluated asynchronously
-// after StopRun. StopRun inserts an automation_source_event (RUN_STOP); the
-// automation_worker then pages through the org's enabled, non-archived
-// automation_triggers and enqueues a row for each trigger whose
-// match_filter accepts the run (the trigger's canvas_id identifies which
-// canvas to evaluate later — runs themselves have no canvas association).
-// Empty asset_ids matches any asset; absent name_match matches any name;
-// empty metadata_matches matches any metadata. Dimensions are AND'd.
-// Name matching for STARTS_WITH / ENDS_WITH / CONTAINS is case-insensitive;
-// REGEX uses Go regexp semantics (add (?i) for case-insensitive patterns).
+// AutomationTriggerMatchFilter selects which stopped runs a trigger matches.
+// Empty asset_ids, absent name_match, and empty metadata_matches each match
+// any value. Dimensions are AND'd. STARTS_WITH / ENDS_WITH / CONTAINS are
+// case-insensitive; REGEX is Go regexp (add (?i) for case-insensitive).
 message AutomationTriggerMatchFilter {
   repeated string asset_ids = 1;
   optional AutomationTriggerRunNameMatch name_match = 2 [(google.api.field_behavior) = OPTIONAL];
   repeated AutomationTriggerMetadataMatch metadata_matches = 3 [(google.api.field_behavior) = OPTIONAL];
 }
 
-// AutomationTriggerParamSource is a wildcard resolved against the triggering
-// run when the match job builds action_params_snapshot.
+// AutomationTriggerParamSource is a wildcard resolved from the triggering
+// run into action_params_snapshot.
 enum AutomationTriggerParamSource {
   AUTOMATION_TRIGGER_PARAM_SOURCE_UNSPECIFIED = 0;
   // Resolves to the triggering run's run_id (string).
@@ -145,8 +139,7 @@ enum AutomationTriggerParamSource {
 }
 
 // AutomationTriggerParamValue is one canvas param: a JSON literal or a
-// run-scoped wildcard source. Prefer this over ad-hoc `{"source":"..."}`
-// objects in a free-form Struct.
+// run-scoped source.
 message AutomationTriggerParamValue {
   oneof value {
     google.protobuf.Value literal = 1;
@@ -154,43 +147,39 @@ message AutomationTriggerParamValue {
   }
 }
 
-// CanvasEvaluationActionParams is the typed template for
-// AUTOMATION_TRIGGER_ACTION_KIND_CANVAS_EVALUATION. Wildcards in param_json
-// are resolved into automation_triggered_events.action_params_snapshot;
-// the automation worker pass-throughs that snapshot to EvaluateCanvas.
+// CanvasEvaluationActionParams is the CANVAS_EVALUATION template. Wildcards
+// in param_json resolve into the triggered event's action_params_snapshot
+// for EvaluateCanvas.
 message CanvasEvaluationActionParams {
   string canvas_version_id = 1 [(google.api.field_behavior) = REQUIRED];
   map<string, AutomationTriggerParamValue> param_json = 2 [(google.api.field_behavior) = OPTIONAL];
 }
 
-// AutomationTriggerActionParams is the public action_params shape. oneof by
-// action kind so future dispatch types (webhook, email, ...) don't fall back
-// to google.protobuf.Struct.
+// AutomationTriggerActionParams is the public action_params shape, oneof by
+// action kind.
 message AutomationTriggerActionParams {
   oneof kind {
     CanvasEvaluationActionParams canvas_evaluation = 1;
   }
 }
 
+// AutomationTrigger is a Canvas Scheduler rule: match a stopped run or fire
+// on a cron cadence, then dispatch (v1: EvaluateCanvas).
 message AutomationTrigger {
   string automation_trigger_id = 1 [(google.api.field_behavior) = REQUIRED];
   string organization_id = 2 [(google.api.field_behavior) = REQUIRED];
   string canvas_id = 3 [(google.api.field_behavior) = REQUIRED];
   string name = 4 [(google.api.field_behavior) = REQUIRED];
-  AutomationTriggerMatchFilter match_filter = 5 [(google.api.field_behavior) = REQUIRED];
+  // Empty for SCHEDULE triggers (run match does not apply).
+  AutomationTriggerMatchFilter match_filter = 5 [(google.api.field_behavior) = OPTIONAL];
 
-  // Impersonation user materialized at create time. Recheck happens at
-  // dispatch when the automation worker impersonates this user for the
-  // EvaluateCanvas call.
+  // User the worker impersonates for EvaluateCanvas.
   string user_id = 6 [(google.api.field_behavior) = REQUIRED];
 
   AutomationTriggerActionKind action_kind = 7 [(google.api.field_behavior) = REQUIRED];
 
-  // Typed template action params. Must agree with `action_kind` (e.g.
-  // CANVAS_EVALUATION requires `action_params.canvas_evaluation`). The match
-  // job resolves wildcards into
-  // automation_triggered_events.action_params_snapshot; the automation
-  // worker pass-throughs that snapshot to EvaluateCanvas.
+  // Must match `action_kind`. Wildcards resolve at match time into the
+  // triggered event snapshot.
   AutomationTriggerActionParams action_params = 8 [(google.api.field_behavior) = OPTIONAL];
 
   bool is_enabled = 9 [(google.api.field_behavior) = REQUIRED];
@@ -202,15 +191,38 @@ message AutomationTrigger {
   string created_by_user_id = 14 [(google.api.field_behavior) = REQUIRED];
   string modified_by_user_id = 15 [(google.api.field_behavior) = REQUIRED];
 
-  // When true, dispatches also send an email to notification_recipient_emails.
-  // The in-app notification to the trigger's creator is always created.
-  // Defaults to true.
+  // If true, also emails `notification_recipient_emails`. The in-app
+  // notification to the creator is always created. Defaults to true.
   bool email_notifications_enabled = 16 [(google.api.field_behavior) = REQUIRED];
 
-  // Addresses emailed when this trigger dispatches. Plain addresses rather
-  // than user ids, so reports can reach shared inboxes, ticket bots and
-  // distribution lists. Empty falls back to the creator's address.
+  // Dispatch email recipients. Empty uses the creator's address.
   repeated string notification_recipient_emails = 17 [(google.api.field_behavior) = REQUIRED];
+
+  // Names the reports this automation publishes, overriding the canvas
+  // version's template for its dispatches only. Unset means the canvas
+  // version's template names them. When that is unset, the triggering run
+  // is used to name the reports.
+  //
+  // Braces mark a placeholder. Supported placeholders are `{canvas_name}`,
+  // `{version_number}`, and `{parameter.<param name>}`.
+  optional string report_name_template = 18 [(google.api.field_behavior) = OPTIONAL];
+
+  // Unspecified is treated as RUN_STOP.
+  AutomationTriggerKind trigger_kind = 19 [(google.api.field_behavior) = REQUIRED];
+
+  // 5-field Vixie cron (minute hour day-of-month month day-of-week).
+  // Required for SCHEDULE; unset for RUN_STOP.
+  optional string cron_expression = 20 [(google.api.field_behavior) = OPTIONAL];
+
+  // IANA timezone for cron_expression (for example America/Los_Angeles).
+  // Required for SCHEDULE; unset for RUN_STOP.
+  optional string timezone = 21 [(google.api.field_behavior) = OPTIONAL];
+
+  // Next UTC fire. Server-computed. Set on SCHEDULE only.
+  optional google.protobuf.Timestamp next_fire_at = 22 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // UTC fire most recently enqueued. Unset until the first TickDue.
+  optional google.protobuf.Timestamp last_fire_at = 23 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // The request for a call to `AutomationService_GetAutomationTrigger`.
@@ -227,7 +239,7 @@ message GetAutomationTriggerResponse {
 message CreateAutomationTriggerRequest {
   string canvas_id = 1 [(google.api.field_behavior) = REQUIRED];
   string name = 2 [(google.api.field_behavior) = REQUIRED];
-  AutomationTriggerMatchFilter match_filter = 3 [(google.api.field_behavior) = REQUIRED];
+  AutomationTriggerMatchFilter match_filter = 3 [(google.api.field_behavior) = OPTIONAL];
   AutomationTriggerActionKind action_kind = 4 [(google.api.field_behavior) = REQUIRED];
   AutomationTriggerActionParams action_params = 5 [(google.api.field_behavior) = OPTIONAL];
   optional bool is_enabled = 6 [(google.api.field_behavior) = OPTIONAL];
@@ -235,6 +247,18 @@ message CreateAutomationTriggerRequest {
   optional bool email_notifications_enabled = 7 [(google.api.field_behavior) = OPTIONAL];
   // Defaults to the creating user's address when empty.
   repeated string notification_recipient_emails = 8 [(google.api.field_behavior) = OPTIONAL];
+  // Names the reports this automation publishes, stored on the trigger. Omit
+  // it to let the server apply the run-aware default: when the trigger binds a
+  // triggering run and the canvas has no template of its own, the new trigger
+  // is given one naming its reports after that run. See
+  // `sift_internal.canvas.v1.Canvas.report_name_template` for the syntax.
+  optional string report_name_template = 9 [(google.api.field_behavior) = OPTIONAL];
+  // Unspecified is treated as RUN_STOP.
+  AutomationTriggerKind trigger_kind = 10 [(google.api.field_behavior) = OPTIONAL];
+  // Required when trigger_kind is SCHEDULE.
+  optional string cron_expression = 11 [(google.api.field_behavior) = OPTIONAL];
+  // IANA timezone. Required when trigger_kind is SCHEDULE.
+  optional string timezone = 12 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // The response of a call to `AutomationService_CreateAutomationTrigger`.
@@ -243,8 +267,8 @@ message CreateAutomationTriggerResponse {
 }
 
 // The request for a call to `AutomationService_UpdateAutomationTrigger`.
-// The trigger's `automation_trigger_id` is used to identify the row; every
-// other field is applied only when named in `update_mask`.
+// Fields apply only when named in `update_mask`. Archive by setting
+// `archived_date` in the mask; unarchive by clearing it.
 message UpdateAutomationTriggerRequest {
   AutomationTrigger automation_trigger = 1 [(google.api.field_behavior) = REQUIRED];
 
@@ -252,8 +276,6 @@ message UpdateAutomationTriggerRequest {
 }
 
 // The response of a call to `AutomationService_UpdateAutomationTrigger`.
-// To archive a trigger, include `archived_date` in the mask and set the
-// field. To unarchive, include `archived_date` in the mask and clear it.
 message UpdateAutomationTriggerResponse {
   AutomationTrigger automation_trigger = 1 [(google.api.field_behavior) = REQUIRED];
 }
@@ -264,11 +286,12 @@ message ListAutomationTriggersRequest {
   string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
 
   // CEL filter. Available fields: `automation_trigger_id`, `canvas_id`,
-  // `name`, `action_kind`, `is_enabled`, `is_archived`, `archived_date`.
+  // `name`, `action_kind`, `trigger_kind`, `is_enabled`, `is_archived`,
+  // `archived_date`.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
 
-  // Order-by. Available fields: `created_date`, `modified_date`, `name`.
-  // Default: `created_date desc`.
+  // Order-by. Available fields: `created_date`, `modified_date`, `name`,
+  // `next_fire_at`. Default: `created_date desc`.
   string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
 }
 
@@ -279,7 +302,6 @@ message ListAutomationTriggersResponse {
 }
 
 // The request for a call to `AutomationService_DeleteAutomationTrigger`.
-// Soft-deletes by setting archived_date.
 message DeleteAutomationTriggerRequest {
   string automation_trigger_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
@@ -287,8 +309,8 @@ message DeleteAutomationTriggerRequest {
 // The response of a call to `AutomationService_DeleteAutomationTrigger`.
 message DeleteAutomationTriggerResponse {}
 
-// AutomationTriggeredEventState is the lifecycle of a single
-// (automation_trigger, run) match / dispatch attempt.
+// AutomationTriggeredEventState is the lifecycle of one (trigger, run)
+// dispatch. DISPATCHING and CANCELLED are reserved and unused.
 enum AutomationTriggeredEventState {
   AUTOMATION_TRIGGERED_EVENT_STATE_UNSPECIFIED = 0;
   AUTOMATION_TRIGGERED_EVENT_STATE_WAITING = 1;
@@ -298,14 +320,15 @@ enum AutomationTriggeredEventState {
   AUTOMATION_TRIGGERED_EVENT_STATE_CANCELLED = 5;
 }
 
-// AutomationTriggeredEvent is one (automation_trigger, run) match. When
-// dispatch succeeds, `canvas_execution_id` points at the resulting
-// canvas_executions row (and published report, when publish=true).
+// AutomationTriggeredEvent is one (trigger, run) dispatch.
+// `canvas_execution_id` and `report_id` are set when dispatch published
+// an execution or report.
 message AutomationTriggeredEvent {
   string automation_triggered_event_id = 1 [(google.api.field_behavior) = REQUIRED];
   string organization_id = 2 [(google.api.field_behavior) = REQUIRED];
   string automation_trigger_id = 3 [(google.api.field_behavior) = REQUIRED];
-  string run_id = 4 [(google.api.field_behavior) = REQUIRED];
+  // Empty on SCHEDULE fires. Not proto3 optional: that would move field 4 into a oneof.
+  string run_id = 4 [(google.api.field_behavior) = OPTIONAL];
   AutomationTriggeredEventState state = 5 [(google.api.field_behavior) = REQUIRED];
   google.protobuf.Timestamp dispatch_after = 6 [(google.api.field_behavior) = REQUIRED];
   optional string canvas_execution_id = 7 [(google.api.field_behavior) = OPTIONAL];
@@ -316,6 +339,11 @@ message AutomationTriggeredEvent {
   google.protobuf.Timestamp modified_date = 12 [(google.api.field_behavior) = REQUIRED];
   string created_by_user_id = 13 [(google.api.field_behavior) = REQUIRED];
   string modified_by_user_id = 14 [(google.api.field_behavior) = REQUIRED];
+  // Published report for the dispatched execution. Unset when dispatch did
+  // not publish.
+  optional string report_id = 15 [(google.api.field_behavior) = OPTIONAL];
+  // Scheduled fire this row represents. Set on SCHEDULE only.
+  optional google.protobuf.Timestamp scheduled_for = 16 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // The request for a call to `AutomationService_ListAutomationTriggeredEvents`.
@@ -324,7 +352,7 @@ message ListAutomationTriggeredEventsRequest {
   string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
 
   // CEL filter. Available fields: `automation_triggered_event_id`,
-  // `automation_trigger_id`, `run_id`, `state`.
+  // `automation_trigger_id`, `automation_trigger_name`, `run_id`, `run_name`, `state`.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
 
   // Order-by. Available fields: `created_date`, `dispatch_after`.

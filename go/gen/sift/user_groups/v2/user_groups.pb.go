@@ -34,8 +34,9 @@ type UserGroup struct {
 	RoleId      string              `protobuf:"bytes,3,opt,name=role_id,json=roleId,proto3" json:"role_id,omitempty"`
 	IsDefault   bool                `protobuf:"varint,4,opt,name=is_default,json=isDefault,proto3" json:"is_default,omitempty"`
 	Resources   *UserGroup_Resource `protobuf:"bytes,6,opt,name=resources,proto3" json:"resources,omitempty"`
-	UserIds     []string            `protobuf:"bytes,7,rep,name=user_ids,json=userIds,proto3" json:"user_ids,omitempty"`
-	IsExternal  bool                `protobuf:"varint,8,opt,name=is_external,json=isExternal,proto3" json:"is_external,omitempty"`
+	// Member ids for this group. Each id is an actor: a user or a service account.
+	UserIds    []string `protobuf:"bytes,7,rep,name=user_ids,json=userIds,proto3" json:"user_ids,omitempty"`
+	IsExternal bool     `protobuf:"varint,8,opt,name=is_external,json=isExternal,proto3" json:"is_external,omitempty"`
 }
 
 func (x *UserGroup) Reset() {
@@ -363,6 +364,7 @@ type UpdateUserUserGroupsRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// Actor whose groups to replace. A user id or a service account id.
 	UserId       string   `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	UserGroupIds []string `protobuf:"bytes,2,rep,name=user_group_ids,json=userGroupIds,proto3" json:"user_group_ids,omitempty"`
 }
@@ -552,6 +554,7 @@ type UpdateUserGroupRequest struct {
 
 	UserGroup *UserGroup `protobuf:"bytes,1,opt,name=user_group,json=userGroup,proto3" json:"user_group,omitempty"`
 	// The list of fields to update.
+	// `users` replaces `user_group.user_ids`. Those ids are actors: users or service accounts.
 	UpdateMask *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 }
 
@@ -739,7 +742,8 @@ type AddUserToUserGroupRequest struct {
 	unknownFields protoimpl.UnknownFields
 
 	UserGroupId string `protobuf:"bytes,1,opt,name=user_group_id,json=userGroupId,proto3" json:"user_group_id,omitempty"`
-	UserId      string `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	// Actor to add. A user id or a service account id.
+	UserId string `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 }
 
 func (x *AddUserToUserGroupRequest) Reset() {
@@ -832,7 +836,8 @@ type RemoveUserFromUserGroupRequest struct {
 	unknownFields protoimpl.UnknownFields
 
 	UserGroupId string `protobuf:"bytes,1,opt,name=user_group_id,json=userGroupId,proto3" json:"user_group_id,omitempty"`
-	UserId      string `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	// Actor to remove. A user id or a service account id.
+	UserId string `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 }
 
 func (x *RemoveUserFromUserGroupRequest) Reset() {
