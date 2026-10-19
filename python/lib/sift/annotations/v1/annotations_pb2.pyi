@@ -263,7 +263,8 @@ global___AnnotationLinkedChannel = AnnotationLinkedChannel
 @typing.final
 class CreateAnnotationRequest(google.protobuf.message.Message):
     """The request for a call to `AnnotationService_CreateAnnotation` to create a new annotation.
-    At least 1 asset, tag, or channel must be specified.
+    At least one of `run_id`, `assets`, or `linked_channels` must be specified.
+    Tags are label metadata and do not satisfy this association requirement.
     """
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
@@ -326,7 +327,9 @@ class CreateAnnotationRequest(google.protobuf.message.Message):
 
     @property
     def tags(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
-        """The names of the tags to associate with this annotation."""
+        """The names of the tags to apply as label metadata. Tags do not satisfy the
+        run/asset/channel association requirement.
+        """
 
     @property
     def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]:
@@ -508,6 +511,8 @@ class ListAnnotationsRequest(google.protobuf.message.Message):
     Available fields to filter by are `annotation_id`, `start_time`, `end_time`,
     `created_date`, `modified_date`, `run_id`, `name`, `description`, `state`, `created_by_user_id`, `created_by_rule_condition_version_id`, `rule_id`,
     `annotation_type`, `tag_name`, `report_id`, `asset_id`, `asset_name`, `pending`, `assignee`, `campaign_reports`, `metadata`, `archived_date`, and `is_archived`.
+    Metadata can be used in filters by using `metadata["<key name>"]` as the field name,
+    e.g. `metadata["severity"] == "high"`. The dot form `metadata.<key name>` is not supported.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     """
     organization_id: builtins.str
@@ -569,7 +574,8 @@ class UpdateAnnotationRequest(google.protobuf.message.Message):
     @property
     def update_mask(self) -> google.protobuf.field_mask_pb2.FieldMask:
         """The list of fields to be updated. The fields available to be updated are `name`, `description`, `start_time`,
-        `end_time`, `assigned_to_user_id`, `state`, `tags`, `legend_config`, `linked_channels`, and `metadata`.
+        `end_time`, `assigned_to_user_id`, `state`, `tags`, `legend_config`, `linked_channels`, `metadata`, and `is_archived`.
+        Prefer the ArchiveAnnotation, UnarchiveAnnotation, and batch RPCs for changing archive state.
         Important Note: if `tags` is specified in the update mask and `annotation.tags` is an empty list then all associated tags on the annotation
         will be removed.
         """

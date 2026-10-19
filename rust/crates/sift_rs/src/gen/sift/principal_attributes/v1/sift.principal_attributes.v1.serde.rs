@@ -189,7 +189,7 @@ impl<'de> serde::Deserialize<'de> for ArchivePrincipalAttributeEnumValueResponse
                             if principal_attribute_values_migrated__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("principalAttributeValuesMigrated"));
                             }
-                            principal_attribute_values_migrated__ = 
+                            principal_attribute_values_migrated__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -831,7 +831,7 @@ impl<'de> serde::Deserialize<'de> for BatchArchivePrincipalAttributeEnumValuesRe
                             if total_principal_attribute_values_migrated__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("totalPrincipalAttributeValuesMigrated"));
                             }
-                            total_principal_attribute_values_migrated__ = 
+                            total_principal_attribute_values_migrated__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1400,6 +1400,9 @@ impl serde::Serialize for CheckPrincipalAttributeKeyArchiveImpactResponse {
         if self.active_user_group_principal_attribute_value_count != 0 {
             len += 1;
         }
+        if self.active_service_account_principal_attribute_value_count != 0 {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.principal_attributes.v1.CheckPrincipalAttributeKeyArchiveImpactResponse", len)?;
         if self.active_user_principal_attribute_value_count != 0 {
             #[allow(clippy::needless_borrow)]
@@ -1410,6 +1413,11 @@ impl serde::Serialize for CheckPrincipalAttributeKeyArchiveImpactResponse {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("activeUserGroupPrincipalAttributeValueCount", ToString::to_string(&self.active_user_group_principal_attribute_value_count).as_str())?;
+        }
+        if self.active_service_account_principal_attribute_value_count != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("activeServiceAccountPrincipalAttributeValueCount", ToString::to_string(&self.active_service_account_principal_attribute_value_count).as_str())?;
         }
         struct_ser.end()
     }
@@ -1425,12 +1433,15 @@ impl<'de> serde::Deserialize<'de> for CheckPrincipalAttributeKeyArchiveImpactRes
             "activeUserPrincipalAttributeValueCount",
             "active_user_group_principal_attribute_value_count",
             "activeUserGroupPrincipalAttributeValueCount",
+            "active_service_account_principal_attribute_value_count",
+            "activeServiceAccountPrincipalAttributeValueCount",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             ActiveUserPrincipalAttributeValueCount,
             ActiveUserGroupPrincipalAttributeValueCount,
+            ActiveServiceAccountPrincipalAttributeValueCount,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1454,6 +1465,7 @@ impl<'de> serde::Deserialize<'de> for CheckPrincipalAttributeKeyArchiveImpactRes
                         match value {
                             "activeUserPrincipalAttributeValueCount" | "active_user_principal_attribute_value_count" => Ok(GeneratedField::ActiveUserPrincipalAttributeValueCount),
                             "activeUserGroupPrincipalAttributeValueCount" | "active_user_group_principal_attribute_value_count" => Ok(GeneratedField::ActiveUserGroupPrincipalAttributeValueCount),
+                            "activeServiceAccountPrincipalAttributeValueCount" | "active_service_account_principal_attribute_value_count" => Ok(GeneratedField::ActiveServiceAccountPrincipalAttributeValueCount),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1475,13 +1487,14 @@ impl<'de> serde::Deserialize<'de> for CheckPrincipalAttributeKeyArchiveImpactRes
             {
                 let mut active_user_principal_attribute_value_count__ = None;
                 let mut active_user_group_principal_attribute_value_count__ = None;
+                let mut active_service_account_principal_attribute_value_count__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ActiveUserPrincipalAttributeValueCount => {
                             if active_user_principal_attribute_value_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("activeUserPrincipalAttributeValueCount"));
                             }
-                            active_user_principal_attribute_value_count__ = 
+                            active_user_principal_attribute_value_count__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1489,7 +1502,15 @@ impl<'de> serde::Deserialize<'de> for CheckPrincipalAttributeKeyArchiveImpactRes
                             if active_user_group_principal_attribute_value_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("activeUserGroupPrincipalAttributeValueCount"));
                             }
-                            active_user_group_principal_attribute_value_count__ = 
+                            active_user_group_principal_attribute_value_count__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::ActiveServiceAccountPrincipalAttributeValueCount => {
+                            if active_service_account_principal_attribute_value_count__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("activeServiceAccountPrincipalAttributeValueCount"));
+                            }
+                            active_service_account_principal_attribute_value_count__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1498,6 +1519,7 @@ impl<'de> serde::Deserialize<'de> for CheckPrincipalAttributeKeyArchiveImpactRes
                 Ok(CheckPrincipalAttributeKeyArchiveImpactResponse {
                     active_user_principal_attribute_value_count: active_user_principal_attribute_value_count__.unwrap_or_default(),
                     active_user_group_principal_attribute_value_count: active_user_group_principal_attribute_value_count__.unwrap_or_default(),
+                    active_service_account_principal_attribute_value_count: active_service_account_principal_attribute_value_count__.unwrap_or_default(),
                 })
             }
         }
@@ -2800,7 +2822,7 @@ impl<'de> serde::Deserialize<'de> for ListPrincipalAttributeEnumValuesRequest {
                             if page_size__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("pageSize"));
                             }
-                            page_size__ = 
+                            page_size__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -3112,7 +3134,7 @@ impl<'de> serde::Deserialize<'de> for ListPrincipalAttributeKeyValuesRequest {
                             if page_size__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("pageSize"));
                             }
-                            page_size__ = 
+                            page_size__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -3400,7 +3422,7 @@ impl<'de> serde::Deserialize<'de> for ListPrincipalAttributeKeysRequest {
                             if page_size__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("pageSize"));
                             }
-                            page_size__ = 
+                            page_size__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -3701,7 +3723,7 @@ impl<'de> serde::Deserialize<'de> for ListPrincipalAttributeValuesRequest {
                             if page_size__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("pageSize"));
                             }
-                            page_size__ = 
+                            page_size__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -4480,6 +4502,7 @@ impl serde::Serialize for PrincipalAttributePrincipalType {
             Self::Unspecified => "PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_UNSPECIFIED",
             Self::User => "PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER",
             Self::UserGroup => "PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER_GROUP",
+            Self::ServiceAccount => "PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_SERVICE_ACCOUNT",
         };
         serializer.serialize_str(variant)
     }
@@ -4494,6 +4517,7 @@ impl<'de> serde::Deserialize<'de> for PrincipalAttributePrincipalType {
             "PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_UNSPECIFIED",
             "PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER",
             "PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER_GROUP",
+            "PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_SERVICE_ACCOUNT",
         ];
 
         struct GeneratedVisitor;
@@ -4537,6 +4561,7 @@ impl<'de> serde::Deserialize<'de> for PrincipalAttributePrincipalType {
                     "PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_UNSPECIFIED" => Ok(PrincipalAttributePrincipalType::Unspecified),
                     "PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER" => Ok(PrincipalAttributePrincipalType::User),
                     "PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER_GROUP" => Ok(PrincipalAttributePrincipalType::UserGroup),
+                    "PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_SERVICE_ACCOUNT" => Ok(PrincipalAttributePrincipalType::ServiceAccount),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }

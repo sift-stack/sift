@@ -965,7 +965,7 @@ type ListCalculatedChannelsRequest struct {
 	// This field is only required if your user belongs to multiple organizations.
 	OrganizationId string `protobuf:"bytes,4,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
 	// How to order the retrieved calculated channels. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
-	// Available fields to order_by are `created_date`, `modified_date`, `name`, `description`, `units`, and `archived_date`.
+	// Available fields to order_by are `created_date` and `modified_date`.
 	// If left empty, items are ordered by `created_date` in descending order (newest-first).
 	// For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
 	// Example: "created_date desc,modified_date"
@@ -1250,8 +1250,8 @@ type ListCalculatedChannelVersionsRequest struct {
 	// This field is only required if your user belongs to multiple organizations.
 	OrganizationId string `protobuf:"bytes,6,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
 	// How to order the retrieved calculated channel versions. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
-	// Available fields to order_by are 'version', `created_date`, `modified_date`, `name`, `description`, `units`, and `archived_date`.
-	// If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+	// Available fields to order_by are `version`, `created_date`, and `modified_date`.
+	// If left empty, items are ordered by `version` in ascending order (oldest version first).
 	// For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
 	// Example: "created_date desc,modified_date".
 	OrderBy string `protobuf:"bytes,7,opt,name=order_by,json=orderBy,proto3" json:"order_by,omitempty"`

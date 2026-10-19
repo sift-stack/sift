@@ -184,6 +184,7 @@ func (m *CheckPrincipalAttributeKeyArchiveImpactResponse) CloneVT() *CheckPrinci
 	r := new(CheckPrincipalAttributeKeyArchiveImpactResponse)
 	r.ActiveUserPrincipalAttributeValueCount = m.ActiveUserPrincipalAttributeValueCount
 	r.ActiveUserGroupPrincipalAttributeValueCount = m.ActiveUserGroupPrincipalAttributeValueCount
+	r.ActiveServiceAccountPrincipalAttributeValueCount = m.ActiveServiceAccountPrincipalAttributeValueCount
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -1287,6 +1288,9 @@ func (this *CheckPrincipalAttributeKeyArchiveImpactResponse) EqualVT(that *Check
 		return false
 	}
 	if this.ActiveUserGroupPrincipalAttributeValueCount != that.ActiveUserGroupPrincipalAttributeValueCount {
+		return false
+	}
+	if this.ActiveServiceAccountPrincipalAttributeValueCount != that.ActiveServiceAccountPrincipalAttributeValueCount {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3801,6 +3805,11 @@ func (m *CheckPrincipalAttributeKeyArchiveImpactResponse) MarshalToSizedBufferVT
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ActiveServiceAccountPrincipalAttributeValueCount != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.ActiveServiceAccountPrincipalAttributeValueCount))
+		i--
+		dAtA[i] = 0x18
 	}
 	if m.ActiveUserGroupPrincipalAttributeValueCount != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.ActiveUserGroupPrincipalAttributeValueCount))
@@ -6426,6 +6435,11 @@ func (m *CheckPrincipalAttributeKeyArchiveImpactResponse) MarshalToSizedBufferVT
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.ActiveServiceAccountPrincipalAttributeValueCount != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.ActiveServiceAccountPrincipalAttributeValueCount))
+		i--
+		dAtA[i] = 0x18
+	}
 	if m.ActiveUserGroupPrincipalAttributeValueCount != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.ActiveUserGroupPrincipalAttributeValueCount))
 		i--
@@ -8801,6 +8815,9 @@ func (m *CheckPrincipalAttributeKeyArchiveImpactResponse) SizeVT() (n int) {
 	if m.ActiveUserGroupPrincipalAttributeValueCount != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.ActiveUserGroupPrincipalAttributeValueCount))
 	}
+	if m.ActiveServiceAccountPrincipalAttributeValueCount != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.ActiveServiceAccountPrincipalAttributeValueCount))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -10856,6 +10873,25 @@ func (m *CheckPrincipalAttributeKeyArchiveImpactResponse) UnmarshalVT(dAtA []byt
 				b := dAtA[iNdEx]
 				iNdEx++
 				m.ActiveUserGroupPrincipalAttributeValueCount |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ActiveServiceAccountPrincipalAttributeValueCount", wireType)
+			}
+			m.ActiveServiceAccountPrincipalAttributeValueCount = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ActiveServiceAccountPrincipalAttributeValueCount |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -17078,6 +17114,25 @@ func (m *CheckPrincipalAttributeKeyArchiveImpactResponse) UnmarshalVTUnsafe(dAtA
 				b := dAtA[iNdEx]
 				iNdEx++
 				m.ActiveUserGroupPrincipalAttributeValueCount |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ActiveServiceAccountPrincipalAttributeValueCount", wireType)
+			}
+			m.ActiveServiceAccountPrincipalAttributeValueCount = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ActiveServiceAccountPrincipalAttributeValueCount |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}

@@ -165,6 +165,10 @@ message Report {
   // matched by the `canvas_id` list filter. Resolve the canvas's display name by
   // listing canvases filtered on the ids collected from a page of reports.
   optional string canvas_id = 22 [(google.api.field_behavior) = OPTIONAL];
+  // For CANVAS reports, whether the linked execution was produced by an automation
+  // trigger (read-through from canvas_executions.automation_trigger_id being set).
+  // Unset for RULE_EVALUATION reports. Display only; there is no matching list filter.
+  optional bool is_automated = 23 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // ReportWithCumulativeSummary is a projection of `Report` that replaces the per-rule `summaries`
@@ -224,6 +228,10 @@ message ReportWithCumulativeSummary {
   // matched by the `canvas_id` list filter. Resolve the canvas's display name by
   // listing canvases filtered on the ids collected from a page of reports.
   optional string canvas_id = 21 [(google.api.field_behavior) = OPTIONAL];
+  // For CANVAS reports, whether the linked execution was produced by an automation
+  // trigger (read-through from canvas_executions.automation_trigger_id being set).
+  // Unset for RULE_EVALUATION reports. Display only; there is no matching list filter.
+  optional bool is_automated = 22 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message ReportRuleSummary {
@@ -246,6 +254,9 @@ message ReportRuleSummary {
   // Zero-based position of this rule line on the report. Copied from the report template rule's `display_order`, or from the
   // position of `rule_id` in `CreateReportRequestRuleIds.rule_ids` when creating from explicit rule IDs. Lower values run first.
   uint32 display_order = 17 [(google.api.field_behavior) = REQUIRED];
+  // Remapped Explore full_link for this rule's run. Set when the rule version has a
+  // linked saved exploration template. Used by the "View in Saved Exploration" redirect.
+  optional string explore_full_link = 18 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 message ReportTag {
@@ -430,6 +441,8 @@ message ListReportsRequest {
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, `report_type`, `canvas_id`, `is_archived`, `archived_date`, `created_date`,
   // `created_by_user_id`, `metadata`, `modified_date`, and `modified_by_user_id`.
+  // Metadata can be used in filters by using `metadata["<key name>"]` as the field name,
+  // e.g. `metadata["test_scenario"] == "nightly"`. The dot form `metadata.<key name>` is not supported.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
 
@@ -466,6 +479,8 @@ message ListReportsWithCumulativeSummaryRequest {
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, `report_type`, `canvas_id`, `is_archived`, `archived_date`, `created_date`,
   // `created_by_user_id`, `metadata`, `modified_date`, and `modified_by_user_id`.
+  // Metadata can be used in filters by using `metadata["<key name>"]` as the field name,
+  // e.g. `metadata["test_scenario"] == "nightly"`. The dot form `metadata.<key name>` is not supported.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
 

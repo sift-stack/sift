@@ -246,6 +246,101 @@ pub mod test_report_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        /** Updates multiple test reports. Each request is applied independently.
+ Failures are returned in the response and do not abort the rest of the batch.
+ A maximum of 1000 reports can be updated in one call.
+*/
+        pub async fn batch_update_test_reports(
+            &mut self,
+            request: impl tonic::IntoRequest<super::BatchUpdateTestReportsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BatchUpdateTestReportsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.test_reports.v1.TestReportService/BatchUpdateTestReports",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "sift.test_reports.v1.TestReportService",
+                        "BatchUpdateTestReports",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /** Archives multiple test reports. Failures are returned per report and do not abort the rest of the batch.
+*/
+        pub async fn batch_archive_test_reports(
+            &mut self,
+            request: impl tonic::IntoRequest<super::BatchArchiveTestReportsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BatchArchiveTestReportsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.test_reports.v1.TestReportService/BatchArchiveTestReports",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "sift.test_reports.v1.TestReportService",
+                        "BatchArchiveTestReports",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /** Unarchives multiple test reports. Failures are returned per report and do not abort the rest of the batch.
+*/
+        pub async fn batch_unarchive_test_reports(
+            &mut self,
+            request: impl tonic::IntoRequest<super::BatchUnarchiveTestReportsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BatchUnarchiveTestReportsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.test_reports.v1.TestReportService/BatchUnarchiveTestReports",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "sift.test_reports.v1.TestReportService",
+                        "BatchUnarchiveTestReports",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
         /** Deletes a test report
 */
         pub async fn delete_test_report(
@@ -370,6 +465,8 @@ pub mod test_report_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        /** Deletes a test step
+*/
         pub async fn delete_test_step(
             &mut self,
             request: impl tonic::IntoRequest<super::DeleteTestStepRequest>,
@@ -399,6 +496,8 @@ pub mod test_report_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        /** Creates a test measurement
+*/
         pub async fn create_test_measurement(
             &mut self,
             request: impl tonic::IntoRequest<super::CreateTestMeasurementRequest>,
@@ -662,6 +761,35 @@ pub mod test_report_service_server {
             tonic::Response<super::UpdateTestReportResponse>,
             tonic::Status,
         >;
+        /** Updates multiple test reports. Each request is applied independently.
+ Failures are returned in the response and do not abort the rest of the batch.
+ A maximum of 1000 reports can be updated in one call.
+*/
+        async fn batch_update_test_reports(
+            &self,
+            request: tonic::Request<super::BatchUpdateTestReportsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BatchUpdateTestReportsResponse>,
+            tonic::Status,
+        >;
+        /** Archives multiple test reports. Failures are returned per report and do not abort the rest of the batch.
+*/
+        async fn batch_archive_test_reports(
+            &self,
+            request: tonic::Request<super::BatchArchiveTestReportsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BatchArchiveTestReportsResponse>,
+            tonic::Status,
+        >;
+        /** Unarchives multiple test reports. Failures are returned per report and do not abort the rest of the batch.
+*/
+        async fn batch_unarchive_test_reports(
+            &self,
+            request: tonic::Request<super::BatchUnarchiveTestReportsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BatchUnarchiveTestReportsResponse>,
+            tonic::Status,
+        >;
         /** Deletes a test report
 */
         async fn delete_test_report(
@@ -698,6 +826,8 @@ pub mod test_report_service_server {
             tonic::Response<super::UpdateTestStepResponse>,
             tonic::Status,
         >;
+        /** Deletes a test step
+*/
         async fn delete_test_step(
             &self,
             request: tonic::Request<super::DeleteTestStepRequest>,
@@ -705,6 +835,8 @@ pub mod test_report_service_server {
             tonic::Response<super::DeleteTestStepResponse>,
             tonic::Status,
         >;
+        /** Creates a test measurement
+*/
         async fn create_test_measurement(
             &self,
             request: tonic::Request<super::CreateTestMeasurementRequest>,
@@ -1056,6 +1188,160 @@ pub mod test_report_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = UpdateTestReportSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.test_reports.v1.TestReportService/BatchUpdateTestReports" => {
+                    #[allow(non_camel_case_types)]
+                    struct BatchUpdateTestReportsSvc<T: TestReportService>(pub Arc<T>);
+                    impl<
+                        T: TestReportService,
+                    > tonic::server::UnaryService<super::BatchUpdateTestReportsRequest>
+                    for BatchUpdateTestReportsSvc<T> {
+                        type Response = super::BatchUpdateTestReportsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::BatchUpdateTestReportsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as TestReportService>::batch_update_test_reports(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = BatchUpdateTestReportsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.test_reports.v1.TestReportService/BatchArchiveTestReports" => {
+                    #[allow(non_camel_case_types)]
+                    struct BatchArchiveTestReportsSvc<T: TestReportService>(pub Arc<T>);
+                    impl<
+                        T: TestReportService,
+                    > tonic::server::UnaryService<super::BatchArchiveTestReportsRequest>
+                    for BatchArchiveTestReportsSvc<T> {
+                        type Response = super::BatchArchiveTestReportsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<
+                                super::BatchArchiveTestReportsRequest,
+                            >,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as TestReportService>::batch_archive_test_reports(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = BatchArchiveTestReportsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.test_reports.v1.TestReportService/BatchUnarchiveTestReports" => {
+                    #[allow(non_camel_case_types)]
+                    struct BatchUnarchiveTestReportsSvc<T: TestReportService>(
+                        pub Arc<T>,
+                    );
+                    impl<
+                        T: TestReportService,
+                    > tonic::server::UnaryService<
+                        super::BatchUnarchiveTestReportsRequest,
+                    > for BatchUnarchiveTestReportsSvc<T> {
+                        type Response = super::BatchUnarchiveTestReportsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<
+                                super::BatchUnarchiveTestReportsRequest,
+                            >,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as TestReportService>::batch_unarchive_test_reports(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = BatchUnarchiveTestReportsSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

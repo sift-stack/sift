@@ -52,6 +52,7 @@ class _PrincipalAttributePrincipalTypeEnumTypeWrapper(google.protobuf.internal.e
     PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_UNSPECIFIED: _PrincipalAttributePrincipalType.ValueType  # 0
     PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER: _PrincipalAttributePrincipalType.ValueType  # 1
     PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER_GROUP: _PrincipalAttributePrincipalType.ValueType  # 2
+    PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_SERVICE_ACCOUNT: _PrincipalAttributePrincipalType.ValueType  # 3
 
 class PrincipalAttributePrincipalType(_PrincipalAttributePrincipalType, metaclass=_PrincipalAttributePrincipalTypeEnumTypeWrapper):
     """PrincipalAttributePrincipalType enumerates the supported principal types for principal attribute values."""
@@ -59,6 +60,7 @@ class PrincipalAttributePrincipalType(_PrincipalAttributePrincipalType, metaclas
 PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_UNSPECIFIED: PrincipalAttributePrincipalType.ValueType  # 0
 PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER: PrincipalAttributePrincipalType.ValueType  # 1
 PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER_GROUP: PrincipalAttributePrincipalType.ValueType  # 2
+PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_SERVICE_ACCOUNT: PrincipalAttributePrincipalType.ValueType  # 3
 global___PrincipalAttributePrincipalType = PrincipalAttributePrincipalType
 
 @typing.final
@@ -253,21 +255,28 @@ class CheckPrincipalAttributeKeyArchiveImpactResponse(google.protobuf.message.Me
 
     ACTIVE_USER_PRINCIPAL_ATTRIBUTE_VALUE_COUNT_FIELD_NUMBER: builtins.int
     ACTIVE_USER_GROUP_PRINCIPAL_ATTRIBUTE_VALUE_COUNT_FIELD_NUMBER: builtins.int
+    ACTIVE_SERVICE_ACCOUNT_PRINCIPAL_ATTRIBUTE_VALUE_COUNT_FIELD_NUMBER: builtins.int
     active_user_principal_attribute_value_count: builtins.int
     """Non-archived user principal-attribute value rows for this key that will be archived with the key
     (same scope as ArchivePrincipalAttributeKeys; includes multiple rows per principal for SET_OF_ENUM).
+    Service account rows are counted separately.
     """
     active_user_group_principal_attribute_value_count: builtins.int
     """Non-archived user_group_attribute_values rows for this key. They are not archived by ArchivePrincipalAttributeKeys,
     but stop contributing to principal.groupAttributes once the key is archived (evaluation joins active keys only).
+    """
+    active_service_account_principal_attribute_value_count: builtins.int
+    """Non-archived service account principal-attribute value rows for this key. These live in user_attribute_values
+    and are archived with the key, same as user rows.
     """
     def __init__(
         self,
         *,
         active_user_principal_attribute_value_count: builtins.int = ...,
         active_user_group_principal_attribute_value_count: builtins.int = ...,
+        active_service_account_principal_attribute_value_count: builtins.int = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["active_user_group_principal_attribute_value_count", b"active_user_group_principal_attribute_value_count", "active_user_principal_attribute_value_count", b"active_user_principal_attribute_value_count"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["active_service_account_principal_attribute_value_count", b"active_service_account_principal_attribute_value_count", "active_user_group_principal_attribute_value_count", b"active_user_group_principal_attribute_value_count", "active_user_principal_attribute_value_count", b"active_user_principal_attribute_value_count"]) -> None: ...
 
 global___CheckPrincipalAttributeKeyArchiveImpactResponse = CheckPrincipalAttributeKeyArchiveImpactResponse
 

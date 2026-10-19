@@ -32,6 +32,7 @@ class _CanvasCellExecutionStatusEnumTypeWrapper(google.protobuf.internal.enum_ty
     CANVAS_CELL_EXECUTION_STATUS_SKIPPED: _CanvasCellExecutionStatus.ValueType  # 7
     CANVAS_CELL_EXECUTION_STATUS_OPEN: _CanvasCellExecutionStatus.ValueType  # 8
     CANVAS_CELL_EXECUTION_STATUS_MANUALLY_CANCELLED: _CanvasCellExecutionStatus.ValueType  # 9
+    CANVAS_CELL_EXECUTION_STATUS_IN_QUEUE: _CanvasCellExecutionStatus.ValueType  # 10
 
 class CanvasCellExecutionStatus(_CanvasCellExecutionStatus, metaclass=_CanvasCellExecutionStatusEnumTypeWrapper):
     """Status of a single canvas cell execution. Also used as the status of the
@@ -49,4 +50,5 @@ CANVAS_CELL_EXECUTION_STATUS_ERROR: CanvasCellExecutionStatus.ValueType  # 6
 CANVAS_CELL_EXECUTION_STATUS_SKIPPED: CanvasCellExecutionStatus.ValueType  # 7
 CANVAS_CELL_EXECUTION_STATUS_OPEN: CanvasCellExecutionStatus.ValueType  # 8
 CANVAS_CELL_EXECUTION_STATUS_MANUALLY_CANCELLED: CanvasCellExecutionStatus.ValueType  # 9
+CANVAS_CELL_EXECUTION_STATUS_IN_QUEUE: CanvasCellExecutionStatus.ValueType  # 10
 global___CanvasCellExecutionStatus = CanvasCellExecutionStatus

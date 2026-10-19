@@ -18,12 +18,9 @@ class _ServicerContext(grpc.ServicerContext, grpc.aio.ServicerContext):  # type:
     ...
 
 class AutomationServiceStub:
-    """AutomationService manages Canvas Scheduler automation triggers. An
-    automation trigger fires when a producer (v1: RunService.StopRun)
-    observes a Run whose metadata matches the trigger's match filter; the
-    resulting automation_triggered_events row is dispatched by the
-    automation worker after a bounded wait, currently by calling
-    CanvasService.EvaluateCanvas.
+    """AutomationService manages Canvas Scheduler triggers. A matching stopped
+    run or a due SCHEDULE fire enqueues an AutomationTriggeredEvent; the
+    worker dispatches it (v1: EvaluateCanvas).
     """
 
     def __init__(self, channel: typing.Union[grpc.Channel, grpc.aio.Channel]) -> None: ...
@@ -43,9 +40,8 @@ class AutomationServiceStub:
         sift.automation.v1.automation_pb2.UpdateAutomationTriggerRequest,
         sift.automation.v1.automation_pb2.UpdateAutomationTriggerResponse,
     ]
-    """Update select fields of an existing automation trigger. To enable or
-    disable a trigger set the `is_enabled` field and include `is_enabled` in
-    the update mask.
+    """Updates fields named in the update mask. Include `is_enabled` to enable
+    or disable.
     """
 
     ListAutomationTriggers: grpc.UnaryUnaryMultiCallable[
@@ -58,28 +54,21 @@ class AutomationServiceStub:
         sift.automation.v1.automation_pb2.DeleteAutomationTriggerRequest,
         sift.automation.v1.automation_pb2.DeleteAutomationTriggerResponse,
     ]
-    """Delete an automation trigger. Soft-delete: sets `archived_date` and hides
-    the trigger from further producer matches. Historical
-    `automation_triggered_events` rows survive for the retention window so
-    past dispatches can still be inspected.
-    """
+    """Soft-deletes the trigger (sets `archived_date`). History rows stay."""
 
     ListAutomationTriggeredEvents: grpc.UnaryUnaryMultiCallable[
         sift.automation.v1.automation_pb2.ListAutomationTriggeredEventsRequest,
         sift.automation.v1.automation_pb2.ListAutomationTriggeredEventsResponse,
     ]
-    """Retrieve and optionally filter a list of automation triggered events
-    (per-trigger dispatch history). Filter by `automation_trigger_id` to
-    power the canvas trigger history sidebar.
+    """Lists dispatch history. Filter by `automation_trigger_id` or `state`.
+    Match/config failures write one FAILED row per trigger; later repeats
+    are logged only. Dispatch failures set `last_error` on that event.
     """
 
 class AutomationServiceAsyncStub:
-    """AutomationService manages Canvas Scheduler automation triggers. An
-    automation trigger fires when a producer (v1: RunService.StopRun)
-    observes a Run whose metadata matches the trigger's match filter; the
-    resulting automation_triggered_events row is dispatched by the
-    automation worker after a bounded wait, currently by calling
-    CanvasService.EvaluateCanvas.
+    """AutomationService manages Canvas Scheduler triggers. A matching stopped
+    run or a due SCHEDULE fire enqueues an AutomationTriggeredEvent; the
+    worker dispatches it (v1: EvaluateCanvas).
     """
 
     GetAutomationTrigger: grpc.aio.UnaryUnaryMultiCallable[
@@ -98,9 +87,8 @@ class AutomationServiceAsyncStub:
         sift.automation.v1.automation_pb2.UpdateAutomationTriggerRequest,
         sift.automation.v1.automation_pb2.UpdateAutomationTriggerResponse,
     ]
-    """Update select fields of an existing automation trigger. To enable or
-    disable a trigger set the `is_enabled` field and include `is_enabled` in
-    the update mask.
+    """Updates fields named in the update mask. Include `is_enabled` to enable
+    or disable.
     """
 
     ListAutomationTriggers: grpc.aio.UnaryUnaryMultiCallable[
@@ -113,28 +101,21 @@ class AutomationServiceAsyncStub:
         sift.automation.v1.automation_pb2.DeleteAutomationTriggerRequest,
         sift.automation.v1.automation_pb2.DeleteAutomationTriggerResponse,
     ]
-    """Delete an automation trigger. Soft-delete: sets `archived_date` and hides
-    the trigger from further producer matches. Historical
-    `automation_triggered_events` rows survive for the retention window so
-    past dispatches can still be inspected.
-    """
+    """Soft-deletes the trigger (sets `archived_date`). History rows stay."""
 
     ListAutomationTriggeredEvents: grpc.aio.UnaryUnaryMultiCallable[
         sift.automation.v1.automation_pb2.ListAutomationTriggeredEventsRequest,
         sift.automation.v1.automation_pb2.ListAutomationTriggeredEventsResponse,
     ]
-    """Retrieve and optionally filter a list of automation triggered events
-    (per-trigger dispatch history). Filter by `automation_trigger_id` to
-    power the canvas trigger history sidebar.
+    """Lists dispatch history. Filter by `automation_trigger_id` or `state`.
+    Match/config failures write one FAILED row per trigger; later repeats
+    are logged only. Dispatch failures set `last_error` on that event.
     """
 
 class AutomationServiceServicer(metaclass=abc.ABCMeta):
-    """AutomationService manages Canvas Scheduler automation triggers. An
-    automation trigger fires when a producer (v1: RunService.StopRun)
-    observes a Run whose metadata matches the trigger's match filter; the
-    resulting automation_triggered_events row is dispatched by the
-    automation worker after a bounded wait, currently by calling
-    CanvasService.EvaluateCanvas.
+    """AutomationService manages Canvas Scheduler triggers. A matching stopped
+    run or a due SCHEDULE fire enqueues an AutomationTriggeredEvent; the
+    worker dispatches it (v1: EvaluateCanvas).
     """
 
     @abc.abstractmethod
@@ -159,9 +140,8 @@ class AutomationServiceServicer(metaclass=abc.ABCMeta):
         request: sift.automation.v1.automation_pb2.UpdateAutomationTriggerRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.automation.v1.automation_pb2.UpdateAutomationTriggerResponse, collections.abc.Awaitable[sift.automation.v1.automation_pb2.UpdateAutomationTriggerResponse]]:
-        """Update select fields of an existing automation trigger. To enable or
-        disable a trigger set the `is_enabled` field and include `is_enabled` in
-        the update mask.
+        """Updates fields named in the update mask. Include `is_enabled` to enable
+        or disable.
         """
 
     @abc.abstractmethod
@@ -178,11 +158,7 @@ class AutomationServiceServicer(metaclass=abc.ABCMeta):
         request: sift.automation.v1.automation_pb2.DeleteAutomationTriggerRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.automation.v1.automation_pb2.DeleteAutomationTriggerResponse, collections.abc.Awaitable[sift.automation.v1.automation_pb2.DeleteAutomationTriggerResponse]]:
-        """Delete an automation trigger. Soft-delete: sets `archived_date` and hides
-        the trigger from further producer matches. Historical
-        `automation_triggered_events` rows survive for the retention window so
-        past dispatches can still be inspected.
-        """
+        """Soft-deletes the trigger (sets `archived_date`). History rows stay."""
 
     @abc.abstractmethod
     def ListAutomationTriggeredEvents(
@@ -190,9 +166,9 @@ class AutomationServiceServicer(metaclass=abc.ABCMeta):
         request: sift.automation.v1.automation_pb2.ListAutomationTriggeredEventsRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.automation.v1.automation_pb2.ListAutomationTriggeredEventsResponse, collections.abc.Awaitable[sift.automation.v1.automation_pb2.ListAutomationTriggeredEventsResponse]]:
-        """Retrieve and optionally filter a list of automation triggered events
-        (per-trigger dispatch history). Filter by `automation_trigger_id` to
-        power the canvas trigger history sidebar.
+        """Lists dispatch history. Filter by `automation_trigger_id` or `state`.
+        Match/config failures write one FAILED row per trigger; later repeats
+        are logged only. Dispatch failures set `last_error` on that event.
         """
 
 def add_AutomationServiceServicer_to_server(servicer: AutomationServiceServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...

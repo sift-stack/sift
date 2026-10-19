@@ -209,10 +209,25 @@ func (m *AutomationTrigger) CloneVT() *AutomationTrigger {
 	r.CreatedByUserId = m.CreatedByUserId
 	r.ModifiedByUserId = m.ModifiedByUserId
 	r.EmailNotificationsEnabled = m.EmailNotificationsEnabled
+	r.TriggerKind = m.TriggerKind
+	r.NextFireAt = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.NextFireAt).CloneVT())
+	r.LastFireAt = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.LastFireAt).CloneVT())
 	if rhs := m.NotificationRecipientEmails; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
 		r.NotificationRecipientEmails = tmpContainer
+	}
+	if rhs := m.ReportNameTemplate; rhs != nil {
+		tmpVal := *rhs
+		r.ReportNameTemplate = &tmpVal
+	}
+	if rhs := m.CronExpression; rhs != nil {
+		tmpVal := *rhs
+		r.CronExpression = &tmpVal
+	}
+	if rhs := m.Timezone; rhs != nil {
+		tmpVal := *rhs
+		r.Timezone = &tmpVal
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -269,6 +284,7 @@ func (m *CreateAutomationTriggerRequest) CloneVT() *CreateAutomationTriggerReque
 	r.MatchFilter = m.MatchFilter.CloneVT()
 	r.ActionKind = m.ActionKind
 	r.ActionParams = m.ActionParams.CloneVT()
+	r.TriggerKind = m.TriggerKind
 	if rhs := m.IsEnabled; rhs != nil {
 		tmpVal := *rhs
 		r.IsEnabled = &tmpVal
@@ -281,6 +297,18 @@ func (m *CreateAutomationTriggerRequest) CloneVT() *CreateAutomationTriggerReque
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
 		r.NotificationRecipientEmails = tmpContainer
+	}
+	if rhs := m.ReportNameTemplate; rhs != nil {
+		tmpVal := *rhs
+		r.ReportNameTemplate = &tmpVal
+	}
+	if rhs := m.CronExpression; rhs != nil {
+		tmpVal := *rhs
+		r.CronExpression = &tmpVal
+	}
+	if rhs := m.Timezone; rhs != nil {
+		tmpVal := *rhs
+		r.Timezone = &tmpVal
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -439,6 +467,7 @@ func (m *AutomationTriggeredEvent) CloneVT() *AutomationTriggeredEvent {
 	r.ModifiedDate = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.ModifiedDate).CloneVT())
 	r.CreatedByUserId = m.CreatedByUserId
 	r.ModifiedByUserId = m.ModifiedByUserId
+	r.ScheduledFor = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.ScheduledFor).CloneVT())
 	if rhs := m.CanvasExecutionId; rhs != nil {
 		tmpVal := *rhs
 		r.CanvasExecutionId = &tmpVal
@@ -446,6 +475,10 @@ func (m *AutomationTriggeredEvent) CloneVT() *AutomationTriggeredEvent {
 	if rhs := m.LastError; rhs != nil {
 		tmpVal := *rhs
 		r.LastError = &tmpVal
+	}
+	if rhs := m.ReportId; rhs != nil {
+		tmpVal := *rhs
+		r.ReportId = &tmpVal
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -816,6 +849,24 @@ func (this *AutomationTrigger) EqualVT(that *AutomationTrigger) bool {
 			return false
 		}
 	}
+	if p, q := this.ReportNameTemplate, that.ReportNameTemplate; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
+		return false
+	}
+	if this.TriggerKind != that.TriggerKind {
+		return false
+	}
+	if p, q := this.CronExpression, that.CronExpression; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
+		return false
+	}
+	if p, q := this.Timezone, that.Timezone; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
+		return false
+	}
+	if !(*timestamppb1.Timestamp)(this.NextFireAt).EqualVT((*timestamppb1.Timestamp)(that.NextFireAt)) {
+		return false
+	}
+	if !(*timestamppb1.Timestamp)(this.LastFireAt).EqualVT((*timestamppb1.Timestamp)(that.LastFireAt)) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -899,6 +950,18 @@ func (this *CreateAutomationTriggerRequest) EqualVT(that *CreateAutomationTrigge
 		if vx != vy {
 			return false
 		}
+	}
+	if p, q := this.ReportNameTemplate, that.ReportNameTemplate; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
+		return false
+	}
+	if this.TriggerKind != that.TriggerKind {
+		return false
+	}
+	if p, q := this.CronExpression, that.CronExpression; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
+		return false
+	}
+	if p, q := this.Timezone, that.Timezone; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
+		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -1117,6 +1180,12 @@ func (this *AutomationTriggeredEvent) EqualVT(that *AutomationTriggeredEvent) bo
 	if this.ModifiedByUserId != that.ModifiedByUserId {
 		return false
 	}
+	if p, q := this.ReportId, that.ReportId; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
+		return false
+	}
+	if !(*timestamppb1.Timestamp)(this.ScheduledFor).EqualVT((*timestamppb1.Timestamp)(that.ScheduledFor)) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1205,20 +1274,16 @@ type AutomationServiceClient interface {
 	GetAutomationTrigger(ctx context.Context, in *GetAutomationTriggerRequest, opts ...grpc.CallOption) (*GetAutomationTriggerResponse, error)
 	// Create an automation trigger.
 	CreateAutomationTrigger(ctx context.Context, in *CreateAutomationTriggerRequest, opts ...grpc.CallOption) (*CreateAutomationTriggerResponse, error)
-	// Update select fields of an existing automation trigger. To enable or
-	// disable a trigger set the `is_enabled` field and include `is_enabled` in
-	// the update mask.
+	// Updates fields named in the update mask. Include `is_enabled` to enable
+	// or disable.
 	UpdateAutomationTrigger(ctx context.Context, in *UpdateAutomationTriggerRequest, opts ...grpc.CallOption) (*UpdateAutomationTriggerResponse, error)
 	// Retrieve and optionally filter a list of automation triggers.
 	ListAutomationTriggers(ctx context.Context, in *ListAutomationTriggersRequest, opts ...grpc.CallOption) (*ListAutomationTriggersResponse, error)
-	// Delete an automation trigger. Soft-delete: sets `archived_date` and hides
-	// the trigger from further producer matches. Historical
-	// `automation_triggered_events` rows survive for the retention window so
-	// past dispatches can still be inspected.
+	// Soft-deletes the trigger (sets `archived_date`). History rows stay.
 	DeleteAutomationTrigger(ctx context.Context, in *DeleteAutomationTriggerRequest, opts ...grpc.CallOption) (*DeleteAutomationTriggerResponse, error)
-	// Retrieve and optionally filter a list of automation triggered events
-	// (per-trigger dispatch history). Filter by `automation_trigger_id` to
-	// power the canvas trigger history sidebar.
+	// Lists dispatch history. Filter by `automation_trigger_id` or `state`.
+	// Match/config failures write one FAILED row per trigger; later repeats
+	// are logged only. Dispatch failures set `last_error` on that event.
 	ListAutomationTriggeredEvents(ctx context.Context, in *ListAutomationTriggeredEventsRequest, opts ...grpc.CallOption) (*ListAutomationTriggeredEventsResponse, error)
 }
 
@@ -1292,20 +1357,16 @@ type AutomationServiceServer interface {
 	GetAutomationTrigger(context.Context, *GetAutomationTriggerRequest) (*GetAutomationTriggerResponse, error)
 	// Create an automation trigger.
 	CreateAutomationTrigger(context.Context, *CreateAutomationTriggerRequest) (*CreateAutomationTriggerResponse, error)
-	// Update select fields of an existing automation trigger. To enable or
-	// disable a trigger set the `is_enabled` field and include `is_enabled` in
-	// the update mask.
+	// Updates fields named in the update mask. Include `is_enabled` to enable
+	// or disable.
 	UpdateAutomationTrigger(context.Context, *UpdateAutomationTriggerRequest) (*UpdateAutomationTriggerResponse, error)
 	// Retrieve and optionally filter a list of automation triggers.
 	ListAutomationTriggers(context.Context, *ListAutomationTriggersRequest) (*ListAutomationTriggersResponse, error)
-	// Delete an automation trigger. Soft-delete: sets `archived_date` and hides
-	// the trigger from further producer matches. Historical
-	// `automation_triggered_events` rows survive for the retention window so
-	// past dispatches can still be inspected.
+	// Soft-deletes the trigger (sets `archived_date`). History rows stay.
 	DeleteAutomationTrigger(context.Context, *DeleteAutomationTriggerRequest) (*DeleteAutomationTriggerResponse, error)
-	// Retrieve and optionally filter a list of automation triggered events
-	// (per-trigger dispatch history). Filter by `automation_trigger_id` to
-	// power the canvas trigger history sidebar.
+	// Lists dispatch history. Filter by `automation_trigger_id` or `state`.
+	// Match/config failures write one FAILED row per trigger; later repeats
+	// are logged only. Dispatch failures set `last_error` on that event.
 	ListAutomationTriggeredEvents(context.Context, *ListAutomationTriggeredEventsRequest) (*ListAutomationTriggeredEventsResponse, error)
 	mustEmbedUnimplementedAutomationServiceServer()
 }
@@ -1871,6 +1932,64 @@ func (m *AutomationTrigger) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.LastFireAt != nil {
+		size, err := (*timestamppb1.Timestamp)(m.LastFireAt).MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xba
+	}
+	if m.NextFireAt != nil {
+		size, err := (*timestamppb1.Timestamp)(m.NextFireAt).MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb2
+	}
+	if m.Timezone != nil {
+		i -= len(*m.Timezone)
+		copy(dAtA[i:], *m.Timezone)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.Timezone)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xaa
+	}
+	if m.CronExpression != nil {
+		i -= len(*m.CronExpression)
+		copy(dAtA[i:], *m.CronExpression)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.CronExpression)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa2
+	}
+	if m.TriggerKind != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.TriggerKind))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x98
+	}
+	if m.ReportNameTemplate != nil {
+		i -= len(*m.ReportNameTemplate)
+		copy(dAtA[i:], *m.ReportNameTemplate)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.ReportNameTemplate)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x92
+	}
 	if len(m.NotificationRecipientEmails) > 0 {
 		for iNdEx := len(m.NotificationRecipientEmails) - 1; iNdEx >= 0; iNdEx-- {
 			i -= len(m.NotificationRecipientEmails[iNdEx])
@@ -2133,6 +2252,32 @@ func (m *CreateAutomationTriggerRequest) MarshalToSizedBufferVT(dAtA []byte) (in
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Timezone != nil {
+		i -= len(*m.Timezone)
+		copy(dAtA[i:], *m.Timezone)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.Timezone)))
+		i--
+		dAtA[i] = 0x62
+	}
+	if m.CronExpression != nil {
+		i -= len(*m.CronExpression)
+		copy(dAtA[i:], *m.CronExpression)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.CronExpression)))
+		i--
+		dAtA[i] = 0x5a
+	}
+	if m.TriggerKind != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.TriggerKind))
+		i--
+		dAtA[i] = 0x50
+	}
+	if m.ReportNameTemplate != nil {
+		i -= len(*m.ReportNameTemplate)
+		copy(dAtA[i:], *m.ReportNameTemplate)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.ReportNameTemplate)))
+		i--
+		dAtA[i] = 0x4a
 	}
 	if len(m.NotificationRecipientEmails) > 0 {
 		for iNdEx := len(m.NotificationRecipientEmails) - 1; iNdEx >= 0; iNdEx-- {
@@ -2557,6 +2702,25 @@ func (m *AutomationTriggeredEvent) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ScheduledFor != nil {
+		size, err := (*timestamppb1.Timestamp)(m.ScheduledFor).MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x82
+	}
+	if m.ReportId != nil {
+		i -= len(*m.ReportId)
+		copy(dAtA[i:], *m.ReportId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.ReportId)))
+		i--
+		dAtA[i] = 0x7a
 	}
 	if len(m.ModifiedByUserId) > 0 {
 		i -= len(m.ModifiedByUserId)
@@ -3163,6 +3327,64 @@ func (m *AutomationTrigger) MarshalToSizedBufferVTStrict(dAtA []byte) (int, erro
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.LastFireAt != nil {
+		size, err := (*timestamppb1.Timestamp)(m.LastFireAt).MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xba
+	}
+	if m.NextFireAt != nil {
+		size, err := (*timestamppb1.Timestamp)(m.NextFireAt).MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb2
+	}
+	if m.Timezone != nil {
+		i -= len(*m.Timezone)
+		copy(dAtA[i:], *m.Timezone)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.Timezone)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xaa
+	}
+	if m.CronExpression != nil {
+		i -= len(*m.CronExpression)
+		copy(dAtA[i:], *m.CronExpression)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.CronExpression)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa2
+	}
+	if m.TriggerKind != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.TriggerKind))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x98
+	}
+	if m.ReportNameTemplate != nil {
+		i -= len(*m.ReportNameTemplate)
+		copy(dAtA[i:], *m.ReportNameTemplate)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.ReportNameTemplate)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x92
+	}
 	if len(m.NotificationRecipientEmails) > 0 {
 		for iNdEx := len(m.NotificationRecipientEmails) - 1; iNdEx >= 0; iNdEx-- {
 			i -= len(m.NotificationRecipientEmails[iNdEx])
@@ -3425,6 +3647,32 @@ func (m *CreateAutomationTriggerRequest) MarshalToSizedBufferVTStrict(dAtA []byt
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Timezone != nil {
+		i -= len(*m.Timezone)
+		copy(dAtA[i:], *m.Timezone)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.Timezone)))
+		i--
+		dAtA[i] = 0x62
+	}
+	if m.CronExpression != nil {
+		i -= len(*m.CronExpression)
+		copy(dAtA[i:], *m.CronExpression)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.CronExpression)))
+		i--
+		dAtA[i] = 0x5a
+	}
+	if m.TriggerKind != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.TriggerKind))
+		i--
+		dAtA[i] = 0x50
+	}
+	if m.ReportNameTemplate != nil {
+		i -= len(*m.ReportNameTemplate)
+		copy(dAtA[i:], *m.ReportNameTemplate)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.ReportNameTemplate)))
+		i--
+		dAtA[i] = 0x4a
 	}
 	if len(m.NotificationRecipientEmails) > 0 {
 		for iNdEx := len(m.NotificationRecipientEmails) - 1; iNdEx >= 0; iNdEx-- {
@@ -3849,6 +4097,25 @@ func (m *AutomationTriggeredEvent) MarshalToSizedBufferVTStrict(dAtA []byte) (in
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ScheduledFor != nil {
+		size, err := (*timestamppb1.Timestamp)(m.ScheduledFor).MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x82
+	}
+	if m.ReportId != nil {
+		i -= len(*m.ReportId)
+		copy(dAtA[i:], *m.ReportId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.ReportId)))
+		i--
+		dAtA[i] = 0x7a
 	}
 	if len(m.ModifiedByUserId) > 0 {
 		i -= len(m.ModifiedByUserId)
@@ -4289,6 +4556,29 @@ func (m *AutomationTrigger) SizeVT() (n int) {
 			n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
 	}
+	if m.ReportNameTemplate != nil {
+		l = len(*m.ReportNameTemplate)
+		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.TriggerKind != 0 {
+		n += 2 + protohelpers.SizeOfVarint(uint64(m.TriggerKind))
+	}
+	if m.CronExpression != nil {
+		l = len(*m.CronExpression)
+		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.Timezone != nil {
+		l = len(*m.Timezone)
+		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.NextFireAt != nil {
+		l = (*timestamppb1.Timestamp)(m.NextFireAt).SizeVT()
+		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.LastFireAt != nil {
+		l = (*timestamppb1.Timestamp)(m.LastFireAt).SizeVT()
+		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -4357,6 +4647,21 @@ func (m *CreateAutomationTriggerRequest) SizeVT() (n int) {
 			l = len(s)
 			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
+	}
+	if m.ReportNameTemplate != nil {
+		l = len(*m.ReportNameTemplate)
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.TriggerKind != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.TriggerKind))
+	}
+	if m.CronExpression != nil {
+		l = len(*m.CronExpression)
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.Timezone != nil {
+		l = len(*m.Timezone)
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -4536,6 +4841,14 @@ func (m *AutomationTriggeredEvent) SizeVT() (n int) {
 	l = len(m.ModifiedByUserId)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.ReportId != nil {
+		l = len(*m.ReportId)
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.ScheduledFor != nil {
+		l = (*timestamppb1.Timestamp)(m.ScheduledFor).SizeVT()
+		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -5916,6 +6229,196 @@ func (m *AutomationTrigger) UnmarshalVT(dAtA []byte) error {
 			}
 			m.NotificationRecipientEmails = append(m.NotificationRecipientEmails, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
+		case 18:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReportNameTemplate", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			s := string(dAtA[iNdEx:postIndex])
+			m.ReportNameTemplate = &s
+			iNdEx = postIndex
+		case 19:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TriggerKind", wireType)
+			}
+			m.TriggerKind = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.TriggerKind |= AutomationTriggerKind(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 20:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CronExpression", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			s := string(dAtA[iNdEx:postIndex])
+			m.CronExpression = &s
+			iNdEx = postIndex
+		case 21:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Timezone", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			s := string(dAtA[iNdEx:postIndex])
+			m.Timezone = &s
+			iNdEx = postIndex
+		case 22:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NextFireAt", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.NextFireAt == nil {
+				m.NextFireAt = &timestamppb.Timestamp{}
+			}
+			if err := (*timestamppb1.Timestamp)(m.NextFireAt).UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 23:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastFireAt", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.LastFireAt == nil {
+				m.LastFireAt = &timestamppb.Timestamp{}
+			}
+			if err := (*timestamppb1.Timestamp)(m.LastFireAt).UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -6365,6 +6868,124 @@ func (m *CreateAutomationTriggerRequest) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.NotificationRecipientEmails = append(m.NotificationRecipientEmails, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReportNameTemplate", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			s := string(dAtA[iNdEx:postIndex])
+			m.ReportNameTemplate = &s
+			iNdEx = postIndex
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TriggerKind", wireType)
+			}
+			m.TriggerKind = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.TriggerKind |= AutomationTriggerKind(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CronExpression", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			s := string(dAtA[iNdEx:postIndex])
+			m.CronExpression = &s
+			iNdEx = postIndex
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Timezone", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			s := string(dAtA[iNdEx:postIndex])
+			m.Timezone = &s
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -7570,6 +8191,75 @@ func (m *AutomationTriggeredEvent) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.ModifiedByUserId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 15:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReportId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			s := string(dAtA[iNdEx:postIndex])
+			m.ReportId = &s
+			iNdEx = postIndex
+		case 16:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ScheduledFor", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ScheduledFor == nil {
+				m.ScheduledFor = &timestamppb.Timestamp{}
+			}
+			if err := (*timestamppb1.Timestamp)(m.ScheduledFor).UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -9262,6 +9952,208 @@ func (m *AutomationTrigger) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			m.NotificationRecipientEmails = append(m.NotificationRecipientEmails, stringValue)
 			iNdEx = postIndex
+		case 18:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReportNameTemplate", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			s := stringValue
+			m.ReportNameTemplate = &s
+			iNdEx = postIndex
+		case 19:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TriggerKind", wireType)
+			}
+			m.TriggerKind = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.TriggerKind |= AutomationTriggerKind(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 20:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CronExpression", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			s := stringValue
+			m.CronExpression = &s
+			iNdEx = postIndex
+		case 21:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Timezone", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			s := stringValue
+			m.Timezone = &s
+			iNdEx = postIndex
+		case 22:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NextFireAt", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.NextFireAt == nil {
+				m.NextFireAt = &timestamppb.Timestamp{}
+			}
+			if err := (*timestamppb1.Timestamp)(m.NextFireAt).UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 23:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastFireAt", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.LastFireAt == nil {
+				m.LastFireAt = &timestamppb.Timestamp{}
+			}
+			if err := (*timestamppb1.Timestamp)(m.LastFireAt).UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -9727,6 +10619,136 @@ func (m *CreateAutomationTriggerRequest) UnmarshalVTUnsafe(dAtA []byte) error {
 				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
 			}
 			m.NotificationRecipientEmails = append(m.NotificationRecipientEmails, stringValue)
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReportNameTemplate", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			s := stringValue
+			m.ReportNameTemplate = &s
+			iNdEx = postIndex
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TriggerKind", wireType)
+			}
+			m.TriggerKind = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.TriggerKind |= AutomationTriggerKind(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CronExpression", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			s := stringValue
+			m.CronExpression = &s
+			iNdEx = postIndex
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Timezone", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			s := stringValue
+			m.Timezone = &s
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -10984,6 +12006,79 @@ func (m *AutomationTriggeredEvent) UnmarshalVTUnsafe(dAtA []byte) error {
 				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
 			}
 			m.ModifiedByUserId = stringValue
+			iNdEx = postIndex
+		case 15:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReportId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			s := stringValue
+			m.ReportId = &s
+			iNdEx = postIndex
+		case 16:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ScheduledFor", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ScheduledFor == nil {
+				m.ScheduledFor = &timestamppb.Timestamp{}
+			}
+			if err := (*timestamppb1.Timestamp)(m.ScheduledFor).UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

@@ -215,6 +215,8 @@ impl ArtifactService {
                             artifact_id,
                             page_size,
                             page_token: token,
+                            filter: String::new(),
+                            order_by: String::new(),
                         })
                         .await
                         .map(|resp| resp.into_inner())

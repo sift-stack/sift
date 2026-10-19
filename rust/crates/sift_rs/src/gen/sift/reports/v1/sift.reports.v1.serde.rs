@@ -2316,6 +2316,9 @@ impl serde::Serialize for Report {
         if self.canvas_id.is_some() {
             len += 1;
         }
+        if self.is_automated.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.reports.v1.Report", len)?;
         if !self.report_id.is_empty() {
             struct_ser.serialize_field("reportId", &self.report_id)?;
@@ -2387,6 +2390,9 @@ impl serde::Serialize for Report {
         if let Some(v) = self.canvas_id.as_ref() {
             struct_ser.serialize_field("canvasId", v)?;
         }
+        if let Some(v) = self.is_automated.as_ref() {
+            struct_ser.serialize_field("isAutomated", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -2436,6 +2442,8 @@ impl<'de> serde::Deserialize<'de> for Report {
             "canvasVersionId",
             "canvas_id",
             "canvasId",
+            "is_automated",
+            "isAutomated",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -2462,6 +2470,7 @@ impl<'de> serde::Deserialize<'de> for Report {
             CanvasStatus,
             CanvasVersionId,
             CanvasId,
+            IsAutomated,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -2505,6 +2514,7 @@ impl<'de> serde::Deserialize<'de> for Report {
                             "canvasStatus" | "canvas_status" => Ok(GeneratedField::CanvasStatus),
                             "canvasVersionId" | "canvas_version_id" => Ok(GeneratedField::CanvasVersionId),
                             "canvasId" | "canvas_id" => Ok(GeneratedField::CanvasId),
+                            "isAutomated" | "is_automated" => Ok(GeneratedField::IsAutomated),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -2546,6 +2556,7 @@ impl<'de> serde::Deserialize<'de> for Report {
                 let mut canvas_status__ = None;
                 let mut canvas_version_id__ = None;
                 let mut canvas_id__ = None;
+                let mut is_automated__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ReportId => {
@@ -2680,6 +2691,12 @@ impl<'de> serde::Deserialize<'de> for Report {
                             }
                             canvas_id__ = map_.next_value()?;
                         }
+                        GeneratedField::IsAutomated => {
+                            if is_automated__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("isAutomated"));
+                            }
+                            is_automated__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(Report {
@@ -2705,6 +2722,7 @@ impl<'de> serde::Deserialize<'de> for Report {
                     canvas_status: canvas_status__,
                     canvas_version_id: canvas_version_id__,
                     canvas_id: canvas_id__,
+                    is_automated: is_automated__,
                 })
             }
         }
@@ -3944,6 +3962,9 @@ impl serde::Serialize for ReportRuleSummary {
         if self.display_order != 0 {
             len += 1;
         }
+        if self.explore_full_link.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.reports.v1.ReportRuleSummary", len)?;
         if !self.rule_id.is_empty() {
             struct_ser.serialize_field("ruleId", &self.rule_id)?;
@@ -3998,6 +4019,9 @@ impl serde::Serialize for ReportRuleSummary {
         if self.display_order != 0 {
             struct_ser.serialize_field("displayOrder", &self.display_order)?;
         }
+        if let Some(v) = self.explore_full_link.as_ref() {
+            struct_ser.serialize_field("exploreFullLink", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -4041,6 +4065,8 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
             "resolvedAlignmentConfigs",
             "display_order",
             "displayOrder",
+            "explore_full_link",
+            "exploreFullLink",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -4062,6 +4088,7 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
             ResolvedFamilyStats,
             ResolvedAlignmentConfigs,
             DisplayOrder,
+            ExploreFullLink,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -4100,6 +4127,7 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
                             "resolvedFamilyStats" | "resolved_family_stats" => Ok(GeneratedField::ResolvedFamilyStats),
                             "resolvedAlignmentConfigs" | "resolved_alignment_configs" => Ok(GeneratedField::ResolvedAlignmentConfigs),
                             "displayOrder" | "display_order" => Ok(GeneratedField::DisplayOrder),
+                            "exploreFullLink" | "explore_full_link" => Ok(GeneratedField::ExploreFullLink),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -4136,6 +4164,7 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
                 let mut resolved_family_stats__ = None;
                 let mut resolved_alignment_configs__ = None;
                 let mut display_order__ = None;
+                let mut explore_full_link__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RuleId => {
@@ -4250,6 +4279,12 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
+                        GeneratedField::ExploreFullLink => {
+                            if explore_full_link__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("exploreFullLink"));
+                            }
+                            explore_full_link__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(ReportRuleSummary {
@@ -4270,6 +4305,7 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
                     resolved_family_stats: resolved_family_stats__.unwrap_or_default(),
                     resolved_alignment_configs: resolved_alignment_configs__.unwrap_or_default(),
                     display_order: display_order__.unwrap_or_default(),
+                    explore_full_link: explore_full_link__,
                 })
             }
         }
@@ -4513,6 +4549,9 @@ impl serde::Serialize for ReportWithCumulativeSummary {
         if self.canvas_id.is_some() {
             len += 1;
         }
+        if self.is_automated.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.reports.v1.ReportWithCumulativeSummary", len)?;
         if !self.report_id.is_empty() {
             struct_ser.serialize_field("reportId", &self.report_id)?;
@@ -4581,6 +4620,9 @@ impl serde::Serialize for ReportWithCumulativeSummary {
         if let Some(v) = self.canvas_id.as_ref() {
             struct_ser.serialize_field("canvasId", v)?;
         }
+        if let Some(v) = self.is_automated.as_ref() {
+            struct_ser.serialize_field("isAutomated", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -4630,6 +4672,8 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
             "canvasVersionId",
             "canvas_id",
             "canvasId",
+            "is_automated",
+            "isAutomated",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -4655,6 +4699,7 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
             CanvasStatus,
             CanvasVersionId,
             CanvasId,
+            IsAutomated,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -4697,6 +4742,7 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
                             "canvasStatus" | "canvas_status" => Ok(GeneratedField::CanvasStatus),
                             "canvasVersionId" | "canvas_version_id" => Ok(GeneratedField::CanvasVersionId),
                             "canvasId" | "canvas_id" => Ok(GeneratedField::CanvasId),
+                            "isAutomated" | "is_automated" => Ok(GeneratedField::IsAutomated),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -4737,6 +4783,7 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
                 let mut canvas_status__ = None;
                 let mut canvas_version_id__ = None;
                 let mut canvas_id__ = None;
+                let mut is_automated__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ReportId => {
@@ -4865,6 +4912,12 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
                             }
                             canvas_id__ = map_.next_value()?;
                         }
+                        GeneratedField::IsAutomated => {
+                            if is_automated__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("isAutomated"));
+                            }
+                            is_automated__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(ReportWithCumulativeSummary {
@@ -4889,6 +4942,7 @@ impl<'de> serde::Deserialize<'de> for ReportWithCumulativeSummary {
                     canvas_status: canvas_status__,
                     canvas_version_id: canvas_version_id__,
                     canvas_id: canvas_id__,
+                    is_automated: is_automated__,
                 })
             }
         }
