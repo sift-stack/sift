@@ -162,6 +162,33 @@ def test_worker_that_ignores_sigterm_is_killed_after_the_grace_period() -> None:
     assert rc._import_proc.returncode is not None
 
 
+_REPORT_RECONCILED_ON_SIGTERM = (
+    "import signal, sys, time\n"
+    "def stop(*_):\n"
+    "    sys.stderr.write('SIFT_REPLAY_RECONCILED:2')\n"
+    "    sys.exit(0)\n"
+    "signal.signal(signal.SIGTERM, stop)\n"
+    "time.sleep(30)"
+)
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="SIGTERM is a hard kill on Windows")
+def test_worker_stopped_on_timeout_still_reports_reconciled_measurements() -> None:
+    """A worker stopped at the timeout warns about what it reconciled before stopping.
+
+    The timeout branch returns before the normal-exit path, so it has to read
+    the marker from the stop's stderr itself.
+    """
+    rc = _make_context([sys.executable, "-c", _REPORT_RECONCILED_ON_SIGTERM], timeout=0.5)
+    with pytest.warns(SiftWarning) as recorded:
+        with rc:
+            pass
+    reconciled = [w for w in recorded if issubclass(w.category, SiftReplayReconciledWarning)]
+    assert len(reconciled) == 1
+    assert "reconciled 2 measurement(s)" in str(reconciled[0].message)
+    assert rc.replay_incomplete is True
+
+
 def test_windows_timeout_asks_the_worker_to_stop_through_a_file(monkeypatch, tmp_path) -> None:
     """terminate() is a hard kill on Windows, so the stop request is a file the worker polls."""
     import types

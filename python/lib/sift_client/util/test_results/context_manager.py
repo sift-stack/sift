@@ -117,6 +117,19 @@ def _parse_reconciled_count(stderr_text: str) -> int:
     return 0
 
 
+def _warn_if_reconciled(stderr_text: str) -> None:
+    """Warn when the replay worker's stderr reports reconciled measurements."""
+    reconciled_count = _parse_reconciled_count(stderr_text)
+    if not reconciled_count:
+        return
+    log_event(logger, logging.WARNING, "replay.reconciled", count=reconciled_count)
+    warnings.warn(
+        reconciled_warning_message("Sift import worker", reconciled_count),
+        SiftReplayReconciledWarning,
+        stacklevel=3,
+    )
+
+
 @contextmanager
 def _quiet_fork_stderr():
     """Redirect fd 2 to /dev/null across a ``fork()`` to discard gRPC's prefork notices.
@@ -501,7 +514,14 @@ class ReportContext(AbstractContextManager):
                 else:
                     self._import_proc.terminate()
                 try:
-                    self._import_proc.communicate(timeout=self._import_proc_stop_grace)
+                    _, stderr_bytes = self._import_proc.communicate(
+                        timeout=self._import_proc_stop_grace
+                    )
+                    # A worker that stops cleanly still reports what it reconciled.
+                    # A killed one never prints its count.
+                    _warn_if_reconciled(
+                        stderr_bytes.decode("utf-8", errors="replace") if stderr_bytes else ""
+                    )
                 except subprocess.TimeoutExpired:
                     self._import_proc.kill()
                     self._import_proc.wait()
@@ -529,14 +549,7 @@ class ReportContext(AbstractContextManager):
             )
             # A reconciled run still exits 0, so this has to run before the
             # returncode branch below rather than only in its failure half.
-            reconciled_count = _parse_reconciled_count(stderr_text)
-            if reconciled_count:
-                log_event(logger, logging.WARNING, "replay.reconciled", count=reconciled_count)
-                warnings.warn(
-                    reconciled_warning_message("Sift import worker", reconciled_count),
-                    SiftReplayReconciledWarning,
-                    stacklevel=2,
-                )
+            _warn_if_reconciled(stderr_text)
             if self._import_proc.returncode != 0:
                 self.replay_incomplete = True
                 log_event(
