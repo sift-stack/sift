@@ -270,9 +270,15 @@ class CreateDataImportFromUrlRequest(google.protobuf.message.Message):
     BATCH_CONFIG_FIELD_NUMBER: builtins.int
     ULOG_CONFIG_FIELD_NUMBER: builtins.int
     MCAP_CONFIG_FIELD_NUMBER: builtins.int
+    LEAVE_RUN_OPEN_FIELD_NUMBER: builtins.int
     url: builtins.str
     """The url to import. HTTP and S3 urls are supported.
     If you need to import non-public S3 objects, please contact Sift to set that up.
+    """
+    leave_run_open: builtins.bool
+    """If true, the import does not mark its run stopped, so run-stop automations
+    do not fire. Set this when more data is coming to the run, then call
+    StopRun after the last import. Ignored when the import has no run.
     """
     @property
     def csv_config(self) -> global___CsvConfig: ...
@@ -302,9 +308,10 @@ class CreateDataImportFromUrlRequest(google.protobuf.message.Message):
         batch_config: global___BatchConfig | None = ...,
         ulog_config: global___UlogConfig | None = ...,
         mcap_config: global___McapConfig | None = ...,
+        leave_run_open: builtins.bool = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["batch_config", b"batch_config", "ch10_config", b"ch10_config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "mcap_config", b"mcap_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config", "ulog_config", b"ulog_config"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["batch_config", b"batch_config", "ch10_config", b"ch10_config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "mcap_config", b"mcap_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config", "ulog_config", b"ulog_config", "url", b"url"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["batch_config", b"batch_config", "ch10_config", b"ch10_config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "leave_run_open", b"leave_run_open", "mcap_config", b"mcap_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config", "ulog_config", b"ulog_config", "url", b"url"]) -> None: ...
 
 global___CreateDataImportFromUrlRequest = CreateDataImportFromUrlRequest
 
@@ -367,6 +374,12 @@ class CreateDataImportFromUploadRequest(google.protobuf.message.Message):
     BATCH_CONFIG_FIELD_NUMBER: builtins.int
     ULOG_CONFIG_FIELD_NUMBER: builtins.int
     MCAP_CONFIG_FIELD_NUMBER: builtins.int
+    LEAVE_RUN_OPEN_FIELD_NUMBER: builtins.int
+    leave_run_open: builtins.bool
+    """If true, the import does not mark its run stopped, so run-stop automations
+    do not fire. Set this when more data is coming to the run, then call
+    StopRun after the last import. Ignored when the import has no run.
+    """
     @property
     def csv_config(self) -> global___CsvConfig: ...
     @property
@@ -394,9 +407,10 @@ class CreateDataImportFromUploadRequest(google.protobuf.message.Message):
         batch_config: global___BatchConfig | None = ...,
         ulog_config: global___UlogConfig | None = ...,
         mcap_config: global___McapConfig | None = ...,
+        leave_run_open: builtins.bool = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["batch_config", b"batch_config", "ch10_config", b"ch10_config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "mcap_config", b"mcap_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config", "ulog_config", b"ulog_config"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["batch_config", b"batch_config", "ch10_config", b"ch10_config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "mcap_config", b"mcap_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config", "ulog_config", b"ulog_config"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["batch_config", b"batch_config", "ch10_config", b"ch10_config", "csv_config", b"csv_config", "hdf5_config", b"hdf5_config", "leave_run_open", b"leave_run_open", "mcap_config", b"mcap_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config", "ulog_config", b"ulog_config"]) -> None: ...
 
 global___CreateDataImportFromUploadRequest = CreateDataImportFromUploadRequest
 

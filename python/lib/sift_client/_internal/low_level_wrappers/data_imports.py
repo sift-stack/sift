@@ -66,17 +66,24 @@ class DataImportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     def __init__(self, grpc_client: GrpcClient):
         WithGrpcClient.__init__(self, grpc_client=grpc_client)
 
-    async def create_from_upload(self, config: ImportConfig) -> tuple[str, str]:
+    async def create_from_upload(
+        self, config: ImportConfig, *, leave_run_open: bool = False
+    ) -> tuple[str, str]:
         """Create a data import and get back a presigned upload URL.
 
         Args:
             config: The import configuration.
+            leave_run_open: If true, the import does not mark its run stopped.
+                Run-stop automations do not fire. Set this when more data is
+                coming to the run, then stop the run after the last import.
+                Ignored when the import has no run.
 
         Returns:
             A tuple of (data_import_id, upload_url).
         """
         request = CreateDataImportFromUploadRequest()
         _set_config_on_request(request, config)
+        request.leave_run_open = leave_run_open
         response = await self._grpc_client.get_stub(
             DataImportServiceStub
         ).CreateDataImportFromUpload(request)

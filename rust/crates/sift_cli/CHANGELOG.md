@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- `import` accepts `--leave-run-open`. A finished import marks its run stopped
+  and fires run-stop automations unless the flag is set. Stop the run after
+  the last import. The flag does nothing when the import has no run.
+
 ## [v0.7.5] - October 19, 2026
 
 ### What's New
