@@ -175,10 +175,17 @@ pub(crate) fn project_fields(items: Vec<Value>, fields: &[String]) -> (Vec<Value
     (projected, unmatched)
 }
 
+/// The key under which `list_body` lists every field requested in `fields`
+/// that matched no key on any returned item. The leading underscore sorts it
+/// ahead of every items key, so it is serialized first and survives an output
+/// guard that truncates large responses from the end, which is exactly when a
+/// mistyped field name is easiest to miss.
+pub(crate) const UNMATCHED_FIELDS_KEY: &str = "_unmatched_fields";
+
 /// Build the structured body for a `list_*` tool. Projects the items when
-/// `fields` is set, and reports any requested field that matched nothing, so a
-/// mistyped name is visible rather than silently narrowing the response. An
-/// empty `fields` array is treated as no projection.
+/// `fields` is set, and reports any requested field that matched nothing under
+/// [`UNMATCHED_FIELDS_KEY`], so a mistyped name is visible rather than silently
+/// narrowing the response. An empty `fields` array is treated as no projection.
 ///
 /// Every body carries `count`, the number of items in this response, and
 /// `has_more`, whether the service stopped at `limit` with matches left over.
@@ -206,7 +213,7 @@ pub(crate) fn list_body(
     body.insert(key.to_string(), Value::Array(items));
     if !unmatched.is_empty() {
         body.insert(
-            "unmatched_fields".to_string(),
+            UNMATCHED_FIELDS_KEY.to_string(),
             Value::Array(unmatched.into_iter().map(Value::String).collect()),
         );
     }

@@ -27,6 +27,9 @@ impl SiftMcpServer {
               - `has_more`: `true` when the service hit `limit` with matches left over, so
                 this page is not the whole set. Never report `count` as a total while
                 `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
+              - `_unmatched_fields`: present only when a field you listed in `fields` matched
+                no key on any returned item. It is the first key in the response. Fix the
+                field name and call again; never report that field as empty or missing.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
@@ -45,7 +48,7 @@ impl SiftMcpServer {
                 `[\"name\"]`. Omit it for the full object. Names match case-insensitively
                 and ignore underscores and hyphens, so `asset_id`, `assetId` and
                 `asset-id` all work. Any name that matched nothing on any returned item
-                is listed in `unmatched_fields`; an empty page reports none, since it
+                is listed in `_unmatched_fields`; an empty page reports none, since it
                 says nothing about whether a name was spelled right.
                 Reach for this whenever you need only a few fields: full objects are wide,
                 and a large listing can exceed the response size limit without it.

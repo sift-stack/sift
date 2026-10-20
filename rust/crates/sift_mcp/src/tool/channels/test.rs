@@ -245,7 +245,7 @@ async fn list_channels_reports_a_field_that_matched_nothing() {
         body["channels"],
         serde_json::json!([{ "name": "throttle" }])
     );
-    assert_eq!(body["unmatched_fields"], serde_json::json!(["nmae"]));
+    assert_eq!(body["_unmatched_fields"], serde_json::json!(["nmae"]));
 }
 
 #[test]
@@ -307,5 +307,5 @@ async fn list_channels_projects_asset_id_and_unit_id_but_not_asset_name() {
         body["channels"],
         serde_json::json!([{ "assetId": "a1", "unitId": "u1" }])
     );
-    assert_eq!(body["unmatched_fields"], serde_json::json!(["asset_name"]));
+    assert_eq!(body["_unmatched_fields"], serde_json::json!(["asset_name"]));
 }

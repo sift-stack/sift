@@ -168,7 +168,7 @@ fn list_body_surfaces_unmatched_fields_alongside_the_items() {
             "channels": [{ "name": "throttle" }],
             "count": 1,
             "has_more": false,
-            "unmatched_fields": ["nope"],
+            "_unmatched_fields": ["nope"],
         })
     );
 }
@@ -255,7 +255,57 @@ fn list_body_omits_unmatched_fields_when_the_page_is_empty() {
 
     assert_eq!(body["count"], json!(0));
     assert!(
-        body.get("unmatched_fields").is_none(),
+        body.get("_unmatched_fields").is_none(),
         "an empty page must not look like a spelling problem: {body}"
+    );
+}
+
+#[test]
+fn list_body_writes_unmatched_fields_before_the_items() {
+    // Agent harnesses cut oversized tool results from the end. The warning has
+    // to be serialized ahead of the items or it is the first thing lost, on
+    // exactly the large responses where a typo is hardest to spot.
+    let keys = [
+        "annotations",
+        "artifacts",
+        "artifact_versions",
+        "assets",
+        "calculated_channels",
+        "calculated_channel_versions",
+        "channels",
+        "rules",
+        "runs",
+        "test_reports",
+        "test_steps",
+        "test_measurements",
+        "user_defined_functions",
+        "user_defined_function_versions",
+    ];
+
+    for key in keys {
+        let items = vec![json!({ "name": "throttle" })];
+        let text = list_body(key, items, Some(vec!["nmae".into()]), false).to_string();
+
+        let warning = text.find("\"_unmatched_fields\"").expect("warning present");
+        let items_at = text.find(&format!("\"{key}\"")).expect("items present");
+        assert!(
+            warning < items_at,
+            "{key}: warning must precede the items in {text}"
+        );
+    }
+}
+
+#[test]
+fn list_body_unmatched_fields_survive_head_truncation() {
+    let items: Vec<Value> = (0..500)
+        .map(|i| json!({ "name": format!("channel-{i}") }))
+        .collect();
+
+    let text = list_body("channels", items, Some(vec!["nmae".into()]), false).to_string();
+    let head: String = text.chars().take(200).collect();
+
+    assert!(
+        head.contains("\"_unmatched_fields\":[\"nmae\"]"),
+        "warning must sit in the first 200 characters: {head}"
     );
 }
