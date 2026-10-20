@@ -5,6 +5,18 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 <!-- towncrier release notes start -->
 
+## [v0.24.0] - October 20, 2026
+
+### Features
+
+- Test-results log uploads are faster: consecutive measurements are now sent in one `CreateTestMeasurements` call, a retry after an unknown outcome checks the server first and reports it with the new `SiftReplayReconciledWarning`, and pytest now waits up to 120s (was 30s) at session end for the background upload, asking it to stop cleanly if it runs over. ([#810](https://github.com/sift-stack/sift/pull/810))
+- Added `client.artifacts` for finding artifacts by the runs and assets they link to, browsing version history through `client.artifacts.versions`, and downloading any version's file. ([#845](https://github.com/sift-stack/sift/pull/845))
+- Added the generated `sift.artifacts.v1` protobuf modules and updated the generated protobuf modules to the current public Sift API.
+
+### Fixes
+
+- Allowed `RestConfig` to omit `api_key`, creating a REST client without a default `Authorization` header.
+
 ## [v0.23.1] - October 8, 2026
 
 - Test-results steps updated out of order now have their statuses corrected before the report is finalized, with a `SiftReportLifecycleWarning`. ([#821](https://github.com/sift-stack/sift/pull/821))
