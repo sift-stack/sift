@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
     from datetime import datetime, timedelta
     from pathlib import Path
-    from typing import TYPE_CHECKING, Any, Sequence
+    from typing import TYPE_CHECKING, Any, BinaryIO, Sequence
 
     import pandas as pd
     import pyarrow as pa
@@ -27,6 +27,14 @@ if TYPE_CHECKING:
         AnnotationState,
         AnnotationType,
         AnnotationUpdate,
+    )
+    from sift_client.sift_types.artifact import (
+        Artifact,
+        ArtifactCreate,
+        ArtifactCreatedVia,
+        ArtifactType,
+        ArtifactUpdate,
+        ArtifactVersion,
     )
     from sift_client.sift_types.asset import Asset, AssetUpdate
     from sift_client.sift_types.calculated_channel import (
@@ -425,6 +433,358 @@ class AnnotationsAPI:
     @property
     def logs(self) -> AnnotationLogsAPI:
         """Nested AnnotationLogsAPI for making synchronous requests."""
+        ...
+
+class ArtifactVersionsAPI:
+    """Sync counterpart to `ArtifactVersionsAPIAsync`.
+
+    High-level API for an artifact's version history.
+
+    Every create or update writes a new version. Reachable as `client.artifacts.versions`.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the ArtifactVersionsAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def list_(
+        self,
+        *,
+        artifact: str | Artifact | None = None,
+        title: str | None = None,
+        titles: list[str] | None = None,
+        title_contains: str | None = None,
+        artifact_ids: list[str] | list[Artifact] | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        created_by: User | str | None = None,
+        metadata: dict[str, str | float | bool] | None = None,
+        sources: list[Run | Asset] | None = None,
+        derived_from: list[Artifact | str] | None = None,
+        related_to: list[Run | Asset | Artifact] | None = None,
+        file_name: str | None = None,
+        created_via: ArtifactCreatedVia | None = None,
+        artifact_type: ArtifactType | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[ArtifactVersion]:
+        """List artifact versions, newest first by default.
+
+        Takes the same filters as `ArtifactsAPI.list_`, evaluated against each version, so a
+        filter can match an earlier version that the latest no longer matches.
+        `ArtifactVersion.is_current` marks each artifact's current version.
+
+        Args:
+            artifact: Only this Artifact or artifact ID's versions. If None, searches the
+                versions of every artifact.
+            title: Exact title of the version.
+            titles: Filter to versions with any of these titles.
+            title_contains: Partial title of the version.
+            artifact_ids: Filter to versions of these Artifacts or artifact IDs.
+            created_after: Filter to versions of artifacts created after this datetime.
+            created_before: Filter to versions of artifacts created before this datetime.
+            created_by: Filter to versions of artifacts created by this User or user ID.
+            metadata: Filter to versions whose metadata has all of these key-value pairs.
+            sources: Filter to versions produced from any of these Runs or Assets.
+            derived_from: Filter to versions derived from any of these Artifacts or
+                artifact IDs.
+            related_to: Filter to versions linked to any of these Runs, Assets, or
+                Artifacts, by any relation.
+            file_name: Exact file name of the version.
+            created_via: Filter to versions of artifacts written by this surface.
+            artifact_type: Filter to versions of artifacts of this type.
+            include_archived: If True, include versions of archived artifacts. A named
+                `artifact` lists its versions even when it is archived.
+            filter_query: Explicit CEL query with the `ArtifactsAPI.list_` fields,
+                evaluated against each version.
+            order_by: Field and direction to order results by, over `created_date`,
+                `version`, and `title`. The service default is `created_date desc`.
+            limit: Maximum number of versions to return. If None, returns all matches.
+            page_size: Number of results to fetch per request.
+
+        Returns:
+            A list of ArtifactVersion objects that match the filter criteria.
+        """
+        ...
+
+    def promote(self, *, version: ArtifactVersion) -> Artifact:
+        """Write a new latest version that copies an earlier version.
+
+        Copies the title, summary, metadata, file, and `SOURCE` and `DERIVED_FROM` links of
+        `version`. `ATTACHED_TO` links stay as on the latest version. Only the artifact's
+        creator can promote, and promoting the latest version fails.
+
+        Args:
+            version: The ArtifactVersion to promote.
+
+        Returns:
+            The Artifact, resolved to the version the promotion wrote.
+        """
+        ...
+
+class ArtifactsAPI:
+    """Sync counterpart to `ArtifactsAPIAsync`.
+
+    High-level API for interacting with artifacts.
+
+    An artifact is a versioned file, such as a plot or a report, that Sift stores and
+    shows in the app. Links record where the artifact surfaces (`ATTACHED_TO`) and what
+    it was produced from (`SOURCE`), so you can find artifacts by the runs and assets
+    they link to.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the ArtifactsAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def archive(self, artifact: str | Artifact) -> Artifact:
+        """Archive an artifact. Its versions and files stay in place.
+
+        Args:
+            artifact: The Artifact or artifact ID to archive.
+
+        Returns:
+            The archived Artifact.
+        """
+        ...
+
+    def create(
+        self,
+        create: ArtifactCreate | dict,
+        *,
+        file: str | Path | bytes | BinaryIO,
+        file_name: str | None = None,
+    ) -> Artifact:
+        """Create an artifact from a file.
+
+        Creates the artifact and its first version, then uploads the file to that version.
+
+        Args:
+            create: The artifact's title, summary, metadata, links, and surface.
+            file: The file to upload: a path, bytes, or a binary file object such as
+                `io.BytesIO`.
+            file_name: The stored file name when `file` is bytes or a file object. A path
+                upload uses the file's own name.
+
+        Returns:
+            The created Artifact, resolved to version 1.
+
+        Raises:
+            ValueError: If `file` is a path that is not a regular file, or `file_name` is
+                missing for bytes, not a bare name, or given with a path.
+
+        Example:
+            Publish bytes built in memory, without writing a file first:
+
+                client.artifacts.create(
+                    {"title": "Peak temperatures"},
+                    file=json.dumps(peaks).encode(),
+                    file_name="peak_temperatures.json",
+                )
+        """
+        ...
+
+    def download(
+        self, *, artifact: str | Artifact | ArtifactVersion, output_path: str | Path
+    ) -> None:
+        """Download an artifact version's file to a local path.
+
+        Args:
+            artifact: An ArtifactVersion, an Artifact (uses its `artifact_version`), or an
+                artifact ID (uses the latest version).
+            output_path: The path to download the file to.
+
+        Raises:
+            ValueError: If the version has no file.
+        """
+        ...
+
+    def find(self, **kwargs) -> Artifact | None:
+        """Find one artifact. Takes the same arguments as `list_`.
+
+        Raises if more than one matches.
+
+        Args:
+            **kwargs: Keyword arguments to pass to `list_`.
+
+        Returns:
+            The Artifact found or None.
+        """
+        ...
+
+    def get(self, *, artifact_id: str, artifact_version_id: str | None = None) -> Artifact:
+        """Get an artifact.
+
+        Args:
+            artifact_id: The artifact to get.
+            artifact_version_id: Resolve to this version instead of the latest.
+
+        Returns:
+            The Artifact.
+        """
+        ...
+
+    def get_download_url(self, *, artifact: str | Artifact | ArtifactVersion) -> str:
+        """Get a download URL for an artifact version's file.
+
+        Args:
+            artifact: An ArtifactVersion, an Artifact (uses its `artifact_version`), or an
+                artifact ID (uses the latest version).
+
+        Returns:
+            The download URL.
+
+        Raises:
+            ValueError: If the version has no file.
+        """
+        ...
+
+    def list_(
+        self,
+        *,
+        title: str | None = None,
+        titles: list[str] | None = None,
+        title_contains: str | None = None,
+        artifact_ids: list[str] | list[Artifact] | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        created_by: User | str | None = None,
+        metadata: dict[str, str | float | bool] | None = None,
+        sources: list[Run | Asset] | None = None,
+        derived_from: list[Artifact | str] | None = None,
+        related_to: list[Run | Asset | Artifact] | None = None,
+        file_name: str | None = None,
+        created_via: ArtifactCreatedVia | None = None,
+        artifact_type: ArtifactType | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[Artifact]:
+        """List artifacts, each resolved to its latest version.
+
+        `sources`, `derived_from`, and `related_to` match the latest version's links. For
+        other fields of the linked entity, such as a run name, use `filter_query`.
+
+        Args:
+            title: Exact title of the latest version.
+            titles: Filter to artifacts whose latest version has any of these titles.
+            title_contains: Partial title of the latest version.
+            artifact_ids: Filter to these Artifacts or artifact IDs.
+            created_after: Filter to artifacts created after this datetime.
+            created_before: Filter to artifacts created before this datetime.
+            created_by: Filter to artifacts created by this User or user ID.
+            metadata: Filter to artifacts whose latest version has all of these key-value
+                pairs.
+            sources: Filter to artifacts produced from any of these Runs or Assets.
+            derived_from: Filter to artifacts derived from any of these Artifacts or
+                artifact IDs.
+            related_to: Filter to artifacts linked to any of these Runs, Assets, or
+                Artifacts, by any relation.
+            file_name: Exact file name of the latest version.
+            created_via: Filter to artifacts written by this surface.
+            artifact_type: Filter to artifacts of this type.
+            include_archived: If True, include archived artifacts in results.
+            filter_query: Explicit CEL query to filter artifacts. Links filter with a
+                comprehension over `runs` (relation, run_id, name, description, client_key,
+                start_time, stop_time), `assets` (relation, asset_id, name), `canvases`
+                (relation, canvas_id, name, description), or `links` (relation,
+                entity_type, entity_id).
+            order_by: Field and direction to order results by, over `created_date`,
+                `version_created_date`, `archived_date`, `title`, `version`, and
+                `file_type`. The service default is `created_date` ascending.
+            limit: Maximum number of artifacts to return. If None, returns all matches.
+            page_size: Number of results to fetch per request.
+
+        Returns:
+            A list of Artifact objects that match the filter criteria.
+
+        Example:
+            Artifacts produced from a run whose name contains "thermal":
+
+                client.artifacts.list_(
+                    filter_query='runs.exists(r, r.relation == "SOURCE" && r.name.contains("thermal"))'
+                )
+        """
+        ...
+
+    def read_bytes(self, *, artifact: str | Artifact | ArtifactVersion) -> bytes:
+        """Read an artifact version's file into memory.
+
+        This holds the whole file in memory. Use `download` for large files.
+
+        Args:
+            artifact: An ArtifactVersion, an Artifact (uses its `artifact_version`), or an
+                artifact ID (uses the latest version).
+
+        Returns:
+            The file's bytes.
+
+        Raises:
+            ValueError: If the version has no file.
+
+        Example:
+            config = json.loads(client.artifacts.read_bytes(artifact=artifact))
+        """
+        ...
+
+    def unarchive(self, artifact: str | Artifact) -> Artifact:
+        """Unarchive an artifact.
+
+        Args:
+            artifact: The Artifact or artifact ID to unarchive.
+
+        Returns:
+            The unarchived Artifact.
+        """
+        ...
+
+    def update(
+        self,
+        artifact: str | Artifact,
+        update: ArtifactUpdate | dict,
+        *,
+        file: str | Path | bytes | BinaryIO | None = None,
+        file_name: str | None = None,
+    ) -> Artifact:
+        """Write a new version of an artifact.
+
+        `ArtifactUpdate` says how each field carries forward. With `file`, the new version
+        gets new bytes, and its only `SOURCE` and `DERIVED_FROM` links are the ones in
+        `update.links`.
+
+        Args:
+            artifact: The Artifact or artifact ID to update.
+            update: The fields to change.
+            file: New bytes for the new version: a path, bytes, or a binary file object.
+            file_name: The stored file name when `file` is bytes or a file object. A path
+                upload uses the file's own name.
+
+        Returns:
+            The Artifact, resolved to the new version.
+
+        Raises:
+            ValueError: If the update sets no field and has no `file`, or `file` and
+                `file_name` are invalid as for `create`.
+        """
+        ...
+    @property
+    def versions(self) -> ArtifactVersionsAPI:
+        """Nested ArtifactVersionsAPI for making synchronous requests."""
         ...
 
 class AssetsAPI:

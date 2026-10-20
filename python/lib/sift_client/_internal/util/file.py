@@ -145,6 +145,26 @@ def download_file(
     return output_path
 
 
+def read_url_bytes(signed_url: str, *, rest_client: RestClient) -> bytes:
+    """Read a presigned URL's content into memory.
+
+    Args:
+        signed_url: The URL to read.
+        rest_client: The SDK rest client to use for the request.
+
+    Returns:
+        The response body.
+
+    Raises:
+        requests.HTTPError: If the request fails.
+    """
+    # Presigned URLs carry their own auth, so strip the session's Authorization header.
+    headers: dict[str, str | None] = {"Authorization": None}
+    with rest_client.get(signed_url, headers=headers) as response:
+        response.raise_for_status()
+        return response.content
+
+
 def extract_zip(
     zip_path: Path,
     output_dir: Path,

@@ -6,6 +6,8 @@ from sift_client._internal.sync_wrapper import generate_sync_api
 from sift_client.resources import (
     AnnotationLogsAPIAsync,
     AnnotationsAPIAsync,
+    ArtifactsAPIAsync,
+    ArtifactVersionsAPIAsync,
     AssetsAPIAsync,
     CalculatedChannelsAPIAsync,
     CampaignsAPIAsync,
@@ -40,6 +42,11 @@ PingAPI = generate_sync_api(PingAPIAsync, "PingAPI")
 AnnotationLogsAPI = generate_sync_api(AnnotationLogsAPIAsync, "AnnotationLogsAPI")
 AnnotationsAPI = generate_sync_api(
     AnnotationsAPIAsync, "AnnotationsAPI", nested_resources={"logs": AnnotationLogsAPI}
+)
+# ArtifactVersionsAPI must be generated before ArtifactsAPI so it can be nested under it.
+ArtifactVersionsAPI = generate_sync_api(ArtifactVersionsAPIAsync, "ArtifactVersionsAPI")
+ArtifactsAPI = generate_sync_api(
+    ArtifactsAPIAsync, "ArtifactsAPI", nested_resources={"versions": ArtifactVersionsAPI}
 )
 AssetsAPI = generate_sync_api(AssetsAPIAsync, "AssetsAPI")
 CalculatedChannelsAPI = generate_sync_api(CalculatedChannelsAPIAsync, "CalculatedChannelsAPI")
@@ -111,6 +118,8 @@ DataImportAPI = generate_sync_api(DataImportAPIAsync, "DataImportAPI")
 __all__ = [
     "AnnotationLogsAPI",
     "AnnotationsAPI",
+    "ArtifactVersionsAPI",
+    "ArtifactsAPI",
     "AssetsAPI",
     "CalculatedChannelsAPI",
     "CampaignsAPI",

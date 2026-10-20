@@ -11,6 +11,8 @@ from sift_client.errors import SiftWarning
 from sift_client.resources import (
     AnnotationsAPI,
     AnnotationsAPIAsync,
+    ArtifactsAPI,
+    ArtifactsAPIAsync,
     AssetsAPI,
     AssetsAPIAsync,
     CalculatedChannelsAPI,
@@ -111,6 +113,9 @@ class SiftClient(
 
     annotations: AnnotationsAPI
     """Instance of the Annotations API for making synchronous requests."""
+
+    artifacts: ArtifactsAPI
+    """Instance of the Artifacts API for making synchronous requests."""
 
     assets: AssetsAPI
     """Instance of the Assets API for making synchronous requests."""
@@ -255,6 +260,7 @@ class SiftClient(
 
         self.ping = PingAPI(self)
         self.annotations = AnnotationsAPI(self)
+        self.artifacts = ArtifactsAPI(self)
         self.assets = AssetsAPI(self)
         self.calculated_channels = CalculatedChannelsAPI(self)
         self.campaigns = CampaignsAPI(self)
@@ -280,6 +286,7 @@ class SiftClient(
         self.async_ = AsyncAPIs(
             ping=PingAPIAsync(self),
             annotations=AnnotationsAPIAsync(self),
+            artifacts=ArtifactsAPIAsync(self),
             assets=AssetsAPIAsync(self),
             calculated_channels=CalculatedChannelsAPIAsync(self),
             campaigns=CampaignsAPIAsync(self),

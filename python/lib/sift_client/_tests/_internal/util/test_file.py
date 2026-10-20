@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from sift_client._internal.util.file import download_file
+from sift_client._internal.util.file import download_file, read_url_bytes
 
 
 class _FakeResponse:
@@ -16,6 +16,10 @@ class _FakeResponse:
 
     def iter_content(self, chunk_size: int):
         return iter(self._chunks)
+
+    @property
+    def content(self) -> bytes:
+        return b"".join(self._chunks)
 
     def __enter__(self):
         return self
@@ -93,3 +97,14 @@ class TestDownloadFileExtraHeaders:
         )
 
         assert captured["headers"]["Authorization"] == "Bearer proxy-token"
+
+
+class TestReadUrlBytes:
+    def test_returns_body_without_session_auth(self):
+        rest_client, captured = _install_rest_client_stub(_FakeResponse([b"hello ", b"world"]))
+
+        data = read_url_bytes("https://example.test/signed", rest_client=rest_client)
+
+        assert data == b"hello world"
+        assert captured["url"] == "https://example.test/signed"
+        assert captured["headers"] == {"Authorization": None}

@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 import mimetypes
+from contextlib import nullcontext
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, BinaryIO, ContextManager
 
 from requests_toolbelt import MultipartEncoder
 
@@ -40,7 +41,7 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
 
         # Upload a file
         remote_file_id = await upload_client.upload_attachment(
-            path="path/to/file.mp4",
+            source="path/to/file.mp4",
             entity_id="run_12345",
             entity_type="runs",
             description="Video of test run",
@@ -61,48 +62,50 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
 
     async def upload_attachment(
         self,
-        path: str | Path,
+        source: str | Path | BinaryIO,
         entity_id: str,
         entity_type: str,
         metadata: dict[str, Any] | None = None,
         description: str | None = None,
         organization_id: str | None = None,
+        file_name: str | None = None,
     ) -> str:
         """Upload a file attachment to an entity.
 
         Args:
-            path: Path to the file to upload.
+            source: Path to the file to upload, or an open binary file such as `io.BytesIO`.
             entity_id: The ID of the entity to attach the file to.
             entity_type: The type of entity (e.g., "runs", "annotations", "annotation_logs").
             metadata: Optional metadata for the file (e.g., video/image metadata).
             description: Optional description of the file.
             organization_id: Optional organization ID.
+            file_name: The stored file name when `source` is a file object; its extension sets
+                the MIME type. A path upload uses the file's own name.
 
         Returns:
             The remote file ID of the uploaded file.
 
         Raises:
-            ValueError: If the path doesn't point to a regular file or MIME type cannot be determined.
+            ValueError: If the path doesn't point to a regular file, or a file object has no
+                file_name.
             Exception: If the upload fails.
         """
-        posix_path = Path(path) if isinstance(path, str) else path
-
-        if not posix_path.is_file():
-            raise ValueError(f"Provided path, '{path}', does not point to a regular file.")
-
-        file_name, mimetype, content_encoding = self._mime_and_content_type_from_path(posix_path)
-
-        if not mimetype:
-            extension = posix_path.suffix
-            if extension:
-                mimetype = f"application/x-{extension.lstrip('.')}"
-            else:
-                mimetype = "application/octet-stream"  # fallback to generic 'binary data' MIME type
+        upload: Path | BinaryIO
+        if isinstance(source, (str, Path)):
+            upload = Path(source)
+            if not upload.is_file():
+                raise ValueError(f"Provided path, '{source}', does not point to a regular file.")
+            file_name, mimetype, content_encoding = self._resolve_mime(upload)
+        else:
+            if not file_name:
+                raise ValueError("file_name is required when uploading a file object.")
+            upload = source
+            _, mimetype, content_encoding = self._resolve_mime(Path(file_name))
 
         # Run the synchronous file upload in a thread pool to avoid blocking the event loop
         return await run_sync_function(
             self._upload_file_sync,
-            posix_path,
+            upload,
             file_name,
             mimetype,
             content_encoding,
@@ -115,7 +118,7 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
 
     def _upload_file_sync(
         self,
-        path: Path,
+        source: Path | BinaryIO,
         file_name: str,
         mimetype: str,
         content_encoding: str | None,
@@ -129,7 +132,12 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
 
         This is called from a thread pool to avoid blocking the async event loop.
         """
-        with open(path, "rb") as file:
+        opened: ContextManager[BinaryIO]
+        if isinstance(source, Path):
+            opened = open(source, "rb")
+        else:
+            opened = nullcontext(source)
+        with opened as file:
             form_fields: dict[str, Any] = {
                 "entityId": entity_id,
                 "entityType": entity_type,
@@ -178,6 +186,18 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
 
             response_data = response.json()
             return response_data.get("remoteFile", {}).get("remoteFileId")
+
+    @classmethod
+    def _resolve_mime(cls, path: Path) -> tuple[str, str, str | None]:
+        """Like `_mime_and_content_type_from_path`, with a fallback when the type is unknown."""
+        file_name, mimetype, content_encoding = cls._mime_and_content_type_from_path(path)
+        if not mimetype:
+            extension = path.suffix
+            if extension:
+                mimetype = f"application/x-{extension.lstrip('.')}"
+            else:
+                mimetype = "application/octet-stream"  # fallback to generic 'binary data' MIME type
+        return file_name, mimetype, content_encoding
 
     @staticmethod
     def _mime_and_content_type_from_path(path: Path) -> tuple[str, str | None, str | None]:
