@@ -2908,27 +2908,48 @@ You're not viewing the latest version.
       pydantic-model
    (sift_client.sift_types.user.User)" href="../../sift_types/user/#sift_client.sift_types.user.User">User</a></span> <span class="o">|</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">metadata</span><span class="p">:</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="float">float</span></span> <span class="o">|</span> <span class="n"><span title="bool">bool</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">runs</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            Run
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">sources</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            Run
 
 
   
       pydantic-model
-   (sift_client.sift_types.run.Run)" href="../../sift_types/run/#sift_client.sift_types.run.Run">Run</a></span><span class="p">]</span> <span class="o">|</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">assets</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            Asset
+   (sift_client.sift_types.run.Run)" href="../../sift_types/run/#sift_client.sift_types.run.Run">Run</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Asset
 
 
   
       pydantic-model
-   (sift_client.sift_types.asset.Asset)" href="../../sift_types/asset/#sift_client.sift_types.asset.Asset">Asset</a></span><span class="p">]</span> <span class="o">|</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">file_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">created_via</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ArtifactCreatedVia (sift_client.sift_types.artifact.ArtifactCreatedVia)" href="../../sift_types/artifact/#sift_client.sift_types.artifact.ArtifactCreatedVia">ArtifactCreatedVia</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">artifact_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ArtifactType (sift_client.sift_types.artifact.ArtifactType)" href="../../sift_types/artifact/#sift_client.sift_types.artifact.ArtifactType">ArtifactType</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="n">include_archived</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="n">filter_query</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="n">order_by</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="n">limit</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>    <span class="n">page_size</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            ArtifactVersion
+   (sift_client.sift_types.asset.Asset)" href="../../sift_types/asset/#sift_client.sift_types.asset.Asset">Asset</a></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">derived_from</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            Artifact
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.artifact.Artifact)" href="../../sift_types/artifact/#sift_client.sift_types.artifact.Artifact">Artifact</a></span> <span class="o">|</span> <span class="n"><span title="str">str</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">related_to</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            Run
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.run.Run)" href="../../sift_types/run/#sift_client.sift_types.run.Run">Run</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Asset
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.asset.Asset)" href="../../sift_types/asset/#sift_client.sift_types.asset.Asset">Asset</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Artifact
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.artifact.Artifact)" href="../../sift_types/artifact/#sift_client.sift_types.artifact.Artifact">Artifact</a></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">file_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">created_via</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ArtifactCreatedVia (sift_client.sift_types.artifact.ArtifactCreatedVia)" href="../../sift_types/artifact/#sift_client.sift_types.artifact.ArtifactCreatedVia">ArtifactCreatedVia</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="n">artifact_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ArtifactType (sift_client.sift_types.artifact.ArtifactType)" href="../../sift_types/artifact/#sift_client.sift_types.artifact.ArtifactType">ArtifactType</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="n">include_archived</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="n">filter_query</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="n">order_by</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>    <span class="n">limit</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>    <span class="n">page_size</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            ArtifactVersion
 
 
   
@@ -3150,11 +3171,11 @@ versions of every artifact.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>runs</code>
+                <code>sources</code>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Filter to versions linked to any of these Runs or run IDs.</p>
+                <p>Filter to versions produced from any of these Runs or Assets.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -3164,7 +3185,12 @@ versions of every artifact.</p>
 
   
       pydantic-model
-   (sift_client.sift_types.run.Run)" href="../../sift_types/run/#sift_client.sift_types.run.Run">Run</a>] | <span title="list">list</span>[<span title="str">str</span>] | None</code>
+   (sift_client.sift_types.run.Run)" href="../../sift_types/run/#sift_client.sift_types.run.Run">Run</a> | <a class="autorefs autorefs-internal" title="            Asset
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.asset.Asset)" href="../../sift_types/asset/#sift_client.sift_types.asset.Asset">Asset</a>] | None</code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
@@ -3175,21 +3201,58 @@ versions of every artifact.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>assets</code>
+                <code>derived_from</code>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Filter to versions linked to any of these Assets or asset IDs.</p>
+                <p>Filter to versions derived from any of these Artifacts or
+artifact IDs.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><span title="list">list</span>[<a class="autorefs autorefs-internal" title="            Asset
+                      <code><span title="list">list</span>[<a class="autorefs autorefs-internal" title="            Artifact
 
 
   
       pydantic-model
-   (sift_client.sift_types.asset.Asset)" href="../../sift_types/asset/#sift_client.sift_types.asset.Asset">Asset</a>] | <span title="list">list</span>[<span title="str">str</span>] | None</code>
+   (sift_client.sift_types.artifact.Artifact)" href="../../sift_types/artifact/#sift_client.sift_types.artifact.Artifact">Artifact</a> | <span title="str">str</span>] | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>related_to</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Filter to versions linked to any of these Runs, Assets, or
+Artifacts, by any relation.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="list">list</span>[<a class="autorefs autorefs-internal" title="            Run
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.run.Run)" href="../../sift_types/run/#sift_client.sift_types.run.Run">Run</a> | <a class="autorefs autorefs-internal" title="            Asset
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.asset.Asset)" href="../../sift_types/asset/#sift_client.sift_types.asset.Asset">Asset</a> | <a class="autorefs autorefs-internal" title="            Artifact
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.artifact.Artifact)" href="../../sift_types/artifact/#sift_client.sift_types.artifact.Artifact">Artifact</a>] | None</code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
@@ -4041,27 +4104,48 @@ they link to.</p>
       pydantic-model
    (sift_client.sift_types.user.User)" href="../../sift_types/user/#sift_client.sift_types.user.User">User</a></span> <span class="o">|</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">metadata</span><span class="p">:</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="float">float</span></span> <span class="o">|</span> <span class="n"><span title="bool">bool</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">runs</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            Run
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">sources</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            Run
 
 
   
       pydantic-model
-   (sift_client.sift_types.run.Run)" href="../../sift_types/run/#sift_client.sift_types.run.Run">Run</a></span><span class="p">]</span> <span class="o">|</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">assets</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            Asset
+   (sift_client.sift_types.run.Run)" href="../../sift_types/run/#sift_client.sift_types.run.Run">Run</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Asset
 
 
   
       pydantic-model
-   (sift_client.sift_types.asset.Asset)" href="../../sift_types/asset/#sift_client.sift_types.asset.Asset">Asset</a></span><span class="p">]</span> <span class="o">|</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">file_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">created_via</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ArtifactCreatedVia (sift_client.sift_types.artifact.ArtifactCreatedVia)" href="../../sift_types/artifact/#sift_client.sift_types.artifact.ArtifactCreatedVia">ArtifactCreatedVia</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">artifact_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ArtifactType (sift_client.sift_types.artifact.ArtifactType)" href="../../sift_types/artifact/#sift_client.sift_types.artifact.ArtifactType">ArtifactType</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">include_archived</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="n">filter_query</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="n">order_by</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="n">limit</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="n">page_size</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            Artifact
+   (sift_client.sift_types.asset.Asset)" href="../../sift_types/asset/#sift_client.sift_types.asset.Asset">Asset</a></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">derived_from</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            Artifact
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.artifact.Artifact)" href="../../sift_types/artifact/#sift_client.sift_types.artifact.Artifact">Artifact</a></span> <span class="o">|</span> <span class="n"><span title="str">str</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">related_to</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            Run
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.run.Run)" href="../../sift_types/run/#sift_client.sift_types.run.Run">Run</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Asset
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.asset.Asset)" href="../../sift_types/asset/#sift_client.sift_types.asset.Asset">Asset</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Artifact
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.artifact.Artifact)" href="../../sift_types/artifact/#sift_client.sift_types.artifact.Artifact">Artifact</a></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">file_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">created_via</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ArtifactCreatedVia (sift_client.sift_types.artifact.ArtifactCreatedVia)" href="../../sift_types/artifact/#sift_client.sift_types.artifact.ArtifactCreatedVia">ArtifactCreatedVia</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">artifact_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ArtifactType (sift_client.sift_types.artifact.ArtifactType)" href="../../sift_types/artifact/#sift_client.sift_types.artifact.ArtifactType">ArtifactType</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="n">include_archived</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="n">filter_query</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="n">order_by</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="n">limit</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>    <span class="n">page_size</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            Artifact
 
 
   
@@ -4072,8 +4156,8 @@ they link to.</p>
     <div class="doc doc-contents ">
 
         <p>List artifacts, each resolved to its latest version.</p>
-<p><code>runs</code> and <code>assets</code> match links of any relation. To match one relation, or other
-fields of the linked entity, use <code>filter_query</code>.</p>
+<p><code>sources</code>, <code>derived_from</code>, and <code>related_to</code> match the latest version's links. For
+other fields of the linked entity, such as a run name, use <code>filter_query</code>.</p>
 
 
 <table>
@@ -4257,11 +4341,11 @@ pairs.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>runs</code>
+                <code>sources</code>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Filter to artifacts linked to any of these Runs or run IDs.</p>
+                <p>Filter to artifacts produced from any of these Runs or Assets.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -4271,7 +4355,12 @@ pairs.</p>
 
   
       pydantic-model
-   (sift_client.sift_types.run.Run)" href="../../sift_types/run/#sift_client.sift_types.run.Run">Run</a>] | <span title="list">list</span>[<span title="str">str</span>] | None</code>
+   (sift_client.sift_types.run.Run)" href="../../sift_types/run/#sift_client.sift_types.run.Run">Run</a> | <a class="autorefs autorefs-internal" title="            Asset
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.asset.Asset)" href="../../sift_types/asset/#sift_client.sift_types.asset.Asset">Asset</a>] | None</code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
@@ -4282,21 +4371,58 @@ pairs.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>assets</code>
+                <code>derived_from</code>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Filter to artifacts linked to any of these Assets or asset IDs.</p>
+                <p>Filter to artifacts derived from any of these Artifacts or
+artifact IDs.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><span title="list">list</span>[<a class="autorefs autorefs-internal" title="            Asset
+                      <code><span title="list">list</span>[<a class="autorefs autorefs-internal" title="            Artifact
 
 
   
       pydantic-model
-   (sift_client.sift_types.asset.Asset)" href="../../sift_types/asset/#sift_client.sift_types.asset.Asset">Asset</a>] | <span title="list">list</span>[<span title="str">str</span>] | None</code>
+   (sift_client.sift_types.artifact.Artifact)" href="../../sift_types/artifact/#sift_client.sift_types.artifact.Artifact">Artifact</a> | <span title="str">str</span>] | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>related_to</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Filter to artifacts linked to any of these Runs, Assets, or
+Artifacts, by any relation.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="list">list</span>[<a class="autorefs autorefs-internal" title="            Run
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.run.Run)" href="../../sift_types/run/#sift_client.sift_types.run.Run">Run</a> | <a class="autorefs autorefs-internal" title="            Asset
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.asset.Asset)" href="../../sift_types/asset/#sift_client.sift_types.asset.Asset">Asset</a> | <a class="autorefs autorefs-internal" title="            Artifact
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.artifact.Artifact)" href="../../sift_types/artifact/#sift_client.sift_types.artifact.Artifact">Artifact</a>] | None</code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
