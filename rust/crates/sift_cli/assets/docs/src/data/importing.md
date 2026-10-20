@@ -53,6 +53,17 @@ queryable immediately afterward.
 sift-cli import csv ./telemetry.csv --asset rover-1 --wait
 ```
 
+### Leaving a run open
+
+A finished import marks its run stopped, which fires run-stop automations.
+Pass `--leave-run-open` when more files are coming to that run. Stop the run
+after the last import. The flag does nothing when the import has no run.
+
+```sh
+sift-cli import csv ./part-1.csv --asset rover-1 --run sortie-4 --leave-run-open
+sift-cli import csv ./part-2.csv --asset rover-1 --run sortie-4
+```
+
 ### Time formats
 
 Imports that parse a time column accept a `--time-format` describing how

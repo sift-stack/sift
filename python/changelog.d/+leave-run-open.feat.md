@@ -1,0 +1,1 @@
+`client.data_import.import_from_path` and `Run.import_data` take `leave_run_open` (default false). A finished import stops its run and fires run-stop automations unless you set it, then call `run.stop()` after the last import.
