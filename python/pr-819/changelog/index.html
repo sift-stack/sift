@@ -748,6 +748,45 @@ You're not viewing the latest version.
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#v0240-october-20-2026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [v0.24.0] - October 20, 2026
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[v0.24.0] - October 20, 2026">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0231-october-8-2026" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3081,6 +3120,45 @@ You're not viewing the latest version.
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#v0240-october-20-2026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [v0.24.0] - October 20, 2026
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[v0.24.0] - October 20, 2026">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0231-october-8-2026" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5405,6 +5483,17 @@ You're not viewing the latest version.
 <p>This project adheres to <a href="http://semver.org/">Semantic Versioning</a>.</p>
 <!-- towncrier release notes start -->
 
+<h2 id="v0240-october-20-2026">[v0.24.0] - October 20, 2026<a class="headerlink" href="#v0240-october-20-2026" title="Permanent link">&para;</a></h2>
+<h3 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Test-results log uploads are faster: consecutive measurements are now sent in one <code>CreateTestMeasurements</code> call, a retry after an unknown outcome checks the server first and reports it with the new <code>SiftReplayReconciledWarning</code>, and pytest now waits up to 120s (was 30s) at session end for the background upload, asking it to stop cleanly if it runs over. (<a href="https://github.com/sift-stack/sift/pull/810">#810</a>)</li>
+<li>Added <code>client.artifacts</code> for finding artifacts by the runs and assets they link to, browsing version history through <code>client.artifacts.versions</code>, and downloading any version's file. (<a href="https://github.com/sift-stack/sift/pull/845">#845</a>)</li>
+<li>Added the generated <code>sift.artifacts.v1</code> protobuf modules and updated the generated protobuf modules to the current public Sift API.</li>
+</ul>
+<h3 id="fixes">Fixes<a class="headerlink" href="#fixes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Allowed <code>RestConfig</code> to omit <code>api_key</code>, creating a REST client without a default <code>Authorization</code> header.</li>
+</ul>
 <h2 id="v0231-october-8-2026">[v0.23.1] - October 8, 2026<a class="headerlink" href="#v0231-october-8-2026" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Test-results steps updated out of order now have their statuses corrected before the report is finalized, with a <code>SiftReportLifecycleWarning</code>. (<a href="https://github.com/sift-stack/sift/pull/821">#821</a>)</li>
