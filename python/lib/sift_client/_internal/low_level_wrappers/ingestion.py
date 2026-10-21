@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import logging
 from collections import namedtuple
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Iterable, cast
 
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
@@ -35,6 +36,9 @@ logger = logging.getLogger(__name__)
 DEFAULT_INGESTION_CONFIG_PAGE_SIZE = 100
 """Default page size for ingestion config and flow list calls (flow configs can be large)."""
 
+DEFAULT_METRICS_STREAMING_INTERVAL = timedelta(milliseconds=500)
+"""Default interval at which SiftStream pushes stream metrics to Sift. Matches the SiftStream default."""
+
 if TYPE_CHECKING:
     from datetime import datetime
 
@@ -47,6 +51,7 @@ if TYPE_CHECKING:
         IngestWithConfigDataStreamRequestPy,
         IngestWithConfigDataStreamRequestWrapperPy,
         MetadataPy,
+        RateLimitPolicyPy,
         RetryPolicyPy,
         RunFormPy,
         RunSelectorPy,
@@ -248,6 +253,8 @@ async def _build_sift_stream_instance(
     retry_policy: RetryPolicyPy | None = None,
     disk_backup_policy: DiskBackupPolicyPy | None = None,
     checkpoint_interval_seconds: int | None = None,
+    metrics_streaming_interval: timedelta | None = DEFAULT_METRICS_STREAMING_INTERVAL,
+    rate_limit_policy: RateLimitPolicyPy | None = None,
     enable_tls: bool = True,
     tracing_config: TracingConfig | None = None,
 ) -> SiftStreamPy:
@@ -273,6 +280,17 @@ async def _build_sift_stream_instance(
     if streaming_mode is ...:  # type: ignore[comparison-overlap]
         streaming_mode = StreamingMode.LIVE_WITH_BACKUPS
 
+    # None disables metrics streaming, so it passes through to the builder as-is. Zero is
+    # rejected here because SiftStream cannot schedule metrics on a zero interval.
+    metrics_interval: DurationPy | None = None
+    if metrics_streaming_interval is not None:
+        if metrics_streaming_interval <= timedelta(0):
+            raise ValueError(
+                "metrics_streaming_interval must be greater than zero, "
+                f"got {metrics_streaming_interval}"
+            )
+        metrics_interval = DurationPy.from_timedelta(metrics_streaming_interval)
+
     if not is_tracing_initialized():
         if tracing_config is None:
             tracing_config = TracingConfig.with_file()
@@ -295,18 +313,24 @@ async def _build_sift_stream_instance(
     config_builder.run_id = run_id
     config_builder.asset_tags = asset_tags
     config_builder.metadata = asset_metadata
+    if rate_limit_policy is not None:
+        config_builder.rate_limit_policy = rate_limit_policy
 
     if streaming_mode == StreamingMode.LIVE_ONLY:
-        return await config_builder.live_only().build()
+        lo_builder = config_builder.live_only()
+        lo_builder.metrics_streaming_interval = metrics_interval
+        return await lo_builder.build()
 
     elif streaming_mode == StreamingMode.FILE_BACKUP:
         fb_builder = config_builder.file_backup()
+        fb_builder.metrics_streaming_interval = metrics_interval
         if disk_backup_policy is not None:
             fb_builder.disk_backup_policy = disk_backup_policy
         return await fb_builder.build()
 
     else:  # LIVE_WITH_BACKUPS (default)
         lwb_builder = config_builder.live_with_backups()
+        lwb_builder.metrics_streaming_interval = metrics_interval
         if retry_policy is not None:
             lwb_builder.retry_policy = retry_policy
         if disk_backup_policy is not None:
@@ -339,6 +363,8 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
         retry_policy: RetryPolicyPy | None = None,
         disk_backup_policy: DiskBackupPolicyPy | None = None,
         checkpoint_interval_seconds: int | None = None,
+        metrics_streaming_interval: timedelta | None = DEFAULT_METRICS_STREAMING_INTERVAL,
+        rate_limit_policy: RateLimitPolicyPy | None = None,
         enable_tls: bool = True,
         tracing_config: TracingConfig | None = None,
     ) -> IngestionConfigStreamingLowLevelClient:
@@ -354,6 +380,8 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
             retry_policy=retry_policy,
             disk_backup_policy=disk_backup_policy,
             checkpoint_interval_seconds=checkpoint_interval_seconds,
+            metrics_streaming_interval=metrics_streaming_interval,
+            rate_limit_policy=rate_limit_policy,
             enable_tls=enable_tls,
             tracing_config=tracing_config,
         )
