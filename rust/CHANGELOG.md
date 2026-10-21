@@ -6,9 +6,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### What's New
 
-#### `DurationPy` converts to and from `timedelta`
+#### `DurationPy` converts to and from `timedelta` (PR [#849](https://github.com/sift-stack/sift/pull/849))
 
-##### `sift-stream-bindings`
+##### `sift-stream-bindings` 0.6.1
 
 `DurationPy.to_timedelta()` returns the duration as a `datetime.timedelta`, so
 `RateLimitedErrorPy.retry_delay.to_timedelta()` gives the delay Sift requested in a form that
