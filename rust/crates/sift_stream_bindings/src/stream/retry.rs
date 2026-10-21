@@ -1,3 +1,4 @@
+use pyo3::exceptions::PyOverflowError;
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
 use sift_stream::{
@@ -209,6 +210,34 @@ impl DurationPy {
     #[new]
     pub fn new(secs: u64, nanos: u32) -> Self {
         Self { secs, nanos }
+    }
+
+    /// Creates a `DurationPy` from a `datetime.timedelta`. Raises `ValueError` if `delta` is
+    /// negative.
+    #[staticmethod]
+    pub fn from_timedelta(delta: std::time::Duration) -> Self {
+        delta.into()
+    }
+
+    /// Returns this duration as a `datetime.timedelta`. `timedelta` stores microseconds, so any
+    /// remaining nanoseconds are dropped. Raises `OverflowError` if the duration is longer than
+    /// `timedelta.max`.
+    // pyo3 methods cannot take `self` by value, which clippy expects for `to_*` on a `Copy` type.
+    #[allow(clippy::wrong_self_convention)]
+    pub fn to_timedelta(&self) -> PyResult<std::time::Duration> {
+        // `timedelta.max` is 999,999,999 days plus just under one day. pyo3 raises `ValueError`
+        // for some longer durations and `OverflowError` for others, so check here to raise
+        // `OverflowError` consistently, as `timedelta` itself does.
+        const TIMEDELTA_MAX_SECS: u64 = 999_999_999 * 86_400 + 86_399;
+
+        let duration = std::time::Duration::from(*self);
+        if duration.as_secs() > TIMEDELTA_MAX_SECS {
+            return Err(PyOverflowError::new_err(format!(
+                "duration of {} seconds is longer than timedelta.max",
+                duration.as_secs()
+            )));
+        }
+        Ok(duration)
     }
 }
 
