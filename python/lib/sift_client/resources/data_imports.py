@@ -519,7 +519,9 @@ class DataImportAPIAsync(ResourceBase):
         )
 
         if response.HasField("csv_config"):
-            return parse_csv_detect_response(response.csv_config, path.name, relative_start_time)
+            return parse_csv_detect_response(
+                response.csv_config, path.name, relative_start_time=relative_start_time
+            )
 
         if response.HasField("parquet_config"):
             return parse_parquet_detect_response(

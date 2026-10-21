@@ -63,7 +63,7 @@ def resolve_data_type_key(ext: str, data_type: DataTypeKey | None) -> DataTypeKe
 
 
 def parse_csv_detect_response(
-    proto, filename: str, relative_start_time: datetime | None = None
+    proto, filename: str, *, relative_start_time: datetime | None = None
 ) -> CsvImportConfig:
     """Parse a CSV DetectConfig response into a config."""
     if proto.time_column.column_number < 1:
