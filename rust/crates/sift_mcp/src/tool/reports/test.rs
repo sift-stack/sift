@@ -20,7 +20,10 @@ use tonic::{Response, Status, transport::Server};
 use super::{
     CreateReportParams, ReportListParams, ReportRuleSummaryListParams, UpdateReportParams,
 };
-use crate::{server::SiftMcpServer, tool::common::test_support::structured_field};
+use crate::{
+    server::SiftMcpServer,
+    tool::common::test_support::{content_texts, structured_field},
+};
 
 fn create_report_params() -> CreateReportParams {
     CreateReportParams {
@@ -319,6 +322,10 @@ async fn list_report_rule_summaries_returns_single_page() {
         }))
         .await
         .expect("list_report_rule_summaries failed");
+
+    let texts = content_texts(&resp);
+    assert_eq!(texts.len(), 2);
+    assert!(texts[1].contains("rule-1"));
 
     let summaries = structured_field(resp, "report_rule_summaries");
     assert_eq!(summaries.as_array().unwrap().len(), 1);

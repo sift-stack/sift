@@ -12,7 +12,7 @@ use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::rules::RuleUpdate,
-    tool::common::{ListParams, list_body, url_clause, with_urls},
+    tool::common::{ListParams, list_body, read_result, url_clause, with_urls},
 };
 
 #[cfg(test)]
@@ -196,13 +196,14 @@ impl SiftMcpServer {
             url_clause("rule", None, rule_url.as_deref()),
         );
 
-        let mut result = CallToolResult::structured(serde_json::json!({
-            "rule_versions": rule_versions,
-            "rule_url": rule_url,
-            "next_step": next_step,
-        }));
-        result.content = vec![ContentBlock::text(next_step)];
-        Ok(result)
+        Ok(read_result(
+            serde_json::json!({
+                "rule_versions": rule_versions,
+                "rule_url": rule_url,
+                "next_step": next_step,
+            }),
+            next_step,
+        ))
     }
 
     #[tool(

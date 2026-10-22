@@ -277,6 +277,13 @@ pub async fn list_webhooks(&self, params: Parameters<ListParams>) -> error::McpR
   set both the structured `next_step` field and `result.content = vec![Content::text(next_step)]`
   so the calling agent sees it. `get_data` and `explore_url` are the reference patterns. Write
   tools use `next_step` to force a confirmation before the agent proceeds.
+- **Read tools keep their payload in `content`.** Clients such as Claude Code show the model
+  `content`, not `structuredContent`. Replacing `content` with `next_step` alone hides the payload
+  from the agent, so a read tool that returns data the agent must see (versions, summaries, dry-run
+  results) returns `read_result(body, next_step)` from `tool/common/`, which puts `next_step`
+  first and keeps the JSON body after it. Replace `content` with `next_step` only when
+  `next_step` itself carries everything the agent needs, such as the file path from `get_data` or
+  the URL from `explore_url`. `preview_rule` is the reference.
 
 ### Writing the description
 
