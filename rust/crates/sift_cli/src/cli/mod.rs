@@ -253,6 +253,11 @@ pub struct ExportArgs {
     #[arg(long)]
     pub channel_id: Vec<String>,
 
+    /// Print the export job ID and a link to track it in Sift, then exit without
+    /// downloading. Nothing is written to --output
+    #[arg(long)]
+    pub no_wait: bool,
+
     /// Regular expression used to filter calculated channels to include in the export
     #[arg(long)]
     pub calculated_channel_regex: Option<String>,
