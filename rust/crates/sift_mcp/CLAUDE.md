@@ -676,6 +676,8 @@ Run through this before declaring the tool done:
       match the current proto comments.
 - [ ] Any tool taking a `filter` closes its `filter` bullet with the search block from Step 5,
       adapted to that resource's own text fields and phrased as a direct instruction.
+- [ ] Any `list_*` tool taking `fields` builds its body with `list_body` and documents
+      `_unmatched_fields` in both its `fields` bullet and its Output section.
 - [ ] `read_only_hint` is correct, and write tools set `destructive_hint` / `idempotent_hint`
       per the Step 4 mapping. Write tools confirm the destination via `next_step`.
 - [ ] Every write handler gates itself as the first line: `self.require_create()?` for

@@ -712,6 +712,53 @@ async fn every_registered_tool_has_a_client_event() {
     grpc_handle.abort();
 }
 
+/// Agents learn the projection warning's name only from the tool description.
+/// Every tool that accepts `fields` must name `_unmatched_fields` in both its
+/// `fields` bullet and its Output section, and never the pre-rename key, or the
+/// agent will look for a key the response no longer carries.
+#[tokio::test]
+async fn every_fields_tool_documents_unmatched_fields() {
+    let current = UpdateCheck::Current {
+        current_version: "0.4.0".to_string(),
+        latest_version: "0.4.0".to_string(),
+    };
+    let (server, grpc_handle) = server_with_feature_flags(
+        Some(receiver(current)),
+        0,
+        ClientEventReporter::default(),
+        all_feature_flags(),
+    )
+    .await;
+    let fields_tools: Vec<_> = server
+        .tool_router
+        .list_all()
+        .into_iter()
+        .filter(|tool| {
+            tool.input_schema
+                .get("properties")
+                .and_then(|properties| properties.get("fields"))
+                .is_some()
+        })
+        .collect();
+    let undocumented: Vec<_> = fields_tools
+        .iter()
+        .filter(|tool| {
+            let description = tool.description.as_deref().unwrap_or_default();
+            description.matches("`_unmatched_fields`").count() < 2
+                || description.contains("`unmatched_fields`")
+        })
+        .map(|tool| tool.name.clone())
+        .collect();
+
+    assert!(!fields_tools.is_empty(), "no tools accept `fields`");
+    assert!(
+        undocumented.is_empty(),
+        "tools that don't document `_unmatched_fields`: {undocumented:?}"
+    );
+
+    grpc_handle.abort();
+}
+
 #[tokio::test]
 async fn client_event_failure_does_not_change_the_tool_result() {
     let reporter = ClientEventReporter::new(
