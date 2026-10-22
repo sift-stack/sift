@@ -32658,6 +32658,32 @@ registration entirely.</p>
     </table>
 
 
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RAISES</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+              <span class="doc-raises-annotation">
+                  <code><span title="RateLimitedErrorPy">RateLimitedErrorPy</span></code>
+              </span>
+            </td>
+            <td class="doc-raises-details">
+              <div class="doc-md-description">
+                <p>If Sift rate limits registering a new flow and the stream's
+<code>rate_limit_policy</code> does not retry, or the retries run out. When <code>retry_delay</code>
+is not None, <code>retry_delay.to_timedelta()</code> returns the delay Sift requested.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
     </div>
 
 </div>
@@ -32799,6 +32825,32 @@ registration entirely.</p>
    (sift_client.sift_types.run.Run)" href="../sift_types/run/#sift_client.sift_types.run.Run">Run</a> | <span title="sift_stream_bindings.RunFormPy">RunFormPy</span></code>
                   </span>
               </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RAISES</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+              <span class="doc-raises-annotation">
+                  <code><span title="RateLimitedErrorPy">RateLimitedErrorPy</span></code>
+              </span>
+            </td>
+            <td class="doc-raises-details">
+              <div class="doc-md-description">
+                <p>If Sift rate limits the run lookup or creation and the stream's
+<code>rate_limit_policy</code> does not retry, or the retries run out. When <code>retry_delay</code>
+is not None, <code>retry_delay.to_timedelta()</code> returns the delay Sift requested.</p>
+              </div>
             </td>
           </tr>
       </tbody>
@@ -33236,9 +33288,12 @@ representation of ingestion flows using standard Python data structures and type
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">retry_policy</span><span class="p">:</span> <span class="n"><span title="sift_stream_bindings.RetryPolicyPy">RetryPolicyPy</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">disk_backup_policy</span><span class="p">:</span> <span class="n"><span title="sift_stream_bindings.DiskBackupPolicyPy">DiskBackupPolicyPy</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">checkpoint_interval_seconds</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">enable_tls</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">tracing_config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TracingConfig (sift_client.resources.ingestion.TracingConfig)" href="ingestion/#sift_client.resources.ingestion.TracingConfig">TracingConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            IngestionConfigStreamingClient (sift_client.resources.ingestion.IngestionConfigStreamingClient)" href="ingestion/#sift_client.resources.ingestion.IngestionConfigStreamingClient">IngestionConfigStreamingClient</a></span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">metrics_streaming_interval</span><span class="p">:</span> <span class="n"><span title="datetime.timedelta">timedelta</span></span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n"><span title="sift_client._internal.low_level_wrappers.ingestion.DEFAULT_METRICS_STREAMING_INTERVAL">DEFAULT_METRICS_STREAMING_INTERVAL</span></span><span class="p">,</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">rate_limit_policy</span><span class="p">:</span> <span class="n"><span title="sift_stream_bindings.RateLimitPolicyPy">RateLimitPolicyPy</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="n">enable_tls</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="n">tracing_config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TracingConfig (sift_client.resources.ingestion.TracingConfig)" href="ingestion/#sift_client.resources.ingestion.TracingConfig">TracingConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            IngestionConfigStreamingClient (sift_client.resources.ingestion.IngestionConfigStreamingClient)" href="ingestion/#sift_client.resources.ingestion.IngestionConfigStreamingClient">IngestionConfigStreamingClient</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -33443,6 +33498,51 @@ representation of ingestion flows using standard Python data structures and type
           </tr>
           <tr class="doc-section-item">
             <td>
+                <code>metrics_streaming_interval</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>How often stream metrics are pushed to Sift. Defaults to
+500 ms. Must be greater than zero. Set to None to disable metrics streaming.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="datetime.timedelta">timedelta</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code><span title="sift_client._internal.low_level_wrappers.ingestion.DEFAULT_METRICS_STREAMING_INTERVAL">DEFAULT_METRICS_STREAMING_INTERVAL</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>rate_limit_policy</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>How rate-limited control-plane calls are handled, such as stream
+setup, <code>attach_run</code>, and flow registration. Defaults to <code>RateLimitPolicyPy.retry()</code>,
+which waits the delay Sift requests before retrying. Use
+<code>RateLimitPolicyPy.return_error()</code> to raise <code>RateLimitedErrorPy</code> immediately.
+Rate limits while streaming data are handled by <code>retry_policy</code>.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="sift_stream_bindings.RateLimitPolicyPy">RateLimitPolicyPy</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
                 <code>enable_tls</code>
             </td>
             <td class="doc-param-details">
@@ -33512,6 +33612,32 @@ initialized with default settings if not already initialized).</p>
     </table>
 
 
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RAISES</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+              <span class="doc-raises-annotation">
+                  <code><span title="RateLimitedErrorPy">RateLimitedErrorPy</span></code>
+              </span>
+            </td>
+            <td class="doc-raises-details">
+              <div class="doc-md-description">
+                <p>If Sift rate limits stream setup and <code>rate_limit_policy</code> does not
+retry, or the retries run out. When <code>retry_delay</code> is not None,
+<code>retry_delay.to_timedelta()</code> returns the delay Sift requested.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
     </div>
 
 </div>
@@ -33572,15 +33698,18 @@ initialized with default settings if not already initialized).</p>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">retry_policy</span><span class="p">:</span> <span class="n"><span title="sift_stream_bindings.RetryPolicyPy">RetryPolicyPy</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">disk_backup_policy</span><span class="p">:</span> <span class="n"><span title="sift_stream_bindings.DiskBackupPolicyPy">DiskBackupPolicyPy</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">checkpoint_interval_seconds</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">enable_tls</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">tracing_config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TracingConfig (sift_client.resources.ingestion.TracingConfig)" href="ingestion/#sift_client.resources.ingestion.TracingConfig">TracingConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">staged_configs</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            FlowConfig
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">metrics_streaming_interval</span><span class="p">:</span> <span class="n"><span title="datetime.timedelta">timedelta</span></span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n"><span title="sift_client._internal.low_level_wrappers.ingestion.DEFAULT_METRICS_STREAMING_INTERVAL">DEFAULT_METRICS_STREAMING_INTERVAL</span></span><span class="p">,</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">rate_limit_policy</span><span class="p">:</span> <span class="n"><span title="sift_stream_bindings.RateLimitPolicyPy">RateLimitPolicyPy</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="n">enable_tls</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="n">tracing_config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TracingConfig (sift_client.resources.ingestion.TracingConfig)" href="ingestion/#sift_client.resources.ingestion.TracingConfig">TracingConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="n">staged_configs</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            FlowConfig
 
 
   
       pydantic-model
    (sift_client.sift_types.ingestion.FlowConfig)" href="../sift_types/ingestion/#sift_client.sift_types.ingestion.FlowConfig">FlowConfig</a></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            AutoRegisterStreamingClient (sift_client.resources.ingestion.AutoRegisterStreamingClient)" href="ingestion/#sift_client.resources.ingestion.AutoRegisterStreamingClient">AutoRegisterStreamingClient</a></span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            AutoRegisterStreamingClient (sift_client.resources.ingestion.AutoRegisterStreamingClient)" href="ingestion/#sift_client.resources.ingestion.AutoRegisterStreamingClient">AutoRegisterStreamingClient</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -33798,6 +33927,51 @@ flows and avoid any first-send latency for those flows.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
+                <code>metrics_streaming_interval</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>How often stream metrics are pushed to Sift. Defaults to
+500 ms. Must be greater than zero. Set to None to disable metrics streaming.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="datetime.timedelta">timedelta</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code><span title="sift_client._internal.low_level_wrappers.ingestion.DEFAULT_METRICS_STREAMING_INTERVAL">DEFAULT_METRICS_STREAMING_INTERVAL</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>rate_limit_policy</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>How rate-limited control-plane calls are handled, such as stream
+setup, <code>attach_run</code>, and flow registration. Defaults to <code>RateLimitPolicyPy.retry()</code>,
+which waits the delay Sift requests before retrying. Use
+<code>RateLimitPolicyPy.return_error()</code> to raise <code>RateLimitedErrorPy</code> immediately.
+Rate limits while streaming data are handled by <code>retry_policy</code>.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="sift_stream_bindings.RateLimitPolicyPy">RateLimitPolicyPy</span> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
                 <code>enable_tls</code>
             </td>
             <td class="doc-param-details">
@@ -33886,6 +34060,32 @@ use; a mismatch raises <code>RuntimeError</code>.</p>
             <td class="doc-returns-details">
               <div class="doc-md-description">
                 <p>An initialized <code>AutoRegisterStreamingClient</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RAISES</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+              <span class="doc-raises-annotation">
+                  <code><span title="RateLimitedErrorPy">RateLimitedErrorPy</span></code>
+              </span>
+            </td>
+            <td class="doc-raises-details">
+              <div class="doc-md-description">
+                <p>If Sift rate limits stream setup and <code>rate_limit_policy</code> does not
+retry, or the retries run out. When <code>retry_delay</code> is not None,
+<code>retry_delay.to_timedelta()</code> returns the delay Sift requested.</p>
               </div>
             </td>
           </tr>
@@ -34662,6 +34862,32 @@ be used in subsequent <code>send</code> calls.</p>
     </table>
 
 
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RAISES</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+              <span class="doc-raises-annotation">
+                  <code><span title="RateLimitedErrorPy">RateLimitedErrorPy</span></code>
+              </span>
+            </td>
+            <td class="doc-raises-details">
+              <div class="doc-md-description">
+                <p>If Sift rate limits the registration and the stream's
+<code>rate_limit_policy</code> does not retry, or the retries run out. When <code>retry_delay</code>
+is not None, <code>retry_delay.to_timedelta()</code> returns the delay Sift requested.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
     </div>
 
 </div>
@@ -34731,6 +34957,32 @@ or RunFormPy object.</p>
    (sift_client.sift_types.run.Run)" href="../sift_types/run/#sift_client.sift_types.run.Run">Run</a> | <span title="sift_stream_bindings.RunFormPy">RunFormPy</span></code>
                   </span>
               </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RAISES</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+              <span class="doc-raises-annotation">
+                  <code><span title="RateLimitedErrorPy">RateLimitedErrorPy</span></code>
+              </span>
+            </td>
+            <td class="doc-raises-details">
+              <div class="doc-md-description">
+                <p>If Sift rate limits the run lookup or creation and the stream's
+<code>rate_limit_policy</code> does not retry, or the retries run out. When <code>retry_delay</code>
+is not None, <code>retry_delay.to_timedelta()</code> returns the delay Sift requested.</p>
+              </div>
             </td>
           </tr>
       </tbody>
@@ -101129,7 +101381,8 @@ followed by the import's <code>run_id</code>.</p>
    (sift_client.sift_types.run.Run)" href="../sift_types/run/#sift_client.sift_types.run.Run">Run</a></span> <span class="o">|</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">run_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">show_progress</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">leave_run_open</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
 
 
   
@@ -101346,6 +101599,30 @@ Defaults to True for sync, False for async.</p>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
                       <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>leave_run_open</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>If true, the import does not mark its run stopped,
+so run-stop automations do not fire. Set this when more data
+is coming to the run, then call <code>Run.stop</code> after the last
+import. Ignored when the import has no run. Defaults to false,
+which stops the run when the import finishes.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="bool">bool</span></code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>False</code>
                   </span>
               </p>
             </td>
