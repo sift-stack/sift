@@ -17,7 +17,7 @@ use super::{
 };
 use crate::{
     server::SiftMcpServer,
-    tool::common::test_support::{list_params, list_params_with_fields, structured},
+    tool::common::test_support::{content_texts, list_params, list_params_with_fields, structured},
 };
 
 const REFERENCES_JSON: &str = r#"[
@@ -184,6 +184,10 @@ async fn list_calculated_channel_versions_returns_versions() {
         }))
         .await
         .expect("list_calculated_channel_versions failed");
+
+    let texts = content_texts(&resp);
+    assert_eq!(texts.len(), 2);
+    assert!(texts[1].contains("calculated_channel_versions"));
 
     let body = structured(resp);
     let versions = body["calculated_channel_versions"]

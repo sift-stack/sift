@@ -1,4 +1,6 @@
-use super::{ListParams, list_body, project_fields, url_clause};
+use super::{
+    ListParams, list_body, project_fields, read_result, test_support::content_texts, url_clause,
+};
 use serde_json::{Value, json};
 
 /// `filter` is deliberately required on list tools: the caller must choose a
@@ -258,4 +260,21 @@ fn list_body_omits_unmatched_fields_when_the_page_is_empty() {
         body.get("unmatched_fields").is_none(),
         "an empty page must not look like a spelling problem: {body}"
     );
+}
+
+/// A read tool's payload must reach `content`, not only `structuredContent`:
+/// Claude Code shows the model `content`, so a payload left out of it is
+/// invisible to the agent.
+#[test]
+fn read_result_keeps_payload_in_content_after_next_step() {
+    let body = json!({ "items": [{ "id": "a" }], "next_step": "Listed 1 item." });
+
+    let result = read_result(body.clone(), "Listed 1 item.".to_string());
+
+    let texts = content_texts(&result);
+    assert_eq!(texts.len(), 2);
+    assert_eq!(texts[0], "Listed 1 item.");
+    let payload: Value = serde_json::from_str(&texts[1]).expect("payload should be JSON");
+    assert_eq!(payload, body);
+    assert_eq!(result.structured_content, Some(body));
 }
