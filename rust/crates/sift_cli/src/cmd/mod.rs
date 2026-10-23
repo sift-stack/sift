@@ -71,6 +71,7 @@ impl Context {
             .parse::<Table>()
             .context("failed to parse config file")?;
 
+        let profile = config::resolve_profile(&config_toml, profile);
         let target_profile = match profile.as_deref() {
             Some(prof) => {
                 let Some(Value::Table(target)) = config_toml.get(prof) else {
@@ -147,7 +148,7 @@ impl Context {
 
 fn app_uri_guidance(profile: Option<&str>, rest_uri: &str) -> String {
     let profile_name = profile.unwrap_or("default");
-    let profile_flag = profile.map_or_else(String::new, |profile| format!("--profile {profile} "));
+    let profile_flag = config::profile_flag(profile);
     match infer_app_uri(rest_uri) {
         Some(app_uri) => format!(
             "The Sift MCP server cannot start because profile '{profile_name}' has no usable \
@@ -205,6 +206,19 @@ apikey = "mission-key"
         assert_eq!(mission.rest_uri, "https://api.example.net");
         assert_eq!(mission.app_uri.as_deref(), Some("https://sift.example.net"));
         assert_eq!(mission.api_key, "mission-key");
+    }
+
+    #[test]
+    fn default_profile_name_selects_the_top_level_profile() {
+        let default = context(COMPLETE_CONFIG, Some("default")).unwrap();
+        assert_eq!(default.rest_uri, "https://api.siftstack.com");
+
+        let config = format!(
+            "{COMPLETE_CONFIG}\n[default]\ngrpc_uri = \"https://grpc.table.example.net\"\n\
+             rest_uri = \"https://api.table.example.net\"\napi_key = \"table-key\"\n"
+        );
+        let table = context(&config, Some("default")).unwrap();
+        assert_eq!(table.rest_uri, "https://api.table.example.net");
     }
 
     #[test]
