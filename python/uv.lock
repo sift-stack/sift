@@ -4669,6 +4669,9 @@ file-imports = [
     { name = "polars", version = "1.8.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "polars", version = "1.36.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
     { name = "polars", version = "1.40.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+    { name = "pyarrow", version = "17.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
+    { name = "pyarrow", version = "21.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
+    { name = "pyarrow", version = "24.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "pyulog" },
     { name = "rosbags", version = "0.9.23", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.8.2' and python_full_version < '3.10'" },
     { name = "rosbags", version = "0.11.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
@@ -4689,6 +4692,11 @@ openssl = [
     { name = "cffi" },
     { name = "pyopenssl" },
     { name = "types-pyopenssl" },
+]
+parquet = [
+    { name = "pyarrow", version = "17.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
+    { name = "pyarrow", version = "21.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
+    { name = "pyarrow", version = "24.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
 ]
 rosbags = [
     { name = "rosbags", version = "0.9.23", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.8.2' and python_full_version < '3.10'" },
@@ -4786,6 +4794,8 @@ requires-dist = [
     { name = "pyarrow", marker = "extra == 'data-review'", specifier = ">=17.0.0" },
     { name = "pyarrow", marker = "extra == 'dev-all'", specifier = ">=17.0.0" },
     { name = "pyarrow", marker = "extra == 'docs-build'", specifier = ">=17.0.0" },
+    { name = "pyarrow", marker = "extra == 'file-imports'", specifier = ">=17.0.0" },
+    { name = "pyarrow", marker = "extra == 'parquet'", specifier = ">=17.0.0" },
     { name = "pydantic", specifier = "~=2.10" },
     { name = "pydantic-core", specifier = "~=2.3" },
     { name = "pyopenssl", marker = "extra == 'all'", specifier = "<24.0.0" },
@@ -4857,7 +4867,7 @@ requires-dist = [
     { name = "types-requests", specifier = "~=2.25" },
     { name = "typing-extensions", specifier = "~=4.6" },
 ]
-provides-extras = ["all", "build", "data-review", "dev", "dev-all", "development", "docs", "docs-build", "file-imports", "hdf5", "mcap", "openssl", "rosbags", "sift-stream", "sift-stream-bindings", "tdms", "ulog"]
+provides-extras = ["all", "build", "data-review", "dev", "dev-all", "development", "docs", "docs-build", "file-imports", "hdf5", "mcap", "openssl", "parquet", "rosbags", "sift-stream", "sift-stream-bindings", "tdms", "ulog"]
 
 [[package]]
 name = "sift-stream-bindings"

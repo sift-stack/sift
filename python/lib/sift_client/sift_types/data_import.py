@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from abc import ABC
+import warnings
+from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING, Union
 
-from pydantic import BaseModel, model_validator
+import pandas as pd  # noqa: TC002
+from pydantic import BaseModel, ConfigDict, model_validator
 from sift.common.type.v1.channel_config_pb2 import ChannelConfig as ChannelConfigProto
 from sift.common.type.v1.channel_enum_type_pb2 import ChannelEnumType as ChannelEnumTypeProto
 from sift.data_imports.v2.data_imports_pb2 import (
@@ -65,7 +67,9 @@ from sift.data_imports.v2.data_imports_pb2 import TimeFormat as TimeFormatProto
 from sift.data_imports.v2.data_imports_pb2 import UlogConfig as UlogConfigProto
 from sift.data_imports.v2.data_imports_pb2 import UlogDataConfig as UlogDataConfigProto
 
-from sift_client._internal.time import to_timestamp_pb
+from sift_client._internal.time import to_timestamp_nanos, to_timestamp_pb
+from sift_client._internal.util.util import caller_stacklevel
+from sift_client.errors import SiftIgnoredInputWarning
 from sift_client.sift_types._base import BaseType
 from sift_client.sift_types.channel import ChannelDataType
 
@@ -88,6 +92,11 @@ class TimeFormat(Enum):
     ABSOLUTE_UNIX_MILLISECONDS = TimeFormatProto.TIME_FORMAT_ABSOLUTE_UNIX_MILLISECONDS
     ABSOLUTE_UNIX_MICROSECONDS = TimeFormatProto.TIME_FORMAT_ABSOLUTE_UNIX_MICROSECONDS
     ABSOLUTE_UNIX_NANOSECONDS = TimeFormatProto.TIME_FORMAT_ABSOLUTE_UNIX_NANOSECONDS
+
+    @property
+    def is_relative(self) -> bool:
+        """Checks if the time format is relative based on name prefix."""
+        return self.name.startswith("RELATIVE_")
 
 
 class DataTypeKey(Enum):
@@ -129,20 +138,24 @@ class TimeColumnBase(BaseModel, ABC):
     """Base class for time column configurations.
 
     Attributes:
-        format: The time format used in this column.
+        format: The time format used in this column. Optional at construction
+            so that ``detect_config`` can apply the standard precedence chain
+            (caller-passed ``time_format`` > server-detected format >
+            ``ABSOLUTE_UNIX_NANOSECONDS`` fallback). Importing without a
+            format set raises ``ValueError``.
         relative_start_time: Required when using a relative time format.
+            Pass a ``pd.Timestamp`` for nanosecond precision.
     """
 
-    format: TimeFormat
-    relative_start_time: datetime | None = None
+    # pd.Timestamp has no pydantic schema, so it is validated with isinstance.
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    format: TimeFormat | None = None
+    relative_start_time: pd.Timestamp | datetime | None = None
 
     @model_validator(mode="after")
     def _check_relative_start_time(self) -> TimeColumnBase:
-        if (
-            self.format is not None
-            and self.format.name.startswith("RELATIVE_")
-            and self.relative_start_time is None
-        ):
+        if self.format is not None and self.format.is_relative and self.relative_start_time is None:
             raise ValueError(
                 f"'relative_start_time' is required when using a relative time format ({self.format.name})."
             )
@@ -210,9 +223,63 @@ class ImportConfigBase(BaseModel, ABC):
         run_id: ID of an existing run to append data to.
     """
 
+    # pd.Timestamp (relative_start_time) has no pydantic schema, so it is
+    # validated with isinstance.
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     asset_name: str
     run_name: str | None = None
     run_id: str | None = None
+
+    @abstractmethod
+    def _get_time_format(self) -> TimeFormat | None:
+        """Return the time format, wherever this config type stores it."""
+
+    @abstractmethod
+    def _set_time_format(self, time_format: TimeFormat) -> None:
+        """Set the time format. A no-op for formats with no configurable time format."""
+
+    @abstractmethod
+    def _get_relative_start_time(self) -> pd.Timestamp | datetime | None:
+        """Return the relative start time, wherever this config type stores it."""
+
+    @abstractmethod
+    def _set_relative_start_time(self, relative_start_time: pd.Timestamp | datetime) -> None:
+        """Set the relative start time, wherever this config type stores it."""
+
+    def _apply_relative_start_time(self, relative_start_time: pd.Timestamp | datetime) -> None:
+        """Set the relative start time on a detected config.
+
+        It is set only when the current time format is relative; otherwise it
+        is ignored with a warning.
+        """
+        time_format = self._get_time_format()
+        if time_format is None or not time_format.is_relative:
+            warnings.warn(
+                "'relative_start_time' is ignored because the time format "
+                f"({time_format.name if time_format else 'unset'}) is not relative.",
+                SiftIgnoredInputWarning,
+                stacklevel=caller_stacklevel(),
+            )
+            return
+        self._set_relative_start_time(relative_start_time)
+
+    def _validate_relative_start_time(self) -> None:
+        """Raise if the time format is relative with no start time.
+
+        Assigning a time format bypasses the config validators, so a
+        ``time_format`` override is checked here before an auto-detected
+        config is imported.
+        """
+        time_format = self._get_time_format()
+        if (
+            time_format is not None
+            and time_format.is_relative
+            and self._get_relative_start_time() is None
+        ):
+            raise ValueError(
+                f"'relative_start_time' is required when using a relative time format ({time_format.name})."
+            )
 
 
 class CsvTimeColumn(TimeColumnBase):
@@ -225,6 +292,12 @@ class CsvTimeColumn(TimeColumnBase):
     column: int
 
     def _to_proto(self) -> CsvTimeColumnProto:
+        if self.format is None:
+            raise ValueError(
+                "CsvTimeColumn.format must be set before importing. "
+                "Pass time_format to detect_config/import_from_path, or set "
+                "config.time_column.format explicitly."
+            )
         proto = CsvTimeColumnProto(
             column_number=self.column,
             format=self.format.value,
@@ -269,6 +342,18 @@ class CsvImportConfig(ImportConfigBase):
                 return dc
         raise KeyError(f"No data column named '{name}'")
 
+    def _get_time_format(self) -> TimeFormat | None:
+        return self.time_column.format
+
+    def _set_time_format(self, time_format: TimeFormat) -> None:
+        self.time_column.format = time_format
+
+    def _get_relative_start_time(self) -> pd.Timestamp | datetime | None:
+        return self.time_column.relative_start_time
+
+    def _set_relative_start_time(self, relative_start_time: pd.Timestamp | datetime) -> None:
+        self.time_column.relative_start_time = relative_start_time
+
     def _to_proto(self) -> CsvConfigProto:
         if not self.data_columns:
             raise ValueError("Config has no data columns. Add at least one before importing.")
@@ -286,14 +371,14 @@ class CsvImportConfig(ImportConfigBase):
         """Create from a proto CsvConfig (e.g. from DetectConfig response)."""
         relative_start_time = None
         if proto.time_column.HasField("relative_start_time"):
-            from datetime import timezone
-
-            relative_start_time = proto.time_column.relative_start_time.ToDatetime(
-                tzinfo=timezone.utc
-            )
+            relative_start_time = to_timestamp_nanos(proto.time_column.relative_start_time)
+        try:
+            time_format = TimeFormat(proto.time_column.format)
+        except ValueError:
+            time_format = None
         time_column = CsvTimeColumn(
             column=proto.time_column.column_number,
-            format=TimeFormat(proto.time_column.format),
+            format=time_format,
             relative_start_time=relative_start_time,
         )
         data_columns = [
@@ -331,15 +416,9 @@ class ParquetTimeColumn(TimeColumnBase):
 
     Attributes:
         path: The column path in the Parquet schema (e.g. ``"timestamp"``).
-        format: The time format. Optional at construction so that
-            ``detect_config`` / ``import_from_path`` can apply the standard
-            precedence chain (caller-passed ``time_format`` > server-detected
-            format > ``ABSOLUTE_UNIX_NANOSECONDS`` fallback). Importing
-            without a format set raises ``ValueError``.
     """
 
     path: str
-    format: TimeFormat | None = None  # type: ignore[assignment]
 
     def _to_proto(self) -> ParquetTimeColumnProto:
         if not self.path:
@@ -362,9 +441,7 @@ class ParquetTimeColumn(TimeColumnBase):
     def _from_proto(cls, proto: ParquetTimeColumnProto) -> ParquetTimeColumn:
         relative_start_time = None
         if proto.HasField("relative_start_time"):
-            from datetime import timezone
-
-            relative_start_time = proto.relative_start_time.ToDatetime(tzinfo=timezone.utc)
+            relative_start_time = to_timestamp_nanos(proto.relative_start_time)
 
         fmt = TimeFormat(proto.format) if proto.format else None
         return cls(
@@ -416,6 +493,18 @@ class ParquetFlatDatasetImportConfig(ImportConfigBase):
             if dc.name == name:
                 return dc
         raise KeyError(f"No data column named '{name}'")
+
+    def _get_time_format(self) -> TimeFormat | None:
+        return self.time_column.format
+
+    def _set_time_format(self, time_format: TimeFormat) -> None:
+        self.time_column.format = time_format
+
+    def _get_relative_start_time(self) -> pd.Timestamp | datetime | None:
+        return self.time_column.relative_start_time
+
+    def _set_relative_start_time(self, relative_start_time: pd.Timestamp | datetime) -> None:
+        self.time_column.relative_start_time = relative_start_time
 
     def _to_proto(self) -> ParquetConfigProto:
         if not self.data_columns:
@@ -531,6 +620,18 @@ class ParquetSingleChannelPerRowImportConfig(ImportConfigBase):
                 "Exactly one of 'single_channel' or 'multi_channel' must be set, not both."
             )
         return self
+
+    def _get_time_format(self) -> TimeFormat | None:
+        return self.time_column.format
+
+    def _set_time_format(self, time_format: TimeFormat) -> None:
+        self.time_column.format = time_format
+
+    def _get_relative_start_time(self) -> pd.Timestamp | datetime | None:
+        return self.time_column.relative_start_time
+
+    def _set_relative_start_time(self, relative_start_time: pd.Timestamp | datetime) -> None:
+        self.time_column.relative_start_time = relative_start_time
 
     def _to_proto(self) -> ParquetConfigProto:
         if self.single_channel is None and self.multi_channel is None:
@@ -675,6 +776,7 @@ class TdmsImportConfig(ImportConfigBase):
         fallback_method: How to handle channels with missing timing information.
         time_format: Time format for time channels not using the TDMS timestamp type.
         relative_start_time: Relative start time for channels using a non-standard time channel.
+            Pass a ``pd.Timestamp`` for nanosecond precision.
         import_file_properties: If true, imports TDMS file properties as run metadata.
     """
 
@@ -682,7 +784,7 @@ class TdmsImportConfig(ImportConfigBase):
     data: list[TdmsDataColumn] = []
     fallback_method: TdmsFallbackMethod = TdmsFallbackMethod.FAIL_ON_ERROR
     time_format: TimeFormat | None = None
-    relative_start_time: datetime | None = None
+    relative_start_time: pd.Timestamp | datetime | None = None
     import_file_properties: bool = False
 
     def __getitem__(self, name: str) -> TdmsDataColumn:
@@ -691,6 +793,22 @@ class TdmsImportConfig(ImportConfigBase):
             if d.name == name:
                 return d
         raise KeyError(f"No data column named '{name}'")
+
+    def _get_time_format(self) -> TimeFormat | None:
+        return self.time_format
+
+    def _set_time_format(self, time_format: TimeFormat) -> None:
+        self.time_format = time_format
+
+    def _get_relative_start_time(self) -> pd.Timestamp | datetime | None:
+        return self.relative_start_time
+
+    def _set_relative_start_time(self, relative_start_time: pd.Timestamp | datetime) -> None:
+        self.relative_start_time = relative_start_time
+
+    def _validate_relative_start_time(self) -> None:
+        # TDMS uses the start time only for non-standard time channels, so it is never required.
+        pass
 
     def _to_proto(self) -> TDMSConfigProto:
         proto = TDMSConfigProto(
@@ -732,9 +850,7 @@ class TdmsImportConfig(ImportConfigBase):
 
         relative_start_time = None
         if proto.HasField("relative_start_time"):
-            from datetime import timezone
-
-            relative_start_time = proto.relative_start_time.ToDatetime(tzinfo=timezone.utc)
+            relative_start_time = to_timestamp_nanos(proto.relative_start_time)
 
         data = []
         for d in proto.data:
@@ -812,11 +928,12 @@ class Hdf5ImportConfig(ImportConfigBase):
             so the caller must set this before importing. Importing without it
             raises ``ValueError``.
         relative_start_time: Required when using a relative time format.
+            Pass a ``pd.Timestamp`` for nanosecond precision.
     """
 
     data: list[Hdf5DataColumn]
     time_format: TimeFormat | None = None
-    relative_start_time: datetime | None = None
+    relative_start_time: pd.Timestamp | datetime | None = None
 
     def __getitem__(self, name: str) -> Hdf5DataColumn:
         """Look up a data column by channel name.
@@ -834,13 +951,25 @@ class Hdf5ImportConfig(ImportConfigBase):
     def _check_relative_start_time(self) -> Hdf5ImportConfig:
         if (
             self.time_format is not None
-            and self.time_format.name.startswith("RELATIVE_")
+            and self.time_format.is_relative
             and self.relative_start_time is None
         ):
             raise ValueError(
                 f"'relative_start_time' is required when using a relative time format ({self.time_format.name})."
             )
         return self
+
+    def _get_time_format(self) -> TimeFormat | None:
+        return self.time_format
+
+    def _set_time_format(self, time_format: TimeFormat) -> None:
+        self.time_format = time_format
+
+    def _get_relative_start_time(self) -> pd.Timestamp | datetime | None:
+        return self.relative_start_time
+
+    def _set_relative_start_time(self, relative_start_time: pd.Timestamp | datetime) -> None:
+        self.relative_start_time = relative_start_time
 
     def _to_proto(self) -> Hdf5ConfigProto:
         if self.time_format is None:
@@ -941,6 +1070,7 @@ class UlogImportConfig(ImportConfigBase):
             are relative to boot time. When set, this anchors the timeline and
             takes precedence over the log's GPS fix; otherwise the GPS fix
             anchors the timeline. The import fails if neither is available.
+            Pass a ``pd.Timestamp`` for nanosecond precision.
         info_keys: Info (``I``/``M``) message keys to import as run metadata,
             stored as ``info.<key>``. Requires ``run_name`` or ``run_id``.
         param_keys: Parameter (``P``) names to import as run metadata, stored
@@ -950,7 +1080,7 @@ class UlogImportConfig(ImportConfigBase):
     """
 
     data: list[UlogDataColumn] = []
-    relative_start_time: datetime | None = None
+    relative_start_time: pd.Timestamp | datetime | None = None
     info_keys: list[str] = []
     param_keys: list[str] = []
     parse_error_policy: UlogParseErrorPolicy = UlogParseErrorPolicy.FAIL_ON_ERROR
@@ -966,6 +1096,22 @@ class UlogImportConfig(ImportConfigBase):
             if dc.name == name:
                 return dc
         raise KeyError(f"No data column named '{name}'")
+
+    def _get_time_format(self) -> TimeFormat | None:
+        return None
+
+    def _set_time_format(self, time_format: TimeFormat) -> None:
+        pass
+
+    def _get_relative_start_time(self) -> pd.Timestamp | datetime | None:
+        return self.relative_start_time
+
+    def _set_relative_start_time(self, relative_start_time: pd.Timestamp | datetime) -> None:
+        self.relative_start_time = relative_start_time
+
+    def _apply_relative_start_time(self, relative_start_time: pd.Timestamp | datetime) -> None:
+        # Always used, as the log start time, regardless of time format.
+        self._set_relative_start_time(relative_start_time)
 
     def _to_proto(self) -> UlogConfigProto:
         proto = UlogConfigProto(
@@ -994,9 +1140,7 @@ class UlogImportConfig(ImportConfigBase):
         """Create from a proto UlogConfig (e.g. from a GetDataImport response)."""
         relative_start_time = None
         if proto.HasField("relative_start_time"):
-            from datetime import timezone
-
-            relative_start_time = proto.relative_start_time.ToDatetime(tzinfo=timezone.utc)
+            relative_start_time = to_timestamp_nanos(proto.relative_start_time)
 
         parse_error_policy = UlogParseErrorPolicy.FAIL_ON_ERROR
         if proto.parse_error_policy == ULOG_PARSE_ERROR_POLICY_IGNORE_ERROR:
@@ -1108,7 +1252,7 @@ class McapImportConfig(ImportConfigBase):
             channels.
         relative_start_time: Log-start UTC, only for logs on a non-Unix epoch.
             When set, ``log_time`` is reinterpreted as elapsed nanoseconds from
-            this start.
+            this start. Pass a ``pd.Timestamp`` for nanosecond precision.
         metadata_records: Metadata records to import as run metadata. Every key
             of each named record is stored as ``<record_name>.<key>``. Empty
             imports none.
@@ -1121,7 +1265,7 @@ class McapImportConfig(ImportConfigBase):
     """
 
     data: list[McapDataColumn] = []
-    relative_start_time: datetime | None = None
+    relative_start_time: pd.Timestamp | datetime | None = None
     metadata_records: list[str] = []
     parse_error_policy: McapParseErrorPolicy = McapParseErrorPolicy.FAIL_ON_ERROR
     complex_types_import_mode: McapComplexTypesImportMode = McapComplexTypesImportMode.BOTH
@@ -1137,6 +1281,22 @@ class McapImportConfig(ImportConfigBase):
             if dc.name == name:
                 return dc
         raise KeyError(f"No data column named '{name}'")
+
+    def _get_time_format(self) -> TimeFormat | None:
+        return None
+
+    def _set_time_format(self, time_format: TimeFormat) -> None:
+        pass
+
+    def _get_relative_start_time(self) -> pd.Timestamp | datetime | None:
+        return self.relative_start_time
+
+    def _set_relative_start_time(self, relative_start_time: pd.Timestamp | datetime) -> None:
+        self.relative_start_time = relative_start_time
+
+    def _apply_relative_start_time(self, relative_start_time: pd.Timestamp | datetime) -> None:
+        # Always used, as the start non-Unix-epoch log_time values are measured from.
+        self._set_relative_start_time(relative_start_time)
 
     def _to_proto(self) -> McapConfigProto:
         proto = McapConfigProto(
@@ -1203,9 +1363,7 @@ class McapImportConfig(ImportConfigBase):
         """Create from a proto McapConfig (e.g. from a GetDataImport response)."""
         relative_start_time = None
         if proto.HasField("relative_start_time"):
-            from datetime import timezone
-
-            relative_start_time = proto.relative_start_time.ToDatetime(tzinfo=timezone.utc)
+            relative_start_time = to_timestamp_nanos(proto.relative_start_time)
 
         parse_error_policy = McapParseErrorPolicy.FAIL_ON_ERROR
         if proto.parse_error_policy == MCAP_PARSE_ERROR_POLICY_IGNORE_ERROR:
