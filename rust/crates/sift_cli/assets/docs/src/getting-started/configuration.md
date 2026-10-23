@@ -53,12 +53,15 @@ sift-cli config create
 ```text
 Creating a config file at '~/Library/Application Support/sift.toml'.
 
-Editing profile 'default'. Press Enter to keep the value in brackets.
+Editing profile 'default'. Enter a value for each field.
 
   gRPC URL: https://grpc-api.siftstack.com
   REST URL: https://api.siftstack.com
   API key:
-  App URL [https://app.siftstack.com]:
+
+  App URL
+    suggested: https://app.siftstack.com (leave blank to use it)
+    new:
 
 Changes to 'default':
   grpc_uri  (unset)  ->  https://grpc-api.siftstack.com
@@ -82,9 +85,20 @@ sift-cli config update
 ```
 
 If the file has named profiles, the command first asks which profile to edit.
-Use `--profile <name>` to skip that question. Each prompt shows the current value
-in brackets. Press Enter to keep it. The command lists only the fields you
-changed. If nothing changed, it writes nothing.
+Use `--profile <name>` to skip that question. Each field shows its current
+value:
+
+```text
+Editing profile 'staging'.
+To change a field, type a new value and press Enter. To keep the current value, leave it blank and press Enter.
+
+  gRPC URL
+    current: https://grpc-api.staging.example.net
+    new:
+```
+
+The command lists only the fields you changed. If nothing changed, it writes
+nothing.
 
 `config update` edits existing profiles only. If the config file or the named
 profile does not exist, the command stops and tells you to run `config create`.

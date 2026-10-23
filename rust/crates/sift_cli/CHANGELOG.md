@@ -19,8 +19,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   creates new profiles: `sift-cli --profile staging config create`, or, without
   `--profile`, it asks for a name when the default profile is already set up.
   Outside a terminal, it still creates only an empty file.
-- The interactive editor lists named profiles to pick from and shows each
-  current value in brackets. Press Enter to keep a value. The API key is not
+- The interactive editor lists named profiles to pick from and shows the
+  current value of each field. Type a new value to change a field, or leave it
+  blank to keep the current value. The API key is not
   shown while you type it. Before it saves, the editor lists only the changed
   fields, with the key masked to its last four characters. It writes nothing
   when no field changed. The confirmation now defaults to yes.

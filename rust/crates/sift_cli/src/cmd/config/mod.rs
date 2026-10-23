@@ -225,35 +225,48 @@ fn edit_profile(path: &Path, config: Table, profile: Option<String>) -> Result<E
     let name = profile_name(profile.as_deref());
     let current = ProfileFields::of(&config, profile.as_deref());
 
-    println!(
-        "Editing profile '{}'. Press Enter to keep the value in brackets.\n",
-        name.yellow()
-    );
-    let grpc_uri = read_line(&field_prompt("gRPC URL", current.grpc_uri.as_deref()))?;
-    let rest_uri = read_line(&field_prompt("REST URL", current.rest_uri.as_deref()))?;
-    let api_key = read_hidden(&field_prompt(
-        "API key",
-        current.api_key.as_deref().map(mask_key).as_deref(),
-    ))?;
-
-    let current_app_uri = current.app_uri.as_deref().and_then(normalize_app_uri);
-    let suggested_app_uri = current_app_uri.or_else(|| {
-        rest_uri
-            .as_deref()
-            .or(current.rest_uri.as_deref())
-            .and_then(infer_app_uri)
-    });
-    if suggested_app_uri.is_none() {
+    if current.is_empty() {
         println!(
-            "  Open your Sift web app and copy its URL origin. Keep the scheme and host \
-             (for example, https://sift.example.net)."
+            "Editing profile '{}'. Enter a value for each field.\n",
+            name.yellow()
+        );
+    } else {
+        println!(
+            "Editing profile '{}'.\nTo change a field, type a new value and press Enter. To \
+             keep the current value, leave it blank and press Enter.",
+            name.yellow()
         );
     }
-    let app_uri = read_line(&field_prompt("App URL", suggested_app_uri))?.or_else(|| {
-        suggested_app_uri
-            .filter(|_| current_app_uri.is_none())
-            .map(str::to_string)
-    });
+    let grpc_uri = prompt_field(
+        "gRPC URL",
+        Shown::current(current.grpc_uri.as_deref()),
+        false,
+    )?;
+    let rest_uri = prompt_field(
+        "REST URL",
+        Shown::current(current.rest_uri.as_deref()),
+        false,
+    )?;
+    let masked_key = current.api_key.as_deref().map(mask_key);
+    let api_key = prompt_field("API key", Shown::current(masked_key.as_deref()), true)?;
+
+    let current_app_uri = current.app_uri.as_deref().and_then(normalize_app_uri);
+    let inferred_app_uri = rest_uri
+        .as_deref()
+        .or(current.rest_uri.as_deref())
+        .and_then(infer_app_uri);
+    let app_uri = match (current_app_uri, inferred_app_uri) {
+        (Some(current), _) => prompt_field("App URL", Shown::Current(current), false)?,
+        (None, Some(inferred)) => prompt_field("App URL", Shown::Suggested(inferred), false)?
+            .or_else(|| Some(inferred.to_string())),
+        (None, None) => {
+            println!(
+                "  Open your Sift web app and copy its URL origin. Keep the scheme and host \
+                 (for example, https://sift.example.net)."
+            );
+            prompt_field("App URL", Shown::Nothing, false)?
+        }
+    };
 
     println!();
     let edits = ProfileFields {
@@ -335,11 +348,33 @@ fn prompt_new_profile_name(config: &Table) -> Result<Option<String>> {
     }
 }
 
-fn field_prompt(label: &str, current: Option<&str>) -> String {
-    match current {
-        Some(value) => format!("  {label} [{value}]: "),
-        None => format!("  {label}: "),
+/// The value a field prompt shows above the input.
+enum Shown<'a> {
+    Nothing,
+    /// Enter keeps it.
+    Current(&'a str),
+    /// Enter uses it.
+    Suggested(&'a str),
+}
+
+impl<'a> Shown<'a> {
+    fn current(value: Option<&'a str>) -> Self {
+        value.map_or(Self::Nothing, Self::Current)
     }
+}
+
+/// Prompt for one field. None when the user presses Enter without typing.
+fn prompt_field(label: &str, shown: Shown, hidden: bool) -> Result<Option<String>> {
+    let read = if hidden { read_hidden } else { read_line };
+    match shown {
+        Shown::Nothing => return read(&format!("  {label}: ")),
+        Shown::Current(value) => println!("\n  {}\n    current: {value}", label.bold()),
+        Shown::Suggested(value) => println!(
+            "\n  {}\n    suggested: {value} (leave blank to use it)",
+            label.bold()
+        ),
+    }
+    read("    new: ")
 }
 
 /// Show only the last four characters of an API key.
