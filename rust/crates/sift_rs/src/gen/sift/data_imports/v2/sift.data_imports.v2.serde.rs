@@ -601,6 +601,9 @@ impl serde::Serialize for CreateDataImportFromUploadRequest {
         if self.mcap_config.is_some() {
             len += 1;
         }
+        if self.leave_run_open {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.data_imports.v2.CreateDataImportFromUploadRequest", len)?;
         if let Some(v) = self.csv_config.as_ref() {
             struct_ser.serialize_field("csvConfig", v)?;
@@ -625,6 +628,9 @@ impl serde::Serialize for CreateDataImportFromUploadRequest {
         }
         if let Some(v) = self.mcap_config.as_ref() {
             struct_ser.serialize_field("mcapConfig", v)?;
+        }
+        if self.leave_run_open {
+            struct_ser.serialize_field("leaveRunOpen", &self.leave_run_open)?;
         }
         struct_ser.end()
     }
@@ -652,6 +658,8 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUploadRequest {
             "ulogConfig",
             "mcap_config",
             "mcapConfig",
+            "leave_run_open",
+            "leaveRunOpen",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -664,6 +672,7 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUploadRequest {
             BatchConfig,
             UlogConfig,
             McapConfig,
+            LeaveRunOpen,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -693,6 +702,7 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUploadRequest {
                             "batchConfig" | "batch_config" => Ok(GeneratedField::BatchConfig),
                             "ulogConfig" | "ulog_config" => Ok(GeneratedField::UlogConfig),
                             "mcapConfig" | "mcap_config" => Ok(GeneratedField::McapConfig),
+                            "leaveRunOpen" | "leave_run_open" => Ok(GeneratedField::LeaveRunOpen),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -720,6 +730,7 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUploadRequest {
                 let mut batch_config__ = None;
                 let mut ulog_config__ = None;
                 let mut mcap_config__ = None;
+                let mut leave_run_open__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::CsvConfig => {
@@ -770,6 +781,12 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUploadRequest {
                             }
                             mcap_config__ = map_.next_value()?;
                         }
+                        GeneratedField::LeaveRunOpen => {
+                            if leave_run_open__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("leaveRunOpen"));
+                            }
+                            leave_run_open__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(CreateDataImportFromUploadRequest {
@@ -781,6 +798,7 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUploadRequest {
                     batch_config: batch_config__,
                     ulog_config: ulog_config__,
                     mcap_config: mcap_config__,
+                    leave_run_open: leave_run_open__.unwrap_or_default(),
                 })
             }
         }
@@ -932,6 +950,9 @@ impl serde::Serialize for CreateDataImportFromUrlRequest {
         if self.mcap_config.is_some() {
             len += 1;
         }
+        if self.leave_run_open {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.data_imports.v2.CreateDataImportFromUrlRequest", len)?;
         if !self.url.is_empty() {
             struct_ser.serialize_field("url", &self.url)?;
@@ -960,6 +981,9 @@ impl serde::Serialize for CreateDataImportFromUrlRequest {
         if let Some(v) = self.mcap_config.as_ref() {
             struct_ser.serialize_field("mcapConfig", v)?;
         }
+        if self.leave_run_open {
+            struct_ser.serialize_field("leaveRunOpen", &self.leave_run_open)?;
+        }
         struct_ser.end()
     }
 }
@@ -987,6 +1011,8 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUrlRequest {
             "ulogConfig",
             "mcap_config",
             "mcapConfig",
+            "leave_run_open",
+            "leaveRunOpen",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1000,6 +1026,7 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUrlRequest {
             BatchConfig,
             UlogConfig,
             McapConfig,
+            LeaveRunOpen,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1030,6 +1057,7 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUrlRequest {
                             "batchConfig" | "batch_config" => Ok(GeneratedField::BatchConfig),
                             "ulogConfig" | "ulog_config" => Ok(GeneratedField::UlogConfig),
                             "mcapConfig" | "mcap_config" => Ok(GeneratedField::McapConfig),
+                            "leaveRunOpen" | "leave_run_open" => Ok(GeneratedField::LeaveRunOpen),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1058,6 +1086,7 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUrlRequest {
                 let mut batch_config__ = None;
                 let mut ulog_config__ = None;
                 let mut mcap_config__ = None;
+                let mut leave_run_open__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Url => {
@@ -1114,6 +1143,12 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUrlRequest {
                             }
                             mcap_config__ = map_.next_value()?;
                         }
+                        GeneratedField::LeaveRunOpen => {
+                            if leave_run_open__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("leaveRunOpen"));
+                            }
+                            leave_run_open__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(CreateDataImportFromUrlRequest {
@@ -1126,6 +1161,7 @@ impl<'de> serde::Deserialize<'de> for CreateDataImportFromUrlRequest {
                     batch_config: batch_config__,
                     ulog_config: ulog_config__,
                     mcap_config: mcap_config__,
+                    leave_run_open: leave_run_open__.unwrap_or_default(),
                 })
             }
         }
@@ -1401,7 +1437,7 @@ impl<'de> serde::Deserialize<'de> for CsvConfig {
                             if first_data_row__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("firstDataRow"));
                             }
-                            first_data_row__ =
+                            first_data_row__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1424,7 +1460,7 @@ impl<'de> serde::Deserialize<'de> for CsvConfig {
                             if num_rows__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("numRows"));
                             }
-                            num_rows__ =
+                            num_rows__ = 
                                 map_.next_value::<::std::option::Option<::pbjson::private::NumberDeserialize<_>>>()?.map(|x| x.0)
                             ;
                         }
@@ -1554,7 +1590,7 @@ impl<'de> serde::Deserialize<'de> for CsvTimeColumn {
                             if column_number__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("columnNumber"));
                             }
-                            column_number__ =
+                            column_number__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2282,7 +2318,7 @@ impl<'de> serde::Deserialize<'de> for DetectConfigRequest {
                             if data__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("data"));
                             }
-                            data__ =
+                            data__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2972,7 +3008,7 @@ impl<'de> serde::Deserialize<'de> for Hdf5DataConfig {
                             if time_index__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("timeIndex"));
                             }
-                            time_index__ =
+                            time_index__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2986,7 +3022,7 @@ impl<'de> serde::Deserialize<'de> for Hdf5DataConfig {
                             if value_index__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("valueIndex"));
                             }
-                            value_index__ =
+                            value_index__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -3136,7 +3172,7 @@ impl<'de> serde::Deserialize<'de> for ListDataImportsRequest {
                             if page_size__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("pageSize"));
                             }
-                            page_size__ =
+                            page_size__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -4247,7 +4283,7 @@ impl<'de> serde::Deserialize<'de> for ParquetConfig {
                             if footer_offset__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("footerOffset"));
                             }
-                            footer_offset__ =
+                            footer_offset__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -4255,7 +4291,7 @@ impl<'de> serde::Deserialize<'de> for ParquetConfig {
                             if footer_length__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("footerLength"));
                             }
-                            footer_length__ =
+                            footer_length__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -5409,7 +5445,7 @@ impl<'de> serde::Deserialize<'de> for TdmsConfig {
                             if file_size__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("fileSize"));
                             }
-                            file_size__ =
+                            file_size__ = 
                                 map_.next_value::<::std::option::Option<::pbjson::private::NumberDeserialize<_>>>()?.map(|x| x.0)
                             ;
                         }
@@ -6242,7 +6278,7 @@ impl<'de> serde::Deserialize<'de> for UlogDataConfig {
                             if instance__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("instance"));
                             }
-                            instance__ =
+                            instance__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }

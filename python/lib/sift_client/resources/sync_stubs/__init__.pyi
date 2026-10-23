@@ -1754,6 +1754,7 @@ class DataImportAPI:
         run: Run | str | None = None,
         run_name: str | None = None,
         show_progress: bool | None = None,
+        leave_run_open: bool = False,
     ) -> Job:
         """Import data from a local file.
 
@@ -1833,6 +1834,11 @@ class DataImportAPI:
                 neither ``run`` nor ``run_name`` is set.
             show_progress: If True, display a progress spinner during upload.
                 Defaults to True for sync, False for async.
+            leave_run_open: If true, the import does not mark its run stopped,
+                so run-stop automations do not fire. Set this when more data
+                is coming to the run, then call ``Run.stop`` after the last
+                import. Ignored when the import has no run. Defaults to false,
+                which stops the run when the import finishes.
 
         Returns:
             A ``Job`` handle for the pending import. Call

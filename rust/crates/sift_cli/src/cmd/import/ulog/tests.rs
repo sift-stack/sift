@@ -19,6 +19,7 @@ fn make_args() -> ImportUlogArgs {
             run_id: None,
             wait: false,
             preview: false,
+            leave_run_open: false,
         },
         relative_start_time: None,
         info_key: Vec::new(),

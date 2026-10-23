@@ -644,7 +644,14 @@ class TestImportFromPathClearsDetectedChannels:
         job = MagicMock()
         api.client.async_.jobs.get = AsyncMock(return_value=job)
 
-        assert await api.import_from_path(path, asset="my_asset", show_progress=False) is job
+        assert (
+            await api.import_from_path(
+                path, asset="my_asset", show_progress=False, leave_run_open=True
+            )
+            is job
+        )
+        api._low_level_client.create_from_upload.assert_awaited()
+        assert api._low_level_client.create_from_upload.await_args.kwargs["leave_run_open"] is True
 
     @pytest.mark.asyncio
     async def test_mcap_data_cleared(self, tmp_path, monkeypatch):

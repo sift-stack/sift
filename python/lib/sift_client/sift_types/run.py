@@ -152,6 +152,7 @@ class Run(BaseType[RunProto, "Run"], FileAttachmentsMixin):
         config: ImportConfig | None = None,
         data_type: DataTypeKey | None = None,
         show_progress: bool | None = None,
+        leave_run_open: bool = False,
     ) -> Job:
         """Import data from a file into this run.
 
@@ -159,12 +160,19 @@ class Run(BaseType[RunProto, "Run"], FileAttachmentsMixin):
         with this run pre-filled. If the run has exactly one asset,
         ``asset`` is inferred automatically.
 
+        A finished import stops this run unless ``leave_run_open`` is true.
+        Set that when more files are coming, then call ``stop`` after the
+        last import.
+
         Args:
             file_path: Path to the local file to import.
             asset: Asset object or asset name to import data into.
             config: Import configuration. Auto-detected if omitted.
             data_type: Explicit data type key for ambiguous formats.
             show_progress: Display a progress spinner during upload.
+            leave_run_open: If true, the import does not mark this run
+                stopped, so run-stop automations do not fire. Defaults to
+                false.
 
         Returns:
             A ``Job`` handle for the pending import.
@@ -179,6 +187,7 @@ class Run(BaseType[RunProto, "Run"], FileAttachmentsMixin):
             data_type=data_type,
             run=self,
             show_progress=show_progress,
+            leave_run_open=leave_run_open,
         )
 
 
