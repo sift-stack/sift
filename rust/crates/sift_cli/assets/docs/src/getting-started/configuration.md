@@ -7,7 +7,7 @@ Each CLI profile needs four values:
 | `grpc_uri` | Base gRPC endpoint for Sift                  | `https://grpc-api.siftstack.com` |
 | `rest_uri` | Base REST endpoint for Sift                  | `https://api.siftstack.com`      |
 | `app_uri`  | Required web app origin from your browser    | `https://app.siftstack.com`      |
-| `apikey`   | Your Sift API key                            | `sift_...`                       |
+| `api_key`  | Your Sift API key                            | `sift_...`                       |
 
 For Sift Cloud, use the gRPC and REST values in the table. For other
 environments, use the endpoints from your administrator. See
@@ -43,24 +43,59 @@ sift-cli config where
 
 ## Bootstrapping your credentials
 
-The fastest way to get set up is the interactive flow. First create the file,
-then fill it in:
+Run `config create` in a terminal. It creates the config file and prompts for
+the values of the `default` profile:
 
 ```sh
 sift-cli config create
-sift-cli config update --interactive
 ```
 
-The interactive prompt asks for the profile, API URLs, API key, and app origin.
-The prompt shows the result before it writes the file. A blank profile selects
-the `default` profile.
+```text
+Creating a config file at '~/Library/Application Support/sift.toml'.
+
+Editing profile 'default'. Press Enter to keep the value in brackets.
+
+  gRPC URL: https://grpc-api.siftstack.com
+  REST URL: https://api.siftstack.com
+  API key:
+  App URL [https://app.siftstack.com]:
+
+Changes to 'default':
+  grpc_uri  (unset)  ->  https://grpc-api.siftstack.com
+  rest_uri  (unset)  ->  https://api.siftstack.com
+  api_key   (unset)  ->  ****a91f
+  app_uri   (unset)  ->  https://app.siftstack.com
+Apply? [Y/n]:
+Saved profile 'default'.
+Run 'sift-cli ping' to check the connection.
+```
+
+The terminal does not show the API key while you type it. The change list shows
+only its last four characters. The command writes nothing until you confirm.
+
+### Editing a profile
+
+Run `config update` without field flags to edit a profile interactively:
+
+```sh
+sift-cli config update
+```
+
+If the file has named profiles, the command first asks which profile to edit.
+Use `--profile <name>` to skip that question. Each prompt shows the current value
+in brackets. Press Enter to keep it. The command lists only the fields you
+changed. If nothing changed, it writes nothing.
+
+`config update` edits existing profiles only. If the config file or the named
+profile does not exist, the command stops and tells you to run `config create`.
 
 ### Non-interactive setup
 
-To configure everything in one command (useful for scripts and CI), pass the
-values as flags:
+Outside a terminal, `config create` only creates an empty config file. To set
+the values in one command (for scripts and CI), pass them as flags:
 
 ```sh
+sift-cli config create
 sift-cli config update \
   --grpc-uri https://grpc-api.siftstack.com \
   --rest-uri https://api.siftstack.com \
@@ -69,11 +104,15 @@ sift-cli config update \
 ```
 
 Short forms are `-g` for gRPC, `-r` for REST, and `-k` for the API key.
-Omitted fields stay unchanged. You can update one value at a time:
+Omitted fields stay unchanged. The command prints the fields that changed. You
+can update one value at a time:
 
 ```sh
 sift-cli config update --api-key "$SIFT_API_KEY"
 ```
+
+Without field flags outside a terminal, `config update` exits with status 2,
+because it cannot prompt.
 
 ## Inspecting the config
 
@@ -88,7 +127,7 @@ A configured `default` profile looks like this:
 grpc_uri = "https://grpc-api.siftstack.com"
 rest_uri = "https://api.siftstack.com"
 app_uri = "https://app.siftstack.com"
-apikey = "sift_..."
+api_key = "sift_..."
 ```
 
 ## Disabling TLS
