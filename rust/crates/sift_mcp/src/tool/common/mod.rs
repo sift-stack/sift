@@ -1,4 +1,5 @@
 use rmcp::ErrorData;
+use rmcp::model::{CallToolResult, ContentBlock};
 use rmcp::schemars::{self, JsonSchema};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -220,6 +221,18 @@ pub(crate) fn list_body(
     Value::Object(body)
 }
 
+/// Shape a read tool's result so the calling agent sees both `next_step` and
+/// the payload. `CallToolResult::structured` already mirrors `body` into a text
+/// content block; replacing `content` with `next_step` alone, as write tools
+/// do, leaves the payload only in `structuredContent`, which clients such as
+/// Claude Code do not show the model. `preview_rule` hit exactly this: agents
+/// saw an annotation count but none of the annotations.
+pub(crate) fn read_result(body: Value, next_step: String) -> CallToolResult {
+    let mut result = CallToolResult::structured(body);
+    result.content.insert(0, ContentBlock::text(next_step));
+    result
+}
+
 impl From<MetadataEntry> for MetadataValue {
     fn from(entry: MetadataEntry) -> Self {
         let (key_type, value) = match entry.value {
@@ -280,6 +293,22 @@ pub(crate) mod test_support {
         result
             .structured_content
             .expect("expected structured content")
+    }
+
+    /// Collect the text of every content block, which is what clients such as
+    /// Claude Code show the model.
+    pub(crate) fn content_texts(result: &CallToolResult) -> Vec<String> {
+        result
+            .content
+            .iter()
+            .map(|block| {
+                block
+                    .as_text()
+                    .expect("expected a text content block")
+                    .text
+                    .clone()
+            })
+            .collect()
     }
 
     /// Extract a single field from a tool result's structured JSON body.

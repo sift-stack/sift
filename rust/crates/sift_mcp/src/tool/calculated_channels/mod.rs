@@ -16,7 +16,7 @@ use crate::{
     service::calculated_channels::{
         CalculatedChannelUpdate, CalculatedChannelWrite, NewCalculatedChannel,
     },
-    tool::common::{ListParams, MetadataEntry, list_body, to_values},
+    tool::common::{ListParams, MetadataEntry, list_body, read_result, to_values},
 };
 
 #[cfg(test)]
@@ -258,9 +258,7 @@ impl SiftMcpServer {
         );
         body["next_step"] = serde_json::Value::String(next_step.clone());
 
-        let mut result = CallToolResult::structured(body);
-        result.content = vec![ContentBlock::text(next_step)];
-        Ok(result)
+        Ok(read_result(body, next_step))
     }
 
     #[tool(

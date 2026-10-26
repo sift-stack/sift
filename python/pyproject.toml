@@ -71,7 +71,7 @@ all = [
     'pyarrow>=17.0.0',
     'pyulog~=1.2.2',
     "rosbags~=0.0 ; python_full_version >= '3.8.2'",
-    'sift-stream-bindings==0.5.2',
+    'sift-stream-bindings==0.6.1',
     'types-pyOpenSSL<24.0.0',
 ]
 build = [
@@ -119,7 +119,7 @@ dev-all = [
     'pyulog~=1.2.2',
     "rosbags~=0.0 ; python_full_version >= '3.8.2'",
     'ruff~=0.12.10',
-    'sift-stream-bindings==0.5.2',
+    'sift-stream-bindings==0.6.1',
     'tomlkit~=0.13.3',
     'types-pyOpenSSL<24.0.0',
 ]
@@ -179,7 +179,7 @@ docs-build = [
     'pyulog~=1.2.2',
     "rosbags~=0.0 ; python_full_version >= '3.8.2'",
     'ruff~=0.12.10',
-    'sift-stream-bindings==0.5.2',
+    'sift-stream-bindings==0.6.1',
     'tomlkit~=0.13.3',
     'types-pyOpenSSL<24.0.0',
 ]
@@ -189,6 +189,7 @@ file-imports = [
     'mcap~=1.4',
     'npTDMS~=1.9',
     'polars~=1.8',
+    'pyarrow>=17.0.0',
     'pyulog~=1.2.2',
     "rosbags~=0.0 ; python_full_version >= '3.8.2'",
 ]
@@ -205,14 +206,17 @@ openssl = [
     'pyOpenSSL<24.0.0',
     'types-pyOpenSSL<24.0.0',
 ]
+parquet = [
+    'pyarrow>=17.0.0',
+]
 rosbags = [
     "rosbags~=0.0 ; python_full_version >= '3.8.2'",
 ]
 sift-stream = [
-    'sift-stream-bindings==0.5.2',
+    'sift-stream-bindings==0.6.1',
 ]
 sift-stream-bindings = [
-    'sift-stream-bindings==0.5.2',
+    'sift-stream-bindings==0.6.1',
 ]
 tdms = [
     'npTDMS~=1.9',
@@ -260,11 +264,11 @@ docs = [
 openssl = ["pyOpenSSL<24.0.0", "types-pyOpenSSL<24.0.0", "cffi~=1.14"]
 tdms = ["npTDMS~=1.9"]
 rosbags = ["rosbags~=0.0 ; python_full_version >= '3.8.2'"]
-sift-stream = ["sift-stream-bindings==0.5.2"]
+sift-stream = ["sift-stream-bindings==0.6.1"]
 hdf5 = ["h5py~=3.11", "polars~=1.8"]  # polars is only used by sift_py; remove once sift_py is fully deprecated
 ulog = ["pyulog~=1.2.2"]
 mcap = ["mcap~=1.4", "mcap-ros2-support~=0.5.7"]
-data-review = ["pyarrow>=17.0.0"]
+parquet = ["pyarrow>=17.0.0"]
 
 [tool.sift.extras.combine]
 # Combined extras configurations and aliases can be defined here
@@ -272,9 +276,10 @@ data-review = ["pyarrow>=17.0.0"]
 # aliases
 dev = ["development"]
 sift-stream-bindings = ["sift-stream"]
+data-review = ["parquet"]
 
 # combinations
-file-imports = ["tdms", "rosbags", "hdf5", "ulog", "mcap"]
+file-imports = ["tdms", "rosbags", "hdf5", "ulog", "mcap", "parquet"]
 all = ["openssl", "sift-stream", "file-imports", "data-review"]
 
 dev-all = ["development", "all", "build"]

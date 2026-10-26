@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import pytest
 from sift_stream_bindings import (
     DurationPy,
@@ -18,6 +20,36 @@ class TestRetryComponents:
         assert duration is not None
         assert duration.secs == 5
         assert duration.nanos == 0
+
+    def test_duration_to_timedelta(self):
+        """Test converting DurationPy to a timedelta, dropping sub-microsecond nanoseconds."""
+        assert DurationPy(2, 500_000_000).to_timedelta() == timedelta(seconds=2, milliseconds=500)
+        assert DurationPy(0, 0).to_timedelta() == timedelta(0)
+        assert DurationPy(0, 1_999).to_timedelta() == timedelta(microseconds=1)
+
+    def test_duration_to_timedelta_bounds(self):
+        """Test that timedelta.max converts and anything longer raises OverflowError."""
+        max_secs = timedelta.max.days * 86_400 + timedelta.max.seconds
+        assert DurationPy(max_secs, 999_999_000).to_timedelta() == timedelta.max
+
+        for secs in (max_secs + 1, 2**63):
+            with pytest.raises(OverflowError):
+                DurationPy(secs, 0).to_timedelta()
+
+    def test_duration_from_timedelta(self):
+        """Test creating DurationPy from a timedelta."""
+        duration = DurationPy.from_timedelta(timedelta(days=1, seconds=3, microseconds=250))
+        assert duration.secs == 86_403
+        assert duration.nanos == 250_000
+
+        duration = DurationPy.from_timedelta(timedelta(0))
+        assert duration.secs == 0
+        assert duration.nanos == 0
+
+    def test_duration_from_negative_timedelta(self):
+        """Test that a negative timedelta is rejected."""
+        with pytest.raises(ValueError):
+            DurationPy.from_timedelta(timedelta(seconds=-1))
 
     def test_create_retry_policy(self):
         """Test creating RetryPolicyPy."""
@@ -93,6 +125,7 @@ class TestRetryComponents:
         assert str(err) == message
         assert err.retry_delay.secs == 2
         assert err.retry_delay.nanos == 0
+        assert err.retry_delay.to_timedelta() == timedelta(seconds=2)
 
     def test_rate_limited_error_without_delay(self):
         """Test that RateLimitedErrorPy reports None when Sift provides no delay."""

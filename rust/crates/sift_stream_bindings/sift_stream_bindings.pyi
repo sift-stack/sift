@@ -43,6 +43,7 @@ __all__ = [
 ]
 
 import builtins
+import datetime
 import typing
 from enum import Enum
 
@@ -186,6 +187,18 @@ class DurationPy:
     secs: builtins.int
     nanos: builtins.int
     def __new__(cls, secs:builtins.int, nanos:builtins.int) -> DurationPy: ...
+    @staticmethod
+    def from_timedelta(delta:datetime.timedelta) -> DurationPy:
+        r"""
+        Creates a `DurationPy` from a `datetime.timedelta`. Raises `ValueError` if `delta` is
+        negative.
+        """
+    def to_timedelta(self) -> datetime.timedelta:
+        r"""
+        Returns this duration as a `datetime.timedelta`. `timedelta` stores microseconds, so any
+        remaining nanoseconds are dropped. Raises `OverflowError` if the duration is longer than
+        `timedelta.max`.
+        """
 
 @typing.final
 class FileBackupBuilderPy:

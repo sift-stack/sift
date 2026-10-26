@@ -15,7 +15,10 @@ use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
 use super::PreviewRuleParams;
-use crate::{server::SiftMcpServer, tool::common::test_support::structured_field};
+use crate::{
+    server::SiftMcpServer,
+    tool::common::test_support::{content_texts, structured_field},
+};
 
 fn preview_rule_params() -> PreviewRuleParams {
     PreviewRuleParams {
@@ -100,6 +103,38 @@ async fn preview_rule_saved_by_id_happy_path() {
     assert_eq!(count, 2);
     let annotations = structured_field(resp, "dry_run_annotations");
     assert_eq!(annotations.as_array().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn preview_rule_shows_dry_run_annotations_in_content() {
+    let mut eval_mock = MockRuleEvaluationServiceImpl::new();
+    eval_mock.expect_evaluate_rules_preview().returning(|_| {
+        Ok(Response::new(EvaluateRulesPreviewResponse {
+            created_annotation_count: 1,
+            dry_run_annotations: vec![DryRunAnnotation {
+                condition_id: "cond-1".into(),
+                name: "overtemp".into(),
+                ..Default::default()
+            }],
+        }))
+    });
+
+    let (server, _h) = server_with_eval_mock(eval_mock).await;
+
+    let mut params = preview_rule_params();
+    params.rule_id = Some("rule-1".into());
+
+    let resp = server
+        .preview_rule(Parameters(params))
+        .await
+        .expect("preview_rule failed");
+
+    let texts = content_texts(&resp);
+    assert_eq!(texts.len(), 2);
+    assert!(texts[0].starts_with("Preview evaluated 1 annotation(s)"));
+    let payload: serde_json::Value =
+        serde_json::from_str(&texts[1]).expect("payload should be JSON");
+    assert_eq!(payload["dry_run_annotations"][0]["name"], "overtemp");
 }
 
 #[tokio::test]

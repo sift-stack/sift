@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+### What's New
+
+#### `DurationPy` converts to and from `timedelta` (PR [#849](https://github.com/sift-stack/sift/pull/849))
+
+##### `sift-stream-bindings` 0.6.1
+
+`DurationPy.to_timedelta()` returns the duration as a `datetime.timedelta`, so
+`RateLimitedErrorPy.retry_delay.to_timedelta()` gives the delay Sift requested in a form that
+works with `asyncio.sleep(delay.total_seconds())` and other standard library code. `timedelta`
+stores microseconds, so any remaining nanoseconds are dropped, and a duration longer than
+`timedelta.max` raises `OverflowError`. `DurationPy.from_timedelta(delta)` creates a `DurationPy`
+from a `timedelta` and raises `ValueError` if `delta` is negative.
 
 ## [v0.14.0] - October 15, 2026
 ### What's New

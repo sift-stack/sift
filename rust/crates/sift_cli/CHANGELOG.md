@@ -14,6 +14,21 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   when an agent harness truncates a large result. Each list tool's Output
   section now documents the key.
 
+## [v0.7.6] - October 26, 2026
+
+### What's New
+
+- `sift-cli export run` and `sift-cli export asset` accept `--no-wait`. The
+  command starts the export, prints the job ID and a link to the job on the
+  Sift jobs page, and exits without downloading. Nothing is written to
+  `--output`.
+- `preview_rule`, `list_rule_versions`, `list_calculated_channel_versions`, and
+  `list_report_rule_summaries` now show their results to the agent. Their text
+  content used to hold only the next-step sentence, so clients that show the
+  model only that text, such as Claude Code, never saw the data, and agents
+  retried `preview_rule` expecting results.
+
+
 ## [v0.7.5] - October 19, 2026
 
 ### What's New

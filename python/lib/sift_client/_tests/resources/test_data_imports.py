@@ -2,21 +2,29 @@
 
 from __future__ import annotations
 
+import warnings
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pandas as pd
 import pytest
 from sift.common.type.v1.channel_config_pb2 import ChannelConfig as ChannelConfigProto
 from sift.data_imports.v2.data_imports_pb2 import (
     DATA_IMPORT_STATUS_FAILED,
     DATA_IMPORT_STATUS_SUCCEEDED,
     DATA_IMPORT_STATUS_UNSPECIFIED,
+    TIME_FORMAT_ABSOLUTE_RFC3339,
+    TIME_FORMAT_RELATIVE_SECONDS,
+    TIME_FORMAT_UNSPECIFIED,
+    CsvConfig,
+    DetectConfigResponse,
     ParquetColumn,
     ParquetConfig,
     ParquetFlatDatasetConfig,
     ParquetSingleChannelPerRowConfig,
 )
+from sift.data_imports.v2.data_imports_pb2 import CsvTimeColumn as CsvTimeColumnProto
 from sift.data_imports.v2.data_imports_pb2 import DataImport as DataImportProto
 from sift.data_imports.v2.data_imports_pb2 import (
     ParquetDataColumn as ParquetDataColumnProto,
@@ -25,12 +33,12 @@ from sift.data_imports.v2.data_imports_pb2 import (
     ParquetTimeColumn as ParquetTimeColumnProto,
 )
 
-from sift_client.resources import DataImportAPI, DataImportAPIAsync
-from sift_client.resources.data_imports import (
-    _infer_time_column,
-    _parse_parquet_detect_response,
-    _resolve_data_type_key,
+from sift_client._internal.util.data_imports import (
+    parse_parquet_detect_response,
+    resolve_data_type_key,
 )
+from sift_client._internal.util.time_column import infer_time_column
+from sift_client.resources import DataImportAPI, DataImportAPIAsync
 from sift_client.sift_types.channel import ChannelDataType
 from sift_client.sift_types.data_import import (
     CsvDataColumn,
@@ -66,6 +74,9 @@ if TYPE_CHECKING:
     )
     from sift.data_imports.v2.data_imports_pb2 import (
         DataImportStatus as DataImportStatusProto,
+    )
+    from sift.data_imports.v2.data_imports_pb2 import (
+        TimeFormat as TimeFormatProto,
     )
 
 
@@ -396,6 +407,17 @@ class TestUlogConfig:
         restored = UlogImportConfig._from_proto(proto)
         assert restored.relative_start_time == config.relative_start_time
 
+    def test_relative_start_time_round_trips_nanoseconds(self):
+        config = UlogImportConfig(
+            asset_name="a",
+            relative_start_time=pd.Timestamp("2026-01-01T00:00:00.000000001Z"),
+        )
+        proto = config._to_proto()
+        assert proto.relative_start_time.nanos == 1
+        restored = UlogImportConfig._from_proto(proto)
+        assert isinstance(restored.relative_start_time, pd.Timestamp)
+        assert restored.relative_start_time == config.relative_start_time
+
     def test_from_proto_round_trip(self):
         config = self._config()
         restored = UlogImportConfig._from_proto(config._to_proto())
@@ -538,6 +560,17 @@ class TestMcapConfig:
         proto = config._to_proto()
         assert proto.HasField("relative_start_time")
         restored = McapImportConfig._from_proto(proto)
+        assert restored.relative_start_time == config.relative_start_time
+
+    def test_relative_start_time_round_trips_nanoseconds(self):
+        config = McapImportConfig(
+            asset_name="a",
+            relative_start_time=pd.Timestamp("2026-01-01T00:00:00.000000001Z"),
+        )
+        proto = config._to_proto()
+        assert proto.relative_start_time.nanos == 1
+        restored = McapImportConfig._from_proto(proto)
+        assert isinstance(restored.relative_start_time, pd.Timestamp)
         assert restored.relative_start_time == config.relative_start_time
 
     def test_from_proto_round_trip(self):
@@ -724,37 +757,37 @@ class TestParquetTimeColumnToProto:
 class TestResolveDataTypeKey:
     def test_parquet_requires_data_type(self):
         with pytest.raises(ValueError, match="data_type"):
-            _resolve_data_type_key(".parquet", None)
+            resolve_data_type_key(".parquet", None)
 
     def test_parquet_with_explicit_data_type(self):
-        result = _resolve_data_type_key(".parquet", DataTypeKey.PARQUET_FLATDATASET)
+        result = resolve_data_type_key(".parquet", DataTypeKey.PARQUET_FLATDATASET)
         assert result == DataTypeKey.PARQUET_FLATDATASET
 
     def test_pqt_requires_data_type(self):
         with pytest.raises(ValueError, match="data_type"):
-            _resolve_data_type_key(".pqt", None)
+            resolve_data_type_key(".pqt", None)
 
     def test_known_extension_uses_map(self):
-        assert _resolve_data_type_key(".csv", None) == DataTypeKey.CSV
+        assert resolve_data_type_key(".csv", None) == DataTypeKey.CSV
 
     def test_ulog_extension_uses_map(self):
-        assert _resolve_data_type_key(".ulg", None) == DataTypeKey.ULOG
+        assert resolve_data_type_key(".ulg", None) == DataTypeKey.ULOG
 
     def test_mcap_extension_uses_map(self):
-        assert _resolve_data_type_key(".mcap", None) == DataTypeKey.MCAP
+        assert resolve_data_type_key(".mcap", None) == DataTypeKey.MCAP
 
     def test_explicit_data_type_overrides_extension(self):
-        result = _resolve_data_type_key(".csv", DataTypeKey.TDMS)
+        result = resolve_data_type_key(".csv", DataTypeKey.TDMS)
         assert result == DataTypeKey.TDMS
 
     def test_unknown_extension_raises(self):
         with pytest.raises(ValueError, match="Unsupported file extension"):
-            _resolve_data_type_key(".xyz", None)
+            resolve_data_type_key(".xyz", None)
 
 
 class TestInferTimeColumn:
     def test_picks_canonical_skips_other_columns(self):
-        path = _infer_time_column(
+        path = infer_time_column(
             [
                 ("delta_time", ChannelDataType.INT_64, "delta_time"),
                 ("voltage", ChannelDataType.DOUBLE, "voltage"),
@@ -764,15 +797,15 @@ class TestInferTimeColumn:
         assert path == "timestamp"
 
     def test_accepts_uint64(self):
-        path = _infer_time_column([("time", ChannelDataType.UINT_64, "time")])
+        path = infer_time_column([("time", ChannelDataType.UINT_64, "time")])
         assert path == "time"
 
     def test_case_insensitive(self):
-        path = _infer_time_column([("TimeStamp", ChannelDataType.INT_64, "TimeStamp")])
+        path = infer_time_column([("TimeStamp", ChannelDataType.INT_64, "TimeStamp")])
         assert path == "TimeStamp"
 
     def test_multiple_candidates_sorted_alphabetically(self):
-        path = _infer_time_column(
+        path = infer_time_column(
             [
                 ("timestamp", ChannelDataType.INT_64, "timestamp"),
                 ("time", ChannelDataType.INT_64, "time"),
@@ -782,7 +815,7 @@ class TestInferTimeColumn:
         assert path == "time"
 
     def test_returns_none_when_no_canonical_int_column(self):
-        path = _infer_time_column(
+        path = infer_time_column(
             [
                 ("timestamp", ChannelDataType.DOUBLE, "timestamp"),
                 ("event_time", ChannelDataType.INT_64, "event_time"),
@@ -839,7 +872,7 @@ class TestParseParquetDetectResponseTimeFallback:
                 ("status", ChannelDataType.INT_32.value),
             ],
         )
-        config = _parse_parquet_detect_response(proto, "file.parquet", 0, 0)
+        config = parse_parquet_detect_response(proto, "file.parquet", 0, 0)
         assert isinstance(config, ParquetFlatDatasetImportConfig)
         assert config.time_column.path == "timestamp"
         assert [dc.path for dc in config.data_columns] == ["voltage", "status"]
@@ -853,7 +886,7 @@ class TestParseParquetDetectResponseTimeFallback:
                 ("voltage", ChannelDataType.DOUBLE.value),
             ],
         )
-        config = _parse_parquet_detect_response(proto, "file.parquet", 0, 0)
+        config = parse_parquet_detect_response(proto, "file.parquet", 0, 0)
         assert config.time_column.path == "server_ts"
         assert [dc.path for dc in config.data_columns] == ["timestamp", "voltage"]
 
@@ -862,7 +895,7 @@ class TestParseParquetDetectResponseTimeFallback:
             time_path="",
             data_columns=[("voltage", ChannelDataType.DOUBLE.value)],
         )
-        config = _parse_parquet_detect_response(proto, "file.parquet", 0, 0)
+        config = parse_parquet_detect_response(proto, "file.parquet", 0, 0)
         assert config.time_column.path == ""
         assert [dc.path for dc in config.data_columns] == ["voltage"]
 
@@ -874,9 +907,305 @@ class TestParseParquetDetectResponseTimeFallback:
                 ("timestamp", ChannelDataType.INT_64.value),
             ],
         )
-        config = _parse_parquet_detect_response(proto, "file.parquet", 0, 0)
+        config = parse_parquet_detect_response(proto, "file.parquet", 0, 0)
         assert isinstance(config, ParquetSingleChannelPerRowImportConfig)
         assert config.time_column.path == "timestamp"
+
+
+def _csv_detect_response(time_format: TimeFormatProto.ValueType) -> DetectConfigResponse:
+    return DetectConfigResponse(
+        csv_config=CsvConfig(
+            first_data_row=2,
+            time_column=CsvTimeColumnProto(column_number=1, format=time_format),
+            data_columns={
+                2: ChannelConfigProto(name="voltage", data_type=ChannelDataType.DOUBLE.value)
+            },
+        )
+    )
+
+
+class TestUnspecifiedTimeFormat:
+    def test_csv_from_proto_maps_unspecified_to_none(self):
+        config = CsvImportConfig._from_proto(
+            _csv_detect_response(TIME_FORMAT_UNSPECIFIED).csv_config
+        )
+        assert config.time_column.format is None
+
+    @pytest.mark.asyncio
+    async def test_csv_detect_falls_back_to_unix_nanoseconds(self, tmp_path):
+        path = tmp_path / "data.csv"
+        path.write_text("time,voltage\n2026-01-01,1.0\n")
+        api = _data_imports_api(MagicMock())
+        api._low_level_client.detect_config = AsyncMock(
+            return_value=_csv_detect_response(TIME_FORMAT_UNSPECIFIED)
+        )
+
+        config = await api.detect_config(path)
+
+        assert isinstance(config, CsvImportConfig)
+        assert config.time_column.format == TimeFormat.ABSOLUTE_UNIX_NANOSECONDS
+        assert [dc.name for dc in config.data_columns] == ["voltage"]
+
+    @pytest.mark.asyncio
+    async def test_csv_detect_uses_caller_time_format(self, tmp_path):
+        path = tmp_path / "data.csv"
+        path.write_text("time,voltage\n2026-01-01,1.0\n")
+        api = _data_imports_api(MagicMock())
+        api._low_level_client.detect_config = AsyncMock(
+            return_value=_csv_detect_response(TIME_FORMAT_UNSPECIFIED)
+        )
+
+        config = await api.detect_config(path, time_format=TimeFormat.ABSOLUTE_RFC3339)
+
+        assert config.time_column.format == TimeFormat.ABSOLUTE_RFC3339
+
+    @pytest.mark.asyncio
+    async def test_csv_detect_raises_without_time_column(self, tmp_path):
+        path = tmp_path / "data.csv"
+        path.write_text("elapsed,voltage\n0.5,1.0\n")
+        response = _csv_detect_response(TIME_FORMAT_UNSPECIFIED)
+        response.csv_config.time_column.column_number = 0
+        api = _data_imports_api(MagicMock())
+        api._low_level_client.detect_config = AsyncMock(return_value=response)
+
+        with pytest.raises(ValueError, match=r"No time column detected in 'data\.csv'"):
+            await api.detect_config(path, time_format=TimeFormat.RELATIVE_SECONDS)
+
+    def test_csv_to_proto_rejects_missing_format(self):
+        col = CsvTimeColumn(column=1, format=None)
+        with pytest.raises(ValueError, match="CsvTimeColumn.format must be set"):
+            col._to_proto()
+
+    def test_parquet_to_proto_rejects_missing_format(self):
+        col = ParquetTimeColumn(path="timestamp", format=None)
+        with pytest.raises(ValueError, match="ParquetTimeColumn.format must be set"):
+            col._to_proto()
+
+    def test_hdf5_to_proto_rejects_missing_format(self):
+        config = Hdf5ImportConfig(asset_name="a", data=[], time_format=None)
+        with pytest.raises(ValueError, match="time_format is required"):
+            config._to_proto()
+
+
+class TestDetectConfigRelativeStartTime:
+    START = pd.Timestamp("2026-01-01T00:00:00.000000001Z")
+
+    @pytest.fixture
+    def csv_path(self, tmp_path):
+        path = tmp_path / "data.csv"
+        path.write_text("time,voltage\n0,1.0\n")
+        return path
+
+    @pytest.mark.asyncio
+    async def test_csv_detected_relative_format_uses_start_time(self, csv_path):
+        api = _data_imports_api(MagicMock())
+        api._low_level_client.detect_config = AsyncMock(
+            return_value=_csv_detect_response(TIME_FORMAT_RELATIVE_SECONDS)
+        )
+
+        config = await api.detect_config(csv_path, relative_start_time=self.START)
+
+        assert config.time_column.format == TimeFormat.RELATIVE_SECONDS
+        assert config.time_column.relative_start_time == self.START
+
+    @pytest.mark.asyncio
+    async def test_csv_detected_relative_format_without_start_time_raises(self, csv_path):
+        api = _data_imports_api(MagicMock())
+        api._low_level_client.detect_config = AsyncMock(
+            return_value=_csv_detect_response(TIME_FORMAT_RELATIVE_SECONDS)
+        )
+
+        with pytest.raises(ValueError, match="relative_start_time"):
+            await api.detect_config(csv_path)
+
+    @pytest.mark.asyncio
+    async def test_csv_relative_time_format_override_uses_start_time(self, csv_path):
+        api = _data_imports_api(MagicMock())
+        api._low_level_client.detect_config = AsyncMock(
+            return_value=_csv_detect_response(TIME_FORMAT_ABSOLUTE_RFC3339)
+        )
+
+        config = await api.detect_config(
+            csv_path, time_format=TimeFormat.RELATIVE_SECONDS, relative_start_time=self.START
+        )
+
+        assert config.time_column.format == TimeFormat.RELATIVE_SECONDS
+        assert config.time_column._to_proto().relative_start_time.nanos == 1
+
+    @pytest.mark.asyncio
+    async def test_relative_time_format_override_without_start_time_can_be_set_later(
+        self, csv_path
+    ):
+        # Without relative_start_time, the caller sets it on the detected config.
+        api = _data_imports_api(MagicMock())
+        api._low_level_client.detect_config = AsyncMock(
+            return_value=_csv_detect_response(TIME_FORMAT_ABSOLUTE_RFC3339)
+        )
+
+        config = await api.detect_config(csv_path, time_format=TimeFormat.RELATIVE_SECONDS)
+        assert config.time_column.relative_start_time is None
+
+        config.time_column.relative_start_time = self.START
+        assert config._to_proto().time_column.relative_start_time.nanos == 1
+
+    @pytest.mark.asyncio
+    async def test_import_relative_time_format_without_start_time_raises(self, csv_path):
+        api = _data_imports_api(MagicMock())
+        api._low_level_client.detect_config = AsyncMock(
+            return_value=_csv_detect_response(TIME_FORMAT_ABSOLUTE_RFC3339)
+        )
+        api._low_level_client.create_from_upload = AsyncMock()
+
+        with pytest.raises(ValueError, match="relative_start_time"):
+            await api.import_from_path(csv_path, asset="a", time_format=TimeFormat.RELATIVE_SECONDS)
+        api._low_level_client.create_from_upload.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_csv_absolute_format_warns_and_ignores_start_time(self, csv_path):
+        api = _data_imports_api(MagicMock())
+        api._low_level_client.detect_config = AsyncMock(
+            return_value=_csv_detect_response(TIME_FORMAT_ABSOLUTE_RFC3339)
+        )
+
+        with pytest.warns(UserWarning, match="ABSOLUTE_RFC3339"):
+            config = await api.detect_config(csv_path, relative_start_time=self.START)
+
+        assert config.time_column.relative_start_time is None
+
+    def test_single_channel_per_row_detected_relative_format_uses_start_time(self):
+        proto = ParquetConfig(
+            single_channel_per_row=ParquetSingleChannelPerRowConfig(
+                time_column=ParquetTimeColumnProto(
+                    path="timestamp", format=TIME_FORMAT_RELATIVE_SECONDS
+                )
+            )
+        )
+
+        config = parse_parquet_detect_response(
+            proto, "file.parquet", 0, 0, relative_start_time=self.START
+        )
+
+        assert config.time_column.relative_start_time == self.START
+
+    @pytest.mark.parametrize("config_cls", [Hdf5ImportConfig, TdmsImportConfig])
+    def test_relative_time_format_uses_start_time(self, config_cls):
+        config = config_cls(asset_name="a", data=[])
+        config.time_format = TimeFormat.RELATIVE_SECONDS
+
+        config._apply_relative_start_time(self.START)
+
+        assert config.relative_start_time == self.START
+
+    @pytest.mark.parametrize("config_cls", [Hdf5ImportConfig, TdmsImportConfig])
+    def test_unset_time_format_warns_and_ignores_start_time(self, config_cls):
+        config = config_cls(asset_name="a", data=[])
+
+        with pytest.warns(UserWarning, match="unset"):
+            config._apply_relative_start_time(self.START)
+
+        assert config.relative_start_time is None
+
+    @pytest.mark.parametrize("config_cls", [UlogImportConfig, McapImportConfig])
+    def test_log_formats_always_use_start_time(self, config_cls):
+        config = config_cls(asset_name="a")
+
+        config._apply_relative_start_time(self.START)
+
+        assert config.relative_start_time == self.START
+
+
+_DETECTORS = {
+    "hdf5": "sift_client._internal.util.hdf5.detect_hdf5_config",
+    "tdms": "sift_client._internal.util.tdms.detect_tdms_config",
+    "ulg": "sift_client._internal.util.ulog.detect_ulog_config",
+    "mcap": "sift_client._internal.util.mcap.detect_mcap_config",
+}
+
+
+class TestDetectConfigRelativeStartTimeByFormat:
+    """``relative_start_time`` through ``detect_config`` for client-detected formats."""
+
+    START = pd.Timestamp("2026-01-01T00:00:00.000000001Z")
+
+    async def _detect(self, tmp_path, monkeypatch, ext, detected, **kwargs):
+        path = tmp_path / f"data.{ext}"
+        path.write_bytes(b"")
+        monkeypatch.setattr(_DETECTORS[ext], lambda *a, **k: detected)
+        data_type = DataTypeKey.HDF5_ONE_D if ext == "hdf5" else None
+        return await DataImportAPIAsync(MagicMock()).detect_config(
+            path, data_type=data_type, **kwargs
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("ext", "detected"),
+        [
+            ("hdf5", Hdf5ImportConfig(asset_name="a", data=[])),
+            ("tdms", TdmsImportConfig(asset_name="a")),
+        ],
+    )
+    async def test_relative_time_format_uses_start_time(self, tmp_path, monkeypatch, ext, detected):
+        config = await self._detect(
+            tmp_path,
+            monkeypatch,
+            ext,
+            detected,
+            time_format=TimeFormat.RELATIVE_SECONDS,
+            relative_start_time="2026-01-01T00:00:00.000000001Z",
+        )
+
+        assert config.relative_start_time == self.START
+        assert config._to_proto().relative_start_time.nanos == 1
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("ext", "detected"),
+        [("ulg", UlogImportConfig(asset_name="a")), ("mcap", McapImportConfig(asset_name="a"))],
+    )
+    async def test_log_formats_use_start_time(self, tmp_path, monkeypatch, ext, detected):
+        config = await self._detect(
+            tmp_path, monkeypatch, ext, detected, relative_start_time=self.START
+        )
+
+        assert config.relative_start_time == self.START
+        assert config._to_proto().relative_start_time.nanos == 1
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("ext", "detected"),
+        [
+            ("hdf5", Hdf5ImportConfig(asset_name="a", data=[])),
+            ("tdms", TdmsImportConfig(asset_name="a")),
+            ("ulg", UlogImportConfig(asset_name="a")),
+            ("mcap", McapImportConfig(asset_name="a")),
+        ],
+    )
+    async def test_without_start_time_is_unchanged(self, tmp_path, monkeypatch, ext, detected):
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            config = await self._detect(tmp_path, monkeypatch, ext, detected)
+
+        assert config.relative_start_time is None
+
+    @pytest.mark.asyncio
+    async def test_import_from_path_passes_start_time(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(
+            "sift_client.resources.data_imports.upload_file", lambda *a, **k: {"jobId": "j1"}
+        )
+        path = tmp_path / "log.ulg"
+        path.write_bytes(b"")
+        monkeypatch.setattr(_DETECTORS["ulg"], lambda *a, **k: UlogImportConfig(asset_name=""))
+        api = DataImportAPIAsync(MagicMock())
+        api._low_level_client = MagicMock()
+        api._low_level_client.create_from_upload = AsyncMock(return_value=("import_1", "url"))
+        api.client.async_.jobs.get = AsyncMock(return_value=MagicMock())
+
+        await api.import_from_path(
+            path, asset="a", relative_start_time=self.START, show_progress=False
+        )
+
+        (sent_config,) = api._low_level_client.create_from_upload.call_args.args
+        assert sent_config.relative_start_time == self.START
 
 
 def _data_import_proto(
