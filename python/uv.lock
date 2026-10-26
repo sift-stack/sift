@@ -548,39 +548,6 @@ wheels = [
 ]
 
 [[package]]
-name = "cryptography"
-version = "41.0.7"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "cffi" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/ce/b3/13a12ea7edb068de0f62bac88a8ffd92cc2901881b391839851846b84a81/cryptography-41.0.7.tar.gz", hash = "sha256:13f93ce9bea8016c253b34afc6bd6a75993e5c40672ed5405a9c832f0d4a00bc", size = 630892, upload-time = "2023-11-28T00:49:41.784Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e4/73/5461318abd2fe426855a2f66775c063bbefd377729ece3c3ee048ddf19a5/cryptography-41.0.7-cp37-abi3-macosx_10_12_universal2.whl", hash = "sha256:3c78451b78313fa81607fa1b3f1ae0a5ddd8014c38a02d9db0616133987b9cdf", size = 5342676, upload-time = "2023-11-28T00:48:49.291Z" },
-    { url = "https://files.pythonhosted.org/packages/a9/76/d705397d076fcbf5671544eb72a70b5a5ac83462d23dbd2a365a3bf3692a/cryptography-41.0.7-cp37-abi3-macosx_10_12_x86_64.whl", hash = "sha256:928258ba5d6f8ae644e764d0f996d61a8777559f72dfeb2eea7e2fe0ad6e782d", size = 2850425, upload-time = "2023-11-28T00:49:29.113Z" },
-    { url = "https://files.pythonhosted.org/packages/68/bb/475658ea92653a894589e657d6cea9ae01354db73405d62126ac5e74e2f8/cryptography-41.0.7-cp37-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:5a1b41bc97f1ad230a41657d9155113c7521953869ae57ac39ac7f1bb471469a", size = 4161547, upload-time = "2023-11-28T00:48:38.466Z" },
-    { url = "https://files.pythonhosted.org/packages/14/fd/dd5bd6ab0d12476ebca579cbfd48d31bd90fa28fa257b209df585dcf62a0/cryptography-41.0.7-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:841df4caa01008bad253bce2a6f7b47f86dc9f08df4b433c404def869f590a15", size = 4363688, upload-time = "2023-11-28T00:49:34.285Z" },
-    { url = "https://files.pythonhosted.org/packages/3e/81/ae2c51ea2b80d57d5756a12df67816230124faea0a762a7a6304fe3c819c/cryptography-41.0.7-cp37-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:5429ec739a29df2e29e15d082f1d9ad683701f0ec7709ca479b3ff2708dae65a", size = 4148846, upload-time = "2023-11-28T00:49:04.704Z" },
-    { url = "https://files.pythonhosted.org/packages/62/bd/69628ab50368b1beb900eb1de5c46f8137169b75b2458affe95f2f470501/cryptography-41.0.7-cp37-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:43f2552a2378b44869fe8827aa19e69512e3245a219104438692385b0ee119d1", size = 4372805, upload-time = "2023-11-28T00:48:44.452Z" },
-    { url = "https://files.pythonhosted.org/packages/b6/4a/1808333c5ea79cb6d51102036cbcf698704b1fc7a5ccd139957aeadd2311/cryptography-41.0.7-cp37-abi3-musllinux_1_1_aarch64.whl", hash = "sha256:af03b32695b24d85a75d40e1ba39ffe7db7ffcb099fe507b39fd41a565f1b157", size = 4255463, upload-time = "2023-11-28T00:48:32.06Z" },
-    { url = "https://files.pythonhosted.org/packages/c5/07/826d66b6b03c5bfde8b451bea22c41e68d60aafff0ffa02c5f0819844319/cryptography-41.0.7-cp37-abi3-musllinux_1_1_x86_64.whl", hash = "sha256:49f0805fc0b2ac8d4882dd52f4a3b935b210935d500b6b805f321addc8177406", size = 4441232, upload-time = "2023-11-28T00:49:20.186Z" },
-    { url = "https://files.pythonhosted.org/packages/f3/4f/11b739e95598db236013cc9efb4e3d02b51dd0861c85470c3fe42720ef5b/cryptography-41.0.7-cp37-abi3-win32.whl", hash = "sha256:f983596065a18a2183e7f79ab3fd4c475205b839e02cbc0efbbf9666c4b3083d", size = 2236277, upload-time = "2023-11-28T00:49:09.796Z" },
-    { url = "https://files.pythonhosted.org/packages/f6/23/b28f4a03650512efff13a8fcbb977bac178a765c5a887a6720bee13fa85b/cryptography-41.0.7-cp37-abi3-win_amd64.whl", hash = "sha256:90452ba79b8788fa380dfb587cca692976ef4e757b194b093d845e8d99f612f2", size = 2671839, upload-time = "2023-11-28T00:48:41.223Z" },
-    { url = "https://files.pythonhosted.org/packages/26/ab/59f271c8f027b8068bbf4dfd6e3ad4c6fc20df0b108ee29c64a1036ba4ce/cryptography-41.0.7-pp310-pypy310_pp73-macosx_10_12_x86_64.whl", hash = "sha256:079b85658ea2f59c4f43b70f8119a52414cdb7be34da5d019a77bf96d473b960", size = 2715416, upload-time = "2023-11-28T00:48:35.629Z" },
-    { url = "https://files.pythonhosted.org/packages/54/f4/3eec29ab2fdd673de8f44af3876b32248eb79550ced822363e35da1644d1/cryptography-41.0.7-pp310-pypy310_pp73-manylinux_2_28_aarch64.whl", hash = "sha256:b640981bf64a3e978a56167594a0e97db71c89a479da8e175d8bb5be5178c003", size = 4056764, upload-time = "2023-11-28T00:49:23.428Z" },
-    { url = "https://files.pythonhosted.org/packages/f4/2b/96fd47dff43cdeb3e24e962fec9ed6ffa1369320146eb95524088265fa00/cryptography-41.0.7-pp310-pypy310_pp73-manylinux_2_28_x86_64.whl", hash = "sha256:e3114da6d7f95d2dee7d3f4eec16dacff819740bbab931aff8648cb13c5ff5e7", size = 4256756, upload-time = "2023-11-28T00:49:14.846Z" },
-    { url = "https://files.pythonhosted.org/packages/31/9e/30f98ba184be2792f77437607e23b08975ba7876f6a0a0d101df9ff5d180/cryptography-41.0.7-pp310-pypy310_pp73-win_amd64.whl", hash = "sha256:d5ec85080cce7b0513cfd233914eb8b7bbd0633f1d1703aa28d1dd5a72f678ec", size = 2550728, upload-time = "2023-11-28T00:49:07.101Z" },
-    { url = "https://files.pythonhosted.org/packages/2c/5d/f9ae5e819dcd2618b2d3e671b22c26b5db1da30414af399e4f624b3fe6cd/cryptography-41.0.7-pp38-pypy38_pp73-macosx_10_12_x86_64.whl", hash = "sha256:7a698cb1dac82c35fcf8fe3417a3aaba97de16a01ac914b89a0889d364d2f6be", size = 2717988, upload-time = "2023-11-28T00:48:47.18Z" },
-    { url = "https://files.pythonhosted.org/packages/c9/46/c488acbc62aedb14c1082c31bd5062caf8881530e97d2443ce33589f2053/cryptography-41.0.7-pp38-pypy38_pp73-manylinux_2_28_aarch64.whl", hash = "sha256:37a138589b12069efb424220bf78eac59ca68b95696fc622b6ccc1c0a197204a", size = 4057092, upload-time = "2023-11-28T00:49:17.999Z" },
-    { url = "https://files.pythonhosted.org/packages/3c/8f/9f5f4d9c00f030e81eda69e689c9777fe665bf34045cec2fd5e71b4859b6/cryptography-41.0.7-pp38-pypy38_pp73-manylinux_2_28_x86_64.whl", hash = "sha256:68a2dec79deebc5d26d617bfdf6e8aab065a4f34934b22d3b5010df3ba36612c", size = 4262154, upload-time = "2023-11-28T00:49:12.742Z" },
-    { url = "https://files.pythonhosted.org/packages/3b/37/da734cab133cc0b873d3caa31d73bba2c3cdc8423dc3d443095a87b3b036/cryptography-41.0.7-pp38-pypy38_pp73-win_amd64.whl", hash = "sha256:09616eeaef406f99046553b8a40fbf8b1e70795a91885ba4c96a70793de5504a", size = 2552279, upload-time = "2023-11-28T00:49:31.554Z" },
-    { url = "https://files.pythonhosted.org/packages/b9/19/75d3e8b9b814c09eef76899fea542473273311ab9bfaa1ca4e22c112e660/cryptography-41.0.7-pp39-pypy39_pp73-macosx_10_12_x86_64.whl", hash = "sha256:48a0476626da912a44cc078f9893f292f0b3e4c739caf289268168d8f4702a39", size = 2715456, upload-time = "2023-11-28T00:49:26.246Z" },
-    { url = "https://files.pythonhosted.org/packages/0d/bf/e7a1382034c4feaa77b35147138ff2bc8ae47a2fa7e2838fcdd41d2d0f2e/cryptography-41.0.7-pp39-pypy39_pp73-manylinux_2_28_aarch64.whl", hash = "sha256:c7f3201ec47d5207841402594f1d7950879ef890c0c495052fa62f58283fde1a", size = 4061050, upload-time = "2023-11-28T00:48:56.674Z" },
-    { url = "https://files.pythonhosted.org/packages/79/68/9767a3fb985515d3c34221c3671043cda57b1f691046ad8aae355fb2a8a5/cryptography-41.0.7-pp39-pypy39_pp73-manylinux_2_28_x86_64.whl", hash = "sha256:c5ca78485a255e03c32b513f8c2bc39fedb7f5c5f8535545bdc223a03b24f248", size = 4256683, upload-time = "2023-11-28T00:48:58.807Z" },
-    { url = "https://files.pythonhosted.org/packages/59/2d/6a6700968097ed41e48bc61405f862ef4e8924d0ab53a40b0e0fec4f0008/cryptography-41.0.7-pp39-pypy39_pp73-win_amd64.whl", hash = "sha256:d6c391c021ab1f7a82da5d8d0b3cee2f4b2c455ec86c8aebbc84837a631ff309", size = 2551188, upload-time = "2023-11-28T00:49:01.772Z" },
-]
-
-[[package]]
 name = "debugpy"
 version = "1.8.20"
 source = { registry = "https://pypi.org/simple" }
@@ -3232,7 +3199,6 @@ name = "pycparser"
 version = "2.23"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version == '3.9.*'",
     "python_full_version >= '3.8.2' and python_full_version < '3.9'",
     "python_full_version < '3.8.2'",
 ]
@@ -3599,18 +3565,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/9e/26/d1015444da4d952a1ca487a236b522eb979766f0295a0bd0c5fc089989a9/pymdown_extensions-10.21.3.tar.gz", hash = "sha256:72cfcf55f07aea0d4af2c4f11dd4e52466ddfb1bb819673146398e0bd3a77354", size = 854140, upload-time = "2026-05-13T12:57:32.267Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7e/85/545a951eecc270fcd688288c600017e2050a1aacb56c711d208586d3e470/pymdown_extensions-10.21.3-py3-none-any.whl", hash = "sha256:d7a5d08014fc571e80ca21dd6f854e31f94c489800350564d55d15b3c41e76b6", size = 269002, upload-time = "2026-05-13T12:57:30.296Z" },
-]
-
-[[package]]
-name = "pyopenssl"
-version = "23.3.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "cryptography" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/bf/a0/e667c3c43b65a188cc3041fa00c50655315b93be45182b2c94d185a2610e/pyOpenSSL-23.3.0.tar.gz", hash = "sha256:6b2cba5cc46e822750ec3e5a81ee12819850b11303630d575e98108a079c2b12", size = 183043, upload-time = "2023-10-26T03:06:53.373Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/db/de/007b832ad7a95e6a73745609bbe123c407aa2c46bb0b8f765c8718294e7f/pyOpenSSL-23.3.0-py3-none-any.whl", hash = "sha256:6756834481d9ed5470f4a9393455154bc92fe7a64b7bc6ee2c804e78c52099b2", size = 58812, upload-time = "2023-10-26T03:06:51.836Z" },
 ]
 
 [[package]]
@@ -4510,7 +4464,6 @@ dependencies = [
 
 [package.optional-dependencies]
 all = [
-    { name = "cffi" },
     { name = "h5py", version = "3.11.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "h5py", version = "3.14.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
     { name = "h5py", version = "3.16.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
@@ -4523,12 +4476,10 @@ all = [
     { name = "pyarrow", version = "17.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "pyarrow", version = "21.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
     { name = "pyarrow", version = "24.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
-    { name = "pyopenssl" },
     { name = "pyulog" },
     { name = "rosbags", version = "0.9.23", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.8.2' and python_full_version < '3.10'" },
     { name = "rosbags", version = "0.11.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "sift-stream-bindings" },
-    { name = "types-pyopenssl" },
 ]
 build = [
     { name = "build" },
@@ -4556,7 +4507,6 @@ dev = [
 ]
 dev-all = [
     { name = "build" },
-    { name = "cffi" },
     { name = "grpcio-testing", version = "1.70.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "grpcio-testing", version = "1.80.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
     { name = "h5py", version = "3.11.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
@@ -4574,7 +4524,6 @@ dev-all = [
     { name = "pyarrow", version = "17.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "pyarrow", version = "21.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
     { name = "pyarrow", version = "24.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
-    { name = "pyopenssl" },
     { name = "pyright" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -4588,7 +4537,6 @@ dev-all = [
     { name = "ruff" },
     { name = "sift-stream-bindings" },
     { name = "tomlkit" },
-    { name = "types-pyopenssl" },
 ]
 development = [
     { name = "grpcio-testing", version = "1.70.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
@@ -4617,7 +4565,6 @@ docs = [
 ]
 docs-build = [
     { name = "build" },
-    { name = "cffi" },
     { name = "griffe-pydantic", marker = "python_full_version >= '3.10'" },
     { name = "grpcio-testing", version = "1.70.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "grpcio-testing", version = "1.80.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
@@ -4643,7 +4590,6 @@ docs-build = [
     { name = "pyarrow", version = "17.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "pyarrow", version = "21.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
     { name = "pyarrow", version = "24.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
-    { name = "pyopenssl" },
     { name = "pyright" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -4657,7 +4603,6 @@ docs-build = [
     { name = "ruff" },
     { name = "sift-stream-bindings" },
     { name = "tomlkit" },
-    { name = "types-pyopenssl" },
 ]
 file-imports = [
     { name = "h5py", version = "3.11.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
@@ -4688,11 +4633,6 @@ mcap = [
     { name = "mcap" },
     { name = "mcap-ros2-support" },
 ]
-openssl = [
-    { name = "cffi" },
-    { name = "pyopenssl" },
-    { name = "types-pyopenssl" },
-]
 parquet = [
     { name = "pyarrow", version = "17.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "pyarrow", version = "21.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
@@ -4721,13 +4661,9 @@ requires-dist = [
     { name = "build", marker = "extra == 'build'", specifier = "==1.2.1" },
     { name = "build", marker = "extra == 'dev-all'", specifier = "==1.2.1" },
     { name = "build", marker = "extra == 'docs-build'", specifier = "==1.2.1" },
-    { name = "cffi", marker = "extra == 'all'", specifier = "~=1.14" },
-    { name = "cffi", marker = "extra == 'dev-all'", specifier = "~=1.14" },
-    { name = "cffi", marker = "extra == 'docs-build'", specifier = "~=1.14" },
-    { name = "cffi", marker = "extra == 'openssl'", specifier = "~=1.14" },
     { name = "diskcache", specifier = "~=5.6" },
     { name = "eval-type-backport", specifier = "~=0.2" },
-    { name = "filelock", specifier = "~=3.15" },
+    { name = "filelock", specifier = ">=3.15,<5" },
     { name = "googleapis-common-protos", specifier = ">=1.60" },
     { name = "griffe-pydantic", marker = "python_full_version >= '3.10' and extra == 'docs'", specifier = "==1.3.1" },
     { name = "griffe-pydantic", marker = "python_full_version >= '3.10' and extra == 'docs-build'", specifier = "==1.3.1" },
@@ -4798,10 +4734,6 @@ requires-dist = [
     { name = "pyarrow", marker = "extra == 'parquet'", specifier = ">=17.0.0" },
     { name = "pydantic", specifier = "~=2.10" },
     { name = "pydantic-core", specifier = "~=2.3" },
-    { name = "pyopenssl", marker = "extra == 'all'", specifier = "<24.0.0" },
-    { name = "pyopenssl", marker = "extra == 'dev-all'", specifier = "<24.0.0" },
-    { name = "pyopenssl", marker = "extra == 'docs-build'", specifier = "<24.0.0" },
-    { name = "pyopenssl", marker = "extra == 'openssl'", specifier = "<24.0.0" },
     { name = "pyright", marker = "extra == 'dev'", specifier = "==1.1.386" },
     { name = "pyright", marker = "extra == 'dev-all'", specifier = "==1.1.386" },
     { name = "pyright", marker = "extra == 'development'", specifier = "==1.1.386" },
@@ -4859,15 +4791,11 @@ requires-dist = [
     { name = "tomlkit", marker = "extra == 'development'", specifier = "~=0.13.3" },
     { name = "tomlkit", marker = "extra == 'docs-build'", specifier = "~=0.13.3" },
     { name = "types-protobuf", specifier = ">=5.0" },
-    { name = "types-pyopenssl", marker = "extra == 'all'", specifier = "<24.0.0" },
-    { name = "types-pyopenssl", marker = "extra == 'dev-all'", specifier = "<24.0.0" },
-    { name = "types-pyopenssl", marker = "extra == 'docs-build'", specifier = "<24.0.0" },
-    { name = "types-pyopenssl", marker = "extra == 'openssl'", specifier = "<24.0.0" },
     { name = "types-pyyaml", specifier = "~=6.0" },
     { name = "types-requests", specifier = "~=2.25" },
     { name = "typing-extensions", specifier = "~=4.6" },
 ]
-provides-extras = ["all", "build", "data-review", "dev", "dev-all", "development", "docs", "docs-build", "file-imports", "hdf5", "mcap", "openssl", "parquet", "rosbags", "sift-stream", "sift-stream-bindings", "tdms", "ulog"]
+provides-extras = ["all", "build", "data-review", "dev", "dev-all", "development", "docs", "docs-build", "file-imports", "hdf5", "mcap", "parquet", "rosbags", "sift-stream", "sift-stream-bindings", "tdms", "ulog"]
 
 [[package]]
 name = "sift-stream-bindings"
@@ -5100,18 +5028,6 @@ resolution-markers = [
 sdist = { url = "https://files.pythonhosted.org/packages/29/59/e2b13b499d15e6720150c4b1a8d91e31fcacf716b432397475b3151ff7e4/types_protobuf-7.34.1.20260518.tar.gz", hash = "sha256:28cfaded25889cb83ebfb63cfb0a43628f0b6f3785767bec17287dc6468795f2", size = 68936, upload-time = "2026-05-18T06:01:47.332Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2a/1f/ec5caf72c2e3b688ca3927e0979a04ddad19e1afc4bf1c199bd743e0f419/types_protobuf-7.34.1.20260518-py3-none-any.whl", hash = "sha256:a0a5337413347166439c0e07cbc26c6164d091401c6f01b1dfd8cdb966c4dd8f", size = 85992, upload-time = "2026-05-18T06:01:45.696Z" },
-]
-
-[[package]]
-name = "types-pyopenssl"
-version = "23.3.0.20240106"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "cryptography" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/69/ec/378e4368ecabef95cc136d86d95ecf5098592fdfaa044774e20de90396d9/types-pyOpenSSL-23.3.0.20240106.tar.gz", hash = "sha256:3d6f3462bec0c260caadf93fbb377225c126661b779c7d9ab99b6dad5ca10db9", size = 8121, upload-time = "2024-01-06T02:23:16.745Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/16/63/c44743e26b7214c926a4ab9153d99f8cb5181520fa9169c56b232949b3ac/types_pyOpenSSL-23.3.0.20240106-py3-none-any.whl", hash = "sha256:47a7eedbd18b7bcad17efebf1c53416148f5a173918a6d75027e75e32fe039ae", size = 7390, upload-time = "2024-01-06T02:23:15.657Z" },
 ]
 
 [[package]]

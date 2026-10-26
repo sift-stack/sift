@@ -1,0 +1,1 @@
+Removed the `pyOpenSSL` dependency. `cert_via_openssl` now converts certificates with the standard library `ssl` module, so the `openssl` extra is no longer needed and is removed. The extra capped `cryptography` below 42, which kept installs on a release with known vulnerabilities.
