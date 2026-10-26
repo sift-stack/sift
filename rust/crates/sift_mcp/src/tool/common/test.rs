@@ -310,6 +310,7 @@ fn list_body_unmatched_fields_survive_head_truncation() {
         head.contains("\"_unmatched_fields\":[\"nmae\"]"),
         "warning must sit in the first 200 characters: {head}"
     );
+}
 
 /// A read tool's payload must reach `content`, not only `structuredContent`:
 /// Claude Code shows the model `content`, so a payload left out of it is

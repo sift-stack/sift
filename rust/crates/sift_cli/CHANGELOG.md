@@ -9,10 +9,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 - MCP `list_*` tools now list any field requested in `fields` that matches no
   key on the returned items in `_unmatched_fields`, renamed from
-  `unmatched_fields`. The new name sorts
-  ahead of the items, so the warning comes first in the response and survives
-  when an agent harness truncates a large result. Each list tool's Output
-  section now documents the key.
+  `unmatched_fields`. The new name sorts ahead of the items, so the warning
+  comes first in the response and survives when an agent harness truncates a
+  large result. Each list tool's Output section now documents the key.
 
 ## [v0.7.6] - October 26, 2026
 
