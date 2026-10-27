@@ -1613,6 +1613,8 @@ class DataImportAPI:
         file_path: str | Path,
         data_type: DataTypeKey | None = None,
         time_format: TimeFormat | None = None,
+        *,
+        relative_start_time: pd.Timestamp | datetime | str | None = None,
     ) -> ImportConfig:
         """Auto-detect import configuration from a file.
 
@@ -1671,6 +1673,15 @@ class DataImportAPI:
                 HDF5 use the detected format if available, otherwise
                 ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``. TDMS keeps its
                 detected/default time handling.
+            relative_start_time: Start time for a relative time format.
+                A string is parsed with ``pd.Timestamp``; a string or
+                ``pd.Timestamp`` keeps nanosecond precision.
+                For ULog, this is the log start time and takes precedence
+                over the log's GPS fix. For MCAP, set it only for logs whose
+                ``log_time`` is not on the Unix epoch; ``log_time`` is then
+                read as nanoseconds elapsed from this time. For other
+                formats, it is required with a relative time format and
+                ignored with a warning otherwise.
 
         Returns:
             The detected import config.
@@ -1739,6 +1750,7 @@ class DataImportAPI:
         config: ImportConfig | None = None,
         data_type: DataTypeKey | None = None,
         time_format: TimeFormat | None = None,
+        relative_start_time: pd.Timestamp | datetime | str | None = None,
         run: Run | str | None = None,
         run_name: str | None = None,
         show_progress: bool | None = None,
@@ -1805,6 +1817,16 @@ class DataImportAPI:
                 ``TimeFormat.ABSOLUTE_UNIX_NANOSECONDS``. TDMS keeps its
                 detected/default time handling. Only used when ``config`` is
                 not provided.
+            relative_start_time: Start time for a relative time format.
+                A string is parsed with ``pd.Timestamp``; a string or
+                ``pd.Timestamp`` keeps nanosecond precision.
+                For ULog, this is the log start time and takes precedence
+                over the log's GPS fix. For MCAP, set it only for logs whose
+                ``log_time`` is not on the Unix epoch; ``log_time`` is then
+                read as nanoseconds elapsed from this time. For other
+                formats, it is required with a relative time format and
+                ignored with a warning otherwise. Only used when ``config``
+                is not provided.
             run: ``Run`` object or run ID string to import into an existing
                 run. Mutually exclusive with ``run_name``.
             run_name: Name for a new run. Defaults to the filename if

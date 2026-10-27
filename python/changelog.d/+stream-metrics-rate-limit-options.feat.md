@@ -1,3 +1,0 @@
-Added `metrics_streaming_interval` and `rate_limit_policy` to `create_ingestion_config_streaming_client` and `create_auto_register_streaming_client`.
-
-`metrics_streaming_interval` takes a `timedelta` and defaults to 500 ms. Pass `None` to disable metrics streaming. `rate_limit_policy` takes a `RateLimitPolicyPy` from `sift_stream_bindings` and controls how rate-limited control-plane calls, such as stream setup, `attach_run`, and flow registration, are handled. By default, the stream waits the delay Sift requests before retrying. When a rate limit is not retried, or the retries run out, these calls raise `RateLimitedErrorPy`, and `retry_delay.to_timedelta()` returns the delay Sift requested. This release requires `sift-stream-bindings` 0.6.1.
