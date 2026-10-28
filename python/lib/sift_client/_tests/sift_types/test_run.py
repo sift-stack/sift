@@ -5,9 +5,13 @@ from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
+from google.protobuf.any_pb2 import Any
 from google.protobuf.timestamp_pb2 import Timestamp
+from sift.common.type.v1.channel_data_type_pb2 import CHANNEL_DATA_TYPE_DOUBLE
+from sift.data.v2.data_pb2 import DoubleValue, DoubleValues, Metadata
 from sift.runs.v2.runs_pb2 import Run as RunProto
 
+from sift_client._internal.low_level_wrappers.data import DataLowLevelClient
 from sift_client.sift_types import Run
 from sift_client.sift_types.run import RunCreate, RunUpdate
 
@@ -134,15 +138,34 @@ def mock_run(mock_client):
     return run
 
 
+def _channel_index(*timestamps: Timestamp) -> pd.DatetimeIndex:
+    """Index ``get_data`` builds for double-channel samples at these times."""
+    values = DoubleValues(
+        metadata=Metadata(
+            data_type=CHANNEL_DATA_TYPE_DOUBLE,
+            sampled_ms=0,
+            channel=Metadata.Channel(name="voltage"),
+        ),
+        values=[DoubleValue(timestamp=ts, value=1.0) for ts in timestamps],
+    )
+    packed = Any()
+    packed.Pack(values)
+    # ``Pack`` writes ``type.googleapis.com/...``. The data parser reads the
+    # ``sift.data`` prefix the API sends.
+    packed.type_url = "sift.data.v2.DoubleValues"
+    frame = DataLowLevelClient.try_deserialize_channel_data(packed)["voltage"]
+    return frame.index
+
+
 class TestRun:
     """Unit tests for Run model - tests properties and methods."""
 
     def test_bounds_match_channel_timestamp_resolution(self):
-        """Run bounds are nanosecond timestamps, matching channel data.
+        """A time axis from run bounds matches the channel index for the same timestamps.
 
-        ``stop_time`` is an exact second. That is the case where a
-        microsecond ``datetime`` and a nanosecond timestamp print the
-        same and still disagree as integers.
+        ``stop_time`` is an exact second. That instant prints the same as a
+        microsecond ``datetime`` and still disagrees when both are read as
+        integers.
         """
         start = Timestamp(seconds=1735689600, nanos=123456789)
         stop = Timestamp(seconds=1735689601, nanos=0)
@@ -160,19 +183,12 @@ class TestRun:
         proto.stop_time.CopyFrom(stop)
 
         run = Run._from_proto(proto)
-
-        assert isinstance(run.start_time, pd.Timestamp)
-        assert isinstance(run.stop_time, pd.Timestamp)
-        assert run.start_time.unit == "ns"
-        assert run.stop_time.unit == "ns"
-        assert run.start_time.nanosecond == 789
-        assert run.stop_time.nanosecond == 0
-        start_index = pd.DatetimeIndex([run.start_time])
-        assert str(start_index.dtype).startswith("datetime64[ns")
-        assert int(start_index.asi8[0]) == 1735689600 * 1_000_000_000 + 123456789
+        channel_index = _channel_index(start, stop)
         axis = pd.date_range(run.start_time, run.stop_time, periods=2)
-        assert str(axis.dtype).startswith("datetime64[ns")
-        assert int(axis.asi8[0]) == int(start_index.asi8[0])
+
+        assert str(channel_index.dtype).startswith("datetime64[ns")
+        assert axis.dtype == channel_index.dtype
+        assert [int(value) for value in axis.asi8] == [int(value) for value in channel_index.asi8]
 
         unset = RunProto(
             run_id="r",
