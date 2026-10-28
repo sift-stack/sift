@@ -7,6 +7,7 @@ from pydantic import model_validator
 from sift.runs.v2.runs_pb2 import CreateRunRequest as CreateRunRequestProto
 from sift.runs.v2.runs_pb2 import Run as RunProto
 
+from sift_client._internal.time import to_timestamp_nanos
 from sift_client.sift_types._base import (
     BaseType,
     MappingHelper,
@@ -31,7 +32,13 @@ if TYPE_CHECKING:
 
 
 class Run(BaseType[RunProto, "Run"], FileAttachmentsMixin):
-    """Run model representing a data collection run."""
+    """Run model representing a data collection run.
+
+    ``start_time`` and ``stop_time`` are nanosecond ``pandas.Timestamp``
+    values, the same resolution as channel data from ``get_data``. A time
+    axis built from these lines up with that data when both are read as
+    integers.
+    """
 
     # Required fields
     name: str
@@ -68,12 +75,12 @@ class Run(BaseType[RunProto, "Run"], FileAttachmentsMixin):
             modified_by_user_id=proto.modified_by_user_id,
             organization_id=proto.organization_id,
             start_time=(
-                proto.start_time.ToDatetime(tzinfo=timezone.utc)
+                to_timestamp_nanos(proto.start_time).as_unit("ns")
                 if proto.HasField("start_time")
                 else None
             ),
             stop_time=(
-                proto.stop_time.ToDatetime(tzinfo=timezone.utc)
+                to_timestamp_nanos(proto.stop_time).as_unit("ns")
                 if proto.HasField("stop_time")
                 else None
             ),

@@ -3,7 +3,10 @@
 from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
+import pandas as pd
 import pytest
+from google.protobuf.timestamp_pb2 import Timestamp
+from sift.runs.v2.runs_pb2 import Run as RunProto
 
 from sift_client.sift_types import Run
 from sift_client.sift_types.run import RunCreate, RunUpdate
@@ -133,6 +136,57 @@ def mock_run(mock_client):
 
 class TestRun:
     """Unit tests for Run model - tests properties and methods."""
+
+    def test_bounds_match_channel_timestamp_resolution(self):
+        """Run bounds are nanosecond timestamps, matching channel data.
+
+        ``stop_time`` is an exact second. That is the case where a
+        microsecond ``datetime`` and a nanosecond timestamp print the
+        same and still disagree as integers.
+        """
+        start = Timestamp(seconds=1735689600, nanos=123456789)
+        stop = Timestamp(seconds=1735689601, nanos=0)
+        proto = RunProto(
+            run_id="r",
+            name="n",
+            description="",
+            created_by_user_id="u",
+            modified_by_user_id="u",
+            organization_id="o",
+        )
+        proto.created_date.FromDatetime(datetime(2025, 1, 1, tzinfo=timezone.utc))
+        proto.modified_date.CopyFrom(proto.created_date)
+        proto.start_time.CopyFrom(start)
+        proto.stop_time.CopyFrom(stop)
+
+        run = Run._from_proto(proto)
+
+        assert isinstance(run.start_time, pd.Timestamp)
+        assert isinstance(run.stop_time, pd.Timestamp)
+        assert run.start_time.unit == "ns"
+        assert run.stop_time.unit == "ns"
+        assert run.start_time.nanosecond == 789
+        assert run.stop_time.nanosecond == 0
+        start_index = pd.DatetimeIndex([run.start_time])
+        assert str(start_index.dtype).startswith("datetime64[ns")
+        assert int(start_index.asi8[0]) == 1735689600 * 1_000_000_000 + 123456789
+        axis = pd.date_range(run.start_time, run.stop_time, periods=2)
+        assert str(axis.dtype).startswith("datetime64[ns")
+        assert int(axis.asi8[0]) == int(start_index.asi8[0])
+
+        unset = RunProto(
+            run_id="r",
+            name="n",
+            description="",
+            created_by_user_id="u",
+            modified_by_user_id="u",
+            organization_id="o",
+        )
+        unset.created_date.CopyFrom(proto.created_date)
+        unset.modified_date.CopyFrom(proto.modified_date)
+        unbounded = Run._from_proto(unset)
+        assert unbounded.start_time is None
+        assert unbounded.stop_time is None
 
     def test_assets_property_calls_client(self, mock_run, mock_client):
         """Test that assets property calls client.assets.list_ with correct parameters."""
