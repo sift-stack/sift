@@ -154,7 +154,9 @@ def _channel_index(*timestamps: Timestamp) -> pd.DatetimeIndex:
     # ``sift.data`` prefix the API sends.
     packed.type_url = "sift.data.v2.DoubleValues"
     frame = DataLowLevelClient.try_deserialize_channel_data(packed)["voltage"]
-    return frame.index
+    index = frame.index
+    assert isinstance(index, pd.DatetimeIndex)
+    return index
 
 
 class TestRun:
