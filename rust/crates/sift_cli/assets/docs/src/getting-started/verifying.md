@@ -26,7 +26,7 @@ sift-cli --disable-tls ping
 
 | Symptom                                   | Likely cause and fix                                                                 |
 | ----------------------------------------- | ------------------------------------------------------------------------------------ |
-| `expected to find 'sift.toml'`            | No config file yet. Run `sift-cli config create`, then `config update`.              |
+| `expected to find 'sift.toml'`            | No config file yet. Run `sift-cli config create`.                                    |
 | `Expected value of 'apikey' to be present`| The profile is missing a field. Re-run `sift-cli config update` with the missing value. |
 | `Profile '<name>' not found`              | The named profile does not exist. Check `sift-cli config show`.                      |
 | Authentication or permission errors       | The API key is wrong or lacks access. Generate a new key in the Sift web app.        |

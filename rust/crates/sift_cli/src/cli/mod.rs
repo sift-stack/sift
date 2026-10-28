@@ -370,16 +370,25 @@ pub enum ConfigCmd {
     /// Show the path to the current config file
     Where,
 
-    /// Create a new config file (fails if one already exists)
+    /// Create the config file or a new profile, then prompt for its values.
+    ///
+    /// Without --profile, sets up the default profile, or asks for a new
+    /// profile name when the default is already set up. Outside a terminal,
+    /// only creates an empty config file.
     Create,
 
-    /// Update fields in the existing config file
+    /// Update fields of an existing profile.
+    ///
+    /// With field flags, sets those fields without prompting. A new --profile
+    /// name is created. Without field flags in a terminal, prompts for each
+    /// value and shows the current one. Without field flags outside a
+    /// terminal, exits with status 2.
     Update(ConfigUpdateArgs),
 }
 
 #[derive(clap::Args)]
 pub struct ConfigUpdateArgs {
-    /// Edit or create a profile interactively (ignores other flags)
+    /// Prompt for each value even when field flags are given (ignores them)
     #[arg(short, long)]
     pub interactive: bool,
 

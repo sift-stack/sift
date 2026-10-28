@@ -7,6 +7,31 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- `config update` without field flags no longer prints `Nothing to update.`
+  and exits 0. In a terminal, it now opens an interactive editor. Outside a
+  terminal, it exits with status 2. Scripts that call it with no flags now
+  fail.
+- `config update` stops with a pointer to `config create` when the config file
+  is missing. When `--profile` names a profile that does not exist, the
+  interactive editor stops the same way. Field flags still create a new named
+  profile.
+- `config create` now prompts for the profile values in a terminal. It also
+  creates new profiles: `sift-cli --profile staging config create`, or, without
+  `--profile`, it asks for a name when the default profile is already set up.
+  Outside a terminal, it still creates only an empty file.
+- The interactive editor lists named profiles to pick from and shows the
+  current value of each field. Type a new value to change a field, or leave it
+  blank to keep the current value. The API key is not
+  shown while you type it. Before it saves, the editor lists only the changed
+  fields, with the key masked to its last four characters. It writes nothing
+  when no field changed. The confirmation now defaults to yes.
+- `--profile default` now selects the top-level profile in every command. Before,
+  it looked for a `[default]` table, so `sift-cli --profile default ping`
+  failed on a file with only top-level keys. A file that has a `[default]`
+  table still uses that table.
+- `config update` with field flags prints the fields that changed. It reports
+  `No changes` and does not write the file when the values are already set.
+
 ## [v0.7.6] - October 26, 2026
 
 ### What's New
