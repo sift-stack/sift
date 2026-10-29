@@ -1,5 +1,7 @@
 use super::{
-    ListParams, list_body, project_fields, read_result, test_support::content_texts, url_clause,
+    ListParams, list_body, list_result, project_fields, read_result,
+    test_support::{assert_keys_before, content_texts},
+    url_clause,
 };
 use serde_json::{Value, json};
 
@@ -170,7 +172,7 @@ fn list_body_surfaces_unmatched_fields_alongside_the_items() {
             "channels": [{ "name": "throttle" }],
             "count": 1,
             "has_more": false,
-            "_unmatched_fields": ["nope"],
+            "unmatched_fields": ["nope"],
         })
     );
 }
@@ -257,59 +259,97 @@ fn list_body_omits_unmatched_fields_when_the_page_is_empty() {
 
     assert_eq!(body["count"], json!(0));
     assert!(
-        body.get("_unmatched_fields").is_none(),
+        body.get("unmatched_fields").is_none(),
         "an empty page must not look like a spelling problem: {body}"
     );
 }
 
+/// Every items key the list tools use. Most sort before `count`, which is why
+/// the text block cannot rely on `serde_json::Map` ordering.
+const ITEMS_KEYS: [&str; 14] = [
+    "annotations",
+    "artifacts",
+    "artifact_versions",
+    "assets",
+    "calculated_channels",
+    "calculated_channel_versions",
+    "channels",
+    "rules",
+    "runs",
+    "test_reports",
+    "test_steps",
+    "test_measurements",
+    "user_defined_functions",
+    "user_defined_function_versions",
+];
+
 #[test]
-fn list_body_writes_unmatched_fields_before_the_items() {
-    // Agent harnesses cut oversized tool results from the end. The warning has
-    // to be serialized ahead of the items or it is the first thing lost, on
-    // exactly the large responses where a typo is hardest to spot.
-    let keys = [
-        "annotations",
-        "artifacts",
-        "artifact_versions",
-        "assets",
-        "calculated_channels",
-        "calculated_channel_versions",
-        "channels",
-        "rules",
-        "runs",
-        "test_reports",
-        "test_steps",
-        "test_measurements",
-        "user_defined_functions",
-        "user_defined_function_versions",
-    ];
-
-    for key in keys {
+fn list_result_writes_metadata_before_the_items() {
+    // Agent harnesses cut oversized tool results from the end. The metadata has
+    // to be written ahead of the items or it is the first thing lost, on
+    // exactly the large responses where it matters.
+    for key in ITEMS_KEYS {
         let items = vec![json!({ "name": "throttle" })];
-        let text = list_body(key, items, Some(vec!["nmae".into()]), false).to_string();
+        let body = list_body(key, items, Some(vec!["nmae".into()]), true);
 
-        let warning = text.find("\"_unmatched_fields\"").expect("warning present");
-        let items_at = text.find(&format!("\"{key}\"")).expect("items present");
+        let texts = content_texts(&list_result(body, key, None));
+
+        assert_eq!(texts.len(), 1, "{key}");
+        assert_keys_before(&texts[0], &["count", "has_more", "unmatched_fields"], key);
+    }
+}
+
+#[test]
+fn list_result_metadata_survives_head_truncation() {
+    let items: Vec<Value> = (0..500)
+        .map(|i| json!({ "name": format!("channel-{i}") }))
+        .collect();
+    let body = list_body("channels", items, Some(vec!["nmae".into()]), true);
+
+    let text = content_texts(&list_result(body, "channels", None)).remove(0);
+    let head: String = text.chars().take(200).collect();
+
+    for expected in [
+        "\"count\":500",
+        "\"has_more\":true",
+        "\"unmatched_fields\":[\"nmae\"]",
+    ] {
         assert!(
-            warning < items_at,
-            "{key}: warning must precede the items in {text}"
+            head.contains(expected),
+            "{expected} must sit in the first 200 characters: {head}"
         );
     }
 }
 
 #[test]
-fn list_body_unmatched_fields_survive_head_truncation() {
-    let items: Vec<Value> = (0..500)
-        .map(|i| json!({ "name": format!("channel-{i}") }))
-        .collect();
-
-    let text = list_body("channels", items, Some(vec!["nmae".into()]), false).to_string();
-    let head: String = text.chars().take(200).collect();
-
-    assert!(
-        head.contains("\"_unmatched_fields\":[\"nmae\"]"),
-        "warning must sit in the first 200 characters: {head}"
+fn list_result_text_is_the_structured_body_reordered() {
+    // Consumers that parse the text must get exactly the structured payload;
+    // only key order may differ.
+    let items = vec![json!({ "name": "throttle", "channelId": "c1" })];
+    let body = list_body(
+        "channels",
+        items,
+        Some(vec!["name".into(), "nmae".into()]),
+        false,
     );
+
+    let result = list_result(body.clone(), "channels", None);
+
+    let texts = content_texts(&result);
+    let parsed: Value = serde_json::from_str(&texts[0]).expect("text should be JSON");
+    assert_eq!(parsed, body);
+    assert_eq!(result.structured_content, Some(body));
+}
+
+#[test]
+fn list_result_puts_next_step_in_its_own_leading_block() {
+    let body = list_body("channels", vec![json!({ "name": "a" })], None, false);
+
+    let texts = content_texts(&list_result(body, "channels", Some("Listed 1.".into())));
+
+    assert_eq!(texts.len(), 2);
+    assert_eq!(texts[0], "Listed 1.");
+    assert_keys_before(&texts[1], &["count", "has_more"], "channels");
 }
 
 /// A read tool's payload must reach `content`, not only `structuredContent`:

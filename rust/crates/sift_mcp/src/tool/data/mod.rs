@@ -736,7 +736,7 @@ impl SiftMcpServer {
         // Always present, even when empty. Omitting them would leave "every
         // channel arrived" and "this tool never checked" looking identical, and
         // the first is the assurance a caller needs before trusting the file.
-        // Deliberately unlike `_unmatched_fields` on the list tools, where
+        // Deliberately unlike `unmatched_fields` on the list tools, where
         // silence costs nothing.
         body.insert(
             "unmatched_channel_names".to_string(),

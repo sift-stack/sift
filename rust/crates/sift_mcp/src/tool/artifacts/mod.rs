@@ -16,7 +16,7 @@ use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::artifacts::{ArtifactView, CreateArtifactInput, UpdateArtifactInput, UpdatePath},
-    tool::common::{MetadataEntry, list_body, to_values, url_clause},
+    tool::common::{MetadataEntry, list_body, list_result, to_values, url_clause},
 };
 
 #[cfg(test)]
@@ -350,9 +350,10 @@ impl SiftMcpServer {
               - `has_more`: `true` when the service hit `limit` with matches left over, so
                 this page is not the whole set. Never report `count` as a total while
                 `has_more` is `true` — raise `limit` or scope with `conversation_id` and ask again.
-              - `_unmatched_fields`: present only when a field you listed in `fields` matched
-                no key on any returned item. It is the first key in the response. Fix the
-                field name and call again; never report that field as empty or missing.
+              - `unmatched_fields`: present only when a field you listed in `fields` matched
+                no key on any returned item. It comes before the items in the response.
+                Fix the field name and call again; never report that field as empty or
+                missing.
 
             Parameters:
               - `conversation_id`: optional. When set, only artifacts linked to that conversation. When omitted,
@@ -384,7 +385,7 @@ impl SiftMcpServer {
                 `[\"title\"]`. Omit it for the full object. Names match case-insensitively
                 and ignore underscores and hyphens, so `artifact_id`, `artifactId` and
                 `artifact-id` all work. Any name that matched nothing on any returned item
-                is listed in `_unmatched_fields`; an empty page reports none, since it
+                is listed in `unmatched_fields`; an empty page reports none, since it
                 says nothing about whether a name was spelled right.
                 Reach for this whenever you need only a few fields: full objects are wide,
                 and a large listing can exceed the response size limit without it.
@@ -445,12 +446,11 @@ impl SiftMcpServer {
             })
             .collect::<Result<Vec<_>, ErrorData>>()?;
 
-        Ok(CallToolResult::structured(list_body(
+        Ok(list_result(
+            list_body("artifacts", artifacts, fields, page.has_more),
             "artifacts",
-            artifacts,
-            fields,
-            page.has_more,
-        )))
+            None,
+        ))
     }
 
     #[tool(
@@ -474,9 +474,10 @@ impl SiftMcpServer {
               - `has_more`: `true` when the service hit `limit` with versions left over, so
                 this page is not the whole history. Never report `count` as a total while
                 `has_more` is `true` — raise `limit` and ask again.
-              - `_unmatched_fields`: present only when a field you listed in `fields` matched
-                no key on any returned item. It is the first key in the response. Fix the
-                field name and call again; never report that field as empty or missing.
+              - `unmatched_fields`: present only when a field you listed in `fields` matched
+                no key on any returned item. It comes before the items in the response.
+                Fix the field name and call again; never report that field as empty or
+                missing.
 
             Parameters:
               - `artifact_id`: required stable container id. Resolve it with `list_artifacts` first if you only
@@ -487,7 +488,7 @@ impl SiftMcpServer {
                 `[\"version\"]`. Omit it for the full object. Names match case-insensitively
                 and ignore underscores and hyphens, so `artifact_version_id`, `artifactVersionId` and
                 `artifact-version-id` all work. Any name that matched nothing on any returned item
-                is listed in `_unmatched_fields`; an empty page reports none, since it
+                is listed in `unmatched_fields`; an empty page reports none, since it
                 says nothing about whether a name was spelled right.
                 Reach for this whenever you need only a few fields: full objects are wide,
                 and a large listing can exceed the response size limit without it.
@@ -537,7 +538,7 @@ impl SiftMcpServer {
             map.insert("artifact_url".to_string(), serde_json::json!(artifact_url));
         }
 
-        Ok(CallToolResult::structured(body))
+        Ok(list_result(body, "artifact_versions", None))
     }
 
     #[tool(

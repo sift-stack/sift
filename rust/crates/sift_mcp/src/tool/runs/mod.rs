@@ -11,7 +11,7 @@ use sift_rs::metadata::v1::MetadataValue;
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
-    tool::common::{ListParams, MetadataEntry, list_body, url_clause, with_urls},
+    tool::common::{ListParams, MetadataEntry, list_body, list_result, url_clause, with_urls},
 };
 
 #[cfg(test)]
@@ -51,9 +51,10 @@ impl SiftMcpServer {
               - `has_more`: `true` when the service hit `limit` with matches left over, so
                 this page is not the whole set. Never report `count` as a total while
                 `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
-              - `_unmatched_fields`: present only when a field you listed in `fields` matched
-                no key on any returned item. It is the first key in the response. Fix the
-                field name and call again; never report that field as empty or missing.
+              - `unmatched_fields`: present only when a field you listed in `fields` matched
+                no key on any returned item. It comes before the items in the response.
+                Fix the field name and call again; never report that field as empty or
+                missing.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
@@ -78,7 +79,7 @@ impl SiftMcpServer {
                 `asset-ids` all work. Name output fields, not filter fields: `asset_id`,
                 `asset_name`, and `annotation_state` filter runs but are not on the item.
                 Any name that matched nothing on any returned item
-                is listed in `_unmatched_fields`; an empty page reports none, since it
+                is listed in `unmatched_fields`; an empty page reports none, since it
                 says nothing about whether a name was spelled right.
                 Reach for this whenever you need only a few fields: full objects are wide,
                 and a large listing can exceed the response size limit without it.
@@ -116,12 +117,11 @@ impl SiftMcpServer {
             self.url_service.build_run_url(&r.run_id).ok()
         })?;
 
-        Ok(CallToolResult::structured(list_body(
+        Ok(list_result(
+            list_body("runs", runs, fields, page.has_more),
             "runs",
-            runs,
-            fields,
-            page.has_more,
-        )))
+            None,
+        ))
     }
 
     #[tool(

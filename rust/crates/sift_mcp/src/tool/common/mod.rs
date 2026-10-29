@@ -1,6 +1,7 @@
 use rmcp::ErrorData;
 use rmcp::model::{CallToolResult, ContentBlock};
 use rmcp::schemars::{self, JsonSchema};
+use serde::ser::SerializeMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sift_rs::metadata::v1::{
@@ -177,11 +178,8 @@ pub(crate) fn project_fields(items: Vec<Value>, fields: &[String]) -> (Vec<Value
 }
 
 /// The key under which `list_body` lists every field requested in `fields`
-/// that matched no key on any returned item. The leading underscore sorts it
-/// ahead of every items key, so it is serialized first and survives an output
-/// guard that truncates large responses from the end, which is exactly when a
-/// mistyped field name is easiest to miss.
-pub(crate) const UNMATCHED_FIELDS_KEY: &str = "_unmatched_fields";
+/// that matched no key on any returned item.
+pub(crate) const UNMATCHED_FIELDS_KEY: &str = "unmatched_fields";
 
 /// Build the structured body for a `list_*` tool. Projects the items when
 /// `fields` is set, and reports any requested field that matched nothing under
@@ -219,6 +217,62 @@ pub(crate) fn list_body(
         );
     }
     Value::Object(body)
+}
+
+/// Shape a `list_*` tool's result so its metadata survives truncation. Agent
+/// harnesses cut an oversized tool result from the end, and `serde_json::Map`
+/// sorts keys, so `count`, `has_more` and [`UNMATCHED_FIELDS_KEY`] land after
+/// the items whenever the items key sorts first (`channels`, `assets`, ...).
+/// That loses them on exactly the large pages where they matter.
+///
+/// The text block agents read writes every key except `items_key` first, in
+/// their usual order, then the items. `structuredContent` keeps `body` as is,
+/// so the two differ only in key order. Pass `next_step` for a tool that also
+/// leads with an instruction; it becomes its own text block ahead of the JSON,
+/// as in [`read_result`].
+pub(crate) fn list_result(
+    body: Value,
+    items_key: &str,
+    next_step: Option<String>,
+) -> CallToolResult {
+    let text = ItemsLast {
+        body: &body,
+        items_key,
+    };
+    let text = serde_json::to_string(&text).unwrap_or_else(|_| body.to_string());
+    let mut content = Vec::with_capacity(2);
+    if let Some(next_step) = next_step {
+        content.push(ContentBlock::text(next_step));
+    }
+    content.push(ContentBlock::text(text));
+
+    let mut result = CallToolResult::structured(body);
+    result.content = content;
+    result
+}
+
+/// Serializes a JSON object with one key moved to the end. `SerializeMap`
+/// writes entries in the order they are given, which `serde_json::Map` would
+/// otherwise re-sort.
+struct ItemsLast<'a> {
+    body: &'a Value,
+    items_key: &'a str,
+}
+
+impl Serialize for ItemsLast<'_> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let Value::Object(map) = self.body else {
+            return self.body.serialize(serializer);
+        };
+        let mut out = serializer.serialize_map(Some(map.len()))?;
+        for (key, value) in map.iter().filter(|(key, _)| *key != self.items_key) {
+            out.serialize_entry(key, value)?;
+        }
+        if let Some(items) = map.get(self.items_key) {
+            out.serialize_entry(self.items_key, items)?;
+        }
+        out.end()
+    }
 }
 
 /// Shape a read tool's result so the calling agent sees both `next_step` and
@@ -309,6 +363,23 @@ pub(crate) mod test_support {
                     .clone()
             })
             .collect()
+    }
+
+    /// Assert that every key in `earlier` is written before `later` in `text`.
+    /// List tools write their metadata ahead of the items so it survives an
+    /// agent harness truncating the result from the end.
+    pub(crate) fn assert_keys_before(text: &str, earlier: &[&str], later: &str) {
+        let offset = |key: &str| {
+            text.find(&format!("\"{key}\":"))
+                .unwrap_or_else(|| panic!("missing key `{key}` in {text}"))
+        };
+        let later_at = offset(later);
+        for key in earlier {
+            assert!(
+                offset(key) < later_at,
+                "`{key}` must come before `{later}` in {text}"
+            );
+        }
     }
 
     /// Extract a single field from a tool result's structured JSON body.

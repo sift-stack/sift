@@ -713,9 +713,9 @@ async fn every_registered_tool_has_a_client_event() {
 }
 
 /// Agents learn the projection warning's name only from the tool description.
-/// Every tool that accepts `fields` must name `_unmatched_fields` in both its
-/// `fields` bullet and its Output section, and never the pre-rename key, or the
-/// agent will look for a key the response no longer carries.
+/// Every tool that accepts `fields` must name `unmatched_fields` in both its
+/// `fields` bullet and its Output section, or the agent has no way to know a
+/// mistyped field name is reported at all.
 #[tokio::test]
 async fn every_fields_tool_documents_unmatched_fields() {
     let current = UpdateCheck::Current {
@@ -744,8 +744,7 @@ async fn every_fields_tool_documents_unmatched_fields() {
         .iter()
         .filter(|tool| {
             let description = tool.description.as_deref().unwrap_or_default();
-            description.matches("`_unmatched_fields`").count() < 2
-                || description.contains("`unmatched_fields`")
+            description.matches("`unmatched_fields`").count() < 2
         })
         .map(|tool| tool.name.clone())
         .collect();
@@ -753,7 +752,7 @@ async fn every_fields_tool_documents_unmatched_fields() {
     assert!(!fields_tools.is_empty(), "no tools accept `fields`");
     assert!(
         undocumented.is_empty(),
-        "tools that don't document `_unmatched_fields`: {undocumented:?}"
+        "tools that don't document `unmatched_fields`: {undocumented:?}"
     );
 
     grpc_handle.abort();

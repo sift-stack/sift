@@ -312,7 +312,7 @@ async fn list_runs_projects_asset_ids_but_not_filter_only_asset_fields() {
     let body = structured(resp);
     assert_eq!(body["runs"][0]["assetIds"], serde_json::json!(["a1", "a2"]));
     assert_eq!(
-        body["_unmatched_fields"],
+        body["unmatched_fields"],
         serde_json::json!(["asset_id", "asset_name"])
     );
 }

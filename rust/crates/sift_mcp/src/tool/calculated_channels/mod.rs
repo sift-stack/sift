@@ -16,7 +16,7 @@ use crate::{
     service::calculated_channels::{
         CalculatedChannelUpdate, CalculatedChannelWrite, NewCalculatedChannel,
     },
-    tool::common::{ListParams, MetadataEntry, list_body, read_result, to_values},
+    tool::common::{ListParams, MetadataEntry, list_body, list_result, to_values},
 };
 
 #[cfg(test)]
@@ -89,9 +89,10 @@ impl SiftMcpServer {
               - `has_more`: `true` when the service hit `limit` with matches left over, so
                 this page is not the whole set. Never report `count` as a total while
                 `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
-              - `_unmatched_fields`: present only when a field you listed in `fields` matched
-                no key on any returned item. It is the first key in the response. Fix the
-                field name and call again; never report that field as empty or missing.
+              - `unmatched_fields`: present only when a field you listed in `fields` matched
+                no key on any returned item. It comes before the items in the response.
+                Fix the field name and call again; never report that field as empty or
+                missing.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
@@ -114,7 +115,7 @@ impl SiftMcpServer {
                 `[\"name\"]`. Omit it for the full object. Names match case-insensitively
                 and ignore underscores and hyphens, so `asset_id`, `assetId` and
                 `asset-id` all work. Any name that matched nothing on any returned item
-                is listed in `_unmatched_fields`; an empty page reports none, since it
+                is listed in `unmatched_fields`; an empty page reports none, since it
                 says nothing about whether a name was spelled right.
                 Reach for this whenever you need only a few fields: full objects are wide,
                 and a large listing can exceed the response size limit without it.
@@ -155,12 +156,11 @@ impl SiftMcpServer {
 
         let channels = to_values(&page.items)?;
 
-        Ok(CallToolResult::structured(list_body(
+        Ok(list_result(
+            list_body("calculated_channels", channels, fields, page.has_more),
             "calculated_channels",
-            channels,
-            fields,
-            page.has_more,
-        )))
+            None,
+        ))
     }
 
     #[tool(
@@ -180,9 +180,10 @@ impl SiftMcpServer {
               - `has_more`: `true` when the service hit `limit` with matches left over, so
                 this page is not the whole set. Never report `count` as a total while
                 `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
-              - `_unmatched_fields`: present only when a field you listed in `fields` matched
-                no key on any returned item. It is the first key in the response. Fix the
-                field name and call again; never report that field as empty or missing.
+              - `unmatched_fields`: present only when a field you listed in `fields` matched
+                no key on any returned item. It comes before the items in the response.
+                Fix the field name and call again; never report that field as empty or
+                missing.
 
             Parameters:
               - `calculated_channel_id`: required. The calculated channel whose versions to list. Resolve it with
@@ -203,7 +204,7 @@ impl SiftMcpServer {
                 `[\"name\"]`. Omit it for the full object. Names match case-insensitively
                 and ignore underscores and hyphens, so `asset_id`, `assetId` and
                 `asset-id` all work. Any name that matched nothing on any returned item
-                is listed in `_unmatched_fields`; an empty page reports none, since it
+                is listed in `unmatched_fields`; an empty page reports none, since it
                 says nothing about whether a name was spelled right.
                 Reach for this whenever you need only a few fields: full objects are wide,
                 and a large listing can exceed the response size limit without it.
@@ -258,7 +259,11 @@ impl SiftMcpServer {
         );
         body["next_step"] = serde_json::Value::String(next_step.clone());
 
-        Ok(read_result(body, next_step))
+        Ok(list_result(
+            body,
+            "calculated_channel_versions",
+            Some(next_step),
+        ))
     }
 
     #[tool(

@@ -10,7 +10,8 @@ use crate::{
     server::SiftMcpServer,
     service::common::DEFAULT_LIMIT,
     tool::common::test_support::{
-        list_params, list_params_with_fields, structured, structured_field,
+        assert_keys_before, content_texts, list_params, list_params_with_fields, structured,
+        structured_field,
     },
 };
 
@@ -240,12 +241,22 @@ async fn list_channels_reports_a_field_that_matched_nothing() {
         .await
         .expect("list_channels failed");
 
+    // `channels` sorts before every metadata key, so this fails if the handler
+    // returns the body without `list_result`.
+    let texts = content_texts(&resp);
+    assert_eq!(texts.len(), 1);
+    assert_keys_before(
+        &texts[0],
+        &["count", "has_more", "unmatched_fields"],
+        "channels",
+    );
+
     let body = structured(resp);
     assert_eq!(
         body["channels"],
         serde_json::json!([{ "name": "throttle" }])
     );
-    assert_eq!(body["_unmatched_fields"], serde_json::json!(["nmae"]));
+    assert_eq!(body["unmatched_fields"], serde_json::json!(["nmae"]));
 }
 
 #[test]
@@ -307,5 +318,5 @@ async fn list_channels_projects_asset_id_and_unit_id_but_not_asset_name() {
         body["channels"],
         serde_json::json!([{ "assetId": "a1", "unitId": "u1" }])
     );
-    assert_eq!(body["_unmatched_fields"], serde_json::json!(["asset_name"]));
+    assert_eq!(body["unmatched_fields"], serde_json::json!(["asset_name"]));
 }
