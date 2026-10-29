@@ -278,7 +278,7 @@ async def _build_sift_stream_instance(
     _default_logfile_prefix = "sift_stream_bindings.log"
 
     if streaming_mode is ...:  # type: ignore[comparison-overlap]
-        streaming_mode = StreamingMode.LIVE_WITH_BACKUPS
+        streaming_mode = StreamingMode.LIVE_ONLY
 
     # None disables metrics streaming, so it passes through to the builder as-is. Zero is
     # rejected here because SiftStream cannot schedule metrics on a zero interval.
@@ -328,7 +328,7 @@ async def _build_sift_stream_instance(
             fb_builder.disk_backup_policy = disk_backup_policy
         return await fb_builder.build()
 
-    else:  # LIVE_WITH_BACKUPS (default)
+    else:  # LIVE_WITH_BACKUPS
         lwb_builder = config_builder.live_with_backups()
         lwb_builder.metrics_streaming_interval = metrics_interval
         if retry_policy is not None:

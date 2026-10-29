@@ -1,4 +1,4 @@
-"""Tests that rate-limit errors from SiftStream reach callers of the streaming clients unchanged."""
+"""Tests for streaming client configuration and rate-limit error propagation."""
 
 from datetime import timedelta
 from unittest.mock import AsyncMock, MagicMock
@@ -7,10 +7,43 @@ import pytest
 
 from sift_client.resources.ingestion import (
     AutoRegisterStreamingClient,
+    IngestionAPIAsync,
     IngestionConfigStreamingClient,
+    StreamingMode,
 )
 
 sift_stream_bindings = pytest.importorskip("sift_stream_bindings")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "factory_name",
+    ["create_ingestion_config_streaming_client", "create_auto_register_streaming_client"],
+)
+@pytest.mark.parametrize("streaming_mode", [None, StreamingMode.LIVE_WITH_BACKUPS])
+async def test_streaming_mode_default_and_opt_in(
+    mock_client, monkeypatch, factory_name, streaming_mode
+):
+    build_stream = AsyncMock()
+    monkeypatch.setattr(
+        "sift_client._internal.low_level_wrappers.ingestion._build_sift_stream_instance",
+        build_stream,
+    )
+    monkeypatch.setattr("sift_client.resources.ingestion._build_sift_stream_instance", build_stream)
+    monkeypatch.setattr(
+        sift_stream_bindings,
+        "SiftStreamAutoRegisterPy",
+        MagicMock(from_stream=AsyncMock()),
+    )
+    api = IngestionAPIAsync(mock_client)
+    kwargs = {} if streaming_mode is None else {"streaming_mode": streaming_mode}
+
+    await getattr(api, factory_name)(ingestion_config=MagicMock(), **kwargs)
+
+    build_stream.assert_awaited_once()
+    assert build_stream.call_args.kwargs["streaming_mode"] == (
+        StreamingMode.LIVE_ONLY if streaming_mode is None else streaming_mode
+    )
 
 
 def _rate_limited_error():
