@@ -91,10 +91,6 @@ impl SiftMcpServer {
               - `has_more`: `true` when the service hit `limit` with matches left over, so
                 this page is not the whole set. Never report `count` as a total while
                 `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
-              - `unmatched_fields`: present only when a field you listed in `fields` matched
-                no key on any returned item. It comes before the items in the response.
-                Fix the field name and call again; never report that field as empty or
-                missing.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
@@ -178,10 +174,6 @@ impl SiftMcpServer {
               - `has_more`: `true` when the service hit `limit` with matches left over, so
                 this page is not the whole set. Never report `count` as a total while
                 `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
-              - `unmatched_fields`: present only when a field you listed in `fields` matched
-                no key on any returned item. It comes before the items in the response.
-                Fix the field name and call again; never report that field as empty or
-                missing.
 
             Parameters:
               - `user_defined_function_id`: optional. The id of the function whose versions to list.

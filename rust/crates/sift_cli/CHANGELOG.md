@@ -10,8 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - MCP `list_*` tools now write `count`, `has_more`, `unmatched_fields`, and
   any other metadata ahead of the items in their text result, so these keys
   survive when an agent harness truncates a large result from the end.
-  `structuredContent` is unchanged. Each list tool's Output section now
-  documents `unmatched_fields`.
+  `structuredContent` is unchanged.
 - `config update` without field flags no longer prints `Nothing to update.`
   and exits 0. In a terminal, it now opens an interactive editor. Outside a
   terminal, it exits with status 2. Scripts that call it with no flags now

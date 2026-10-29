@@ -350,10 +350,6 @@ impl SiftMcpServer {
               - `has_more`: `true` when the service hit `limit` with matches left over, so
                 this page is not the whole set. Never report `count` as a total while
                 `has_more` is `true` — raise `limit` or scope with `conversation_id` and ask again.
-              - `unmatched_fields`: present only when a field you listed in `fields` matched
-                no key on any returned item. It comes before the items in the response.
-                Fix the field name and call again; never report that field as empty or
-                missing.
 
             Parameters:
               - `conversation_id`: optional. When set, only artifacts linked to that conversation. When omitted,
@@ -474,10 +470,6 @@ impl SiftMcpServer {
               - `has_more`: `true` when the service hit `limit` with versions left over, so
                 this page is not the whole history. Never report `count` as a total while
                 `has_more` is `true` — raise `limit` and ask again.
-              - `unmatched_fields`: present only when a field you listed in `fields` matched
-                no key on any returned item. It comes before the items in the response.
-                Fix the field name and call again; never report that field as empty or
-                missing.
 
             Parameters:
               - `artifact_id`: required stable container id. Resolve it with `list_artifacts` first if you only
