@@ -5,6 +5,24 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 <!-- towncrier release notes start -->
 
+## [v0.25.0] - October 26, 2026
+
+### Features
+
+- `detect_config` and `import_from_path` detect flat dataset Parquet configs on the client, so wide Parquet files no longer fail detection with `RESOURCE_EXHAUSTED` when their footer exceeds the server's 20 MiB request limit. ([#819](https://github.com/sift-stack/sift/pull/819))
+
+  Flat dataset Parquet detection now requires pyarrow. Install it with `pip install sift-stack-py[parquet]`. The `file-imports` extra includes it.
+
+  `detect_config` and `import_from_path` also accept `relative_start_time`, so files with a relative time format can be detected and imported without editing the config.
+- Added `metrics_streaming_interval` and `rate_limit_policy` to `create_ingestion_config_streaming_client` and `create_auto_register_streaming_client`.
+
+  `metrics_streaming_interval` takes a `timedelta` and defaults to 500 ms. Pass `None` to disable metrics streaming. `rate_limit_policy` takes a `RateLimitPolicyPy` from `sift_stream_bindings` and controls how rate-limited control-plane calls, such as stream setup, `attach_run`, and flow registration, are handled. By default, the stream waits the delay Sift requests before retrying. When a rate limit is not retried, or the retries run out, these calls raise `RateLimitedErrorPy`, and `retry_delay.to_timedelta()` returns the delay Sift requested. This release requires `sift-stream-bindings` 0.6.1.
+
+### Fixes
+
+- Removed the `pyOpenSSL` dependency. `cert_via_openssl` now converts certificates with the standard library `ssl` module, so the `openssl` extra is no longer needed and is removed. The extra capped `cryptography` below 42, which kept installs on a release with known vulnerabilities. ([#855](https://github.com/sift-stack/sift/pull/855))
+- Raised the `filelock` upper bound to `<5`, so Python 3.11+ installs resolve `filelock` 4.2.1 or later, which fixes GHSA-v4x8-3wr5-3wq8, GHSA-9vhv-jxww-xfm5, and GHSA-567q-5qvw-pf92. ([#855](https://github.com/sift-stack/sift/pull/855))
+
 ## [v0.24.0] - October 20, 2026
 
 ### Features

@@ -6,6 +6,7 @@ and should generally be used within a with-block for correct resource management
 
 from __future__ import annotations
 
+import ssl
 from importlib.metadata import PackageNotFoundError, version
 from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union, cast
 from urllib.parse import ParseResult, urlparse
@@ -33,22 +34,11 @@ def get_ssl_credentials(cert_via_openssl: bool) -> grpc.ChannelCredentials:
     if not cert_via_openssl:
         return grpc.ssl_channel_credentials()
 
-    try:
-        import ssl
+    ssl_context = ssl.create_default_context()
+    certs_der = ssl_context.get_ca_certs(binary_form=True)
+    certs_pem = "".join(ssl.DER_cert_to_PEM_cert(x) for x in certs_der)
 
-        from OpenSSL import crypto
-
-        ssl_context = ssl.create_default_context()
-        certs_der = ssl_context.get_ca_certs(binary_form=True)
-        certs_x509 = [crypto.load_certificate(crypto.FILETYPE_ASN1, x) for x in certs_der]
-        certs_pem = [crypto.dump_certificate(crypto.FILETYPE_PEM, x) for x in certs_x509]
-        certs_bytes = b"".join(certs_pem)
-
-        return grpc.ssl_channel_credentials(certs_bytes)
-    except ImportError as e:
-        raise Exception(
-            "Missing required dependencies for cert_via_openssl. Run `pip install sift-stack-py[openssl]` to install the required dependencies."
-        ) from e
+    return grpc.ssl_channel_credentials(certs_pem.encode())
 
 
 def use_sift_channel(
@@ -238,7 +228,6 @@ class SiftChannelConfig(TypedDict):
     being terminated during idle periods. A custom `sift_py.grpc.keepalive.KeepaliveConfig` may also be provided.
     - `use_ssl`: INTERNAL USE. Meant to be used for local development.
     - `cert_via_openssl`: Enable this if you want to use OpenSSL to load the certificates.
-    Run `pip install sift-stack-py[openssl]` to install the dependencies required to use this option.
     This works around this issue with grpc loading SSL certificates: https://github.com/grpc/grpc/issues/29682.
     Default is False.
     """

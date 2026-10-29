@@ -18,10 +18,10 @@ Manage CLI configuration. See [Configuration](../getting-started/configuration.m
 
 | Command                 | Description                                       |
 | ----------------------- | ------------------------------------------------- |
-| `config create`         | Create a new (empty) config file.                 |
+| `config create`         | Create the config file or a new profile, then prompt for its values. |
 | `config show`           | Print the current config file.                    |
 | `config where`          | Print the path to the config file.                |
-| `config update`         | Set connection, app, or key fields. Use `--interactive` for prompts. |
+| `config update`         | Edit an existing profile. Prompts when run without field flags. |
 
 ## `import`
 
