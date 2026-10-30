@@ -1,4 +1,4 @@
-use rmcp::{handler::server::wrapper::Parameters, model::CallToolResult, tool, tool_router};
+use rmcp::{handler::server::wrapper::Parameters, tool, tool_router};
 
 use crate::{
     error::{self, from_anyhow},
@@ -80,11 +80,6 @@ impl SiftMcpServer {
 
         let channels = to_values(&page.items)?;
 
-        Ok(CallToolResult::structured(list_body(
-            "channels",
-            channels,
-            fields,
-            page.has_more,
-        )))
+        Ok(list_body("channels", channels, fields, page.has_more).into_result(None))
     }
 }

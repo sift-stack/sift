@@ -442,12 +442,7 @@ impl SiftMcpServer {
             })
             .collect::<Result<Vec<_>, ErrorData>>()?;
 
-        Ok(CallToolResult::structured(list_body(
-            "artifacts",
-            artifacts,
-            fields,
-            page.has_more,
-        )))
+        Ok(list_body("artifacts", artifacts, fields, page.has_more).into_result(None))
     }
 
     #[tool(
@@ -527,11 +522,9 @@ impl SiftMcpServer {
 
         let versions = to_values(&page.items)?;
         let mut body = list_body("artifact_versions", versions, fields, page.has_more);
-        if let Value::Object(map) = &mut body {
-            map.insert("artifact_url".to_string(), serde_json::json!(artifact_url));
-        }
+        body.insert("artifact_url", serde_json::json!(artifact_url));
 
-        Ok(CallToolResult::structured(body))
+        Ok(body.into_result(None))
     }
 
     #[tool(

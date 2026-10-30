@@ -118,12 +118,7 @@ impl SiftMcpServer {
 
         let test_reports = to_values(&page.items)?;
 
-        Ok(CallToolResult::structured(list_body(
-            "test_reports",
-            test_reports,
-            fields,
-            page.has_more,
-        )))
+        Ok(list_body("test_reports", test_reports, fields, page.has_more).into_result(None))
     }
 
     #[tool(
@@ -200,12 +195,7 @@ impl SiftMcpServer {
 
         let test_steps = to_values(&page.items)?;
 
-        Ok(CallToolResult::structured(list_body(
-            "test_steps",
-            test_steps,
-            fields,
-            page.has_more,
-        )))
+        Ok(list_body("test_steps", test_steps, fields, page.has_more).into_result(None))
     }
 
     #[tool(
@@ -282,12 +272,13 @@ impl SiftMcpServer {
 
         let test_measurements = to_values(&page.items)?;
 
-        Ok(CallToolResult::structured(list_body(
+        Ok(list_body(
             "test_measurements",
             test_measurements,
             fields,
             page.has_more,
-        )))
+        )
+        .into_result(None))
     }
 
     #[tool(

@@ -113,12 +113,7 @@ impl SiftMcpServer {
             self.url_service.build_run_url(&r.run_id).ok()
         })?;
 
-        Ok(CallToolResult::structured(list_body(
-            "runs",
-            runs,
-            fields,
-            page.has_more,
-        )))
+        Ok(list_body("runs", runs, fields, page.has_more).into_result(None))
     }
 
     #[tool(

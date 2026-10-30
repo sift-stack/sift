@@ -198,12 +198,7 @@ impl SiftMcpServer {
             self.url_service.build_annotation_url(&a.annotation_id).ok()
         })?;
 
-        Ok(CallToolResult::structured(list_body(
-            "annotations",
-            annotations,
-            fields,
-            page.has_more,
-        )))
+        Ok(list_body("annotations", annotations, fields, page.has_more).into_result(None))
     }
 
     #[tool(

@@ -10,7 +10,8 @@ use crate::{
     server::SiftMcpServer,
     service::common::DEFAULT_LIMIT,
     tool::common::test_support::{
-        list_params, list_params_with_fields, structured, structured_field,
+        assert_keys_before, content_texts, list_params, list_params_with_fields, structured,
+        structured_field,
     },
 };
 
@@ -239,6 +240,16 @@ async fn list_channels_reports_a_field_that_matched_nothing() {
         .list_channels(list_params_with_fields("", &["name", "nmae"]))
         .await
         .expect("list_channels failed");
+
+    // `channels` sorts before every metadata key, so this fails if the handler
+    // returns the body without `ListBody::into_result`.
+    let texts = content_texts(&resp);
+    assert_eq!(texts.len(), 1);
+    assert_keys_before(
+        &texts[0],
+        &["count", "has_more", "unmatched_fields"],
+        "channels",
+    );
 
     let body = structured(resp);
     assert_eq!(

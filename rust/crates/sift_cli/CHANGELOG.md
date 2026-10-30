@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- MCP `list_*` tools now write `count`, `has_more`, `unmatched_fields`, and
+  any other metadata ahead of the items in their text result, so these keys
+  survive when an agent harness truncates a large result from the end.
+  `structuredContent` is unchanged.
 - `config update` without field flags no longer prints `Nothing to update.`
   and exits 0. In a terminal, it now opens an interactive editor. Outside a
   terminal, it exits with status 2. Scripts that call it with no flags now
@@ -45,6 +49,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   content used to hold only the next-step sentence, so clients that show the
   model only that text, such as Claude Code, never saw the data, and agents
   retried `preview_rule` expecting results.
+
 
 ## [v0.7.5] - October 19, 2026
 

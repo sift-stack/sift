@@ -1,6 +1,7 @@
 use rmcp::ErrorData;
 use rmcp::model::{CallToolResult, ContentBlock};
 use rmcp::schemars::{self, JsonSchema};
+use serde::ser::SerializeMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sift_rs::metadata::v1::{
@@ -176,10 +177,14 @@ pub(crate) fn project_fields(items: Vec<Value>, fields: &[String]) -> (Vec<Value
     (projected, unmatched)
 }
 
+/// The key under which `list_body` lists every field requested in `fields`
+/// that matched no key on any returned item.
+pub(crate) const UNMATCHED_FIELDS_KEY: &str = "unmatched_fields";
+
 /// Build the structured body for a `list_*` tool. Projects the items when
-/// `fields` is set, and reports any requested field that matched nothing, so a
-/// mistyped name is visible rather than silently narrowing the response. An
-/// empty `fields` array is treated as no projection.
+/// `fields` is set, and reports any requested field that matched nothing under
+/// [`UNMATCHED_FIELDS_KEY`], so a mistyped name is visible rather than silently
+/// narrowing the response. An empty `fields` array is treated as no projection.
 ///
 /// Every body carries `count`, the number of items in this response, and
 /// `has_more`, whether the service stopped at `limit` with matches left over.
@@ -190,12 +195,15 @@ pub(crate) fn project_fields(items: Vec<Value>, fields: &[String]) -> (Vec<Value
 /// how many channels an asset has read a 120-row response and reported 122,
 /// then explained the discrepancy away rather than trusting its own correct
 /// enumeration. The number is free here and exact, so hand it over.
+///
+/// The returned [`ListBody`] remembers `key`, so [`ListBody::into_result`] can
+/// write the items last without the caller naming the key a second time.
 pub(crate) fn list_body(
-    key: &str,
+    key: &'static str,
     items: Vec<Value>,
     fields: Option<Vec<String>>,
     has_more: bool,
-) -> Value {
+) -> ListBody {
     let (items, unmatched) = match fields.as_deref() {
         Some(fields) if !fields.is_empty() => project_fields(items, fields),
         _ => (items, Vec::new()),
@@ -207,11 +215,83 @@ pub(crate) fn list_body(
     body.insert(key.to_string(), Value::Array(items));
     if !unmatched.is_empty() {
         body.insert(
-            "unmatched_fields".to_string(),
+            UNMATCHED_FIELDS_KEY.to_string(),
             Value::Array(unmatched.into_iter().map(Value::String).collect()),
         );
     }
-    Value::Object(body)
+    ListBody {
+        items_key: key,
+        body,
+    }
+}
+
+/// A `list_*` tool's body together with the key its items live under. Built by
+/// [`list_body`]; add tool-specific keys such as `artifact_url` with
+/// [`ListBody::insert`] and finish with [`ListBody::into_result`].
+#[derive(Debug, Clone)]
+pub(crate) struct ListBody {
+    items_key: &'static str,
+    body: serde_json::Map<String, Value>,
+}
+
+impl ListBody {
+    /// Add a key alongside the items. It is written ahead of them in the text
+    /// block like the rest of the metadata.
+    pub(crate) fn insert(&mut self, key: &str, value: Value) {
+        debug_assert_ne!(key, self.items_key, "`{key}` would replace the items");
+        self.body.insert(key.to_string(), value);
+    }
+
+    /// Shape the tool result so the metadata survives truncation. Agent
+    /// harnesses cut an oversized tool result from the end, and
+    /// `serde_json::Map` sorts keys, so `count`, `has_more` and
+    /// [`UNMATCHED_FIELDS_KEY`] land after the items whenever the items key
+    /// sorts first (`channels`, `assets`, ...). That loses them on exactly the
+    /// large pages where they matter.
+    ///
+    /// The text block agents read writes every other key first, in their usual
+    /// order, then the items. `structuredContent` keeps the body as is, so the
+    /// two differ only in key order. Pass `next_step` for a tool that also
+    /// leads with an instruction; it becomes its own text block ahead of the
+    /// JSON, as in [`read_result`].
+    pub(crate) fn into_result(self, next_step: Option<String>) -> CallToolResult {
+        let text = serde_json::to_string(&ItemsLast(&self))
+            .unwrap_or_else(|_| Value::Object(self.body.clone()).to_string());
+        let mut content = Vec::with_capacity(2);
+        if let Some(next_step) = next_step {
+            content.push(ContentBlock::text(next_step));
+        }
+        content.push(ContentBlock::text(text));
+
+        let mut result = CallToolResult::structured(Value::Object(self.body));
+        result.content = content;
+        result
+    }
+
+    /// The body as plain JSON, for tests that compare or index it.
+    #[cfg(test)]
+    pub(crate) fn into_value(self) -> Value {
+        Value::Object(self.body)
+    }
+}
+
+/// Serializes a [`ListBody`] with its items key moved to the end.
+/// `SerializeMap` writes entries in the order they are given, which
+/// `serde_json::Map` would otherwise re-sort.
+struct ItemsLast<'a>(&'a ListBody);
+
+impl Serialize for ItemsLast<'_> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let ListBody { items_key, body } = self.0;
+        let mut out = serializer.serialize_map(Some(body.len()))?;
+        for (key, value) in body.iter().filter(|(key, _)| key != items_key) {
+            out.serialize_entry(key, value)?;
+        }
+        if let Some(items) = body.get(*items_key) {
+            out.serialize_entry(items_key, items)?;
+        }
+        out.end()
+    }
 }
 
 /// Shape a read tool's result so the calling agent sees both `next_step` and
@@ -302,6 +382,23 @@ pub(crate) mod test_support {
                     .clone()
             })
             .collect()
+    }
+
+    /// Assert that every key in `earlier` is written before `later` in `text`.
+    /// List tools write their metadata ahead of the items so it survives an
+    /// agent harness truncating the result from the end.
+    pub(crate) fn assert_keys_before(text: &str, earlier: &[&str], later: &str) {
+        let offset = |key: &str| {
+            text.find(&format!("\"{key}\":"))
+                .unwrap_or_else(|| panic!("missing key `{key}` in {text}"))
+        };
+        let later_at = offset(later);
+        for key in earlier {
+            assert!(
+                offset(key) < later_at,
+                "`{key}` must come before `{later}` in {text}"
+            );
+        }
     }
 
     /// Extract a single field from a tool result's structured JSON body.

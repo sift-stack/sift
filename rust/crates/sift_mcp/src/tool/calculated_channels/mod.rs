@@ -16,7 +16,7 @@ use crate::{
     service::calculated_channels::{
         CalculatedChannelUpdate, CalculatedChannelWrite, NewCalculatedChannel,
     },
-    tool::common::{ListParams, MetadataEntry, list_body, read_result, to_values},
+    tool::common::{ListParams, MetadataEntry, list_body, to_values},
 };
 
 #[cfg(test)]
@@ -152,12 +152,7 @@ impl SiftMcpServer {
 
         let channels = to_values(&page.items)?;
 
-        Ok(CallToolResult::structured(list_body(
-            "calculated_channels",
-            channels,
-            fields,
-            page.has_more,
-        )))
+        Ok(list_body("calculated_channels", channels, fields, page.has_more).into_result(None))
     }
 
     #[tool(
@@ -250,9 +245,9 @@ impl SiftMcpServer {
             fields,
             page.has_more,
         );
-        body["next_step"] = serde_json::Value::String(next_step.clone());
+        body.insert("next_step", serde_json::Value::String(next_step.clone()));
 
-        Ok(read_result(body, next_step))
+        Ok(body.into_result(Some(next_step)))
     }
 
     #[tool(

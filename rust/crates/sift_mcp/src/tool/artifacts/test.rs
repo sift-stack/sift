@@ -29,7 +29,7 @@ use crate::{
         artifacts::ArtifactListParams,
         common::{
             MetadataEntry, MetadataScalar,
-            test_support::{structured, structured_field},
+            test_support::{assert_keys_before, content_texts, structured, structured_field},
         },
     },
 };
@@ -387,6 +387,11 @@ async fn list_artifact_versions_returns_rows_newest_first() {
         }))
         .await
         .expect("list versions");
+    assert_keys_before(
+        &content_texts(&resp)[0],
+        &["artifact_url", "count", "has_more"],
+        "artifact_versions",
+    );
     let body = structured(resp);
     let rows = body["artifact_versions"].as_array().expect("rows");
     assert_eq!(rows.len(), 2);

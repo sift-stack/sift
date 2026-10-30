@@ -96,12 +96,7 @@ impl SiftMcpServer {
             self.url_service.build_asset_url(&a.asset_id).ok()
         })?;
 
-        Ok(CallToolResult::structured(list_body(
-            "assets",
-            assets,
-            fields,
-            page.has_more,
-        )))
+        Ok(list_body("assets", assets, fields, page.has_more).into_result(None))
     }
 
     #[tool(

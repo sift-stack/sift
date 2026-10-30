@@ -130,12 +130,7 @@ impl SiftMcpServer {
             self.url_service.build_rule_url(&r.rule_id).ok()
         })?;
 
-        Ok(CallToolResult::structured(list_body(
-            "rules",
-            rules,
-            fields,
-            page.has_more,
-        )))
+        Ok(list_body("rules", rules, fields, page.has_more).into_result(None))
     }
 
     #[tool(
