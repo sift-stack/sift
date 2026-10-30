@@ -1466,6 +1466,17 @@ You're not viewing the latest version.
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#sift_client.sift_types.run.Run.model_config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;model_config
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.sift_types.run.Run.name" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1701,17 +1712,6 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;attachments
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#sift_client.sift_types.run.Run.model_config" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;model_config
       
     </span>
   </a>
@@ -2727,6 +2727,17 @@ You're not viewing the latest version.
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#sift_client.sift_types.run.Run.model_config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;model_config
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.sift_types.run.Run.name" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2962,17 +2973,6 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;attachments
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#sift_client.sift_types.run.Run.model_config" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;model_config
       
     </span>
   </a>
@@ -3621,6 +3621,10 @@ axis built from these lines up with that data when both are read as
 integers.</p>
 
     
+      <p>Config:</p>
+      <ul>
+          <li><code>arbitrary_types_allowed</code>: <code class="highlight language-python"><span class="kc">True</span></code></li>
+      </ul>
 
         <p>Fields:</p>
         <ul>
@@ -3761,7 +3765,7 @@ integers.</p>
   
       pydantic-field
    (sift_client.sift_types.run.Run.start_time)" href="#sift_client.sift_types.run.Run.start_time">start_time</a></code>
-                (<code><span title="datetime.datetime">datetime</span> | None</code>)
+                (<code><span title="pandas.Timestamp">Timestamp</span> | <span title="datetime.datetime">datetime</span> | None</code>)
             </li>
             <li>
               <code><a class="autorefs autorefs-internal" title="            stop_time
@@ -3770,7 +3774,7 @@ integers.</p>
   
       pydantic-field
    (sift_client.sift_types.run.Run.stop_time)" href="#sift_client.sift_types.run.Run.stop_time">stop_time</a></code>
-                (<code><span title="datetime.datetime">datetime</span> | None</code>)
+                (<code><span title="pandas.Timestamp">Timestamp</span> | <span title="datetime.datetime">datetime</span> | None</code>)
             </li>
             <li>
               <code><a class="autorefs autorefs-internal" title="            duration
@@ -3820,6 +3824,29 @@ integers.</p>
 
 
 
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.sift_types.run.Run.model_config" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">model_config</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#sift_client.sift_types.run.Run.model_config" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">model_config</span> <span class="o">=</span> <span class="n"><span title="pydantic.ConfigDict">ConfigDict</span></span><span class="p">(</span><span class="n"><span title="pydantic.ConfigDict(arbitrary_types_allowed)">arbitrary_types_allowed</span></span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
 
 <div class="doc doc-object doc-attribute">
 
@@ -4098,7 +4125,7 @@ integers.</p>
   </span>
 
 <a href="#sift_client.sift_types.run.Run.start_time" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">start_time</span><span class="p">:</span> <span class="n"><span title="datetime.datetime">datetime</span></span> <span class="o">|</span> <span class="kc">None</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">start_time</span><span class="p">:</span> <span class="n"><span title="pandas.Timestamp">Timestamp</span></span> <span class="o">|</span> <span class="n"><span title="datetime.datetime">datetime</span></span> <span class="o">|</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -4120,7 +4147,7 @@ integers.</p>
   </span>
 
 <a href="#sift_client.sift_types.run.Run.stop_time" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">stop_time</span><span class="p">:</span> <span class="n"><span title="datetime.datetime">datetime</span></span> <span class="o">|</span> <span class="kc">None</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">stop_time</span><span class="p">:</span> <span class="n"><span title="pandas.Timestamp">Timestamp</span></span> <span class="o">|</span> <span class="n"><span title="datetime.datetime">datetime</span></span> <span class="o">|</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -4357,29 +4384,6 @@ integers.</p>
           </tr>
       </tbody>
     </table>
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-attribute">
-
-
-
-<h3 id="sift_client.sift_types.run.Run.model_config" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">model_config</span>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
-      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
-  </span>
-
-<a href="#sift_client.sift_types.run.Run.model_config" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">model_config</span> <span class="o">=</span> <span class="n"><span title="pydantic.ConfigDict">ConfigDict</span></span><span class="p">(</span><span class="n"><span title="pydantic.ConfigDict(frozen)">frozen</span></span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></code></pre></div>
-
-    <div class="doc doc-contents ">
 
     </div>
 
