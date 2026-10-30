@@ -3,7 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, ClassVar
 
-from pydantic import model_validator
+import pandas as pd  # noqa: TC002
+from pydantic import ConfigDict, model_validator
 from sift.runs.v2.runs_pb2 import CreateRunRequest as CreateRunRequestProto
 from sift.runs.v2.runs_pb2 import Run as RunProto
 
@@ -40,6 +41,9 @@ class Run(BaseType[RunProto, "Run"], FileAttachmentsMixin):
     integers.
     """
 
+    # pandas.Timestamp has no pydantic schema, so it is validated with isinstance.
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     # Required fields
     name: str
     description: str
@@ -57,8 +61,8 @@ class Run(BaseType[RunProto, "Run"], FileAttachmentsMixin):
     is_archived: bool
 
     # Optional fields
-    start_time: datetime | None
-    stop_time: datetime | None
+    start_time: pd.Timestamp | datetime | None
+    stop_time: pd.Timestamp | datetime | None
     duration: timedelta | None
     default_report_id: str | None
     client_key: str | None
@@ -75,14 +79,10 @@ class Run(BaseType[RunProto, "Run"], FileAttachmentsMixin):
             modified_by_user_id=proto.modified_by_user_id,
             organization_id=proto.organization_id,
             start_time=(
-                to_timestamp_nanos(proto.start_time).as_unit("ns")
-                if proto.HasField("start_time")
-                else None
+                to_timestamp_nanos(proto.start_time) if proto.HasField("start_time") else None
             ),
             stop_time=(
-                to_timestamp_nanos(proto.stop_time).as_unit("ns")
-                if proto.HasField("stop_time")
-                else None
+                to_timestamp_nanos(proto.stop_time) if proto.HasField("stop_time") else None
             ),
             duration=(proto.duration.ToTimedelta() if proto.HasField("duration") else None),
             name=proto.name,

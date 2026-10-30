@@ -1436,7 +1436,13 @@ class DataImport(BaseType[DataImportProto, "DataImport"]):
 
     The format-specific import config is not modeled here; read it off
     ``data_import.proto`` (e.g. ``data_import.proto.csv_config``).
+
+    ``data_start_time`` and ``data_stop_time`` are nanosecond timestamps,
+    the same resolution as channel data from ``get_data``.
     """
+
+    # pandas.Timestamp has no pydantic schema, so it is validated with isinstance.
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     source_url: str | None
     status: DataImportStatus
@@ -1450,8 +1456,8 @@ class DataImport(BaseType[DataImportProto, "DataImport"]):
     report_id: str | None
     asset_id: str | None
     # Time range of the imported data, not of the import itself.
-    data_start_time: datetime | None
-    data_stop_time: datetime | None
+    data_start_time: pd.Timestamp | datetime | None
+    data_stop_time: pd.Timestamp | datetime | None
 
     @classmethod
     def _from_proto(
@@ -1471,12 +1477,12 @@ class DataImport(BaseType[DataImportProto, "DataImport"]):
             report_id=proto.report_id or None,
             asset_id=proto.asset_id or None,
             data_start_time=(
-                proto.data_start_time.ToDatetime(tzinfo=timezone.utc)
+                to_timestamp_nanos(proto.data_start_time)
                 if proto.HasField("data_start_time")
                 else None
             ),
             data_stop_time=(
-                proto.data_stop_time.ToDatetime(tzinfo=timezone.utc)
+                to_timestamp_nanos(proto.data_stop_time)
                 if proto.HasField("data_stop_time")
                 else None
             ),

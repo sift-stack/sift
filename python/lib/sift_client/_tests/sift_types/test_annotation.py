@@ -4,9 +4,12 @@ from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
 import pytest
+from google.protobuf.timestamp_pb2 import Timestamp
+from sift.annotations.v1.annotations_pb2 import Annotation as AnnotationProto
 from sift.channels.v3.channels_pb2 import Channel as ChannelProto
 from sift.common.type.v1.channel_data_type_pb2 import ChannelDataType as ChannelDataTypeProto
 
+from sift_client._tests.sift_types.channel_time import assert_axis_matches_channel
 from sift_client.sift_types import Annotation
 from sift_client.sift_types.annotation import (
     AnnotationCommentElement,
@@ -249,3 +252,19 @@ class TestAnnotation:
                 getattr(mock_client.annotations, verb).assert_called_once_with(
                     annotation=mock_annotation
                 )
+
+
+class TestAnnotationFromProto:
+    def test_bounds_match_channel_timestamp_resolution(self):
+        """Annotation bounds use the same integer scale as channel data."""
+        start = Timestamp(seconds=1735689600, nanos=123456789)
+        stop = Timestamp(seconds=1735689601, nanos=0)
+        proto = AnnotationProto(annotation_id="a", name="n", description="")
+        proto.created_date.FromDatetime(datetime(2025, 1, 1, tzinfo=timezone.utc))
+        proto.modified_date.CopyFrom(proto.created_date)
+        proto.start_time.CopyFrom(start)
+        proto.end_time.CopyFrom(stop)
+
+        annotation = Annotation._from_proto(proto)
+
+        assert_axis_matches_channel(annotation.start_time, annotation.end_time, start, stop)

@@ -3,15 +3,11 @@
 from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
-import pandas as pd
 import pytest
-from google.protobuf.any_pb2 import Any
 from google.protobuf.timestamp_pb2 import Timestamp
-from sift.common.type.v1.channel_data_type_pb2 import CHANNEL_DATA_TYPE_DOUBLE
-from sift.data.v2.data_pb2 import DoubleValue, DoubleValues, Metadata
 from sift.runs.v2.runs_pb2 import Run as RunProto
 
-from sift_client._internal.low_level_wrappers.data import DataLowLevelClient
+from sift_client._tests.sift_types.channel_time import assert_axis_matches_channel
 from sift_client.sift_types import Run
 from sift_client.sift_types.run import RunCreate, RunUpdate
 
@@ -138,27 +134,6 @@ def mock_run(mock_client):
     return run
 
 
-def _channel_index(*timestamps: Timestamp) -> pd.DatetimeIndex:
-    """Index ``get_data`` builds for double-channel samples at these times."""
-    values = DoubleValues(
-        metadata=Metadata(
-            data_type=CHANNEL_DATA_TYPE_DOUBLE,
-            sampled_ms=0,
-            channel=Metadata.Channel(name="voltage"),
-        ),
-        values=[DoubleValue(timestamp=ts, value=1.0) for ts in timestamps],
-    )
-    packed = Any()
-    packed.Pack(values)
-    # ``Pack`` writes ``type.googleapis.com/...``. The data parser reads the
-    # ``sift.data`` prefix the API sends.
-    packed.type_url = "sift.data.v2.DoubleValues"
-    frame = DataLowLevelClient.try_deserialize_channel_data(packed)["voltage"]
-    index = frame.index
-    assert isinstance(index, pd.DatetimeIndex)
-    return index
-
-
 class TestRun:
     """Unit tests for Run model - tests properties and methods."""
 
@@ -185,12 +160,7 @@ class TestRun:
         proto.stop_time.CopyFrom(stop)
 
         run = Run._from_proto(proto)
-        channel_index = _channel_index(start, stop)
-        axis = pd.date_range(run.start_time, run.stop_time, periods=2)
-
-        assert str(channel_index.dtype).startswith("datetime64[ns")
-        assert axis.dtype == channel_index.dtype
-        assert [int(value) for value in axis.asi8] == [int(value) for value in channel_index.asi8]
+        assert_axis_matches_channel(run.start_time, run.stop_time, start, stop)
 
         unset = RunProto(
             run_id="r",
