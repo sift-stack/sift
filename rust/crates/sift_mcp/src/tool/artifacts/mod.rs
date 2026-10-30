@@ -230,6 +230,11 @@ fn content_note(artifact: &ArtifactView, uploaded: bool) -> &'static str {
     } else if uploaded {
         " Its file content was uploaded, but the refreshed artifact or its download link \
          could not be fetched; call `download_artifact` for the link."
+    } else if artifact.download_url.is_some() {
+        " It keeps the previous version's file, which the user can preview and download."
+    } else if artifact.version().remote_file_id.is_some() {
+        " It keeps the previous version's file, but its download link could not be fetched; \
+         call `download_artifact` for the link."
     } else {
         " It has no file content; the user has nothing to preview or download."
     }

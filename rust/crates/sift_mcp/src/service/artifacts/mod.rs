@@ -401,9 +401,18 @@ impl ArtifactService {
         retry_warning: &str,
     ) -> Result<ArtifactView> {
         let (Some(uploader), Some(path)) = (uploader, file_path) else {
+            // An update without a file keeps the previous version's bytes.
+            let remote_file_id = written
+                .artifact_version
+                .as_ref()
+                .and_then(|version| version.remote_file_id.clone());
+            let download_url = match remote_file_id {
+                Some(remote_file_id) => self.download_url(remote_file_id).await.ok(),
+                None => None,
+            };
             return Ok(ArtifactView {
                 details: written,
-                download_url: None,
+                download_url,
             });
         };
         let artifact = written

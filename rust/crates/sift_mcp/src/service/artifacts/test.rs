@@ -503,6 +503,48 @@ async fn update_artifact_forwards_the_mask_and_version() {
 }
 
 #[tokio::test]
+async fn update_artifact_without_a_file_links_the_kept_bytes() {
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_update_artifact().returning(|_| {
+        let mut artifact = sample_artifact();
+        artifact.artifact_version.as_mut().unwrap().remote_file_id = Some("rf-1".into());
+        Ok(Response::new(UpdateArtifactResponse {
+            artifact: Some(artifact),
+        }))
+    });
+    let mut remote_files = MockRemoteFileServiceImpl::new();
+    remote_files
+        .expect_get_remote_file_download_url()
+        .withf(|req| req.get_ref().remote_file_id == "rf-1")
+        .returning(|_| {
+            Ok(Response::new(GetRemoteFileDownloadUrlResponse {
+                download_url: "https://files.test.local/rf-1".into(),
+            }))
+        });
+
+    let (service, _h) = service_with_mocks(mock, remote_files).await;
+    let artifact = service
+        .update_artifact(
+            UpdateArtifactInput {
+                artifact_id: "art-1".into(),
+                version: ArtifactVersion {
+                    title: Some("Renamed".into()),
+                    ..Default::default()
+                },
+                links: vec![],
+                update_mask: vec![UpdatePath::Title],
+            },
+            None,
+        )
+        .await
+        .expect("update");
+    assert_eq!(
+        artifact.download_url.as_deref(),
+        Some("https://files.test.local/rf-1")
+    );
+}
+
+#[tokio::test]
 async fn create_artifact_returns_created_row() {
     let mut mock = MockArtifactServiceImpl::new();
     mock.expect_create_artifact()

@@ -662,6 +662,50 @@ async fn update_artifact_masks_only_what_was_passed() {
 }
 
 #[tokio::test]
+async fn update_artifact_without_a_file_reports_the_kept_file() {
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_update_artifact().returning(|_| {
+        Ok(Response::new(UpdateArtifactResponse {
+            artifact: Some(sample_with(
+                |_| {},
+                |version| {
+                    version.artifact_version_id = "ver-2".into();
+                    version.version = 2;
+                    version.remote_file_id = Some("rf-1".into());
+                },
+            )),
+        }))
+    });
+    let mut remote_files = MockRemoteFileServiceImpl::new();
+    remote_files
+        .expect_get_remote_file_download_url()
+        .returning(|_| {
+            Ok(Response::new(GetRemoteFileDownloadUrlResponse {
+                download_url: "https://files.test.local/rf-1".into(),
+            }))
+        });
+
+    let (server, _h) = server_with_mocks(mock, remote_files, true, true).await;
+    let resp = server
+        .update_artifact(Parameters(UpdateArtifactParams {
+            artifact_id: "art-1".into(),
+            title: Some("Renamed".into()),
+            ..Default::default()
+        }))
+        .await
+        .expect("update");
+    let artifact = structured_field(resp.clone(), "artifact");
+    assert_eq!(artifact["download_url"], "https://files.test.local/rf-1");
+    let next_step = structured_field(resp, "next_step");
+    let next_step = next_step.as_str().unwrap();
+    assert!(
+        next_step.contains("keeps the previous version's file"),
+        "{next_step}"
+    );
+    assert!(!next_step.contains("no file content"), "{next_step}");
+}
+
+#[tokio::test]
 async fn update_artifact_maps_each_parameter_to_its_own_path() {
     for (params, want) in [
         (
