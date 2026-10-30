@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pandas as pd
 import pytest
+from google.protobuf.timestamp_pb2 import Timestamp
 from sift.common.type.v1.channel_config_pb2 import ChannelConfig as ChannelConfigProto
 from sift.data_imports.v2.data_imports_pb2 import (
     DATA_IMPORT_STATUS_FAILED,
@@ -38,6 +39,7 @@ from sift_client._internal.util.data_imports import (
     resolve_data_type_key,
 )
 from sift_client._internal.util.time_column import infer_time_column
+from sift_client._tests.sift_types.channel_time import assert_axis_matches_channel
 from sift_client.resources import DataImportAPI, DataImportAPIAsync
 from sift_client.sift_types.channel import ChannelDataType
 from sift_client.sift_types.data_import import (
@@ -1279,6 +1281,20 @@ class TestDataImportFromProto:
         assert data_import.asset_id is None
         assert data_import.data_start_time is None
         assert data_import.data_stop_time is None
+
+    def test_bounds_match_channel_timestamp_resolution(self):
+        """Import bounds use the same integer scale as channel data."""
+        start = Timestamp(seconds=1735689600, nanos=123456789)
+        stop = Timestamp(seconds=1735689601, nanos=0)
+        proto = _data_import_proto()
+        proto.data_start_time.CopyFrom(start)
+        proto.data_stop_time.CopyFrom(stop)
+
+        data_import = DataImport._from_proto(proto)
+
+        assert_axis_matches_channel(
+            data_import.data_start_time, data_import.data_stop_time, start, stop
+        )
 
 
 class TestDataImportsGet:

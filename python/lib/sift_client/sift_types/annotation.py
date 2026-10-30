@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING, ClassVar, Literal, cast
 
+import pandas as pd  # noqa: TC002
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from sift.annotation_logs.v1.annotation_logs_pb2 import (
     AnnotationCommentBodyElement as AnnotationCommentBodyElementProto,
@@ -43,6 +44,7 @@ from sift.annotations.v1.annotations_pb2 import (
     CreateAnnotationRequest as CreateAnnotationRequestProto,
 )
 
+from sift_client._internal.time import to_timestamp_nanos
 from sift_client.sift_types._base import (
     BaseType,
     MappingHelper,
@@ -105,13 +107,20 @@ def _linked_channel_to_proto(channel: Channel | CalculatedChannel) -> Annotation
 
 
 class Annotation(BaseType[AnnotationProto, "Annotation"]):
-    """Annotation model representing a time range on one or more assets."""
+    """Annotation model representing a time range on one or more assets.
+
+    ``start_time`` and ``end_time`` are nanosecond timestamps, the same
+    resolution as channel data from ``get_data``.
+    """
+
+    # pandas.Timestamp has no pydantic schema, so it is validated with isinstance.
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     # Required fields
     name: str
     description: str
-    start_time: datetime
-    end_time: datetime
+    start_time: pd.Timestamp | datetime
+    end_time: pd.Timestamp | datetime
     annotation_type: AnnotationType
     organization_id: str
     created_date: datetime
@@ -141,8 +150,8 @@ class Annotation(BaseType[AnnotationProto, "Annotation"]):
             id_=proto.annotation_id,
             name=proto.name,
             description=proto.description,
-            start_time=proto.start_time.ToDatetime(tzinfo=timezone.utc),
-            end_time=proto.end_time.ToDatetime(tzinfo=timezone.utc),
+            start_time=to_timestamp_nanos(proto.start_time),
+            end_time=to_timestamp_nanos(proto.end_time),
             annotation_type=AnnotationType(proto.annotation_type),
             organization_id=proto.organization_id,
             created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),

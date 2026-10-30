@@ -5,7 +5,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING, ClassVar
 
-from pydantic import field_validator
+import pandas as pd  # noqa: TC002
+from pydantic import ConfigDict, field_validator
 from sift.test_reports.v1.test_reports_pb2 import (
     CreateTestReportRequest as CreateTestReportRequestProto,
 )
@@ -28,6 +29,7 @@ from sift.test_reports.v1.test_reports_pb2 import (
     TestStep as TestStepProto,
 )
 
+from sift_client._internal.time import to_timestamp_nanos
 from sift_client.sift_types._base import (
     BaseType,
     MappingHelper,
@@ -155,7 +157,14 @@ class TestStepCreate(TestStepBase, ModelCreate[TestStepProto]):
 
 
 class TestStep(BaseType[TestStepProto, "TestStep"], FileAttachmentsMixin, SimulatedMixin):
-    """TestStep model representing a step in a test."""
+    """TestStep model representing a step in a test.
+
+    ``start_time`` and ``end_time`` are nanosecond timestamps, the same
+    resolution as channel data from ``get_data``.
+    """
+
+    # pandas.Timestamp has no pydantic schema, so it is validated with isinstance.
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     test_report_id: str
     parent_step_id: str | None = None
@@ -164,8 +173,8 @@ class TestStep(BaseType[TestStepProto, "TestStep"], FileAttachmentsMixin, Simula
     step_type: TestStepType
     step_path: str
     status: TestStatus
-    start_time: datetime
-    end_time: datetime
+    start_time: pd.Timestamp | datetime
+    end_time: pd.Timestamp | datetime
     error_info: ErrorInfo | None = None
     # NOTE: update() replaces this map wholesale. See TODO(metadata-mixin) in
     # sift_types/_mixins/metadata.py before adding keys at runtime.
@@ -187,8 +196,8 @@ class TestStep(BaseType[TestStepProto, "TestStep"], FileAttachmentsMixin, Simula
             step_type=TestStepType(proto.step_type),
             step_path=proto.step_path,
             status=TestStatus(proto.status),
-            start_time=proto.start_time.ToDatetime(tzinfo=timezone.utc),
-            end_time=proto.end_time.ToDatetime(tzinfo=timezone.utc),
+            start_time=to_timestamp_nanos(proto.start_time),
+            end_time=to_timestamp_nanos(proto.end_time),
             error_info=ErrorInfo._from_proto(proto.error_info, sift_client)
             if proto.HasField("error_info")
             else None,

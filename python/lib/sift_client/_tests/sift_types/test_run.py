@@ -4,7 +4,10 @@ from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
 import pytest
+from google.protobuf.timestamp_pb2 import Timestamp
+from sift.runs.v2.runs_pb2 import Run as RunProto
 
+from sift_client._tests.sift_types.channel_time import assert_axis_matches_channel
 from sift_client.sift_types import Run
 from sift_client.sift_types.run import RunCreate, RunUpdate
 
@@ -133,6 +136,45 @@ def mock_run(mock_client):
 
 class TestRun:
     """Unit tests for Run model - tests properties and methods."""
+
+    def test_bounds_match_channel_timestamp_resolution(self):
+        """A time axis from run bounds matches the channel index for the same timestamps.
+
+        ``stop_time`` is an exact second. That instant prints the same as a
+        microsecond ``datetime`` and still disagrees when both are read as
+        integers.
+        """
+        start = Timestamp(seconds=1735689600, nanos=123456789)
+        stop = Timestamp(seconds=1735689601, nanos=0)
+        proto = RunProto(
+            run_id="r",
+            name="n",
+            description="",
+            created_by_user_id="u",
+            modified_by_user_id="u",
+            organization_id="o",
+        )
+        proto.created_date.FromDatetime(datetime(2025, 1, 1, tzinfo=timezone.utc))
+        proto.modified_date.CopyFrom(proto.created_date)
+        proto.start_time.CopyFrom(start)
+        proto.stop_time.CopyFrom(stop)
+
+        run = Run._from_proto(proto)
+        assert_axis_matches_channel(run.start_time, run.stop_time, start, stop)
+
+        unset = RunProto(
+            run_id="r",
+            name="n",
+            description="",
+            created_by_user_id="u",
+            modified_by_user_id="u",
+            organization_id="o",
+        )
+        unset.created_date.CopyFrom(proto.created_date)
+        unset.modified_date.CopyFrom(proto.modified_date)
+        unbounded = Run._from_proto(unset)
+        assert unbounded.start_time is None
+        assert unbounded.stop_time is None
 
     def test_assets_property_calls_client(self, mock_run, mock_client):
         """Test that assets property calls client.assets.list_ with correct parameters."""
