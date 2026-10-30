@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, call
 
 import pytest
+from google.protobuf.timestamp_pb2 import Timestamp
 from sift.test_reports.v1.test_reports_pb2 import (
     TestMeasurement as TestMeasurementProto,
 )
@@ -15,6 +16,7 @@ from sift.test_reports.v1.test_reports_pb2 import (
     TestStep as TestStepProto,
 )
 
+from sift_client._tests.sift_types.channel_time import assert_axis_matches_channel
 from sift_client.sift_types.channel import Channel, ChannelDataType
 from sift_client.sift_types.test_report import (
     ErrorInfo,
@@ -496,3 +498,22 @@ class TestResultsTest:
         proto.end_time.FromDatetime(datetime.now(timezone.utc))
         step = TestStep._from_proto(proto)
         assert step.metadata is None
+
+    def test_bounds_match_channel_timestamp_resolution(self):
+        """Step bounds use the same integer scale as channel data."""
+        start = Timestamp(seconds=1735689600, nanos=123456789)
+        stop = Timestamp(seconds=1735689601, nanos=0)
+        proto = TestStepProto(
+            test_step_id="step_abc",
+            test_report_id="report_789",
+            name="Step",
+            step_type=TestStepType.ACTION.value,
+            step_path="1",
+            status=TestStatus.IN_PROGRESS.value,
+        )
+        proto.start_time.CopyFrom(start)
+        proto.end_time.CopyFrom(stop)
+
+        step = TestStep._from_proto(proto)
+
+        assert_axis_matches_channel(step.start_time, step.end_time, start, stop)
