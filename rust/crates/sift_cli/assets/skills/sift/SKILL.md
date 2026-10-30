@@ -206,12 +206,11 @@ tool.
   ignores every other field, so `update_user_defined_function` rejects `name`
   combined with anything else.
 - **Create an artifact.** `create_artifact` accepts `title`, `summary`,
-  metadata, links, and either `file_path` or a structured JSON `payload`.
-  Choose `storage_class=file` for previewable files,
-  `storage_class=structured` for computed tables and PSD-like results, or
-  `storage_class=blob` for opaque intermediates. `structured` requires a
-  payload and rejects `file_path`. `created_via` defaults to `agent`; set it
-  only for `canvas` or direct `upload` writes. Link entity types are
+  metadata, links, and `file_path`. Choose `storage_class=file` for
+  previewable files or `storage_class=blob` for opaque intermediates. To
+  store JSON, such as a computed table, write it to a `.json` file and pass
+  that as `file_path`. `created_via` defaults to `agent`; set it only for
+  `canvas` or direct `upload` writes. Link entity types are
   `conversation`, `canvas`, `run`, `asset`, `artifact`, and `tool_use`.
   Record what an artifact was built from with relation `source` and the run
   or asset id. `derived_from` is only for another artifact; the server

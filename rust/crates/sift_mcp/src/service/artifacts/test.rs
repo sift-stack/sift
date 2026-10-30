@@ -93,7 +93,7 @@ async fn list_artifacts_returns_single_page() {
         .withf(|req| {
             let req = req.get_ref();
             req.conversation_id.as_deref() == Some("conv-1")
-                && req.filter == "storage_class == \"STRUCTURED\""
+                && req.filter == "storage_class == \"BLOB\""
                 && req.order_by == "created_date desc"
         })
         .returning(|_| {
@@ -107,7 +107,7 @@ async fn list_artifacts_returns_single_page() {
     let page = service
         .list_artifacts(
             Some("conv-1".into()),
-            "storage_class == \"STRUCTURED\"".into(),
+            "storage_class == \"BLOB\"".into(),
             Some("created_date desc".into()),
             None,
         )
@@ -441,7 +441,6 @@ async fn writes_are_not_retried_on_unavailable() {
                 conversation_id: None,
                 storage_class: None,
                 created_via: None,
-                payload: None,
                 metadata: vec![],
                 links: vec![],
             },
@@ -512,10 +511,8 @@ async fn create_artifact_returns_created_row() {
             req.conversation_id.as_deref() == Some("conv-1")
                 && req.title.as_deref() == Some("report")
                 && req.summary.as_deref() == Some("summary")
-                && req.storage_class == Some(ArtifactStorageClass::Structured as i32)
+                && req.storage_class == Some(ArtifactStorageClass::Blob as i32)
                 && req.created_via == Some(ArtifactCreatedVia::Agent as i32)
-                && serde_json::to_value(req.payload.as_ref().unwrap()).unwrap()
-                    == serde_json::json!({ "rows": [] })
                 && req.links[0].relation == ArtifactLinkRelation::AttachedTo as i32
         })
         .returning(|_| {
@@ -531,10 +528,9 @@ async fn create_artifact_returns_created_row() {
                 title: Some("report".into()),
                 summary: Some("summary".into()),
                 conversation_id: Some("conv-1".into()),
-                storage_class: Some(ArtifactStorageClass::Structured),
+                storage_class: Some(ArtifactStorageClass::Blob),
                 created_via: Some(ArtifactCreatedVia::Agent),
                 metadata: vec![],
-                payload: Some(serde_json::from_value(serde_json::json!({ "rows": [] })).unwrap()),
                 links: vec![ArtifactLinkInput {
                     relation: ArtifactLinkRelation::AttachedTo as i32,
                     entity_type: ArtifactEntityType::Conversation as i32,

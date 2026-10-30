@@ -184,7 +184,7 @@ async fn list_artifacts_returns_rows() {
         .withf(|request| {
             let request = request.get_ref();
             request.conversation_id.as_deref() == Some("conv-1")
-                && request.filter == "storage_class == \"STRUCTURED\""
+                && request.filter == "storage_class == \"BLOB\""
                 && request.order_by == "created_date desc"
         })
         .returning(|_| {
@@ -199,7 +199,7 @@ async fn list_artifacts_returns_rows() {
         .list_artifacts(Parameters(ArtifactListParams {
             conversation_id: Some("conv-1".into()),
             include_archived: None,
-            filter: "storage_class == \"STRUCTURED\"".into(),
+            filter: "storage_class == \"BLOB\"".into(),
             order_by: Some("created_date desc".into()),
             limit: None,
             fields: None,
@@ -307,28 +307,6 @@ async fn get_artifact_omits_download_url_without_bytes() {
         .expect("get");
     let artifact = structured_field(resp, "artifact");
     assert!(artifact.get("download_url").is_none());
-}
-
-#[tokio::test]
-async fn get_artifact_returns_structured_payload() {
-    let structured = sample_with(
-        |artifact| artifact.storage_class = ArtifactStorageClass::Structured as i32,
-        |version| {
-            version.payload =
-                Some(serde_json::from_value(serde_json::json!({ "rows": [[1, 2]] })).unwrap())
-        },
-    );
-    let (server, _h) = server_with_mock(get_returns(structured), false).await;
-    let resp = server
-        .download_artifact(Parameters(DownloadArtifactParams {
-            artifact_id: "art-1".into(),
-            artifact_version_id: None,
-        }))
-        .await
-        .expect("get");
-    let artifact = structured_field(resp, "artifact");
-    assert!(artifact["payload"].is_object());
-    assert!(artifact["payload"].get("rows").is_some());
 }
 
 #[tokio::test]
@@ -639,7 +617,6 @@ async fn update_artifact_masks_only_what_was_passed() {
             req.artifact_id == "art-1"
                 && req.update_mask.as_ref().unwrap().paths == ["artifact_version.title"]
                 && version.title.as_deref() == Some("Renamed")
-                && version.payload.is_none()
                 && version.summary.is_none()
                 && version.metadata.is_empty()
         })
@@ -706,14 +683,6 @@ async fn update_artifact_maps_each_parameter_to_its_own_path() {
         (
             UpdateArtifactParams {
                 artifact_id: "art-1".into(),
-                payload: Some(serde_json::json!({ "a": 1 })),
-                ..Default::default()
-            },
-            "artifact_version.payload",
-        ),
-        (
-            UpdateArtifactParams {
-                artifact_id: "art-1".into(),
                 metadata: Some(vec![MetadataEntry {
                     name: "k".into(),
                     value: MetadataScalar::String("v".into()),
@@ -752,79 +721,6 @@ async fn update_artifact_maps_each_parameter_to_its_own_path() {
 }
 
 #[tokio::test]
-async fn update_artifact_masks_a_payload_replacement() {
-    let mut mock = MockArtifactServiceImpl::new();
-    mock.expect_update_artifact()
-        .withf(|req| {
-            let req = req.get_ref();
-            req.update_mask.as_ref().unwrap().paths == ["artifact_version.payload"]
-                && req
-                    .artifact
-                    .as_ref()
-                    .unwrap()
-                    .artifact_version
-                    .as_ref()
-                    .unwrap()
-                    .payload
-                    .is_some()
-        })
-        .returning(|_| {
-            Ok(Response::new(UpdateArtifactResponse {
-                artifact: Some(sample_with(
-                    |artifact| artifact.storage_class = ArtifactStorageClass::Structured as i32,
-                    |version| {
-                        version.artifact_version_id = "ver-2".into();
-                        version.version = 2;
-                    },
-                )),
-            }))
-        });
-
-    let (server, _h) = server_with_mock(mock, true).await;
-    let resp = server
-        .update_artifact(Parameters(UpdateArtifactParams {
-            artifact_id: "art-1".into(),
-            payload: Some(serde_json::json!({ "step": 2 })),
-            ..Default::default()
-        }))
-        .await
-        .expect("update with payload");
-    let next_step = structured_field(resp, "next_step");
-    let next_step = next_step.as_str().unwrap();
-    assert!(
-        next_step.contains("It carries its JSON payload."),
-        "{next_step}"
-    );
-}
-
-#[tokio::test]
-async fn update_artifact_surfaces_the_server_storage_class_check() {
-    let mut mock = MockArtifactServiceImpl::new();
-    mock.expect_update_artifact().returning(|_| {
-        Err(Status::invalid_argument(
-            "payload is legal only for STRUCTURED artifacts",
-        ))
-    });
-
-    let (server, _h) = server_with_mock(mock, true).await;
-    let err = server
-        .update_artifact(Parameters(UpdateArtifactParams {
-            artifact_id: "art-1".into(),
-            payload: Some(serde_json::json!({ "step": 2 })),
-            ..Default::default()
-        }))
-        .await
-        .expect_err("payload on a file artifact");
-    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
-    assert!(
-        err.message
-            .contains("payload is legal only for STRUCTURED artifacts"),
-        "{}",
-        err.message
-    );
-}
-
-#[tokio::test]
 async fn update_artifact_requires_an_id_and_something_to_change() {
     let (server, _h) = server_with_mock(MockArtifactServiceImpl::new(), true).await;
     for params in [
@@ -847,39 +743,14 @@ async fn update_artifact_requires_an_id_and_something_to_change() {
 }
 
 #[tokio::test]
-async fn create_artifact_validates_storage_and_payload() {
+async fn create_artifact_validates_storage_and_links() {
     for params in [
         CreateArtifactParams {
             storage_class: Some("structured".into()),
             ..Default::default()
         },
         CreateArtifactParams {
-            storage_class: Some("file".into()),
-            payload: Some(serde_json::json!({ "rows": [] })),
-            ..Default::default()
-        },
-        CreateArtifactParams {
-            payload: Some(serde_json::json!({ "rows": [] })),
-            ..Default::default()
-        },
-        CreateArtifactParams {
             storage_class: Some("unknown".into()),
-            ..Default::default()
-        },
-        CreateArtifactParams {
-            storage_class: Some("structured".into()),
-            payload: Some(serde_json::json!({ "rows": [] })),
-            file_path: Some("report.csv".into()),
-            ..Default::default()
-        },
-        CreateArtifactParams {
-            storage_class: Some("structured".into()),
-            payload: Some(serde_json::json!(["not an object"])),
-            ..Default::default()
-        },
-        CreateArtifactParams {
-            storage_class: Some("structured".into()),
-            payload: Some(serde_json::json!("{ not json")),
             ..Default::default()
         },
         CreateArtifactParams {
@@ -925,45 +796,13 @@ async fn create_artifact_validates_storage_and_payload() {
 }
 
 #[tokio::test]
-async fn create_artifact_accepts_a_stringified_payload() {
-    let mut mock = MockArtifactServiceImpl::new();
-    mock.expect_create_artifact()
-        .withf(|request| {
-            request
-                .get_ref()
-                .payload
-                .as_ref()
-                .is_some_and(|payload| payload.fields.contains_key("rows"))
-        })
-        .returning(|_| {
-            Ok(Response::new(CreateArtifactResponse {
-                artifact: Some(sample_artifact()),
-            }))
-        });
-
-    let (server, _h) = server_with_mock(mock, true).await;
-    server
-        .create_artifact(Parameters(CreateArtifactParams {
-            storage_class: Some("structured".into()),
-            payload: Some(serde_json::json!(r#"{"rows": []}"#)),
-            ..Default::default()
-        }))
-        .await
-        .expect("create");
-}
-
-#[tokio::test]
 async fn create_artifact_sends_generic_fields() {
     let mut mock = MockArtifactServiceImpl::new();
     mock.expect_create_artifact()
         .withf(|request| {
             let request = request.get_ref();
-            request.storage_class == Some(ArtifactStorageClass::Structured as i32)
+            request.storage_class == Some(ArtifactStorageClass::Blob as i32)
                 && request.created_via == Some(ArtifactCreatedVia::Agent as i32)
-                && request
-                    .payload
-                    .as_ref()
-                    .is_some_and(|payload| payload.fields.contains_key("rows"))
                 && request.metadata.len() == 1
                 && request.links.len() == 1
                 && request.links[0].relation == ArtifactLinkRelation::AttachedTo as i32
@@ -973,18 +812,17 @@ async fn create_artifact_sends_generic_fields() {
         .returning(|_| {
             Ok(Response::new(CreateArtifactResponse {
                 artifact: Some(sample_with(
-                    |artifact| artifact.storage_class = ArtifactStorageClass::Structured as i32,
+                    |artifact| artifact.storage_class = ArtifactStorageClass::Blob as i32,
                     |_| {},
                 )),
             }))
         });
 
     let (server, _h) = server_with_mock(mock, true).await;
-    let response = server
+    server
         .create_artifact(Parameters(CreateArtifactParams {
-            storage_class: Some("structured".into()),
+            storage_class: Some("blob".into()),
             created_via: Some("agent".into()),
-            payload: Some(serde_json::json!({ "rows": [[1, 2]] })),
             metadata: Some(vec![MetadataEntry {
                 name: "source".into(),
                 value: MetadataScalar::String("computed".into()),
@@ -998,8 +836,6 @@ async fn create_artifact_sends_generic_fields() {
         }))
         .await
         .expect("create");
-    let next_step = structured_field(response, "next_step");
-    assert!(next_step.as_str().unwrap().contains("JSON payload"));
 }
 
 #[tokio::test]

@@ -41,14 +41,6 @@ impl ArtifactView {
             .map(|artifact| artifact.artifact_id.clone())
             .unwrap_or_default()
     }
-
-    pub fn storage_class(&self) -> i32 {
-        self.details
-            .artifact
-            .as_ref()
-            .map(|artifact| artifact.storage_class)
-            .unwrap_or_default()
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -58,7 +50,6 @@ pub(crate) struct CreateArtifactInput {
     pub(crate) conversation_id: Option<String>,
     pub(crate) storage_class: Option<ArtifactStorageClass>,
     pub(crate) created_via: Option<ArtifactCreatedVia>,
-    pub(crate) payload: Option<pbjson_types::Struct>,
     pub(crate) metadata: Vec<MetadataValue>,
     pub(crate) links: Vec<ArtifactLinkInput>,
 }
@@ -78,7 +69,6 @@ pub(crate) struct UpdateArtifactInput {
 pub(crate) enum UpdatePath {
     Title,
     Summary,
-    Payload,
     Metadata,
     /// Declares that new bytes follow, so the server leaves the previous
     /// version's files behind instead of carrying them onto this one.
@@ -91,7 +81,6 @@ impl UpdatePath {
         match self {
             Self::Title => "artifact_version.title",
             Self::Summary => "artifact_version.summary",
-            Self::Payload => "artifact_version.payload",
             Self::Metadata => "artifact_version.metadata",
             Self::ReplaceFile => "artifact_version.remote_file_id",
             Self::Links => "links",
@@ -325,9 +314,9 @@ impl ArtifactService {
                     summary: input.summary,
                     storage_class: input.storage_class.map(|value| value as i32),
                     created_via: input.created_via.map(|value| value as i32),
-                    payload: input.payload,
                     metadata: input.metadata,
                     links: input.links,
+                    ..Default::default()
                 })
                 .await
                 .map(|resp| resp.into_inner())

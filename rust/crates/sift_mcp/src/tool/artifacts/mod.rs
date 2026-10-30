@@ -57,7 +57,6 @@ pub struct CreateArtifactParams {
     conversation_id: Option<String>,
     storage_class: Option<String>,
     created_via: Option<String>,
-    payload: Option<serde_json::Value>,
     metadata: Option<Vec<MetadataEntry>>,
     links: Option<Vec<ArtifactLinkParam>>,
     file_path: Option<String>,
@@ -68,7 +67,6 @@ pub struct UpdateArtifactParams {
     artifact_id: String,
     title: Option<String>,
     summary: Option<String>,
-    payload: Option<serde_json::Value>,
     metadata: Option<Vec<MetadataEntry>>,
     links: Option<Vec<ArtifactLinkParam>>,
     file_path: Option<String>,
@@ -89,12 +87,9 @@ fn parse_storage_class(value: Option<String>) -> Result<Option<ArtifactStorageCl
     match lowered.as_str() {
         "" => Ok(None),
         "file" | "artifact_storage_class_file" => Ok(Some(ArtifactStorageClass::File)),
-        "structured" | "artifact_storage_class_structured" => {
-            Ok(Some(ArtifactStorageClass::Structured))
-        }
         "blob" | "artifact_storage_class_blob" => Ok(Some(ArtifactStorageClass::Blob)),
         other => Err(ErrorData::invalid_params(
-            format!("unknown `storage_class` `{other}`; expected `file`, `structured`, or `blob`"),
+            format!("unknown `storage_class` `{other}`; expected `file` or `blob`"),
             None,
         )),
     }
@@ -209,31 +204,6 @@ fn normalized_file_path(file_path: Option<String>) -> Result<Option<String>, Err
     }
 }
 
-fn parse_payload(
-    payload: Option<serde_json::Value>,
-) -> Result<Option<pbjson_types::Struct>, ErrorData> {
-    payload
-        .map(|value| {
-            // Some MCP clients JSON-stringify object arguments before transport.
-            let value = match value {
-                serde_json::Value::String(raw) => serde_json::from_str(&raw).map_err(|error| {
-                    ErrorData::invalid_params(format!("invalid `payload`: {error}"), None)
-                })?,
-                other => other,
-            };
-            if !value.is_object() {
-                return Err(ErrorData::invalid_params(
-                    "`payload` must be a JSON object",
-                    None,
-                ));
-            }
-            serde_json::from_value(value).map_err(|error| {
-                ErrorData::invalid_params(format!("invalid `payload`: {error}"), None)
-            })
-        })
-        .transpose()
-}
-
 fn parse_links(links: Option<Vec<ArtifactLinkParam>>) -> Result<Vec<ArtifactLinkInput>, ErrorData> {
     links
         .unwrap_or_default()
@@ -260,8 +230,6 @@ fn content_note(artifact: &ArtifactView, uploaded: bool) -> &'static str {
     } else if uploaded {
         " Its file content was uploaded, but the refreshed artifact or its download link \
          could not be fetched; call `download_artifact` for the link."
-    } else if artifact.storage_class() == ArtifactStorageClass::Structured as i32 {
-        " It carries its JSON payload."
     } else {
         " It has no file content; the user has nothing to preview or download."
     }
@@ -342,8 +310,6 @@ impl SiftMcpServer {
                 plus an added `url` field with the artifact's Sift web link (`<host>/artifacts/<artifact_id>`).
                 `url` is omitted when the host can't be derived. Present each artifact to the user as a
                 Markdown link with its title as the text and `url` as the target.
-                `payload` is NOT included, even for structured artifacts: read one with
-                `download_artifact`.
               - `count`: how many items THIS response carries — read it instead of
                 counting the array yourself. It is the size of the page you got back, not
                 how many artifacts the caller has.
@@ -360,9 +326,9 @@ impl SiftMcpServer {
                 Filterable fields are `artifact_id`, `organization_id`, `created_by_user_id`,
                 `storage_class`, `created_via`, `title`, `version`, `created_date`, `archived_date`,
                 the `include_archived` directive, and `metadata[\"<key>\"]`. Enum comparisons use proto value
-                names without the prefix, such as `storage_class == \"STRUCTURED\"`. Do NOT echo the value
+                names without the prefix, such as `storage_class == \"BLOB\"`. Do NOT echo the value
                 you read back from a listing: the output carries the prefixed form
-                (`ARTIFACT_STORAGE_CLASS_STRUCTURED`), and filtering on that matches nothing and returns no
+                (`ARTIFACT_STORAGE_CLASS_BLOB`), and filtering on that matches nothing and returns no
                 error. Strip the enum prefix first. Use
                 `created_by_user_id == \"<user id>\"` to narrow to one author.
                 Links are also filterable with
@@ -461,8 +427,6 @@ impl SiftMcpServer {
                 carries `artifact_version_id`, `artifact_id`, `version`, `title`, `summary`, `metadata`,
                 `file_name`, `file_mime_type`, `remote_file_id`, `authoring_message_id`,
                 `source_tool_use_ids`, and `created_date`.
-                `payload` is NOT included, even for structured artifacts: fetch one version's body with
-                `download_artifact` and its `artifact_version_id`.
               - `artifact_url`: the artifact's Sift web link (`<host>/artifacts/<artifact_id>`), or null when
                 the host can't be derived.
               - `count`: how many items THIS response carries — read it instead of
@@ -494,8 +458,8 @@ impl SiftMcpServer {
             Guidance:
               - The order is fixed newest first; there is no `filter` or `order_by` on this tool. Pass
                 `limit: 1` to read just the current version.
-              - Use `download_artifact` with an `artifact_version_id` from here to read that version's bytes
-                or JSON payload. Its `artifact_url` links that version when the user needs one.
+              - Use `download_artifact` with an `artifact_version_id` from here to read that version's bytes.
+                Its `artifact_url` links that version when the user needs one.
         ",
         annotations(title = "artifacts/list_artifact_versions", read_only_hint = true)
     )]
@@ -544,8 +508,7 @@ impl SiftMcpServer {
                 a `list_artifacts` row except `url` (the link is `artifact_url` here), plus `download_url` when
                 the version has uploaded bytes (`remote_file_id` is set). `download_url` is a short-lived
                 signed URL; fetch it only when the user needs the body.
-                Structured artifacts carry their JSON `payload` directly. When `remote_file_id` is absent,
-                `download_url` is omitted.
+                When `remote_file_id` is absent, `download_url` is omitted.
               - `artifact_url` is the artifact's Sift web link (`<host>/artifacts/<artifact_id>`), pinned to
                 the version when you passed `artifact_version_id`, or null when the host can't be derived.
                 Present the artifact to the user as a Markdown link with its title as the text and
@@ -744,7 +707,7 @@ impl SiftMcpServer {
     #[tool(
         name = "create_artifact",
         description = "
-            Create a NEW artifact. It can carry a local file or a structured JSON payload.
+            Create a NEW artifact. It can carry a local file.
 
             This tool only creates. To change an artifact that already exists, call `update_artifact`
             with its `artifact_id`; calling this one again mints a duplicate the user has to reconcile.
@@ -761,13 +724,10 @@ impl SiftMcpServer {
               - `summary`: optional short description stored on the version.
               - `conversation_id`: optional. Links the new artifact to that conversation. The caller must be
                 the conversation\'s author.
-              - `storage_class`: optional; `file` (default), `structured`, or `blob`, matched case-insensitively.
-                Proto names are also accepted. `structured` requires `payload` and rejects `file_path`. `file`
-                and `blob` reject `payload`.
+              - `storage_class`: optional; `file` (default) or `blob`, matched case-insensitively. Proto names
+                are also accepted.
               - `created_via`: optional; `agent` (default), `canvas`, or `upload`, matched
                 case-insensitively. Proto names are also accepted.
-              - `payload`: optional JSON object. Required for `storage_class: \"structured\"`; rejected for
-                `file` and `blob`. Its serialized form must not exceed 1 MiB.
               - `metadata`: optional list of `{ \"name\": \"<key>\", \"value\": <scalar> }` entries.
               - `links`: optional list of `{ \"relation\", \"entity_type\", \"entity_id\" }` entries. `relation`
                 accepts `attached_to`, `source`, or `derived_from`, plus proto names. `entity_type` accepts
@@ -786,8 +746,8 @@ impl SiftMcpServer {
               - Needs `--allow-create`.
 
             Errors:
-              - `INVALID_PARAMS` for unknown enum values, invalid storage/payload combinations, a non-object
-                `payload`, an empty link entity field, or an empty `conversation_id` / `file_path` when set.
+              - `INVALID_PARAMS` for unknown enum values, an empty link entity field, or an empty
+                `conversation_id` / `file_path` when set.
               - `INVALID_REQUEST` if the server was launched without `--allow-create`.
               - `RESOURCE_NOT_FOUND` if the conversation is not visible to the caller.
               - `INTERNAL_ERROR` for upstream failures. When the message says the artifact was created but
@@ -797,8 +757,9 @@ impl SiftMcpServer {
             Guidance:
               - This is a write. CONFIRM the title and destination conversation with the user before invoking.
               - Edits go through `update_artifact`; there is no edit-in-place path and no second create.
-              - Use `storage_class: \"structured\"` for computed tables and PSD-like results. Use `blob` for
-                opaque intermediates.
+              - Use `storage_class: \"blob\"` for opaque intermediates.
+              - To store JSON, such as a computed table, write it to a local `.json` file and pass it as
+                `file_path`.
               - Leave `created_via` unset inside a Sift agent session; it defaults to `agent`.
               - One artifact per real deliverable. Do not create artifacts for intermediate scratch files.
         ",
@@ -821,7 +782,6 @@ impl SiftMcpServer {
             conversation_id,
             storage_class,
             created_via,
-            payload,
             metadata,
             links,
             file_path,
@@ -839,26 +799,6 @@ impl SiftMcpServer {
 
         let storage_class = parse_storage_class(storage_class)?;
         let created_via = parse_created_via(created_via)?;
-        let resolved_storage_class = storage_class.unwrap_or(ArtifactStorageClass::File);
-        if resolved_storage_class == ArtifactStorageClass::Structured && payload.is_none() {
-            return Err(ErrorData::invalid_params(
-                "`payload` is required when `storage_class` is `structured`",
-                None,
-            ));
-        }
-        if resolved_storage_class == ArtifactStorageClass::Structured && file_path.is_some() {
-            return Err(ErrorData::invalid_params(
-                "`file_path` is not allowed when `storage_class` is `structured`",
-                None,
-            ));
-        }
-        if resolved_storage_class != ArtifactStorageClass::Structured && payload.is_some() {
-            return Err(ErrorData::invalid_params(
-                "`payload` is allowed only when `storage_class` is `structured`",
-                None,
-            ));
-        }
-        let payload = parse_payload(payload)?;
         let links = parse_links(links)?;
         let uploaded = file_path.is_some();
 
@@ -871,7 +811,6 @@ impl SiftMcpServer {
                     conversation_id,
                     storage_class,
                     created_via,
-                    payload,
                     metadata: metadata
                         .unwrap_or_default()
                         .into_iter()
@@ -906,7 +845,7 @@ impl SiftMcpServer {
             Write a new version of an existing artifact, changing only what you pass. This is a WRITE.
 
             Every field you leave out keeps its current value, so a title-only edit does not have to
-            resend the payload, the metadata, or the file. That is the whole point of this tool: passing
+            resend the metadata or the file. That is the whole point of this tool: passing
             nothing for a field means `leave it alone`, never `blank it`.
 
             Output:
@@ -919,8 +858,6 @@ impl SiftMcpServer {
                 have a title.
               - `title`: new display title. Pass an empty string to leave the artifact showing its file name.
               - `summary`: new short description.
-              - `payload`: new JSON object for a `structured` artifact. Rejected for `file` and `blob`
-                artifacts. Its serialized form must not exceed 1 MiB.
               - `metadata`: replaces the version's metadata with these `{ \"name\", \"value\" }` entries.
                 Omit it to carry the current metadata forward; pass an empty list to clear it.
               - `links`: links to add at the new version, same shape as `create_artifact`. Existing
@@ -935,13 +872,12 @@ impl SiftMcpServer {
               - Needs `--allow-destructive`: a new version changes what every linked conversation resolves to.
 
             Errors:
-              - `INVALID_PARAMS` if `artifact_id` is empty, if nothing to change was passed, for a
-                non-object `payload`, an empty link entity field, or an empty `file_path`.
+              - `INVALID_PARAMS` if `artifact_id` is empty, if nothing to change was passed, for an
+                empty link entity field, or an empty `file_path`.
               - `INVALID_REQUEST` if the server was launched without `--allow-destructive`.
               - `RESOURCE_NOT_FOUND` if the artifact does not exist or is not visible to the caller.
-              - `INTERNAL_ERROR` for upstream failures, including a payload that does not match the
-                artifact's storage class. When the message says the version was written but the upload
-                failed, the version exists without content — report that instead of calling again.
+              - `INTERNAL_ERROR` for upstream failures. When the message says the version was written but
+                the upload failed, the version exists without content — report that instead of calling again.
 
             Guidance:
               - This is how you refine an artifact. Do NOT call `create_artifact` again for an edit; that
@@ -965,7 +901,6 @@ impl SiftMcpServer {
             artifact_id,
             title,
             summary,
-            payload,
             metadata,
             links,
             file_path,
@@ -989,10 +924,6 @@ impl SiftMcpServer {
             version.summary = Some(summary);
             update_mask.push(UpdatePath::Summary);
         }
-        if payload.is_some() {
-            version.payload = parse_payload(payload)?;
-            update_mask.push(UpdatePath::Payload);
-        }
         if let Some(metadata) = metadata {
             version.metadata = metadata.into_iter().map(Into::into).collect();
             update_mask.push(UpdatePath::Metadata);
@@ -1003,7 +934,7 @@ impl SiftMcpServer {
         }
         if update_mask.is_empty() && file_path.is_none() {
             return Err(ErrorData::invalid_params(
-                "pass at least one of `title`, `summary`, `payload`, `metadata`, `links`, or `file_path`",
+                "pass at least one of `title`, `summary`, `metadata`, `links`, or `file_path`",
                 None,
             ));
         }
