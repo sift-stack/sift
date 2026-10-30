@@ -11,7 +11,7 @@ use sift_rs::metadata::v1::MetadataValue;
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
-    tool::common::{ListParams, MetadataEntry, list_body, list_result, url_clause, with_urls},
+    tool::common::{ListParams, MetadataEntry, list_body, url_clause, with_urls},
 };
 
 #[cfg(test)]
@@ -113,11 +113,7 @@ impl SiftMcpServer {
             self.url_service.build_run_url(&r.run_id).ok()
         })?;
 
-        Ok(list_result(
-            list_body("runs", runs, fields, page.has_more),
-            "runs",
-            None,
-        ))
+        Ok(list_body("runs", runs, fields, page.has_more).into_result(None))
     }
 
     #[tool(

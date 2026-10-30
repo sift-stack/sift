@@ -195,12 +195,15 @@ pub(crate) const UNMATCHED_FIELDS_KEY: &str = "unmatched_fields";
 /// how many channels an asset has read a 120-row response and reported 122,
 /// then explained the discrepancy away rather than trusting its own correct
 /// enumeration. The number is free here and exact, so hand it over.
+///
+/// The returned [`ListBody`] remembers `key`, so [`ListBody::into_result`] can
+/// write the items last without the caller naming the key a second time.
 pub(crate) fn list_body(
-    key: &str,
+    key: &'static str,
     items: Vec<Value>,
     fields: Option<Vec<String>>,
     has_more: bool,
-) -> Value {
+) -> ListBody {
     let (items, unmatched) = match fields.as_deref() {
         Some(fields) if !fields.is_empty() => project_fields(items, fields),
         _ => (items, Vec::new()),
@@ -216,60 +219,76 @@ pub(crate) fn list_body(
             Value::Array(unmatched.into_iter().map(Value::String).collect()),
         );
     }
-    Value::Object(body)
-}
-
-/// Shape a `list_*` tool's result so its metadata survives truncation. Agent
-/// harnesses cut an oversized tool result from the end, and `serde_json::Map`
-/// sorts keys, so `count`, `has_more` and [`UNMATCHED_FIELDS_KEY`] land after
-/// the items whenever the items key sorts first (`channels`, `assets`, ...).
-/// That loses them on exactly the large pages where they matter.
-///
-/// The text block agents read writes every key except `items_key` first, in
-/// their usual order, then the items. `structuredContent` keeps `body` as is,
-/// so the two differ only in key order. Pass `next_step` for a tool that also
-/// leads with an instruction; it becomes its own text block ahead of the JSON,
-/// as in [`read_result`].
-pub(crate) fn list_result(
-    body: Value,
-    items_key: &str,
-    next_step: Option<String>,
-) -> CallToolResult {
-    let text = ItemsLast {
-        body: &body,
-        items_key,
-    };
-    let text = serde_json::to_string(&text).unwrap_or_else(|_| body.to_string());
-    let mut content = Vec::with_capacity(2);
-    if let Some(next_step) = next_step {
-        content.push(ContentBlock::text(next_step));
+    ListBody {
+        items_key: key,
+        body,
     }
-    content.push(ContentBlock::text(text));
-
-    let mut result = CallToolResult::structured(body);
-    result.content = content;
-    result
 }
 
-/// Serializes a JSON object with one key moved to the end. `SerializeMap`
-/// writes entries in the order they are given, which `serde_json::Map` would
-/// otherwise re-sort.
-struct ItemsLast<'a> {
-    body: &'a Value,
-    items_key: &'a str,
+/// A `list_*` tool's body together with the key its items live under. Built by
+/// [`list_body`]; add tool-specific keys such as `artifact_url` with
+/// [`ListBody::insert`] and finish with [`ListBody::into_result`].
+#[derive(Debug, Clone)]
+pub(crate) struct ListBody {
+    items_key: &'static str,
+    body: serde_json::Map<String, Value>,
 }
+
+impl ListBody {
+    /// Add a key alongside the items. It is written ahead of them in the text
+    /// block like the rest of the metadata.
+    pub(crate) fn insert(&mut self, key: &str, value: Value) {
+        debug_assert_ne!(key, self.items_key, "`{key}` would replace the items");
+        self.body.insert(key.to_string(), value);
+    }
+
+    /// Shape the tool result so the metadata survives truncation. Agent
+    /// harnesses cut an oversized tool result from the end, and
+    /// `serde_json::Map` sorts keys, so `count`, `has_more` and
+    /// [`UNMATCHED_FIELDS_KEY`] land after the items whenever the items key
+    /// sorts first (`channels`, `assets`, ...). That loses them on exactly the
+    /// large pages where they matter.
+    ///
+    /// The text block agents read writes every other key first, in their usual
+    /// order, then the items. `structuredContent` keeps the body as is, so the
+    /// two differ only in key order. Pass `next_step` for a tool that also
+    /// leads with an instruction; it becomes its own text block ahead of the
+    /// JSON, as in [`read_result`].
+    pub(crate) fn into_result(self, next_step: Option<String>) -> CallToolResult {
+        let text = serde_json::to_string(&ItemsLast(&self))
+            .unwrap_or_else(|_| Value::Object(self.body.clone()).to_string());
+        let mut content = Vec::with_capacity(2);
+        if let Some(next_step) = next_step {
+            content.push(ContentBlock::text(next_step));
+        }
+        content.push(ContentBlock::text(text));
+
+        let mut result = CallToolResult::structured(Value::Object(self.body));
+        result.content = content;
+        result
+    }
+
+    /// The body as plain JSON, for tests that compare or index it.
+    #[cfg(test)]
+    pub(crate) fn into_value(self) -> Value {
+        Value::Object(self.body)
+    }
+}
+
+/// Serializes a [`ListBody`] with its items key moved to the end.
+/// `SerializeMap` writes entries in the order they are given, which
+/// `serde_json::Map` would otherwise re-sort.
+struct ItemsLast<'a>(&'a ListBody);
 
 impl Serialize for ItemsLast<'_> {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let Value::Object(map) = self.body else {
-            return self.body.serialize(serializer);
-        };
-        let mut out = serializer.serialize_map(Some(map.len()))?;
-        for (key, value) in map.iter().filter(|(key, _)| *key != self.items_key) {
+        let ListBody { items_key, body } = self.0;
+        let mut out = serializer.serialize_map(Some(body.len()))?;
+        for (key, value) in body.iter().filter(|(key, _)| key != items_key) {
             out.serialize_entry(key, value)?;
         }
-        if let Some(items) = map.get(self.items_key) {
-            out.serialize_entry(self.items_key, items)?;
+        if let Some(items) = body.get(*items_key) {
+            out.serialize_entry(items_key, items)?;
         }
         out.end()
     }

@@ -11,7 +11,7 @@ use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::test_reports::spec::{self, ReportSpec},
-    tool::common::{ListParams, list_body, list_result, to_values, url_clause},
+    tool::common::{ListParams, list_body, to_values, url_clause},
 };
 
 #[cfg(test)]
@@ -118,11 +118,7 @@ impl SiftMcpServer {
 
         let test_reports = to_values(&page.items)?;
 
-        Ok(list_result(
-            list_body("test_reports", test_reports, fields, page.has_more),
-            "test_reports",
-            None,
-        ))
+        Ok(list_body("test_reports", test_reports, fields, page.has_more).into_result(None))
     }
 
     #[tool(
@@ -199,11 +195,7 @@ impl SiftMcpServer {
 
         let test_steps = to_values(&page.items)?;
 
-        Ok(list_result(
-            list_body("test_steps", test_steps, fields, page.has_more),
-            "test_steps",
-            None,
-        ))
+        Ok(list_body("test_steps", test_steps, fields, page.has_more).into_result(None))
     }
 
     #[tool(
@@ -280,16 +272,13 @@ impl SiftMcpServer {
 
         let test_measurements = to_values(&page.items)?;
 
-        Ok(list_result(
-            list_body(
-                "test_measurements",
-                test_measurements,
-                fields,
-                page.has_more,
-            ),
+        Ok(list_body(
             "test_measurements",
-            None,
-        ))
+            test_measurements,
+            fields,
+            page.has_more,
+        )
+        .into_result(None))
     }
 
     #[tool(

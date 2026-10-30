@@ -14,7 +14,7 @@ use sift_rs::{
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
-    tool::common::{MetadataEntry, list_body, list_result, url_clause, with_urls},
+    tool::common::{MetadataEntry, list_body, url_clause, with_urls},
 };
 
 #[cfg(test)]
@@ -198,11 +198,7 @@ impl SiftMcpServer {
             self.url_service.build_annotation_url(&a.annotation_id).ok()
         })?;
 
-        Ok(list_result(
-            list_body("annotations", annotations, fields, page.has_more),
-            "annotations",
-            None,
-        ))
+        Ok(list_body("annotations", annotations, fields, page.has_more).into_result(None))
     }
 
     #[tool(

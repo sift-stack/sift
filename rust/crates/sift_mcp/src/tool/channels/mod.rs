@@ -3,7 +3,7 @@ use rmcp::{handler::server::wrapper::Parameters, tool, tool_router};
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
-    tool::common::{ListParams, list_body, list_result, to_values},
+    tool::common::{ListParams, list_body, to_values},
 };
 
 #[cfg(test)]
@@ -80,10 +80,6 @@ impl SiftMcpServer {
 
         let channels = to_values(&page.items)?;
 
-        Ok(list_result(
-            list_body("channels", channels, fields, page.has_more),
-            "channels",
-            None,
-        ))
+        Ok(list_body("channels", channels, fields, page.has_more).into_result(None))
     }
 }

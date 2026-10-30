@@ -234,23 +234,25 @@ pub struct ListParams {
     filter: String,
     order_by: Option<String>,
     limit: Option<u32>,
+    fields: Option<Vec<String>>,
 }
 ```
 
-Handler — destructure, validate early, call the service(s), map errors, return structured JSON:
+Handler — destructure, validate early, call the service(s), map errors, return structured JSON.
+A `list_*` tool builds its body with `list_body` and returns it with `into_result`:
 
 ```rust
 pub async fn list_webhooks(&self, params: Parameters<ListParams>) -> error::McpResult {
-    let Parameters(ListParams { filter, order_by, limit }) = params;
+    let Parameters(ListParams { filter, order_by, limit, fields }) = params;
 
-    let out = self
+    let page = self
         .webhook_service
         .list_webhooks(filter, order_by, limit)
         .await
-        .map(|webhooks| serde_json::json!({ "webhooks": webhooks }))
         .map_err(from_anyhow)?;
 
-    Ok(CallToolResult::structured(out))
+    let webhooks = to_values(&page.items)?;
+    Ok(list_body("webhooks", webhooks, fields, page.has_more).into_result(None))
 }
 ```
 
@@ -263,7 +265,11 @@ pub async fn list_webhooks(&self, params: Parameters<ListParams>) -> error::McpR
   an `INVALID_REQUEST` naming the exact remediation command when the server was launched
   without the corresponding flag. `tool/assets/mod.rs::update_asset` is the destructive
   reference; `tool/annotations/mod.rs::create_annotation` is the create reference.
-- Always return `CallToolResult::structured(json!({ ... }))`.
+- Return structured JSON. A `list_*` tool returns `list_body(...).into_result(next_step)` from
+  `tool/common/`, which writes `count`, `has_more` and `unmatched_fields` ahead of the items in
+  the text block so they survive truncation; add any other key, such as a parent URL, with
+  `ListBody::insert` first. Every other tool returns `CallToolResult::structured(json!({ ... }))`
+  or one of the shapes below.
 - Annotate: `annotations(title = "<domain>/<tool>", read_only_hint = <bool>, destructive_hint = <bool>, idempotent_hint = <bool>)`.
   Read tools set `read_only_hint = true` and may omit the other two. Write tools set
   `read_only_hint = false` and MUST set both `destructive_hint` and `idempotent_hint` honestly so
@@ -279,9 +285,10 @@ pub async fn list_webhooks(&self, params: Parameters<ListParams>) -> error::McpR
   tools use `next_step` to force a confirmation before the agent proceeds.
 - **Read tools keep their payload in `content`.** Clients such as Claude Code show the model
   `content`, not `structuredContent`. Replacing `content` with `next_step` alone hides the payload
-  from the agent, so a read tool that returns data the agent must see (versions, summaries, dry-run
-  results) returns `read_result(body, next_step)` from `tool/common/`, which puts `next_step`
-  first and keeps the JSON body after it. Replace `content` with `next_step` only when
+  from the agent. A `list_*` tool built on `list_body` passes its `next_step` to `into_result`
+  (`list_calculated_channel_versions` is the reference). Any other read tool that returns data the
+  agent must see (summaries, dry-run results) returns `read_result(body, next_step)` from
+  `tool/common/`, which puts `next_step` first and keeps the JSON body after it. Replace `content` with `next_step` only when
   `next_step` itself carries everything the agent needs, such as the file path from `get_data` or
   the URL from `explore_url`. `preview_rule` is the reference.
 
@@ -683,8 +690,8 @@ Run through this before declaring the tool done:
       match the current proto comments.
 - [ ] Any tool taking a `filter` closes its `filter` bullet with the search block from Step 5,
       adapted to that resource's own text fields and phrased as a direct instruction.
-- [ ] Any `list_*` tool builds its body with `list_body` and returns it through
-      `list_result`, so its metadata is written ahead of the items.
+- [ ] Any `list_*` tool builds its body with `list_body` and returns it with
+      `ListBody::into_result`, so its metadata is written ahead of the items.
 - [ ] `read_only_hint` is correct, and write tools set `destructive_hint` / `idempotent_hint`
       per the Step 4 mapping. Write tools confirm the destination via `next_step`.
 - [ ] Every write handler gates itself as the first line: `self.require_create()?` for

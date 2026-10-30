@@ -12,7 +12,7 @@ use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::rules::RuleUpdate,
-    tool::common::{ListParams, list_body, list_result, read_result, url_clause, with_urls},
+    tool::common::{ListParams, list_body, read_result, url_clause, with_urls},
 };
 
 #[cfg(test)]
@@ -130,11 +130,7 @@ impl SiftMcpServer {
             self.url_service.build_rule_url(&r.rule_id).ok()
         })?;
 
-        Ok(list_result(
-            list_body("rules", rules, fields, page.has_more),
-            "rules",
-            None,
-        ))
+        Ok(list_body("rules", rules, fields, page.has_more).into_result(None))
     }
 
     #[tool(

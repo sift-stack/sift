@@ -16,7 +16,7 @@ use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::artifacts::{ArtifactView, CreateArtifactInput, UpdateArtifactInput, UpdatePath},
-    tool::common::{MetadataEntry, list_body, list_result, to_values, url_clause},
+    tool::common::{MetadataEntry, list_body, to_values, url_clause},
 };
 
 #[cfg(test)]
@@ -442,11 +442,7 @@ impl SiftMcpServer {
             })
             .collect::<Result<Vec<_>, ErrorData>>()?;
 
-        Ok(list_result(
-            list_body("artifacts", artifacts, fields, page.has_more),
-            "artifacts",
-            None,
-        ))
+        Ok(list_body("artifacts", artifacts, fields, page.has_more).into_result(None))
     }
 
     #[tool(
@@ -526,11 +522,9 @@ impl SiftMcpServer {
 
         let versions = to_values(&page.items)?;
         let mut body = list_body("artifact_versions", versions, fields, page.has_more);
-        if let Value::Object(map) = &mut body {
-            map.insert("artifact_url".to_string(), serde_json::json!(artifact_url));
-        }
+        body.insert("artifact_url", serde_json::json!(artifact_url));
 
-        Ok(list_result(body, "artifact_versions", None))
+        Ok(body.into_result(None))
     }
 
     #[tool(

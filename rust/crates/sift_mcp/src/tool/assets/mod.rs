@@ -11,7 +11,7 @@ use sift_rs::metadata::v1::MetadataValue;
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
-    tool::common::{ListParams, MetadataEntry, list_body, list_result, url_clause, with_urls},
+    tool::common::{ListParams, MetadataEntry, list_body, url_clause, with_urls},
 };
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -96,11 +96,7 @@ impl SiftMcpServer {
             self.url_service.build_asset_url(&a.asset_id).ok()
         })?;
 
-        Ok(list_result(
-            list_body("assets", assets, fields, page.has_more),
-            "assets",
-            None,
-        ))
+        Ok(list_body("assets", assets, fields, page.has_more).into_result(None))
     }
 
     #[tool(

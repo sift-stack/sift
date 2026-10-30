@@ -242,7 +242,7 @@ async fn list_channels_reports_a_field_that_matched_nothing() {
         .expect("list_channels failed");
 
     // `channels` sorts before every metadata key, so this fails if the handler
-    // returns the body without `list_result`.
+    // returns the body without `ListBody::into_result`.
     let texts = content_texts(&resp);
     assert_eq!(texts.len(), 1);
     assert_keys_before(
