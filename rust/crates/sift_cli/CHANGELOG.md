@@ -31,6 +31,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   table still uses that table.
 - `config update` with field flags prints the fields that changed. It reports
   `No changes` and does not write the file when the values are already set.
+- The artifact MCP tools no longer create structured artifacts, because Sift
+  no longer supports them. `create_artifact` and `update_artifact` no longer
+  accept `payload`, and `create_artifact` rejects `storage_class: "structured"`
+  as an unknown storage class. To store JSON, write it to a `.json` file and
+  pass it as `file_path`.
 
 ## [v0.7.6] - October 26, 2026
 
