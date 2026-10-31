@@ -13,11 +13,12 @@ If the user pastes or attaches a complete spec, pass it to `create_declarative_c
 ## Plain-language request
 
 1. Resolve runs with Sift MCP `list_runs` and channels with `list_channels`. Resolve calculated channels with `list_calculated_channels` and bind them with `calculatedChannelId`, not `channel`. Never invent IDs or channel names.
-2. Write a complete version 0 spec with `dataSources` and one `chart`. Prefer YAML. Use one chart unless the user asked for several.
-3. Call `create_declarative_chart` with the full spec.
-4. On `invalid_spec`, fix every reported path and resend the full corrected spec.
-5. After 3 failed attempts, stop and summarize the remaining validation problems instead of retrying.
-6. To edit a chart, resend the full edited spec. Each valid call returns a new `exploreUrl`.
+2. Call `get_chart_schema` for the schema index. Then call it with `definitions` for the chart type you are writing, such as `timeseriesChart`, and follow `references` only as far as you need.
+3. Write a complete version 0 spec with `dataSources` and one `chart`. Prefer YAML. Use one chart unless the user asked for several.
+4. Call `create_declarative_chart` with the full spec.
+5. On `invalid_spec`, fix every reported path and resend the full corrected spec.
+6. After 3 failed attempts, stop and summarize the remaining validation problems instead of retrying.
+7. To edit a chart, resend the full edited spec. Each valid call returns a new `exploreUrl`.
 
 ## Minimal spec
 
@@ -45,7 +46,7 @@ chart:
 
 ## Schema reference
 
-Validation errors are the source of truth for allowed keys and constraints. When keys fail validation, read the reported paths and messages to understand what is allowed. The tool accepts `version: 0` YAML or JSON. A single chart uses `chart` or one entry under `charts` and displays inline in Sift agent chat. Several charts or a top-level `layout` are accepted and return an Explore link.
+`get_chart_schema` returns the deployment's declarative chart JSON Schema. Use it to look up allowed keys and constraints. Validation errors from `create_declarative_chart` remain the final word on a spec. If `get_chart_schema` reports that the deployment does not serve the schema, use the examples here and fix each reported path. `create_declarative_chart` accepts `version: 0` YAML or JSON. A single chart uses `chart` or one entry under `charts` and displays inline in Sift agent chat. Several charts or a top-level `layout` are accepted and return an Explore link.
 
 ## Run and inline expression example
 

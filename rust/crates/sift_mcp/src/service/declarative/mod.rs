@@ -1,8 +1,13 @@
-use std::time::Duration;
+use std::{
+    collections::{BTreeSet, HashMap},
+    sync::{Arc, Mutex, PoisonError},
+    time::Duration,
+};
 
 use anyhow::{Context, Result, anyhow, bail};
 use reqwest::{StatusCode, header::USER_AGENT};
 use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value, json};
 use tokio::time::sleep;
 
 use crate::service::remote_files::RestConfig;
@@ -10,6 +15,14 @@ use crate::service::remote_files::RestConfig;
 const VALIDATE_PATH: &str = "/api/v1/declarative:validate";
 const MIGRATE_PATH: &str = "/api/v1/declarative:migrate";
 const SHARE_LINK_PATH: &str = "/api/v1/declarative:sharelink";
+const SCHEMA_PATH: &str = "/api/v1/declarative:schema";
+const DEFS_REF_PREFIX: &str = "#/$defs/";
+/// Appears in the backend's not-found message for an unknown schema version.
+/// A deployment without the route returns the gateway's plain "Not Found".
+const UNKNOWN_VERSION_MESSAGE: &str = "declarative schema version";
+const MAX_CLOSE_MATCHES: usize = 5;
+/// Shortest shared prefix that makes a definition name a close match.
+const MIN_SHARED_PREFIX: usize = 4;
 /// Longest slice of an error body echoed back in a failure or invalid-spec
 /// message.
 const MAX_ERROR_BODY_CHARS: usize = 500;
@@ -53,6 +66,30 @@ pub struct MigrationResult {
 pub enum ShareLinkResult {
     Ok { short_link: String },
     Invalid { message: String },
+}
+
+/// Why the schema could not be fetched.
+#[derive(Debug)]
+pub enum SchemaError {
+    /// HTTP 404 from the gateway: this deployment has no schema endpoint.
+    NotServed,
+    /// HTTP 404 from the endpoint: the version is unknown. Holds the
+    /// backend's message, which lists the available versions.
+    VersionNotFound(String),
+    Other(anyhow::Error),
+}
+
+impl From<anyhow::Error> for SchemaError {
+    fn from(error: anyhow::Error) -> Self {
+        Self::Other(error)
+    }
+}
+
+/// A requested `$defs` name the schema does not define.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UnknownDefinition {
+    pub name: String,
+    pub close_matches: Vec<String>,
 }
 
 /// Retry and timeout behavior shared by every declarative REST call. A call
@@ -134,6 +171,9 @@ pub struct DeclarativeService {
     // Absent only when the server runs without a REST endpoint (some tests).
     client: Option<RestClient>,
     retry: RestRetry,
+    // Fetched schemas keyed by the requested version. A deployment serves the
+    // schema compiled into its build, so it changes only on deploy.
+    schemas: Arc<Mutex<HashMap<Option<u32>, Arc<Value>>>>,
 }
 
 #[derive(Clone)]
@@ -155,6 +195,7 @@ impl DeclarativeService {
         Self {
             client,
             retry: RestRetry::default(),
+            schemas: Arc::default(),
         }
     }
 
@@ -225,12 +266,13 @@ impl DeclarativeService {
     /// the spec and is returned as `ShareLinkResult::Invalid`.
     pub async fn create_share_link(&self, spec: &str) -> Result<ShareLinkResult> {
         let action = "share link";
+        let body = ShareLinkRequest { spec };
         let response = self
             .send(
                 SHARE_LINK_PATH,
-                &ShareLinkRequest { spec },
                 action,
                 Some(StatusCode::BAD_REQUEST),
+                |http, url| http.post(url).json(&body),
             )
             .await?;
 
@@ -250,6 +292,53 @@ impl DeclarativeService {
         })
     }
 
+    /// Fetches the deployment's declarative chart JSON Schema. `version` is
+    /// the schema major; `None` asks for the current one. Successful fetches
+    /// are cached for the life of the service.
+    pub async fn fetch_schema(&self, version: Option<u32>) -> Result<Arc<Value>, SchemaError> {
+        if let Some(schema) = self.cached_schemas().get(&version) {
+            return Ok(Arc::clone(schema));
+        }
+
+        let action = "schema";
+        let response = self
+            .send(
+                SCHEMA_PATH,
+                action,
+                Some(StatusCode::NOT_FOUND),
+                |http, url| match version {
+                    Some(version) => http.get(format!("{url}?version={version}")),
+                    None => http.get(url),
+                },
+            )
+            .await?;
+        if response.status() == StatusCode::NOT_FOUND {
+            let message = body_message(&truncate(response.text().await.unwrap_or_default()));
+            return Err(match message {
+                Some(message) if message.contains(UNKNOWN_VERSION_MESSAGE) => {
+                    SchemaError::VersionNotFound(message)
+                }
+                _ => SchemaError::NotServed,
+            });
+        }
+
+        let schema: Value = decode(response, action).await?;
+        if !schema.get("$defs").is_some_and(Value::is_object) {
+            return Err(anyhow!(
+                "unexpected declarative schema response: the body is not a JSON Schema with `$defs`"
+            )
+            .into());
+        }
+
+        let schema = Arc::new(schema);
+        self.cached_schemas().insert(version, Arc::clone(&schema));
+        Ok(schema)
+    }
+
+    fn cached_schemas(&self) -> std::sync::MutexGuard<'_, HashMap<Option<u32>, Arc<Value>>> {
+        self.schemas.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
     /// POSTs `body` and decodes the response. HTTP 400 is the backend
     /// rejecting an empty or malformed request, so it comes back as
     /// `Err(message)` for the caller to report as an invalid spec.
@@ -264,7 +353,9 @@ impl DeclarativeService {
         R: for<'de> Deserialize<'de>,
     {
         let response = self
-            .send(path, body, action, Some(StatusCode::BAD_REQUEST))
+            .send(path, action, Some(StatusCode::BAD_REQUEST), |http, url| {
+                http.post(url).json(body)
+            })
             .await?;
         if response.status() == StatusCode::BAD_REQUEST {
             let body = truncate(response.text().await.unwrap_or_default());
@@ -273,31 +364,29 @@ impl DeclarativeService {
         decode(response, action).await.map(Ok)
     }
 
-    /// POSTs `body` under the retry policy. Returns the first successful
-    /// response, or one whose status is `accepted_status`. Any other status
-    /// is an error, retried only when transient.
-    async fn send<B: Serialize>(
+    /// Sends the request `build` makes for the endpoint URL, under the retry
+    /// policy, adding the timeout, auth, and user agent. Returns the first
+    /// successful response, or one whose status is `accepted_status`. Any
+    /// other status is an error, retried only when transient.
+    async fn send(
         &self,
         path: &str,
-        body: &B,
         action: &str,
         accepted_status: Option<StatusCode>,
+        build: impl Fn(&reqwest::Client, &str) -> reqwest::RequestBuilder,
     ) -> Result<reqwest::Response> {
         let client = self.client.as_ref().context(
-            "this server was started without a REST endpoint, so declarative specs cannot be checked",
+            "this server was started without a REST endpoint, so the declarative chart service is unavailable",
         )?;
         let url = format!("{}{path}", client.base_uri);
         let max_attempts = self.retry.max_attempts.max(1);
 
         let mut attempt = 1;
         loop {
-            let result = client
-                .http
-                .post(&url)
+            let result = build(&client.http, &url)
                 .timeout(self.retry.request_timeout)
                 .bearer_auth(&client.api_key)
                 .header(USER_AGENT, &client.user_agent)
-                .json(body)
                 .send()
                 .await;
 
@@ -373,15 +462,179 @@ fn truncate(body: String) -> String {
 /// Prefers the backend's JSON `message`, then the raw (already truncated)
 /// body, then a generic fallback.
 fn invalid_spec_message(body: &str) -> String {
+    body_message(body).unwrap_or_else(|| INVALID_SPEC_FALLBACK.to_owned())
+}
+
+/// The backend's JSON `message`, else the raw body, else `None` when empty.
+fn body_message(body: &str) -> Option<String> {
     if body.is_empty() {
-        return INVALID_SPEC_FALLBACK.to_owned();
+        return None;
     }
     match serde_json::from_str::<InvalidSpecBody>(body) {
         Ok(InvalidSpecBody {
             message: Some(message),
-        }) if !message.is_empty() => message,
-        _ => body.to_owned(),
+        }) if !message.is_empty() => Some(message),
+        _ => Some(body.to_owned()),
     }
+}
+
+/// A compact view of `schema`: the root without `$defs`, plus each `$defs`
+/// name with the first sentence of its description, sorted by name.
+pub fn schema_index(schema: &Value) -> Value {
+    let root: Map<String, Value> = schema
+        .as_object()
+        .into_iter()
+        .flatten()
+        .filter(|(key, _)| *key != "$defs")
+        .map(|(key, value)| (key.clone(), value.clone()))
+        .collect();
+    let mut definitions: Vec<Value> = defs(schema)
+        .map(|defs| {
+            defs.iter()
+                .map(|(name, definition)| {
+                    let description = definition
+                        .get("description")
+                        .and_then(Value::as_str)
+                        .unwrap_or_default();
+                    json!({ "name": name, "summary": first_sentence(description) })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    definitions.sort_by(|a, b| a["name"].as_str().cmp(&b["name"].as_str()));
+
+    json!({
+        "version": schema_version(schema),
+        "id": schema.get("$id").cloned().unwrap_or(Value::Null),
+        "root": root,
+        "definitions": definitions,
+    })
+}
+
+/// The requested `$defs` entries, plus `references`: the sorted `$defs`
+/// names they reference that were not requested. Any unknown name fails
+/// the whole selection, each with its close matches.
+pub fn select_definitions(
+    schema: &Value,
+    names: &[String],
+) -> std::result::Result<Value, Vec<UnknownDefinition>> {
+    let empty = Map::new();
+    let defs = defs(schema).unwrap_or(&empty);
+    let names: BTreeSet<&String> = names.iter().collect();
+
+    let unknown: Vec<UnknownDefinition> = names
+        .iter()
+        .filter(|name| !defs.contains_key(name.as_str()))
+        .map(|name| UnknownDefinition {
+            name: (*name).clone(),
+            close_matches: close_matches(name, defs.keys()),
+        })
+        .collect();
+    if !unknown.is_empty() {
+        return Err(unknown);
+    }
+
+    let selected: Map<String, Value> = names
+        .iter()
+        .map(|name| ((*name).clone(), defs[name.as_str()].clone()))
+        .collect();
+    let mut references = BTreeSet::new();
+    for definition in selected.values() {
+        collect_references(definition, &mut references);
+    }
+    references.retain(|name| !selected.contains_key(name));
+
+    Ok(json!({
+        "version": schema_version(schema),
+        "definitions": selected,
+        "references": references,
+    }))
+}
+
+/// Every `$defs` name, sorted.
+pub fn definition_names(schema: &Value) -> Vec<String> {
+    let mut names: Vec<String> = defs(schema)
+        .map(|defs| defs.keys().cloned().collect())
+        .unwrap_or_default();
+    names.sort();
+    names
+}
+
+/// The major version the schema pins with `properties.version.const`.
+pub fn schema_version(schema: &Value) -> Value {
+    schema
+        .pointer("/properties/version/const")
+        .cloned()
+        .unwrap_or(Value::Null)
+}
+
+fn defs(schema: &Value) -> Option<&Map<String, Value>> {
+    schema.get("$defs").and_then(Value::as_object)
+}
+
+/// Ends at the first ". " that does not close an `e.g.` or `i.e.`.
+fn first_sentence(text: &str) -> &str {
+    text.match_indices(". ")
+        .map(|(end, _)| &text[..=end])
+        .find(|sentence| !sentence.ends_with("e.g.") && !sentence.ends_with("i.e."))
+        .unwrap_or(text)
+}
+
+fn collect_references(value: &Value, references: &mut BTreeSet<String>) {
+    match value {
+        Value::Object(object) => {
+            for (key, child) in object {
+                if key == "$ref"
+                    && let Some(name) = child.as_str().and_then(|r| r.strip_prefix(DEFS_REF_PREFIX))
+                {
+                    references.insert(name.to_owned());
+                }
+                collect_references(child, references);
+            }
+        }
+        Value::Array(items) => {
+            for item in items {
+                collect_references(item, references);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// Names that contain or are contained in `name`, ignoring case, closest in
+/// length first; else names sharing at least `MIN_SHARED_PREFIX` leading
+/// characters with it, longest shared prefix first.
+fn close_matches<'a>(name: &str, candidates: impl Iterator<Item = &'a String>) -> Vec<String> {
+    let name = name.to_lowercase();
+    let candidates: Vec<(String, &String)> = candidates
+        .map(|candidate| (candidate.to_lowercase(), candidate))
+        .collect();
+
+    let mut matches: Vec<String> = candidates
+        .iter()
+        .filter(|(lower, _)| lower.contains(&name) || name.contains(lower.as_str()))
+        .map(|(_, candidate)| (*candidate).clone())
+        .collect();
+    if matches.is_empty() {
+        let mut by_prefix: Vec<(usize, &String)> = candidates
+            .iter()
+            .map(|(lower, candidate)| (shared_prefix(&name, lower), *candidate))
+            .filter(|(shared, _)| *shared >= MIN_SHARED_PREFIX)
+            .collect();
+        by_prefix.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(b.1)));
+        matches = by_prefix
+            .into_iter()
+            .map(|(_, candidate)| candidate.clone())
+            .collect();
+    } else {
+        matches.sort_by_key(|candidate| (candidate.len().abs_diff(name.len()), candidate.clone()));
+    }
+    matches.truncate(MAX_CLOSE_MATCHES);
+    matches
+}
+
+fn shared_prefix(a: &str, b: &str) -> usize {
+    a.chars().zip(b.chars()).take_while(|(a, b)| a == b).count()
 }
 
 #[cfg(test)]

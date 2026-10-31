@@ -6,7 +6,10 @@ use tokio::{
     task::JoinHandle,
 };
 
-use super::{DeclarativeService, Issue, RestRetry, ShareLinkResult};
+use super::{
+    DeclarativeService, Issue, RestRetry, SchemaError, ShareLinkResult, UnknownDefinition,
+    definition_names, schema_index, select_definitions,
+};
 use crate::client_event::start_http_server;
 use crate::service::remote_files::RestConfig;
 
@@ -619,4 +622,324 @@ async fn without_a_rest_endpoint_calls_fail_clearly() {
         .unwrap_err();
 
     assert!(format!("{error:#}").contains("without a REST endpoint"));
+}
+
+/// A small schema with the shape of the real one: a root whose properties
+/// reference `$defs`, and definitions that reference each other.
+pub(crate) const TEST_SCHEMA: &str = r##"{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/chart/v0.json",
+  "type": "object",
+  "properties": {
+    "version": { "const": 0, "description": "Schema version." },
+    "chart": { "$ref": "#/$defs/chart" }
+  },
+  "$defs": {
+    "chart": {
+      "description": "One chart. Picks a type.",
+      "oneOf": [{ "$ref": "#/$defs/timeseriesChart" }]
+    },
+    "timeseriesChart": {
+      "description": "A timeseries chart",
+      "properties": {
+        "series": { "type": "array", "items": { "$ref": "#/$defs/series" } },
+        "axis": { "$ref": "#/$defs/axis" }
+      }
+    },
+    "series": { "description": "One series. Binds a channel.", "type": "object" },
+    "axis": { "type": "string" },
+    "color": { "description": "A color, e.g. ruby. Named or hex.", "type": "string" }
+  }
+}"##;
+
+pub(crate) fn test_schema() -> serde_json::Value {
+    serde_json::from_str(TEST_SCHEMA).unwrap()
+}
+
+fn names(names: &[&str]) -> Vec<String> {
+    names.iter().map(|name| name.to_string()).collect()
+}
+
+#[tokio::test]
+async fn fetch_schema_sends_a_get_with_the_api_key() {
+    let (rest_uri, server) =
+        start_sequence_server(vec![Reply::Respond(http_response("200 OK", TEST_SCHEMA))]).await;
+
+    let schema = service(rest_uri).fetch_schema(None).await.unwrap();
+
+    let requests = server.await.unwrap();
+    let headers = String::from_utf8(requests[0].clone()).unwrap();
+    assert!(
+        String::from_utf8_lossy(&requests[0])
+            .starts_with("GET /api/v1/declarative:schema HTTP/1.1")
+    );
+    assert!(
+        headers
+            .lines()
+            .any(|line| line.eq_ignore_ascii_case("authorization: Bearer test-key"))
+    );
+    assert!(
+        headers
+            .lines()
+            .any(|line| line.eq_ignore_ascii_case("user-agent: sift_mcp/1.2.3"))
+    );
+    assert_eq!(*schema, test_schema());
+}
+
+#[tokio::test]
+async fn fetch_schema_sends_the_version_query() {
+    let (rest_uri, server) =
+        start_sequence_server(vec![Reply::Respond(http_response("200 OK", TEST_SCHEMA))]).await;
+
+    service(rest_uri).fetch_schema(Some(0)).await.unwrap();
+
+    let requests = server.await.unwrap();
+    assert!(
+        String::from_utf8_lossy(&requests[0])
+            .starts_with("GET /api/v1/declarative:schema?version=0 HTTP/1.1")
+    );
+}
+
+#[tokio::test]
+async fn fetch_schema_is_cached_per_version() {
+    let (rest_uri, server) = start_sequence_server(vec![
+        Reply::Respond(http_response("200 OK", TEST_SCHEMA)),
+        Reply::Respond(http_response("200 OK", TEST_SCHEMA)),
+    ])
+    .await;
+    let service = service(rest_uri);
+
+    service.fetch_schema(None).await.unwrap();
+    service.clone().fetch_schema(None).await.unwrap();
+    service.fetch_schema(Some(0)).await.unwrap();
+
+    let requests = server.await.unwrap();
+    assert_eq!(requests.len(), 2);
+    assert!(
+        String::from_utf8_lossy(&requests[1])
+            .starts_with("GET /api/v1/declarative:schema?version=0 HTTP/1.1")
+    );
+}
+
+#[tokio::test]
+async fn fetch_schema_does_not_cache_failures() {
+    let (rest_uri, server) = start_sequence_server(vec![
+        Reply::Respond(http_response("503 Service Unavailable", "busy")),
+        Reply::Respond(http_response("200 OK", TEST_SCHEMA)),
+    ])
+    .await;
+    let service = service_with_retry(
+        rest_uri,
+        RestRetry {
+            max_attempts: 1,
+            ..fast_retry()
+        },
+    );
+
+    assert!(service.fetch_schema(None).await.is_err());
+    service.fetch_schema(None).await.unwrap();
+
+    assert_eq!(server.await.unwrap().len(), 2);
+}
+
+#[tokio::test]
+async fn a_gateway_404_is_not_served_with_or_without_a_version() {
+    for version in [None, Some(0)] {
+        let (rest_uri, _server) = start_http_server(http_response(
+            "404 Not Found",
+            r#"{"code":5,"message":"Not Found"}"#,
+        ))
+        .await;
+
+        let error = service(rest_uri).fetch_schema(version).await.unwrap_err();
+
+        assert!(
+            matches!(error, SchemaError::NotServed),
+            "{version:?}: {error:?}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn an_unknown_version_404_carries_the_backend_message() {
+    let (rest_uri, _server) = start_http_server(http_response(
+        "404 Not Found",
+        r#"{"code":5,"message":"not found: declarative schema version 7; available versions: 0"}"#,
+    ))
+    .await;
+
+    let error = service(rest_uri).fetch_schema(Some(7)).await.unwrap_err();
+
+    let SchemaError::VersionNotFound(message) = error else {
+        panic!("expected VersionNotFound, got {error:?}");
+    };
+    assert_eq!(
+        message,
+        "not found: declarative schema version 7; available versions: 0"
+    );
+}
+
+#[tokio::test]
+async fn a_body_without_defs_is_an_unexpected_response() {
+    // The schema wrapped in a response field instead of returned as the body.
+    let (rest_uri, _server) =
+        start_http_server(http_response("200 OK", r#"{"schema":{"$defs":{}}}"#)).await;
+
+    let error = service(rest_uri).fetch_schema(None).await.unwrap_err();
+
+    let SchemaError::Other(error) = error else {
+        panic!("expected Other, got {error:?}");
+    };
+    assert!(format!("{error:#}").contains("unexpected declarative schema response"));
+}
+
+#[tokio::test]
+async fn fetch_schema_retries_a_transient_failure() {
+    let (rest_uri, server) = start_sequence_server(vec![
+        Reply::Respond(http_response("503 Service Unavailable", "busy")),
+        Reply::Respond(http_response("200 OK", TEST_SCHEMA)),
+    ])
+    .await;
+
+    service(rest_uri).fetch_schema(None).await.unwrap();
+
+    assert_eq!(server.await.unwrap().len(), 2);
+}
+
+#[tokio::test]
+async fn a_schema_401_fails_without_retrying() {
+    let (rest_uri, server) = start_sequence_server(vec![Reply::Respond(http_response(
+        "401 Unauthorized",
+        "bad key",
+    ))])
+    .await;
+
+    let error = service(rest_uri).fetch_schema(None).await.unwrap_err();
+
+    let SchemaError::Other(error) = error else {
+        panic!("expected Other, got {error:?}");
+    };
+    assert!(format!("{error:#}").contains("HTTP 401"), "{error:#}");
+    assert_eq!(server.await.unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn without_a_rest_endpoint_fetch_schema_fails_clearly() {
+    let error = DeclarativeService::new(None, "1.2.3")
+        .fetch_schema(None)
+        .await
+        .unwrap_err();
+
+    let SchemaError::Other(error) = error else {
+        panic!("expected Other, got {error:?}");
+    };
+    assert!(format!("{error:#}").contains("without a REST endpoint"));
+}
+
+#[test]
+fn schema_index_lists_every_definition_with_its_first_sentence() {
+    let index = schema_index(&test_schema());
+
+    assert_eq!(index["version"], 0);
+    assert_eq!(index["id"], "https://example.com/chart/v0.json");
+    assert!(index["root"].get("$defs").is_none());
+    assert_eq!(
+        index["root"]["properties"]["chart"]["$ref"],
+        "#/$defs/chart"
+    );
+    assert_eq!(
+        index["definitions"],
+        serde_json::json!([
+            { "name": "axis", "summary": "" },
+            { "name": "chart", "summary": "One chart." },
+            { "name": "color", "summary": "A color, e.g. ruby." },
+            { "name": "series", "summary": "One series." },
+            { "name": "timeseriesChart", "summary": "A timeseries chart" },
+        ])
+    );
+}
+
+#[test]
+fn select_definitions_returns_requested_entries_and_unreturned_references() {
+    let selected =
+        select_definitions(&test_schema(), &names(&["chart", "timeseriesChart"])).unwrap();
+
+    assert_eq!(selected["version"], 0);
+    assert_eq!(
+        selected["definitions"]["timeseriesChart"]["description"],
+        "A timeseries chart"
+    );
+    assert_eq!(selected["definitions"].as_object().unwrap().len(), 2);
+    assert_eq!(
+        selected["references"],
+        serde_json::json!(["axis", "series"])
+    );
+}
+
+#[test]
+fn select_definitions_rejects_unknown_names_with_close_matches() {
+    let unknown = select_definitions(
+        &test_schema(),
+        &names(&["timeseries", "chart", "seriesStyle"]),
+    )
+    .unwrap_err();
+
+    assert_eq!(
+        unknown,
+        vec![
+            UnknownDefinition {
+                name: "seriesStyle".into(),
+                close_matches: names(&["series"]),
+            },
+            UnknownDefinition {
+                name: "timeseries".into(),
+                close_matches: names(&["series", "timeseriesChart"]),
+            },
+        ]
+    );
+}
+
+#[test]
+fn close_matches_ignore_case_and_fall_back_to_a_shared_prefix() {
+    let unknown = select_definitions(
+        &test_schema(),
+        &names(&["CHART", "axes", "legend", "seriez"]),
+    )
+    .unwrap_err();
+
+    assert_eq!(
+        unknown[0].close_matches,
+        names(&["chart", "timeseriesChart"])
+    );
+    assert!(unknown[1].close_matches.is_empty(), "{unknown:?}");
+    assert!(unknown[2].close_matches.is_empty(), "{unknown:?}");
+    assert_eq!(unknown[3].close_matches, names(&["series"]));
+}
+
+#[test]
+fn definition_names_are_sorted() {
+    assert_eq!(
+        definition_names(&test_schema()),
+        names(&["axis", "chart", "color", "series", "timeseriesChart"])
+    );
+}
+
+#[test]
+fn close_matches_rank_by_length_closeness() {
+    let unknown = select_definitions(&test_schema(), &names(&["seriesChart"])).unwrap_err();
+
+    // Alphabetical order would put `chart` first.
+    assert_eq!(
+        unknown[0].close_matches,
+        names(&["timeseriesChart", "series", "chart"])
+    );
+}
+
+#[test]
+fn duplicate_definition_names_are_reported_once() {
+    let unknown = select_definitions(&test_schema(), &names(&["legend", "legend"])).unwrap_err();
+    assert_eq!(unknown.len(), 1);
+
+    let selected = select_definitions(&test_schema(), &names(&["axis", "axis"])).unwrap();
+    assert_eq!(selected["definitions"].as_object().unwrap().len(), 1);
 }

@@ -112,7 +112,7 @@ tool.
   to enable them, then restart the MCP client.
 - **Data:** `get_data` writes channel data to a Parquet file. `sql` queries
   Parquet files. `upload_dataset` streams a Parquet dataset into Sift.
-- **Charts:** `create_declarative_chart`.
+- **Charts:** `create_declarative_chart`, `get_chart_schema`.
 - **Links:** `explore_url`.
 - **Docs:** `search_docs`.
 - **Writes:** `create_rule`, `update_rule`, `archive_rule`, `unarchive_rule`,
@@ -229,7 +229,8 @@ tool.
   artifacts with `list_artifacts` and `include_archived=true`, then restore one
   with `unarchive_artifact`. Both writes need `--allow-destructive`.
 - **Produce a chart.** Use `create_declarative_chart` with a spec (see
-  references/declarative-charts.md). For quick links to Sift Explore, use
+  references/declarative-charts.md). Look up allowed keys with
+  `get_chart_schema` before writing a spec. For quick links to Sift Explore, use
   `explore_url` instead. When the user wants a chart and numbers, do both and
   give the user both.
 - **Answer a question about how Sift works.** Call `search_docs`. Do not answer
