@@ -41,6 +41,36 @@ async def _build(**kwargs):
     )
 
 
+class TestStreamingMode:
+    @pytest.mark.asyncio
+    async def test_defaults_to_live_only(self, config_builder):
+        await _build()
+
+        config_builder.live_only.return_value.build.assert_awaited_once()
+        config_builder.live_with_backups.assert_not_called()
+        config_builder.file_backup.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_backups_are_explicit_opt_in(self, config_builder):
+        backup_policy = sift_stream_bindings.DiskBackupPolicyPy.default()
+        retry_policy = sift_stream_bindings.RetryPolicyPy.default()
+
+        await _build(
+            streaming_mode=StreamingMode.LIVE_WITH_BACKUPS,
+            disk_backup_policy=backup_policy,
+            retry_policy=retry_policy,
+            checkpoint_interval_seconds=30,
+        )
+
+        mode_builder = config_builder.live_with_backups.return_value
+        mode_builder.build.assert_awaited_once()
+        assert mode_builder.disk_backup_policy is backup_policy
+        assert mode_builder.retry_policy is retry_policy
+        assert mode_builder.checkpoint_interval.to_timedelta() == timedelta(seconds=30)
+        config_builder.live_only.assert_not_called()
+        config_builder.file_backup.assert_not_called()
+
+
 @pytest.mark.parametrize("streaming_mode", list(MODE_BUILDER_METHODS))
 class TestMetricsStreamingInterval:
     @pytest.mark.asyncio
