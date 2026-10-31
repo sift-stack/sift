@@ -1,4 +1,4 @@
-use rmcp::handler::server::wrapper::Parameters;
+use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
 use serde_json::Value;
 use sift_test_util::grpc::memory_sift_channel;
 
@@ -8,7 +8,9 @@ use crate::{
     service::{
         declarative::{
             DeclarativeService,
-            test::{Reply, fast_retry, http_response, start_sequence_server},
+            test::{
+                Reply, TEST_SCHEMA, fast_retry, http_response, start_sequence_server, test_schema,
+            },
         },
         remote_files::RestConfig,
     },
@@ -747,4 +749,181 @@ async fn a_success_result_carries_warnings_the_link_and_a_next_step() {
     assert_eq!(result.content.len(), 1);
     let content = serde_json::to_value(&result.content[0]).unwrap();
     assert_eq!(content["text"], next_step);
+}
+
+async fn get_schema(
+    replies: Vec<Reply>,
+    version: Option<u32>,
+    definitions: Option<Vec<&str>>,
+    full: Option<bool>,
+) -> (error::McpResult, Vec<Vec<u8>>) {
+    let (rest_uri, requests) = start_sequence_server(replies).await;
+    let server = server_with_rest(rest_uri).await;
+    let result = server
+        .get_chart_schema(Parameters(GetChartSchemaParams {
+            version,
+            definitions: definitions.map(|names| names.into_iter().map(str::to_string).collect()),
+            full,
+        }))
+        .await;
+    (result, requests.await.unwrap())
+}
+
+fn schema_reply() -> Vec<Reply> {
+    vec![Reply::Respond(http_response("200 OK", TEST_SCHEMA))]
+}
+
+#[tokio::test]
+async fn get_chart_schema_defaults_to_the_index() {
+    let (result, _) = get_schema(schema_reply(), None, None, None).await;
+
+    let structured = structured(&result.unwrap());
+    assert_eq!(structured["version"], 0);
+    assert!(structured["root"].get("$defs").is_none());
+    assert_eq!(structured["definitions"].as_array().unwrap().len(), 5);
+    assert!(
+        structured["next_step"]
+            .as_str()
+            .unwrap()
+            .contains("`definitions`")
+    );
+}
+
+#[tokio::test]
+async fn get_chart_schema_returns_requested_definitions_and_references() {
+    let (result, _) = get_schema(schema_reply(), None, Some(vec!["timeseriesChart"]), None).await;
+
+    let structured = structured(&result.unwrap());
+    assert!(structured["definitions"]["timeseriesChart"].is_object());
+    assert_eq!(
+        structured["references"],
+        serde_json::json!(["axis", "series"])
+    );
+}
+
+#[tokio::test]
+async fn get_chart_schema_full_returns_the_whole_schema() {
+    let (result, _) = get_schema(schema_reply(), None, None, Some(true)).await;
+
+    let structured = structured(&result.unwrap());
+    assert_eq!(structured["schema"], test_schema());
+    assert_eq!(structured["version"], 0);
+}
+
+#[tokio::test]
+async fn get_chart_schema_rejects_definitions_with_full_before_fetching() {
+    let (result, _) = get_schema(Vec::new(), None, Some(vec!["chart"]), Some(true)).await;
+
+    let error = result.unwrap_err();
+    assert_eq!(error.code, ErrorCode::INVALID_PARAMS);
+    assert!(error.message.contains("not both"), "{}", error.message);
+}
+
+#[tokio::test]
+async fn get_chart_schema_rejects_empty_definitions() {
+    let (result, _) = get_schema(Vec::new(), None, Some(Vec::new()), None).await;
+
+    assert_eq!(result.unwrap_err().code, ErrorCode::INVALID_PARAMS);
+}
+
+#[tokio::test]
+async fn get_chart_schema_suggests_close_matches_for_unknown_definitions() {
+    let (result, _) = get_schema(schema_reply(), None, Some(vec!["timeseries"]), None).await;
+
+    let error = result.unwrap_err();
+    assert_eq!(error.code, ErrorCode::INVALID_PARAMS);
+    assert!(
+        error
+            .message
+            .contains("did you mean `series`, `timeseriesChart`?"),
+        "{}",
+        error.message
+    );
+    assert!(!error.message.contains("Valid definitions"));
+}
+
+#[tokio::test]
+async fn get_chart_schema_lists_valid_names_when_nothing_is_close() {
+    let (result, _) = get_schema(schema_reply(), None, Some(vec!["legend"]), None).await;
+
+    let error = result.unwrap_err();
+    assert!(
+        error
+            .message
+            .contains("Valid definitions: `axis`, `chart`, `color`, `series`, `timeseriesChart`"),
+        "{}",
+        error.message
+    );
+}
+
+#[tokio::test]
+async fn get_chart_schema_reports_a_deployment_without_the_endpoint() {
+    let (result, _) = get_schema(
+        vec![Reply::Respond(http_response("404 Not Found", "{}"))],
+        None,
+        None,
+        None,
+    )
+    .await;
+
+    let error = result.unwrap_err();
+    assert_eq!(error.code, ErrorCode::RESOURCE_NOT_FOUND);
+    assert!(
+        error
+            .message
+            .contains("does not serve the declarative chart schema"),
+        "{}",
+        error.message
+    );
+}
+
+#[tokio::test]
+async fn get_chart_schema_reports_an_unknown_version() {
+    let (result, requests) = get_schema(
+        vec![Reply::Respond(http_response(
+            "404 Not Found",
+            r#"{"code":5,"message":"not found: declarative schema version 7; available versions: 0"}"#,
+        ))],
+        Some(7),
+        None,
+        None,
+    )
+    .await;
+
+    let error = result.unwrap_err();
+    assert_eq!(error.code, ErrorCode::RESOURCE_NOT_FOUND);
+    assert!(
+        error.message.contains("available versions: 0"),
+        "{}",
+        error.message
+    );
+    assert!(
+        String::from_utf8_lossy(&requests[0])
+            .starts_with("GET /api/v1/declarative:schema?version=7 HTTP/1.1")
+    );
+}
+
+#[test]
+fn get_chart_schema_description_names_its_parameters_and_errors() {
+    let tool = SiftMcpServer::explore_router()
+        .list_all()
+        .into_iter()
+        .find(|tool| tool.name == "get_chart_schema")
+        .expect("get_chart_schema is registered");
+    let description = tool.description.unwrap_or_default();
+
+    for needle in [
+        "`version`",
+        "`definitions`",
+        "`full`",
+        "RESOURCE_NOT_FOUND",
+        "INVALID_PARAMS",
+    ] {
+        assert!(description.contains(needle), "missing {needle}");
+    }
+    assert_eq!(
+        tool.annotations
+            .and_then(|annotations| annotations.read_only_hint),
+        Some(true)
+    );
 }

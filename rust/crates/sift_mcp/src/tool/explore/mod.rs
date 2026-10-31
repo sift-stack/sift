@@ -1,4 +1,5 @@
 use rmcp::{
+    ErrorData,
     handler::server::wrapper::Parameters,
     model::{CallToolResult, ContentBlock},
     schemars::{self, JsonSchema},
@@ -8,10 +9,13 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 
 use crate::{
-    error,
+    error::{self, from_anyhow},
     server::SiftMcpServer,
     service::{
-        declarative::{Issue, ShareLinkResult},
+        declarative::{
+            Issue, SchemaError, ShareLinkResult, UnknownDefinition, definition_names, schema_index,
+            schema_version, select_definitions,
+        },
         url::ExploreUrlRequest,
     },
 };
@@ -25,6 +29,13 @@ const MAX_REPAIR_ATTEMPTS: u32 = 3;
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct CreateDeclarativeChartParams {
     spec: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct GetChartSchemaParams {
+    version: Option<u32>,
+    definitions: Option<Vec<String>>,
+    full: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -186,6 +197,7 @@ impl SiftMcpServer {
               - Bind a calculated channel with `calculatedChannelId`, not by name.
               - A spec with exactly one chart displays inline in Sift agent chat. Specs with several charts or a
                 `layout` still return a working Explore link.
+              - To look up allowed keys before writing a spec, call `get_chart_schema`.
               - Prefer YAML. JSON is accepted.
               - On `invalid_spec`, fix every listed path and resend the complete spec. After 3 failed attempts,
                 stop and summarize the problem to the user instead of retrying.
@@ -268,6 +280,143 @@ impl SiftMcpServer {
         result.content = vec![ContentBlock::text(next_step)];
         Ok(result)
     }
+
+    #[tool(
+        name = "get_chart_schema",
+        description = "
+            Fetch the declarative chart JSON Schema that this Sift deployment validates specs against.
+
+            Output (one of):
+              - Index (no `definitions`, no `full`): `{ \"version\", \"id\", \"root\", \"definitions\": [{\"name\",
+                \"summary\"}], \"next_step\" }`. `root` is the schema without `$defs`; its `$ref`s name `$defs` entries.
+              - Definitions: `{ \"version\", \"definitions\": {\"<name>\": <JSON Schema>}, \"references\": [\"<name>\"] }`.
+                `references` lists `$defs` names the returned entries reference and you did not request.
+              - Full: `{ \"version\", \"schema\": <whole schema> }`.
+
+            Parameters:
+              - `version`: optional schema major version. Omit it for the deployment's current version.
+              - `definitions`: optional `$defs` names to return, matched exactly. Take names from the index or from
+                `references`.
+              - `full`: optional, defaults to false. Returns the whole schema, about 95 KB. Use it only when the user
+                wants the complete document, for example to save it. Cannot be combined with `definitions`.
+
+            Errors:
+              - `RESOURCE_NOT_FOUND` if this deployment does not serve the schema, or does not have `version`
+                (the message lists the available versions).
+              - `INVALID_PARAMS` if a name in `definitions` is unknown (the message suggests close matches), if
+                `definitions` is empty, or if `definitions` and `full` are both set.
+
+            Guidance:
+              - Start with the index, then fetch the definitions for the chart you are writing (for example
+                `timeseriesChart`) and follow `references` only as far as you need.
+              - The schema comes from the deployment, so it is the version `create_declarative_chart` validates
+                against. Validation errors from that tool remain the final word on a spec.
+        ",
+        annotations(title = "explore/get_chart_schema", read_only_hint = true)
+    )]
+    pub async fn get_chart_schema(
+        &self,
+        params: Parameters<GetChartSchemaParams>,
+    ) -> error::McpResult {
+        let Parameters(GetChartSchemaParams {
+            version,
+            definitions,
+            full,
+        }) = params;
+        let full = full.unwrap_or(false);
+
+        if full && definitions.is_some() {
+            return Err(ErrorData::invalid_params(
+                "set either `definitions` or `full`, not both",
+                None,
+            ));
+        }
+        if definitions.as_ref().is_some_and(Vec::is_empty) {
+            return Err(ErrorData::invalid_params(
+                "`definitions` is empty; omit it to get the index",
+                None,
+            ));
+        }
+
+        let schema = self
+            .declarative_service
+            .fetch_schema(version)
+            .await
+            .map_err(schema_error)?;
+
+        if full {
+            return Ok(CallToolResult::structured(json!({
+                "version": schema_version(&schema),
+                "schema": *schema,
+            })));
+        }
+        if let Some(names) = definitions {
+            return select_definitions(&schema, &names)
+                .map(CallToolResult::structured)
+                .map_err(|unknown| unknown_definitions_error(&unknown, &schema));
+        }
+
+        let mut index = schema_index(&schema);
+        index["next_step"] = json!(
+            "Call `get_chart_schema` again with `definitions` set to the entries the chart needs, such as \
+             its chart type, and follow `references` as needed. Validate the finished spec with \
+             `create_declarative_chart`."
+        );
+        Ok(CallToolResult::structured(index))
+    }
+}
+
+fn schema_error(error: SchemaError) -> ErrorData {
+    match error {
+        SchemaError::NotServed => ErrorData::resource_not_found(
+            "This Sift deployment does not serve the declarative chart schema yet. Write the spec from \
+             the examples you have and use the validation errors from `create_declarative_chart` to \
+             find the allowed keys.",
+            None,
+        ),
+        SchemaError::VersionNotFound(message) => ErrorData::resource_not_found(
+            format!(
+                "This deployment does not have that declarative chart schema version ({message}). \
+                 Call again with an available `version`, or without `version` for the current schema."
+            ),
+            None,
+        ),
+        SchemaError::Other(error) => from_anyhow(error),
+    }
+}
+
+/// Names each unknown definition with its close matches. When a name has none, lists every
+/// valid name so the agent can recover in one step.
+fn unknown_definitions_error(unknown: &[UnknownDefinition], schema: &Value) -> ErrorData {
+    let mut lines: Vec<String> = unknown
+        .iter()
+        .map(|found| {
+            if found.close_matches.is_empty() {
+                format!("`{}` is not a schema definition", found.name)
+            } else {
+                format!(
+                    "`{}` is not a schema definition; did you mean {}?",
+                    found.name,
+                    backticked(&found.close_matches)
+                )
+            }
+        })
+        .collect();
+    if unknown.iter().any(|found| found.close_matches.is_empty()) {
+        lines.push(format!(
+            "Valid definitions: {}",
+            backticked(&definition_names(schema))
+        ));
+    }
+    ErrorData::invalid_params(lines.join("\n"), None)
+}
+
+fn backticked(names: &[String]) -> String {
+    names
+        .iter()
+        .map(|name| format!("`{name}`"))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 fn issue(path: &str, message: &str) -> Value {
