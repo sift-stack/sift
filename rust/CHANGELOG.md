@@ -14,6 +14,13 @@ per entity. `upload_dataset` returns `asset_url` and `run_url` and names both in
 before, it returned bare ids with no link. `explore_url` asks for descriptive link text instead of
 the word "link".
 
+#### MCP tool `get_chart_schema` returns the declarative chart schema
+
+The new read-only `get_chart_schema` tool returns the deployment's declarative chart JSON Schema.
+With no arguments it returns an index of the schema's definitions. `definitions` returns the named
+entries and lists the definitions they reference, and `full` returns the whole schema. A deployment
+that does not serve the schema yet returns a not-found error.
+
 ### Bug Fixes
 
 #### Runtime threads no longer crash the Python process at interpreter exit

@@ -46,7 +46,7 @@ chart:
 
 ## Schema reference
 
-`get_chart_schema` returns the JSON Schema that this deployment validates against. Use it to look up allowed keys and constraints. Validation errors from `create_declarative_chart` remain the final word on a spec. If `get_chart_schema` reports that the deployment does not serve the schema, use the examples here and fix each reported path. `create_declarative_chart` accepts `version: 0` YAML or JSON. A single chart uses `chart` or one entry under `charts` and displays inline in Sift agent chat. Several charts or a top-level `layout` are accepted and return an Explore link.
+`get_chart_schema` returns the deployment's declarative chart JSON Schema. Use it to look up allowed keys and constraints. Validation errors from `create_declarative_chart` remain the final word on a spec. If `get_chart_schema` reports that the deployment does not serve the schema, use the examples here and fix each reported path. `create_declarative_chart` accepts `version: 0` YAML or JSON. A single chart uses `chart` or one entry under `charts` and displays inline in Sift agent chat. Several charts or a top-level `layout` are accepted and return an Explore link.
 
 ## Run and inline expression example
 

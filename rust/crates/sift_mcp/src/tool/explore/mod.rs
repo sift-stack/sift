@@ -284,7 +284,7 @@ impl SiftMcpServer {
     #[tool(
         name = "get_chart_schema",
         description = "
-            Fetch the declarative chart JSON Schema that this Sift deployment validates specs against.
+            Fetch the deployment's declarative chart JSON Schema.
 
             Output (one of):
               - Index (no `definitions`, no `full`): `{ \"version\", \"id\", \"root\", \"definitions\": [{\"name\",
@@ -309,8 +309,8 @@ impl SiftMcpServer {
             Guidance:
               - Start with the index, then fetch the definitions for the chart you are writing (for example
                 `timeseriesChart`) and follow `references` only as far as you need.
-              - The schema comes from the deployment, so it is the version `create_declarative_chart` validates
-                against. Validation errors from that tool remain the final word on a spec.
+              - `create_declarative_chart` checks specs on the same deployment. Its validation errors remain the
+                final word on a spec.
         ",
         annotations(title = "explore/get_chart_schema", read_only_hint = true)
     )]
@@ -385,8 +385,8 @@ fn schema_error(error: SchemaError) -> ErrorData {
     }
 }
 
-/// Names each unknown definition with its close matches. When a name has none, lists every
-/// valid name so the agent can recover in one step.
+/// Names each unknown definition with its close matches. When a name has none, also lists every
+/// valid name.
 fn unknown_definitions_error(unknown: &[UnknownDefinition], schema: &Value) -> ErrorData {
     let mut lines: Vec<String> = unknown
         .iter()

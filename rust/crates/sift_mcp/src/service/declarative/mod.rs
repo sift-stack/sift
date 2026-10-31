@@ -17,8 +17,8 @@ const MIGRATE_PATH: &str = "/api/v1/declarative:migrate";
 const SHARE_LINK_PATH: &str = "/api/v1/declarative:sharelink";
 const SCHEMA_PATH: &str = "/api/v1/declarative:schema";
 const DEFS_REF_PREFIX: &str = "#/$defs/";
-/// Starts the backend's not-found message for an unknown schema version. A
-/// route the deployment does not have returns the gateway's plain "Not Found".
+/// Appears in the backend's not-found message for an unknown schema version.
+/// A deployment without the route returns the gateway's plain "Not Found".
 const UNKNOWN_VERSION_MESSAGE: &str = "declarative schema version";
 const MAX_CLOSE_MATCHES: usize = 5;
 /// Shortest shared prefix that makes a definition name a close match.
@@ -68,8 +68,7 @@ pub enum ShareLinkResult {
     Invalid { message: String },
 }
 
-/// Why the schema could not be fetched. The two 404 cases are separate
-/// variants so the tool can tell the agent how to recover.
+/// Why the schema could not be fetched.
 #[derive(Debug)]
 pub enum SchemaError {
     /// HTTP 404 from the gateway: this deployment has no schema endpoint.
@@ -293,9 +292,9 @@ impl DeclarativeService {
         })
     }
 
-    /// Fetches the declarative chart JSON Schema this deployment validates
-    /// against. `version` is the schema major; `None` asks for the current
-    /// one. Successful fetches are cached for the life of the service.
+    /// Fetches the deployment's declarative chart JSON Schema. `version` is
+    /// the schema major; `None` asks for the current one. Successful fetches
+    /// are cached for the life of the service.
     pub async fn fetch_schema(&self, version: Option<u32>) -> Result<Arc<Value>, SchemaError> {
         if let Some(schema) = self.cached_schemas().get(&version) {
             return Ok(Arc::clone(schema));
@@ -552,7 +551,7 @@ pub fn select_definitions(
     }))
 }
 
-/// Every `$defs` name, sorted, for an error that has no close match.
+/// Every `$defs` name, sorted.
 pub fn definition_names(schema: &Value) -> Vec<String> {
     let mut names: Vec<String> = defs(schema)
         .map(|defs| defs.keys().cloned().collect())

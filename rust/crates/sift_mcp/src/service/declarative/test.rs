@@ -781,11 +781,9 @@ async fn an_unknown_version_404_carries_the_backend_message() {
 
 #[tokio::test]
 async fn a_body_without_defs_is_an_unexpected_response() {
-    let (rest_uri, _server) = start_http_server(http_response(
-        "200 OK",
-        r#"{"contentType":"application/schema+json","data":"e30="}"#,
-    ))
-    .await;
+    // The schema wrapped in a response field instead of returned as the body.
+    let (rest_uri, _server) =
+        start_http_server(http_response("200 OK", r#"{"schema":{"$defs":{}}}"#)).await;
 
     let error = service(rest_uri).fetch_schema(None).await.unwrap_err();
 
