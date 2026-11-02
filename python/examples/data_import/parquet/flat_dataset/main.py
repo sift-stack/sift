@@ -46,6 +46,19 @@ if __name__ == "__main__":
     # # Example: drop a column from the import
     # config.data_columns = [dc for dc in config.data_columns if dc.path != "channel_0"]
     #
+    # # Example: import an integer column as a bit field. Parquet stores only the
+    # # raw integer, so detect_config can't infer the bit layout; supply it here.
+    # # Each element's index is its starting bit and bit_count is its width.
+    # from sift_client.sift_types.channel import ChannelBitFieldElement, ChannelDataType
+    #
+    # status = config["status"]
+    # status.data_type = ChannelDataType.BIT_FIELD
+    # status.bit_field_elements = [
+    #     ChannelBitFieldElement(name="armed", index=0, bit_count=1),
+    #     ChannelBitFieldElement(name="error_code", index=1, bit_count=3),
+    #     ChannelBitFieldElement(name="mode", index=4, bit_count=4),
+    # ]
+    #
     # import_job = client.data_import.import_from_path(
     #     "sample_data.parquet",
     #     asset=asset_name,

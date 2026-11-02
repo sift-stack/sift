@@ -1,0 +1,15 @@
+Data columns on all import configs accept `bit_field_elements`, so you can import an integer column as a `BIT_FIELD` channel.
+
+```python
+from sift_client.sift_types.channel import ChannelBitFieldElement, ChannelDataType
+
+config = client.data_import.detect_config("data.parquet", data_type=DataTypeKey.PARQUET_FLATDATASET)
+status = config["status"]
+status.data_type = ChannelDataType.BIT_FIELD
+status.bit_field_elements = [
+    ChannelBitFieldElement(name="armed", index=0, bit_count=1),
+    ChannelBitFieldElement(name="mode", index=4, bit_count=4),
+]
+```
+
+A column must set `bit_field_elements` exactly when its data type is `BIT_FIELD`. Element names must be unique, each element needs `index >= 0` and `bit_count >= 1`, and elements can't overlap. Import configs now re-check `enum_types` and `bit_field_elements` before an import, so a column edited in place fails before the request is sent. Multi-channel Parquet single-channel-per-row imports don't support bit fields, since channel configs there are derived per row.

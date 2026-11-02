@@ -41,7 +41,7 @@ from sift_client._internal.util.data_imports import (
 from sift_client._internal.util.time_column import infer_time_column
 from sift_client._tests.sift_types.channel_time import assert_axis_matches_channel
 from sift_client.resources import DataImportAPI, DataImportAPIAsync
-from sift_client.sift_types.channel import ChannelDataType
+from sift_client.sift_types.channel import ChannelBitFieldElement, ChannelDataType
 from sift_client.sift_types.data_import import (
     CsvDataColumn,
     CsvImportConfig,
@@ -1610,3 +1610,222 @@ class TestEnumTypes:
     def test_no_enum_types_from_proto_is_none(self, csv_config):
         round_tripped = CsvImportConfig._from_proto(csv_config._to_proto())
         assert round_tripped["cpu_util"].enum_types is None
+
+    def test_mcap_round_trip(self):
+        config = McapImportConfig(
+            asset_name="a",
+            data=[
+                McapDataColumn(
+                    topic="/state",
+                    field_path="mode",
+                    data_type=ChannelDataType.ENUM,
+                    enum_types=ENUMS,
+                )
+            ],
+        )
+        proto = config._to_proto()
+        assert _enum_dict(proto.data[0].channel_config) == ENUMS
+        assert McapImportConfig._from_proto(proto).data[0].enum_types == ENUMS
+
+    def test_in_place_edit_is_validated_on_import(self, csv_config):
+        csv_config["cpu_util"].data_type = ChannelDataType.ENUM
+        with pytest.raises(ValueError, match="requires 'enum_types'"):
+            csv_config._to_proto()
+
+
+BIT_FIELDS = [
+    ChannelBitFieldElement(name="armed", index=0, bit_count=1),
+    ChannelBitFieldElement(name="error_code", index=1, bit_count=3),
+    ChannelBitFieldElement(name="mode", index=4, bit_count=4),
+]
+
+
+def _bit_field_list(channel_config: ChannelConfigProto) -> list[ChannelBitFieldElement]:
+    return [ChannelBitFieldElement._from_proto(el) for el in channel_config.bit_field_elements]
+
+
+class TestBitFieldElements:
+    def test_csv_round_trip(self):
+        config = CsvImportConfig(
+            asset_name="a",
+            time_column=CsvTimeColumn(column=1, format=TimeFormat.ABSOLUTE_RFC3339),
+            data_columns=[
+                CsvDataColumn(
+                    column=2,
+                    name="status",
+                    data_type=ChannelDataType.BIT_FIELD,
+                    bit_field_elements=BIT_FIELDS,
+                )
+            ],
+        )
+        proto = config._to_proto()
+        assert _bit_field_list(proto.data_columns[2]) == BIT_FIELDS
+        assert CsvImportConfig._from_proto(proto)["status"].bit_field_elements == BIT_FIELDS
+
+    def test_parquet_flat_dataset_round_trip(self):
+        config = ParquetFlatDatasetImportConfig(
+            asset_name="a",
+            time_column=ParquetTimeColumn(path="ts", format=TimeFormat.ABSOLUTE_UNIX_NANOSECONDS),
+            data_columns=[
+                ParquetDataColumn(
+                    path="status",
+                    name="status",
+                    data_type=ChannelDataType.BIT_FIELD,
+                    bit_field_elements=BIT_FIELDS,
+                )
+            ],
+        )
+        proto = config._to_proto()
+        assert _bit_field_list(proto.flat_dataset.data_columns[0].channel_config) == BIT_FIELDS
+        round_tripped = ParquetFlatDatasetImportConfig._from_proto(proto)
+        assert round_tripped["status"].bit_field_elements == BIT_FIELDS
+
+    def test_parquet_single_channel_per_row_round_trip(self):
+        config = ParquetSingleChannelPerRowImportConfig(
+            asset_name="a",
+            time_column=ParquetTimeColumn(path="ts", format=TimeFormat.ABSOLUTE_UNIX_NANOSECONDS),
+            single_channel=ParquetSingleChannelConfig(
+                data_path="value",
+                name="status",
+                data_type=ChannelDataType.BIT_FIELD,
+                bit_field_elements=BIT_FIELDS,
+            ),
+        )
+        proto = config._to_proto()
+        assert _bit_field_list(proto.single_channel_per_row.single_channel.channel) == BIT_FIELDS
+        round_tripped = ParquetSingleChannelPerRowImportConfig._from_proto(proto)
+        assert round_tripped.single_channel is not None
+        assert round_tripped.single_channel.bit_field_elements == BIT_FIELDS
+
+    def test_tdms_round_trip(self):
+        config = TdmsImportConfig(
+            asset_name="a",
+            data=[
+                TdmsDataColumn(
+                    group_name="g",
+                    channel_name="status",
+                    name="status",
+                    data_type=ChannelDataType.BIT_FIELD,
+                    bit_field_elements=BIT_FIELDS,
+                )
+            ],
+        )
+        proto = config._to_proto()
+        assert _bit_field_list(proto.data[0].channel_config) == BIT_FIELDS
+        round_tripped = TdmsImportConfig._from_proto(proto)
+        assert round_tripped.data[0].bit_field_elements == BIT_FIELDS
+
+    def test_ulog_round_trip(self):
+        config = UlogImportConfig(
+            asset_name="a",
+            data=[
+                UlogDataColumn(
+                    message_name="vehicle_status",
+                    field_name="flags",
+                    data_type=ChannelDataType.BIT_FIELD,
+                    bit_field_elements=BIT_FIELDS,
+                )
+            ],
+        )
+        proto = config._to_proto()
+        assert _bit_field_list(proto.data[0].channel_config) == BIT_FIELDS
+        round_tripped = UlogImportConfig._from_proto(proto)
+        assert round_tripped.data[0].bit_field_elements == BIT_FIELDS
+
+    def test_mcap_round_trip(self):
+        config = McapImportConfig(
+            asset_name="a",
+            data=[
+                McapDataColumn(
+                    topic="/state",
+                    field_path="flags",
+                    data_type=ChannelDataType.BIT_FIELD,
+                    bit_field_elements=BIT_FIELDS,
+                )
+            ],
+        )
+        proto = config._to_proto()
+        assert _bit_field_list(proto.data[0].channel_config) == BIT_FIELDS
+        assert McapImportConfig._from_proto(proto).data[0].bit_field_elements == BIT_FIELDS
+
+    def test_hdf5_to_proto(self):
+        config = Hdf5ImportConfig(
+            asset_name="a",
+            data=[
+                Hdf5DataColumn(
+                    name="status",
+                    data_type=ChannelDataType.BIT_FIELD,
+                    time_dataset="/t",
+                    value_dataset="/status",
+                    bit_field_elements=BIT_FIELDS,
+                )
+            ],
+            time_format=TimeFormat.ABSOLUTE_UNIX_NANOSECONDS,
+        )
+        proto = config._to_proto()
+        assert _bit_field_list(proto.data[0].channel_config) == BIT_FIELDS
+
+    def test_elements_require_bit_field_data_type(self):
+        with pytest.raises(ValueError, match="BIT_FIELD"):
+            CsvDataColumn(
+                column=2,
+                name="status",
+                data_type=ChannelDataType.UINT_32,
+                bit_field_elements=BIT_FIELDS,
+            )
+
+    def test_bit_field_data_type_requires_elements(self):
+        with pytest.raises(ValueError, match="requires 'bit_field_elements'"):
+            CsvDataColumn(column=2, name="status", data_type=ChannelDataType.BIT_FIELD)
+
+    def test_rejects_duplicate_names(self):
+        with pytest.raises(ValueError, match="[Dd]uplicate"):
+            CsvDataColumn(
+                column=2,
+                name="status",
+                data_type=ChannelDataType.BIT_FIELD,
+                bit_field_elements=[
+                    ChannelBitFieldElement(name="a", index=0, bit_count=1),
+                    ChannelBitFieldElement(name="a", index=1, bit_count=1),
+                ],
+            )
+
+    @pytest.mark.parametrize(
+        ("index", "bit_count"),
+        [pytest.param(-1, 1, id="negative-index"), pytest.param(0, 0, id="zero-width")],
+    )
+    def test_rejects_invalid_range(self, index, bit_count):
+        with pytest.raises(ValueError, match="index >= 0 and bit_count >= 1"):
+            CsvDataColumn(
+                column=2,
+                name="status",
+                data_type=ChannelDataType.BIT_FIELD,
+                bit_field_elements=[
+                    ChannelBitFieldElement(name="a", index=index, bit_count=bit_count)
+                ],
+            )
+
+    def test_rejects_overlapping_elements(self):
+        with pytest.raises(ValueError, match="overlaps"):
+            CsvDataColumn(
+                column=2,
+                name="status",
+                data_type=ChannelDataType.BIT_FIELD,
+                bit_field_elements=[
+                    ChannelBitFieldElement(name="a", index=0, bit_count=4),
+                    ChannelBitFieldElement(name="b", index=3, bit_count=2),
+                ],
+            )
+
+    def test_no_elements_from_proto_is_none(self, csv_config):
+        round_tripped = CsvImportConfig._from_proto(csv_config._to_proto())
+        assert round_tripped["cpu_util"].bit_field_elements is None
+
+    def test_in_place_edit_is_validated_on_import(self, parquet_config):
+        column = parquet_config.data_columns[0]
+        column.data_type = ChannelDataType.BIT_FIELD
+        with pytest.raises(ValueError, match="requires 'bit_field_elements'"):
+            parquet_config._to_proto()
+        column.bit_field_elements = BIT_FIELDS
+        proto = parquet_config._to_proto()
+        assert _bit_field_list(proto.flat_dataset.data_columns[0].channel_config) == BIT_FIELDS

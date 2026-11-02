@@ -27,6 +27,7 @@ from sift_client.sift_types.data_import import (
     ParquetTimeColumn,
     TimeFormat,
     TimeFormatProto,
+    _bit_field_elements_from_proto,
     _enum_types_from_proto,
 )
 
@@ -222,6 +223,7 @@ def _parse_embedded_data_column(path: str, raw: bytes) -> ParquetDataColumn:
         units=config.units,
         description=config.description,
         enum_types=_enum_types_from_proto(config),
+        bit_field_elements=_bit_field_elements_from_proto(config),
     )
 
 
