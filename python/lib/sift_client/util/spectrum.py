@@ -7,7 +7,7 @@ the window start; bin ``i`` is centered at ``start_hz + i * step_hz``.
 | ------ | ------------- | ------------------------------------------------------ |
 | 0      | 4 bytes       | Magic ``SPF1``                                         |
 | 4      | u8            | Version, 1                                             |
-| 5      | u8            | Magnitude unit, a [MagnitudeUnit][] value              |
+| 5      | u8            | Magnitude unit, a [MagnitudeUnit][sift_client.util.spectrum.MagnitudeUnit] value              |
 | 6      | u8            | Encoding, 0 = float32                                  |
 | 7      | u8            | Reserved, 0                                            |
 | 8      | u32           | Bin count                                              |
@@ -20,17 +20,16 @@ Spectrum View skips frames whose grid or unit differs from the first frame.
 
 Example:
     ```python
-    from sift_client.sift_types import ChannelConfig, ChannelDataType, FlowConfig
-    from sift_client.util.spectrum import spectrum_frame_from_samples
+    from sift_client.sift_types import FlowConfig
+    from sift_client.util.spectrum import SpectrumEncoder, spectrum_channel
 
-    flow_config = FlowConfig(
-        name="rf",
-        channels=[ChannelConfig(name="spectrum", data_type=ChannelDataType.BYTES)],
-    )
-    # per capture, with a streaming client for flow_config:
-    frame = spectrum_frame_from_samples(iq, sample_rate_hz=10e6, center_hz=2.4e9)
-    ingest_client.send(flow_config.as_flow(timestamp=capture_start, values={"spectrum": frame}))
+    flow = FlowConfig(name="rf", channels=[spectrum_channel("spectrum")])
+    encoder = SpectrumEncoder(sample_rate_hz=10e6, center_hz=2.4e9, frame_interval_s=0.1)
+    # per capture, with a streaming client for flow:
+    await stream.send(flow.as_flow(timestamp=t, values={"spectrum": encoder.encode(iq)}))
     ```
+
+    Already have magnitudes? Use ``encode_spectrum_frame(mags, start_hz=..., step_hz=..., unit="dBm")``.
 """
 
 from __future__ import annotations
@@ -39,19 +38,24 @@ import math
 import struct
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Union
+from typing import TYPE_CHECKING, Union
 
 import numpy as np
 import numpy.typing as npt
+
+if TYPE_CHECKING:
+    from sift_client.sift_types.ingestion import ChannelConfig
 
 __all__ = [
     "SPECTRUM_FRAME_HEADER_BYTES",
     "SPECTRUM_FRAME_MAGIC",
     "SPECTRUM_FRAME_VERSION",
     "MagnitudeUnit",
+    "SpectrumEncoder",
     "SpectrumFrame",
     "decode_spectrum_frame",
     "encode_spectrum_frame",
+    "spectrum_channel",
     "spectrum_frame_from_samples",
 ]
 
@@ -173,7 +177,7 @@ def encode_spectrum_frame(
         magnitudes: 1-D, one per bin, in ``unit``. Stored as float32.
         start_hz: Bin 0 center, Hz.
         step_hz: Bin spacing, Hz. Greater than 0.
-        unit: [MagnitudeUnit][], its byte, or its label (``"dBm"``).
+        unit: [MagnitudeUnit][sift_client.util.spectrum.MagnitudeUnit], its byte, or its label (``"dBm"``).
         window_s: Waterfall row height in seconds. 0 lets the view pick.
 
     Returns:
@@ -319,3 +323,51 @@ def _window_weights(window: str | npt.ArrayLike | None, n: int) -> np.ndarray:
     if weights.shape != (n,):
         raise ValueError(f"window has shape {weights.shape}, expected ({n},)")
     return weights
+
+
+def spectrum_channel(name: str = "spectrum", *, description: str | None = None) -> ChannelConfig:
+    """Channel config for SPF1 frames: a bytes channel."""
+    from sift_client.sift_types.ingestion import ChannelConfig, ChannelDataType
+
+    return ChannelConfig(name=name, data_type=ChannelDataType.BYTES, description=description)
+
+
+@dataclass(frozen=True, eq=False)
+class SpectrumEncoder:
+    """Capture settings, held once, for turning samples into frames.
+
+    Attributes:
+        sample_rate_hz: Sample rate, Hz.
+        center_hz: Tuned frequency, Hz.
+        frame_interval_s: Time between frames, so waterfall rows have no gaps.
+            ``None`` uses each capture's length.
+        window: See [spectrum_frame_from_samples][sift_client.util.spectrum.spectrum_frame_from_samples].
+        full_scale: Amplitude that reads 0 dBFS.
+    """
+
+    sample_rate_hz: float
+    center_hz: float = 0.0
+    frame_interval_s: float | None = None
+    window: str | npt.ArrayLike | None = "hann"
+    full_scale: float = 1.0
+
+    def __post_init__(self) -> None:
+        if not (math.isfinite(self.sample_rate_hz) and self.sample_rate_hz > 0):
+            raise ValueError("sample_rate_hz must be greater than 0")
+        if not (math.isfinite(self.full_scale) and self.full_scale > 0):
+            raise ValueError("full_scale must be greater than 0")
+        if self.frame_interval_s is not None and not (
+            math.isfinite(self.frame_interval_s) and self.frame_interval_s > 0
+        ):
+            raise ValueError("frame_interval_s must be greater than 0")
+
+    def encode(self, samples: npt.ArrayLike) -> bytes:
+        """FFT one capture into an SPF1 v1 frame in dBFS."""
+        return spectrum_frame_from_samples(
+            samples,
+            sample_rate_hz=self.sample_rate_hz,
+            center_hz=self.center_hz,
+            window=self.window,
+            full_scale=self.full_scale,
+            window_s=self.frame_interval_s,
+        )

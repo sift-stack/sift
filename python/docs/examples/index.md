@@ -6,6 +6,7 @@ This section contains interactive Jupyter notebook examples demonstrating how to
 
 - **[Basic Usage](basic.ipynb)** - Introduction to the Sift Python client, covering basic operations and API usage
 - **[Data Ingestion](ingestion.ipynb)** - Learn how to ingest telemetry data into Sift using various methods
+- **[Spectrum Streaming](spectrum.md)** - Stream live spectrum frames to a bytes channel for Spectrum View
 - **[Pytest Plugin Quickstart](pytest_plugin_quickstart.md)** - Guided tour of the runnable demo project under `python/examples/pytest_plugin/`
 
 For the conceptual reference on the pytest plugin (fixtures, configuration,

@@ -6,13 +6,15 @@ from typing import Any
 import numpy as np
 import pytest
 
-from sift_client.sift_types import ChannelConfig, ChannelDataType, FlowConfig
+from sift_client.sift_types import ChannelDataType, FlowConfig
 from sift_client.util.spectrum import (
     SPECTRUM_FRAME_HEADER_BYTES,
     MagnitudeUnit,
+    SpectrumEncoder,
     SpectrumFrame,
     decode_spectrum_frame,
     encode_spectrum_frame,
+    spectrum_channel,
     spectrum_frame_from_samples,
 )
 
@@ -218,12 +220,36 @@ class TestFromSamples:
             spectrum_frame_from_samples(samples, **args)
 
 
-def test_frame_is_a_bytes_channel_value():
-    flow_config = FlowConfig(
-        name="rf",
-        channels=[ChannelConfig(name="spectrum", data_type=ChannelDataType.BYTES)],
+class TestEncoder:
+    def test_matches_from_samples_with_frame_interval(self):
+        iq = np.exp(2j * np.pi * 0.1 * np.arange(64))
+        encoder = SpectrumEncoder(sample_rate_hz=64.0, center_hz=100.0, frame_interval_s=0.5)
+
+        assert encoder.encode(iq) == spectrum_frame_from_samples(
+            iq, sample_rate_hz=64.0, center_hz=100.0, window_s=0.5
+        )
+        assert decode_spectrum_frame(encoder.encode(iq)).window_s == 0.5
+
+    def test_window_defaults_to_capture_length(self):
+        frame = SpectrumEncoder(sample_rate_hz=64.0).encode(np.ones(32))
+        assert decode_spectrum_frame(frame).window_s == 0.5
+
+    @pytest.mark.parametrize(
+        ("kwargs", "message"),
+        [
+            ({"sample_rate_hz": 0.0}, "sample_rate_hz"),
+            ({"sample_rate_hz": 1.0, "full_scale": 0.0}, "full_scale"),
+            ({"sample_rate_hz": 1.0, "frame_interval_s": 0.0}, "frame_interval_s"),
+        ],
     )
-    frame = spectrum_frame_from_samples(np.ones(8), sample_rate_hz=8.0)
+    def test_rejects_invalid_settings(self, kwargs, message):
+        with pytest.raises(ValueError, match=message):
+            SpectrumEncoder(**kwargs)
+
+
+def test_frame_is_a_bytes_channel_value():
+    flow_config = FlowConfig(name="rf", channels=[spectrum_channel()])
+    frame = SpectrumEncoder(sample_rate_hz=8.0).encode(np.ones(8))
 
     flow = flow_config.as_flow(values={"spectrum": frame})
 
