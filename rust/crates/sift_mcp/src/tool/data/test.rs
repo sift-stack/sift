@@ -13,12 +13,15 @@ use sift_rs::{
         v1::{ExpressionChannelReference, ExpressionRequest},
         v2::{
             BatchResolveCalculatedChannelsResponse, CalculatedChannel,
-            ListCalculatedChannelsResponse, ResolveCalculatedChannelResponse,
-            ResolvedCalculatedChannel, UnresolvedCalculatedChannel,
+            ListCalculatedChannelsResponse, ResolveCalculatedChannelRequest,
+            ResolveCalculatedChannelResponse, ResolvedCalculatedChannel,
+            UnresolvedCalculatedChannel, calculated_channel_query_configuration::Query,
             calculated_channel_service_server::CalculatedChannelServiceServer,
+            resolve_calculated_channel_request::CalculatedChannel as ResolveTarget,
         },
     },
     channels::v3::{Channel, ListChannelsResponse, channel_service_server::ChannelServiceServer},
+    common::r#type::v1::{named_resources::Resources, resource_identifier::Identifier},
     data::v2::{
         DoubleValue, DoubleValues, GetDataResponse, Metadata,
         data_service_server::DataServiceServer, metadata, query::Query as QueryKind,
@@ -36,7 +39,7 @@ use sift_test_util::{
 };
 use tempdir::TempDir;
 use tokio::task::JoinHandle;
-use tonic::{Response, transport::Server};
+use tonic::{Response, Status, transport::Server};
 
 use super::{GetDataParams, PendingOutput, SqlParams};
 use crate::{
@@ -107,6 +110,7 @@ fn get_data_params(channel_regex: &str) -> Parameters<GetDataParams> {
         channel_regex: Some(channel_regex.into()),
         channel_id: None,
         channel_ids: None,
+        expressions_json: None,
         output: std::env::temp_dir().join("sift-mcp-get-data-test-never-written.parquet"),
     })
 }
@@ -613,6 +617,7 @@ fn named_params(
         channel_regex: None,
         channel_id: None,
         channel_ids: None,
+        expressions_json: None,
         output,
     })
 }
@@ -1198,6 +1203,7 @@ async fn get_data_reports_channel_names_that_matched_nothing() {
             channel_regex: None,
             channel_id: None,
             channel_ids: None,
+            expressions_json: None,
             output: dir.path().join("out.parquet"),
         }))
         .await
@@ -1264,6 +1270,7 @@ async fn get_data_reports_no_unmatched_names_for_a_regex_selection() {
             channel_regex: Some("press.*".into()),
             channel_id: None,
             channel_ids: None,
+            expressions_json: None,
             output: dir.path().join("out.parquet"),
         }))
         .await
@@ -1328,6 +1335,7 @@ async fn get_data_reports_matched_channels_that_returned_no_samples() {
             channel_regex: None,
             channel_id: None,
             channel_ids: None,
+            expressions_json: None,
             output: dir.path().join("out.parquet"),
         }))
         .await
@@ -1397,6 +1405,7 @@ async fn no_data_error_reports_both_the_empty_and_the_unmatched_channels() {
             channel_regex: None,
             channel_id: None,
             channel_ids: None,
+            expressions_json: None,
             output: dir.path().join("out.parquet"),
         }))
         .await
@@ -1581,6 +1590,7 @@ async fn get_data_persist_failure_keeps_the_channel_report() {
             channel_regex: None,
             channel_id: None,
             channel_ids: None,
+            expressions_json: None,
             output: output.clone(),
         }))
         .await
@@ -1638,6 +1648,7 @@ async fn get_data_leaves_no_file_when_the_data_call_fails() {
             channel_regex: None,
             channel_id: None,
             channel_ids: None,
+            expressions_json: None,
             output: dir.path().join("out.parquet"),
         }))
         .await
@@ -1696,6 +1707,7 @@ async fn get_data_leaves_no_file_when_the_request_is_cancelled() {
         channel_regex: None,
         channel_id: None,
         channel_ids: None,
+        expressions_json: None,
         output: output.clone(),
     });
     let request = tokio::spawn(async move { server.get_data(params).await });
@@ -1787,6 +1799,7 @@ async fn get_data_writes_into_a_directory_that_does_not_exist_yet() {
             channel_regex: None,
             channel_id: None,
             channel_ids: None,
+            expressions_json: None,
             output: nested.clone(),
         }))
         .await
@@ -2164,4 +2177,622 @@ async fn get_data_requires_a_time_range_without_a_run() {
         .expect_err("no run and no time range");
     assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
     assert!(err.message.contains("run_id"), "{}", err.message);
+}
+
+/// `named_params` with `expressions_json` set; `names` empty leaves
+/// `channel_names` unset so the expressions stand alone.
+fn expression_params(
+    names: &[&str],
+    expressions_json: &str,
+    output: PathBuf,
+) -> Parameters<GetDataParams> {
+    let Parameters(params) = named_params(names, None, output);
+    Parameters(GetDataParams {
+        channel_names: (!names.is_empty()).then_some(params.channel_names.unwrap_or_default()),
+        expressions_json: Some(expressions_json.into()),
+        ..params
+    })
+}
+
+const CORE_X2: &str = r#"[{"name":"core_x2","expression":"$1 * 2","channel_references":[{"channel_reference":"$1","channel_identifier":"core_temp"}]}]"#;
+
+/// Resolve as the API does for a draft that applies to the asset: echo its
+/// expression and point `$1` at `ch-9`.
+fn resolve_draft(
+    req: tonic::Request<ResolveCalculatedChannelRequest>,
+) -> Result<Response<ResolveCalculatedChannelResponse>, Status> {
+    let Some(ResolveTarget::CalculatedChannelConfiguration(config)) =
+        req.into_inner().calculated_channel
+    else {
+        return Err(Status::invalid_argument("expected a configuration"));
+    };
+    let Some(Query::Sel(sel)) = config.query_configuration.and_then(|q| q.query) else {
+        return Err(Status::invalid_argument("expected a SEL query"));
+    };
+    Ok(Response::new(ResolveCalculatedChannelResponse {
+        calculated_channel_id: None,
+        resolved: vec![ResolvedCalculatedChannel {
+            asset_name: "bench".into(),
+            asset_id: "asset-1".into(),
+            expression_request: Some(ExpressionRequest {
+                expression: sel.expression,
+                expression_channel_references: vec![ExpressionChannelReference {
+                    channel_reference: "$1".into(),
+                    channel_id: "ch-9".into(),
+                    calculated_channel_reference: None,
+                }],
+                ..Default::default()
+            }),
+            output_data_type: 0,
+        }],
+        unresolved: vec![],
+    }))
+}
+
+/// A calculated channel service that resolves every draft expression for the
+/// asset. Saved channel lookups are not expected.
+fn resolving_expression_mock() -> MockCalculatedChannelServiceImpl {
+    let mut mock = MockCalculatedChannelServiceImpl::new();
+    mock.expect_list_calculated_channels().times(0);
+    mock.expect_resolve_calculated_channel()
+        .returning(resolve_draft);
+    mock
+}
+
+/// A calculated channel service whose resolve answers every request with
+/// `status`.
+fn failing_expression_mock(status: Status) -> MockCalculatedChannelServiceImpl {
+    let mut mock = MockCalculatedChannelServiceImpl::new();
+    mock.expect_resolve_calculated_channel()
+        .returning(move |_| Err(status.clone()));
+    mock
+}
+
+fn calculation_keys(req: &tonic::Request<sift_rs::data::v2::GetDataRequest>) -> Vec<String> {
+    req.get_ref()
+        .queries
+        .iter()
+        .filter_map(|query| match query.query.as_ref() {
+            Some(QueryKind::CalculatedChannel(query)) => Some(query.channel_key.clone()),
+            _ => None,
+        })
+        .collect()
+}
+
+/// An expression alone needs no channel selector and no channel listing: the
+/// draft is resolved for the asset and queried under its own name.
+#[tokio::test]
+async fn get_data_evaluates_an_expression_alone() {
+    let mut channels = MockChannelServiceImpl::new();
+    channels.expect_list_channels().times(0);
+
+    let mut calculated = MockCalculatedChannelServiceImpl::new();
+    calculated
+        .expect_resolve_calculated_channel()
+        .times(1)
+        .withf(|req| {
+            let req = req.get_ref();
+            let Some(ResolveTarget::CalculatedChannelConfiguration(config)) =
+                req.calculated_channel.as_ref()
+            else {
+                return false;
+            };
+            let sel_ok = matches!(
+                config.query_configuration.as_ref().and_then(|q| q.query.as_ref()),
+                Some(Query::Sel(sel)) if sel.expression == "$1 * 2"
+                    && sel.expression_channel_references.len() == 1
+                    && sel.expression_channel_references[0].channel_identifier == "core_temp"
+            );
+            let assets_ok = matches!(
+                req.assets.as_ref().and_then(|a| a.resources.as_ref()),
+                Some(Resources::Ids(ids)) if ids.ids == ["asset-1"]
+            );
+            sel_ok && assets_ok && req.run.is_none()
+        })
+        .returning(resolve_draft);
+
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data()
+        .times(1)
+        .withf(|req| req.get_ref().queries.len() == 1 && calculation_keys(req) == ["core_x2"])
+        .returning(|_| {
+            Ok(Response::new(GetDataResponse {
+                data: vec![double_page("core_x2", "", vec![(1_000_000_000, 4.0)])],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let dir = TempDir::new("sift-mcp-expr").expect("temp dir");
+    let output = dir.path().join("out.parquet");
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        channels,
+        MockRunServiceImpl::new(),
+        calculated,
+        data,
+    )
+    .await;
+
+    let body = structured(
+        server
+            .get_data(expression_params(&[], CORE_X2, output.clone()))
+            .await
+            .expect("an expression alone should be served"),
+    );
+    assert!(
+        body.get("unresolved_calculated_channels").is_none(),
+        "{body}"
+    );
+    assert_eq!(body["unmatched_channel_names"], serde_json::json!([]));
+    assert!(output.exists(), "parquet file should be written");
+}
+
+/// An expression rides alongside a raw channel selection: both are queried in
+/// one call.
+#[tokio::test]
+async fn get_data_evaluates_an_expression_with_raw_channels() {
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data()
+        .times(1)
+        .withf(|req| {
+            let queries = &req.get_ref().queries;
+            queries.len() == 2
+                && queries.iter().any(|q| {
+                    matches!(q.query.as_ref(), Some(QueryKind::Channel(c)) if c.channel_id == "ch-0")
+                })
+                && calculation_keys(req) == ["core_x2"]
+        })
+        .returning(|_| {
+            Ok(Response::new(GetDataResponse {
+                data: vec![
+                    double_page("ch-0", "core_temp", vec![(1_000_000_000, 2.0)]),
+                    double_page("core_x2", "", vec![(1_000_000_000, 4.0)]),
+                ],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let dir = TempDir::new("sift-mcp-expr").expect("temp dir");
+    let output = dir.path().join("out.parquet");
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        raw_channel_mock(&["core_temp"]),
+        MockRunServiceImpl::new(),
+        resolving_expression_mock(),
+        data,
+    )
+    .await;
+
+    let body = structured(
+        server
+            .get_data(expression_params(&["core_temp"], CORE_X2, output.clone()))
+            .await
+            .expect("an expression with raw channels should be served"),
+    );
+    assert!(
+        body.get("unresolved_calculated_channels").is_none(),
+        "{body}"
+    );
+    assert_eq!(body["empty_channels"], serde_json::json!([]));
+}
+
+/// A reference the asset cannot satisfy comes back from resolve as
+/// unresolved. The raw channel is still written and the expression is named
+/// with the API's reason.
+#[tokio::test]
+async fn get_data_reports_an_expression_with_an_unresolved_reference() {
+    let mut calculated = MockCalculatedChannelServiceImpl::new();
+    calculated
+        .expect_resolve_calculated_channel()
+        .returning(|_| {
+            Ok(Response::new(ResolveCalculatedChannelResponse {
+                calculated_channel_id: None,
+                resolved: vec![],
+                unresolved: vec![UnresolvedCalculatedChannel {
+                    asset_name: "bench".into(),
+                    error_message: "bench is missing the following channels: [core_temp]".into(),
+                }],
+            }))
+        });
+
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data()
+        .times(1)
+        .withf(|req| calculation_keys(req).is_empty())
+        .returning(|_| {
+            Ok(Response::new(GetDataResponse {
+                data: vec![double_page("ch-0", "pressure", vec![(1_000_000_000, 1.0)])],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let dir = TempDir::new("sift-mcp-expr").expect("temp dir");
+    let output = dir.path().join("out.parquet");
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        raw_channel_mock(&["pressure"]),
+        MockRunServiceImpl::new(),
+        calculated,
+        data,
+    )
+    .await;
+
+    let result = server
+        .get_data(expression_params(&["pressure"], CORE_X2, output.clone()))
+        .await
+        .expect("the raw channel should still be served");
+    let body = structured(result);
+    let next_step = body["next_step"].as_str().unwrap_or_default().to_string();
+    assert_eq!(
+        body["unmatched_channel_names"],
+        serde_json::json!(["core_x2"])
+    );
+    assert_eq!(
+        body["unresolved_calculated_channels"],
+        serde_json::json!([{
+            "name": "core_x2",
+            "reason": "bench is missing the following channels: [core_temp]",
+        }]),
+    );
+    assert!(next_step.contains("core_x2"), "{next_step}");
+    assert!(output.exists());
+}
+
+/// When every expression fails to resolve and nothing else was selected, the
+/// call fails and names each one with its reason.
+#[tokio::test]
+async fn get_data_errors_when_the_only_expression_is_rejected() {
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        MockChannelServiceImpl::new(),
+        MockRunServiceImpl::new(),
+        failing_expression_mock(Status::invalid_argument(
+            "Syntax error: extraneous input '*'",
+        )),
+        MockDataServiceImpl::new(),
+    )
+    .await;
+
+    let err = server
+        .get_data(expression_params(
+            &[],
+            CORE_X2,
+            std::env::temp_dir().join("sift-mcp-get-data-test-never-written.parquet"),
+        ))
+        .await
+        .expect_err("a rejected expression alone has nothing to serve");
+    assert_eq!(err.code, ErrorCode::RESOURCE_NOT_FOUND);
+    assert!(err.message.contains("core_x2"), "{}", err.message);
+    assert!(err.message.contains("Syntax error"), "{}", err.message);
+}
+
+/// A backend failure that is not about the expression fails the call instead
+/// of being passed off as a bad expression.
+#[tokio::test]
+async fn get_data_fails_when_expression_resolution_is_unavailable() {
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        raw_channel_mock(&["pressure"]),
+        MockRunServiceImpl::new(),
+        failing_expression_mock(Status::internal("resolver crashed")),
+        MockDataServiceImpl::new(),
+    )
+    .await;
+
+    let err = server
+        .get_data(expression_params(
+            &["pressure"],
+            CORE_X2,
+            std::env::temp_dir().join("sift-mcp-get-data-test-never-written.parquet"),
+        ))
+        .await
+        .expect_err("an internal resolve failure must fail the call");
+    assert_eq!(err.code, ErrorCode::INTERNAL_ERROR);
+}
+
+/// `expressions_json` that is not a JSON array is the caller's to fix, before
+/// anything is queried.
+#[tokio::test]
+async fn get_data_rejects_malformed_expressions_json() {
+    let (server, _h) =
+        server_with_mocks(MockAssetServiceImpl::new(), MockChannelServiceImpl::new()).await;
+
+    for json in ["not json", r#"{"name":"x"}"#, "[]"] {
+        let err = server
+            .get_data(expression_params(
+                &[],
+                json,
+                std::env::temp_dir().join("sift-mcp-get-data-test-never-written.parquet"),
+            ))
+            .await
+            .expect_err("malformed expressions_json must fail");
+        assert_eq!(err.code, ErrorCode::INVALID_PARAMS, "{json}");
+        assert!(err.message.contains("expressions_json"), "{}", err.message);
+    }
+}
+
+/// A bad entry in a well-formed array is reported on its own, and the other
+/// entries still run.
+#[tokio::test]
+async fn get_data_reports_a_malformed_expression_entry() {
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data()
+        .times(1)
+        .withf(|req| calculation_keys(req) == ["core_x2"])
+        .returning(|_| {
+            Ok(Response::new(GetDataResponse {
+                data: vec![double_page("core_x2", "", vec![(1_000_000_000, 4.0)])],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let dir = TempDir::new("sift-mcp-expr").expect("temp dir");
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        MockChannelServiceImpl::new(),
+        MockRunServiceImpl::new(),
+        resolving_expression_mock(),
+        data,
+    )
+    .await;
+
+    let json = r#"[
+        {"name":"core_x2","expression":"$1 * 2","channel_references":[{"channel_reference":"$1","channel_identifier":"core_temp"}]},
+        {"name":"no_expression"},
+        {"expression":"$1"},
+        {"name":"blank","expression":"  "}
+    ]"#;
+    let body = structured(
+        server
+            .get_data(expression_params(&[], json, dir.path().join("out.parquet")))
+            .await
+            .expect("the valid entry should be served"),
+    );
+    let unresolved = body["unresolved_calculated_channels"]
+        .as_array()
+        .expect("bad entries reported");
+    let names = unresolved
+        .iter()
+        .map(|entry| entry["name"].as_str().unwrap_or_default())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        names,
+        ["no_expression", "expressions_json[2]", "blank"],
+        "{body}"
+    );
+    assert!(
+        unresolved[0]["reason"]
+            .as_str()
+            .is_some_and(|r| r.contains("expression")),
+        "{body}",
+    );
+}
+
+/// An expression may not reuse a requested channel's name or another
+/// expression's: two columns under one name would read as one channel.
+#[tokio::test]
+async fn get_data_rejects_expression_name_collisions() {
+    let mut calculated = MockCalculatedChannelServiceImpl::new();
+    calculated
+        .expect_resolve_calculated_channel()
+        .times(1)
+        .returning(resolve_draft);
+
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data()
+        .times(1)
+        .withf(|req| calculation_keys(req) == ["core_x2"])
+        .returning(|_| {
+            Ok(Response::new(GetDataResponse {
+                data: vec![
+                    double_page("ch-0", "core_temp", vec![(1_000_000_000, 2.0)]),
+                    double_page("core_x2", "", vec![(1_000_000_000, 4.0)]),
+                ],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let dir = TempDir::new("sift-mcp-expr").expect("temp dir");
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        raw_channel_mock(&["core_temp"]),
+        MockRunServiceImpl::new(),
+        calculated,
+        data,
+    )
+    .await;
+
+    let json = r#"[
+        {"name":"core_temp","expression":"$1 * 3","channel_references":[{"channel_reference":"$1","channel_identifier":"core_temp"}]},
+        {"name":"core_x2","expression":"$1 * 2","channel_references":[{"channel_reference":"$1","channel_identifier":"core_temp"}]},
+        {"name":"core_x2","expression":"$1 * 4","channel_references":[{"channel_reference":"$1","channel_identifier":"core_temp"}]}
+    ]"#;
+    let body = structured(
+        server
+            .get_data(expression_params(
+                &["core_temp"],
+                json,
+                dir.path().join("out.parquet"),
+            ))
+            .await
+            .expect("the unique expression should be served"),
+    );
+    let unresolved = body["unresolved_calculated_channels"]
+        .as_array()
+        .expect("collisions reported");
+    assert_eq!(unresolved.len(), 2, "{body}");
+    assert_eq!(
+        body["unmatched_channel_names"],
+        serde_json::json!(["expressions_json[0]", "expressions_json[2]"]),
+        "served names must not be reported unmatched: {body}",
+    );
+    assert!(
+        unresolved.iter().all(|entry| entry["reason"]
+            .as_str()
+            .is_some_and(|r| r.contains("already used"))),
+        "{body}",
+    );
+}
+
+/// `expressions_json` replaces the selector requirement, not the at-most-one
+/// rule.
+#[tokio::test]
+async fn get_data_validates_selectors_with_expressions() {
+    let (server, _h) =
+        server_with_mocks(MockAssetServiceImpl::new(), MockChannelServiceImpl::new()).await;
+    let output = std::env::temp_dir().join("sift-mcp-get-data-test-never-written.parquet");
+
+    let Parameters(params) = expression_params(&["pressure"], CORE_X2, output.clone());
+    let err = server
+        .get_data(Parameters(GetDataParams {
+            channel_regex: Some(".*".into()),
+            ..params
+        }))
+        .await
+        .expect_err("two selectors are still rejected");
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+
+    let Parameters(params) = named_params(&["pressure"], None, output);
+    let err = server
+        .get_data(Parameters(GetDataParams {
+            channel_names: None,
+            ..params
+        }))
+        .await
+        .expect_err("no selector and no expressions is rejected");
+    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+    assert!(err.message.contains("expressions_json"), "{}", err.message);
+}
+
+/// With a run selected, the draft is resolved for that run and the data query
+/// is scoped to it.
+#[tokio::test]
+async fn get_data_resolves_an_expression_for_the_run() {
+    let mut calculated = MockCalculatedChannelServiceImpl::new();
+    calculated
+        .expect_resolve_calculated_channel()
+        .times(1)
+        .withf(|req| {
+            matches!(
+                req.get_ref().run.as_ref().and_then(|r| r.identifier.as_ref()),
+                Some(Identifier::Id(id)) if id == "run-1"
+            )
+        })
+        .returning(resolve_draft);
+
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data()
+        .times(1)
+        .withf(|req| {
+            req.get_ref().queries.iter().any(|q| {
+                matches!(
+                    q.query.as_ref(),
+                    Some(QueryKind::CalculatedChannel(c))
+                        if c.channel_key == "core_x2" && c.run_id.as_deref() == Some("run-1")
+                )
+            })
+        })
+        .returning(|_| {
+            Ok(Response::new(GetDataResponse {
+                data: vec![double_page("core_x2", "", vec![(1_000_000_000, 4.0)])],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let dir = TempDir::new("sift-mcp-expr").expect("temp dir");
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        MockChannelServiceImpl::new(),
+        one_run_mock(),
+        calculated,
+        data,
+    )
+    .await;
+
+    let Parameters(params) = expression_params(&[], CORE_X2, dir.path().join("out.parquet"));
+    let body = structured(
+        server
+            .get_data(Parameters(GetDataParams {
+                run_name: Some("hotfire-3".into()),
+                start_time_unix_nanos: None,
+                end_time_unix_nanos: None,
+                ..params
+            }))
+            .await
+            .expect("a run-scoped expression should be served"),
+    );
+    assert_eq!(body["run_id"], "run-1");
+    assert!(
+        body.get("unresolved_calculated_channels").is_none(),
+        "{body}"
+    );
+}
+
+/// A saved calculated channel and a draft run in one call. A draft may not
+/// reuse the saved channel's name, since both would be keyed by it.
+#[tokio::test]
+async fn get_data_serves_a_saved_channel_and_a_draft_together() {
+    let mut calculated = resolving_calculation_mock("thrust_margin");
+    calculated
+        .expect_resolve_calculated_channel()
+        .times(1)
+        .returning(resolve_draft);
+
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data()
+        .times(1)
+        .withf(|req| {
+            let mut keys = calculation_keys(req);
+            keys.sort();
+            keys == ["core_x2", "thrust_margin"]
+        })
+        .returning(|_| {
+            Ok(Response::new(GetDataResponse {
+                data: vec![
+                    double_page("thrust_margin", "", vec![(1_000_000_000, 1.0)]),
+                    double_page("core_x2", "", vec![(1_000_000_000, 4.0)]),
+                ],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let dir = TempDir::new("sift-mcp-expr").expect("temp dir");
+    let (server, _h) = server_with_calculation_mocks(
+        one_asset_mock(),
+        raw_channel_mock(&[]),
+        MockRunServiceImpl::new(),
+        calculated,
+        data,
+    )
+    .await;
+
+    let json = r#"[
+        {"name":"thrust_margin","expression":"$1 * 3","channel_references":[{"channel_reference":"$1","channel_identifier":"core_temp"}]},
+        {"name":"core_x2","expression":"$1 * 2","channel_references":[{"channel_reference":"$1","channel_identifier":"core_temp"}]}
+    ]"#;
+    let body = structured(
+        server
+            .get_data(expression_params(
+                &["thrust_margin"],
+                json,
+                dir.path().join("out.parquet"),
+            ))
+            .await
+            .expect("the saved channel and the unique draft should be served"),
+    );
+    assert_eq!(
+        body["unmatched_channel_names"],
+        serde_json::json!(["expressions_json[0]"]),
+        "the served saved channel must not be reported unmatched: {body}",
+    );
+    let unresolved = body["unresolved_calculated_channels"]
+        .as_array()
+        .expect("collision reported");
+    assert_eq!(unresolved.len(), 1, "{body}");
+    assert!(
+        unresolved[0]["reason"]
+            .as_str()
+            .is_some_and(|r| r.contains("already used"))
+    );
+    assert_eq!(body["empty_channels"], serde_json::json!([]));
 }

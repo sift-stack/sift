@@ -25,7 +25,7 @@ use polars::{
 use prost::Message;
 use sift_rs::{
     SiftChannel,
-    calculated_channels::v1::{ExpressionChannelReference, ExpressionMode, ExpressionRequest},
+    calculated_channels::v1::{ExpressionMode, ExpressionRequest},
     channels::v3::Channel,
     data::v2::{
         BitFieldElementValues, BitFieldValue, BitFieldValues, BoolValue, BoolValues, BytesValue,
@@ -148,16 +148,11 @@ pub struct DataOutput {
 
 pub enum ChannelInput {
     Raw(Box<Channel>),
-    #[allow(dead_code)]
-    Calculation {
-        name: String,
-        input_channels: Vec<(String, Channel)>,
-        expression: String,
-    },
-    /// A saved calculated channel already resolved against the target asset.
-    /// The expression and its references come from the API's resolution, so
+    /// A calculated channel already resolved against the target asset: a saved
+    /// calculated channel, or a draft expression the caller has not saved. The
+    /// expression and its references come from the API's resolution, so
     /// references to other calculated channels survive intact.
-    SavedCalculation {
+    Calculation {
         channel_key: String,
         expression_request: Box<ExpressionRequest>,
     },
@@ -323,34 +318,6 @@ impl DataService {
                     })),
                 },
                 ChannelInput::Calculation {
-                    name,
-                    input_channels,
-                    expression,
-                } => {
-                    let expr_channel_refs = input_channels
-                        .iter()
-                        .map(|(cref, channel)| ExpressionChannelReference {
-                            channel_id: channel.channel_id.clone(),
-                            channel_reference: cref.clone(),
-                            calculated_channel_reference: None,
-                        })
-                        .collect::<Vec<_>>();
-
-                    Query {
-                        query: Some(QueryKind::CalculatedChannel(CalculatedChannelQuery {
-                            channel_key: name.clone(),
-                            expression: Some(ExpressionRequest {
-                                expression: expression.clone(),
-                                expression_channel_references: expr_channel_refs,
-                                ..Default::default()
-                            }),
-                            run_id: run_id.clone(),
-                            mode: Some(ExpressionMode::CalculatedChannels.into()),
-                            combine_run_data: Some(false),
-                        })),
-                    }
-                }
-                ChannelInput::SavedCalculation {
                     channel_key,
                     expression_request,
                 } => Query {
@@ -976,8 +943,7 @@ impl DataService {
             .iter()
             .map(|input| match input {
                 ChannelInput::Raw(channel) => &channel.channel_id,
-                ChannelInput::Calculation { name, .. } => name,
-                ChannelInput::SavedCalculation { channel_key, .. } => channel_key,
+                ChannelInput::Calculation { channel_key, .. } => channel_key,
             })
             .filter(|key| !produced.contains(key.as_str()) && seen.insert(key.as_str()))
             .cloned()

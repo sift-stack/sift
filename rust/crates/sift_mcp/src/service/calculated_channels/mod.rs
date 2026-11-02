@@ -27,6 +27,7 @@ use sift_rs::{
     },
     metadata::v1::MetadataValue,
 };
+use tonic::Code;
 
 #[cfg(test)]
 mod test;
@@ -118,6 +119,16 @@ pub struct UnresolvedCalculation {
 pub struct CalculationResolution {
     pub resolved: Vec<ResolvedCalculation>,
     pub unresolved: Vec<UnresolvedCalculation>,
+}
+
+/// An unsaved calculated channel to evaluate: a CEL expression and the channel
+/// references it uses, named by the caller.
+#[derive(Debug, Clone)]
+pub struct DraftExpression {
+    /// The caller's name for the expression; also the data query's channel key.
+    pub name: String,
+    pub expression: String,
+    pub channel_references: Vec<CalculatedChannelAbstractChannelReference>,
 }
 
 const UNKNOWN_NAME_REASON: &str = "no active saved calculated channel has this name";
@@ -458,6 +469,143 @@ impl CalculatedChannelService {
         Ok(CalculationResolution {
             resolved,
             unresolved,
+        })
+    }
+
+    /// Resolves unsaved expressions into concrete queries for a single asset,
+    /// optionally narrowed to a run, without creating a calculated channel. The
+    /// API maps each channel reference onto the asset's channels and validates
+    /// the expression.
+    ///
+    /// Each expression is resolved on its own, so one the API rejects as
+    /// invalid is returned in `unresolved` with the API's message instead of
+    /// failing the rest. Any other API failure fails the whole call: it says
+    /// nothing about the expression.
+    pub async fn resolve_expressions(
+        &self,
+        expressions: Vec<DraftExpression>,
+        asset_id: String,
+        run_id: Option<String>,
+    ) -> Result<CalculationResolution> {
+        let outcomes = futures::future::join_all(expressions.into_iter().map(|draft| {
+            let asset_id = asset_id.clone();
+            let run_id = run_id.clone();
+            async move {
+                let outcome = self.resolve_expression(&draft, asset_id, run_id).await;
+                (draft.name, outcome)
+            }
+        }))
+        .await;
+
+        let mut resolved = Vec::new();
+        let mut unresolved = Vec::new();
+        for (name, outcome) in outcomes {
+            match outcome? {
+                Ok(expression_request) => resolved.push(ResolvedCalculation {
+                    name,
+                    expression_request,
+                }),
+                Err(reason) => unresolved.push(UnresolvedCalculation { name, reason }),
+            }
+        }
+
+        Ok(CalculationResolution {
+            resolved,
+            unresolved,
+        })
+    }
+
+    /// Resolves one draft expression for `asset_id`. The inner error is the
+    /// reason to report when the expression cannot be queried; the outer one is
+    /// a failure that is not the expression's fault.
+    async fn resolve_expression(
+        &self,
+        draft: &DraftExpression,
+        asset_id: String,
+        run_id: Option<String>,
+    ) -> Result<std::result::Result<ExpressionRequest, String>> {
+        let request = ResolveCalculatedChannelRequest {
+            calculated_channel: Some(ResolveTarget::CalculatedChannelConfiguration(
+                CalculatedChannelConfiguration {
+                    asset_configuration: Some(CalculatedChannelAssetConfiguration {
+                        asset_scope: Some(AssetScope::Selection(AssetSelection {
+                            asset_ids: vec![asset_id.clone()],
+                            tag_ids: Vec::new(),
+                        })),
+                    }),
+                    query_configuration: Some(CalculatedChannelQueryConfiguration {
+                        query: Some(Query::Sel(Sel {
+                            expression: draft.expression.clone(),
+                            expression_channel_references: draft.channel_references.clone(),
+                        })),
+                    }),
+                },
+            )),
+            organization_id: String::new(),
+            assets: Some(NamedResources {
+                resources: Some(Resources::Ids(Ids {
+                    ids: vec![asset_id.clone()],
+                })),
+            }),
+            run: run_id.map(|id| ResourceIdentifier {
+                identifier: Some(Identifier::Id(id)),
+            }),
+        };
+
+        let grpc_channel = self.channel.clone();
+        let response = match with_retry(&self.policy, move || {
+            let grpc_channel = grpc_channel.clone();
+            let request = request.clone();
+            async move {
+                let mut client = CalculatedChannelServiceClient::new(grpc_channel);
+                client
+                    .resolve_calculated_channel(request)
+                    .await
+                    .map(|resp| resp.into_inner())
+            }
+        })
+        .await
+        {
+            Ok(response) => response,
+            Err(status)
+                if matches!(
+                    status.code(),
+                    Code::InvalidArgument | Code::NotFound | Code::FailedPrecondition
+                ) =>
+            {
+                return Ok(Err(format!(
+                    "the API rejected the expression: {}",
+                    status.message()
+                )));
+            }
+            Err(status) => {
+                return Err(anyhow::Error::new(status)
+                    .context(format!("failed to resolve expression '{}'", draft.name)));
+            }
+        };
+
+        // Only an entry for the requested asset is safe to query; an entry for
+        // another asset would pull that asset's channels instead.
+        let mut candidates = response.resolved;
+        let picked = candidates
+            .iter()
+            .position(|entry| entry.asset_id == asset_id)
+            .map(|index| candidates.swap_remove(index));
+
+        Ok(match picked {
+            Some(entry) => entry
+                .expression_request
+                .ok_or_else(|| "the API resolved the expression without a query".to_string()),
+            None => Err(response
+                .unresolved
+                .into_iter()
+                .next()
+                .map(|entry| entry.error_message)
+                .filter(|message| !message.trim().is_empty())
+                .unwrap_or_else(|| {
+                    "does not resolve for this asset: a channel reference names no channel on it"
+                        .to_string()
+                })),
         })
     }
 
