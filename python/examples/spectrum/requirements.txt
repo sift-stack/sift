@@ -1,0 +1,3 @@
+sift-stack-py[sift-stream]
+python-dotenv
+numpy
