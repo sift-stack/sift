@@ -93,7 +93,7 @@ async fn list_artifacts_returns_single_page() {
         .withf(|req| {
             let req = req.get_ref();
             req.conversation_id.as_deref() == Some("conv-1")
-                && req.filter == "storage_class == \"STRUCTURED\""
+                && req.filter == "storage_class == \"BLOB\""
                 && req.order_by == "created_date desc"
         })
         .returning(|_| {
@@ -107,7 +107,7 @@ async fn list_artifacts_returns_single_page() {
     let page = service
         .list_artifacts(
             Some("conv-1".into()),
-            "storage_class == \"STRUCTURED\"".into(),
+            "storage_class == \"BLOB\"".into(),
             Some("created_date desc".into()),
             None,
         )
@@ -441,7 +441,6 @@ async fn writes_are_not_retried_on_unavailable() {
                 conversation_id: None,
                 storage_class: None,
                 created_via: None,
-                payload: None,
                 metadata: vec![],
                 links: vec![],
             },
@@ -504,6 +503,48 @@ async fn update_artifact_forwards_the_mask_and_version() {
 }
 
 #[tokio::test]
+async fn update_artifact_without_a_file_links_the_kept_bytes() {
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_update_artifact().returning(|_| {
+        let mut artifact = sample_artifact();
+        artifact.artifact_version.as_mut().unwrap().remote_file_id = Some("rf-1".into());
+        Ok(Response::new(UpdateArtifactResponse {
+            artifact: Some(artifact),
+        }))
+    });
+    let mut remote_files = MockRemoteFileServiceImpl::new();
+    remote_files
+        .expect_get_remote_file_download_url()
+        .withf(|req| req.get_ref().remote_file_id == "rf-1")
+        .returning(|_| {
+            Ok(Response::new(GetRemoteFileDownloadUrlResponse {
+                download_url: "https://files.test.local/rf-1".into(),
+            }))
+        });
+
+    let (service, _h) = service_with_mocks(mock, remote_files).await;
+    let artifact = service
+        .update_artifact(
+            UpdateArtifactInput {
+                artifact_id: "art-1".into(),
+                version: ArtifactVersion {
+                    title: Some("Renamed".into()),
+                    ..Default::default()
+                },
+                links: vec![],
+                update_mask: vec![UpdatePath::Title],
+            },
+            None,
+        )
+        .await
+        .expect("update");
+    assert_eq!(
+        artifact.download_url.as_deref(),
+        Some("https://files.test.local/rf-1")
+    );
+}
+
+#[tokio::test]
 async fn create_artifact_returns_created_row() {
     let mut mock = MockArtifactServiceImpl::new();
     mock.expect_create_artifact()
@@ -512,10 +553,8 @@ async fn create_artifact_returns_created_row() {
             req.conversation_id.as_deref() == Some("conv-1")
                 && req.title.as_deref() == Some("report")
                 && req.summary.as_deref() == Some("summary")
-                && req.storage_class == Some(ArtifactStorageClass::Structured as i32)
+                && req.storage_class == Some(ArtifactStorageClass::Blob as i32)
                 && req.created_via == Some(ArtifactCreatedVia::Agent as i32)
-                && serde_json::to_value(req.payload.as_ref().unwrap()).unwrap()
-                    == serde_json::json!({ "rows": [] })
                 && req.links[0].relation == ArtifactLinkRelation::AttachedTo as i32
         })
         .returning(|_| {
@@ -531,10 +570,9 @@ async fn create_artifact_returns_created_row() {
                 title: Some("report".into()),
                 summary: Some("summary".into()),
                 conversation_id: Some("conv-1".into()),
-                storage_class: Some(ArtifactStorageClass::Structured),
+                storage_class: Some(ArtifactStorageClass::Blob),
                 created_via: Some(ArtifactCreatedVia::Agent),
                 metadata: vec![],
-                payload: Some(serde_json::from_value(serde_json::json!({ "rows": [] })).unwrap()),
                 links: vec![ArtifactLinkInput {
                     relation: ArtifactLinkRelation::AttachedTo as i32,
                     entity_type: ArtifactEntityType::Conversation as i32,
