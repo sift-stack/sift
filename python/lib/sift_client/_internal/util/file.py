@@ -7,6 +7,7 @@ import zipfile
 from typing import TYPE_CHECKING
 
 import sift_client as _sift_client_module
+from sift_client._internal.util.http import raise_for_status
 from sift_client._internal.util.progress import alive_bar
 from sift_client.errors import SiftWarning
 
@@ -64,7 +65,7 @@ def upload_file(
         The parsed JSON response from the server.
 
     Raises:
-        ValueError: If the upload request fails.
+        requests.HTTPError: If the upload request fails.
     """
     file_size = file_path.stat().st_size
 
@@ -84,7 +85,7 @@ def upload_file(
                 data=wrapped,
                 headers={"Content-Disposition": f'attachment; filename="{file_path.name}"'},
             )
-            response.raise_for_status()
+            raise_for_status(response)
             return response.json()
 
 
@@ -126,7 +127,7 @@ def download_file(
     if extra_headers:
         headers.update(extra_headers)
     with rest_client.get(signed_url, stream=True, headers=headers) as response:
-        response.raise_for_status()
+        raise_for_status(response)
         total_bytes = int(response.headers.get("Content-Length", 0)) or None
         with alive_bar(
             total_bytes,
@@ -161,7 +162,7 @@ def read_url_bytes(signed_url: str, *, rest_client: RestClient) -> bytes:
     # Presigned URLs carry their own auth, so strip the session's Authorization header.
     headers: dict[str, str | None] = {"Authorization": None}
     with rest_client.get(signed_url, headers=headers) as response:
-        response.raise_for_status()
+        raise_for_status(response)
         return response.content
 
 
