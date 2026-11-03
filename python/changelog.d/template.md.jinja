@@ -2,17 +2,39 @@
 ## [v{{ versiondata.version }}] - {{ versiondata.date }}
 
 {% endif %}
+{# A fragment that starts with "# Title" is a highlight: its summary paragraph is a bullet under its type, and its details render once under Highlights. See README.md. #}
+{% set highlights = [] %}
 {% for category in ["breaking", "feat", "fix"] %}
 {% if sections[""].get(category) %}
 ### {{ definitions[category]["name"] }}
 
 {% for text, values in sections[""][category].items() %}
-{% set lines = text.strip().split("\n", 1) %}
-- {{ lines[0] }}{% if values %} ({{ values|join(", ") }}){% endif %}{{ "" }}
-{% if lines|length > 1 %}
-{{ lines[1] }}
+{% set ref = " (" ~ values|join(", ") ~ ")" if values else "" %}
+{% if text.startswith("# ") %}
+{# towncrier indents each line after the first by two spaces. Remove only that indent, so the details keep their own indentation. #}
+{% set parts = text.replace("\n  ", "\n").split("\n\n", 2) %}
+{% set title = parts[0][2:].strip() %}
+{# The link target is the version and position, so any title works and links stay unique. #}
+{% set id = "highlight-" ~ versiondata.version|replace(".", "-") ~ "-" ~ (highlights|length + 1) %}
+{% set _ = highlights.append((title, id, parts[2] if parts|length > 2 else "")) %}
+- {{ parts[1].replace("\n", "\n  ") }} See [{{ title }}](#{{ id }}).{{ ref }}
+{% else %}
+- {{ text }}{{ ref }}
+{% endif %}
+{% if not loop.last %}
+
 {% endif %}
 {% endfor %}
 
 {% endif %}
 {% endfor %}
+{% if highlights %}
+### Highlights
+
+{% for title, id, details in highlights %}
+#### <a id="{{ id }}"></a>{{ title }}
+
+{{ details }}
+
+{% endfor %}
+{% endif %}

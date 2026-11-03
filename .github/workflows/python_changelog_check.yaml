@@ -1,8 +1,8 @@
 name: python-changelog-check
 
 # Every pull request that changes python/ must add a changelog fragment in python/changelog.d.
-# An empty <PR>.chore.md fragment marks a change with no user-visible effect.
-# See python/changelog.d/README.md.
+# An empty <PR>.chore.md fragment marks a change with no user-visible effect. The fragments a PR
+# adds or changes must have the shape described in python/changelog.d/README.md.
 
 on:
   pull_request:
@@ -28,6 +28,24 @@ jobs:
 
       - name: Check for a fragment
         run: uvx towncrier@26.9.0 check --dir python --config python/pyproject.toml --compare-with HEAD^1
+
+      # Only fragments this PR adds or changes, so an older fragment does not fail an unrelated PR.
+      # A fragment this PR adds must also be named for this PR, so a `+name` or copied number
+      # does not merge without a link to the PR.
+      - name: Check the PR's fragments
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          files() {
+            git diff --no-renames --diff-filter="$1" --name-only HEAD^1 HEAD -- 'python/changelog.d/*.md'
+          }
+          mapfile -t added < <(files A)
+          mapfile -t changed < <(files M)
+          python3 python/scripts/release_version.py --lint \
+            --pr-number "$PR_NUMBER" --added "${added[@]}" --changed "${changed[@]}"
+
+      - name: Test the release script
+        run: python3 -m unittest discover -s python/scripts/tests
 
       # A release PR adds a version heading to the changelog. See python/changelog.d/README.md.
       - name: Check that a release PR includes every fragment
