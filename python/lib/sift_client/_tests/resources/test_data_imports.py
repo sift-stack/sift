@@ -1872,6 +1872,15 @@ WIDE_BIT_FIELDS = [
 WIDE_VALUES = [0x1234, 0x00FF, 0xFF00, 1]
 DECODED_WIDE = {"low": [0x34, 0xFF, 0x00, 1], "high": [0x12, 0x00, 0xFF, 0]}
 
+# TDMS and HDF5 store typed integers, which import as their two's complement bytes.
+SIGNED_VALUES = [0x1234, -1, -256, 1]
+DECODED_SIGNED = {"low": [0x34, 0xFF, 0x00, 1], "high": [0x12, 0xFF, 0xFF, 0]}
+INTEGER_CASES = [
+    pytest.param("uint8", STATUS_VALUES, BIT_FIELDS, DECODED_STATUS, id="uint8"),
+    pytest.param("uint16", WIDE_VALUES, WIDE_BIT_FIELDS, DECODED_WIDE, id="uint16"),
+    pytest.param("int16", SIGNED_VALUES, WIDE_BIT_FIELDS, DECODED_SIGNED, id="int16"),
+]
+
 
 def _import_and_wait(sift_client, path, config) -> DataImport:
     job = sift_client.data_import.import_from_path(path, config=config, show_progress=False)
@@ -1882,9 +1891,9 @@ def _import_and_wait(sift_client, path, config) -> DataImport:
     return data_import
 
 
-def _assert_decoded(sift_client, data_import: DataImport, elements, decoded):
+def _assert_decoded(sift_client, data_import: DataImport, elements, decoded, name="status"):
     run = sift_client.data_import.get_run(data_import.id_)
-    channels = sift_client.channels.list_(run=run, name="status")
+    channels = sift_client.channels.list_(run=run, name=name)
     assert len(channels) == 1
     status = channels[0]
     assert status.data_type == ChannelDataType.BIT_FIELD
@@ -1892,7 +1901,7 @@ def _assert_decoded(sift_client, data_import: DataImport, elements, decoded):
 
     data = sift_client.channels.get_data(channels=[status], run=run, show_progress=False)
     for element, expected in decoded.items():
-        frame = data[f"status.{element}"]
+        frame = data[f"{name}.{element}"]
         assert frame.iloc[:, 0].astype(int).tolist() == expected, (element, frame)
 
 
@@ -1984,3 +1993,55 @@ class TestBitFieldImportIntegration:
 
         data_import = _import_and_wait(sift_client, path, config)
         _assert_decoded(sift_client, data_import, BIT_FIELDS, DECODED_STATUS)
+
+    @pytest.mark.parametrize(("dtype", "values", "elements", "decoded"), INTEGER_CASES)
+    def test_tdms(self, sift_client, tmp_path, dtype, values, elements, decoded):
+        import numpy as np
+        from nptdms import ChannelObject, GroupObject, RootObject, TdmsWriter
+
+        path = tmp_path / "status.tdms"
+        properties = {
+            "wf_start_time": np.datetime64(1_700_000_000_000_000_000, "ns"),
+            "wf_increment": 1.0,
+            "wf_start_offset": 0.0,
+        }
+        with TdmsWriter(path) as writer:
+            writer.write_segment(
+                [
+                    RootObject(),
+                    GroupObject("g"),
+                    ChannelObject("g", "status", np.array(values, dtype), properties=properties),
+                ]
+            )
+
+        config = sift_client.data_import.detect_config(path)
+        assert isinstance(config, TdmsImportConfig)
+        config.asset_name = f"bit-field-import-{uuid.uuid4().hex[:8]}"
+        column = config["g.status"]
+        column.data_type = ChannelDataType.BIT_FIELD
+        column.bit_field_elements = elements
+
+        data_import = _import_and_wait(sift_client, path, config)
+        _assert_decoded(sift_client, data_import, elements, decoded, name="g.status")
+
+    @pytest.mark.parametrize(("dtype", "values", "elements", "decoded"), INTEGER_CASES)
+    def test_hdf5(self, sift_client, tmp_path, dtype, values, elements, decoded):
+        import h5py
+        import numpy as np
+
+        path = tmp_path / "status.h5"
+        with h5py.File(path, "w") as f:
+            start = 1_700_000_000_000_000_000
+            f["time"] = np.array([start + i * 1_000_000_000 for i in range(len(values))])
+            f["status"] = np.array(values, dtype)
+
+        config = sift_client.data_import.detect_config(path, data_type=DataTypeKey.HDF5_ONE_D)
+        assert isinstance(config, Hdf5ImportConfig)
+        config.asset_name = f"bit-field-import-{uuid.uuid4().hex[:8]}"
+        config.time_format = TimeFormat.ABSOLUTE_UNIX_NANOSECONDS
+        column = config["status"]
+        column.data_type = ChannelDataType.BIT_FIELD
+        column.bit_field_elements = elements
+
+        data_import = _import_and_wait(sift_client, path, config)
+        _assert_decoded(sift_client, data_import, elements, decoded)
