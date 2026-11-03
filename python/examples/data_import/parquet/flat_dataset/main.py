@@ -49,6 +49,8 @@ if __name__ == "__main__":
     # # Example: import an integer column as a bit field. Parquet stores only the
     # # raw integer, so detect_config can't infer the bit layout; supply it here.
     # # Each element's index is its starting bit and bit_count is its width.
+    # # import_from_path converts the integers to the bytes the import service
+    # # reads and uploads a converted copy; the file itself isn't changed.
     # from sift_client.sift_types.channel import ChannelBitFieldElement, ChannelDataType
     #
     # status = config["status"]

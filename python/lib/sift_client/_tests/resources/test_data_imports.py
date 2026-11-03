@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 import warnings
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, cast
@@ -1829,3 +1830,225 @@ class TestBitFieldElements:
         column.bit_field_elements = BIT_FIELDS
         proto = parquet_config._to_proto()
         assert _bit_field_list(proto.flat_dataset.data_columns[0].channel_config) == BIT_FIELDS
+
+
+class TestImportFromPathBitFieldConversion:
+    def _api(self, monkeypatch, uploads, fail=False):
+        def fake_upload(url, path, **kwargs):
+            uploads.append((path, path.read_bytes()))
+            if fail:
+                raise RuntimeError("upload failed")
+            return {"jobId": "j1"}
+
+        monkeypatch.setattr("sift_client.resources.data_imports.upload_file", fake_upload)
+        api = DataImportAPIAsync(MagicMock())
+        api._low_level_client = MagicMock()
+        api._low_level_client.create_from_upload = AsyncMock(return_value=("import_1", "url"))
+        api.client.async_.jobs.get = AsyncMock(return_value=MagicMock())
+        return api
+
+    def _parquet(self, tmp_path):
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+
+        path = tmp_path / "status.parquet"
+        pq.write_table(
+            pa.table({"t": pa.array([0, 1], pa.int64()), "status": pa.array([53, 1], pa.uint8())}),
+            path,
+        )
+        config = ParquetFlatDatasetImportConfig(
+            asset_name="a",
+            time_column=ParquetTimeColumn(path="t", format=TimeFormat.ABSOLUTE_UNIX_NANOSECONDS),
+            data_columns=[
+                ParquetDataColumn(
+                    path="status",
+                    name="status",
+                    data_type=ChannelDataType.BIT_FIELD,
+                    bit_field_elements=BIT_FIELDS,
+                )
+            ],
+        )
+        return path, config
+
+    @pytest.mark.asyncio
+    async def test_uploads_converted_copy_and_cleans_up(self, tmp_path, monkeypatch):
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+
+        from sift_client._internal.util.file import extract_parquet_footer
+
+        uploads: list = []
+        api = self._api(monkeypatch, uploads)
+        path, config = self._parquet(tmp_path)
+
+        await api.import_from_path(path, config=config, show_progress=False)
+
+        ((uploaded_path, uploaded_bytes),) = uploads
+        assert uploaded_path != path
+        assert not uploaded_path.parent.exists()
+        converted = tmp_path / "uploaded.parquet"
+        converted.write_bytes(uploaded_bytes)
+        assert pq.read_table(converted).column("status").to_pylist() == [b"\x35", b"\x01"]
+        assert pq.read_schema(path).field("status").type == pa.uint8()
+
+        low_level = cast("MagicMock", api._low_level_client)
+        (sent_config,) = low_level.create_from_upload.call_args.args
+        footer, offset = extract_parquet_footer(converted)
+        assert (sent_config.footer_offset, sent_config.footer_length) == (offset, len(footer))
+        assert sent_config is not config
+        assert config.run_name == "status.parquet"
+
+    @pytest.mark.asyncio
+    async def test_failed_upload_still_cleans_up(self, tmp_path, monkeypatch):
+        uploads: list = []
+        api = self._api(monkeypatch, uploads, fail=True)
+        path, config = self._parquet(tmp_path)
+
+        with pytest.raises(RuntimeError, match="upload failed"):
+            await api.import_from_path(path, config=config, show_progress=False)
+
+        ((uploaded_path, _),) = uploads
+        assert not uploaded_path.parent.exists()
+
+    @pytest.mark.asyncio
+    async def test_columns_without_integers_upload_the_original(self, tmp_path, monkeypatch):
+        uploads: list = []
+        api = self._api(monkeypatch, uploads)
+        path = tmp_path / "status.csv"
+        path.write_text("time,status\nt0,00110101\n")
+        config = CsvImportConfig(
+            asset_name="a",
+            time_column=CsvTimeColumn(column=1, format=TimeFormat.ABSOLUTE_RFC3339),
+            data_columns=[
+                CsvDataColumn(
+                    column=2,
+                    name="status",
+                    data_type=ChannelDataType.BIT_FIELD,
+                    bit_field_elements=BIT_FIELDS,
+                )
+            ],
+        )
+
+        await api.import_from_path(path, config=config, show_progress=False)
+
+        ((uploaded_path, _),) = uploads
+        assert uploaded_path == path
+
+
+# Raw status values and their decoded elements under BIT_FIELDS:
+# bit 0 is armed, bits 1-3 are error_code, bits 4-7 are mode.
+STATUS_VALUES = [53, 0, 255, 1]
+DECODED_STATUS = {
+    "armed": [1, 0, 1, 1],
+    "error_code": [2, 0, 7, 0],
+    "mode": [3, 0, 15, 0],
+}
+
+# A 16-bit status word, to check that multi-byte values decode little-endian.
+WIDE_BIT_FIELDS = [
+    ChannelBitFieldElement(name="low", index=0, bit_count=8),
+    ChannelBitFieldElement(name="high", index=8, bit_count=8),
+]
+WIDE_VALUES = [0x1234, 0x00FF, 0xFF00, 1]
+DECODED_WIDE = {"low": [0x34, 0xFF, 0x00, 1], "high": [0x12, 0x00, 0xFF, 0]}
+
+
+def _import_and_wait(sift_client, path, config) -> DataImport:
+    job = sift_client.data_import.import_from_path(path, config=config, show_progress=False)
+    job.wait_until_complete(polling_interval_secs=1, timeout_secs=300)
+    data_import = job.get_data_import()
+    assert data_import.status == DataImportStatus.SUCCEEDED, data_import.error_message
+    assert job.job_status == JobStatus.FINISHED
+    return data_import
+
+
+def _assert_decoded(sift_client, data_import: DataImport, elements, decoded):
+    run = sift_client.data_import.get_run(data_import.id_)
+    channels = sift_client.channels.list_(run=run, name="status")
+    assert len(channels) == 1
+    status = channels[0]
+    assert status.data_type == ChannelDataType.BIT_FIELD
+    assert status.bit_field_elements == elements
+
+    data = sift_client.channels.get_data(channels=[status], run=run, show_progress=False)
+    for element, expected in decoded.items():
+        frame = data[f"status.{element}"]
+        assert frame.iloc[:, 0].astype(int).tolist() == expected, (element, frame)
+
+
+def _import_parquet(sift_client, tmp_path, status, elements) -> DataImport:
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    path = tmp_path / "status.parquet"
+    start = 1_700_000_000_000_000_000
+    pq.write_table(
+        pa.table(
+            {
+                "timestamp": pa.array(
+                    [start + i * 1_000_000_000 for i in range(len(status))], pa.int64()
+                ),
+                "status": status,
+            }
+        ),
+        path,
+    )
+
+    config = sift_client.data_import.detect_config(path, data_type=DataTypeKey.PARQUET_FLATDATASET)
+    assert isinstance(config, ParquetFlatDatasetImportConfig)
+    config.asset_name = f"bit-field-import-{uuid.uuid4().hex[:8]}"
+    config.time_column = ParquetTimeColumn(
+        path="timestamp", format=TimeFormat.ABSOLUTE_UNIX_NANOSECONDS
+    )
+    config.data_columns = [dc for dc in config.data_columns if dc.path != "timestamp"]
+    column = config["status"]
+    column.data_type = ChannelDataType.BIT_FIELD
+    column.bit_field_elements = elements
+    return _import_and_wait(sift_client, path, config)
+
+
+@pytest.mark.integration
+class TestBitFieldImportIntegration:
+    @pytest.mark.parametrize("encoding", ["uint8", "int64", "binary"])
+    def test_parquet_flat_dataset(self, sift_client, tmp_path, encoding):
+        import pyarrow as pa
+
+        status = {
+            "uint8": pa.array(STATUS_VALUES, pa.uint8()),
+            "int64": pa.array(STATUS_VALUES, pa.int64()),
+            "binary": pa.array([bytes([v]) for v in STATUS_VALUES], pa.binary()),
+        }[encoding]
+
+        data_import = _import_parquet(sift_client, tmp_path, status, BIT_FIELDS)
+        _assert_decoded(sift_client, data_import, BIT_FIELDS, DECODED_STATUS)
+
+    def test_parquet_multi_byte_status(self, sift_client, tmp_path):
+        import pyarrow as pa
+
+        status = pa.array(WIDE_VALUES, pa.uint16())
+
+        data_import = _import_parquet(sift_client, tmp_path, status, WIDE_BIT_FIELDS)
+        _assert_decoded(sift_client, data_import, WIDE_BIT_FIELDS, DECODED_WIDE)
+
+    @pytest.mark.parametrize("encoding", ["integers", "bit-strings"])
+    def test_csv(self, sift_client, tmp_path, encoding):
+        path = tmp_path / "status.csv"
+        times = pd.date_range("2024-01-01", periods=len(STATUS_VALUES), freq="s", tz="UTC")
+        values = (
+            STATUS_VALUES if encoding == "integers" else [format(v, "08b") for v in STATUS_VALUES]
+        )
+        pd.DataFrame(
+            {"time": [t.strftime("%Y-%m-%dT%H:%M:%S.%fZ") for t in times], "status": values}
+        ).to_csv(path, index=False)
+
+        config = sift_client.data_import.detect_config(
+            path, time_format=TimeFormat.ABSOLUTE_RFC3339
+        )
+        assert isinstance(config, CsvImportConfig)
+        config.asset_name = f"bit-field-import-{uuid.uuid4().hex[:8]}"
+        column = config["status"]
+        column.data_type = ChannelDataType.BIT_FIELD
+        column.bit_field_elements = BIT_FIELDS
+
+        data_import = _import_and_wait(sift_client, path, config)
+        _assert_decoded(sift_client, data_import, BIT_FIELDS, DECODED_STATUS)
