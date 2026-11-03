@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.data_imports import DataImportsLowLevelClient
 from sift_client._internal.time import to_timestamp_nanos
+from sift_client._internal.util.bit_field import check_bit_field_values
 from sift_client._internal.util.data_imports import (
     parse_csv_detect_response,
     parse_parquet_detect_response,
@@ -82,6 +83,11 @@ class DataImportAPIAsync(ResourceBase):
         If neither ``run`` nor ``run_name`` is provided (and none is
         set on the config), ``run_name`` defaults to the filename.
 
+        ``BIT_FIELD`` values must be raw bytes, a string of 0s and 1s, or
+        URL-safe base64. Before uploading, CSV and Parquet ``BIT_FIELD``
+        columns are checked: Parquet columns must be a binary or string
+        type, and a sample of string values must parse.
+
         Examples:
             Import a CSV file with auto-detected config:
 
@@ -153,6 +159,8 @@ class DataImportAPIAsync(ResourceBase):
 
         Raises:
             FileNotFoundError: If the file does not exist.
+            ValueError: If a ``BIT_FIELD`` column's values aren't in a format
+                the import service reads, such as integers.
         """
         path = Path(file_path)
         if not path.is_file():
@@ -182,6 +190,11 @@ class DataImportAPIAsync(ResourceBase):
             config.run_name = run_name
         elif not config.run_name and not config.run_id:
             config.run_name = path.name
+
+        # The import service only reports unreadable bit field values after the
+        # upload, so check them first.
+        checked_config: ImportConfig = config
+        await run_sync_function(lambda: check_bit_field_values(checked_config, path))
 
         if isinstance(
             config, (ParquetFlatDatasetImportConfig, ParquetSingleChannelPerRowImportConfig)
