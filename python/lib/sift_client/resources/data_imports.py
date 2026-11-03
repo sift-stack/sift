@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.data_imports import DataImportsLowLevelClient
 from sift_client._internal.time import to_timestamp_nanos
-from sift_client._internal.util.bit_field import convert_integer_bit_fields
 from sift_client._internal.util.data_imports import (
     parse_csv_detect_response,
     parse_parquet_detect_response,
@@ -84,11 +82,6 @@ class DataImportAPIAsync(ResourceBase):
         If neither ``run`` nor ``run_name`` is provided (and none is
         set on the config), ``run_name`` defaults to the filename.
 
-        The import service reads ``BIT_FIELD`` values as bytes, a string of
-        0s and 1s, or base64. When a CSV or Parquet ``BIT_FIELD`` column holds
-        integers, the client converts them and uploads the converted copy
-        from a temporary directory. The original file isn't changed.
-
         Examples:
             Import a CSV file with auto-detected config:
 
@@ -160,8 +153,6 @@ class DataImportAPIAsync(ResourceBase):
 
         Raises:
             FileNotFoundError: If the file does not exist.
-            ValueError: If a ``BIT_FIELD`` column can't be converted, for example
-                when its values don't fit the bits its elements span.
         """
         path = Path(file_path)
         if not path.is_file():
@@ -192,39 +183,24 @@ class DataImportAPIAsync(ResourceBase):
         elif not config.run_name and not config.run_id:
             config.run_name = path.name
 
-        # The import service rejects integer bit field values, so BIT_FIELD columns
-        # stored as integers are uploaded from a converted copy of the file.
-        upload_config: ImportConfig = config
-        upload_path = path
-        converted = await run_sync_function(lambda: convert_integer_bit_fields(upload_config, path))
-        if converted is not None:
-            upload_config, upload_path = converted
+        if isinstance(
+            config, (ParquetFlatDatasetImportConfig, ParquetSingleChannelPerRowImportConfig)
+        ):
+            await prepare_parquet_config(config, path)
 
-        try:
-            if isinstance(
-                upload_config,
-                (ParquetFlatDatasetImportConfig, ParquetSingleChannelPerRowImportConfig),
-            ):
-                await prepare_parquet_config(upload_config, upload_path)
+        if show_progress is None:
+            show_progress = self._show_progress()
 
-            if show_progress is None:
-                show_progress = self._show_progress()
+        data_import_id, upload_url = await self._low_level_client.create_from_upload(config)
 
-            data_import_id, upload_url = await self._low_level_client.create_from_upload(
-                upload_config
+        response = await run_sync_function(
+            lambda: upload_file(
+                upload_url,
+                path,
+                rest_client=self.client.rest_client,
+                show_progress=show_progress,
             )
-
-            response = await run_sync_function(
-                lambda: upload_file(
-                    upload_url,
-                    upload_path,
-                    rest_client=self.client.rest_client,
-                    show_progress=show_progress,
-                )
-            )
-        finally:
-            if upload_path != path:
-                shutil.rmtree(upload_path.parent, ignore_errors=True)
+        )
         job_id = response.get("jobId")
         if not job_id:
             raise RuntimeError("Upload succeeded but server response did not include a job ID.")

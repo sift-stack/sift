@@ -1770,11 +1770,6 @@ class DataImportAPI:
         If neither ``run`` nor ``run_name`` is provided (and none is
         set on the config), ``run_name`` defaults to the filename.
 
-        The import service reads ``BIT_FIELD`` values as bytes, a string of
-        0s and 1s, or base64. When a CSV or Parquet ``BIT_FIELD`` column holds
-        integers, the client converts them and uploads the converted copy
-        from a temporary directory. The original file isn't changed.
-
         Examples:
             Import a CSV file with auto-detected config:
 
@@ -1846,8 +1841,6 @@ class DataImportAPI:
 
         Raises:
             FileNotFoundError: If the file does not exist.
-            ValueError: If a ``BIT_FIELD`` column can't be converted, for example
-                when its values don't fit the bits its elements span.
         """
         ...
 
