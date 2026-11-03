@@ -2651,10 +2651,10 @@ When <code>asset</code> is provided it overrides the config value;
 otherwise the config's <code>asset_name</code> is used.
 If neither <code>run</code> nor <code>run_name</code> is provided (and none is
 set on the config), <code>run_name</code> defaults to the filename.</p>
-<p>The import service reads <code>BIT_FIELD</code> values as bytes, a string of
-0s and 1s, or base64. When a CSV or Parquet <code>BIT_FIELD</code> column holds
-integers, the client converts them and uploads the converted copy
-from a temporary directory. The original file isn't changed.</p>
+<p><code>BIT_FIELD</code> values must be raw bytes, a string of 0s and 1s, or
+URL-safe base64. Before uploading, CSV and Parquet <code>BIT_FIELD</code>
+columns are checked: Parquet columns must be a binary or string
+type, and a sample of string values must parse.</p>
 
 
 <table>
@@ -2978,8 +2978,8 @@ Defaults to True for sync, False for async.</p>
             </td>
             <td class="doc-raises-details">
               <div class="doc-md-description">
-                <p>If a <code>BIT_FIELD</code> column can't be converted, for example
-when its values don't fit the bits its elements span.</p>
+                <p>If a <code>BIT_FIELD</code> column's values aren't in a format
+the import service reads, such as integers.</p>
               </div>
             </td>
           </tr>
