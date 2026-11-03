@@ -4,7 +4,7 @@ import warnings
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from enum import Enum
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, ClassVar, Union
 
 import pandas as pd  # noqa: TC002
 from pydantic import BaseModel, ConfigDict, model_validator
@@ -173,8 +173,12 @@ class DataColumnBase(BaseModel, ABC):
         enum_types: Mapping of enum name to key. Only valid when ``data_type``
             is ``ChannelDataType.ENUM``.
         bit_field_elements: Named bit ranges within each value. Only valid when
-            ``data_type`` is ``ChannelDataType.BIT_FIELD``.
+            ``data_type`` is ``ChannelDataType.BIT_FIELD``, and only on formats
+            that support bit fields.
     """
+
+    # ULog and MCAP imports can't override a channel to BIT_FIELD.
+    _supports_bit_fields: ClassVar[bool] = True
 
     name: str
     data_type: ChannelDataType
@@ -209,6 +213,11 @@ class DataColumnBase(BaseModel, ABC):
             if len(set(self.enum_types.values())) != len(self.enum_types):
                 raise ValueError(f"'enum_types' contains duplicate keys ({self.name}).")
         if self.data_type == ChannelDataType.BIT_FIELD or self.bit_field_elements:
+            if not self._supports_bit_fields:
+                raise ValueError(
+                    f"{type(self).__name__} doesn't support ChannelDataType.BIT_FIELD "
+                    f"({self.name})."
+                )
             if self.data_type != ChannelDataType.BIT_FIELD:
                 raise ValueError(
                     f"'bit_field_elements' requires data_type ChannelDataType.BIT_FIELD "
@@ -1087,6 +1096,8 @@ class UlogDataColumn(DataColumnBase):
             e.g. ``"sensor_accel_0.x"``.
     """
 
+    _supports_bit_fields: ClassVar[bool] = False
+
     message_name: str
     instance: int = 0
     field_name: str = ""
@@ -1274,6 +1285,8 @@ class McapDataColumn(DataColumnBase):
         name: Sift channel name to create. Defaults to ``default_channel_name``,
             e.g. ``"/imu/data.orientation.x"``.
     """
+
+    _supports_bit_fields: ClassVar[bool] = False
 
     topic: str
     field_path: str

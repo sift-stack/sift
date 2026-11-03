@@ -1716,38 +1716,30 @@ class TestBitFieldElements:
         round_tripped = TdmsImportConfig._from_proto(proto)
         assert round_tripped.data[0].bit_field_elements == BIT_FIELDS
 
-    def test_ulog_round_trip(self):
-        config = UlogImportConfig(
-            asset_name="a",
-            data=[
-                UlogDataColumn(
-                    message_name="vehicle_status",
-                    field_name="flags",
-                    data_type=ChannelDataType.BIT_FIELD,
-                    bit_field_elements=BIT_FIELDS,
-                )
-            ],
-        )
-        proto = config._to_proto()
-        assert _bit_field_list(proto.data[0].channel_config) == BIT_FIELDS
-        round_tripped = UlogImportConfig._from_proto(proto)
-        assert round_tripped.data[0].bit_field_elements == BIT_FIELDS
+    @pytest.mark.parametrize(
+        "make_column",
+        [
+            pytest.param(
+                lambda **kw: UlogDataColumn(
+                    message_name="vehicle_status", field_name="flags", **kw
+                ),
+                id="ulog",
+            ),
+            pytest.param(
+                lambda **kw: McapDataColumn(topic="/state", field_path="flags", **kw),
+                id="mcap",
+            ),
+        ],
+    )
+    def test_unsupported_formats_reject_bit_fields(self, make_column):
+        with pytest.raises(ValueError, match="doesn't support ChannelDataType.BIT_FIELD"):
+            make_column(data_type=ChannelDataType.BIT_FIELD, bit_field_elements=BIT_FIELDS)
 
-    def test_mcap_round_trip(self):
-        config = McapImportConfig(
-            asset_name="a",
-            data=[
-                McapDataColumn(
-                    topic="/state",
-                    field_path="flags",
-                    data_type=ChannelDataType.BIT_FIELD,
-                    bit_field_elements=BIT_FIELDS,
-                )
-            ],
-        )
-        proto = config._to_proto()
-        assert _bit_field_list(proto.data[0].channel_config) == BIT_FIELDS
-        assert McapImportConfig._from_proto(proto).data[0].bit_field_elements == BIT_FIELDS
+        column = make_column(data_type=ChannelDataType.UINT_32)
+        column.data_type = ChannelDataType.BIT_FIELD
+        column.bit_field_elements = BIT_FIELDS
+        with pytest.raises(ValueError, match="doesn't support ChannelDataType.BIT_FIELD"):
+            column._channel_config_proto()
 
     def test_hdf5_to_proto(self):
         config = Hdf5ImportConfig(
