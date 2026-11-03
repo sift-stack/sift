@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+## [v0.8.0] - November 3, 2026
+
+### What's New
+
 - MCP `list_*` tools now write `count`, `has_more`, `unmatched_fields`, and
   any other metadata ahead of the items in their text result, so these keys
   survive when an agent harness truncates a large result from the end.
