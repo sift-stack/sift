@@ -55,6 +55,8 @@ class TestCsv:
             pytest.param(["0", "1", "1"], id="single-bits"),
             pytest.param(["NQ==", "AA==", "_w=="], id="base64"),
             pytest.param(["00110101", "", "00000001"], id="empty-cells"),
+            pytest.param(["0", "1", "10", "11"], id="unpadded-bit-strings"),
+            pytest.param(["1234", "2048"], id="digit-only-base64"),
         ],
     )
     def test_accepted_values_pass(self, tmp_path, values):
@@ -68,21 +70,6 @@ class TestCsv:
         _write_csv(path, ["00110101", "53"])
 
         with pytest.raises(ValueError, match=r"value '53' in row 3"):
-            check_bit_field_values(_csv_config(), path)
-
-    @pytest.mark.parametrize(
-        "values",
-        [
-            pytest.param(["0", "1", "10", "11"], id="reads-as-bits"),
-            pytest.param(["1234", "2048"], id="reads-as-base64"),
-            pytest.param(["-123", "1000"], id="negative-reads-as-base64"),
-        ],
-    )
-    def test_integers_that_parse_raise(self, tmp_path, values):
-        path = tmp_path / "data.csv"
-        _write_csv(path, values)
-
-        with pytest.raises(ValueError, match="looks like it holds integers"):
             check_bit_field_values(_csv_config(), path)
 
     def test_rows_before_first_data_row_are_skipped(self, tmp_path):
@@ -175,13 +162,6 @@ class TestParquet:
         _write_parquet(path, pa.array(["00110101", "not bits"], pa.string()))
 
         with pytest.raises(ValueError, match=r"value 'not bits' in row 2"):
-            check_bit_field_values(_parquet_config(), path)
-
-    def test_integer_strings_raise(self, tmp_path):
-        path = tmp_path / "data.parquet"
-        _write_parquet(path, pa.array(["0", "1", "10"], pa.string()))
-
-        with pytest.raises(ValueError, match="looks like it holds integers"):
             check_bit_field_values(_parquet_config(), path)
 
     def test_nested_field_type_is_checked(self, tmp_path):

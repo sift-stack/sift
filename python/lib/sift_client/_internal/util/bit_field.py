@@ -2,10 +2,8 @@
 
 The import service reads a bit field value as raw bytes, a string of 0s and 1s,
 or URL-safe base64, and fails the import on the first value it can't parse. It
-only reports that after the whole file is uploaded, and integers that happen to
-parse, like ``10`` or ``1234``, import as the wrong value with no error. These
-checks read the Parquet schema and a sample of values, and raise before the
-upload starts.
+only reports that after the whole file is uploaded. These checks read the
+Parquet schema and a sample of values, and raise before the upload starts.
 """
 
 from __future__ import annotations
@@ -38,7 +36,6 @@ _PATH_SEPARATOR = "|"
 SAMPLE_ROWS = 1000
 
 _BITS = re.compile(r"[01]+\Z")
-_DECIMAL = re.compile(r"-?[0-9]+\Z")
 _BASE64_URL = re.compile(r"[A-Za-z0-9_-]*={0,2}\Z")
 
 ACCEPTED_FORMATS = "raw bytes, a string of 0s and 1s like '00110101', or URL-safe base64"
@@ -89,33 +86,15 @@ def _is_bit_value(value: str) -> bool:
 
 def _check_values(dc: DataColumnBase, values: Iterable[tuple[int, str]]) -> None:
     """Check sampled ``(row, value)`` pairs from one column. Empty values are skipped."""
-    all_decimal = True
-    bit_widths: set[int] = set()
-    seen = False
     for row, value in values:
         if value == "":
             continue
-        seen = True
         if not _is_bit_value(value):
             raise ValueError(
                 f"bit field column '{dc.name}' has value {value!r} in row {row}, which isn't "
-                f"{ACCEPTED_FORMATS}."
+                f"{ACCEPTED_FORMATS}. To convert integers, use format(value, '08b') for an "
+                "8-bit status word."
             )
-        if not _DECIMAL.match(value):
-            all_decimal = False
-        elif _BITS.match(value):
-            bit_widths.add(len(value))
-        else:
-            # All digits, and not 0s and 1s, so it only parsed as base64.
-            bit_widths.add(-1)
-    # A column of only digits is either fixed-width bit strings or integers that
-    # happen to parse, like 10 (read as 2) or 1234 (read as base64).
-    if seen and all_decimal and (-1 in bit_widths or len(bit_widths) > 1):
-        raise ValueError(
-            f"bit field column '{dc.name}' looks like it holds integers, which import as the "
-            f"wrong values. Write each value as {ACCEPTED_FORMATS}, for example "
-            "format(value, '08b') for an 8-bit status word."
-        )
 
 
 def _check_csv(path: Path, first_data_row: int, columns: Mapping[int, DataColumnBase]) -> None:
