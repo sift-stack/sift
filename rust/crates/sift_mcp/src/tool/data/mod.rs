@@ -178,9 +178,17 @@ pub struct GetDataParams {
 struct ExpressionEntry {
     name: String,
     expression: String,
-    #[serde(default)]
     channel_references: Vec<CalculatedChannelAbstractChannelReference>,
 }
+
+/// The most entries one `expressions_json` may hold. They resolve in a single
+/// batch call, so this bounds that call rather than a fan-out.
+const MAX_EXPRESSIONS: usize = 50;
+
+/// Characters a column name cannot carry: the expression's name is written into
+/// the Parquet column name's attribute block, which `ColumnName::try_from`
+/// splits on these.
+const RESERVED_NAME_CHARS: [char; 4] = [',', '"', '{', '}'];
 
 /// Which run scopes a `get_data` call, before it is resolved on the asset.
 enum RunSelector {
@@ -258,7 +266,8 @@ impl SiftMcpServer {
               - A requested channel that produced no samples has NO column at all, not an all-null one. The tool
                 result reports these so they never have to be inferred from the schema:
                 `unmatched_channel_names` lists requested names served by neither a raw channel nor a saved
-                calculated channel, plus `expressions_json` names that did not resolve. `empty_channels` lists raw channel IDs that returned no samples in the window;
+                calculated channel, plus `expressions_json` names that did not resolve.
+                `empty_channels` lists raw channel IDs that returned no samples in the window;
                 for calculated channels it lists query keys, matching the Parquet `channel_id` attribute.
                 Both keys are ALWAYS present. Two empty arrays mean every selected channel returned samples.
                 Report empty registrations by ID: another registration with the same name may have data.
@@ -308,10 +317,11 @@ impl SiftMcpServer {
                 `[{ \"name\": \"<column name>\", \"expression\": \"<CEL>\", \"channel_references\":
                 [{ \"channel_reference\": \"$1\", \"channel_identifier\": \"<channel name>\" }] }]`.
                 Each `$N` in the expression maps to a channel name on the asset, as in
-                `create_calculated_channel`. Nothing is saved. Each `name` must be unique and must not match a
-                selected channel's name. A malformed entry, a name collision, or an expression the API rejects is
-                reported in `unresolved_calculated_channels`; the other entries still run. An entry without a
-                usable name, or whose name collides, is reported as `expressions_json[<index>]`.
+                `create_calculated_channel`. Nothing is saved. At most 50 entries. Each `name` must be unique,
+                must not contain `,` `\"` `{` `}`, and must not match a requested channel's name or a selected
+                channel's id. Every entry needs at least one channel reference. An expression the API cannot
+                resolve, such as a CEL syntax error or a reference to a channel the asset lacks, is reported in
+                `unresolved_calculated_channels`; the other entries still run.
               - `output`: filesystem path for the Parquet file. Replaced only when the call succeeds; a failed
                 call leaves no partial file and keeps any existing one. The tool creates missing parent
                 directories.
@@ -329,7 +339,8 @@ impl SiftMcpServer {
                 channel does not apply when the asset is outside its scope or lacks a channel its expression
                 references. Verify the name with `list_calculated_channels` filtered by `asset_id`.
               - `INVALID_PARAMS` if neither `asset_name` nor `asset_id` is set, or if both are set.
-              - `INVALID_PARAMS` if `expressions_json` is not a JSON array or is empty.
+              - `INVALID_PARAMS` if `expressions_json` is not a JSON array, is empty, holds more than 50 entries,
+                or has an entry that breaks the rules above. The message names the entry by its index.
               - `INVALID_PARAMS` if both `run_name` and `run_id` are set or either is blank, if `run_name`
                 matches more than one active run (the message lists their ids), if neither is set and the full
                 time range is not supplied, if more than one channel selector is set, if neither a selector nor
@@ -390,10 +401,9 @@ impl SiftMcpServer {
             output,
         }) = params;
 
-        // Malformed JSON is the caller's to fix before anything is queried. A
-        // well-formed array with a bad entry is reported per entry instead, so
-        // the other entries still run.
-        let expression_values = expressions_json
+        // The agent writes every entry, so any malformed one is its to fix and
+        // resend before anything is queried.
+        let expressions = expressions_json
             .as_deref()
             .map(parse_expressions_json)
             .transpose()?;
@@ -438,7 +448,7 @@ impl SiftMcpServer {
         .into_iter()
         .filter(|selected| *selected)
         .count();
-        if selector_count > 1 || (selector_count == 0 && expression_values.is_none()) {
+        if selector_count > 1 || (selector_count == 0 && expressions.is_none()) {
             return Err(ErrorData::invalid_params(
                 "set exactly one of `channel_names`, `channel_regex`, `channel_id`, or `channel_ids`, \
                  or set `expressions_json` with at most one of them",
@@ -567,10 +577,10 @@ impl SiftMcpServer {
             })
             .unwrap_or_default();
 
-        if channels.is_empty()
+        if selector_count > 0
+            && channels.is_empty()
             && unmatched_names.is_empty()
             && requested_ids.is_none()
-            && expression_values.is_none()
         {
             return Err(ErrorData::resource_not_found(
                 format!(
@@ -619,14 +629,32 @@ impl SiftMcpServer {
             }
         }
 
-        // Every name an expression column could collide with. Two queries
-        // sharing a key merge into one column, and a raw channel sharing a name
-        // reads as the same channel, so an expression may not reuse either.
-        let mut taken_names = channels
-            .iter()
-            .map(|c| c.name.clone())
-            .chain(unmatched_names.iter().cloned())
-            .collect::<HashSet<_>>();
+        // An expression's name is its query key and its column's channel id.
+        // Two queries sharing a key merge into one column, and a raw channel
+        // sharing a name reads as the same channel, so an expression may reuse
+        // neither a selected channel's name or id nor a saved channel's name.
+        if let Some(expressions) = &expressions {
+            let taken = channels
+                .iter()
+                .flat_map(|c| [c.name.as_str(), c.channel_id.as_str()])
+                .chain(unmatched_names.iter().map(String::as_str))
+                .collect::<HashSet<_>>();
+            let collisions = expressions
+                .iter()
+                .filter(|draft| taken.contains(draft.name.as_str()))
+                .map(|draft| draft.name.clone())
+                .collect::<Vec<_>>();
+            if !collisions.is_empty() {
+                return Err(ErrorData::invalid_params(
+                    format!(
+                        "`expressions_json` names already used by a requested channel: {}; \
+                         rename those expressions",
+                        common::name_list(&collisions)
+                    ),
+                    None,
+                ));
+            }
+        }
 
         let mut channel_inputs = channels
             .into_iter()
@@ -634,34 +662,24 @@ impl SiftMcpServer {
             .collect::<Vec<_>>();
 
         let mut unresolved = Vec::new();
-        if let Some(values) = expression_values {
-            let mut drafts = Vec::new();
-            for (index, value) in values.into_iter().enumerate() {
-                match draft_expression(index, value, &mut taken_names) {
-                    Ok(draft) => drafts.push(draft),
-                    Err(entry) => unresolved.push(entry),
+        if let Some(drafts) = expressions {
+            let resolution = self
+                .calculated_channel_service
+                .resolve_expressions(
+                    drafts,
+                    asset.asset_id.clone(),
+                    run.as_ref().map(|r| r.run_id.clone()),
+                )
+                .await
+                .map_err(from_anyhow)?;
+
+            channel_inputs.extend(resolution.resolved.into_iter().map(|calculation| {
+                ChannelInput::Calculation {
+                    channel_key: calculation.name,
+                    expression_request: Box::new(calculation.expression_request),
                 }
-            }
-
-            if !drafts.is_empty() {
-                let resolution = self
-                    .calculated_channel_service
-                    .resolve_expressions(
-                        drafts,
-                        asset.asset_id.clone(),
-                        run.as_ref().map(|r| r.run_id.clone()),
-                    )
-                    .await
-                    .map_err(from_anyhow)?;
-
-                channel_inputs.extend(resolution.resolved.into_iter().map(|calculation| {
-                    ChannelInput::Calculation {
-                        channel_key: calculation.name,
-                        expression_request: Box::new(calculation.expression_request),
-                    }
-                }));
-                unresolved.extend(resolution.unresolved);
-            }
+            }));
+            unresolved.extend(resolution.unresolved);
         }
 
         if !unmatched_names.is_empty() {
@@ -1192,10 +1210,11 @@ impl SiftMcpServer {
     }
 }
 
-/// Parse `expressions_json` into its entries, left as JSON values so a bad
-/// entry can be reported on its own rather than failing the call.
-fn parse_expressions_json(json: &str) -> Result<Vec<Value>, ErrorData> {
-    let values = serde_json::from_str::<Vec<Value>>(json).map_err(|e| {
+/// Parse `expressions_json` into drafts to resolve. Any malformed entry fails
+/// the call with `INVALID_PARAMS` naming its position, so the agent can fix it
+/// and resend.
+fn parse_expressions_json(json: &str) -> Result<Vec<DraftExpression>, ErrorData> {
+    let entries = serde_json::from_str::<Vec<ExpressionEntry>>(json).map_err(|e| {
         ErrorData::invalid_params(
             format!(
                 "`expressions_json` is not a JSON array of \
@@ -1204,61 +1223,75 @@ fn parse_expressions_json(json: &str) -> Result<Vec<Value>, ErrorData> {
             None,
         )
     })?;
-    if values.is_empty() {
+    if entries.is_empty() {
         return Err(ErrorData::invalid_params(
             "`expressions_json` must contain at least one expression",
             None,
         ));
     }
-    Ok(values)
-}
-
-/// Turn one `expressions_json` entry into a draft to resolve, or into the
-/// reason it cannot be evaluated. A name already in `taken` is rejected; an
-/// accepted name is added to it.
-fn draft_expression(
-    index: usize,
-    value: Value,
-    taken: &mut HashSet<String>,
-) -> Result<DraftExpression, UnresolvedCalculation> {
-    // A malformed entry may still carry a usable name; fall back to its
-    // position so the report always points somewhere.
-    let label = value
-        .get("name")
-        .and_then(Value::as_str)
-        .filter(|name| !name.trim().is_empty())
-        .map_or_else(|| format!("expressions_json[{index}]"), String::from);
-    let unresolved = |reason: String| UnresolvedCalculation {
-        name: label.clone(),
-        reason,
-    };
-
-    let entry = serde_json::from_value::<ExpressionEntry>(value)
-        .map_err(|e| unresolved(format!("invalid expression entry: {e}")))?;
-    if entry.name.trim().is_empty() {
-        return Err(unresolved("`name` must not be blank".to_string()));
-    }
-    if entry.expression.trim().is_empty() {
-        return Err(unresolved("`expression` must not be blank".to_string()));
-    }
-    // Reported by position: the name itself belongs to whatever already holds
-    // it, which may well be in the file.
-    if !taken.insert(entry.name.clone()) {
-        return Err(UnresolvedCalculation {
-            name: format!("expressions_json[{index}]"),
-            reason: format!(
-                "name '{}' is already used by another expression or a requested channel; \
-                 give each expression a unique name",
-                entry.name
+    if entries.len() > MAX_EXPRESSIONS {
+        return Err(ErrorData::invalid_params(
+            format!(
+                "`expressions_json` holds {} expressions; send at most {MAX_EXPRESSIONS} per call",
+                entries.len()
             ),
+            None,
+        ));
+    }
+
+    let mut names = HashSet::new();
+    let mut drafts = Vec::with_capacity(entries.len());
+    for (index, entry) in entries.into_iter().enumerate() {
+        let invalid = |problem: String| {
+            ErrorData::invalid_params(format!("`expressions_json[{index}]`: {problem}"), None)
+        };
+
+        if entry.name.trim().is_empty() {
+            return Err(invalid("`name` must not be blank".to_string()));
+        }
+        if entry.name.trim() != entry.name {
+            return Err(invalid(
+                "`name` must not start or end with whitespace".to_string(),
+            ));
+        }
+        if entry.name.contains(RESERVED_NAME_CHARS) {
+            return Err(invalid(format!(
+                "`name` '{}' must not contain any of , \" {{ }}",
+                entry.name
+            )));
+        }
+        if !names.insert(entry.name.clone()) {
+            return Err(invalid(format!(
+                "`name` '{}' is used by an earlier expression; give each expression a unique name",
+                entry.name
+            )));
+        }
+        if entry.expression.trim().is_empty() {
+            return Err(invalid("`expression` must not be blank".to_string()));
+        }
+        if entry.channel_references.is_empty() {
+            return Err(invalid(
+                "`channel_references` must map at least one `$N` to a channel".to_string(),
+            ));
+        }
+        if entry.channel_references.iter().any(|reference| {
+            reference.channel_reference.trim().is_empty()
+                || reference.channel_identifier.trim().is_empty()
+        }) {
+            return Err(invalid(
+                "every channel reference needs a non-blank `channel_reference` and \
+                 `channel_identifier`"
+                    .to_string(),
+            ));
+        }
+
+        drafts.push(DraftExpression {
+            name: entry.name,
+            expression: entry.expression,
+            channel_references: entry.channel_references,
         });
     }
-
-    Ok(DraftExpression {
-        name: entry.name,
-        expression: entry.expression,
-        channel_references: entry.channel_references,
-    })
+    Ok(drafts)
 }
 
 /// One phrasing for calculated channels that yielded no data, shared by the

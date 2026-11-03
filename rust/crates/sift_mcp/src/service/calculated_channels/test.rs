@@ -7,8 +7,9 @@ use sift_rs::{
             CalculatedChannelConfiguration, CalculatedChannelQueryConfiguration,
             CreateCalculatedChannelResponse, GetCalculatedChannelResponse,
             ListCalculatedChannelVersionsResponse, ListCalculatedChannelsResponse,
-            ResolveCalculatedChannelResponse, ResolvedCalculatedChannel,
-            UnresolvedCalculatedChannel, UpdateCalculatedChannelResponse,
+            ResolveCalculatedChannelRequest, ResolveCalculatedChannelResponse,
+            ResolvedCalculatedChannel, UnresolvedCalculatedChannel,
+            UpdateCalculatedChannelResponse,
             calculated_channel_asset_configuration::{AssetScope, AssetSelection},
             calculated_channel_query_configuration::{Query, Sel},
             calculated_channel_service_server::CalculatedChannelServiceServer,
@@ -1636,67 +1637,92 @@ fn draft(name: &str, expression: &str) -> DraftExpression {
     }
 }
 
-/// Each draft goes to resolve as an inline configuration scoped to the asset
-/// and run; only the entry for the requested asset is kept.
+/// The expression of an inline configuration in a resolve request, or an
+/// empty string when the request names a saved channel instead.
+fn draft_expression_of(req: &ResolveCalculatedChannelRequest) -> &str {
+    match req.calculated_channel.as_ref() {
+        Some(ResolveTarget::CalculatedChannelConfiguration(config)) => {
+            match config
+                .query_configuration
+                .as_ref()
+                .and_then(|q| q.query.as_ref())
+            {
+                Some(Query::Sel(sel)) => &sel.expression,
+                None => "",
+            }
+        }
+        _ => "",
+    }
+}
+
+/// All drafts go to resolve in one batch call, each as an inline configuration
+/// scoped to the asset and run; only the entry for the requested asset is kept.
 #[tokio::test]
 async fn resolve_expressions_sends_configuration_and_picks_the_asset() {
     let mut mock = MockCalculatedChannelServiceImpl::new();
-    mock.expect_resolve_calculated_channel()
+    mock.expect_batch_resolve_calculated_channels()
         .times(1)
         .withf(|req| {
-            let req = req.get_ref();
-            let config_ok = match req.calculated_channel.as_ref() {
-                Some(ResolveTarget::CalculatedChannelConfiguration(config)) => {
-                    let sel_ok = matches!(
-                        config.query_configuration.as_ref().and_then(|q| q.query.as_ref()),
-                        Some(Query::Sel(sel)) if sel.expression == "$1 * 2"
-                            && sel.expression_channel_references == [channel_ref("$1", "core_temp")]
+            let requests = &req.get_ref().requests;
+            requests.len() == 2
+                && requests.iter().all(|req| {
+                    let config_ok = match req.calculated_channel.as_ref() {
+                        Some(ResolveTarget::CalculatedChannelConfiguration(config)) => {
+                            let sel_ok = matches!(
+                                config.query_configuration.as_ref().and_then(|q| q.query.as_ref()),
+                                Some(Query::Sel(sel))
+                                    if sel.expression_channel_references
+                                        == [channel_ref("$1", "core_temp")]
+                            );
+                            let scope_ok = matches!(
+                                config.asset_configuration.as_ref().and_then(|a| a.asset_scope.as_ref()),
+                                Some(AssetScope::Selection(AssetSelection { asset_ids, .. }))
+                                    if asset_ids == &["asset-1"]
+                            );
+                            sel_ok && scope_ok
+                        }
+                        _ => false,
+                    };
+                    let run_ok = matches!(
+                        req.run.as_ref().and_then(|r| r.identifier.as_ref()),
+                        Some(Identifier::Id(id)) if id == "run-1"
                     );
-                    let scope_ok = matches!(
-                        config.asset_configuration.as_ref().and_then(|a| a.asset_scope.as_ref()),
-                        Some(AssetScope::Selection(AssetSelection { asset_ids, .. }))
-                            if asset_ids == &["asset-1"]
+                    let assets_ok = matches!(
+                        req.assets.as_ref().and_then(|a| a.resources.as_ref()),
+                        Some(Resources::Ids(ids)) if ids.ids == ["asset-1"]
                     );
-                    sel_ok && scope_ok
-                }
-                _ => false,
-            };
-            let run_ok = matches!(
-                req.run.as_ref().and_then(|r| r.identifier.as_ref()),
-                Some(Identifier::Id(id)) if id == "run-1"
-            );
-            let assets_ok = matches!(
-                req.assets.as_ref().and_then(|a| a.resources.as_ref()),
-                Some(Resources::Ids(ids)) if ids.ids == ["asset-1"]
-            );
-            config_ok && run_ok && assets_ok
+                    config_ok && run_ok && assets_ok
+                })
+                && draft_expression_of(&requests[0]) == "$1 * 2"
+                && draft_expression_of(&requests[1]) == "$1 + 1"
         })
         .returning(|_| {
             let entry = |asset_id: &str, channel_id: &str| ResolvedCalculatedChannel {
                 asset_name: String::new(),
                 asset_id: asset_id.into(),
-                expression_request: Some(ExpressionRequest {
-                    expression: "$1 * 2".into(),
-                    expression_channel_references: vec![ExpressionChannelReference {
-                        channel_reference: "$1".into(),
-                        channel_id: channel_id.into(),
-                        calculated_channel_reference: None,
-                    }],
-                    ..Default::default()
-                }),
+                expression_request: Some(expression_request("$1", channel_id)),
                 output_data_type: 0,
             };
-            Ok(Response::new(ResolveCalculatedChannelResponse {
-                calculated_channel_id: None,
-                resolved: vec![entry("other-asset", "ch-other"), entry("asset-1", "ch-9")],
-                unresolved: vec![],
+            Ok(Response::new(BatchResolveCalculatedChannelsResponse {
+                responses: vec![
+                    ResolveCalculatedChannelResponse {
+                        calculated_channel_id: None,
+                        resolved: vec![entry("other-asset", "ch-other"), entry("asset-1", "ch-9")],
+                        unresolved: vec![],
+                    },
+                    ResolveCalculatedChannelResponse {
+                        calculated_channel_id: None,
+                        resolved: vec![entry("asset-1", "ch-9")],
+                        unresolved: vec![],
+                    },
+                ],
             }))
         });
 
     let (service, _h) = service_with_mock(mock).await;
     let resolution = service
         .resolve_expressions(
-            vec![draft("core_x2", "$1 * 2")],
+            vec![draft("core_x2", "$1 * 2"), draft("core_p1", "$1 + 1")],
             "asset-1".into(),
             Some("run-1".into()),
         )
@@ -1704,8 +1730,14 @@ async fn resolve_expressions_sends_configuration_and_picks_the_asset() {
         .expect("resolve should succeed");
 
     assert!(resolution.unresolved.is_empty());
-    assert_eq!(resolution.resolved.len(), 1);
-    assert_eq!(resolution.resolved[0].name, "core_x2");
+    assert_eq!(
+        resolution
+            .resolved
+            .iter()
+            .map(|r| r.name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["core_x2", "core_p1"],
+    );
     assert_eq!(
         resolution.resolved[0]
             .expression_request
@@ -1715,36 +1747,43 @@ async fn resolve_expressions_sends_configuration_and_picks_the_asset() {
     );
 }
 
-/// An unresolved response, a missing entry for the asset, and a rejected
-/// expression each land in `unresolved` with a reason; the others still
-/// resolve.
+/// An expression the API leaves unresolved, or resolves for no entry on the
+/// asset, lands in `unresolved` with a reason; the others still resolve.
 #[tokio::test]
 async fn resolve_expressions_reports_each_failure_per_entry() {
     let mut mock = MockCalculatedChannelServiceImpl::new();
-    mock.expect_resolve_calculated_channel()
-        .times(3)
+    mock.expect_batch_resolve_calculated_channels()
+        .times(1)
         .returning(|req| {
-            let expression = match req.into_inner().calculated_channel {
-                Some(ResolveTarget::CalculatedChannelConfiguration(config)) => {
-                    match config.query_configuration.and_then(|q| q.query) {
-                        Some(Query::Sel(sel)) => sel.expression,
-                        None => String::new(),
-                    }
-                }
-                _ => String::new(),
-            };
-            match expression.as_str() {
-                "missing" => Ok(Response::new(ResolveCalculatedChannelResponse {
-                    calculated_channel_id: None,
-                    resolved: vec![],
-                    unresolved: vec![UnresolvedCalculatedChannel {
-                        asset_name: "bench".into(),
-                        error_message: "bench is missing the following channels: [x]".into(),
-                    }],
-                })),
-                "silent" => Ok(Response::new(ResolveCalculatedChannelResponse::default())),
-                _ => Err(Status::invalid_argument("Syntax error")),
-            }
+            let responses = req
+                .into_inner()
+                .requests
+                .iter()
+                .map(|req| match draft_expression_of(req) {
+                    "missing" => ResolveCalculatedChannelResponse {
+                        calculated_channel_id: None,
+                        resolved: vec![],
+                        unresolved: vec![UnresolvedCalculatedChannel {
+                            asset_name: "bench".into(),
+                            error_message: "bench is missing the following channels: [x]".into(),
+                        }],
+                    },
+                    "silent" => ResolveCalculatedChannelResponse::default(),
+                    _ => ResolveCalculatedChannelResponse {
+                        calculated_channel_id: None,
+                        resolved: vec![ResolvedCalculatedChannel {
+                            asset_name: "bench".into(),
+                            asset_id: "asset-1".into(),
+                            expression_request: Some(expression_request("$1", "ch-1")),
+                            output_data_type: 0,
+                        }],
+                        unresolved: vec![],
+                    },
+                })
+                .collect();
+            Ok(Response::new(BatchResolveCalculatedChannelsResponse {
+                responses,
+            }))
         });
 
     let (service, _h) = service_with_mock(mock).await;
@@ -1753,7 +1792,7 @@ async fn resolve_expressions_reports_each_failure_per_entry() {
             vec![
                 draft("a", "missing"),
                 draft("b", "silent"),
-                draft("c", "$1 +* 2"),
+                draft("c", "$1 * 2"),
             ],
             "asset-1".into(),
             None,
@@ -1761,7 +1800,14 @@ async fn resolve_expressions_reports_each_failure_per_entry() {
         .await
         .expect("per-entry failures do not fail the call");
 
-    assert!(resolution.resolved.is_empty());
+    assert_eq!(
+        resolution
+            .resolved
+            .iter()
+            .map(|r| r.name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["c"],
+    );
     let reasons = resolution
         .unresolved
         .iter()
@@ -1777,21 +1823,41 @@ async fn resolve_expressions_reports_each_failure_per_entry() {
         "{}",
         reasons[1].1
     );
-    assert_eq!(reasons[2].0, "c");
-    assert!(reasons[2].1.contains("Syntax error"), "{}", reasons[2].1);
 }
 
-/// A failure that is not about the expression fails the whole call.
+/// A failed batch call fails the whole resolution.
 #[tokio::test]
 async fn resolve_expressions_fails_on_a_backend_error() {
     let mut mock = MockCalculatedChannelServiceImpl::new();
-    mock.expect_resolve_calculated_channel()
+    mock.expect_batch_resolve_calculated_channels()
         .returning(|_| Err(Status::internal("boom")));
 
     let (service, _h) = service_with_mock(mock).await;
-    let err = service
+    service
         .resolve_expressions(vec![draft("core_x2", "$1 * 2")], "asset-1".into(), None)
         .await
         .expect_err("an internal error must fail the call");
-    assert!(format!("{err:#}").contains("core_x2"), "{err:#}");
+}
+
+/// A batch that drops an entry, as the API does for a reference the caller may
+/// not read, cannot be mapped back by position and fails the call.
+#[tokio::test]
+async fn resolve_expressions_fails_when_the_batch_drops_an_entry() {
+    let mut mock = MockCalculatedChannelServiceImpl::new();
+    mock.expect_batch_resolve_calculated_channels()
+        .returning(|_| {
+            Ok(Response::new(BatchResolveCalculatedChannelsResponse {
+                responses: vec![ResolveCalculatedChannelResponse::default()],
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+    service
+        .resolve_expressions(
+            vec![draft("a", "$1 * 2"), draft("b", "$1 + 1")],
+            "asset-1".into(),
+            None,
+        )
+        .await
+        .expect_err("a shifted batch must not be mapped by position");
 }
