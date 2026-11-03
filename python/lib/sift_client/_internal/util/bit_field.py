@@ -29,10 +29,6 @@ if TYPE_CHECKING:
 
     from sift_client.sift_types.data_import import ImportConfig
 
-# Matches ``PATH_SEPARATOR`` in ``_internal/util/parquet.py``, which imports
-# pyarrow at module load and so can't be imported here unconditionally.
-_PATH_SEPARATOR = "|"
-
 SAMPLE_ROWS = 1000
 
 _BITS = re.compile(r"[01]+\Z")
@@ -115,6 +111,8 @@ def _check_parquet(path: Path, columns: Mapping[str, DataColumnBase]) -> None:
     try:
         import pyarrow as pa
         import pyarrow.parquet as pq
+
+        from sift_client._internal.util.parquet import PATH_SEPARATOR
     except ImportError as e:
         raise RuntimeError(
             "pyarrow is required for Parquet import. "
@@ -124,7 +122,7 @@ def _check_parquet(path: Path, columns: Mapping[str, DataColumnBase]) -> None:
     schema = pq.read_schema(path)
     string_columns: dict[str, DataColumnBase] = {}
     for column_path, dc in columns.items():
-        field_type = _field_type(schema, column_path)
+        field_type = _field_type(schema, column_path.split(PATH_SEPARATOR))
         if field_type is None:
             # The import service reports columns missing from the file.
             continue
@@ -153,20 +151,19 @@ def _check_parquet(path: Path, columns: Mapping[str, DataColumnBase]) -> None:
         return
     # Read only the sampled rows of the string columns.
     pf = pq.ParquetFile(path)
-    top_level = sorted({p.split(_PATH_SEPARATOR)[0] for p in string_columns})
+    top_level = sorted({p.split(PATH_SEPARATOR)[0] for p in string_columns})
     batch = next(pf.iter_batches(batch_size=SAMPLE_ROWS, columns=top_level), None)
     if batch is None:
         return
     table = pa.Table.from_batches([batch])
     for column_path, dc in string_columns.items():
-        values = _column_values(table, column_path)
+        values = _column_values(table, column_path.split(PATH_SEPARATOR))
         _check_values(dc, ((row, "" if v is None else v) for row, v in enumerate(values, start=1)))
 
 
-def _field_type(schema: pa.Schema, column_path: str) -> pa.DataType | None:
+def _field_type(schema: pa.Schema, parts: list[str]) -> pa.DataType | None:
     import pyarrow as pa
 
-    parts = column_path.split(_PATH_SEPARATOR)
     index = schema.get_field_index(parts[0])
     if index == -1:
         return None
@@ -181,8 +178,7 @@ def _field_type(schema: pa.Schema, column_path: str) -> pa.DataType | None:
     return field_type
 
 
-def _column_values(table: pa.Table, column_path: str) -> list[str | None]:
-    parts = column_path.split(_PATH_SEPARATOR)
+def _column_values(table: pa.Table, parts: list[str]) -> list[str | None]:
     column = table.column(parts[0]).combine_chunks()
     for part in parts[1:]:
         column = column.field(part)
