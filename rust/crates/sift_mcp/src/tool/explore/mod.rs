@@ -19,12 +19,20 @@ use crate::{
 #[cfg(test)]
 mod test;
 
+mod schema;
+
 /// Failed attempts the agent gets to repair a spec before it must report the problem to the user.
 const MAX_REPAIR_ATTEMPTS: u32 = 3;
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct CreateDeclarativeChartParams {
     spec: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct GetChartSchemaParams {
+    definitions: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -40,6 +48,40 @@ pub struct ExploreUrlParams {
 
 #[tool_router(router = explore_router, vis = "pub(crate)")]
 impl SiftMcpServer {
+    #[tool(
+        name = "get_chart_schema",
+        description = "
+            Read the declarative chart JSON Schema from this deployment.
+            With no parameters, return an index with `$id`, `title`, a root `summary`, and
+            `definitions` as a map from each definition name to the first sentence of its description.
+            The index includes `save_command`: `sift-cli get chart-schema -o <path>`.
+            Use that command to save the full schema locally. This tool never returns the full schema.
+
+            Parameters:
+              - `definitions`: optional list of exact `$defs` names from the index.
+                Return those entries in `definitions` and a flat list of names in `references`, without duplicates.
+                References name definitions, even when a `$ref` points inside a definition.
+                Call this tool again with those names to read their entries.
+
+            Errors:
+              - `INVALID_PARAMS` for an unknown definition name, with close matches.
+              - An error if the deployment does not serve the declarative chart schema.
+            The schema cache expires after five minutes.
+        ",
+        annotations(title = "explore/get_chart_schema", read_only_hint = true)
+    )]
+    pub async fn get_chart_schema(
+        &self,
+        params: Parameters<GetChartSchemaParams>,
+    ) -> error::McpResult {
+        let schema = self
+            .declarative_service
+            .chart_schema()
+            .await
+            .map_err(error::from_anyhow)?;
+        schema::result(&schema, params.0.definitions.as_deref())
+    }
+
     #[tool(
         name = "explore_url",
         description = "

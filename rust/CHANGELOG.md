@@ -6,6 +6,14 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### What's New
 
+#### Declarative chart schema tool
+
+`get_chart_schema` returns a compact schema index or requested named definitions for declarative charts.
+
+#### Declarative chart schema command
+
+`sift-cli get chart-schema` downloads the full declarative chart schema to standard output or an output file.
+
 #### MCP tools present Sift entities as named Markdown links
 
 Tool results that carry a Sift web link now tell the model to present the entity as

@@ -10,6 +10,7 @@ pub use client_event::ClientEventConfig;
 
 mod feature_flags;
 pub use feature_flags::FeatureFlags;
+pub use service::declarative::DeclarativeService;
 pub use service::remote_files::RestConfig;
 
 mod server;
