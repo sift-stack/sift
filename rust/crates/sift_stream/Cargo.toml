@@ -55,6 +55,7 @@ tempdir = { workspace = true }
 tokio = { workspace = true, features = ["rt", "rt-multi-thread", "sync", "time", "signal"] }
 tokio-stream = { workspace = true }
 tonic = { workspace = true }
+tonic-types = { workspace = true }
 tower = { workspace = true, features = ["util"] }
 tracing-subscriber = { workspace = true }
 tracing-test = { workspace = true }

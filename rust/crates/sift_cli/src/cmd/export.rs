@@ -21,7 +21,7 @@ use sift_rs::{
         GetDownloadUrlRequest, GetDownloadUrlResponse, RunsAndTimeRange,
         export_data_request::TimeSelection, export_service_client::ExportServiceClient,
     },
-    jobs::v1::JobStatus,
+    jobs::v1::{Job, JobStatus},
     runs::v2::{ListRunsRequest, ListRunsResponse, run_service_client::RunServiceClient},
 };
 use tokio::time::sleep;
@@ -33,9 +33,10 @@ use crate::{
         api::create_grpc_channel,
         calculated_channel::{ResolveScope, resolve_calculated_channels},
         channel::resolve_channel_ids,
+        explore_url::{build_jobs_url, explore_or_note},
         job::JobServiceWrapper,
         progress::Spinner,
-        tty::Output,
+        tty::{Output, hyperlink, link_style, stdout_is_tty},
     },
 };
 
@@ -43,6 +44,7 @@ use super::Context;
 
 pub async fn run(ctx: Context, args: ExportRunArgs) -> Result<ExitCode> {
     let grpc_channel = create_grpc_channel(&ctx)?;
+
     let mut run_service = RunServiceClient::new(grpc_channel.clone());
 
     let filter = {
@@ -143,7 +145,14 @@ pub async fn run(ctx: Context, args: ExportRunArgs) -> Result<ExitCode> {
         ..Default::default()
     };
 
-    export(grpc_channel, export_req, args.common.output).await
+    export(
+        grpc_channel,
+        export_req,
+        args.common.output,
+        args.common.no_wait,
+        ctx.app_uri.as_deref(),
+    )
+    .await
 }
 
 pub async fn asset(ctx: Context, args: ExportAssetArgs) -> Result<ExitCode> {
@@ -170,6 +179,7 @@ pub async fn asset(ctx: Context, args: ExportAssetArgs) -> Result<ExitCode> {
         .ok_or_else(|| anyhow!("missing required argument `{}`", "--stop".yellow()))?;
 
     let grpc_channel = create_grpc_channel(&ctx)?;
+
     let mut asset_service = AssetServiceClient::new(grpc_channel.clone());
 
     let filter = format!("name == '{}'", args.asset);
@@ -221,13 +231,22 @@ pub async fn asset(ctx: Context, args: ExportAssetArgs) -> Result<ExitCode> {
         ..Default::default()
     };
 
-    export(grpc_channel, export_req, args.common.output).await
+    export(
+        grpc_channel,
+        export_req,
+        args.common.output,
+        args.common.no_wait,
+        ctx.app_uri.as_deref(),
+    )
+    .await
 }
 
 async fn export(
     grpc_channel: SiftChannel,
     req: ExportDataRequest,
     output: PathBuf,
+    no_wait: bool,
+    app_uri: Option<&str>,
 ) -> Result<ExitCode> {
     let mut export_service = ExportServiceClient::new(grpc_channel.clone());
     let ExportDataResponse { job_id, .. } = export_service
@@ -236,62 +255,58 @@ async fn export(
         .context("failed to initiate export")?
         .into_inner();
 
+    if !no_wait {
+        return download_export(grpc_channel, job_id, output).await;
+    }
+
+    let tip = match build_jobs_url(app_uri, &job_id) {
+        Some(url) => {
+            let link = if stdout_is_tty() {
+                hyperlink(&link_style(&url), &url)
+            } else {
+                url
+            };
+            format!("Track the export in Sift: {link}")
+        }
+        None => explore_or_note(None),
+    };
+
+    Output::new()
+        .line(format!(
+            "{} export job {}",
+            "Started".green(),
+            job_id.as_str().cyan()
+        ))
+        .tip(tip)
+        .print();
+
+    Ok(ExitCode::SUCCESS)
+}
+
+async fn download_export(
+    grpc_channel: SiftChannel,
+    job_id: String,
+    output: PathBuf,
+) -> Result<ExitCode> {
+    let mut export_service = ExportServiceClient::new(grpc_channel.clone());
     let mut job_service = JobServiceWrapper::new(grpc_channel);
-    let mut job = job_service
+
+    let job = job_service
         .get_job(&job_id)
         .await?
         .ok_or_else(|| anyhow!("failed to find job {job_id}"))?;
 
     let spinner = Spinner::new();
-    spinner.set_message(format!("{} export", "Processing".green()));
 
-    loop {
-        sleep(Duration::from_secs(3)).await;
-
-        match job.job_status() {
-            JobStatus::Created => (),
-            JobStatus::Running => {
-                spinner.set_message(format!("{} export", "Processing".green()));
-            }
-            JobStatus::CancelRequested => {
-                spinner.set_message(format!(
-                    "{} was requested but the job may still finish",
-                    "Cancellation".green()
-                ));
-            }
-            JobStatus::Cancelled => {
-                spinner.finish_and_clear();
-                Output::new()
-                    .line(format!("{} data export job", "Cancelled".green()))
-                    .print();
-                break;
-            }
-            JobStatus::Failed => {
-                spinner.finish_and_clear();
-                Output::new()
-                    .line("Processing failed")
-                    .tip("Please check the Sift jobs manage page for further details")
-                    .eprint();
-                return Ok(ExitCode::FAILURE);
-            }
-            JobStatus::Finished => {
-                spinner.finish_and_clear();
-                Output::new()
-                    .line(format!("{} export", "Downloading".green()))
-                    .print();
-                break;
-            }
-            _ => (),
-        }
-
-        job = job_service
-            .get_job(&job_id)
-            .await?
-            .ok_or_else(|| anyhow!("failed to find job {job_id}"))?;
+    match wait_for_export(job, &mut job_service, &job_id, &spinner).await? {
+        ExitCode::SUCCESS => {}
+        other => return Ok(other),
     }
 
     let GetDownloadUrlResponse { presigned_url, .. } = export_service
-        .get_download_url(GetDownloadUrlRequest { job_id })
+        .get_download_url(GetDownloadUrlRequest {
+            job_id: job_id.clone(),
+        })
         .await
         .context("failed to get download URL for export")?
         .into_inner();
@@ -310,7 +325,7 @@ async fn export(
         }
     };
 
-    let zip_file_path = temp_dir().join(format!("{}.zip", output.display()));
+    let zip_file_path = temp_dir().join(format!("sift-export-{job_id}.zip"));
     let mut zip_file = match File::create_new(&zip_file_path) {
         Ok(fd) => fd,
         Err(err) => {
@@ -368,4 +383,55 @@ async fn export(
         .print();
 
     Ok(ExitCode::SUCCESS)
+}
+
+async fn wait_for_export(
+    mut job: Job,
+    job_service: &mut JobServiceWrapper,
+    job_id: &str,
+    spinner: &Spinner,
+) -> Result<ExitCode> {
+    spinner.set_message(format!("{} export", "Processing".green()));
+
+    loop {
+        sleep(Duration::from_secs(3)).await;
+
+        match job.job_status() {
+            JobStatus::Created => (),
+            JobStatus::Running => {
+                spinner.set_message(format!("{} export", "Processing".green()));
+            }
+            JobStatus::CancelRequested => {
+                spinner.set_message(format!(
+                    "{} was requested but the job may still finish",
+                    "Cancellation".green()
+                ));
+            }
+            JobStatus::Cancelled => {
+                spinner.finish_and_clear();
+                Output::new()
+                    .line(format!("{} data export job", "Cancelled".green()))
+                    .print();
+                return Ok(ExitCode::FAILURE);
+            }
+            JobStatus::Failed => {
+                spinner.finish_and_clear();
+                Output::new()
+                    .line("Processing failed")
+                    .tip("Please check the Sift jobs manage page for further details")
+                    .eprint();
+                return Ok(ExitCode::FAILURE);
+            }
+            JobStatus::Finished => {
+                spinner.set_message(format!("{} export", "Downloading".green()));
+                return Ok(ExitCode::SUCCESS);
+            }
+            _ => (),
+        }
+
+        job = job_service
+            .get_job(job_id)
+            .await?
+            .ok_or_else(|| anyhow!("failed to find job {job_id}"))?;
+    }
 }

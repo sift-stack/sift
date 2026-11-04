@@ -3,6 +3,7 @@
 import threading
 
 import pytest
+import requests
 
 from sift_client._internal.grpc_transport.transport import (
     _compute_channel_options,
@@ -112,6 +113,33 @@ class TestRestConfigUrl:
     def test_url_keeps_http(self):
         config = RestConfig(base_url="http://rest.sift.com", api_key="api", use_ssl=False)
         assert config.base_url == "http://rest.sift.com"
+
+
+class TestRestAuthentication:
+    @pytest.mark.parametrize(
+        ("config_kwargs", "expected_authorization"),
+        [
+            ({}, None),
+            ({"api_key": None}, None),
+            ({"api_key": "api"}, "Bearer api"),
+            ({"api_key": ""}, "Bearer "),
+        ],
+    )
+    def test_authorization_header(self, config_kwargs, expected_authorization):
+        client = RestClient(RestConfig(base_url="https://vendor.example", **config_kwargs))
+        with client._client._session as session:
+            request = session.prepare_request(requests.Request("GET", client.base_url))
+            assert request.headers.get("Authorization") == expected_authorization
+
+    def test_custom_authorization_without_api_key(self):
+        client = RestClient(RestConfig(base_url="https://vendor.example"))
+        with client._client._session as session:
+            request = session.prepare_request(
+                requests.Request(
+                    "GET", client.base_url, headers={"Authorization": "Basic vendor-credential"}
+                )
+            )
+            assert request.headers["Authorization"] == "Basic vendor-credential"
 
 
 class TestRestRequestTimeout:

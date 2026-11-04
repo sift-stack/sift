@@ -4,10 +4,10 @@ use sift_rs::artifacts::v1::{
     ArchiveArtifactRequest, ArchiveArtifactResponse, CreateArtifactRequest, CreateArtifactResponse,
     GetArtifactRequest, GetArtifactResponse, LinkArtifactToConversationRequest,
     LinkArtifactToConversationResponse, ListArtifactVersionsRequest, ListArtifactVersionsResponse,
-    ListArtifactsRequest, ListArtifactsResponse, UnarchiveArtifactRequest,
-    UnarchiveArtifactResponse, UnlinkArtifactFromConversationRequest,
-    UnlinkArtifactFromConversationResponse, UpdateArtifactRequest, UpdateArtifactResponse,
-    artifact_service_server::ArtifactService,
+    ListArtifactsRequest, ListArtifactsResponse, PromoteArtifactVersionRequest,
+    PromoteArtifactVersionResponse, UnarchiveArtifactRequest, UnarchiveArtifactResponse,
+    UnlinkArtifactFromConversationRequest, UnlinkArtifactFromConversationResponse,
+    UpdateArtifactRequest, UpdateArtifactResponse, artifact_service_server::ArtifactService,
 };
 use tonic::{Request, Response, Status};
 
@@ -49,6 +49,13 @@ mock! {
             request: Request<ListArtifactVersionsRequest>,
         ) -> std::result::Result<
             Response<ListArtifactVersionsResponse>,
+            Status,
+        >;
+        async fn promote_artifact_version(
+            &self,
+            request: Request<PromoteArtifactVersionRequest>,
+        ) -> std::result::Result<
+            Response<PromoteArtifactVersionResponse>,
             Status,
         >;
         async fn link_artifact_to_conversation(

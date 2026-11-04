@@ -50,7 +50,9 @@ class UserGroup(google.protobuf.message.Message):
     @property
     def resources(self) -> global___UserGroup.Resource: ...
     @property
-    def user_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    def user_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """Member ids for this group. Each id is an actor: a user or a service account."""
+
     def __init__(
         self,
         *,
@@ -173,6 +175,7 @@ class UpdateUserUserGroupsRequest(google.protobuf.message.Message):
     USER_ID_FIELD_NUMBER: builtins.int
     USER_GROUP_IDS_FIELD_NUMBER: builtins.int
     user_id: builtins.str
+    """Actor whose groups to replace. A user id or a service account id."""
     @property
     def user_group_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
     def __init__(
@@ -239,7 +242,9 @@ class UpdateUserGroupRequest(google.protobuf.message.Message):
     def user_group(self) -> global___UserGroup: ...
     @property
     def update_mask(self) -> google.protobuf.field_mask_pb2.FieldMask:
-        """The list of fields to update."""
+        """The list of fields to update.
+        `users` replaces `user_group.user_ids`. Those ids are actors: users or service accounts.
+        """
 
     def __init__(
         self,
@@ -302,6 +307,7 @@ class AddUserToUserGroupRequest(google.protobuf.message.Message):
     USER_ID_FIELD_NUMBER: builtins.int
     user_group_id: builtins.str
     user_id: builtins.str
+    """Actor to add. A user id or a service account id."""
     def __init__(
         self,
         *,
@@ -330,6 +336,7 @@ class RemoveUserFromUserGroupRequest(google.protobuf.message.Message):
     USER_ID_FIELD_NUMBER: builtins.int
     user_group_id: builtins.str
     user_id: builtins.str
+    """Actor to remove. A user id or a service account id."""
     def __init__(
         self,
         *,

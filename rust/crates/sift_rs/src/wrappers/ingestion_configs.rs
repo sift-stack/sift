@@ -5,6 +5,7 @@ use crate::ingestion_configs::v2::{
     ListIngestionConfigFlowsResponse, ListIngestionConfigsRequest,
     ingestion_config_service_client::IngestionConfigServiceClient,
 };
+use crate::rate_limit::error_from_status;
 use async_trait::async_trait;
 use sift_connect::SiftChannel;
 use sift_error::prelude::*;
@@ -216,7 +217,7 @@ impl IngestionConfigServiceWrapper for IngestionConfigServiceImpl {
             if e.code() == tonic::Code::AlreadyExists {
                 Error::new(ErrorKind::AlreadyExistsError, e)
             } else {
-                Error::new(ErrorKind::CreateIngestionConfigError, e)
+                error_from_status(ErrorKind::CreateIngestionConfigError, e)
             }
         })?
         .ok_or_else(|| {
@@ -266,7 +267,7 @@ impl IngestionConfigServiceWrapper for IngestionConfigServiceImpl {
                 if e.code() == tonic::Code::AlreadyExists {
                     Error::new(ErrorKind::AlreadyExistsError, e)
                 } else {
-                    Error::new(ErrorKind::CreateFlowError, e)
+                    error_from_status(ErrorKind::CreateFlowError, e)
                 }
             })?;
         Ok(())
@@ -298,8 +299,10 @@ impl IngestionConfigServiceWrapper for IngestionConfigServiceImpl {
                 Err(status) => {
                     // tonic reports a response over the client's decode limit as `OutOfRange`.
                     let exceeded_decode_limit = status.code() == tonic::Code::OutOfRange;
-                    let err: Result<Vec<FlowConfig>> =
-                        Err(Error::new(ErrorKind::RetrieveIngestionConfigError, status));
+                    let err: Result<Vec<FlowConfig>> = Err(error_from_status(
+                        ErrorKind::RetrieveIngestionConfigError,
+                        status,
+                    ));
 
                     return if exceeded_decode_limit {
                         err.context(format!(
@@ -344,7 +347,7 @@ impl IngestionConfigServiceImpl {
                 self.get_ingestion_config(GetIngestionConfigRequest { ingestion_config_id })
                     .await
                     .map(|res| res.into_inner().ingestion_config)
-                    .map_err(|e| Error::new(ErrorKind::RetrieveIngestionConfigError, e))
+                    .map_err(|e| error_from_status(ErrorKind::RetrieveIngestionConfigError, e))
                     .context("failed to try_get ingestion config")
                     .help("make sure that the provided ingestion config ID is valid")?
                     .ok_or_else(|| Error::new_empty_response("unexpected empty response from IngestionConfigService/GetIngestionConfigRequest"))
@@ -356,7 +359,7 @@ impl IngestionConfigServiceImpl {
                     .list_ingestion_configs(ListIngestionConfigsRequest { filter, page_size: 1, ..Default::default() })
                     .await
                     .map(|res| res.into_inner().ingestion_configs)
-                    .map_err(|e| Error::new(ErrorKind::RetrieveIngestionConfigError, e))
+                    .map_err(|e| error_from_status(ErrorKind::RetrieveIngestionConfigError, e))
                     .context("failed try_get_ingestion_config")
                     .help("ensure that the provided client key is valid")?;
 

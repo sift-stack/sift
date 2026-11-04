@@ -143,6 +143,14 @@ impl UrlService {
         Ok(format!("{host}/reports/{}", encode_value(report_id)))
     }
 
+    pub fn build_report_template_url(&self, report_template_id: &str) -> Result<String, ErrorData> {
+        let host = self.app_host()?;
+        Ok(format!(
+            "{host}/report-templates/{}",
+            encode_value(report_template_id)
+        ))
+    }
+
     pub fn build_test_report_url(&self, test_report_id: &str) -> Result<String, ErrorData> {
         let host = self.app_host()?;
         Ok(format!(
@@ -169,6 +177,21 @@ impl UrlService {
     pub fn build_run_url(&self, run_id: &str) -> Result<String, ErrorData> {
         let host = self.app_host()?;
         Ok(format!("{host}/run/{}", encode_value(run_id)))
+    }
+
+    /// The artifact page follows the latest version unless `artifact_version_id`
+    /// pins it to one.
+    pub fn build_artifact_url(
+        &self,
+        artifact_id: &str,
+        artifact_version_id: Option<&str>,
+    ) -> Result<String, ErrorData> {
+        let host = self.app_host()?;
+        let url = format!("{host}/artifacts/{}", encode_value(artifact_id));
+        Ok(match artifact_version_id {
+            Some(version_id) => format!("{url}?artifactVersionId={}", encode_value(version_id)),
+            None => url,
+        })
     }
 
     fn app_host(&self) -> Result<&str, ErrorData> {

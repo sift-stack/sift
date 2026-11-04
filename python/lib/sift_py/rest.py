@@ -1,3 +1,4 @@
+import ssl
 from abc import ABC
 from typing import TypedDict
 
@@ -19,7 +20,6 @@ class SiftRestConfig(TypedDict):
     - `retry`: Urllib3 Retry configuration. If not provided, a default of 3 retries is used.
     - `use_ssl`: INTERNAL USE. Meant to be used for local development.
     - `cert_via_openssl`: Enable this if you want to use OpenSSL to load the certificates.
-    Run `pip install sift-stack-py[openssl]` to install the dependencies required to use this option.
     Default is False.
     """
 
@@ -51,16 +51,9 @@ class _SiftHTTPAdapter(HTTPAdapter):
 
     def init_poolmanager(self, *args, **kwargs):
         if self._rest_conf.get("cert_via_openssl", False):
-            try:
-                import ssl
-
-                context = ssl.create_default_context()
-                context.load_default_certs()
-                kwargs["ssl_context"] = context
-            except ImportError as e:
-                raise Exception(
-                    "Missing required dependencies for cert_via_openssl. Run `pip install sift-stack-py[openssl]` to install the required dependencies."
-                ) from e
+            context = ssl.create_default_context()
+            context.load_default_certs()
+            kwargs["ssl_context"] = context
         return super().init_poolmanager(*args, **kwargs)
 
 

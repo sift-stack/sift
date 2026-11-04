@@ -1,18 +1,20 @@
 use async_trait::async_trait;
 use mockall::mock;
 use sift_rs::test_reports::v1::{
-    CountTestMeasurementsRequest, CountTestMeasurementsResponse, CountTestStepsRequest,
-    CountTestStepsResponse, CreateTestMeasurementRequest, CreateTestMeasurementResponse,
-    CreateTestMeasurementsRequest, CreateTestMeasurementsResponse, CreateTestReportRequest,
-    CreateTestReportResponse, CreateTestStepRequest, CreateTestStepResponse,
-    DeleteTestMeasurementRequest, DeleteTestMeasurementResponse, DeleteTestReportRequest,
-    DeleteTestReportResponse, DeleteTestStepRequest, DeleteTestStepResponse, GetTestReportRequest,
-    GetTestReportResponse, ImportTestReportRequest, ImportTestReportResponse,
-    ListTestMeasurementsRequest, ListTestMeasurementsResponse, ListTestReportsRequest,
-    ListTestReportsResponse, ListTestStepsRequest, ListTestStepsResponse,
-    UpdateTestMeasurementRequest, UpdateTestMeasurementResponse, UpdateTestReportRequest,
-    UpdateTestReportResponse, UpdateTestStepRequest, UpdateTestStepResponse,
-    test_report_service_server::TestReportService,
+    BatchArchiveTestReportsRequest, BatchArchiveTestReportsResponse,
+    BatchUnarchiveTestReportsRequest, BatchUnarchiveTestReportsResponse,
+    BatchUpdateTestReportsRequest, BatchUpdateTestReportsResponse, CountTestMeasurementsRequest,
+    CountTestMeasurementsResponse, CountTestStepsRequest, CountTestStepsResponse,
+    CreateTestMeasurementRequest, CreateTestMeasurementResponse, CreateTestMeasurementsRequest,
+    CreateTestMeasurementsResponse, CreateTestReportRequest, CreateTestReportResponse,
+    CreateTestStepRequest, CreateTestStepResponse, DeleteTestMeasurementRequest,
+    DeleteTestMeasurementResponse, DeleteTestReportRequest, DeleteTestReportResponse,
+    DeleteTestStepRequest, DeleteTestStepResponse, GetTestReportRequest, GetTestReportResponse,
+    ImportTestReportRequest, ImportTestReportResponse, ListTestMeasurementsRequest,
+    ListTestMeasurementsResponse, ListTestReportsRequest, ListTestReportsResponse,
+    ListTestStepsRequest, ListTestStepsResponse, UpdateTestMeasurementRequest,
+    UpdateTestMeasurementResponse, UpdateTestReportRequest, UpdateTestReportResponse,
+    UpdateTestStepRequest, UpdateTestStepResponse, test_report_service_server::TestReportService,
 };
 use tonic::{Request, Response, Status};
 
@@ -41,6 +43,18 @@ mock! {
             &self,
             request: Request<UpdateTestReportRequest>,
         ) -> std::result::Result<Response<UpdateTestReportResponse>, Status>;
+        async fn batch_update_test_reports(
+            &self,
+            request: Request<BatchUpdateTestReportsRequest>,
+        ) -> std::result::Result<Response<BatchUpdateTestReportsResponse>, Status>;
+        async fn batch_archive_test_reports(
+            &self,
+            request: Request<BatchArchiveTestReportsRequest>,
+        ) -> std::result::Result<Response<BatchArchiveTestReportsResponse>, Status>;
+        async fn batch_unarchive_test_reports(
+            &self,
+            request: Request<BatchUnarchiveTestReportsRequest>,
+        ) -> std::result::Result<Response<BatchUnarchiveTestReportsResponse>, Status>;
         async fn delete_test_report(
             &self,
             request: Request<DeleteTestReportRequest>,

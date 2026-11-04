@@ -23,9 +23,10 @@ sift_error = { workspace = true }
 tokio = { workspace = true, features = ["time"] }
 tonic = { workspace = true }
 tonic-prost = { workspace = true }
+tonic-types = { workspace = true }
 
 [dev-dependencies]
 chrono = { workspace = true }
 rand = { workspace = true }
-tokio = { workspace = true, features = ["full"] }
+tokio = { workspace = true, features = ["full", "test-util"] }
 tokio-stream = { workspace = true }

@@ -378,6 +378,9 @@ class SearchRulesRequest(google.protobuf.message.Message):
     case_sensitive: builtins.bool
     regexp: builtins.bool
     order_by: builtins.str
+    """The field to sort results by. Valid values are `created_date` and `modified_date`.
+    Defaults to `created_date`. Use `order` to set the sort direction.
+    """
     include_deleted: builtins.bool
     @property
     def rule_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
@@ -426,7 +429,7 @@ class SearchRulesResponse(google.protobuf.message.Message):
     count: builtins.int
     @property
     def rules(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___Rule]:
-        """Conditions are not included in the search response. The latest version of the rule is returned."""
+        """The latest version of the rule is returned."""
 
     def __init__(
         self,
@@ -566,6 +569,7 @@ class UpdateRuleRequest(google.protobuf.message.Message):
     METADATA_FIELD_NUMBER: builtins.int
     IS_ARCHIVED_FIELD_NUMBER: builtins.int
     IS_LIVE_EVALUATION_ENABLED_FIELD_NUMBER: builtins.int
+    SAVED_EXPLORATION_ID_FIELD_NUMBER: builtins.int
     rule_id: builtins.str
     name: builtins.str
     description: builtins.str
@@ -589,6 +593,10 @@ class UpdateRuleRequest(google.protobuf.message.Message):
     silently overridden to `false` if UDF inlining fails (the rule is still persisted, just with
     live evaluation disabled). Re-send this request with the underlying issue resolved -- e.g.
     the referenced channels populated, or the expression simplified -- to flip it back on.
+    """
+    saved_exploration_id: builtins.str
+    """ID of the saved exploration linked to this rule. When set, changing this value creates a new
+    rule version. Cleared by sending an empty string.
     """
     @property
     def conditions(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___UpdateConditionRequest]: ...
@@ -616,15 +624,18 @@ class UpdateRuleRequest(google.protobuf.message.Message):
         metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
         is_archived: builtins.bool = ...,
         is_live_evaluation_enabled: builtins.bool | None = ...,
+        saved_exploration_id: builtins.str | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_client_key", b"_client_key", "_is_live_evaluation_enabled", b"_is_live_evaluation_enabled", "_rule_id", b"_rule_id", "asset_configuration", b"asset_configuration", "client_key", b"client_key", "contextual_channels", b"contextual_channels", "is_live_evaluation_enabled", b"is_live_evaluation_enabled", "rule_id", b"rule_id"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "_is_live_evaluation_enabled", b"_is_live_evaluation_enabled", "_rule_id", b"_rule_id", "asset_configuration", b"asset_configuration", "asset_id", b"asset_id", "client_key", b"client_key", "conditions", b"conditions", "contextual_channels", b"contextual_channels", "description", b"description", "is_archived", b"is_archived", "is_enabled", b"is_enabled", "is_external", b"is_external", "is_live_evaluation_enabled", b"is_live_evaluation_enabled", "metadata", b"metadata", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "version_notes", b"version_notes"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_client_key", b"_client_key", "_is_live_evaluation_enabled", b"_is_live_evaluation_enabled", "_rule_id", b"_rule_id", "_saved_exploration_id", b"_saved_exploration_id", "asset_configuration", b"asset_configuration", "client_key", b"client_key", "contextual_channels", b"contextual_channels", "is_live_evaluation_enabled", b"is_live_evaluation_enabled", "rule_id", b"rule_id", "saved_exploration_id", b"saved_exploration_id"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "_is_live_evaluation_enabled", b"_is_live_evaluation_enabled", "_rule_id", b"_rule_id", "_saved_exploration_id", b"_saved_exploration_id", "asset_configuration", b"asset_configuration", "asset_id", b"asset_id", "client_key", b"client_key", "conditions", b"conditions", "contextual_channels", b"contextual_channels", "description", b"description", "is_archived", b"is_archived", "is_enabled", b"is_enabled", "is_external", b"is_external", "is_live_evaluation_enabled", b"is_live_evaluation_enabled", "metadata", b"metadata", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "saved_exploration_id", b"saved_exploration_id", "version_notes", b"version_notes"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_client_key", b"_client_key"]) -> typing.Literal["client_key"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_is_live_evaluation_enabled", b"_is_live_evaluation_enabled"]) -> typing.Literal["is_live_evaluation_enabled"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_rule_id", b"_rule_id"]) -> typing.Literal["rule_id"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_saved_exploration_id", b"_saved_exploration_id"]) -> typing.Literal["saved_exploration_id"] | None: ...
 
 global___UpdateRuleRequest = UpdateRuleRequest
 
@@ -802,19 +813,37 @@ class BatchUpdateRulesResponse(google.protobuf.message.Message):
     VALIDATION_RESULTS_FIELD_NUMBER: builtins.int
     CREATED_RULE_IDENTIFIERS_FIELD_NUMBER: builtins.int
     success: builtins.bool
+    """True if no rule has an error, or
+    override_expression_validation is true. False if any rule has an error and that override is unset. When false
+    and validate_only is false.
+    """
     rules_created_count: builtins.int
-    """The total number of rules created in the request. If validate_only is true, this will indicate how many rules would have been created."""
+    """Number of request rules classified as creates (no matching rule_id
+    or existing client_key). Includes rules that failed validation.
+    If validate_only is true, nothing is written unless override_expression_validation is true.
+    """
     rules_updated_count: builtins.int
-    """The total number of rules updated in the request. If validate_only is true, this will indicate how many rules would have been updated."""
+    """Number of request rules classified as updates (matched by rule_id
+    or an existing client_key). Includes rules that failed validation.
+    If validate_only is true, nothing is written unless override_expression_validation is true.
+    """
     validate_only: builtins.bool
-    """This will be true if the request only validated the request and did not save the rules."""
+    """True if the request only validated the rules and did not save them."""
     @property
     def validation_results(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ValidationResult]:
-        """One ValidationResult per rule in the request will be returned"""
+        """Rules that have at least one error (rules with multiple failing assets will appear multiple times). Passing
+        rules are omitted, so this list is often shorter than `rules`.
+        Match a result with `rule_id`, `client_key`, or `rule_name`; do
+        not zip by index. A rule with several failing assets can appear
+        more than once. Rule-level errors with no per-asset expression
+        error do not appear.
+        """
 
     @property
     def created_rule_identifiers(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___BatchUpdateRulesResponse.RuleIdentifiers]:
-        """The created rule id, name, version, and client key."""
+        """Identifiers for rules this request created. Empty when
+        validate_only is true or success is false.
+        """
 
     def __init__(
         self,
@@ -986,7 +1015,7 @@ global___UndeleteRuleResponse = UndeleteRuleResponse
 
 @typing.final
 class BatchUndeleteRulesRequest(google.protobuf.message.Message):
-    """BatchUndeleteRulesRequest is used to delete a rule by rule_id or client_key. For each rule if both are provided, only rule_id will be used."""
+    """BatchUndeleteRulesRequest is used to restore a rule by rule_id or client_key. For each rule if both are provided, only rule_id will be used."""
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -1330,16 +1359,23 @@ class ListRulesRequest(google.protobuf.message.Message):
     the call that provided the page token.
     """
     filter: builtins.str
-    """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-    Available fields to filter by are `rule_id`, `client_key`, `name`, `description`, `is_external`, `asset_id`, `tag_id`,
-    `created_date`, `created_by_user_id`, `metadata`, `modified_date`, `modified_by_user_id`, `deleted_date`, `is_archived`, `archived_date`, and `is_live_evaluation_enabled`.
-    Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
-    Folder membership is filterable via the `folders` and `activeFolders` fields. Both contain the ids of the folders
-    the rule belongs to; `activeFolders` excludes archived folders. Use `"<folder_id>" in folders` to return rules in
-    the given folder, and `size(activeFolders) == 0` to return uncategorized rules (rules whose only memberships are
-    in archived folders count as uncategorized).
-    For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-    Optional.
+    """Optional. A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string. Available
+    fields: `rule_id`, `client_key`, `name`, `description`, `is_external`, `asset_id`, `tag_id`, `created_date`,
+    `created_by_user_id`, `metadata`, `modified_date`, `modified_by_user_id`, `deleted_date`, `is_archived`,
+    `archived_date`, and `is_live_evaluation_enabled`.
+
+    `asset_id` matches any Rule that has the given Asset among its configured Assets, not only Rules scoped
+    exclusively to that Asset.
+
+    Metadata fields: use `metadata["<key name>"]` as the field name, e.g. `metadata["severity"] == "high"`.
+    The dot form `metadata.<key name>` is not supported.
+
+    Folder membership is filterable via the `folders` and `activeFolders` fields. Both contain the IDs of the
+    folders the Rule belongs to; `activeFolders` excludes archived folders. Use `"<folder_id>" in folders` to
+    return Rules in the given folder, and `size(activeFolders) == 0` to return uncategorized Rules (Rules whose
+    only memberships are in archived folders count as uncategorized).
+
+    For further information about how to use CEL, refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     """
     order_by: builtins.str
     """How to order the retrieved Rules. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
@@ -1429,6 +1465,7 @@ class RuleVersion(google.protobuf.message.Message):
     DELETED_DATE_FIELD_NUMBER: builtins.int
     ARCHIVED_DATE_FIELD_NUMBER: builtins.int
     IS_ARCHIVED_FIELD_NUMBER: builtins.int
+    SAVED_EXPLORATION_ID_FIELD_NUMBER: builtins.int
     rule_id: builtins.str
     rule_version_id: builtins.str
     version: builtins.str
@@ -1437,6 +1474,8 @@ class RuleVersion(google.protobuf.message.Message):
     generated_change_message: builtins.str
     is_archived: builtins.bool
     """is_archived is inferred from when archived_date is not null"""
+    saved_exploration_id: builtins.str
+    """ID of the saved exploration linked to this rule version, if any."""
     @property
     def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -1458,9 +1497,11 @@ class RuleVersion(google.protobuf.message.Message):
         deleted_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         archived_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         is_archived: builtins.bool = ...,
+        saved_exploration_id: builtins.str | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["archived_date", b"archived_date", "created_date", b"created_date", "deleted_date", b"deleted_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["archived_date", b"archived_date", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "deleted_date", b"deleted_date", "generated_change_message", b"generated_change_message", "is_archived", b"is_archived", "rule_id", b"rule_id", "rule_version_id", b"rule_version_id", "version", b"version", "version_notes", b"version_notes"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_saved_exploration_id", b"_saved_exploration_id", "archived_date", b"archived_date", "created_date", b"created_date", "deleted_date", b"deleted_date", "saved_exploration_id", b"saved_exploration_id"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_saved_exploration_id", b"_saved_exploration_id", "archived_date", b"archived_date", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "deleted_date", b"deleted_date", "generated_change_message", b"generated_change_message", "is_archived", b"is_archived", "rule_id", b"rule_id", "rule_version_id", b"rule_version_id", "saved_exploration_id", b"saved_exploration_id", "version", b"version", "version_notes", b"version_notes"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["_saved_exploration_id", b"_saved_exploration_id"]) -> typing.Literal["saved_exploration_id"] | None: ...
 
 global___RuleVersion = RuleVersion
 

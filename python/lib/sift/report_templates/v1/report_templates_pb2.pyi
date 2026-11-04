@@ -314,6 +314,8 @@ class ListReportTemplatesRequest(google.protobuf.message.Message):
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are `report_template_id`, `tag_id`, `tag_name`, `client_key`, `metadata`, `name` and 'is_archived'.
+    Metadata can be used in filters by using `metadata["<key name>"]` as the field name,
+    e.g. `metadata["owner"] == "qa-team"`. The dot form `metadata.<key name>` is not supported.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     """
     organization_id: builtins.str

@@ -2431,9 +2431,9 @@ type UlogConfig struct {
 	// the log's GPS fix; otherwise the GPS fix anchors the timeline. The import
 	// fails if neither is available.
 	RelativeStartTime *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=relative_start_time,json=relativeStartTime,proto3,oneof" json:"relative_start_time,omitempty"`
-	// I/M message info keys to import as run metadata (stored as info.{key}). Empty: none.
+	// I/M message info keys to import as run metadata (stored as `info.{key}`). Empty: none.
 	InfoKeys []string `protobuf:"bytes,6,rep,name=info_keys,json=infoKeys,proto3" json:"info_keys,omitempty"`
-	// P parameter names to import as run metadata (stored as param.{name}). Empty: none.
+	// P parameter names to import as run metadata (stored as `param.{name}`). Empty: none.
 	ParamKeys []string `protobuf:"bytes,7,rep,name=param_keys,json=paramKeys,proto3" json:"param_keys,omitempty"`
 	// Recoverable parse errors; defaults to failing the import.
 	ParseErrorPolicy UlogParseErrorPolicy `protobuf:"varint,8,opt,name=parse_error_policy,json=parseErrorPolicy,proto3,enum=sift.data_imports.v2.UlogParseErrorPolicy" json:"parse_error_policy,omitempty"`
@@ -2680,7 +2680,7 @@ type McapConfig struct {
 	// is reinterpreted as elapsed nanoseconds from this start.
 	RelativeStartTime *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=relative_start_time,json=relativeStartTime,proto3,oneof" json:"relative_start_time,omitempty"`
 	// Metadata records to import as run metadata. Every key of each named
-	// record is stored as <record_name>.<key>. Empty imports none.
+	// record is stored as `<record_name>.<key>`. Empty imports none.
 	MetadataRecords []string `protobuf:"bytes,6,rep,name=metadata_records,json=metadataRecords,proto3" json:"metadata_records,omitempty"`
 	// Recoverable parse errors. Defaults to failing the import.
 	ParseErrorPolicy McapParseErrorPolicy `protobuf:"varint,7,opt,name=parse_error_policy,json=parseErrorPolicy,proto3,enum=sift.data_imports.v2.McapParseErrorPolicy" json:"parse_error_policy,omitempty"`

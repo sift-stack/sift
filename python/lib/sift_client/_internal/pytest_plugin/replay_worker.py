@@ -18,14 +18,19 @@ import logging
 import os
 import select
 import shutil
+import signal
 import sys
 import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from sift_client import SiftClient, SiftConnectionConfig
-from sift_client._internal.low_level_wrappers._test_results_log import LogTracking
-from sift_client._internal.pytest_plugin.audit_log import log_event
+from sift_client._internal.low_level_wrappers._test_results_log import (
+    LogTracking,
+    replay_stop_requested,
+    request_replay_stop,
+)
+from sift_client._internal.pytest_plugin.audit_log import RECONCILED_MARKER, log_event
 from sift_client.util.test_results.context_manager import log_replay_instructions
 
 if TYPE_CHECKING:
@@ -77,15 +82,33 @@ def _incremental_import_loop(
 
     When ``keep_log`` is False (audit logging off) the temp log is deleted on a
     clean finish; with audit logging on it's retained alongside the audit trail.
+
+    SIGTERM, or the log's stop file on Windows, stops the loop after the request
+    in flight, with the sidecar saved. The log is kept either way, since it is
+    not fully uploaded.
+
+    Measurements reconciled against the server (see
+    ``_create_measurement_batch_reconciling``) are summed across ticks and
+    reported once on stderr at session end, which is the only channel back to
+    the parent process.
     """
     result = None
+    total_reconciled = 0
     while True:
         received_signal, _, _ = select.select([sys.stdin], [], [], 1.0)
         result = client.test_results.import_log_file(log_file, incremental=True)
-        if received_signal:
+        if result is not None:
+            total_reconciled += result.reconciled_count
+        if received_signal or replay_stop_requested(log_file):
             break
-    log_event(logger, logging.INFO, "replay.complete", log=log_file)
-    if not keep_log:
+    stopped = replay_stop_requested(log_file)
+    log_event(
+        logger, logging.INFO, "replay.stopped" if stopped else "replay.complete", log=log_file
+    )
+    if total_reconciled:
+        log_event(logger, logging.WARNING, "replay.reconciled_total", count=total_reconciled)
+        print(f"{RECONCILED_MARKER}:{total_reconciled}", file=sys.stderr, flush=True)
+    if not keep_log and not stopped:
         cleanup_temp_log(log_file)
     return result
 
@@ -127,6 +150,9 @@ def main() -> None:
             use_ssl=use_ssl,
         )
     )
+
+    # Sent by the parent when the session-end wait times out.
+    signal.signal(signal.SIGTERM, lambda *_: request_replay_stop())
 
     # The worker is spawned with --audit-log only when audit logging is on, so
     # its presence is the signal to retain the buffer after a clean upload.

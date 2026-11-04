@@ -1,0 +1,54 @@
+name: Python Release Tag
+
+# Tags a Python release when python/pyproject.toml on the default branch has a version with no tag
+# yet, then starts the PyPI Publish workflow on that tag. The Python Release Prep workflow opens the
+# pull request that sets the version.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'python/pyproject.toml'
+      - 'python/CHANGELOG.md'
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: python-release-tag
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    name: Create tag and start publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # A tag pushed with the default token does not start other workflows, so this starts the
+      # publish workflow explicitly. It requires a tag ref.
+      - name: Create tag and start publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="python/v$(python3 python/scripts/release_version.py --current)"
+          if [[ -n "$(git ls-remote --tags origin "refs/tags/${tag}")" ]]; then
+            # A rerun after a failed publish request starts publish for the existing tag.
+            if [[ -n "$(gh run list --workflow python_release.yaml --branch "$tag" --limit 1 --json databaseId -q '.[].databaseId')" ]]; then
+              echo "Tag ${tag} already exists and its publish has started. Nothing to release."
+              exit 0
+            fi
+            echo "Tag ${tag} already exists but was never published. Starting publish."
+          else
+            # See python/changelog.d/README.md.
+            if ! python3 python/scripts/release_version.py --leftover; then
+              echo "Error: the fragments above are not in the changelog for ${tag}. Not tagging."
+              exit 1
+            fi
+            git tag "$tag" "$GITHUB_SHA"
+            git push origin "refs/tags/${tag}"
+          fi
+          gh workflow run python_release.yaml --ref "$tag"

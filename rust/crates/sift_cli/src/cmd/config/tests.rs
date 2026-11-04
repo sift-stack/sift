@@ -1,56 +1,3 @@
-mod test_is_update_empty {
-    use super::super::is_update_empty;
-    use crate::cli::ConfigUpdateArgs;
-
-    fn args(
-        grpc_uri: Option<&str>,
-        rest_uri: Option<&str>,
-        api_key: Option<&str>,
-        app_uri: Option<&str>,
-    ) -> ConfigUpdateArgs {
-        ConfigUpdateArgs {
-            interactive: false,
-            grpc_uri: grpc_uri.map(String::from),
-            rest_uri: rest_uri.map(String::from),
-            api_key: api_key.map(String::from),
-            app_uri: app_uri.map(String::from),
-        }
-    }
-
-    #[test]
-    fn no_flags_is_empty() {
-        assert!(is_update_empty(&args(None, None, None, None)));
-    }
-
-    #[test]
-    fn all_empty_strings_is_empty() {
-        assert!(is_update_empty(&args(
-            Some(""),
-            Some(""),
-            Some(""),
-            Some("")
-        )));
-    }
-
-    #[test]
-    fn any_single_flag_is_not_empty() {
-        assert!(!is_update_empty(&args(Some("g"), None, None, None)));
-        assert!(!is_update_empty(&args(None, Some("r"), None, None)));
-        assert!(!is_update_empty(&args(None, None, Some("k"), None)));
-        assert!(!is_update_empty(&args(None, None, None, Some("a"))));
-    }
-
-    #[test]
-    fn all_flags_set_is_not_empty() {
-        assert!(!is_update_empty(&args(
-            Some("g"),
-            Some("r"),
-            Some("k"),
-            Some("a")
-        )));
-    }
-}
-
 mod app_uri {
     use super::super::{AppUriState, app_uri_state, apply_profile_updates};
     use toml::{Table, Value};
@@ -247,5 +194,121 @@ mod api_key_key {
 
         // The default profile does not change, and keeps the older spelling.
         assert_eq!(config[API_KEY_KEY_LEGACY].as_str(), Some("top"));
+    }
+}
+
+mod profile_edits {
+    use super::super::{
+        Change, apply_profile_updates, mask_key, named_profiles, profile_changes, resolve_profile,
+    };
+    use toml::Table;
+
+    fn config(input: &str) -> Table {
+        input.parse().unwrap()
+    }
+
+    fn change(field: &'static str, old: &str, new: &str) -> Change {
+        Change {
+            field,
+            old: old.to_string(),
+            new: new.to_string(),
+        }
+    }
+
+    #[test]
+    fn masks_all_but_the_last_four_characters() {
+        assert_eq!(mask_key("sift_abcdefgh1234"), "****1234");
+        assert_eq!(mask_key("short"), "****");
+        assert_eq!(mask_key("12345678"), "****");
+    }
+
+    #[test]
+    fn lists_named_profiles_sorted() {
+        let config = config(
+            r#"
+rest_uri = "https://api.siftstack.com"
+
+[staging]
+rest_uri = "https://api.staging.example.net"
+
+[prod]
+rest_uri = "https://api.example.net"
+"#,
+        );
+        assert_eq!(named_profiles(&config), ["prod", "staging"]);
+        assert!(named_profiles(&Table::new()).is_empty());
+    }
+
+    #[test]
+    fn reports_only_changed_fields_with_the_key_masked() {
+        let before = config(
+            r#"
+rest_uri = "https://api.example.net"
+apikey = "sift_old_key_a91f"
+app_uri = "https://sift.example.net"
+"#,
+        );
+        let mut after = before.clone();
+        apply_profile_updates(
+            &mut after,
+            None,
+            Some("grpc.example.net:443".to_string()),
+            Some("https://api.example.net".to_string()),
+            Some("sift_new_key_7c02".to_string()),
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(
+            profile_changes(&before, &after, None),
+            [
+                change("grpc_uri", "(unset)", "grpc.example.net:443"),
+                change("api_key", "****a91f", "****7c02"),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_new_named_profile_starts_unset() {
+        let before = config("rest_uri = \"https://api.siftstack.com\"\n");
+        let mut after = before.clone();
+        apply_profile_updates(
+            &mut after,
+            Some("staging".to_string()),
+            None,
+            Some("https://api.staging.example.net".to_string()),
+            None,
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(
+            profile_changes(&before, &after, Some("staging")),
+            [change(
+                "rest_uri",
+                "(unset)",
+                "https://api.staging.example.net"
+            )]
+        );
+        assert!(profile_changes(&before, &after, None).is_empty());
+    }
+
+    #[test]
+    fn default_profile_name_means_the_top_level_profile() {
+        let top_level = config("rest_uri = \"https://api.siftstack.com\"\n");
+        assert_eq!(
+            resolve_profile(&top_level, Some("default".to_string())),
+            None
+        );
+        assert_eq!(
+            resolve_profile(&top_level, Some("staging".to_string())).as_deref(),
+            Some("staging")
+        );
+
+        let table = config("[default]\nrest_uri = \"https://api.siftstack.com\"\n");
+        assert_eq!(
+            resolve_profile(&table, Some("default".to_string())).as_deref(),
+            Some("default")
+        );
     }
 }

@@ -6,12 +6,9 @@ from sift.automation.v1 import automation_pb2 as sift_dot_automation_dot_v1_dot_
 
 
 class AutomationServiceStub(object):
-    """AutomationService manages Canvas Scheduler automation triggers. An
-    automation trigger fires when a producer (v1: RunService.StopRun)
-    observes a Run whose metadata matches the trigger's match filter; the
-    resulting automation_triggered_events row is dispatched by the
-    automation worker after a bounded wait, currently by calling
-    CanvasService.EvaluateCanvas.
+    """AutomationService manages Canvas Scheduler triggers. A matching stopped
+    run or a due SCHEDULE fire enqueues an AutomationTriggeredEvent; the
+    worker dispatches it (v1: EvaluateCanvas).
     """
 
     def __init__(self, channel):
@@ -53,12 +50,9 @@ class AutomationServiceStub(object):
 
 
 class AutomationServiceServicer(object):
-    """AutomationService manages Canvas Scheduler automation triggers. An
-    automation trigger fires when a producer (v1: RunService.StopRun)
-    observes a Run whose metadata matches the trigger's match filter; the
-    resulting automation_triggered_events row is dispatched by the
-    automation worker after a bounded wait, currently by calling
-    CanvasService.EvaluateCanvas.
+    """AutomationService manages Canvas Scheduler triggers. A matching stopped
+    run or a due SCHEDULE fire enqueues an AutomationTriggeredEvent; the
+    worker dispatches it (v1: EvaluateCanvas).
     """
 
     def GetAutomationTrigger(self, request, context):
@@ -76,9 +70,8 @@ class AutomationServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def UpdateAutomationTrigger(self, request, context):
-        """Update select fields of an existing automation trigger. To enable or
-        disable a trigger set the `is_enabled` field and include `is_enabled` in
-        the update mask.
+        """Updates fields named in the update mask. Include `is_enabled` to enable
+        or disable.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -92,19 +85,16 @@ class AutomationServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def DeleteAutomationTrigger(self, request, context):
-        """Delete an automation trigger. Soft-delete: sets `archived_date` and hides
-        the trigger from further producer matches. Historical
-        `automation_triggered_events` rows survive for the retention window so
-        past dispatches can still be inspected.
+        """Soft-deletes the trigger (sets `archived_date`). History rows stay.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def ListAutomationTriggeredEvents(self, request, context):
-        """Retrieve and optionally filter a list of automation triggered events
-        (per-trigger dispatch history). Filter by `automation_trigger_id` to
-        power the canvas trigger history sidebar.
+        """Lists dispatch history. Filter by `automation_trigger_id` or `state`.
+        Match/config failures write one FAILED row per trigger; later repeats
+        are logged only. Dispatch failures set `last_error` on that event.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -151,12 +141,9 @@ def add_AutomationServiceServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class AutomationService(object):
-    """AutomationService manages Canvas Scheduler automation triggers. An
-    automation trigger fires when a producer (v1: RunService.StopRun)
-    observes a Run whose metadata matches the trigger's match filter; the
-    resulting automation_triggered_events row is dispatched by the
-    automation worker after a bounded wait, currently by calling
-    CanvasService.EvaluateCanvas.
+    """AutomationService manages Canvas Scheduler triggers. A matching stopped
+    run or a due SCHEDULE fire enqueues an AutomationTriggeredEvent; the
+    worker dispatches it (v1: EvaluateCanvas).
     """
 
     @staticmethod

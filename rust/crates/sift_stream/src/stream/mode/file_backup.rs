@@ -13,7 +13,7 @@ use sift_connect::SiftChannel;
 use sift_error::prelude::*;
 use sift_rs::{
     ingest::v1::IngestWithConfigDataStreamRequest, ingestion_configs::v2::IngestionConfig,
-    runs::v2::Run,
+    retry::RateLimitPolicy, runs::v2::Run,
 };
 use std::collections::HashSet;
 use std::io::ErrorKind as IoErrorKind;
@@ -299,6 +299,7 @@ impl FileBackup {
         setup_channel: SiftChannel,
         session_name: String,
         sift_stream_id: Uuid,
+        rate_limit_policy: RateLimitPolicy,
     ) -> Result<Self> {
         // Create channel for sending requests to the background write task
         let (write_tx, write_rx): (
@@ -327,6 +328,7 @@ impl FileBackup {
                     interval,
                     metrics_clone,
                     None,
+                    rate_limit_policy,
                 )
                 .await?;
 
@@ -371,6 +373,7 @@ impl SiftStream<IngestionConfigEncoder, FileBackup> {
         session_name: String,
         sift_stream_id: Uuid,
         metrics: Arc<SiftStreamMetrics>,
+        rate_limit_policy: RateLimitPolicy,
     ) -> Result<Self> {
         let full_backup_path = backups_directory.join(output_directory);
 
@@ -398,6 +401,7 @@ impl SiftStream<IngestionConfigEncoder, FileBackup> {
             grpc_channel.clone(),
             session_name,
             sift_stream_id,
+            rate_limit_policy,
         )?;
 
         Ok(Self {
@@ -407,10 +411,12 @@ impl SiftStream<IngestionConfigEncoder, FileBackup> {
                 flows_by_name,
                 ingestion_config,
                 metrics,
+                rate_limit_policy,
             },
             transport: file_backup,
             run,
             sift_stream_id,
+            rate_limit_policy,
         })
     }
 }
@@ -470,6 +476,7 @@ mod tests {
             grpc_channel,
             "test_session".to_string(),
             Uuid::new_v4(),
+            RateLimitPolicy::default(),
         )
         .unwrap()
     }
@@ -761,6 +768,7 @@ mod tests {
             setup_channel,
             "test_session".to_string(),
             Uuid::new_v4(),
+            RateLimitPolicy::default(),
         )
         .unwrap();
 
@@ -993,6 +1001,7 @@ mod tests {
             session_name,
             sift_stream_id,
             metrics,
+            RateLimitPolicy::default(),
         )
         .await
         .expect("failed to create file backup stream");
@@ -1024,6 +1033,7 @@ mod tests {
             session_name,
             sift_stream_id,
             metrics,
+            RateLimitPolicy::default(),
         )
         .await
         .expect("failed to create file backup stream");

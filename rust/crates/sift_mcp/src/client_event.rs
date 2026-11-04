@@ -132,19 +132,9 @@ fn properties_for_tool(
     properties
 }
 
-/// `json` for a structured artifact, otherwise the lowercase extension of
-/// `file_path`. An artifact created without a file has no file type.
+/// The lowercase extension of `file_path`. An artifact created without a file
+/// has no file type.
 fn artifact_file_type(arguments: &JsonObject) -> Option<String> {
-    let storage_class = arguments
-        .get("storage_class")
-        .and_then(Value::as_str)
-        .map(|value| value.trim().to_ascii_lowercase());
-    if matches!(
-        storage_class.as_deref(),
-        Some("structured" | "artifact_storage_class_structured")
-    ) {
-        return Some("json".to_string());
-    }
     let file_path = arguments.get("file_path").and_then(Value::as_str)?;
     Path::new(file_path.trim())
         .extension()
@@ -234,10 +224,6 @@ mod tests {
             (
                 serde_json::json!({ "file_path": "dashboard.html" }),
                 Some("html"),
-            ),
-            (
-                serde_json::json!({ "storage_class": "Structured", "payload": {} }),
-                Some("json"),
             ),
             (serde_json::json!({ "file_path": "notes" }), None),
             (serde_json::json!({ "title": "No file yet" }), None),

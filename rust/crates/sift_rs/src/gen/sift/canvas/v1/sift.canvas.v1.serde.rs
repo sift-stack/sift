@@ -16,6 +16,7 @@ impl serde::Serialize for CanvasCellExecutionStatus {
             Self::Skipped => "CANVAS_CELL_EXECUTION_STATUS_SKIPPED",
             Self::Open => "CANVAS_CELL_EXECUTION_STATUS_OPEN",
             Self::ManuallyCancelled => "CANVAS_CELL_EXECUTION_STATUS_MANUALLY_CANCELLED",
+            Self::InQueue => "CANVAS_CELL_EXECUTION_STATUS_IN_QUEUE",
         };
         serializer.serialize_str(variant)
     }
@@ -37,6 +38,7 @@ impl<'de> serde::Deserialize<'de> for CanvasCellExecutionStatus {
             "CANVAS_CELL_EXECUTION_STATUS_SKIPPED",
             "CANVAS_CELL_EXECUTION_STATUS_OPEN",
             "CANVAS_CELL_EXECUTION_STATUS_MANUALLY_CANCELLED",
+            "CANVAS_CELL_EXECUTION_STATUS_IN_QUEUE",
         ];
 
         struct GeneratedVisitor;
@@ -87,6 +89,7 @@ impl<'de> serde::Deserialize<'de> for CanvasCellExecutionStatus {
                     "CANVAS_CELL_EXECUTION_STATUS_SKIPPED" => Ok(CanvasCellExecutionStatus::Skipped),
                     "CANVAS_CELL_EXECUTION_STATUS_OPEN" => Ok(CanvasCellExecutionStatus::Open),
                     "CANVAS_CELL_EXECUTION_STATUS_MANUALLY_CANCELLED" => Ok(CanvasCellExecutionStatus::ManuallyCancelled),
+                    "CANVAS_CELL_EXECUTION_STATUS_IN_QUEUE" => Ok(CanvasCellExecutionStatus::InQueue),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }

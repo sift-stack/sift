@@ -219,6 +219,8 @@ message ListCampaignsRequest {
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are:
   // `created_by_user_id`, `tag_id`, `tag_name`, `report_id`, `report_name`, `campaign_id`, `client_key`, `description`, `run_id`, `name`, `is_archived`, and `metadata`.
+  // Metadata can be used in filters by using `metadata["<key name>"]` as the field name,
+  // e.g. `metadata["program"] == "artemis"`. The dot form `metadata.<key name>` is not supported.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to this definition. Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];

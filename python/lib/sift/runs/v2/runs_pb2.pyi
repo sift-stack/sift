@@ -40,6 +40,8 @@ class Run(google.protobuf.message.Message):
     IS_ADHOC_FIELD_NUMBER: builtins.int
     IS_ARCHIVED_FIELD_NUMBER: builtins.int
     DURATION_FIELD_NUMBER: builtins.int
+    STOPPED_DATE_FIELD_NUMBER: builtins.int
+    IS_STOPPED_FIELD_NUMBER: builtins.int
     run_id: builtins.str
     created_by_user_id: builtins.str
     modified_by_user_id: builtins.str
@@ -52,6 +54,8 @@ class Run(google.protobuf.message.Message):
     is_adhoc: builtins.bool
     is_archived: builtins.bool
     """Whether the Run is archived. This is inferred from whether archived_date is set."""
+    is_stopped: builtins.bool
+    """Whether the run has been stopped."""
     @property
     def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -76,6 +80,10 @@ class Run(google.protobuf.message.Message):
         If the run is ongoing (no stop_time), this represents the duration from start_time to current time.
         """
 
+    @property
+    def stopped_date(self) -> google.protobuf.timestamp_pb2.Timestamp:
+        """When the run was stopped. May be unset for runs stopped before this field existed."""
+
     def __init__(
         self,
         *,
@@ -99,9 +107,11 @@ class Run(google.protobuf.message.Message):
         is_adhoc: builtins.bool = ...,
         is_archived: builtins.bool = ...,
         duration: google.protobuf.duration_pb2.Duration | None = ...,
+        stopped_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        is_stopped: builtins.bool = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_client_key", b"_client_key", "_duration", b"_duration", "_start_time", b"_start_time", "_stop_time", b"_stop_time", "archived_date", b"archived_date", "client_key", b"client_key", "created_date", b"created_date", "duration", b"duration", "modified_date", b"modified_date", "start_time", b"start_time", "stop_time", b"stop_time"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_client_key", b"_client_key", "_duration", b"_duration", "_start_time", b"_start_time", "_stop_time", b"_stop_time", "archived_date", b"archived_date", "asset_ids", b"asset_ids", "client_key", b"client_key", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "default_report_id", b"default_report_id", "description", b"description", "duration", b"duration", "is_adhoc", b"is_adhoc", "is_archived", b"is_archived", "is_pinned", b"is_pinned", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "run_id", b"run_id", "start_time", b"start_time", "stop_time", b"stop_time", "tags", b"tags"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_client_key", b"_client_key", "_duration", b"_duration", "_start_time", b"_start_time", "_stop_time", b"_stop_time", "_stopped_date", b"_stopped_date", "archived_date", b"archived_date", "client_key", b"client_key", "created_date", b"created_date", "duration", b"duration", "modified_date", b"modified_date", "start_time", b"start_time", "stop_time", b"stop_time", "stopped_date", b"stopped_date"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_client_key", b"_client_key", "_duration", b"_duration", "_start_time", b"_start_time", "_stop_time", b"_stop_time", "_stopped_date", b"_stopped_date", "archived_date", b"archived_date", "asset_ids", b"asset_ids", "client_key", b"client_key", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "default_report_id", b"default_report_id", "description", b"description", "duration", b"duration", "is_adhoc", b"is_adhoc", "is_archived", b"is_archived", "is_pinned", b"is_pinned", "is_stopped", b"is_stopped", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "run_id", b"run_id", "start_time", b"start_time", "stop_time", b"stop_time", "stopped_date", b"stopped_date", "tags", b"tags"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_archived_date", b"_archived_date"]) -> typing.Literal["archived_date"] | None: ...
     @typing.overload
@@ -112,6 +122,8 @@ class Run(google.protobuf.message.Message):
     def WhichOneof(self, oneof_group: typing.Literal["_start_time", b"_start_time"]) -> typing.Literal["start_time"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_stop_time", b"_stop_time"]) -> typing.Literal["stop_time"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_stopped_date", b"_stopped_date"]) -> typing.Literal["stopped_date"] | None: ...
 
 global___Run = Run
 
@@ -177,8 +189,10 @@ class ListRunsRequest(google.protobuf.message.Message):
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are `run_id` `organization_id`, `asset_id`, `asset_name`, `client_key`, `name`, `description`, `created_by_user_id`, `modified_by_user_id`,
-    `created_date`, `modified_date`, `start_time`, `stop_time`, `tag_id`, `asset_tag_id`, `duration`, 'duration_string', `annotation_comments_count`, `annotation_state`, `archived_date`, `is_archived`,
-    and `metadata`. Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
+    `created_date`, `modified_date`, `start_time`, `stop_time`, `stopped_date`, `is_stopped`, `tag_id`, `asset_tag_id`, `duration`, 'duration_string', `annotation_comments_count`, `annotation_state`, `archived_date`, `is_archived`,
+    and `metadata`.
+    Metadata can be used in filters by using `metadata["<key name>"]` as the field name,
+    e.g. `metadata["test_scenario"] == "nightly"`. The dot form `metadata.<key name>` is not supported.
     `duration` is in the format of elapsed seconds and `duration_string` allows for `h`, `m`, `s`, `ms` suffixes (example: `duration_string > duration('10h'))
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     """

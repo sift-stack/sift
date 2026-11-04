@@ -1,5 +1,6 @@
 use crate::stream::flow::{FlowBuilder, FlowDescriptor};
 use crate::stream::mode::ingestion_config::Flow;
+use crate::stream::retry::control_plane_retry;
 use sift_connect::SiftChannel;
 use sift_error::prelude::*;
 use sift_rs::runs::v2::Run;
@@ -7,7 +8,7 @@ use sift_rs::{
     assets::v1::Asset,
     ingest::v1::{IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest},
     metadata::v1::MetadataValue,
-    retry::{RetryConfig, RetryExt},
+    retry::RateLimitPolicy,
     wrappers::assets::{AssetServiceWrapper, new_asset_service},
 };
 
@@ -67,6 +68,7 @@ pub(crate) async fn update_asset_tags_and_metadata(
     asset_tags: Option<Vec<String>>,
     asset_metadata: Option<Vec<MetadataValue>>,
     channel: SiftChannel,
+    rate_limit_policy: RateLimitPolicy,
 ) -> Result<()> {
     let mut update_mask = Vec::new();
 
@@ -85,7 +87,7 @@ pub(crate) async fn update_asset_tags_and_metadata(
     }
 
     let asset_service_wrapper = new_asset_service(channel);
-    let retrying_asset = asset_service_wrapper.retrying(RetryConfig::default());
+    let retrying_asset = control_plane_retry(asset_service_wrapper, rate_limit_policy);
     let asset_clone = asset.clone();
     let update_mask_clone = update_mask.clone();
     let _ = retrying_asset

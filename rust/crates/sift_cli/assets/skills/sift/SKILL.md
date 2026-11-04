@@ -213,12 +213,11 @@ tool.
   ignores every other field, so `update_user_defined_function` rejects `name`
   combined with anything else.
 - **Create an artifact.** `create_artifact` accepts `title`, `summary`,
-  metadata, links, and either `file_path` or a structured JSON `payload`.
-  Choose `storage_class=file` for previewable files,
-  `storage_class=structured` for computed tables and PSD-like results, or
-  `storage_class=blob` for opaque intermediates. `structured` requires a
-  payload and rejects `file_path`. `created_via` defaults to `agent`; set it
-  only for `canvas` or direct `upload` writes. Link entity types are
+  metadata, links, and `file_path`. Choose `storage_class=file` for
+  previewable files or `storage_class=blob` for opaque intermediates. To
+  store JSON, such as a computed table, write it to a `.json` file and pass
+  that as `file_path`. `created_via` defaults to `agent`; set it only for
+  `canvas` or direct `upload` writes. Link entity types are
   `conversation`, `canvas`, `run`, `asset`, `artifact`, and `tool_use`.
   Record what an artifact was built from with relation `source` and the run
   or asset id. `derived_from` is only for another artifact; the server
@@ -264,9 +263,10 @@ tool.
 - **Stop on empty list results.** If any `list_*` tool returns no items, tell
   the user that nothing matched and ask how to proceed. Do not make subsequent
   tool calls using an empty or placeholder name or id from the missing result.
-- **Surface URLs as plain text, in full.** The link from `explore_url` and the
-  `View in Sift:` line from `sift-cli import` are deliverables. Never invent a
-  URL that a tool did not return.
+- **Present a returned URL as a Markdown link.** Use the item's name as the
+  text, or what an Explore view shows, never a bare id or the word "link". The
+  link from `explore_url` and the `View in Sift:` line from `sift-cli import`
+  are deliverables. Never invent a URL that a tool did not return.
 - **Confirm every write before you run it.** Show the user the proposed change
   and its target, then wait for approval.
 - **Write tools are off by default.** Read-only is the default access mode.

@@ -68,7 +68,7 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
     match cmd {
         Cmd::Config(cmd) => match cmd {
             ConfigCmd::Show => return cmd::config::show(),
-            ConfigCmd::Create => return cmd::config::create(),
+            ConfigCmd::Create => return cmd::config::create(clargs.profile),
             ConfigCmd::Where => return cmd::config::config_where(),
             ConfigCmd::Update(args) => return cmd::config::update(clargs.profile, args),
         },

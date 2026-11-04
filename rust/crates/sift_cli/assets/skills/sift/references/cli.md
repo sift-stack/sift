@@ -92,8 +92,8 @@ per session. The rest apply to each subcommand invocation.
    accepts no `--wait`, `--preview`, or `--run`.
 7. **Surface the Explore link from import output.** Each profile must set
    `app_uri`. `sift-cli import` prints a `View in Sift: <URL>` tip when this
-   value is usable. Surface the URL as plain text, in full. Do not wrap it in a
-   markdown link. An incomplete old profile does not block the import. The CLI
+   value is usable. Present the URL as a Markdown link whose text names the
+   imported data. An incomplete old profile does not block the import. The CLI
    prints a config note instead. Relay that note. For an unknown domain, ask
    the user to copy the origin from their Sift web app. Do not assume a
    top-level domain. Do not invent a URL.

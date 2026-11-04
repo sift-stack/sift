@@ -161,6 +161,10 @@ message Run {
   // The duration of the run. Calculated as the difference between stop_time and start_time.
   // If the run is ongoing (no stop_time), this represents the duration from start_time to current time.
   optional google.protobuf.Duration duration = 20 [(google.api.field_behavior) = OPTIONAL];
+  // When the run was stopped. May be unset for runs stopped before this field existed.
+  optional google.protobuf.Timestamp stopped_date = 21 [(google.api.field_behavior) = OPTIONAL];
+  // Whether the run has been stopped.
+  bool is_stopped = 22 [(google.api.field_behavior) = REQUIRED];
 }
 
 // The request for a call to `RunService_GetRun` to retrieve run.
@@ -190,8 +194,10 @@ message ListRunsRequest {
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are `run_id` `organization_id`, `asset_id`, `asset_name`, `client_key`, `name`, `description`, `created_by_user_id`, `modified_by_user_id`,
-  // `created_date`, `modified_date`, `start_time`, `stop_time`, `tag_id`, `asset_tag_id`, `duration`, 'duration_string', `annotation_comments_count`, `annotation_state`, `archived_date`, `is_archived`,
-  // and `metadata`. Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
+  // `created_date`, `modified_date`, `start_time`, `stop_time`, `stopped_date`, `is_stopped`, `tag_id`, `asset_tag_id`, `duration`, 'duration_string', `annotation_comments_count`, `annotation_state`, `archived_date`, `is_archived`,
+  // and `metadata`.
+  // Metadata can be used in filters by using `metadata["<key name>"]` as the field name,
+  // e.g. `metadata["test_scenario"] == "nightly"`. The dot form `metadata.<key name>` is not supported.
   // `duration` is in the format of elapsed seconds and `duration_string` allows for `h`, `m`, `s`, `ms` suffixes (example: `duration_string > duration('10h'))
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];

@@ -1,13 +1,13 @@
 use super::{FlowPy, SiftStreamInner, SiftStreamPy, stream_consumed_err};
-use crate::error::SiftErrorWrapper;
+use crate::error::{SiftErrorWrapper, sift_error_to_py};
 use crate::metrics::SiftStreamMetricsSnapshotPy;
 use crate::runtime::future_into_py;
 use crate::stream::config::{FlowConfigPy, FlowDescriptorPy, RunSelectorPy};
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
 use sift_stream::{
-    AutoRegisterStream, FileBackup, Flow, LiveStreamingOnly, LiveStreamingWithBackups,
-    SiftStreamAutoRegister,
+    AutoRegisterSendError, AutoRegisterStream, FileBackup, Flow, LiveStreamingOnly,
+    LiveStreamingWithBackups, SiftStreamAutoRegister,
 };
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -38,8 +38,12 @@ macro_rules! dispatch_auto_ref {
     };
 }
 
-fn auto_register_err(e: impl std::fmt::Display) -> PyErr {
-    PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("{e}"))
+fn auto_register_err<T: std::fmt::Debug>(e: AutoRegisterSendError<T>) -> PyErr {
+    // Registration calls Sift, so it can be rate limited.
+    match &e {
+        AutoRegisterSendError::RegistrationFailed(inner) => sift_error_to_py(inner, format!("{e}")),
+        _ => PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("{e}")),
+    }
 }
 
 /// Python binding for [`SiftStreamAutoRegister`](sift_stream::SiftStreamAutoRegister).
@@ -146,7 +150,7 @@ impl SiftStreamAutoRegisterPy {
                 SiftStreamAutoRegisterInner::FileBackup(s) => s.finish().await,
             };
 
-            result.map_err(auto_register_err)
+            result.map_err(|e| SiftErrorWrapper(e).into())
         })?;
 
         Ok(awaitable.into())

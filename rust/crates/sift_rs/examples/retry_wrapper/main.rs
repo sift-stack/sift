@@ -53,8 +53,9 @@ async fn example_default_retry(
         .call(|mut wrapper| async move {
             // This will automatically retry on transient gRPC errors like:
             // - Unavailable
-            // - ResourceExhausted
             // - DeadlineExceeded
+            // - Rate limits (ResourceExhausted with RetryInfo), after waiting at least the
+            //   server's requested retry delay. See `Retrying::with_rate_limit_policy`.
             wrapper.try_get_asset_by_id("example-asset-id").await
         })
         .await;

@@ -516,3 +516,54 @@ async fn test_sift_stream_ingestion_and_backup_channels_fill_up() {
     .await
     .expect("timeout waiting for sift stream to finish");
 }
+
+// The builder's rate-limit policy reaches the control-plane calls made during `build`.
+#[tokio::test]
+async fn test_sift_stream_builder_rate_limit_policy_return_error() {
+    use crate::RateLimitPolicy;
+    use crate::test::{
+        MockIngestionConfigService, create_mock_grpc_channel_with_ingestion_service,
+        rate_limited_status,
+    };
+    use sift_error::ErrorKind;
+    use std::sync::atomic::Ordering;
+
+    let delay = Duration::from_secs(5);
+    let service = MockIngestionConfigService::with_flow_create_statuses(vec![(
+        "rate_limited_flow",
+        rate_limited_status(delay),
+        usize::MAX,
+    )]);
+    let calls = service.create_flows_call_count();
+    let (grpc_channel, _) = create_mock_grpc_channel_with_ingestion_service(service).await;
+
+    let ingestion_config = IngestionConfigForm {
+        asset_name: "already_exists_asset".to_string(),
+        client_key: "already_exists_client_key".to_string(),
+        flows: vec![FlowConfig {
+            name: "rate_limited_flow".to_string(),
+            channels: vec![ChannelConfig {
+                name: "channel".to_string(),
+                data_type: ChannelDataType::Double.into(),
+                ..Default::default()
+            }],
+        }],
+    };
+
+    let result = SiftStreamBuilder::from_channel(grpc_channel)
+        .ingestion_config(ingestion_config)
+        .rate_limit_policy(RateLimitPolicy::ReturnError)
+        .live_only()
+        .metrics_streaming_interval(None)
+        .build()
+        .await;
+
+    let err = result.err().expect("build should fail when rate limited");
+    assert_eq!(
+        err.kind(),
+        ErrorKind::RateLimitedError {
+            retry_delay: Some(delay)
+        }
+    );
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+}

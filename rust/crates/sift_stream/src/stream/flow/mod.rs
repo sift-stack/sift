@@ -11,10 +11,10 @@ use sift_rs::ingestion_configs::v2::FlowConfig;
 use sift_rs::wrappers::ingestion_configs::{
     IngestionConfigServiceWrapper, new_ingestion_config_service,
 };
-use sift_rs::{RetryConfig, RetryExt, SiftChannel};
+use sift_rs::{RateLimitPolicy, SiftChannel};
 use tokio::task::JoinError;
 
-use crate::{TimeValue, Value};
+use crate::{TimeValue, Value, stream::retry::control_plane_retry};
 
 /// Represents the index of a channel in a flow.
 ///
@@ -350,6 +350,7 @@ pub(crate) async fn add_new_flows(
     grpc_channel: SiftChannel,
     ingestion_config_id: &str,
     flow_configs: Vec<FlowConfig>,
+    rate_limit_policy: RateLimitPolicy,
 ) -> Vec<std::result::Result<Result<()>, JoinError>> {
     #[cfg(feature = "tracing")]
     tracing::info!(
@@ -370,7 +371,7 @@ pub(crate) async fn add_new_flows(
 
         calls.push(tokio::spawn(async move {
             let wrapper = new_ingestion_config_service(channel);
-            let retrying = wrapper.retrying(RetryConfig::default());
+            let retrying = control_plane_retry(wrapper, rate_limit_policy);
             retrying
                 .call(|mut w| {
                     let config_id = config_id.clone();

@@ -20,15 +20,16 @@ use tonic::{Response, Status, transport::Server};
 
 use super::{
     ArtifactArchiveParams, ArtifactVersionListParams, CreateArtifactParams, DownloadArtifactParams,
-    UpdateArtifactParams, parse_created_via, parse_storage_class,
+    UpdateArtifactParams, display_name, parse_created_via, parse_storage_class,
 };
 use crate::{
     server::SiftMcpServer,
+    service::artifacts::ArtifactView,
     tool::{
         artifacts::ArtifactListParams,
         common::{
             MetadataEntry, MetadataScalar,
-            test_support::{structured, structured_field},
+            test_support::{assert_keys_before, content_texts, structured, structured_field},
         },
     },
 };
@@ -101,6 +102,29 @@ fn parse_entity_types_uses_the_proto_enum() {
     }
 }
 
+#[test]
+fn display_name_falls_back_to_the_file_name_for_a_blank_title() {
+    let view = |title: Option<&str>, file_name: Option<&str>| ArtifactView {
+        details: sample_with(
+            |_| {},
+            |version| {
+                version.title = title.map(Into::into);
+                version.file_name = file_name.map(Into::into);
+            },
+        ),
+        download_url: None,
+    };
+    assert_eq!(
+        display_name(&view(Some("report"), Some("data.csv"))).as_deref(),
+        Some("report")
+    );
+    assert_eq!(
+        display_name(&view(Some("  "), Some("data.csv"))).as_deref(),
+        Some("data.csv")
+    );
+    assert_eq!(display_name(&view(None, None)), None);
+}
+
 async fn server_with_mock(
     mock: MockArtifactServiceImpl,
     allow_create: bool,
@@ -160,7 +184,7 @@ async fn list_artifacts_returns_rows() {
         .withf(|request| {
             let request = request.get_ref();
             request.conversation_id.as_deref() == Some("conv-1")
-                && request.filter == "storage_class == \"STRUCTURED\""
+                && request.filter == "storage_class == \"BLOB\""
                 && request.order_by == "created_date desc"
         })
         .returning(|_| {
@@ -175,7 +199,7 @@ async fn list_artifacts_returns_rows() {
         .list_artifacts(Parameters(ArtifactListParams {
             conversation_id: Some("conv-1".into()),
             include_archived: None,
-            filter: "storage_class == \"STRUCTURED\"".into(),
+            filter: "storage_class == \"BLOB\"".into(),
             order_by: Some("created_date desc".into()),
             limit: None,
             fields: None,
@@ -185,6 +209,10 @@ async fn list_artifacts_returns_rows() {
     let artifacts = structured_field(resp, "artifacts");
     assert_eq!(artifacts.as_array().unwrap().len(), 1);
     assert_eq!(artifacts[0]["artifactId"], "art-1");
+    assert_eq!(
+        artifacts[0]["url"],
+        "https://app.test.local/artifacts/art-1"
+    );
 }
 
 #[tokio::test]
@@ -240,10 +268,31 @@ async fn get_artifact_returns_snake_case_download_url() {
         }))
         .await
         .expect("get");
-    let artifact = structured_field(resp, "artifact");
+    let body = structured(resp);
+    let artifact = &body["artifact"];
     assert_eq!(artifact["artifactId"], "art-1");
     assert_eq!(artifact["download_url"], "https://files.test.local/rf-1");
     assert!(artifact.get("downloadUrl").is_none());
+    assert_eq!(
+        body["artifact_url"],
+        "https://app.test.local/artifacts/art-1"
+    );
+}
+
+#[tokio::test]
+async fn get_artifact_pins_the_artifact_url_to_a_requested_version() {
+    let (server, _h) = server_with_mock(get_returns(sample_artifact()), false).await;
+    let resp = server
+        .download_artifact(Parameters(DownloadArtifactParams {
+            artifact_id: "art-1".into(),
+            artifact_version_id: Some("ver-1".into()),
+        }))
+        .await
+        .expect("get");
+    assert_eq!(
+        structured_field(resp, "artifact_url"),
+        "https://app.test.local/artifacts/art-1?artifactVersionId=ver-1"
+    );
 }
 
 #[tokio::test]
@@ -258,28 +307,6 @@ async fn get_artifact_omits_download_url_without_bytes() {
         .expect("get");
     let artifact = structured_field(resp, "artifact");
     assert!(artifact.get("download_url").is_none());
-}
-
-#[tokio::test]
-async fn get_artifact_returns_structured_payload() {
-    let structured = sample_with(
-        |artifact| artifact.storage_class = ArtifactStorageClass::Structured as i32,
-        |version| {
-            version.payload =
-                Some(serde_json::from_value(serde_json::json!({ "rows": [[1, 2]] })).unwrap())
-        },
-    );
-    let (server, _h) = server_with_mock(get_returns(structured), false).await;
-    let resp = server
-        .download_artifact(Parameters(DownloadArtifactParams {
-            artifact_id: "art-1".into(),
-            artifact_version_id: None,
-        }))
-        .await
-        .expect("get");
-    let artifact = structured_field(resp, "artifact");
-    assert!(artifact["payload"].is_object());
-    assert!(artifact["payload"].get("rows").is_some());
 }
 
 #[tokio::test]
@@ -338,11 +365,22 @@ async fn list_artifact_versions_returns_rows_newest_first() {
         }))
         .await
         .expect("list versions");
-    let versions = structured_field(resp, "artifact_versions");
-    let rows = versions.as_array().expect("rows");
+    assert_keys_before(
+        &content_texts(&resp)[0],
+        &["artifact_url", "count", "has_more"],
+        "artifact_versions",
+    );
+    let body = structured(resp);
+    let rows = body["artifact_versions"].as_array().expect("rows");
     assert_eq!(rows.len(), 2);
     assert_eq!(rows[0]["artifactVersionId"], "ver-2");
     assert_eq!(rows[1]["artifactVersionId"], "ver-1");
+    assert!(rows.iter().all(|row| row.get("url").is_none()));
+    assert_eq!(body["count"], 2);
+    assert_eq!(
+        body["artifact_url"],
+        "https://app.test.local/artifacts/art-1"
+    );
 }
 
 #[tokio::test]
@@ -357,6 +395,33 @@ async fn list_artifact_versions_rejects_empty_artifact_id() {
         .await
         .expect_err("empty id");
     assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+}
+
+#[tokio::test]
+async fn list_artifact_versions_trims_the_artifact_id() {
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_list_artifact_versions()
+        .withf(|request| request.get_ref().artifact_id == "art-1")
+        .returning(|_| {
+            Ok(Response::new(ListArtifactVersionsResponse {
+                versions: Vec::new(),
+                next_page_token: String::new(),
+            }))
+        });
+
+    let (server, _h) = server_with_mock(mock, true).await;
+    let resp = server
+        .list_artifact_versions(Parameters(ArtifactVersionListParams {
+            artifact_id: " art-1\n".into(),
+            limit: None,
+            fields: None,
+        }))
+        .await
+        .expect("list versions");
+    assert_eq!(
+        structured_field(resp, "artifact_url"),
+        "https://app.test.local/artifacts/art-1"
+    );
 }
 
 #[tokio::test]
@@ -438,7 +503,15 @@ async fn archive_artifact_returns_structured_result() {
     let body = structured(response);
     assert_eq!(body["artifact_id"], "art-1");
     assert_eq!(body["archived"], true);
-    assert!(body["next_step"].is_string());
+    assert_eq!(
+        body["artifact_url"],
+        "https://app.test.local/artifacts/art-1"
+    );
+    let next_step = body["next_step"].as_str().unwrap();
+    assert!(
+        next_step.contains("https://app.test.local/artifacts/art-1"),
+        "{next_step}"
+    );
 }
 
 #[tokio::test]
@@ -458,7 +531,47 @@ async fn unarchive_artifact_returns_structured_result() {
     let body = structured(response);
     assert_eq!(body["artifact_id"], "art-1");
     assert_eq!(body["unarchived"], true);
-    assert!(body["next_step"].is_string());
+    assert_eq!(
+        body["artifact_url"],
+        "https://app.test.local/artifacts/art-1"
+    );
+    let next_step = body["next_step"].as_str().unwrap();
+    assert!(
+        next_step.contains("https://app.test.local/artifacts/art-1"),
+        "{next_step}"
+    );
+}
+
+#[tokio::test]
+async fn archive_and_unarchive_trim_the_artifact_id() {
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_archive_artifact()
+        .withf(|req| req.get_ref().artifact_id == "art-1")
+        .returning(|_| Ok(Response::new(ArchiveArtifactResponse {})));
+    mock.expect_unarchive_artifact()
+        .withf(|req| req.get_ref().artifact_id == "art-1")
+        .returning(|_| Ok(Response::new(UnarchiveArtifactResponse {})));
+
+    let (server, _h) = server_with_mock(mock, true).await;
+    let archived = server
+        .archive_artifact(Parameters(ArtifactArchiveParams {
+            artifact_id: " art-1\n".into(),
+        }))
+        .await
+        .expect("archive");
+    let unarchived = server
+        .unarchive_artifact(Parameters(ArtifactArchiveParams {
+            artifact_id: " art-1\n".into(),
+        }))
+        .await
+        .expect("unarchive");
+    for body in [structured(archived), structured(unarchived)] {
+        assert_eq!(body["artifact_id"], "art-1");
+        assert_eq!(
+            body["artifact_url"],
+            "https://app.test.local/artifacts/art-1"
+        );
+    }
 }
 
 #[tokio::test]
@@ -509,7 +622,6 @@ async fn update_artifact_masks_only_what_was_passed() {
             req.artifact_id == "art-1"
                 && req.update_mask.as_ref().unwrap().paths == ["artifact_version.title"]
                 && version.title.as_deref() == Some("Renamed")
-                && version.payload.is_none()
                 && version.summary.is_none()
                 && version.metadata.is_empty()
         })
@@ -538,12 +650,64 @@ async fn update_artifact_masks_only_what_was_passed() {
     let artifact = structured_field(resp.clone(), "artifact");
     assert_eq!(artifact["version"], 2);
     assert_eq!(artifact["title"], "Renamed");
+    assert_eq!(
+        structured_field(resp.clone(), "artifact_url"),
+        "https://app.test.local/artifacts/art-1"
+    );
     let next_step = structured_field(resp, "next_step");
     let next_step = next_step.as_str().unwrap();
     assert!(
         next_step.starts_with("Wrote version 2 of artifact art-1"),
         "{next_step}"
     );
+    assert!(
+        next_step.contains("[Renamed](https://app.test.local/artifacts/art-1)"),
+        "{next_step}"
+    );
+}
+
+#[tokio::test]
+async fn update_artifact_without_a_file_reports_the_kept_file() {
+    let mut mock = MockArtifactServiceImpl::new();
+    mock.expect_update_artifact().returning(|_| {
+        Ok(Response::new(UpdateArtifactResponse {
+            artifact: Some(sample_with(
+                |_| {},
+                |version| {
+                    version.artifact_version_id = "ver-2".into();
+                    version.version = 2;
+                    version.remote_file_id = Some("rf-1".into());
+                },
+            )),
+        }))
+    });
+    let mut remote_files = MockRemoteFileServiceImpl::new();
+    remote_files
+        .expect_get_remote_file_download_url()
+        .returning(|_| {
+            Ok(Response::new(GetRemoteFileDownloadUrlResponse {
+                download_url: "https://files.test.local/rf-1".into(),
+            }))
+        });
+
+    let (server, _h) = server_with_mocks(mock, remote_files, true, true).await;
+    let resp = server
+        .update_artifact(Parameters(UpdateArtifactParams {
+            artifact_id: "art-1".into(),
+            title: Some("Renamed".into()),
+            ..Default::default()
+        }))
+        .await
+        .expect("update");
+    let artifact = structured_field(resp.clone(), "artifact");
+    assert_eq!(artifact["download_url"], "https://files.test.local/rf-1");
+    let next_step = structured_field(resp, "next_step");
+    let next_step = next_step.as_str().unwrap();
+    assert!(
+        next_step.contains("keeps the previous version's file"),
+        "{next_step}"
+    );
+    assert!(!next_step.contains("no file content"), "{next_step}");
 }
 
 #[tokio::test]
@@ -564,14 +728,6 @@ async fn update_artifact_maps_each_parameter_to_its_own_path() {
                 ..Default::default()
             },
             "artifact_version.summary",
-        ),
-        (
-            UpdateArtifactParams {
-                artifact_id: "art-1".into(),
-                payload: Some(serde_json::json!({ "a": 1 })),
-                ..Default::default()
-            },
-            "artifact_version.payload",
         ),
         (
             UpdateArtifactParams {
@@ -614,79 +770,6 @@ async fn update_artifact_maps_each_parameter_to_its_own_path() {
 }
 
 #[tokio::test]
-async fn update_artifact_masks_a_payload_replacement() {
-    let mut mock = MockArtifactServiceImpl::new();
-    mock.expect_update_artifact()
-        .withf(|req| {
-            let req = req.get_ref();
-            req.update_mask.as_ref().unwrap().paths == ["artifact_version.payload"]
-                && req
-                    .artifact
-                    .as_ref()
-                    .unwrap()
-                    .artifact_version
-                    .as_ref()
-                    .unwrap()
-                    .payload
-                    .is_some()
-        })
-        .returning(|_| {
-            Ok(Response::new(UpdateArtifactResponse {
-                artifact: Some(sample_with(
-                    |artifact| artifact.storage_class = ArtifactStorageClass::Structured as i32,
-                    |version| {
-                        version.artifact_version_id = "ver-2".into();
-                        version.version = 2;
-                    },
-                )),
-            }))
-        });
-
-    let (server, _h) = server_with_mock(mock, true).await;
-    let resp = server
-        .update_artifact(Parameters(UpdateArtifactParams {
-            artifact_id: "art-1".into(),
-            payload: Some(serde_json::json!({ "step": 2 })),
-            ..Default::default()
-        }))
-        .await
-        .expect("update with payload");
-    let next_step = structured_field(resp, "next_step");
-    let next_step = next_step.as_str().unwrap();
-    assert!(
-        next_step.contains("It carries its JSON payload."),
-        "{next_step}"
-    );
-}
-
-#[tokio::test]
-async fn update_artifact_surfaces_the_server_storage_class_check() {
-    let mut mock = MockArtifactServiceImpl::new();
-    mock.expect_update_artifact().returning(|_| {
-        Err(Status::invalid_argument(
-            "payload is legal only for STRUCTURED artifacts",
-        ))
-    });
-
-    let (server, _h) = server_with_mock(mock, true).await;
-    let err = server
-        .update_artifact(Parameters(UpdateArtifactParams {
-            artifact_id: "art-1".into(),
-            payload: Some(serde_json::json!({ "step": 2 })),
-            ..Default::default()
-        }))
-        .await
-        .expect_err("payload on a file artifact");
-    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
-    assert!(
-        err.message
-            .contains("payload is legal only for STRUCTURED artifacts"),
-        "{}",
-        err.message
-    );
-}
-
-#[tokio::test]
 async fn update_artifact_requires_an_id_and_something_to_change() {
     let (server, _h) = server_with_mock(MockArtifactServiceImpl::new(), true).await;
     for params in [
@@ -709,39 +792,14 @@ async fn update_artifact_requires_an_id_and_something_to_change() {
 }
 
 #[tokio::test]
-async fn create_artifact_validates_storage_and_payload() {
+async fn create_artifact_validates_storage_and_links() {
     for params in [
         CreateArtifactParams {
             storage_class: Some("structured".into()),
             ..Default::default()
         },
         CreateArtifactParams {
-            storage_class: Some("file".into()),
-            payload: Some(serde_json::json!({ "rows": [] })),
-            ..Default::default()
-        },
-        CreateArtifactParams {
-            payload: Some(serde_json::json!({ "rows": [] })),
-            ..Default::default()
-        },
-        CreateArtifactParams {
             storage_class: Some("unknown".into()),
-            ..Default::default()
-        },
-        CreateArtifactParams {
-            storage_class: Some("structured".into()),
-            payload: Some(serde_json::json!({ "rows": [] })),
-            file_path: Some("report.csv".into()),
-            ..Default::default()
-        },
-        CreateArtifactParams {
-            storage_class: Some("structured".into()),
-            payload: Some(serde_json::json!(["not an object"])),
-            ..Default::default()
-        },
-        CreateArtifactParams {
-            storage_class: Some("structured".into()),
-            payload: Some(serde_json::json!("{ not json")),
             ..Default::default()
         },
         CreateArtifactParams {
@@ -787,45 +845,13 @@ async fn create_artifact_validates_storage_and_payload() {
 }
 
 #[tokio::test]
-async fn create_artifact_accepts_a_stringified_payload() {
-    let mut mock = MockArtifactServiceImpl::new();
-    mock.expect_create_artifact()
-        .withf(|request| {
-            request
-                .get_ref()
-                .payload
-                .as_ref()
-                .is_some_and(|payload| payload.fields.contains_key("rows"))
-        })
-        .returning(|_| {
-            Ok(Response::new(CreateArtifactResponse {
-                artifact: Some(sample_artifact()),
-            }))
-        });
-
-    let (server, _h) = server_with_mock(mock, true).await;
-    server
-        .create_artifact(Parameters(CreateArtifactParams {
-            storage_class: Some("structured".into()),
-            payload: Some(serde_json::json!(r#"{"rows": []}"#)),
-            ..Default::default()
-        }))
-        .await
-        .expect("create");
-}
-
-#[tokio::test]
 async fn create_artifact_sends_generic_fields() {
     let mut mock = MockArtifactServiceImpl::new();
     mock.expect_create_artifact()
         .withf(|request| {
             let request = request.get_ref();
-            request.storage_class == Some(ArtifactStorageClass::Structured as i32)
+            request.storage_class == Some(ArtifactStorageClass::Blob as i32)
                 && request.created_via == Some(ArtifactCreatedVia::Agent as i32)
-                && request
-                    .payload
-                    .as_ref()
-                    .is_some_and(|payload| payload.fields.contains_key("rows"))
                 && request.metadata.len() == 1
                 && request.links.len() == 1
                 && request.links[0].relation == ArtifactLinkRelation::AttachedTo as i32
@@ -835,18 +861,17 @@ async fn create_artifact_sends_generic_fields() {
         .returning(|_| {
             Ok(Response::new(CreateArtifactResponse {
                 artifact: Some(sample_with(
-                    |artifact| artifact.storage_class = ArtifactStorageClass::Structured as i32,
+                    |artifact| artifact.storage_class = ArtifactStorageClass::Blob as i32,
                     |_| {},
                 )),
             }))
         });
 
     let (server, _h) = server_with_mock(mock, true).await;
-    let response = server
+    server
         .create_artifact(Parameters(CreateArtifactParams {
-            storage_class: Some("structured".into()),
+            storage_class: Some("blob".into()),
             created_via: Some("agent".into()),
-            payload: Some(serde_json::json!({ "rows": [[1, 2]] })),
             metadata: Some(vec![MetadataEntry {
                 name: "source".into(),
                 value: MetadataScalar::String("computed".into()),
@@ -860,8 +885,6 @@ async fn create_artifact_sends_generic_fields() {
         }))
         .await
         .expect("create");
-    let next_step = structured_field(response, "next_step");
-    assert!(next_step.as_str().unwrap().contains("JSON payload"));
 }
 
 #[tokio::test]
@@ -884,9 +907,18 @@ async fn create_artifact_happy_path() {
         }))
         .await
         .expect("create");
-    let artifact = structured_field(resp, "artifact");
-    assert_eq!(artifact["artifactId"], "art-1");
-    assert!(artifact.get("download_url").is_none());
+    let body = structured(resp);
+    assert_eq!(body["artifact"]["artifactId"], "art-1");
+    assert!(body["artifact"].get("download_url").is_none());
+    assert_eq!(
+        body["artifact_url"],
+        "https://app.test.local/artifacts/art-1"
+    );
+    let next_step = body["next_step"].as_str().unwrap();
+    assert!(
+        next_step.contains("[report](https://app.test.local/artifacts/art-1)"),
+        "{next_step}"
+    );
 }
 
 #[tokio::test]

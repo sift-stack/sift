@@ -170,6 +170,10 @@ async def main() -> None:
     # All telemetry sent within this context will appear inside
     # this Run in Sift.
     #
+    # Streaming defaults to LIVE_ONLY (no local telemetry backups).
+    # To opt in, import StreamingMode from sift_client.resources.ingestion
+    # and pass streaming_mode=StreamingMode.LIVE_WITH_BACKUPS below.
+    #
     # WARNING: SiftStream should be reused for the entire program duration.
     # Do NOT recreate the streaming client per batch or per iteration —
     # each instantiation creates a new ingestion config, which introduces

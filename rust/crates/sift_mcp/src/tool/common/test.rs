@@ -1,4 +1,8 @@
-use super::{ListParams, list_body, project_fields, url_clause};
+use super::{
+    ListParams, list_body, project_fields, read_result,
+    test_support::{assert_keys_before, content_texts},
+    url_clause,
+};
 use serde_json::{Value, json};
 
 /// `filter` is deliberately required on list tools: the caller must choose a
@@ -31,6 +35,18 @@ fn url_clause_with_name_renders_a_named_markdown_link() {
             Some("https://app.siftstack.com/rules/r-1")
         ),
         " Present it to the user as the Markdown link [Undervoltage](https://app.siftstack.com/rules/r-1)."
+    );
+}
+
+#[test]
+fn url_clause_escapes_brackets_and_backslashes_in_the_name() {
+    assert_eq!(
+        url_clause(
+            "artifact",
+            Some(r"results v2].csv [draft\"),
+            Some("https://app.siftstack.com/artifacts/a-1")
+        ),
+        r" Present it to the user as the Markdown link [results v2\].csv \[draft\\](https://app.siftstack.com/artifacts/a-1)."
     );
 }
 
@@ -126,7 +142,7 @@ fn list_body_without_fields_returns_every_key() {
     let items = vec![json!({ "channelId": "c1", "name": "throttle" })];
 
     assert_eq!(
-        list_body("channels", items.clone(), None, false),
+        list_body("channels", items.clone(), None, false).into_value(),
         json!({ "channels": items, "count": 1, "has_more": false })
     );
 }
@@ -136,7 +152,7 @@ fn list_body_treats_an_empty_field_list_as_no_projection() {
     let items = vec![json!({ "channelId": "c1", "name": "throttle" })];
 
     assert_eq!(
-        list_body("channels", items.clone(), Some(vec![]), false),
+        list_body("channels", items.clone(), Some(vec![]), false).into_value(),
         json!({ "channels": items, "count": 1, "has_more": false })
     );
 }
@@ -151,7 +167,8 @@ fn list_body_surfaces_unmatched_fields_alongside_the_items() {
             items,
             Some(vec!["name".into(), "nope".into()]),
             false
-        ),
+        )
+        .into_value(),
         json!({
             "channels": [{ "name": "throttle" }],
             "count": 1,
@@ -168,7 +185,7 @@ fn list_body_counts_the_items_it_returns() {
         .map(|i| json!({ "name": format!("c{i}") }))
         .collect();
 
-    let body = list_body("channels", items, None, false);
+    let body = list_body("channels", items, None, false).into_value();
 
     assert_eq!(body["count"], json!(120));
     assert_eq!(body["channels"].as_array().unwrap().len(), 120);
@@ -180,7 +197,7 @@ fn list_body_counts_what_survived_projection() {
     // rows rather than anything upstream of them.
     let items = vec![json!({ "name": "a" }), json!({ "name": "b" })];
 
-    let body = list_body("channels", items, Some(vec!["name".into()]), false);
+    let body = list_body("channels", items, Some(vec!["name".into()]), false).into_value();
 
     assert_eq!(body["count"], json!(2));
 }
@@ -192,7 +209,7 @@ fn list_body_reports_a_capped_page() {
     // whether count happens to equal the limit they passed.
     let items = vec![json!({ "name": "a" }), json!({ "name": "b" })];
 
-    let body = list_body("channels", items, None, true);
+    let body = list_body("channels", items, None, true).into_value();
 
     assert_eq!(body["count"], json!(2));
     assert_eq!(body["has_more"], json!(true));
@@ -239,11 +256,117 @@ fn normalized_names_ignore_case_and_both_separators() {
 
 #[test]
 fn list_body_omits_unmatched_fields_when_the_page_is_empty() {
-    let body = list_body("channels", Vec::new(), Some(vec!["name".into()]), false);
+    let body = list_body("channels", Vec::new(), Some(vec!["name".into()]), false).into_value();
 
     assert_eq!(body["count"], json!(0));
     assert!(
         body.get("unmatched_fields").is_none(),
         "an empty page must not look like a spelling problem: {body}"
     );
+}
+
+/// Every items key the list tools use. Most sort before `count`, which is why
+/// the text block cannot rely on `serde_json::Map` ordering.
+const ITEMS_KEYS: [&str; 14] = [
+    "annotations",
+    "artifacts",
+    "artifact_versions",
+    "assets",
+    "calculated_channels",
+    "calculated_channel_versions",
+    "channels",
+    "rules",
+    "runs",
+    "test_reports",
+    "test_steps",
+    "test_measurements",
+    "user_defined_functions",
+    "user_defined_function_versions",
+];
+
+#[test]
+fn into_result_writes_metadata_before_the_items() {
+    // Agent harnesses cut oversized tool results from the end. The metadata has
+    // to be written ahead of the items or it is the first thing lost, on
+    // exactly the large responses where it matters.
+    for key in ITEMS_KEYS {
+        let items = vec![json!({ "name": "throttle" })];
+        let body = list_body(key, items, Some(vec!["nmae".into()]), true);
+
+        let texts = content_texts(&body.into_result(None));
+
+        assert_eq!(texts.len(), 1, "{key}");
+        assert_keys_before(&texts[0], &["count", "has_more", "unmatched_fields"], key);
+    }
+}
+
+#[test]
+fn into_result_metadata_survives_head_truncation() {
+    let items: Vec<Value> = (0..500)
+        .map(|i| json!({ "name": format!("channel-{i}") }))
+        .collect();
+    let body = list_body("channels", items, Some(vec!["nmae".into()]), true);
+
+    let text = content_texts(&body.into_result(None)).remove(0);
+    let head: String = text.chars().take(200).collect();
+
+    for expected in [
+        "\"count\":500",
+        "\"has_more\":true",
+        "\"unmatched_fields\":[\"nmae\"]",
+    ] {
+        assert!(
+            head.contains(expected),
+            "{expected} must sit in the first 200 characters: {head}"
+        );
+    }
+}
+
+#[test]
+fn into_result_text_is_the_structured_body_reordered() {
+    // Consumers that parse the text must get exactly the structured payload;
+    // only key order may differ.
+    let items = vec![json!({ "name": "throttle", "channelId": "c1" })];
+    let body = list_body(
+        "channels",
+        items,
+        Some(vec!["name".into(), "nmae".into()]),
+        false,
+    );
+
+    let expected = body.clone().into_value();
+    let result = body.into_result(None);
+
+    let texts = content_texts(&result);
+    let parsed: Value = serde_json::from_str(&texts[0]).expect("text should be JSON");
+    assert_eq!(parsed, expected);
+    assert_eq!(result.structured_content, Some(expected));
+}
+
+#[test]
+fn into_result_puts_next_step_in_its_own_leading_block() {
+    let body = list_body("channels", vec![json!({ "name": "a" })], None, false);
+
+    let texts = content_texts(&body.into_result(Some("Listed 1.".into())));
+
+    assert_eq!(texts.len(), 2);
+    assert_eq!(texts[0], "Listed 1.");
+    assert_keys_before(&texts[1], &["count", "has_more"], "channels");
+}
+
+/// A read tool's payload must reach `content`, not only `structuredContent`:
+/// Claude Code shows the model `content`, so a payload left out of it is
+/// invisible to the agent.
+#[test]
+fn read_result_keeps_payload_in_content_after_next_step() {
+    let body = json!({ "items": [{ "id": "a" }], "next_step": "Listed 1 item." });
+
+    let result = read_result(body.clone(), "Listed 1 item.".to_string());
+
+    let texts = content_texts(&result);
+    assert_eq!(texts.len(), 2);
+    assert_eq!(texts[0], "Listed 1 item.");
+    let payload: Value = serde_json::from_str(&texts[1]).expect("payload should be JSON");
+    assert_eq!(payload, body);
+    assert_eq!(result.structured_content, Some(body));
 }

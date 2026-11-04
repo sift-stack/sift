@@ -70,7 +70,7 @@ class TestResultsAPIAsync(ResourceBase):
         # Generate a temporary UUID for the test report. The report service will override this with the created report ID.
         temp_uuid = str(uuid.uuid4())
         remote_file_id = await self._upload_client.upload_attachment(
-            path=test_file,
+            source=test_file,
             entity_id=temp_uuid,
             entity_type="test_reports",
         )

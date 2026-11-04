@@ -407,6 +407,60 @@
 //! For more information see [LiveOnlyBuilder::retry_policy],
 //! [LiveWithBackupsBuilder::retry_policy], [RetryPolicy], and [DiskBackupPolicy].
 //!
+//! ## Rate Limiting
+//!
+//! Sift may rate limit requests. It signals this with a gRPC `ResourceExhausted` status that
+//! carries a `google.rpc.RetryInfo` detail giving the minimum time to wait before retrying.
+//! `sift_stream` reports these as
+//! [`ErrorKind::RateLimitedError`](sift_error::ErrorKind::RateLimitedError), with the requested
+//! delay available from [`Error::retry_delay`](sift_error::Error::retry_delay).
+//! `ResourceExhausted` without `RetryInfo`, such as a request over Sift's message size limit, is
+//! not a rate limit and is never retried as one.
+//!
+//! Control-plane calls handle rate limits according to [StreamConfigBuilder::rate_limit_policy].
+//! These are the calls that connect to Sift and create or fetch the ingestion config, flows, run,
+//! and asset during `build`, plus later [`attach_run`](stream::SiftStream::attach_run) and
+//! [`add_new_flows`](IngestionConfigEncoder::add_new_flows) calls:
+//!
+//! - [`RateLimitPolicy::Retry`] (default) retries after waiting the larger of Sift's requested
+//!   delay plus a margin and the normal backoff, but never longer than a maximum delay. No code
+//!   changes are needed to benefit from this. The maximum delay (10 seconds by default) keeps a
+//!   very long or faulty delay from blocking the call; a retry made before Sift's delay has
+//!   passed may be rate limited again, and the error is returned once the attempts run out.
+//!   Adjust it with [`RateLimitPolicy::with_max_delay`] and the margin (100ms by default) with
+//!   [`RateLimitPolicy::with_margin`].
+//! - [`RateLimitPolicy::ReturnError`] never retries, so callers that cannot afford to wait can
+//!   decide what to do instead.
+//!
+//! ```ignore
+//! use sift_stream::RateLimitPolicy;
+//!
+//! let result = SiftStreamBuilder::new(credentials)
+//!     .ingestion_config(ingestion_config)
+//!     .rate_limit_policy(RateLimitPolicy::ReturnError)
+//!     .live_only()
+//!     .build()
+//!     .await;
+//!
+//! match result {
+//!     Ok(stream) => { /* stream telemetry */ }
+//!     Err(err) if err.is_rate_limited() => {
+//!         // Do something else now, or try again after `err.retry_delay()`.
+//!     }
+//!     Err(err) => return Err(err),
+//! }
+//! ```
+//!
+//! A rate-limit error that survives the policy is always returned to the caller, including from
+//! [`add_new_flows`](IngestionConfigEncoder::add_new_flows), which otherwise only logs flow
+//! creation failures.
+//!
+//! Streaming ingestion is governed by the mode's [RetryPolicy] instead. When Sift rate limits an
+//! ingestion stream, the next attempt waits the requested delay plus the same 100ms margin, capped
+//! at the policy's `max_backoff`. A longer requested delay does not end the stream; it reconnects
+//! after `max_backoff` and keeps retrying as it does for any other failure. With retries
+//! disabled, [`finish`](stream::SiftStream::finish) reports the failure as `RateLimitedError`.
+//!
 //! ## Checkpoints
 //!
 //! Checkpointing enables clients to receive periodic acknowledgements from Sift, confirming that
@@ -591,6 +645,7 @@ pub mod stream;
 pub use sift_rs::{
     common::r#type::v1::ChannelDataType,
     ingestion_configs::v2::{ChannelConfig, FlowConfig},
+    retry::RateLimitPolicy,
 };
 pub use stream::{
     AutoRegisterSendError, AutoRegisterStream, RetryPolicy, SiftStream, SiftStreamAutoRegister,

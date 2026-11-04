@@ -149,12 +149,7 @@ impl SiftMcpServer {
 
         let functions = to_values(&page.items)?;
 
-        Ok(CallToolResult::structured(list_body(
-            "user_defined_functions",
-            functions,
-            fields,
-            page.has_more,
-        )))
+        Ok(list_body("user_defined_functions", functions, fields, page.has_more).into_result(None))
     }
 
     #[tool(
@@ -244,12 +239,13 @@ impl SiftMcpServer {
 
         let versions = to_values(&page.items)?;
 
-        Ok(CallToolResult::structured(list_body(
+        Ok(list_body(
             "user_defined_function_versions",
             versions,
             fields,
             page.has_more,
-        )))
+        )
+        .into_result(None))
     }
 
     #[tool(

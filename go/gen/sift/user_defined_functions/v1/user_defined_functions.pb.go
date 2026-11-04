@@ -1178,10 +1178,10 @@ type ListUserDefinedFunctionVersionsRequest struct {
 	// For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
 	Filter string `protobuf:"bytes,5,opt,name=filter,proto3" json:"filter,omitempty"`
 	// How to order the retrieved user defined functions. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
-	// Available fields to order_by are `created_date`, `modified_date`, `name`, and `version`.
-	// If left empty, items are ordered by `name` in ascending order (oldest-first).
+	// Available fields to order_by are `version`, `created_date`, and `modified_date`.
+	// If left empty, items are ordered by `version` in descending order (newest version first).
 	// For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
-	// Example: "version desc,name".
+	// Example: "version desc,created_date".
 	OrderBy string `protobuf:"bytes,6,opt,name=order_by,json=orderBy,proto3" json:"order_by,omitempty"`
 }
 

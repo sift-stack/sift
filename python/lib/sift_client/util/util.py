@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, NamedTuple
 if TYPE_CHECKING:
     from sift_client.resources import (
         AnnotationsAPIAsync,
+        ArtifactsAPIAsync,
         AssetsAPIAsync,
         CalculatedChannelsAPIAsync,
         CampaignsAPIAsync,
@@ -35,6 +36,9 @@ class AsyncAPIs(NamedTuple):
 
     annotations: AnnotationsAPIAsync
     """Instance of the Annotations API for making asynchronous requests."""
+
+    artifacts: ArtifactsAPIAsync
+    """Instance of the Artifacts API for making asynchronous requests."""
 
     assets: AssetsAPIAsync
     """Instance of the Assets API for making asynchronous requests."""

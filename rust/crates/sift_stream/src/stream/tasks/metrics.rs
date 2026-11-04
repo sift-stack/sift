@@ -9,7 +9,10 @@ use crate::{
 };
 use sift_connect::SiftChannel;
 use sift_error::prelude::*;
-use sift_rs::{common::r#type::v1::ChannelDataType, ingestion_configs::v2::ChannelConfig};
+use sift_rs::{
+    common::r#type::v1::ChannelDataType, ingestion_configs::v2::ChannelConfig,
+    retry::RateLimitPolicy,
+};
 use std::{sync::Arc, time::Duration};
 use tokio::{select, sync::broadcast};
 
@@ -125,6 +128,7 @@ impl MetricsStreamingTask {
         interval: Duration,
         metrics: Arc<SiftStreamMetrics>,
         log_rx: Option<async_channel::Receiver<LogEvent>>,
+        rate_limit_policy: RateLimitPolicy,
     ) -> Result<Self> {
         use std::hash::{Hash, Hasher};
 
@@ -178,12 +182,15 @@ impl MetricsStreamingTask {
         // - `disable_scoped_dispatch()` prevents `SiftTelemetryLayer` from capturing events
         //   from this sub-stream's own tasks and causing a recursive capture loop.
         // - The setup channel is used for all gRPC channels since they are less critical.
+        // - The parent stream's rate-limit policy is inherited, since a failed sub-stream setup
+        //   fails the parent's build.
         //
         // NOTE: The build future is boxed/pinned due to async recursion.
         let stream_fut = Box::pin(
             SiftStreamBuilder::from_channel(setup_channel.clone())
                 .ingestion_config(ingestion_config)
                 .disable_scoped_dispatch()
+                .rate_limit_policy(rate_limit_policy)
                 .live_only()
                 .metrics_streaming_interval(None)
                 .control_channel_capacity(100)
