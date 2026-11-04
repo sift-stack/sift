@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import io
 import logging
 import mimetypes
 from contextlib import nullcontext
@@ -22,6 +24,8 @@ logger = logging.getLogger(__name__)
 # Parquet MIME types are not included in mimetypes by default
 mimetypes.add_type("application/vnd.apache.parquet", ".pqt")
 mimetypes.add_type("application/vnd.apache.parquet", ".parquet")
+
+_HASH_CHUNK_SIZE = 1024 * 1024
 
 
 class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
@@ -70,6 +74,7 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
         description: str | None = None,
         organization_id: str | None = None,
         file_name: str | None = None,
+        sha256: bool = False,
     ) -> str:
         """Upload a file attachment to an entity.
 
@@ -82,6 +87,9 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
             organization_id: Optional organization ID.
             file_name: The stored file name when `source` is a file object; its extension sets
                 the MIME type. A path upload uses the file's own name.
+            sha256: Send the SHA-256 of the uploaded bytes with the file. A file object is
+                hashed from its current position. An unseekable file object is sent without a
+                hash.
 
         Returns:
             The remote file ID of the uploaded file.
@@ -115,6 +123,7 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
             metadata,
             description,
             organization_id,
+            sha256,
         )
 
     def _upload_file_sync(
@@ -128,6 +137,7 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
         metadata: dict[str, Any] | None,
         description: str | None,
         organization_id: str | None,
+        sha256: bool = False,
     ) -> str:
         """Synchronous helper to upload the file.
 
@@ -139,6 +149,10 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
         else:
             opened = nullcontext(source)
         with opened as file:
+            if hasattr(file, "getvalue") and file.tell():
+                # MultipartEncoder sends getvalue(), which ignores the position.
+                file = io.BytesIO(file.read())
+
             form_fields: dict[str, Any] = {
                 "entityId": entity_id,
                 "entityType": entity_type,
@@ -168,6 +182,11 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
 
             if description:
                 form_fields["description"] = description
+
+            if sha256:
+                digest = _sha256_from_position(file)
+                if digest:
+                    form_fields["sha256"] = digest
 
             form_data = MultipartEncoder(fields=form_fields)
 
@@ -211,3 +230,21 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
         file_name = path.name
         mime, encoding = mimetypes.guess_type(path)
         return file_name, mime, encoding
+
+
+def _sha256_from_position(file: BinaryIO) -> str | None:
+    """Hash `file` from its current position in chunks, then seek back to that position.
+
+    Returns None when the file cannot seek back, so the upload still reads every byte.
+    """
+    try:
+        if not file.seekable():
+            return None
+        start = file.tell()
+    except (AttributeError, OSError):
+        return None
+    digest = hashlib.sha256()
+    for chunk in iter(lambda: file.read(_HASH_CHUNK_SIZE), b""):
+        digest.update(chunk)
+    file.seek(start)
+    return digest.hexdigest()

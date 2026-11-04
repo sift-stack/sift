@@ -38,6 +38,7 @@ def _version_proto(**overrides) -> artifacts_pb2.ArtifactVersion:
         created_date=to_timestamp_pb(NOW),
         metadata=metadata_dict_to_proto({"campaign": "x"}),
         is_current=True,
+        file_sha256="ab" * 32,
     )
     fields.update(overrides)
     return artifacts_pb2.ArtifactVersion(**fields)
@@ -82,6 +83,7 @@ class TestArtifactVersion:
         assert version.summary is None
         assert version.remote_file_id == "rf1"
         assert version.file_name == "summary.png"
+        assert version.file_sha256 == "ab" * 32
         assert version.metadata == {"campaign": "x"}
         assert version.created_date == NOW
         assert version.is_current is True
@@ -97,6 +99,7 @@ class TestArtifactVersion:
         assert version.remote_file_id is None
         assert version.file_name is None
         assert version.file_mime_type is None
+        assert version.file_sha256 is None
         assert version.is_current is False
 
 

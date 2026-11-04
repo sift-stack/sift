@@ -1,13 +1,19 @@
 """Tests for UploadLowLevelClient functionality."""
 
+import hashlib
 import io
 from pathlib import Path
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pytest
 from requests import HTTPError, Request, Response
+from requests_toolbelt import MultipartEncoder
 
-from sift_client._internal.low_level_wrappers.upload import UploadLowLevelClient
+from sift_client._internal.low_level_wrappers.upload import (
+    UploadLowLevelClient,
+    _sha256_from_position,
+)
 
 
 class TestUploadAttachment:
@@ -138,3 +144,130 @@ class TestUploadFileObject:
                 None,
                 None,
             )
+
+
+def _posting_client() -> UploadLowLevelClient:
+    client = UploadLowLevelClient.__new__(UploadLowLevelClient)
+    client._rest_client = MagicMock()
+    client._rest_client.post.return_value.status_code = 200
+    client._rest_client.post.return_value.json.return_value = {
+        "remoteFile": {"remoteFileId": "rf1"}
+    }
+    return client
+
+
+def _posted_form(client: UploadLowLevelClient) -> MultipartEncoder:
+    return cast("MagicMock", client._rest_client.post).call_args.kwargs["data"]
+
+
+def _posted_fields(client: UploadLowLevelClient) -> dict:
+    return _posted_form(client).fields
+
+
+def _posted_body(client: UploadLowLevelClient) -> bytes:
+    return _posted_form(client).to_string()
+
+
+class _Unseekable(io.RawIOBase):
+    def __init__(self, data: bytes):
+        self._data = io.BytesIO(data)
+
+    def readable(self) -> bool:
+        return True
+
+    def readinto(self, buffer) -> int:
+        chunk = self._data.read(len(buffer))
+        buffer[: len(chunk)] = chunk
+        return len(chunk)
+
+
+class TestUploadSha256:
+    @pytest.mark.asyncio
+    async def test_path(self, tmp_path):
+        path = tmp_path / "table.csv"
+        path.write_bytes(b"a,b\n1,2\n")
+        client = _posting_client()
+
+        with patch(
+            "sift_client._internal.low_level_wrappers.upload.run_sync_function",
+            side_effect=lambda fn, *args: fn(*args),
+        ):
+            await client.upload_attachment(
+                source=path, entity_id="v1", entity_type="artifact_versions", sha256=True
+            )
+
+        assert _posted_fields(client)["sha256"] == hashlib.sha256(b"a,b\n1,2\n").hexdigest()
+
+    @pytest.mark.parametrize(
+        "data",
+        [b"", b"hello", bytes(range(256)) * 10_000],
+        ids=["empty", "small", "multi_chunk"],
+    )
+    def test_bytes(self, data):
+        client = _posting_client()
+
+        client._upload_file_sync(
+            io.BytesIO(data),
+            "x.bin",
+            "application/octet-stream",
+            None,
+            "v1",
+            "artifact_versions",
+            None,
+            None,
+            None,
+            True,
+        )
+
+        digest = _posted_fields(client)["sha256"]
+        assert digest == hashlib.sha256(data).hexdigest()
+        assert digest == digest.lower()
+
+    @pytest.mark.parametrize("kind", ["file", "bytes_io"])
+    def test_file_object_hashes_from_its_position(self, tmp_path, kind):
+        path = tmp_path / "data.bin"
+        path.write_bytes(b"header|payload")
+        client = _posting_client()
+
+        with open(path, "rb") if kind == "file" else io.BytesIO(b"header|payload") as file:
+            file.seek(len(b"header|"))
+            client._upload_file_sync(
+                file,
+                "payload.bin",
+                "application/octet-stream",
+                None,
+                "v1",
+                "artifact_versions",
+                None,
+                None,
+                None,
+                True,
+            )
+            assert _posted_fields(client)["sha256"] == hashlib.sha256(b"payload").hexdigest()
+            body = _posted_body(client)
+
+        assert b"\r\n\r\npayload\r\n" in body
+        assert b"header|" not in body
+
+    def test_unseekable_file_object_is_not_hashed(self):
+        stream = io.BufferedReader(_Unseekable(b"stream"))
+
+        assert _sha256_from_position(stream) is None
+        assert stream.read() == b"stream"
+
+    def test_off_by_default(self):
+        client = _posting_client()
+
+        client._upload_file_sync(
+            io.BytesIO(b"x"),
+            "x.bin",
+            "application/octet-stream",
+            None,
+            "v1",
+            "runs",
+            None,
+            None,
+            None,
+        )
+
+        assert "sha256" not in _posted_fields(client)

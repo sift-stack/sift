@@ -561,7 +561,8 @@ class ArtifactsAPIAsync(_ArtifactsResourceBase):
     ) -> Artifact:
         """Upload the file to the version `artifact` resolves to, then fetch that version.
 
-        The version becomes the artifact's current version once the upload commits.
+        The upload sends the file's SHA-256, which the version returns as `file_sha256`. The
+        version becomes the artifact's current version once the upload commits.
         """
         version_id = artifact.artifact_version._id_or_error
         await self._upload_client.upload_attachment(
@@ -569,6 +570,7 @@ class ArtifactsAPIAsync(_ArtifactsResourceBase):
             entity_id=version_id,
             entity_type=ARTIFACT_VERSION_ENTITY_TYPE,
             file_name=file_name,
+            sha256=True,
         )
         return await self.get(artifact_id=artifact._id_or_error, artifact_version_id=version_id)
 
