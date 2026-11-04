@@ -2,14 +2,6 @@ syntax = "proto3";
 
 package sift.canvas.v1;
 
-import "google/api/annotations.proto";
-import "google/api/field_behavior.proto";
-import "protoc-gen-openapiv2/options/annotations.proto";
-
-option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
-  info: {title: "Canvas Service"}
-};
-
 // Status of a single canvas cell execution. Also used as the status of the
 // parent CanvasExecution: the parent rolls up its cells' statuses into a
 // single value (e.g. any AUTO_FAILED cell yields an AUTO_FAILED execution).
@@ -25,43 +17,4 @@ enum CanvasCellExecutionStatus {
   CANVAS_CELL_EXECUTION_STATUS_OPEN = 8;
   CANVAS_CELL_EXECUTION_STATUS_MANUALLY_CANCELLED = 9;
   CANVAS_CELL_EXECUTION_STATUS_IN_QUEUE = 10;
-}
-
-// CanvasService is the public canvas API. Authoring and execution stay on the
-// internal service. ExportCanvas is here so a caller can download a canvas
-// without those types.
-service CanvasService {
-  // ExportCanvas builds one zip of a saved canvas version and returns a
-  // presigned URL for it. The zip holds the py:percent source, the parameter
-  // sidecar, requirements.txt, file attachments, Python modules, and wheels.
-  // EXTERNAL canvases are rejected.
-  rpc ExportCanvas(ExportCanvasRequest) returns (ExportCanvasResponse) {
-    option (google.api.http) = {get: "/api/v1/canvases/{canvas_id}/export"};
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Export Canvas"
-      description: "Download one canvas version as a zip of its authoring files, attachments, and dependencies."
-      operation_id: "CanvasService_ExportCanvasV1"
-      tags: ["Canvas"]
-    };
-  }
-}
-
-// The request for a call to `CanvasService_ExportCanvas`.
-message ExportCanvasRequest {
-  // The canvas to export.
-  string canvas_id = 1 [(google.api.field_behavior) = REQUIRED];
-  // Empty exports the canvas's current version.
-  string canvas_version_id = 2 [(google.api.field_behavior) = OPTIONAL];
-}
-
-// The response of a call to `CanvasService_ExportCanvas`.
-message ExportCanvasResponse {
-  // Presigned URL for the zip of the py:percent source, parameter sidecar,
-  // requirements, attachments under files/, Python modules under deps/, and
-  // wheels under wheels/. The URL carries its own authorization and expires.
-  // Its Content-Disposition names the file after the canvas, such as "Demo.zip".
-  string download_url = 1 [
-    (google.api.field_behavior) = OUTPUT_ONLY,
-    (google.api.field_behavior) = REQUIRED
-  ];
 }
