@@ -12,6 +12,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   Parquet column. Agents can test a calculated channel before proposing to save
   it, without writing a new version to the organization. Entries that do not
   resolve are listed in `unresolved_calculated_channels` with the API's reason.
+
+## [v0.8.0] - November 3, 2026
+
+### What's New
+
 - MCP `list_*` tools now write `count`, `has_more`, `unmatched_fields`, and
   any other metadata ahead of the items in their text result, so these keys
   survive when an agent harness truncates a large result from the end.
