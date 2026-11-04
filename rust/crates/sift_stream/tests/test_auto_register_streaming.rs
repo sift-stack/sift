@@ -9,29 +9,17 @@
 //   - `finish()` drains all queued messages before returning.
 
 use std::collections::HashMap;
-use std::io::Error as IoError;
 use std::sync::{
     Arc, Mutex,
     atomic::{AtomicU32, Ordering},
 };
 
-use hyper_util::rt::TokioIo;
-use pbjson_types::Timestamp;
-use sift_connect::{SiftChannel, grpc::interceptor::AuthInterceptor};
-use sift_rs::assets::v1::asset_service_server::{AssetService, AssetServiceServer};
-use sift_rs::assets::v1::{
-    ArchiveAssetRequest, ArchiveAssetResponse, Asset, CreateAssetRequest, CreateAssetResponse,
-    DeleteAssetRequest, DeleteAssetResponse, GetAssetRequest, GetAssetResponse, ListAssetsRequest,
-    ListAssetsResponse, UpdateAssetRequest, UpdateAssetResponse,
-};
 use sift_rs::ingest::v1::{
     IngestArbitraryProtobufDataStreamRequest, IngestArbitraryProtobufDataStreamResponse,
     IngestWithConfigDataStreamRequest, IngestWithConfigDataStreamResponse,
-    ingest_service_server::{IngestService, IngestServiceServer},
+    ingest_service_server::IngestService,
 };
-use sift_rs::ingestion_configs::v2::ingestion_config_service_server::{
-    IngestionConfigService, IngestionConfigServiceServer,
-};
+use sift_rs::ingestion_configs::v2::ingestion_config_service_server::IngestionConfigService;
 use sift_rs::ingestion_configs::v2::{
     CreateIngestionConfigFlowsRequest, CreateIngestionConfigFlowsResponse,
     CreateIngestionConfigRequest, CreateIngestionConfigResponse, FlowConfig,
@@ -39,25 +27,12 @@ use sift_rs::ingestion_configs::v2::{
     ListIngestionConfigFlowsRequest, ListIngestionConfigFlowsResponse, ListIngestionConfigsRequest,
     ListIngestionConfigsResponse,
 };
-use sift_rs::ping::v1::ping_service_server::{PingService, PingServiceServer};
-use sift_rs::ping::v1::{PingRequest, PingResponse};
-use sift_rs::runs::v2::run_service_server::{RunService, RunServiceServer};
-use sift_rs::runs::v2::{
-    CreateAdhocRunRequest, CreateAdhocRunResponse, CreateAutomaticRunAssociationForAssetsRequest,
-    CreateAutomaticRunAssociationForAssetsResponse, CreateRunRequest, CreateRunResponse,
-    DeleteRunRequest, DeleteRunResponse, GetRunRequest, GetRunResponse, ListRunsRequest,
-    ListRunsResponse, Run, StopRunRequest, StopRunResponse, UpdateRunRequest, UpdateRunResponse,
-    ValidateRunFilterRequest, ValidateRunFilterResponse,
-};
 use sift_stream::{
     AutoRegisterSendError, AutoRegisterStream, ChannelConfig, ChannelDataType, ChannelValue, Flow,
     IngestionConfigForm, SiftStreamAutoRegister, SiftStreamBuilder, TimeValue,
 };
-use tokio::task::JoinHandle;
 use tokio_stream::StreamExt;
-use tonic::transport::{Endpoint, Server, Uri};
 use tonic::{Request, Response, Status};
-use tower::{ServiceBuilder, service_fn};
 use uuid::Uuid;
 
 mod common;
@@ -209,269 +184,13 @@ impl IngestionConfigService for CountingIngestionConfigService {
 }
 
 // ============================================================
-// Minimal supporting services (ping, asset, run)
-// ============================================================
-
-struct MinimalPingService;
-
-#[tonic::async_trait]
-impl PingService for MinimalPingService {
-    async fn ping(&self, _: Request<PingRequest>) -> Result<Response<PingResponse>, Status> {
-        Ok(Response::new(PingResponse {
-            response: "pong".to_string(),
-        }))
-    }
-}
-
-struct MinimalAssetService;
-
-#[tonic::async_trait]
-impl AssetService for MinimalAssetService {
-    async fn get_asset(
-        &self,
-        request: Request<GetAssetRequest>,
-    ) -> Result<Response<GetAssetResponse>, Status> {
-        let asset_id = request.into_inner().asset_id;
-        Ok(Response::new(GetAssetResponse {
-            asset: Some(Asset {
-                name: asset_id.clone(),
-                asset_id,
-                organization_id: "test".to_string(),
-                created_by_user_id: "test".to_string(),
-                modified_by_user_id: "test".to_string(),
-                created_date: Some(Timestamp {
-                    seconds: 0,
-                    nanos: 0,
-                }),
-                modified_date: Some(Timestamp {
-                    seconds: 0,
-                    nanos: 0,
-                }),
-                tags: vec![],
-                metadata: vec![],
-                archived_date: None,
-                is_archived: false,
-            }),
-        }))
-    }
-    async fn update_asset(
-        &self,
-        _: Request<UpdateAssetRequest>,
-    ) -> Result<Response<UpdateAssetResponse>, Status> {
-        Err(Status::unimplemented(""))
-    }
-    async fn delete_asset(
-        &self,
-        _: Request<DeleteAssetRequest>,
-    ) -> Result<Response<DeleteAssetResponse>, Status> {
-        Err(Status::unimplemented(""))
-    }
-    async fn list_assets(
-        &self,
-        _: Request<ListAssetsRequest>,
-    ) -> Result<Response<ListAssetsResponse>, Status> {
-        Err(Status::unimplemented(""))
-    }
-    async fn archive_asset(
-        &self,
-        _: Request<ArchiveAssetRequest>,
-    ) -> Result<Response<ArchiveAssetResponse>, Status> {
-        Err(Status::unimplemented(""))
-    }
-    async fn create_asset(
-        &self,
-        _: Request<CreateAssetRequest>,
-    ) -> Result<Response<CreateAssetResponse>, Status> {
-        Err(Status::unimplemented(""))
-    }
-}
-
-fn test_run() -> Run {
-    Run {
-        run_id: "test-run-id".to_string(),
-        name: "test-run".to_string(),
-        description: String::new(),
-        created_date: Some(Timestamp {
-            seconds: 0,
-            nanos: 0,
-        }),
-        modified_date: Some(Timestamp {
-            seconds: 0,
-            nanos: 0,
-        }),
-        created_by_user_id: "test".to_string(),
-        modified_by_user_id: "test".to_string(),
-        organization_id: "test".to_string(),
-        start_time: None,
-        stop_time: None,
-        is_pinned: false,
-        tags: vec![],
-        default_report_id: String::new(),
-        client_key: None,
-        metadata: vec![],
-        asset_ids: vec![],
-        archived_date: None,
-        is_adhoc: false,
-        duration: None,
-        is_archived: false,
-    }
-}
-
-struct MinimalRunService;
-
-#[tonic::async_trait]
-impl RunService for MinimalRunService {
-    async fn get_run(&self, _: Request<GetRunRequest>) -> Result<Response<GetRunResponse>, Status> {
-        Ok(Response::new(GetRunResponse {
-            run: Some(test_run()),
-        }))
-    }
-    async fn list_runs(
-        &self,
-        _: Request<ListRunsRequest>,
-    ) -> Result<Response<ListRunsResponse>, Status> {
-        Ok(Response::new(ListRunsResponse {
-            runs: vec![test_run()],
-            next_page_token: String::new(),
-        }))
-    }
-    async fn create_run(
-        &self,
-        _: Request<CreateRunRequest>,
-    ) -> Result<Response<CreateRunResponse>, Status> {
-        Ok(Response::new(CreateRunResponse {
-            run: Some(test_run()),
-        }))
-    }
-    async fn create_adhoc_run(
-        &self,
-        _: Request<CreateAdhocRunRequest>,
-    ) -> Result<Response<CreateAdhocRunResponse>, Status> {
-        Err(Status::unimplemented(""))
-    }
-    async fn update_run(
-        &self,
-        _: Request<UpdateRunRequest>,
-    ) -> Result<Response<UpdateRunResponse>, Status> {
-        Ok(Response::new(UpdateRunResponse {
-            run: Some(test_run()),
-        }))
-    }
-    async fn delete_run(
-        &self,
-        _: Request<DeleteRunRequest>,
-    ) -> Result<Response<DeleteRunResponse>, Status> {
-        Err(Status::unimplemented(""))
-    }
-    async fn stop_run(
-        &self,
-        _: Request<StopRunRequest>,
-    ) -> Result<Response<StopRunResponse>, Status> {
-        Err(Status::unimplemented(""))
-    }
-    async fn create_automatic_run_association_for_assets(
-        &self,
-        _: Request<CreateAutomaticRunAssociationForAssetsRequest>,
-    ) -> Result<Response<CreateAutomaticRunAssociationForAssetsResponse>, Status> {
-        Err(Status::unimplemented(""))
-    }
-    async fn validate_run_filter(
-        &self,
-        _: Request<ValidateRunFilterRequest>,
-    ) -> Result<Response<ValidateRunFilterResponse>, Status> {
-        Err(Status::unimplemented(""))
-    }
-}
-
-// ============================================================
-// Server helpers
-// ============================================================
-
-/// Start a server with a custom ingest service and the standard common mock services.
-/// Identical in structure to `common::start_test_ingest_server`.
-async fn start_standard_server(
-    ingest_service: impl IngestService,
-) -> (SiftChannel, JoinHandle<()>) {
-    start_full_server(ingest_service, None).await
-}
-
-/// Start a server where the IngestionConfigService counts registration calls.
-async fn start_server_with_registration_counter(
-    ingest_service: impl IngestService,
-    registration_counter: Arc<AtomicU32>,
-) -> (SiftChannel, JoinHandle<()>) {
-    start_full_server(
-        ingest_service,
-        Some(CountingIngestionConfigService::new(registration_counter)),
-    )
-    .await
-}
-
-async fn start_full_server(
-    ingest_service: impl IngestService,
-    ingestion_config_svc: Option<CountingIngestionConfigService>,
-) -> (SiftChannel, JoinHandle<()>) {
-    let (client_io, server_io) = tokio::io::duplex(1024);
-
-    let server = tokio::spawn(async move {
-        let mut builder = Server::builder();
-        let router = builder
-            .add_service(IngestServiceServer::new(ingest_service))
-            .add_service(PingServiceServer::new(MinimalPingService));
-
-        if let Some(svc) = ingestion_config_svc {
-            router
-                .add_service(IngestionConfigServiceServer::new(svc))
-                .add_service(AssetServiceServer::new(MinimalAssetService))
-                .add_service(RunServiceServer::new(MinimalRunService))
-                .serve_with_incoming(tokio_stream::once(Ok::<_, IoError>(server_io)))
-                .await
-                .unwrap();
-        } else {
-            router
-                .add_service(IngestionConfigServiceServer::new(
-                    common::MockIngestionConfigService::default(),
-                ))
-                .add_service(AssetServiceServer::new(common::MockAssetService))
-                .add_service(RunServiceServer::new(common::MockRunService))
-                .serve_with_incoming(tokio_stream::once(Ok::<_, IoError>(server_io)))
-                .await
-                .unwrap();
-        }
-    });
-
-    let mut client_io_opt = Some(client_io);
-    let channel = Endpoint::try_from("http://[::]:50051")
-        .unwrap()
-        .connect_with_connector(service_fn(move |_: Uri| {
-            let io = client_io_opt.take();
-            async move {
-                io.map(TokioIo::new)
-                    .ok_or_else(|| std::io::Error::other("connector already used"))
-            }
-        }))
-        .await
-        .unwrap();
-
-    let sift_channel: SiftChannel = ServiceBuilder::new()
-        .layer(tonic::service::interceptor::InterceptorLayer::new(
-            AuthInterceptor {
-                apikey: "test".to_string(),
-            },
-        ))
-        .service(channel);
-
-    (sift_channel, server)
-}
-
-// ============================================================
 // Tests
 // ============================================================
 
 #[tokio::test]
 async fn test_auto_register_sends_flow_not_in_initial_config() {
     let (service, counts) = FlowCountingIngestService::new();
-    let (client, server) = start_standard_server(service).await;
+    let (client, server) = common::start_test_ingest_server(service).await;
 
     let stream = SiftStreamBuilder::from_channel(client)
         .ingestion_config(IngestionConfigForm {
@@ -506,7 +225,7 @@ async fn test_auto_register_sends_flow_not_in_initial_config() {
 #[tokio::test]
 async fn test_auto_register_flow_in_local_cache_after_first_send() {
     let (service, _counts) = FlowCountingIngestService::new();
-    let (client, server) = start_standard_server(service).await;
+    let (client, server) = common::start_test_ingest_server(service).await;
 
     let stream = SiftStreamBuilder::from_channel(client)
         .ingestion_config(IngestionConfigForm {
@@ -529,7 +248,7 @@ async fn test_auto_register_flow_in_local_cache_after_first_send() {
 
     // Rebuild (into_inner consumed the previous wrapper).
     let (service2, _) = FlowCountingIngestService::new();
-    let (client2, server2) = start_standard_server(service2).await;
+    let (client2, server2) = common::start_test_ingest_server(service2).await;
 
     let stream2 = SiftStreamBuilder::from_channel(client2)
         .ingestion_config(IngestionConfigForm {
@@ -568,7 +287,7 @@ async fn test_auto_register_flow_in_local_cache_after_first_send() {
 #[tokio::test]
 async fn test_auto_register_multiple_distinct_flows_each_registered_independently() {
     let (service, counts) = FlowCountingIngestService::new();
-    let (client, server) = start_standard_server(service).await;
+    let (client, server) = common::start_test_ingest_server(service).await;
 
     let stream = SiftStreamBuilder::from_channel(client)
         .ingestion_config(IngestionConfigForm {
@@ -617,8 +336,11 @@ async fn test_auto_register_multiple_distinct_flows_each_registered_independentl
 async fn test_auto_register_same_flow_registered_exactly_once() {
     let registration_counter = Arc::new(AtomicU32::new(0));
     let (service, counts) = FlowCountingIngestService::new();
-    let (client, server) =
-        start_server_with_registration_counter(service, registration_counter.clone()).await;
+    let (client, server) = common::start_test_server(
+        service,
+        CountingIngestionConfigService::new(registration_counter.clone()),
+    )
+    .await;
 
     let stream = SiftStreamBuilder::from_channel(client)
         .ingestion_config(IngestionConfigForm {
@@ -665,7 +387,7 @@ async fn test_auto_register_pre_registered_flow_skips_registration() {
     let (service, counts) = FlowCountingIngestService::new();
 
     // Use the standard server (which starts with flow-0 pre-registered).
-    let (client, server) = start_standard_server(service).await;
+    let (client, server) = common::start_test_ingest_server(service).await;
 
     let stream = SiftStreamBuilder::from_channel(client)
         .ingestion_config(IngestionConfigForm {
@@ -708,7 +430,7 @@ async fn test_auto_register_pre_registered_flow_skips_registration() {
 #[tokio::test]
 async fn test_auto_register_into_inner_returns_stream_with_populated_cache() {
     let (service, _counts) = FlowCountingIngestService::new();
-    let (client, server) = start_standard_server(service).await;
+    let (client, server) = common::start_test_ingest_server(service).await;
 
     let stream = SiftStreamBuilder::from_channel(client)
         .ingestion_config(IngestionConfigForm {
@@ -756,7 +478,7 @@ async fn test_auto_register_into_inner_returns_stream_with_populated_cache() {
 #[tokio::test]
 async fn test_auto_register_finish_drains_all_queued_messages() {
     let (service, counts) = FlowCountingIngestService::new();
-    let (client, server) = start_standard_server(service).await;
+    let (client, server) = common::start_test_ingest_server(service).await;
 
     let stream = SiftStreamBuilder::from_channel(client)
         .ingestion_config(IngestionConfigForm {
@@ -796,7 +518,7 @@ async fn test_auto_register_finish_drains_all_queued_messages() {
 #[tokio::test]
 async fn test_auto_register_mixed_new_and_pre_registered_flows() {
     let (service, counts) = FlowCountingIngestService::new();
-    let (client, server) = start_standard_server(service).await;
+    let (client, server) = common::start_test_ingest_server(service).await;
 
     let stream = SiftStreamBuilder::from_channel(client)
         .ingestion_config(IngestionConfigForm {
@@ -954,48 +676,6 @@ impl IngestionConfigService for CapturingIngestionConfigService {
     }
 }
 
-async fn start_server_with_capturing(
-    ingest_service: impl IngestService,
-    config_svc: CapturingIngestionConfigService,
-) -> (SiftChannel, JoinHandle<()>) {
-    let (client_io, server_io) = tokio::io::duplex(1024);
-
-    let server = tokio::spawn(async move {
-        Server::builder()
-            .add_service(IngestServiceServer::new(ingest_service))
-            .add_service(PingServiceServer::new(MinimalPingService))
-            .add_service(IngestionConfigServiceServer::new(config_svc))
-            .add_service(AssetServiceServer::new(MinimalAssetService))
-            .add_service(RunServiceServer::new(MinimalRunService))
-            .serve_with_incoming(tokio_stream::once(Ok::<_, IoError>(server_io)))
-            .await
-            .unwrap();
-    });
-
-    let mut client_io_opt = Some(client_io);
-    let channel = Endpoint::try_from("http://[::]:50051")
-        .unwrap()
-        .connect_with_connector(service_fn(move |_: Uri| {
-            let io = client_io_opt.take();
-            async move {
-                io.map(TokioIo::new)
-                    .ok_or_else(|| std::io::Error::other("connector already used"))
-            }
-        }))
-        .await
-        .unwrap();
-
-    let sift_channel: SiftChannel = ServiceBuilder::new()
-        .layer(tonic::service::interceptor::InterceptorLayer::new(
-            AuthInterceptor {
-                apikey: "test".to_string(),
-            },
-        ))
-        .service(channel);
-
-    (sift_channel, server)
-}
-
 // ============================================================
 // Staged config tests
 // ============================================================
@@ -1007,7 +687,7 @@ async fn start_server_with_capturing(
 async fn test_staged_config_channels_are_used_for_registration() {
     let (config_svc, registrations, call_count) = CapturingIngestionConfigService::new();
     let (ingest_svc, _counts) = FlowCountingIngestService::new();
-    let (client, server) = start_server_with_capturing(ingest_svc, config_svc).await;
+    let (client, server) = common::start_test_server(ingest_svc, config_svc).await;
 
     let staged = FlowConfig {
         name: "sensor-flow".to_string(),
@@ -1062,7 +742,7 @@ async fn test_staged_config_channels_are_used_for_registration() {
 async fn test_staged_config_mismatch_returns_error() {
     let (config_svc, _registrations, call_count) = CapturingIngestionConfigService::new();
     let (ingest_svc, _counts) = FlowCountingIngestService::new();
-    let (client, server) = start_server_with_capturing(ingest_svc, config_svc).await;
+    let (client, server) = common::start_test_server(ingest_svc, config_svc).await;
 
     let staged = FlowConfig {
         name: "mismatch-flow".to_string(),
@@ -1114,8 +794,11 @@ async fn test_staged_config_mismatch_returns_error() {
 async fn test_staged_config_retained_after_mismatch() {
     let registration_counter = Arc::new(AtomicU32::new(0));
     let (ingest_svc, _counts) = FlowCountingIngestService::new();
-    let (client, server) =
-        start_server_with_registration_counter(ingest_svc, registration_counter.clone()).await;
+    let (client, server) = common::start_test_server(
+        ingest_svc,
+        CountingIngestionConfigService::new(registration_counter.clone()),
+    )
+    .await;
 
     let staged = FlowConfig {
         name: "retry-flow".to_string(),
@@ -1178,8 +861,11 @@ async fn test_staged_config_retained_after_mismatch() {
 async fn test_staged_config_consumed_after_successful_registration() {
     let registration_counter = Arc::new(AtomicU32::new(0));
     let (ingest_svc, counts) = FlowCountingIngestService::new();
-    let (client, server) =
-        start_server_with_registration_counter(ingest_svc, registration_counter.clone()).await;
+    let (client, server) = common::start_test_server(
+        ingest_svc,
+        CountingIngestionConfigService::new(registration_counter.clone()),
+    )
+    .await;
 
     let staged = FlowConfig {
         name: "one-time-flow".to_string(),

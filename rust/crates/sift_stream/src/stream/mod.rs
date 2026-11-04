@@ -2,7 +2,7 @@ use crate::stream::run::{RunSelector, load_run_by_form, load_run_by_id};
 use async_trait::async_trait;
 use sift_connect::SiftChannel;
 use sift_error::prelude::*;
-use sift_rs::runs::v2::Run;
+use sift_rs::{retry::RateLimitPolicy, runs::v2::Run};
 use uuid::Uuid;
 
 use crate::metrics::SiftStreamMetricsSnapshot;
@@ -248,6 +248,7 @@ pub struct SiftStream<E, T> {
     transport: T,
     run: Option<Run>,
     sift_stream_id: Uuid,
+    rate_limit_policy: RateLimitPolicy,
 }
 
 impl<E, T> SiftStream<E, T>
@@ -263,11 +264,18 @@ where
 
     /// Attach a run to the stream. Any data provided through [SiftStream::send] after return
     /// of this function will be associated with the run.
+    ///
+    /// Rate limits are handled according to the
+    /// [`rate_limit_policy`](builder::StreamConfigBuilder::rate_limit_policy) the stream was
+    /// built with.
     pub async fn attach_run(&mut self, run_selector: RunSelector) -> Result<()> {
         let run = match run_selector {
-            RunSelector::ById(run_id) => load_run_by_id(self.grpc_channel.clone(), &run_id).await?,
+            RunSelector::ById(run_id) => {
+                load_run_by_id(self.grpc_channel.clone(), &run_id, self.rate_limit_policy).await?
+            }
             RunSelector::ByForm(run_form) => {
-                load_run_by_form(self.grpc_channel.clone(), run_form).await?
+                load_run_by_form(self.grpc_channel.clone(), run_form, self.rate_limit_policy)
+                    .await?
             }
         };
 

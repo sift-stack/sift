@@ -1,4 +1,715 @@
 // @generated
+impl serde::Serialize for BatchArchiveTestReportsRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.test_report_ids.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.test_reports.v1.BatchArchiveTestReportsRequest", len)?;
+        if !self.test_report_ids.is_empty() {
+            struct_ser.serialize_field("testReportIds", &self.test_report_ids)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for BatchArchiveTestReportsRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "test_report_ids",
+            "testReportIds",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            TestReportIds,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "testReportIds" | "test_report_ids" => Ok(GeneratedField::TestReportIds),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = BatchArchiveTestReportsRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.test_reports.v1.BatchArchiveTestReportsRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<BatchArchiveTestReportsRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut test_report_ids__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::TestReportIds => {
+                            if test_report_ids__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("testReportIds"));
+                            }
+                            test_report_ids__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(BatchArchiveTestReportsRequest {
+                    test_report_ids: test_report_ids__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.test_reports.v1.BatchArchiveTestReportsRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for BatchArchiveTestReportsResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.test_reports.is_empty() {
+            len += 1;
+        }
+        if !self.failures.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.test_reports.v1.BatchArchiveTestReportsResponse", len)?;
+        if !self.test_reports.is_empty() {
+            struct_ser.serialize_field("testReports", &self.test_reports)?;
+        }
+        if !self.failures.is_empty() {
+            struct_ser.serialize_field("failures", &self.failures)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for BatchArchiveTestReportsResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "test_reports",
+            "testReports",
+            "failures",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            TestReports,
+            Failures,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "testReports" | "test_reports" => Ok(GeneratedField::TestReports),
+                            "failures" => Ok(GeneratedField::Failures),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = BatchArchiveTestReportsResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.test_reports.v1.BatchArchiveTestReportsResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<BatchArchiveTestReportsResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut test_reports__ = None;
+                let mut failures__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::TestReports => {
+                            if test_reports__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("testReports"));
+                            }
+                            test_reports__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Failures => {
+                            if failures__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("failures"));
+                            }
+                            failures__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(BatchArchiveTestReportsResponse {
+                    test_reports: test_reports__.unwrap_or_default(),
+                    failures: failures__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.test_reports.v1.BatchArchiveTestReportsResponse", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for BatchUnarchiveTestReportsRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.test_report_ids.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.test_reports.v1.BatchUnarchiveTestReportsRequest", len)?;
+        if !self.test_report_ids.is_empty() {
+            struct_ser.serialize_field("testReportIds", &self.test_report_ids)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for BatchUnarchiveTestReportsRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "test_report_ids",
+            "testReportIds",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            TestReportIds,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "testReportIds" | "test_report_ids" => Ok(GeneratedField::TestReportIds),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = BatchUnarchiveTestReportsRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.test_reports.v1.BatchUnarchiveTestReportsRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<BatchUnarchiveTestReportsRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut test_report_ids__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::TestReportIds => {
+                            if test_report_ids__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("testReportIds"));
+                            }
+                            test_report_ids__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(BatchUnarchiveTestReportsRequest {
+                    test_report_ids: test_report_ids__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.test_reports.v1.BatchUnarchiveTestReportsRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for BatchUnarchiveTestReportsResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.test_reports.is_empty() {
+            len += 1;
+        }
+        if !self.failures.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.test_reports.v1.BatchUnarchiveTestReportsResponse", len)?;
+        if !self.test_reports.is_empty() {
+            struct_ser.serialize_field("testReports", &self.test_reports)?;
+        }
+        if !self.failures.is_empty() {
+            struct_ser.serialize_field("failures", &self.failures)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for BatchUnarchiveTestReportsResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "test_reports",
+            "testReports",
+            "failures",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            TestReports,
+            Failures,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "testReports" | "test_reports" => Ok(GeneratedField::TestReports),
+                            "failures" => Ok(GeneratedField::Failures),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = BatchUnarchiveTestReportsResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.test_reports.v1.BatchUnarchiveTestReportsResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<BatchUnarchiveTestReportsResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut test_reports__ = None;
+                let mut failures__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::TestReports => {
+                            if test_reports__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("testReports"));
+                            }
+                            test_reports__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Failures => {
+                            if failures__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("failures"));
+                            }
+                            failures__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(BatchUnarchiveTestReportsResponse {
+                    test_reports: test_reports__.unwrap_or_default(),
+                    failures: failures__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.test_reports.v1.BatchUnarchiveTestReportsResponse", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for BatchUpdateTestReportFailure {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.test_report_id.is_empty() {
+            len += 1;
+        }
+        if !self.message.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.test_reports.v1.BatchUpdateTestReportFailure", len)?;
+        if !self.test_report_id.is_empty() {
+            struct_ser.serialize_field("testReportId", &self.test_report_id)?;
+        }
+        if !self.message.is_empty() {
+            struct_ser.serialize_field("message", &self.message)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for BatchUpdateTestReportFailure {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "test_report_id",
+            "testReportId",
+            "message",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            TestReportId,
+            Message,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "testReportId" | "test_report_id" => Ok(GeneratedField::TestReportId),
+                            "message" => Ok(GeneratedField::Message),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = BatchUpdateTestReportFailure;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.test_reports.v1.BatchUpdateTestReportFailure")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<BatchUpdateTestReportFailure, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut test_report_id__ = None;
+                let mut message__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::TestReportId => {
+                            if test_report_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("testReportId"));
+                            }
+                            test_report_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Message => {
+                            if message__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("message"));
+                            }
+                            message__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(BatchUpdateTestReportFailure {
+                    test_report_id: test_report_id__.unwrap_or_default(),
+                    message: message__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.test_reports.v1.BatchUpdateTestReportFailure", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for BatchUpdateTestReportsRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.requests.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.test_reports.v1.BatchUpdateTestReportsRequest", len)?;
+        if !self.requests.is_empty() {
+            struct_ser.serialize_field("requests", &self.requests)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for BatchUpdateTestReportsRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "requests",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Requests,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "requests" => Ok(GeneratedField::Requests),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = BatchUpdateTestReportsRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.test_reports.v1.BatchUpdateTestReportsRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<BatchUpdateTestReportsRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut requests__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Requests => {
+                            if requests__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("requests"));
+                            }
+                            requests__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(BatchUpdateTestReportsRequest {
+                    requests: requests__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.test_reports.v1.BatchUpdateTestReportsRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for BatchUpdateTestReportsResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.test_reports.is_empty() {
+            len += 1;
+        }
+        if !self.failures.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.test_reports.v1.BatchUpdateTestReportsResponse", len)?;
+        if !self.test_reports.is_empty() {
+            struct_ser.serialize_field("testReports", &self.test_reports)?;
+        }
+        if !self.failures.is_empty() {
+            struct_ser.serialize_field("failures", &self.failures)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for BatchUpdateTestReportsResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "test_reports",
+            "testReports",
+            "failures",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            TestReports,
+            Failures,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "testReports" | "test_reports" => Ok(GeneratedField::TestReports),
+                            "failures" => Ok(GeneratedField::Failures),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = BatchUpdateTestReportsResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.test_reports.v1.BatchUpdateTestReportsResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<BatchUpdateTestReportsResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut test_reports__ = None;
+                let mut failures__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::TestReports => {
+                            if test_reports__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("testReports"));
+                            }
+                            test_reports__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Failures => {
+                            if failures__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("failures"));
+                            }
+                            failures__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(BatchUpdateTestReportsResponse {
+                    test_reports: test_reports__.unwrap_or_default(),
+                    failures: failures__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.test_reports.v1.BatchUpdateTestReportsResponse", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for CountTestMeasurementsRequest {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -171,7 +882,7 @@ impl<'de> serde::Deserialize<'de> for CountTestMeasurementsResponse {
                             if count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("count"));
                             }
-                            count__ = 
+                            count__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -357,7 +1068,7 @@ impl<'de> serde::Deserialize<'de> for CountTestStepsResponse {
                             if count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("count"));
                             }
-                            count__ = 
+                            count__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -738,7 +1449,7 @@ impl<'de> serde::Deserialize<'de> for CreateTestMeasurementsResponse {
                             if measurements_created_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("measurementsCreatedCount"));
                             }
-                            measurements_created_count__ = 
+                            measurements_created_count__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1886,7 +2597,7 @@ impl<'de> serde::Deserialize<'de> for ErrorInfo {
                             if error_code__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("errorCode"));
                             }
-                            error_code__ = 
+                            error_code__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1918,9 +2629,15 @@ impl serde::Serialize for GetTestReportRequest {
         if !self.test_report_id.is_empty() {
             len += 1;
         }
+        if self.include_overall_modified_date {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.test_reports.v1.GetTestReportRequest", len)?;
         if !self.test_report_id.is_empty() {
             struct_ser.serialize_field("testReportId", &self.test_report_id)?;
+        }
+        if self.include_overall_modified_date {
+            struct_ser.serialize_field("includeOverallModifiedDate", &self.include_overall_modified_date)?;
         }
         struct_ser.end()
     }
@@ -1934,11 +2651,14 @@ impl<'de> serde::Deserialize<'de> for GetTestReportRequest {
         const FIELDS: &[&str] = &[
             "test_report_id",
             "testReportId",
+            "include_overall_modified_date",
+            "includeOverallModifiedDate",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             TestReportId,
+            IncludeOverallModifiedDate,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1961,6 +2681,7 @@ impl<'de> serde::Deserialize<'de> for GetTestReportRequest {
                     {
                         match value {
                             "testReportId" | "test_report_id" => Ok(GeneratedField::TestReportId),
+                            "includeOverallModifiedDate" | "include_overall_modified_date" => Ok(GeneratedField::IncludeOverallModifiedDate),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1981,6 +2702,7 @@ impl<'de> serde::Deserialize<'de> for GetTestReportRequest {
                     V: serde::de::MapAccess<'de>,
             {
                 let mut test_report_id__ = None;
+                let mut include_overall_modified_date__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::TestReportId => {
@@ -1989,10 +2711,17 @@ impl<'de> serde::Deserialize<'de> for GetTestReportRequest {
                             }
                             test_report_id__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::IncludeOverallModifiedDate => {
+                            if include_overall_modified_date__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("includeOverallModifiedDate"));
+                            }
+                            include_overall_modified_date__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(GetTestReportRequest {
                     test_report_id: test_report_id__.unwrap_or_default(),
+                    include_overall_modified_date: include_overall_modified_date__.unwrap_or_default(),
                 })
             }
         }
@@ -2387,7 +3116,7 @@ impl<'de> serde::Deserialize<'de> for ListTestMeasurementsRequest {
                             if page_size__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("pageSize"));
                             }
-                            page_size__ = 
+                            page_size__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2644,7 +3373,7 @@ impl<'de> serde::Deserialize<'de> for ListTestReportsRequest {
                             if page_size__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("pageSize"));
                             }
-                            page_size__ = 
+                            page_size__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2901,7 +3630,7 @@ impl<'de> serde::Deserialize<'de> for ListTestStepsRequest {
                             if page_size__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("pageSize"));
                             }
-                            page_size__ = 
+                            page_size__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -3135,7 +3864,7 @@ impl<'de> serde::Deserialize<'de> for NumericBounds {
                             if min__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("min"));
                             }
-                            min__ = 
+                            min__ =
                                 map_.next_value::<::std::option::Option<::pbjson::private::NumberDeserialize<_>>>()?.map(|x| x.0)
                             ;
                         }
@@ -3143,7 +3872,7 @@ impl<'de> serde::Deserialize<'de> for NumericBounds {
                             if max__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("max"));
                             }
-                            max__ = 
+                            max__ =
                                 map_.next_value::<::std::option::Option<::pbjson::private::NumberDeserialize<_>>>()?.map(|x| x.0)
                             ;
                         }
@@ -3733,6 +4462,9 @@ impl serde::Serialize for TestReport {
         if !self.run_id.is_empty() {
             len += 1;
         }
+        if self.overall_modified_date.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.test_reports.v1.TestReport", len)?;
         if !self.test_report_id.is_empty() {
             struct_ser.serialize_field("testReportId", &self.test_report_id)?;
@@ -3778,6 +4510,9 @@ impl serde::Serialize for TestReport {
         if !self.run_id.is_empty() {
             struct_ser.serialize_field("runId", &self.run_id)?;
         }
+        if let Some(v) = self.overall_modified_date.as_ref() {
+            struct_ser.serialize_field("overallModifiedDate", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -3813,6 +4548,8 @@ impl<'de> serde::Deserialize<'de> for TestReport {
             "isArchived",
             "run_id",
             "runId",
+            "overall_modified_date",
+            "overallModifiedDate",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -3831,6 +4568,7 @@ impl<'de> serde::Deserialize<'de> for TestReport {
             ArchivedDate,
             IsArchived,
             RunId,
+            OverallModifiedDate,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -3866,6 +4604,7 @@ impl<'de> serde::Deserialize<'de> for TestReport {
                             "archivedDate" | "archived_date" => Ok(GeneratedField::ArchivedDate),
                             "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
                             "runId" | "run_id" => Ok(GeneratedField::RunId),
+                            "overallModifiedDate" | "overall_modified_date" => Ok(GeneratedField::OverallModifiedDate),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -3899,6 +4638,7 @@ impl<'de> serde::Deserialize<'de> for TestReport {
                 let mut archived_date__ = None;
                 let mut is_archived__ = None;
                 let mut run_id__ = None;
+                let mut overall_modified_date__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::TestReportId => {
@@ -3985,6 +4725,12 @@ impl<'de> serde::Deserialize<'de> for TestReport {
                             }
                             run_id__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::OverallModifiedDate => {
+                            if overall_modified_date__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("overallModifiedDate"));
+                            }
+                            overall_modified_date__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(TestReport {
@@ -4002,6 +4748,7 @@ impl<'de> serde::Deserialize<'de> for TestReport {
                     archived_date: archived_date__,
                     is_archived: is_archived__.unwrap_or_default(),
                     run_id: run_id__.unwrap_or_default(),
+                    overall_modified_date: overall_modified_date__,
                 })
             }
         }

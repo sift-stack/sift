@@ -4,6 +4,7 @@ on:
   pull_request:
     types: [ opened, synchronize, closed ]
     paths:
+      - '.github/actions/python-mike-*/**'
       - 'python/docs/**'
       - 'python/lib/**'
       - 'python/mkdocs.yml'
@@ -34,7 +35,7 @@ jobs:
         run: |
           # Use commit hash as version for dev deployments
           VERSION=$(git rev-parse --short HEAD)
-          
+
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             # Use PR number as alias for PR deployments
             ALIAS="pr-${{ github.event.number }}"
@@ -42,7 +43,7 @@ jobs:
             # Use 'dev' for manual workflow dispatch
             ALIAS="dev"
           fi
-          
+
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "alias=$ALIAS" >> $GITHUB_OUTPUT
           echo "Dev deployment - Version: $VERSION, Alias: $ALIAS"

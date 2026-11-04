@@ -98,7 +98,9 @@ class ListAssetsRequest(google.protobuf.message.Message):
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are `asset_id`, `created_by_user_id`, `modified_by_user_id`,
-    `created_date`, `modified_date`, `name`, 'name_lower', `tag_id`, `tag_name`, 'archived_date', `is_archived`, and `metadata`. Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
+    `created_date`, `modified_date`, `name`, 'name_lower', `tag_id`, `tag_name`, 'archived_date', `is_archived`, and `metadata`.
+    Metadata can be used in filters by using `metadata["<key name>"]` as the field name,
+    e.g. `metadata["vehicle_type"] == "rover"`. The dot form `metadata.<key name>` is not supported.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     """
     order_by: builtins.str

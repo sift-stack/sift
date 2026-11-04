@@ -225,6 +225,7 @@ impl SiftStream<IngestionConfigEncoder, LiveStreamingOnly> {
         metrics.loaded_flows.add(flows_by_name.len() as u64);
         let sift_stream_id = task_config.sift_stream_id;
         let grpc_channel = task_config.setup_channel.clone();
+        let rate_limit_policy = task_config.rate_limit_policy;
 
         let tasks = TaskBuilder::start_live_only(task_config)
             .await
@@ -237,6 +238,7 @@ impl SiftStream<IngestionConfigEncoder, LiveStreamingOnly> {
                 flows_by_name,
                 ingestion_config,
                 metrics: metrics.clone(),
+                rate_limit_policy,
             },
             transport: LiveStreamingOnly {
                 message_id_counter: 0,
@@ -249,6 +251,7 @@ impl SiftStream<IngestionConfigEncoder, LiveStreamingOnly> {
             },
             run,
             sift_stream_id,
+            rate_limit_policy,
         })
     }
 }

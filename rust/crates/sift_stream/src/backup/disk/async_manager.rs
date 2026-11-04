@@ -8,7 +8,7 @@ use chrono::Utc;
 use prost::Message as PbMessage;
 use sift_error::prelude::*;
 use sift_pbfs::{MESSAGE_LENGTH_PREFIX_LEN, chunk::PbfsChunk};
-use sift_rs::CompressionEncoding;
+use sift_rs::{CompressionEncoding, rate_limit::retry_delay};
 use sift_rs::{SiftChannel, ingest::v1::ingest_service_client::IngestServiceClient};
 use std::collections::VecDeque;
 use std::ops::RangeInclusive;
@@ -802,6 +802,8 @@ impl BackupIngestTask {
                 });
 
                 let raw_response = client.ingest_with_config_data_stream(iter_stream).await;
+                // Set when Sift rate limited the attempt and asked for a minimum wait before retrying.
+                let server_delay = raw_response.as_ref().err().and_then(retry_delay);
                 let response = raw_response
                     .map(|res| res.into_inner())
                     .map_err(|e| Error::new(ErrorKind::StreamError, e));
@@ -835,7 +837,11 @@ impl BackupIngestTask {
                         );
                         metrics.backups.cur_ingest_retries.add(1);
                         current_wait = retry_policy.backoff(current_wait);
-                        tokio::time::sleep(current_wait).await;
+                        // The policy backoff, raised to Sift's requested delay plus a margin if it
+                        // rate limited the attempt, and capped at `max_backoff`. The backoff
+                        // progression itself is unchanged.
+                        tokio::time::sleep(retry_policy.wait_for_retry(current_wait, server_delay))
+                            .await;
                     }
                 }
             }

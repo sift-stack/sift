@@ -12,7 +12,7 @@ use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::report_templates::{ReportTemplateUpdate, TemplateRuleIdentifier},
-    tool::common::MetadataEntry,
+    tool::common::{MetadataEntry, url_clause, with_urls},
 };
 
 #[cfg(test)]
@@ -65,12 +65,15 @@ impl SiftMcpServer {
                 `organization_id`, `client_key`, `name`, `description`, `created_date`, `modified_date`,
                 `created_by_user_id`, `modified_by_user_id`, `is_archived`, `archived_date`, `tags`, `metadata`,
                 and the ordered `rules` list. Each rule includes `rule_id`, `rule_version_id`,
-                `rule_version_number`, `client_key`, and `display_order`.
+                `rule_version_number`, `client_key`, and `display_order`. Each item also carries an added `url`
+                field with the template's Sift web link (`<host>/report-templates/<report_template_id>`), omitted
+                when the host can't be derived. Present each template to the user as a Markdown link with its
+                name as the text and `url` as the target.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
                 `report_template_id`, `tag_id`, `tag_name`, `client_key`, `metadata`, `name`, `is_archived`.
-                Reference metadata entries as `metadata.{key}` (e.g. `metadata.owner == \"qa-team\"`).
+                Reference metadata entries as `metadata[\"<key>\"]` (e.g. `metadata[\"owner\"] == \"qa-team\"`).
                 When filtering or searching, use `name.matches(\"(?i)avionics\")`, not `==`. Use `==` only for an
                 exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
                 `contains(\"Avionics\")` silently misses `avionics-power-limit`.
@@ -113,6 +116,12 @@ impl SiftMcpServer {
             .await
             .map_err(from_anyhow)?;
 
+        let templates = with_urls(&templates, |t| {
+            self.url_service
+                .build_report_template_url(&t.report_template_id)
+                .ok()
+        })?;
+
         Ok(CallToolResult::structured(
             serde_json::json!({ "report_templates": templates }),
         ))
@@ -127,9 +136,11 @@ impl SiftMcpServer {
             rejected by the server. Wraps `report_templates/v1 CreateReportTemplate`.
 
             Output:
-              - `{ \"report_template\": ReportTemplate, \"next_step\": string }`. The returned template is the
-                server-assigned state including its new `report_template_id`, resolved `rules` (with
-                `display_order` set), and timestamps.
+              - `{ \"report_template\": ReportTemplate, \"report_template_url\": string|null, \"next_step\": string }`.
+                The returned template is the server-assigned state including its new `report_template_id`,
+                resolved `rules` (with `display_order` set), and timestamps. `report_template_url` is the
+                template's Sift web link, or null when the host can't be derived. Link the template only to this
+                URL, never to a report's page.
 
             Parameters:
               - `name`: required; the template name.
@@ -220,17 +231,27 @@ impl SiftMcpServer {
             .await
             .map_err(from_anyhow)?;
 
+        let report_template_url = self
+            .url_service
+            .build_report_template_url(&template.report_template_id)
+            .ok();
         let next_step = format!(
-            "Created report template `{}` ({}) with {} rule(s). Surface it to the user. To run the template \
-             over a run, call `create_report` with `report_template_id = \"{}\"`.",
+            "Created report template `{}` ({}) with {} rule(s).{} Surface it to the user. To run the \
+             template over a run, call `create_report` with `report_template_id = \"{}\"`.",
             template.name,
             template.report_template_id,
             template.rules.len(),
+            url_clause(
+                "report template",
+                Some(&template.name),
+                report_template_url.as_deref()
+            ),
             template.report_template_id,
         );
 
         let mut result = CallToolResult::structured(serde_json::json!({
             "report_template": template,
+            "report_template_url": report_template_url,
             "next_step": next_step,
         }));
         result.content = vec![ContentBlock::text(next_step)];
@@ -243,8 +264,10 @@ impl SiftMcpServer {
             Update selected fields on an existing report template. Wraps `report_templates/v1 UpdateReportTemplate`.
 
             Output:
-              - `{ \"report_template\": ReportTemplate, \"next_step\": string }`. The returned template reflects
-                the post-update server state.
+              - `{ \"report_template\": ReportTemplate, \"report_template_url\": string|null, \"next_step\": string }`.
+                The returned template reflects the post-update server state. `report_template_url` is the
+                template's Sift web link, or null when the host can't be derived. Link the template only to this
+                URL, never to a report's page.
 
             Parameters:
               - `report_template_id`: required; the id of the template to update.
@@ -357,14 +380,26 @@ impl SiftMcpServer {
         } else {
             ""
         };
+        let report_template_url = self
+            .url_service
+            .build_report_template_url(&template.report_template_id)
+            .ok();
         let next_step = format!(
-            "Updated report template `{}` ({}).{} Surface the new state to the user and confirm nothing was \
-             unintentionally dropped — `tags`, `rules`, and `metadata` use REPLACE semantics.",
-            template.name, template.report_template_id, archive_clause,
+            "Updated report template `{}` ({}).{}{} Surface the new state to the user and confirm nothing \
+             was unintentionally dropped — `tags`, `rules`, and `metadata` use REPLACE semantics.",
+            template.name,
+            template.report_template_id,
+            archive_clause,
+            url_clause(
+                "report template",
+                Some(&template.name),
+                report_template_url.as_deref()
+            ),
         );
 
         let mut result = CallToolResult::structured(serde_json::json!({
             "report_template": template,
+            "report_template_url": report_template_url,
             "next_step": next_step,
         }));
         result.content = vec![ContentBlock::text(next_step)];

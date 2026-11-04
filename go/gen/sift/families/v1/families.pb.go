@@ -1459,6 +1459,8 @@ type ListFamiliesRequest struct {
 	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
 	// Available fields to filter by are: `family_id`, `client_key`, `organization_id`, `archived_date`, `is_archived`, `created_by_user_id`, `created_date`, `modified_by_user_id`, `modified_date`, `name`, `description`, `run_query`, `run_id_includes`, `run_id_excludes`, `alignment_name`, `alignment_description`, `metadata`.
+	// Metadata can be used in filters by using `metadata["<key name>"]` as the field name,
+	// e.g. `metadata["program"] == "artemis"`. The dot form `metadata.<key name>` is not supported.
 	// For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
 	Filter string `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
 	// How to order the retrieved families. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".

@@ -1,4 +1,4 @@
-use std::{error::Error as StdError, fmt, result::Result as StdResult};
+use std::{error::Error as StdError, fmt, result::Result as StdResult, time::Duration};
 
 #[cfg(test)]
 mod test;
@@ -248,6 +248,41 @@ impl Error {
         }
     }
 
+    /// Creates an [ErrorKind::RateLimitedError] for a request that Sift rejected under a rate
+    /// limit.
+    ///
+    /// # Arguments
+    ///
+    /// * `err` - The underlying error, normally the `tonic::Status` returned by Sift
+    /// * `retry_delay` - The minimum wait Sift requested before retrying, if provided
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use sift_error::Error;
+    /// use std::{io, time::Duration};
+    ///
+    /// let status = io::Error::other("Rate limit exceeded");
+    /// let error = Error::new_rate_limited(status, Some(Duration::from_secs(2)));
+    /// assert!(error.is_rate_limited());
+    /// assert_eq!(error.retry_delay(), Some(Duration::from_secs(2)));
+    /// ```
+    pub fn new_rate_limited<E>(err: E, retry_delay: Option<Duration>) -> Self
+    where
+        E: StdError + Send + Sync + 'static,
+    {
+        let msg = match retry_delay {
+            Some(delay) => format!("request was rate limited by Sift; retry after {delay:?}"),
+            None => "request was rate limited by Sift".to_string(),
+        };
+        Self {
+            inner: Some(Box::new(err)),
+            kind: ErrorKind::RateLimitedError { retry_delay },
+            context: Some(vec![msg]),
+            help: None,
+        }
+    }
+
     /// Get the underlying error kind.
     ///
     /// # Returns
@@ -264,6 +299,42 @@ impl Error {
     /// ```
     pub fn kind(&self) -> ErrorKind {
         self.kind
+    }
+
+    /// Returns `true` if Sift rejected the request under a rate limit.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use sift_error::{Error, ErrorKind};
+    ///
+    /// let error = Error::new_msg(ErrorKind::NotFoundError, "resource missing");
+    /// assert!(!error.is_rate_limited());
+    /// ```
+    pub fn is_rate_limited(&self) -> bool {
+        matches!(self.kind, ErrorKind::RateLimitedError { .. })
+    }
+
+    /// Returns the minimum wait Sift requested before retrying, if this is a rate-limit error
+    /// that carried one. Returns `None` for all other errors.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use sift_error::Error;
+    /// use std::{io, time::Duration};
+    ///
+    /// let status = io::Error::other("Rate limit exceeded");
+    /// let error = Error::new_rate_limited(status, Some(Duration::from_millis(500)));
+    /// if let Some(delay) = error.retry_delay() {
+    ///     println!("retry in {delay:?}");
+    /// }
+    /// ```
+    pub fn retry_delay(&self) -> Option<Duration> {
+        match self.kind {
+            ErrorKind::RateLimitedError { retry_delay } => retry_delay,
+            _ => None,
+        }
     }
 }
 
@@ -353,6 +424,15 @@ pub enum ErrorKind {
     BackupLimitReached,
     /// Errors with the SiftStream Metrics Server.
     SiftStreamMetricsServerError,
+    /// Indicates that Sift rejected the request under a rate limit.
+    ///
+    /// Sift signals this with a gRPC `ResourceExhausted` status that carries a
+    /// `google.rpc.RetryInfo` detail. `retry_delay` is the minimum wait Sift requested before
+    /// retrying; it is `None` only if the `RetryInfo` omitted the delay.
+    RateLimitedError {
+        /// The minimum wait Sift requested before retrying.
+        retry_delay: Option<Duration>,
+    },
     /// General errors that are rarely returned.
     ///
     /// This is a catch-all error kind for unexpected or unclassified errors.
@@ -430,6 +510,7 @@ impl fmt::Display for ErrorKind {
                 write!(f, "IncompatibleIngestionConfigChange")
             }
             Self::SiftStreamMetricsServerError => write!(f, "SiftStreamMetricsServerError"),
+            Self::RateLimitedError { .. } => write!(f, "RateLimitedError"),
         }
     }
 }

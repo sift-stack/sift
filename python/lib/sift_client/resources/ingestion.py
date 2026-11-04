@@ -5,6 +5,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Iterator
 
 from sift_client._internal.low_level_wrappers.ingestion import (
+    DEFAULT_METRICS_STREAMING_INTERVAL,
     IngestionConfigStreamingLowLevelClient,
     IngestionLowLevelClient,
     _build_sift_stream_instance,
@@ -16,6 +17,7 @@ from sift_client.sift_types.run import Run, RunCreate, Tag
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
+    from datetime import timedelta
 
     from sift_stream_bindings import (
         DiskBackupPolicyPy,
@@ -25,6 +27,7 @@ if TYPE_CHECKING:
         IngestWithConfigDataStreamRequestPy,
         IngestWithConfigDataStreamRequestWrapperPy,
         MetadataPy,
+        RateLimitPolicyPy,
         RetryPolicyPy,
         RunFormPy,
         RunSelectorPy,
@@ -156,10 +159,12 @@ class IngestionAPIAsync(ResourceBase):
         run: RunCreate | dict | str | Run | None = None,
         asset_tags: list[str] | list[Tag] | None = None,
         asset_metadata: dict[str, str | float | bool] | None = None,
-        streaming_mode: StreamingMode = StreamingMode.LIVE_WITH_BACKUPS,
+        streaming_mode: StreamingMode = StreamingMode.LIVE_ONLY,
         retry_policy: RetryPolicyPy | None = None,
         disk_backup_policy: DiskBackupPolicyPy | None = None,
         checkpoint_interval_seconds: int | None = None,
+        metrics_streaming_interval: timedelta | None = DEFAULT_METRICS_STREAMING_INTERVAL,
+        rate_limit_policy: RateLimitPolicyPy | None = None,
         enable_tls: bool = True,
         tracing_config: TracingConfig | None = None,
     ) -> IngestionConfigStreamingClient:
@@ -170,10 +175,18 @@ class IngestionAPIAsync(ResourceBase):
             run: The run to associate with ingestion. Can be a Run, RunCreate, dict, or run ID string.
             asset_tags: Tags to associate with the asset.
             asset_metadata: Metadata to associate with the asset.
-            streaming_mode: Transport mode for the stream. Defaults to LIVE_WITH_BACKUPS.
+            streaming_mode: Transport mode for the stream. Defaults to LIVE_ONLY, without disk
+                backups. Set to LIVE_WITH_BACKUPS to opt in to local disk backups.
             retry_policy: Retry policy for LIVE_WITH_BACKUPS mode.
             disk_backup_policy: Disk backup policy for LIVE_WITH_BACKUPS or FILE_BACKUP mode.
             checkpoint_interval_seconds: Checkpoint interval in seconds (LIVE_WITH_BACKUPS only).
+            metrics_streaming_interval: How often stream metrics are pushed to Sift. Defaults to
+                500 ms. Must be greater than zero. Set to None to disable metrics streaming.
+            rate_limit_policy: How rate-limited control-plane calls are handled, such as stream
+                setup, `attach_run`, and flow registration. Defaults to `RateLimitPolicyPy.retry()`,
+                which waits the delay Sift requests before retrying. Use
+                `RateLimitPolicyPy.return_error()` to raise `RateLimitedErrorPy` immediately.
+                Rate limits while streaming data are handled by `retry_policy`.
             enable_tls: Whether to enable TLS for the connection.
             tracing_config: Configuration for SiftStream tracing. Use TracingConfig.console_only()
                 to enable tracing to stdout only, or TracingConfig.with_file() to enable
@@ -182,6 +195,11 @@ class IngestionAPIAsync(ResourceBase):
 
         Returns:
             An initialized IngestionConfigStreamingClient.
+
+        Raises:
+            RateLimitedErrorPy: If Sift rate limits stream setup and `rate_limit_policy` does not
+                retry, or the retries run out. When `retry_delay` is not None,
+                `retry_delay.to_timedelta()` returns the delay Sift requested.
         """
         return await IngestionConfigStreamingClient._create(
             self.client,
@@ -193,6 +211,8 @@ class IngestionAPIAsync(ResourceBase):
             retry_policy=retry_policy,
             disk_backup_policy=disk_backup_policy,
             checkpoint_interval_seconds=checkpoint_interval_seconds,
+            metrics_streaming_interval=metrics_streaming_interval,
+            rate_limit_policy=rate_limit_policy,
             enable_tls=enable_tls,
             tracing_config=tracing_config,
         )
@@ -204,10 +224,12 @@ class IngestionAPIAsync(ResourceBase):
         run: RunCreate | dict | str | Run | None = None,
         asset_tags: list[str] | list[Tag] | None = None,
         asset_metadata: dict[str, str | float | bool] | None = None,
-        streaming_mode: StreamingMode = StreamingMode.LIVE_WITH_BACKUPS,
+        streaming_mode: StreamingMode = StreamingMode.LIVE_ONLY,
         retry_policy: RetryPolicyPy | None = None,
         disk_backup_policy: DiskBackupPolicyPy | None = None,
         checkpoint_interval_seconds: int | None = None,
+        metrics_streaming_interval: timedelta | None = DEFAULT_METRICS_STREAMING_INTERVAL,
+        rate_limit_policy: RateLimitPolicyPy | None = None,
         enable_tls: bool = True,
         tracing_config: TracingConfig | None = None,
         staged_configs: list[FlowConfig] | None = None,
@@ -235,10 +257,18 @@ class IngestionAPIAsync(ResourceBase):
             run: The run to associate with ingestion. Can be a Run, RunCreate, dict, or run ID string.
             asset_tags: Tags to associate with the asset.
             asset_metadata: Metadata to associate with the asset.
-            streaming_mode: Transport mode for the stream. Defaults to LIVE_WITH_BACKUPS.
+            streaming_mode: Transport mode for the stream. Defaults to LIVE_ONLY, without disk
+                backups. Set to LIVE_WITH_BACKUPS to opt in to local disk backups.
             retry_policy: Retry policy for LIVE_WITH_BACKUPS mode.
             disk_backup_policy: Disk backup policy for LIVE_WITH_BACKUPS or FILE_BACKUP mode.
             checkpoint_interval_seconds: Checkpoint interval in seconds (LIVE_WITH_BACKUPS only).
+            metrics_streaming_interval: How often stream metrics are pushed to Sift. Defaults to
+                500 ms. Must be greater than zero. Set to None to disable metrics streaming.
+            rate_limit_policy: How rate-limited control-plane calls are handled, such as stream
+                setup, `attach_run`, and flow registration. Defaults to `RateLimitPolicyPy.retry()`,
+                which waits the delay Sift requests before retrying. Use
+                `RateLimitPolicyPy.return_error()` to raise `RateLimitedErrorPy` immediately.
+                Rate limits while streaming data are handled by `retry_policy`.
             enable_tls: Whether to enable TLS for the connection.
             tracing_config: Configuration for SiftStream tracing.
             staged_configs: Optional flow configs to use when auto-registering flows for the first
@@ -249,6 +279,11 @@ class IngestionAPIAsync(ResourceBase):
 
         Returns:
             An initialized `AutoRegisterStreamingClient`.
+
+        Raises:
+            RateLimitedErrorPy: If Sift rate limits stream setup and `rate_limit_policy` does not
+                retry, or the retries run out. When `retry_delay` is not None,
+                `retry_delay.to_timedelta()` returns the delay Sift requested.
         """
         return await AutoRegisterStreamingClient._create(
             self.client,
@@ -260,6 +295,8 @@ class IngestionAPIAsync(ResourceBase):
             retry_policy=retry_policy,
             disk_backup_policy=disk_backup_policy,
             checkpoint_interval_seconds=checkpoint_interval_seconds,
+            metrics_streaming_interval=metrics_streaming_interval,
+            rate_limit_policy=rate_limit_policy,
             enable_tls=enable_tls,
             tracing_config=tracing_config,
             staged_configs=staged_configs,
@@ -292,10 +329,12 @@ class IngestionConfigStreamingClient(ResourceBase):
         run: RunCreate | dict | str | Run | RunFormPy | None = None,
         asset_tags: list[str] | list[Tag] | None = None,
         asset_metadata: dict[str, str | float | bool] | None = None,
-        streaming_mode: StreamingMode = StreamingMode.LIVE_WITH_BACKUPS,
+        streaming_mode: StreamingMode = StreamingMode.LIVE_ONLY,
         retry_policy: RetryPolicyPy | None = None,
         disk_backup_policy: DiskBackupPolicyPy | None = None,
         checkpoint_interval_seconds: int | None = None,
+        metrics_streaming_interval: timedelta | None = DEFAULT_METRICS_STREAMING_INTERVAL,
+        rate_limit_policy: RateLimitPolicyPy | None = None,
         enable_tls: bool = True,
         tracing_config: TracingConfig | None = None,
     ) -> IngestionConfigStreamingClient:
@@ -307,10 +346,18 @@ class IngestionConfigStreamingClient(ResourceBase):
             run: The run to associate with ingestion. Can be a Run, RunCreate, dict, or run ID string.
             asset_tags: Tags to associate with the asset.
             asset_metadata: Metadata to associate with the asset.
-            streaming_mode: Transport mode for the stream. Defaults to LIVE_WITH_BACKUPS.
+            streaming_mode: Transport mode for the stream. Defaults to LIVE_ONLY, without disk
+                backups. Set to LIVE_WITH_BACKUPS to opt in to local disk backups.
             retry_policy: Retry policy for LIVE_WITH_BACKUPS mode.
             disk_backup_policy: Disk backup policy for LIVE_WITH_BACKUPS or FILE_BACKUP mode.
             checkpoint_interval_seconds: Checkpoint interval in seconds (LIVE_WITH_BACKUPS only).
+            metrics_streaming_interval: How often stream metrics are pushed to Sift. Defaults to
+                500 ms. Must be greater than zero. Set to None to disable metrics streaming.
+            rate_limit_policy: How rate-limited control-plane calls are handled, such as stream
+                setup, `attach_run`, and flow registration. Defaults to `RateLimitPolicyPy.retry()`,
+                which waits the delay Sift requests before retrying. Use
+                `RateLimitPolicyPy.return_error()` to raise `RateLimitedErrorPy` immediately.
+                Rate limits while streaming data are handled by `retry_policy`.
             enable_tls: Whether to enable TLS for the connection.
             tracing_config: Configuration for SiftStream tracing. Use TracingConfig.console_only()
                 to enable tracing to stdout only, or TracingConfig.with_file() to enable
@@ -393,6 +440,8 @@ class IngestionConfigStreamingClient(ResourceBase):
             retry_policy=retry_policy,
             disk_backup_policy=disk_backup_policy,
             checkpoint_interval_seconds=checkpoint_interval_seconds,
+            metrics_streaming_interval=metrics_streaming_interval,
+            rate_limit_policy=rate_limit_policy,
             enable_tls=enable_tls,
             tracing_config=tracing_config,
         )
@@ -509,6 +558,11 @@ class IngestionConfigStreamingClient(ResourceBase):
 
         Args:
             flow_configs: List of flow configurations to add to the ingestion config.
+
+        Raises:
+            RateLimitedErrorPy: If Sift rate limits the registration and the stream's
+                `rate_limit_policy` does not retry, or the retries run out. When `retry_delay`
+                is not None, `retry_delay.to_timedelta()` returns the delay Sift requested.
         """
         flow_configs_py = [flow_config._to_rust_config() for flow_config in flow_configs]
         await self._low_level_client.add_new_flows(flow_configs_py)
@@ -522,6 +576,11 @@ class IngestionConfigStreamingClient(ResourceBase):
 
         Args:
             run: The run to attach. Can be a Run, RunCreate, dict, run ID string, or RunFormPy.
+
+        Raises:
+            RateLimitedErrorPy: If Sift rate limits the run lookup or creation and the stream's
+                `rate_limit_policy` does not retry, or the retries run out. When `retry_delay`
+                is not None, `retry_delay.to_timedelta()` returns the delay Sift requested.
         """
         run_selector_py = _to_run_selector(run)
         await self._low_level_client.attach_run(run_selector_py)
@@ -630,10 +689,12 @@ class AutoRegisterStreamingClient(ResourceBase):
         run: RunCreate | dict | str | Run | RunFormPy | None = None,
         asset_tags: list[str] | list[Tag] | None = None,
         asset_metadata: dict[str, str | float | bool] | None = None,
-        streaming_mode: StreamingMode = StreamingMode.LIVE_WITH_BACKUPS,
+        streaming_mode: StreamingMode = StreamingMode.LIVE_ONLY,
         retry_policy: RetryPolicyPy | None = None,
         disk_backup_policy: DiskBackupPolicyPy | None = None,
         checkpoint_interval_seconds: int | None = None,
+        metrics_streaming_interval: timedelta | None = DEFAULT_METRICS_STREAMING_INTERVAL,
+        rate_limit_policy: RateLimitPolicyPy | None = None,
         enable_tls: bool = True,
         tracing_config: TracingConfig | None = None,
         staged_configs: list[FlowConfig] | None = None,
@@ -701,6 +762,8 @@ class AutoRegisterStreamingClient(ResourceBase):
             retry_policy=retry_policy,
             disk_backup_policy=disk_backup_policy,
             checkpoint_interval_seconds=checkpoint_interval_seconds,
+            metrics_streaming_interval=metrics_streaming_interval,
+            rate_limit_policy=rate_limit_policy,
             enable_tls=enable_tls,
             tracing_config=tracing_config,
         )
@@ -725,6 +788,11 @@ class AutoRegisterStreamingClient(ResourceBase):
 
         Args:
             flow: The flow to send.
+
+        Raises:
+            RateLimitedErrorPy: If Sift rate limits registering a new flow and the stream's
+                `rate_limit_policy` does not retry, or the retries run out. When `retry_delay`
+                is not None, `retry_delay.to_timedelta()` returns the delay Sift requested.
         """
         flow_py = flow._to_rust_form() if isinstance(flow, Flow) else flow
         await self._stream.send(flow_py)
@@ -747,6 +815,11 @@ class AutoRegisterStreamingClient(ResourceBase):
 
         Args:
             run: The run to attach. Can be a Run, RunCreate, dict, run ID string, or RunFormPy.
+
+        Raises:
+            RateLimitedErrorPy: If Sift rate limits the run lookup or creation and the stream's
+                `rate_limit_policy` does not retry, or the retries run out. When `retry_delay`
+                is not None, `retry_delay.to_timedelta()` returns the delay Sift requested.
         """
         await self._stream.attach_run(_to_run_selector(run))
 

@@ -665,7 +665,17 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int):
     yield
     finalize_parents()
     if REPORT_CONTEXT is not None:
+        _announce_pending_upload(session.config, REPORT_CONTEXT)
         REPORT_CONTEXT.finalize()
+
+
+def _announce_pending_upload(config: pytest.Config, context: ReportContext) -> None:
+    """Tell the terminal the session is waiting on the background upload, so it does not look hung."""
+    timeout = context.pending_upload_timeout
+    reporter = config.pluginmanager.get_plugin("terminalreporter")
+    if timeout is None or reporter is None or _verbosity(config) < 0:
+        return
+    reporter.write_line(f"Sift: uploading remaining test results (waiting up to {timeout:.0f}s)...")
 
 
 def _verbosity(config: pytest.Config) -> int:

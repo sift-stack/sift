@@ -455,6 +455,10 @@ func (m *UpdateRuleRequest) CloneVT() *UpdateRuleRequest {
 		tmpVal := *rhs
 		r.IsLiveEvaluationEnabled = &tmpVal
 	}
+	if rhs := m.SavedExplorationId; rhs != nil {
+		tmpVal := *rhs
+		r.SavedExplorationId = &tmpVal
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -1245,6 +1249,10 @@ func (m *RuleVersion) CloneVT() *RuleVersion {
 	r.DeletedDate = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.DeletedDate).CloneVT())
 	r.ArchivedDate = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.ArchivedDate).CloneVT())
 	r.IsArchived = m.IsArchived
+	if rhs := m.SavedExplorationId; rhs != nil {
+		tmpVal := *rhs
+		r.SavedExplorationId = &tmpVal
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -2468,6 +2476,9 @@ func (this *UpdateRuleRequest) EqualVT(that *UpdateRuleRequest) bool {
 	if p, q := this.IsLiveEvaluationEnabled, that.IsLiveEvaluationEnabled; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
 	}
+	if p, q := this.SavedExplorationId, that.SavedExplorationId; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -3471,6 +3482,9 @@ func (this *RuleVersion) EqualVT(that *RuleVersion) bool {
 		return false
 	}
 	if this.IsArchived != that.IsArchived {
+		return false
+	}
+	if p, q := this.SavedExplorationId, that.SavedExplorationId; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -6474,6 +6488,15 @@ func (m *UpdateRuleRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.SavedExplorationId != nil {
+		i -= len(*m.SavedExplorationId)
+		copy(dAtA[i:], *m.SavedExplorationId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.SavedExplorationId)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x82
+	}
 	if m.IsLiveEvaluationEnabled != nil {
 		i--
 		if *m.IsLiveEvaluationEnabled {
@@ -8478,6 +8501,13 @@ func (m *RuleVersion) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.SavedExplorationId != nil {
+		i -= len(*m.SavedExplorationId)
+		copy(dAtA[i:], *m.SavedExplorationId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.SavedExplorationId)))
+		i--
+		dAtA[i] = 0x5a
 	}
 	if m.IsArchived {
 		i--
@@ -10954,6 +10984,15 @@ func (m *UpdateRuleRequest) MarshalToSizedBufferVTStrict(dAtA []byte) (int, erro
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.SavedExplorationId != nil {
+		i -= len(*m.SavedExplorationId)
+		copy(dAtA[i:], *m.SavedExplorationId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.SavedExplorationId)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x82
+	}
 	if m.IsLiveEvaluationEnabled != nil {
 		i--
 		if *m.IsLiveEvaluationEnabled {
@@ -12959,6 +12998,13 @@ func (m *RuleVersion) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.SavedExplorationId != nil {
+		i -= len(*m.SavedExplorationId)
+		copy(dAtA[i:], *m.SavedExplorationId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.SavedExplorationId)))
+		i--
+		dAtA[i] = 0x5a
+	}
 	if m.IsArchived {
 		i--
 		if m.IsArchived {
@@ -14862,6 +14908,10 @@ func (m *UpdateRuleRequest) SizeVT() (n int) {
 	if m.IsLiveEvaluationEnabled != nil {
 		n += 2
 	}
+	if m.SavedExplorationId != nil {
+		l = len(*m.SavedExplorationId)
+		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -15594,6 +15644,10 @@ func (m *RuleVersion) SizeVT() (n int) {
 	}
 	if m.IsArchived {
 		n += 2
+	}
+	if m.SavedExplorationId != nil {
+		l = len(*m.SavedExplorationId)
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -19490,6 +19544,39 @@ func (m *UpdateRuleRequest) UnmarshalVT(dAtA []byte) error {
 			}
 			b := bool(v != 0)
 			m.IsLiveEvaluationEnabled = &b
+		case 16:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SavedExplorationId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			s := string(dAtA[iNdEx:postIndex])
+			m.SavedExplorationId = &s
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -23974,6 +24061,39 @@ func (m *RuleVersion) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.IsArchived = bool(v != 0)
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SavedExplorationId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			s := string(dAtA[iNdEx:postIndex])
+			m.SavedExplorationId = &s
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -30353,6 +30473,43 @@ func (m *UpdateRuleRequest) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			b := bool(v != 0)
 			m.IsLiveEvaluationEnabled = &b
+		case 16:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SavedExplorationId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			s := stringValue
+			m.SavedExplorationId = &s
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -35041,6 +35198,43 @@ func (m *RuleVersion) UnmarshalVTUnsafe(dAtA []byte) error {
 				}
 			}
 			m.IsArchived = bool(v != 0)
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SavedExplorationId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			s := stringValue
+			m.SavedExplorationId = &s
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

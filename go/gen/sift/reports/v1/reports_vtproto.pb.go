@@ -101,6 +101,10 @@ func (m *Report) CloneVT() *Report {
 		tmpVal := *rhs
 		r.CanvasId = &tmpVal
 	}
+	if rhs := m.IsAutomated; rhs != nil {
+		tmpVal := *rhs
+		r.IsAutomated = &tmpVal
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -165,6 +169,10 @@ func (m *ReportWithCumulativeSummary) CloneVT() *ReportWithCumulativeSummary {
 		tmpVal := *rhs
 		r.CanvasId = &tmpVal
 	}
+	if rhs := m.IsAutomated; rhs != nil {
+		tmpVal := *rhs
+		r.IsAutomated = &tmpVal
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -209,6 +217,10 @@ func (m *ReportRuleSummary) CloneVT() *ReportRuleSummary {
 			tmpContainer[k] = v.CloneVT()
 		}
 		r.ResolvedAlignmentConfigs = tmpContainer
+	}
+	if rhs := m.ExploreFullLink; rhs != nil {
+		tmpVal := *rhs
+		r.ExploreFullLink = &tmpVal
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -1235,6 +1247,9 @@ func (this *Report) EqualVT(that *Report) bool {
 	if p, q := this.CanvasId, that.CanvasId; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
 	}
+	if p, q := this.IsAutomated, that.IsAutomated; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1326,6 +1341,9 @@ func (this *ReportWithCumulativeSummary) EqualVT(that *ReportWithCumulativeSumma
 		return false
 	}
 	if p, q := this.CanvasId, that.CanvasId; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
+		return false
+	}
+	if p, q := this.IsAutomated, that.IsAutomated; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1421,6 +1439,9 @@ func (this *ReportRuleSummary) EqualVT(that *ReportRuleSummary) bool {
 		}
 	}
 	if this.DisplayOrder != that.DisplayOrder {
+		return false
+	}
+	if p, q := this.ExploreFullLink, that.ExploreFullLink; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3187,6 +3208,18 @@ func (m *Report) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.IsAutomated != nil {
+		i--
+		if *m.IsAutomated {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb8
+	}
 	if m.CanvasId != nil {
 		i -= len(*m.CanvasId)
 		copy(dAtA[i:], *m.CanvasId)
@@ -3423,6 +3456,18 @@ func (m *ReportWithCumulativeSummary) MarshalToSizedBufferVT(dAtA []byte) (int, 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.IsAutomated != nil {
+		i--
+		if *m.IsAutomated {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb0
+	}
 	if m.CanvasId != nil {
 		i -= len(*m.CanvasId)
 		copy(dAtA[i:], *m.CanvasId)
@@ -3630,6 +3675,15 @@ func (m *ReportRuleSummary) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ExploreFullLink != nil {
+		i -= len(*m.ExploreFullLink)
+		copy(dAtA[i:], *m.ExploreFullLink)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.ExploreFullLink)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x92
 	}
 	if m.DisplayOrder != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.DisplayOrder))
@@ -5899,6 +5953,18 @@ func (m *Report) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.IsAutomated != nil {
+		i--
+		if *m.IsAutomated {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb8
+	}
 	if m.CanvasId != nil {
 		i -= len(*m.CanvasId)
 		copy(dAtA[i:], *m.CanvasId)
@@ -6135,6 +6201,18 @@ func (m *ReportWithCumulativeSummary) MarshalToSizedBufferVTStrict(dAtA []byte) 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.IsAutomated != nil {
+		i--
+		if *m.IsAutomated {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb0
+	}
 	if m.CanvasId != nil {
 		i -= len(*m.CanvasId)
 		copy(dAtA[i:], *m.CanvasId)
@@ -6342,6 +6420,15 @@ func (m *ReportRuleSummary) MarshalToSizedBufferVTStrict(dAtA []byte) (int, erro
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ExploreFullLink != nil {
+		i -= len(*m.ExploreFullLink)
+		copy(dAtA[i:], *m.ExploreFullLink)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.ExploreFullLink)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x92
 	}
 	if m.DisplayOrder != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.DisplayOrder))
@@ -8746,6 +8833,9 @@ func (m *Report) SizeVT() (n int) {
 		l = len(*m.CanvasId)
 		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	if m.IsAutomated != nil {
+		n += 3
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -8839,6 +8929,9 @@ func (m *ReportWithCumulativeSummary) SizeVT() (n int) {
 		l = len(*m.CanvasId)
 		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	if m.IsAutomated != nil {
+		n += 3
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -8914,6 +9007,10 @@ func (m *ReportRuleSummary) SizeVT() (n int) {
 	}
 	if m.DisplayOrder != 0 {
 		n += 2 + protohelpers.SizeOfVarint(uint64(m.DisplayOrder))
+	}
+	if m.ExploreFullLink != nil {
+		l = len(*m.ExploreFullLink)
+		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -10529,6 +10626,27 @@ func (m *Report) UnmarshalVT(dAtA []byte) error {
 			s := string(dAtA[iNdEx:postIndex])
 			m.CanvasId = &s
 			iNdEx = postIndex
+		case 23:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsAutomated", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.IsAutomated = &b
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -11239,6 +11357,27 @@ func (m *ReportWithCumulativeSummary) UnmarshalVT(dAtA []byte) error {
 			s := string(dAtA[iNdEx:postIndex])
 			m.CanvasId = &s
 			iNdEx = postIndex
+		case 22:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsAutomated", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.IsAutomated = &b
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -11776,6 +11915,39 @@ func (m *ReportRuleSummary) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
+		case 18:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExploreFullLink", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			s := string(dAtA[iNdEx:postIndex])
+			m.ExploreFullLink = &s
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -17379,6 +17551,27 @@ func (m *Report) UnmarshalVTUnsafe(dAtA []byte) error {
 			s := stringValue
 			m.CanvasId = &s
 			iNdEx = postIndex
+		case 23:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsAutomated", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.IsAutomated = &b
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -18141,6 +18334,27 @@ func (m *ReportWithCumulativeSummary) UnmarshalVTUnsafe(dAtA []byte) error {
 			s := stringValue
 			m.CanvasId = &s
 			iNdEx = postIndex
+		case 22:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsAutomated", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.IsAutomated = &b
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -18698,6 +18912,43 @@ func (m *ReportRuleSummary) UnmarshalVTUnsafe(dAtA []byte) error {
 					break
 				}
 			}
+		case 18:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExploreFullLink", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			s := stringValue
+			m.ExploreFullLink = &s
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

@@ -9,7 +9,9 @@ use tonic::{Response, Status, transport::Server};
 use super::UpdateRunParams;
 use crate::{
     server::SiftMcpServer,
-    tool::common::test_support::{list_params, list_params_with_fields, structured_field},
+    tool::common::test_support::{
+        list_params, list_params_with_fields, structured, structured_field,
+    },
 };
 
 fn update_run_params(run_id: &str) -> UpdateRunParams {
@@ -280,5 +282,37 @@ async fn list_runs_can_project_the_injected_url() {
     assert!(
         runs[0].get("runId").is_none(),
         "runId should be projected out"
+    );
+}
+
+#[tokio::test]
+async fn list_runs_projects_asset_ids_but_not_filter_only_asset_fields() {
+    let mut run_mock = MockRunServiceImpl::new();
+    run_mock.expect_list_runs().returning(|_| {
+        Ok(Response::new(ListRunsResponse {
+            runs: vec![Run {
+                run_id: "r1".into(),
+                asset_ids: vec!["a1".into(), "a2".into()],
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (server, _h) = server_with_mock(run_mock).await;
+
+    let resp = server
+        .list_runs(list_params_with_fields(
+            "",
+            &["asset_ids", "asset_id", "asset_name"],
+        ))
+        .await
+        .expect("list_runs failed");
+
+    let body = structured(resp);
+    assert_eq!(body["runs"][0]["assetIds"], serde_json::json!(["a1", "a2"]));
+    assert_eq!(
+        body["unmatched_fields"],
+        serde_json::json!(["asset_id", "asset_name"])
     );
 }

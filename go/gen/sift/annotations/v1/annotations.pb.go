@@ -648,7 +648,8 @@ func (*AnnotationLinkedChannel_BitFieldElement) isAnnotationLinkedChannel_Type()
 func (*AnnotationLinkedChannel_CalculatedChannel) isAnnotationLinkedChannel_Type() {}
 
 // The request for a call to `AnnotationService_CreateAnnotation` to create a new annotation.
-// At least 1 asset, tag, or channel must be specified.
+// At least one of `run_id`, `assets`, or `linked_channels` must be specified.
+// Tags are label metadata and do not satisfy this association requirement.
 type CreateAnnotationRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -666,7 +667,8 @@ type CreateAnnotationRequest struct {
 	Assets []string `protobuf:"bytes,5,rep,name=assets,proto3" json:"assets,omitempty"`
 	// The channels to associate with this annotation.
 	LinkedChannels []*AnnotationLinkedChannel `protobuf:"bytes,6,rep,name=linked_channels,json=linkedChannels,proto3" json:"linked_channels,omitempty"`
-	// The names of the tags to associate with this annotation.
+	// The names of the tags to apply as label metadata. Tags do not satisfy the
+	// run/asset/channel association requirement.
 	Tags []string `protobuf:"bytes,7,rep,name=tags,proto3" json:"tags,omitempty"`
 	// The ID of the run that this annotation is associated with.
 	RunId *string `protobuf:"bytes,8,opt,name=run_id,json=runId,proto3,oneof" json:"run_id,omitempty"`
@@ -1170,6 +1172,8 @@ type ListAnnotationsRequest struct {
 	// Available fields to filter by are `annotation_id`, `start_time`, `end_time`,
 	// `created_date`, `modified_date`, `run_id`, `name`, `description`, `state`, `created_by_user_id`, `created_by_rule_condition_version_id`, `rule_id`,
 	// `annotation_type`, `tag_name`, `report_id`, `asset_id`, `asset_name`, `pending`, `assignee`, `campaign_reports`, `metadata`, `archived_date`, and `is_archived`.
+	// Metadata can be used in filters by using `metadata["<key name>"]` as the field name,
+	// e.g. `metadata["severity"] == "high"`. The dot form `metadata.<key name>` is not supported.
 	// For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
 	Filter string `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
 	// This field is only required if your user belongs to multiple organizations.
@@ -1315,7 +1319,8 @@ type UpdateAnnotationRequest struct {
 	// The annotation to update.
 	Annotation *Annotation `protobuf:"bytes,1,opt,name=annotation,proto3" json:"annotation,omitempty"`
 	// The list of fields to be updated. The fields available to be updated are `name`, `description`, `start_time`,
-	// `end_time`, `assigned_to_user_id`, `state`, `tags`, `legend_config`, `linked_channels`, and `metadata`.
+	// `end_time`, `assigned_to_user_id`, `state`, `tags`, `legend_config`, `linked_channels`, `metadata`, and `is_archived`.
+	// Prefer the ArchiveAnnotation, UnarchiveAnnotation, and batch RPCs for changing archive state.
 	// Important Note: if `tags` is specified in the update mask and `annotation.tags` is an empty list then all associated tags on the annotation
 	// will be removed.
 	UpdateMask *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`

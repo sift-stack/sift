@@ -7,6 +7,99 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+## [v0.8.0] - November 3, 2026
+
+### What's New
+
+- MCP `list_*` tools now write `count`, `has_more`, `unmatched_fields`, and
+  any other metadata ahead of the items in their text result, so these keys
+  survive when an agent harness truncates a large result from the end.
+  `structuredContent` is unchanged.
+- `config update` without field flags no longer prints `Nothing to update.`
+  and exits 0. In a terminal, it now opens an interactive editor. Outside a
+  terminal, it exits with status 2. Scripts that call it with no flags now
+  fail.
+- `config update` stops with a pointer to `config create` when the config file
+  is missing. When `--profile` names a profile that does not exist, the
+  interactive editor stops the same way. Field flags still create a new named
+  profile.
+- `config create` now prompts for the profile values in a terminal. It also
+  creates new profiles: `sift-cli --profile staging config create`, or, without
+  `--profile`, it asks for a name when the default profile is already set up.
+  Outside a terminal, it still creates only an empty file.
+- The interactive editor lists named profiles to pick from and shows the
+  current value of each field. Type a new value to change a field, or leave it
+  blank to keep the current value. The API key is not
+  shown while you type it. Before it saves, the editor lists only the changed
+  fields, with the key masked to its last four characters. It writes nothing
+  when no field changed. The confirmation now defaults to yes.
+- `--profile default` now selects the top-level profile in every command. Before,
+  it looked for a `[default]` table, so `sift-cli --profile default ping`
+  failed on a file with only top-level keys. A file that has a `[default]`
+  table still uses that table.
+- `config update` with field flags prints the fields that changed. It reports
+  `No changes` and does not write the file when the values are already set.
+- The artifact MCP tools no longer create structured artifacts, because Sift
+  no longer supports them. `create_artifact` and `update_artifact` no longer
+  accept `payload`, and `create_artifact` rejects `storage_class: "structured"`
+  as an unknown storage class. To store JSON, write it to a `.json` file and
+  pass it as `file_path`.
+
+## [v0.7.6] - October 26, 2026
+
+### What's New
+
+- `sift-cli export run` and `sift-cli export asset` accept `--no-wait`. The
+  command starts the export, prints the job ID and a link to the job on the
+  Sift jobs page, and exits without downloading. Nothing is written to
+  `--output`.
+- `preview_rule`, `list_rule_versions`, `list_calculated_channel_versions`, and
+  `list_report_rule_summaries` now show their results to the agent. Their text
+  content used to hold only the next-step sentence, so clients that show the
+  model only that text, such as Claude Code, never saw the data, and agents
+  retried `preview_rule` expecting results.
+
+
+## [v0.7.5] - October 19, 2026
+
+### What's New
+
+- Building `sift-cli` from source works again. crates.io yanked every `zip`
+  release before 9.0.3, so Cargo could no longer resolve the `zip = "8.2"`
+  requirement. The workspace now depends on `zip` 9 and commits its
+  `Cargo.lock`, so a build from a release tag uses the versions pinned there.
+- `get_data` no longer matches archived runs by `run_name`. Before, an archived
+  run with the same name as an active one could supply the data in its place.
+  A name that matches more than one active run now fails and lists the
+  candidate run ids.
+- `get_data` accepts `run_id` in place of `run_name`. It is the only way to
+  fetch an archived run. The result names the run in `run_id` and sets
+  `run_archived` when the run is archived.
+- The artifact tools now return the artifact's Sift web link. `list_artifacts`
+  rows carry `url`, and `list_artifact_versions`, `download_artifact`,
+  `create_artifact`, `update_artifact`, `archive_artifact`, and
+  `unarchive_artifact` return `artifact_url`. `download_artifact` links the
+  requested version when `artifact_version_id` is set. Agents link the artifact
+  page instead of the Sift home page.
+- A name with a stray `[` or `]`, such as `results v2].csv`, no longer breaks
+  the Markdown link a tool tells the agent to show.
+- The Sift skill now says to present a URL a tool returns as a Markdown link
+  named for the item, the same as the tools say. It used to ask for plain
+  text, so agents got conflicting instructions.
+
+## [v0.7.4] - October 14, 2026
+
+### What's New
+
+- `create_artifact` and the Sift skill now say which link relation to use:
+  `source` for the run or asset an artifact was built from, and `derived_from`
+  only for another artifact. Agents no longer send `derived_from` for a run and
+  get the call rejected.
+- `create_report_template` and `update_report_template` now return a
+  `report_template_url` link to the template, and `list_report_templates` adds a
+  `url` to each template. Agents no longer link a new template to a report's
+  page.
+
 ## [v0.7.3] - October 7, 2026
 
 ### What's New

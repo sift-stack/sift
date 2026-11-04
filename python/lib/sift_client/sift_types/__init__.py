@@ -144,6 +144,17 @@ from sift_client.sift_types.annotation import (
     AnnotationUpdate,
     PhaseCreate,
 )
+from sift_client.sift_types.artifact import (
+    Artifact,
+    ArtifactCreate,
+    ArtifactCreatedVia,
+    ArtifactEntityType,
+    ArtifactLink,
+    ArtifactLinkRelation,
+    ArtifactType,
+    ArtifactUpdate,
+    ArtifactVersion,
+)
 from sift_client.sift_types.asset import Asset, AssetUpdate
 from sift_client.sift_types.calculated_channel import (
     CalculatedChannel,
@@ -282,6 +293,15 @@ __all__ = [
     "AnnotationState",
     "AnnotationType",
     "AnnotationUpdate",
+    "Artifact",
+    "ArtifactCreate",
+    "ArtifactCreatedVia",
+    "ArtifactEntityType",
+    "ArtifactLink",
+    "ArtifactLinkRelation",
+    "ArtifactType",
+    "ArtifactUpdate",
+    "ArtifactVersion",
     "Asset",
     "AssetUpdate",
     "CalculatedChannel",

@@ -1,7 +1,6 @@
 use rmcp::{
     ErrorData,
     handler::server::wrapper::Parameters,
-    model::{CallToolResult, ContentBlock},
     schemars::{self, JsonSchema},
     tool, tool_router,
 };
@@ -12,6 +11,7 @@ use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::{common::cel_escape, rule_evaluation::PreviewRuleSource},
+    tool::common::read_result,
 };
 
 #[cfg(test)]
@@ -126,13 +126,14 @@ impl SiftMcpServer {
             result.created_annotation_count,
         );
 
-        let mut result = CallToolResult::structured(serde_json::json!({
-            "created_annotation_count": result.created_annotation_count,
-            "dry_run_annotations": result.dry_run_annotations,
-            "next_step": next_step,
-        }));
-        result.content = vec![ContentBlock::text(next_step)];
-        Ok(result)
+        Ok(read_result(
+            serde_json::json!({
+                "created_annotation_count": result.created_annotation_count,
+                "dry_run_annotations": result.dry_run_annotations,
+                "next_step": next_step,
+            }),
+            next_step,
+        ))
     }
 }
 

@@ -152,12 +152,7 @@ impl SiftMcpServer {
 
         let channels = to_values(&page.items)?;
 
-        Ok(CallToolResult::structured(list_body(
-            "calculated_channels",
-            channels,
-            fields,
-            page.has_more,
-        )))
+        Ok(list_body("calculated_channels", channels, fields, page.has_more).into_result(None))
     }
 
     #[tool(
@@ -250,11 +245,9 @@ impl SiftMcpServer {
             fields,
             page.has_more,
         );
-        body["next_step"] = serde_json::Value::String(next_step.clone());
+        body.insert("next_step", serde_json::Value::String(next_step.clone()));
 
-        let mut result = CallToolResult::structured(body);
-        result.content = vec![ContentBlock::text(next_step)];
-        Ok(result)
+        Ok(body.into_result(Some(next_step)))
     }
 
     #[tool(

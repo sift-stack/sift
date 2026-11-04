@@ -1,9 +1,9 @@
-use super::builder::RunForm;
+use super::{builder::RunForm, retry::control_plane_retry};
 use sift_connect::SiftChannel;
 use sift_error::prelude::*;
 use sift_rs::{
     metadata::v1::metadata_value::Value,
-    retry::{RetryConfig, RetryExt},
+    retry::RateLimitPolicy,
     runs::v2::Run,
     wrappers::runs::{RunServiceWrapper, new_run_service},
 };
@@ -43,9 +43,13 @@ pub enum RunSelector {
 }
 
 /// Retrieves a run by run ID.
-pub(super) async fn load_run_by_id(grpc_channel: SiftChannel, run_id: &str) -> Result<Run> {
+pub(super) async fn load_run_by_id(
+    grpc_channel: SiftChannel,
+    run_id: &str,
+    rate_limit_policy: RateLimitPolicy,
+) -> Result<Run> {
     let run_service_wrapper = new_run_service(grpc_channel);
-    let retrying_run = run_service_wrapper.retrying(RetryConfig::default());
+    let retrying_run = control_plane_retry(run_service_wrapper, rate_limit_policy);
     let run = retrying_run
         .call(|mut w| async move { w.try_get_run_by_id(run_id).await })
         .await?;
@@ -62,12 +66,16 @@ pub(super) async fn load_run_by_id(grpc_channel: SiftChannel, run_id: &str) -> R
 
 /// Retrieves a run or creates a run. If the run exists, this method will also update the run
 /// if the `run_form` has changed since the last time it was used.
-pub(super) async fn load_run_by_form(grpc_channel: SiftChannel, run_form: RunForm) -> Result<Run> {
+pub(super) async fn load_run_by_form(
+    grpc_channel: SiftChannel,
+    run_form: RunForm,
+    rate_limit_policy: RateLimitPolicy,
+) -> Result<Run> {
     #[cfg(feature = "tracing")]
     tracing::info_span!("load_run_by_form");
 
     let run_service_wrapper = new_run_service(grpc_channel);
-    let retrying_run = run_service_wrapper.retrying(RetryConfig::default());
+    let retrying_run = control_plane_retry(run_service_wrapper, rate_limit_policy);
 
     let RunForm {
         name,
@@ -230,6 +238,7 @@ pub(super) async fn load_run_by_form(grpc_channel: SiftChannel, run_form: RunFor
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test::rate_limited_status;
     use hyper_util::rt::TokioIo;
     use sift_connect::{SiftChannel, grpc::interceptor::AuthInterceptor};
     use sift_rs::{
@@ -241,7 +250,9 @@ mod tests {
             ListRunsRequest, StopRunRequest, StopRunResponse, UpdateRunRequest,
         },
     };
+    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::{Arc, Mutex};
+    use std::time::{Duration, Instant};
     use tokio::task::JoinHandle;
     use tonic::{
         Request, Response, Status,
@@ -253,6 +264,9 @@ mod tests {
     struct MockRunService {
         runs: Arc<Mutex<HashMap<String, Run>>>,    // client_key -> Run
         update_calls: Arc<Mutex<Vec<UpdateCall>>>, // Track update calls
+        // Rate limit delay and remaining `create_run` calls that should be rate limited.
+        create_rate_limit: Arc<Mutex<Option<(Duration, usize)>>>,
+        create_calls: Arc<AtomicUsize>,
     }
 
     #[derive(Debug, Clone)]
@@ -268,7 +282,18 @@ mod tests {
             MockRunService {
                 runs: Arc::new(Mutex::new(HashMap::new())),
                 update_calls: Arc::new(Mutex::new(Vec::new())),
+                create_rate_limit: Arc::new(Mutex::new(None)),
+                create_calls: Arc::new(AtomicUsize::new(0)),
             }
+        }
+
+        /// Rate limits the next `failures` calls to `create_run` with `retry_delay`.
+        fn rate_limit_creates(&self, retry_delay: Duration, failures: usize) {
+            *self.create_rate_limit.lock().unwrap() = Some((retry_delay, failures));
+        }
+
+        fn create_call_count(&self) -> usize {
+            self.create_calls.load(Ordering::SeqCst)
         }
 
         fn add_existing_run(&self, client_key: &str, mut run: Run) {
@@ -290,6 +315,14 @@ mod tests {
             &self,
             request: Request<CreateRunRequest>,
         ) -> std::result::Result<Response<sift_rs::runs::v2::CreateRunResponse>, Status> {
+            self.create_calls.fetch_add(1, Ordering::SeqCst);
+            if let Some((retry_delay, remaining)) = self.create_rate_limit.lock().unwrap().as_mut()
+                && *remaining > 0
+            {
+                *remaining -= 1;
+                return Err(rate_limited_status(*retry_delay));
+            }
+
             let req = request.into_inner();
             let run_id = format!("run_id_{}", req.name.replace(' ', "_"));
             let client_key = req.client_key.clone().unwrap_or_default();
@@ -507,7 +540,7 @@ mod tests {
             metadata: None,
         };
 
-        let result = load_run_by_form(channel, run_form).await;
+        let result = load_run_by_form(channel, run_form, RateLimitPolicy::default()).await;
         assert!(result.is_ok());
 
         let updated_run = result.unwrap();
@@ -557,7 +590,7 @@ mod tests {
             ]),
         };
 
-        let result = load_run_by_form(channel, run_form).await;
+        let result = load_run_by_form(channel, run_form, RateLimitPolicy::default()).await;
         assert!(result.is_ok());
 
         let updated_run = result.unwrap();
@@ -603,7 +636,7 @@ mod tests {
             metadata: None,
         };
 
-        let result = load_run_by_form(channel, run_form).await;
+        let result = load_run_by_form(channel, run_form, RateLimitPolicy::default()).await;
         assert!(result.is_ok());
 
         // Verify NO update_run was called since nothing changed
@@ -646,7 +679,7 @@ mod tests {
             ]), // Same metadata
         };
 
-        let result = load_run_by_form(channel, run_form).await;
+        let result = load_run_by_form(channel, run_form, RateLimitPolicy::default()).await;
         assert!(result.is_ok());
 
         // Verify NO update_run was called since nothing changed
@@ -687,7 +720,7 @@ mod tests {
             metadata: None,
         };
 
-        let result = load_run_by_form(channel, run_form).await;
+        let result = load_run_by_form(channel, run_form, RateLimitPolicy::default()).await;
         assert!(result.is_ok());
 
         let updated_run = result.unwrap();
@@ -742,7 +775,7 @@ mod tests {
             ]),
         };
 
-        let result = load_run_by_form(channel, run_form).await;
+        let result = load_run_by_form(channel, run_form, RateLimitPolicy::default()).await;
         assert!(result.is_ok());
 
         let updated_run = result.unwrap();
@@ -809,7 +842,7 @@ mod tests {
             ]),
         };
 
-        let result = load_run_by_form(channel, run_form).await;
+        let result = load_run_by_form(channel, run_form, RateLimitPolicy::default()).await;
         assert!(result.is_ok());
 
         let updated_run = result.unwrap();
@@ -875,7 +908,7 @@ mod tests {
             ]),
         };
 
-        let result = load_run_by_form(channel, run_form).await;
+        let result = load_run_by_form(channel, run_form, RateLimitPolicy::default()).await;
         assert!(result.is_ok());
 
         let updated_run = result.unwrap();
@@ -897,6 +930,59 @@ mod tests {
                 .update_mask
                 .contains(&"description".to_string())
         );
+
+        server.abort();
+    }
+
+    fn new_run_form(client_key: &str) -> RunForm {
+        RunForm {
+            name: "Rate Limited Run".to_string(),
+            client_key: client_key.to_string(),
+            description: None,
+            tags: None,
+            metadata: None,
+        }
+    }
+
+    // Creates were never retried before rate-limit handling. A rate-limited create is safe to
+    // retry because Sift rejects it before processing.
+    #[tokio::test]
+    async fn test_load_run_by_form_rate_limited_create_is_retried() {
+        let delay = Duration::from_millis(50);
+        let mock_service = MockRunService::new();
+        mock_service.rate_limit_creates(delay, 1);
+        let (channel, server) = start_mock_run_service(mock_service.clone()).await;
+
+        let start = Instant::now();
+        let run = load_run_by_form(channel, new_run_form("new_key"), RateLimitPolicy::retry())
+            .await
+            .unwrap();
+
+        assert!(start.elapsed() >= delay);
+        assert_eq!(run.client_key.as_deref(), Some("new_key"));
+        assert_eq!(mock_service.create_call_count(), 2);
+
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn test_load_run_by_form_rate_limited_create_returns_retry_delay() {
+        let delay = Duration::from_secs(3);
+        let mock_service = MockRunService::new();
+        mock_service.rate_limit_creates(delay, usize::MAX);
+        let (channel, server) = start_mock_run_service(mock_service.clone()).await;
+
+        let err = load_run_by_form(
+            channel,
+            new_run_form("new_key"),
+            RateLimitPolicy::ReturnError,
+        )
+        .await
+        .unwrap_err();
+
+        assert!(err.is_rate_limited());
+        assert_eq!(err.retry_delay(), Some(delay));
+        assert_eq!(mock_service.create_call_count(), 1);
 
         server.abort();
     }

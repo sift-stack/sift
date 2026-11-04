@@ -18,15 +18,15 @@ runs:
   using: composite
   steps:
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: astral-sh/setup-uv@v6
       with:
-        python-version: '3.11'
+        enable-cache: true
 
     - name: Install docs dependencies
       shell: bash
       run: |
         cd python
-        pip install -e .[docs-build]
+        uv sync --frozen --python 3.11 --extra docs-build
 
     - name: Fetch gh-pages branch
       shell: bash
@@ -64,4 +64,4 @@ runs:
         MIKE_ARGS+=(--push --update-aliases --prop-set "hidden=$HIDDEN")
 
         echo "Running: mike deploy ${MIKE_ARGS[*]}"
-        mike deploy "${MIKE_ARGS[@]}"
+        uv run --no-sync mike deploy "${MIKE_ARGS[@]}"

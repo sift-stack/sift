@@ -855,6 +855,8 @@ impl serde::Serialize for EntityType {
             Self::CanvasVersion => "ENTITY_TYPE_CANVAS_VERSION",
             Self::CanvasCellExecutionAttachment => "ENTITY_TYPE_CANVAS_CELL_EXECUTION_ATTACHMENT",
             Self::CanvasCellExecutionOutput => "ENTITY_TYPE_CANVAS_CELL_EXECUTION_OUTPUT",
+            Self::ArtifactVersion => "ENTITY_TYPE_ARTIFACT_VERSION",
+            Self::ChatConversation => "ENTITY_TYPE_CHAT_CONVERSATION",
         };
         serializer.serialize_str(variant)
     }
@@ -876,6 +878,8 @@ impl<'de> serde::Deserialize<'de> for EntityType {
             "ENTITY_TYPE_CANVAS_VERSION",
             "ENTITY_TYPE_CANVAS_CELL_EXECUTION_ATTACHMENT",
             "ENTITY_TYPE_CANVAS_CELL_EXECUTION_OUTPUT",
+            "ENTITY_TYPE_ARTIFACT_VERSION",
+            "ENTITY_TYPE_CHAT_CONVERSATION",
         ];
 
         struct GeneratedVisitor;
@@ -926,6 +930,8 @@ impl<'de> serde::Deserialize<'de> for EntityType {
                     "ENTITY_TYPE_CANVAS_VERSION" => Ok(EntityType::CanvasVersion),
                     "ENTITY_TYPE_CANVAS_CELL_EXECUTION_ATTACHMENT" => Ok(EntityType::CanvasCellExecutionAttachment),
                     "ENTITY_TYPE_CANVAS_CELL_EXECUTION_OUTPUT" => Ok(EntityType::CanvasCellExecutionOutput),
+                    "ENTITY_TYPE_ARTIFACT_VERSION" => Ok(EntityType::ArtifactVersion),
+                    "ENTITY_TYPE_CHAT_CONVERSATION" => Ok(EntityType::ChatConversation),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }

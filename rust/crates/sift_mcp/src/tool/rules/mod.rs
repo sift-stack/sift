@@ -12,7 +12,7 @@ use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::rules::RuleUpdate,
-    tool::common::{ListParams, list_body, url_clause, with_urls},
+    tool::common::{ListParams, list_body, read_result, url_clause, with_urls},
 };
 
 #[cfg(test)]
@@ -78,7 +78,7 @@ impl SiftMcpServer {
                 `rule_id`, `client_key`, `name`, `description`, `is_external`, `asset_id`, `tag_id`,
                 `created_date`, `created_by_user_id`, `metadata`, `modified_date`, `modified_by_user_id`,
                 `deleted_date`, `is_archived`, `archived_date`, `is_live_evaluation_enabled`.
-                Reference metadata entries as `metadata.{key}` (e.g. `metadata.severity == \"high\"`).
+                Reference metadata entries as `metadata[\"<key>\"]` (e.g. `metadata[\"severity\"] == \"high\"`).
                 When filtering or searching, use `name.matches(\"(?i)avionics\")`, not `==`. Use `==` only for an
                 exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
                 `contains(\"Avionics\")` silently misses `avionics-power-limit`.
@@ -130,12 +130,7 @@ impl SiftMcpServer {
             self.url_service.build_rule_url(&r.rule_id).ok()
         })?;
 
-        Ok(CallToolResult::structured(list_body(
-            "rules",
-            rules,
-            fields,
-            page.has_more,
-        )))
+        Ok(list_body("rules", rules, fields, page.has_more).into_result(None))
     }
 
     #[tool(
@@ -196,13 +191,14 @@ impl SiftMcpServer {
             url_clause("rule", None, rule_url.as_deref()),
         );
 
-        let mut result = CallToolResult::structured(serde_json::json!({
-            "rule_versions": rule_versions,
-            "rule_url": rule_url,
-            "next_step": next_step,
-        }));
-        result.content = vec![ContentBlock::text(next_step)];
-        Ok(result)
+        Ok(read_result(
+            serde_json::json!({
+                "rule_versions": rule_versions,
+                "rule_url": rule_url,
+                "next_step": next_step,
+            }),
+            next_step,
+        ))
     }
 
     #[tool(

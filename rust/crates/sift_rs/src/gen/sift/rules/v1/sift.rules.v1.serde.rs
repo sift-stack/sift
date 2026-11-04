@@ -1924,7 +1924,7 @@ impl<'de> serde::Deserialize<'de> for BatchUpdateRulesResponse {
                             if rules_created_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("rulesCreatedCount"));
                             }
-                            rules_created_count__ = 
+                            rules_created_count__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1932,7 +1932,7 @@ impl<'de> serde::Deserialize<'de> for BatchUpdateRulesResponse {
                             if rules_updated_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("rulesUpdatedCount"));
                             }
-                            rules_updated_count__ = 
+                            rules_updated_count__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -3350,7 +3350,7 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesResponse {
                             if created_annotation_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("createdAnnotationCount"));
                             }
-                            created_annotation_count__ = 
+                            created_annotation_count__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -4292,7 +4292,7 @@ impl<'de> serde::Deserialize<'de> for JsonRulesResponse {
                             if total_rules_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("totalRulesCount"));
                             }
-                            total_rules_count__ = 
+                            total_rules_count__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -4300,7 +4300,7 @@ impl<'de> serde::Deserialize<'de> for JsonRulesResponse {
                             if rules_created_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("rulesCreatedCount"));
                             }
-                            rules_created_count__ = 
+                            rules_created_count__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -4308,7 +4308,7 @@ impl<'de> serde::Deserialize<'de> for JsonRulesResponse {
                             if rules_updated_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("rulesUpdatedCount"));
                             }
-                            rules_updated_count__ = 
+                            rules_updated_count__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -4316,7 +4316,7 @@ impl<'de> serde::Deserialize<'de> for JsonRulesResponse {
                             if rules_deleted_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("rulesDeletedCount"));
                             }
-                            rules_deleted_count__ = 
+                            rules_deleted_count__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -4530,7 +4530,7 @@ impl<'de> serde::Deserialize<'de> for ListRuleVersionsRequest {
                             if page_size__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("pageSize"));
                             }
-                            page_size__ = 
+                            page_size__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -4781,7 +4781,7 @@ impl<'de> serde::Deserialize<'de> for ListRulesRequest {
                             if page_size__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("pageSize"));
                             }
-                            page_size__ = 
+                            page_size__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -6353,6 +6353,9 @@ impl serde::Serialize for RuleVersion {
         if self.is_archived {
             len += 1;
         }
+        if self.saved_exploration_id.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.rules.v1.RuleVersion", len)?;
         if !self.rule_id.is_empty() {
             struct_ser.serialize_field("ruleId", &self.rule_id)?;
@@ -6384,6 +6387,9 @@ impl serde::Serialize for RuleVersion {
         if self.is_archived {
             struct_ser.serialize_field("isArchived", &self.is_archived)?;
         }
+        if let Some(v) = self.saved_exploration_id.as_ref() {
+            struct_ser.serialize_field("savedExplorationId", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -6413,6 +6419,8 @@ impl<'de> serde::Deserialize<'de> for RuleVersion {
             "archivedDate",
             "is_archived",
             "isArchived",
+            "saved_exploration_id",
+            "savedExplorationId",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -6427,6 +6435,7 @@ impl<'de> serde::Deserialize<'de> for RuleVersion {
             DeletedDate,
             ArchivedDate,
             IsArchived,
+            SavedExplorationId,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -6458,6 +6467,7 @@ impl<'de> serde::Deserialize<'de> for RuleVersion {
                             "deletedDate" | "deleted_date" => Ok(GeneratedField::DeletedDate),
                             "archivedDate" | "archived_date" => Ok(GeneratedField::ArchivedDate),
                             "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
+                            "savedExplorationId" | "saved_exploration_id" => Ok(GeneratedField::SavedExplorationId),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -6487,6 +6497,7 @@ impl<'de> serde::Deserialize<'de> for RuleVersion {
                 let mut deleted_date__ = None;
                 let mut archived_date__ = None;
                 let mut is_archived__ = None;
+                let mut saved_exploration_id__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RuleId => {
@@ -6549,6 +6560,12 @@ impl<'de> serde::Deserialize<'de> for RuleVersion {
                             }
                             is_archived__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::SavedExplorationId => {
+                            if saved_exploration_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("savedExplorationId"));
+                            }
+                            saved_exploration_id__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(RuleVersion {
@@ -6562,6 +6579,7 @@ impl<'de> serde::Deserialize<'de> for RuleVersion {
                     deleted_date: deleted_date__,
                     archived_date: archived_date__,
                     is_archived: is_archived__.unwrap_or_default(),
+                    saved_exploration_id: saved_exploration_id__,
                 })
             }
         }
@@ -6830,7 +6848,7 @@ impl<'de> serde::Deserialize<'de> for SearchRulesRequest {
                             if limit__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("limit"));
                             }
-                            limit__ = 
+                            limit__ =
                                 map_.next_value::<::std::option::Option<::pbjson::private::NumberDeserialize<_>>>()?.map(|x| x.0)
                             ;
                         }
@@ -6838,7 +6856,7 @@ impl<'de> serde::Deserialize<'de> for SearchRulesRequest {
                             if offset__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("offset"));
                             }
-                            offset__ = 
+                            offset__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -7005,7 +7023,7 @@ impl<'de> serde::Deserialize<'de> for SearchRulesResponse {
                             if count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("count"));
                             }
-                            count__ = 
+                            count__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -8163,7 +8181,7 @@ impl<'de> serde::Deserialize<'de> for UpdateHumanFriendlyRulesResponse {
                             if rules_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("rulesCount"));
                             }
-                            rules_count__ = 
+                            rules_count__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -8420,6 +8438,9 @@ impl serde::Serialize for UpdateRuleRequest {
         if self.is_live_evaluation_enabled.is_some() {
             len += 1;
         }
+        if self.saved_exploration_id.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.rules.v1.UpdateRuleRequest", len)?;
         if let Some(v) = self.rule_id.as_ref() {
             struct_ser.serialize_field("ruleId", v)?;
@@ -8466,6 +8487,9 @@ impl serde::Serialize for UpdateRuleRequest {
         if let Some(v) = self.is_live_evaluation_enabled.as_ref() {
             struct_ser.serialize_field("isLiveEvaluationEnabled", v)?;
         }
+        if let Some(v) = self.saved_exploration_id.as_ref() {
+            struct_ser.serialize_field("savedExplorationId", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -8502,6 +8526,8 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
             "isArchived",
             "is_live_evaluation_enabled",
             "isLiveEvaluationEnabled",
+            "saved_exploration_id",
+            "savedExplorationId",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -8521,6 +8547,7 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
             Metadata,
             IsArchived,
             IsLiveEvaluationEnabled,
+            SavedExplorationId,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -8557,6 +8584,7 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
                             "metadata" => Ok(GeneratedField::Metadata),
                             "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
                             "isLiveEvaluationEnabled" | "is_live_evaluation_enabled" => Ok(GeneratedField::IsLiveEvaluationEnabled),
+                            "savedExplorationId" | "saved_exploration_id" => Ok(GeneratedField::SavedExplorationId),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -8591,6 +8619,7 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
                 let mut metadata__ = None;
                 let mut is_archived__ = None;
                 let mut is_live_evaluation_enabled__ = None;
+                let mut saved_exploration_id__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RuleId => {
@@ -8683,6 +8712,12 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
                             }
                             is_live_evaluation_enabled__ = map_.next_value()?;
                         }
+                        GeneratedField::SavedExplorationId => {
+                            if saved_exploration_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("savedExplorationId"));
+                            }
+                            saved_exploration_id__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(UpdateRuleRequest {
@@ -8701,6 +8736,7 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
                     metadata: metadata__.unwrap_or_default(),
                     is_archived: is_archived__.unwrap_or_default(),
                     is_live_evaluation_enabled: is_live_evaluation_enabled__,
+                    saved_exploration_id: saved_exploration_id__,
                 })
             }
         }

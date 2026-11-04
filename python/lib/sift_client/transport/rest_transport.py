@@ -31,7 +31,7 @@ class RestConfig:
     def __init__(
         self,
         base_url: str,
-        api_key: str,
+        api_key: str | None = None,
         use_ssl: bool = True,
         cert_via_openssl: bool = False,
         retry: Retry = _DEFAULT_REST_RETRY,
@@ -41,7 +41,7 @@ class RestConfig:
 
         Args:
             base_url: The base URL of the API.
-            api_key: The API key for authentication.
+            api_key: The API key for authentication. None omits the Authorization header.
             use_ssl: Whether to use HTTPS.
             cert_via_openssl: Whether to use OpenSSL for SSL/TLS.
             retry: The retry configuration for requests.

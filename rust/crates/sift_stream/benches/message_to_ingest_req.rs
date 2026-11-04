@@ -174,7 +174,7 @@ fn benchmark_message_to_ingest_req_varying_sizes(c: &mut Criterion) {
         let descriptor = FlowDescriptor::try_from((INGESTION_CONFIG_ID, flow)).unwrap();
 
         // Test direct scenario
-        group.bench_function(&format!("direct_{num_channels}_channels"), |b| {
+        group.bench_function(format!("direct_{num_channels}_channels"), |b| {
             b.iter(|| {
                 black_box(message_to_ingest_req_direct(
                     &message_ordered,
@@ -184,12 +184,12 @@ fn benchmark_message_to_ingest_req_varying_sizes(c: &mut Criterion) {
             })
         });
 
-        group.bench_function(&format!("ordered_{num_channels}_channels"), |b| {
+        group.bench_function(format!("ordered_{num_channels}_channels"), |b| {
             b.iter(|| black_box(message_to_ingest_req(&message_ordered, RUN, &descriptor)))
         });
 
         // Test randomized scenario
-        group.bench_function(&format!("randomized_{num_channels}_channels"), |b| {
+        group.bench_function(format!("randomized_{num_channels}_channels"), |b| {
             b.iter(|| black_box(message_to_ingest_req(&message_randomized, RUN, &descriptor)))
         });
     }

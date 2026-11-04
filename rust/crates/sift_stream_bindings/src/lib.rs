@@ -192,6 +192,7 @@ fn is_shut_down() -> bool {
 // https://github.com/PyO3/pyo3/issues/759
 #[pymodule]
 fn sift_stream_bindings(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_class::<error::RateLimitedErrorPy>()?;
     m.add_class::<sift::metadata::MetadataPy>()?;
     m.add_class::<sift::metadata::MetadataValuePy>()?;
     m.add_class::<metrics::SiftStreamMetricsSnapshotPy>()?;
@@ -223,6 +224,7 @@ fn sift_stream_bindings(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<stream::channel::ValuePy>()?;
     m.add_class::<stream::retry::DiskBackupPolicyPy>()?;
     m.add_class::<stream::retry::DurationPy>()?;
+    m.add_class::<stream::retry::RateLimitPolicyPy>()?;
     m.add_class::<stream::retry::RetryPolicyPy>()?;
     m.add_class::<stream::retry::RollingFilePolicyPy>()?;
     m.add_class::<stream::request::IngestWithConfigDataChannelValuePy>()?;

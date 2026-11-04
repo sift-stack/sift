@@ -15,6 +15,7 @@ use prost::Message;
 use sift_error::prelude::*;
 use sift_rs::SiftChannel;
 use sift_rs::ingestion_configs::v2::FlowConfig;
+use sift_rs::retry::RateLimitPolicy;
 use sift_rs::{
     ingest::v1::IngestWithConfigDataStreamRequest, ingestion_configs::v2::IngestionConfig,
     runs::v2::Run,
@@ -37,6 +38,7 @@ pub struct IngestionConfigEncoder {
     pub(crate) flows_by_name: HashMap<String, FlowDescriptor<String>>,
     pub(crate) ingestion_config: IngestionConfig,
     pub(crate) metrics: Arc<SiftStreamMetrics>,
+    pub(crate) rate_limit_policy: RateLimitPolicy,
 }
 
 impl Encoder for IngestionConfigEncoder {
@@ -61,6 +63,12 @@ impl IngestionConfigEncoder {
     ///
     /// [`ErrorKind::AlreadyExistsError`] from any flow creation is treated as success: a
     /// concurrent SiftStream instance may have won the race to create that flow.
+    ///
+    /// Rate limits are handled according to the
+    /// [`rate_limit_policy`](crate::StreamConfigBuilder::rate_limit_policy) the stream was built
+    /// with. If a flow is still rate limited after that, the flows that succeeded are registered
+    /// and the first [`ErrorKind::RateLimitedError`] is returned so the caller can retry after
+    /// [`Error::retry_delay`]. Other flow creation failures are logged and do not cause an error.
     pub async fn add_new_flows(&mut self, flow_configs: &[FlowConfig]) -> Result<()> {
         let filtered: Vec<&FlowConfig> = flow_configs
             .iter()
@@ -74,8 +82,13 @@ impl IngestionConfigEncoder {
         // Clone to produce owned copies for the spawned tasks; refs are kept for result processing.
         let owned: Vec<FlowConfig> = filtered.iter().map(|&f| f.clone()).collect();
 
-        let results =
-            add_new_flows(self.grpc_channel.clone(), self.ingestion_config_id(), owned).await;
+        let results = add_new_flows(
+            self.grpc_channel.clone(),
+            self.ingestion_config_id(),
+            owned,
+            self.rate_limit_policy,
+        )
+        .await;
 
         let mut add_config = |config: &FlowConfig| -> Result<()> {
             let flow_name = config.name.clone();
@@ -88,6 +101,7 @@ impl IngestionConfigEncoder {
             Ok(())
         };
 
+        let mut rate_limit_error = None;
         for (config, result) in filtered.into_iter().zip(results) {
             match result {
                 Ok(Ok(())) => {
@@ -95,6 +109,11 @@ impl IngestionConfigEncoder {
                 }
                 Ok(Err(e)) if e.kind() == ErrorKind::AlreadyExistsError => {
                     add_config(config)?;
+                }
+                Ok(Err(e)) if e.is_rate_limited() => {
+                    #[cfg(feature = "tracing")]
+                    tracing::error!("failed to create flow {}: {e}", config.name);
+                    rate_limit_error.get_or_insert(e);
                 }
                 Ok(Err(e)) => {
                     #[cfg(feature = "tracing")]
@@ -111,7 +130,10 @@ impl IngestionConfigEncoder {
             .loaded_flows
             .add(self.flows_by_name.len() as u64);
 
-        Ok(())
+        match rate_limit_error {
+            Some(e) => Err(e).context("SiftStream::add_new_flows was rate limited"),
+            None => Ok(()),
+        }
     }
 
     /// Get a copy of the current flow descriptors known to SiftStream as a HashMap keyed to the flow name.

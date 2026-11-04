@@ -143,7 +143,7 @@ impl SiftMcpServer {
                 `description`, `state`, `created_by_user_id`, `created_by_rule_condition_version_id`, `rule_id`,
                 `annotation_type`, `tag_name`, `report_id`, `asset_id`, `asset_name`, `pending`, `assignee`,
                 `campaign_reports`, `metadata`, `archived_date`, `is_archived`. Reference metadata entries as
-                `metadata.{key}` (e.g. `metadata.severity == \"high\"`).
+                `metadata[\"<key>\"]` (e.g. `metadata[\"severity\"] == \"high\"`).
                 Compare `state` with `ANNOTATION_STATE_OPEN`, `ANNOTATION_STATE_FLAGGED`, or
                 `ANNOTATION_STATE_RESOLVED`. Compare `annotation_type` with `ANNOTATION_TYPE_DATA_REVIEW` or
                 `ANNOTATION_TYPE_PHASE`. Use these exact string enum values in quoted filter operands.
@@ -198,12 +198,7 @@ impl SiftMcpServer {
             self.url_service.build_annotation_url(&a.annotation_id).ok()
         })?;
 
-        Ok(CallToolResult::structured(list_body(
-            "annotations",
-            annotations,
-            fields,
-            page.has_more,
-        )))
+        Ok(list_body("annotations", annotations, fields, page.has_more).into_result(None))
     }
 
     #[tool(

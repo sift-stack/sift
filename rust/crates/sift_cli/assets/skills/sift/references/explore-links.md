@@ -1,7 +1,7 @@
 # Sift Explore links
 
-Build the link with `explore_url`, then surface the URL to the user as plain
-text, in full.
+Build the link with `explore_url`, then present it to the user as a Markdown
+link whose text names what the view shows.
 
 Send one source type. Pass `run_ids` when the request names a run and
 `asset_ids` otherwise. Use IDs returned by `list_runs` and `list_assets`; the

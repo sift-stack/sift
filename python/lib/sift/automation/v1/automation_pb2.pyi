@@ -32,15 +32,39 @@ class _AutomationTriggerActionKindEnumTypeWrapper(google.protobuf.internal.enum_
     AUTOMATION_TRIGGER_ACTION_KIND_CANVAS_EVALUATION: _AutomationTriggerActionKind.ValueType  # 1
 
 class AutomationTriggerActionKind(_AutomationTriggerActionKind, metaclass=_AutomationTriggerActionKindEnumTypeWrapper):
-    """AutomationTriggerActionKind is what an automation trigger does when it fires.
-    v1 supports `AUTOMATION_TRIGGER_ACTION_KIND_CANVAS_EVALUATION` only; the
-    enum is kept so future dispatch types (webhook, email, ...) can be added
-    without a breaking change.
+    """AutomationTriggerActionKind is what a trigger does when it fires. v1 is
+    CANVAS_EVALUATION only.
     """
 
 AUTOMATION_TRIGGER_ACTION_KIND_UNSPECIFIED: AutomationTriggerActionKind.ValueType  # 0
 AUTOMATION_TRIGGER_ACTION_KIND_CANVAS_EVALUATION: AutomationTriggerActionKind.ValueType  # 1
 global___AutomationTriggerActionKind = AutomationTriggerActionKind
+
+class _AutomationTriggerKind:
+    ValueType = typing.NewType("ValueType", builtins.int)
+    V: typing_extensions.TypeAlias = ValueType
+
+class _AutomationTriggerKindEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_AutomationTriggerKind.ValueType], builtins.type):
+    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+    AUTOMATION_TRIGGER_KIND_UNSPECIFIED: _AutomationTriggerKind.ValueType  # 0
+    AUTOMATION_TRIGGER_KIND_RUN_STOP: _AutomationTriggerKind.ValueType  # 1
+    """Fire after a matching run stops."""
+    AUTOMATION_TRIGGER_KIND_SCHEDULE: _AutomationTriggerKind.ValueType  # 2
+    """Fire on a recurring cron cadence in an IANA timezone.
+    Reserved. Create/Update reject this value.
+    """
+
+class AutomationTriggerKind(_AutomationTriggerKind, metaclass=_AutomationTriggerKindEnumTypeWrapper):
+    """AutomationTriggerKind is the source that causes a trigger to fire."""
+
+AUTOMATION_TRIGGER_KIND_UNSPECIFIED: AutomationTriggerKind.ValueType  # 0
+AUTOMATION_TRIGGER_KIND_RUN_STOP: AutomationTriggerKind.ValueType  # 1
+"""Fire after a matching run stops."""
+AUTOMATION_TRIGGER_KIND_SCHEDULE: AutomationTriggerKind.ValueType  # 2
+"""Fire on a recurring cron cadence in an IANA timezone.
+Reserved. Create/Update reject this value.
+"""
+global___AutomationTriggerKind = AutomationTriggerKind
 
 class _AutomationTriggerRunNameMatchKind:
     ValueType = typing.NewType("ValueType", builtins.int)
@@ -79,8 +103,8 @@ class _AutomationTriggerParamSourceEnumTypeWrapper(google.protobuf.internal.enum
     """Resolves to the triggering run's asset_ids (string array)."""
 
 class AutomationTriggerParamSource(_AutomationTriggerParamSource, metaclass=_AutomationTriggerParamSourceEnumTypeWrapper):
-    """AutomationTriggerParamSource is a wildcard resolved against the triggering
-    run when the match job builds action_params_snapshot.
+    """AutomationTriggerParamSource is a wildcard resolved from the triggering
+    run into action_params_snapshot.
     """
 
 AUTOMATION_TRIGGER_PARAM_SOURCE_UNSPECIFIED: AutomationTriggerParamSource.ValueType  # 0
@@ -104,8 +128,8 @@ class _AutomationTriggeredEventStateEnumTypeWrapper(google.protobuf.internal.enu
     AUTOMATION_TRIGGERED_EVENT_STATE_CANCELLED: _AutomationTriggeredEventState.ValueType  # 5
 
 class AutomationTriggeredEventState(_AutomationTriggeredEventState, metaclass=_AutomationTriggeredEventStateEnumTypeWrapper):
-    """AutomationTriggeredEventState is the lifecycle of a single
-    (automation_trigger, run) match / dispatch attempt.
+    """AutomationTriggeredEventState is the lifecycle of one (trigger, run)
+    dispatch. DISPATCHING and CANCELLED are reserved and unused.
     """
 
 AUTOMATION_TRIGGERED_EVENT_STATE_UNSPECIFIED: AutomationTriggeredEventState.ValueType  # 0
@@ -138,10 +162,9 @@ global___AutomationTriggerRunNameMatch = AutomationTriggerRunNameMatch
 
 @typing.final
 class AutomationTriggerMetadataMatch(google.protobuf.message.Message):
-    """AutomationTriggerMetadataMatch is an equality filter against a run's
-    entity-metadata key/value. Key names are case-sensitive. Values are
-    compared as strings (numbers/booleans are stringified with Go's default
-    formatting). All listed matches are AND'd together.
+    """AutomationTriggerMetadataMatch is an equality filter on run entity-metadata.
+    Keys are case-sensitive; values compare as Go-stringified strings. Listed
+    matches are AND'd.
     """
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
@@ -162,16 +185,10 @@ global___AutomationTriggerMetadataMatch = AutomationTriggerMetadataMatch
 
 @typing.final
 class AutomationTriggerMatchFilter(google.protobuf.message.Message):
-    """AutomationTriggerMatchFilter is the selector evaluated asynchronously
-    after StopRun. StopRun inserts an automation_source_event (RUN_STOP); the
-    automation_worker then pages through the org's enabled, non-archived
-    automation_triggers and enqueues a row for each trigger whose
-    match_filter accepts the run (the trigger's canvas_id identifies which
-    canvas to evaluate later — runs themselves have no canvas association).
-    Empty asset_ids matches any asset; absent name_match matches any name;
-    empty metadata_matches matches any metadata. Dimensions are AND'd.
-    Name matching for STARTS_WITH / ENDS_WITH / CONTAINS is case-insensitive;
-    REGEX uses Go regexp semantics (add (?i) for case-insensitive patterns).
+    """AutomationTriggerMatchFilter selects which stopped runs a trigger matches.
+    Empty asset_ids, absent name_match, and empty metadata_matches each match
+    any value. Dimensions are AND'd. STARTS_WITH / ENDS_WITH / CONTAINS are
+    case-insensitive; REGEX is Go regexp (add (?i) for case-insensitive).
     """
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
@@ -201,8 +218,7 @@ global___AutomationTriggerMatchFilter = AutomationTriggerMatchFilter
 @typing.final
 class AutomationTriggerParamValue(google.protobuf.message.Message):
     """AutomationTriggerParamValue is one canvas param: a JSON literal or a
-    run-scoped wildcard source. Prefer this over ad-hoc `{"source":"..."}`
-    objects in a free-form Struct.
+    run-scoped source.
     """
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
@@ -226,10 +242,9 @@ global___AutomationTriggerParamValue = AutomationTriggerParamValue
 
 @typing.final
 class CanvasEvaluationActionParams(google.protobuf.message.Message):
-    """CanvasEvaluationActionParams is the typed template for
-    AUTOMATION_TRIGGER_ACTION_KIND_CANVAS_EVALUATION. Wildcards in param_json
-    are resolved into automation_triggered_events.action_params_snapshot;
-    the automation worker pass-throughs that snapshot to EvaluateCanvas.
+    """CanvasEvaluationActionParams is the CANVAS_EVALUATION template. Wildcards
+    in param_json resolve into the triggered event's action_params_snapshot
+    for EvaluateCanvas.
     """
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
@@ -269,9 +284,8 @@ global___CanvasEvaluationActionParams = CanvasEvaluationActionParams
 
 @typing.final
 class AutomationTriggerActionParams(google.protobuf.message.Message):
-    """AutomationTriggerActionParams is the public action_params shape. oneof by
-    action kind so future dispatch types (webhook, email, ...) don't fall back
-    to google.protobuf.Struct.
+    """AutomationTriggerActionParams is the public action_params shape, oneof by
+    action kind.
     """
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
@@ -292,6 +306,10 @@ global___AutomationTriggerActionParams = AutomationTriggerActionParams
 
 @typing.final
 class AutomationTrigger(google.protobuf.message.Message):
+    """AutomationTrigger is a Canvas Scheduler rule: match a stopped run or fire
+    on a cron cadence, then dispatch (v1: EvaluateCanvas).
+    """
+
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     AUTOMATION_TRIGGER_ID_FIELD_NUMBER: builtins.int
@@ -311,34 +329,54 @@ class AutomationTrigger(google.protobuf.message.Message):
     MODIFIED_BY_USER_ID_FIELD_NUMBER: builtins.int
     EMAIL_NOTIFICATIONS_ENABLED_FIELD_NUMBER: builtins.int
     NOTIFICATION_RECIPIENT_EMAILS_FIELD_NUMBER: builtins.int
+    REPORT_NAME_TEMPLATE_FIELD_NUMBER: builtins.int
+    TRIGGER_KIND_FIELD_NUMBER: builtins.int
+    CRON_EXPRESSION_FIELD_NUMBER: builtins.int
+    TIMEZONE_FIELD_NUMBER: builtins.int
+    NEXT_FIRE_AT_FIELD_NUMBER: builtins.int
+    LAST_FIRE_AT_FIELD_NUMBER: builtins.int
     automation_trigger_id: builtins.str
     organization_id: builtins.str
     canvas_id: builtins.str
     name: builtins.str
     user_id: builtins.str
-    """Impersonation user materialized at create time. Recheck happens at
-    dispatch when the automation worker impersonates this user for the
-    EvaluateCanvas call.
-    """
+    """User the worker impersonates for EvaluateCanvas."""
     action_kind: global___AutomationTriggerActionKind.ValueType
     is_enabled: builtins.bool
     is_archived: builtins.bool
     created_by_user_id: builtins.str
     modified_by_user_id: builtins.str
     email_notifications_enabled: builtins.bool
-    """When true, dispatches also send an email to notification_recipient_emails.
-    The in-app notification to the trigger's creator is always created.
-    Defaults to true.
+    """If true, also emails `notification_recipient_emails`. The in-app
+    notification to the creator is always created. Defaults to true.
+    """
+    report_name_template: builtins.str
+    """Names the reports this automation publishes, overriding the canvas
+    version's template for its dispatches only. Unset means the canvas
+    version's template names them. When that is unset, the triggering run
+    is used to name the reports.
+
+    Braces mark a placeholder. Supported placeholders are `{canvas_name}`,
+    `{version_number}`, and `{parameter.<param name>}`.
+    """
+    trigger_kind: global___AutomationTriggerKind.ValueType
+    """Unspecified is treated as RUN_STOP."""
+    cron_expression: builtins.str
+    """5-field Vixie cron (minute hour day-of-month month day-of-week).
+    Required for SCHEDULE; unset for RUN_STOP.
+    """
+    timezone: builtins.str
+    """IANA timezone for cron_expression (for example America/Los_Angeles).
+    Required for SCHEDULE; unset for RUN_STOP.
     """
     @property
-    def match_filter(self) -> global___AutomationTriggerMatchFilter: ...
+    def match_filter(self) -> global___AutomationTriggerMatchFilter:
+        """Empty for SCHEDULE triggers (run match does not apply)."""
+
     @property
     def action_params(self) -> global___AutomationTriggerActionParams:
-        """Typed template action params. Must agree with `action_kind` (e.g.
-        CANVAS_EVALUATION requires `action_params.canvas_evaluation`). The match
-        job resolves wildcards into
-        automation_triggered_events.action_params_snapshot; the automation
-        worker pass-throughs that snapshot to EvaluateCanvas.
+        """Must match `action_kind`. Wildcards resolve at match time into the
+        triggered event snapshot.
         """
 
     @property
@@ -349,10 +387,15 @@ class AutomationTrigger(google.protobuf.message.Message):
     def modified_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
     def notification_recipient_emails(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
-        """Addresses emailed when this trigger dispatches. Plain addresses rather
-        than user ids, so reports can reach shared inboxes, ticket bots and
-        distribution lists. Empty falls back to the creator's address.
-        """
+        """Dispatch email recipients. Empty uses the creator's address."""
+
+    @property
+    def next_fire_at(self) -> google.protobuf.timestamp_pb2.Timestamp:
+        """Next UTC fire. Server-computed. Set on SCHEDULE only."""
+
+    @property
+    def last_fire_at(self) -> google.protobuf.timestamp_pb2.Timestamp:
+        """UTC fire most recently enqueued. Unset until the first TickDue."""
 
     def __init__(
         self,
@@ -374,10 +417,27 @@ class AutomationTrigger(google.protobuf.message.Message):
         modified_by_user_id: builtins.str = ...,
         email_notifications_enabled: builtins.bool = ...,
         notification_recipient_emails: collections.abc.Iterable[builtins.str] | None = ...,
+        report_name_template: builtins.str | None = ...,
+        trigger_kind: global___AutomationTriggerKind.ValueType = ...,
+        cron_expression: builtins.str | None = ...,
+        timezone: builtins.str | None = ...,
+        next_fire_at: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        last_fire_at: google.protobuf.timestamp_pb2.Timestamp | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "action_params", b"action_params", "archived_date", b"archived_date", "created_date", b"created_date", "match_filter", b"match_filter", "modified_date", b"modified_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "action_kind", b"action_kind", "action_params", b"action_params", "archived_date", b"archived_date", "automation_trigger_id", b"automation_trigger_id", "canvas_id", b"canvas_id", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "email_notifications_enabled", b"email_notifications_enabled", "is_archived", b"is_archived", "is_enabled", b"is_enabled", "match_filter", b"match_filter", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "notification_recipient_emails", b"notification_recipient_emails", "organization_id", b"organization_id", "user_id", b"user_id"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_cron_expression", b"_cron_expression", "_last_fire_at", b"_last_fire_at", "_next_fire_at", b"_next_fire_at", "_report_name_template", b"_report_name_template", "_timezone", b"_timezone", "action_params", b"action_params", "archived_date", b"archived_date", "created_date", b"created_date", "cron_expression", b"cron_expression", "last_fire_at", b"last_fire_at", "match_filter", b"match_filter", "modified_date", b"modified_date", "next_fire_at", b"next_fire_at", "report_name_template", b"report_name_template", "timezone", b"timezone"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_cron_expression", b"_cron_expression", "_last_fire_at", b"_last_fire_at", "_next_fire_at", b"_next_fire_at", "_report_name_template", b"_report_name_template", "_timezone", b"_timezone", "action_kind", b"action_kind", "action_params", b"action_params", "archived_date", b"archived_date", "automation_trigger_id", b"automation_trigger_id", "canvas_id", b"canvas_id", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "cron_expression", b"cron_expression", "email_notifications_enabled", b"email_notifications_enabled", "is_archived", b"is_archived", "is_enabled", b"is_enabled", "last_fire_at", b"last_fire_at", "match_filter", b"match_filter", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "next_fire_at", b"next_fire_at", "notification_recipient_emails", b"notification_recipient_emails", "organization_id", b"organization_id", "report_name_template", b"report_name_template", "timezone", b"timezone", "trigger_kind", b"trigger_kind", "user_id", b"user_id"]) -> None: ...
+    @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_archived_date", b"_archived_date"]) -> typing.Literal["archived_date"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_cron_expression", b"_cron_expression"]) -> typing.Literal["cron_expression"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_last_fire_at", b"_last_fire_at"]) -> typing.Literal["last_fire_at"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_next_fire_at", b"_next_fire_at"]) -> typing.Literal["next_fire_at"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_report_name_template", b"_report_name_template"]) -> typing.Literal["report_name_template"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_timezone", b"_timezone"]) -> typing.Literal["timezone"] | None: ...
 
 global___AutomationTrigger = AutomationTrigger
 
@@ -431,12 +491,29 @@ class CreateAutomationTriggerRequest(google.protobuf.message.Message):
     IS_ENABLED_FIELD_NUMBER: builtins.int
     EMAIL_NOTIFICATIONS_ENABLED_FIELD_NUMBER: builtins.int
     NOTIFICATION_RECIPIENT_EMAILS_FIELD_NUMBER: builtins.int
+    REPORT_NAME_TEMPLATE_FIELD_NUMBER: builtins.int
+    TRIGGER_KIND_FIELD_NUMBER: builtins.int
+    CRON_EXPRESSION_FIELD_NUMBER: builtins.int
+    TIMEZONE_FIELD_NUMBER: builtins.int
     canvas_id: builtins.str
     name: builtins.str
     action_kind: global___AutomationTriggerActionKind.ValueType
     is_enabled: builtins.bool
     email_notifications_enabled: builtins.bool
     """Defaults to true when unset."""
+    report_name_template: builtins.str
+    """Names the reports this automation publishes, stored on the trigger. Omit
+    it to let the server apply the run-aware default: when the trigger binds a
+    triggering run and the canvas has no template of its own, the new trigger
+    is given one naming its reports after that run. See
+    `sift_internal.canvas.v1.Canvas.report_name_template` for the syntax.
+    """
+    trigger_kind: global___AutomationTriggerKind.ValueType
+    """Unspecified is treated as RUN_STOP."""
+    cron_expression: builtins.str
+    """Required when trigger_kind is SCHEDULE."""
+    timezone: builtins.str
+    """IANA timezone. Required when trigger_kind is SCHEDULE."""
     @property
     def match_filter(self) -> global___AutomationTriggerMatchFilter: ...
     @property
@@ -456,13 +533,23 @@ class CreateAutomationTriggerRequest(google.protobuf.message.Message):
         is_enabled: builtins.bool | None = ...,
         email_notifications_enabled: builtins.bool | None = ...,
         notification_recipient_emails: collections.abc.Iterable[builtins.str] | None = ...,
+        report_name_template: builtins.str | None = ...,
+        trigger_kind: global___AutomationTriggerKind.ValueType = ...,
+        cron_expression: builtins.str | None = ...,
+        timezone: builtins.str | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_email_notifications_enabled", b"_email_notifications_enabled", "_is_enabled", b"_is_enabled", "action_params", b"action_params", "email_notifications_enabled", b"email_notifications_enabled", "is_enabled", b"is_enabled", "match_filter", b"match_filter"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_email_notifications_enabled", b"_email_notifications_enabled", "_is_enabled", b"_is_enabled", "action_kind", b"action_kind", "action_params", b"action_params", "canvas_id", b"canvas_id", "email_notifications_enabled", b"email_notifications_enabled", "is_enabled", b"is_enabled", "match_filter", b"match_filter", "name", b"name", "notification_recipient_emails", b"notification_recipient_emails"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_cron_expression", b"_cron_expression", "_email_notifications_enabled", b"_email_notifications_enabled", "_is_enabled", b"_is_enabled", "_report_name_template", b"_report_name_template", "_timezone", b"_timezone", "action_params", b"action_params", "cron_expression", b"cron_expression", "email_notifications_enabled", b"email_notifications_enabled", "is_enabled", b"is_enabled", "match_filter", b"match_filter", "report_name_template", b"report_name_template", "timezone", b"timezone"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_cron_expression", b"_cron_expression", "_email_notifications_enabled", b"_email_notifications_enabled", "_is_enabled", b"_is_enabled", "_report_name_template", b"_report_name_template", "_timezone", b"_timezone", "action_kind", b"action_kind", "action_params", b"action_params", "canvas_id", b"canvas_id", "cron_expression", b"cron_expression", "email_notifications_enabled", b"email_notifications_enabled", "is_enabled", b"is_enabled", "match_filter", b"match_filter", "name", b"name", "notification_recipient_emails", b"notification_recipient_emails", "report_name_template", b"report_name_template", "timezone", b"timezone", "trigger_kind", b"trigger_kind"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_cron_expression", b"_cron_expression"]) -> typing.Literal["cron_expression"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_email_notifications_enabled", b"_email_notifications_enabled"]) -> typing.Literal["email_notifications_enabled"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_is_enabled", b"_is_enabled"]) -> typing.Literal["is_enabled"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_report_name_template", b"_report_name_template"]) -> typing.Literal["report_name_template"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_timezone", b"_timezone"]) -> typing.Literal["timezone"] | None: ...
 
 global___CreateAutomationTriggerRequest = CreateAutomationTriggerRequest
 
@@ -488,8 +575,8 @@ global___CreateAutomationTriggerResponse = CreateAutomationTriggerResponse
 @typing.final
 class UpdateAutomationTriggerRequest(google.protobuf.message.Message):
     """The request for a call to `AutomationService_UpdateAutomationTrigger`.
-    The trigger's `automation_trigger_id` is used to identify the row; every
-    other field is applied only when named in `update_mask`.
+    Fields apply only when named in `update_mask`. Archive by setting
+    `archived_date` in the mask; unarchive by clearing it.
     """
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
@@ -513,10 +600,7 @@ global___UpdateAutomationTriggerRequest = UpdateAutomationTriggerRequest
 
 @typing.final
 class UpdateAutomationTriggerResponse(google.protobuf.message.Message):
-    """The response of a call to `AutomationService_UpdateAutomationTrigger`.
-    To archive a trigger, include `archived_date` in the mask and set the
-    field. To unarchive, include `archived_date` in the mask and clear it.
-    """
+    """The response of a call to `AutomationService_UpdateAutomationTrigger`."""
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -547,11 +631,12 @@ class ListAutomationTriggersRequest(google.protobuf.message.Message):
     page_token: builtins.str
     filter: builtins.str
     """CEL filter. Available fields: `automation_trigger_id`, `canvas_id`,
-    `name`, `action_kind`, `is_enabled`, `is_archived`, `archived_date`.
+    `name`, `action_kind`, `trigger_kind`, `is_enabled`, `is_archived`,
+    `archived_date`.
     """
     order_by: builtins.str
-    """Order-by. Available fields: `created_date`, `modified_date`, `name`.
-    Default: `created_date desc`.
+    """Order-by. Available fields: `created_date`, `modified_date`, `name`,
+    `next_fire_at`. Default: `created_date desc`.
     """
     def __init__(
         self,
@@ -588,9 +673,7 @@ global___ListAutomationTriggersResponse = ListAutomationTriggersResponse
 
 @typing.final
 class DeleteAutomationTriggerRequest(google.protobuf.message.Message):
-    """The request for a call to `AutomationService_DeleteAutomationTrigger`.
-    Soft-deletes by setting archived_date.
-    """
+    """The request for a call to `AutomationService_DeleteAutomationTrigger`."""
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -619,9 +702,9 @@ global___DeleteAutomationTriggerResponse = DeleteAutomationTriggerResponse
 
 @typing.final
 class AutomationTriggeredEvent(google.protobuf.message.Message):
-    """AutomationTriggeredEvent is one (automation_trigger, run) match. When
-    dispatch succeeds, `canvas_execution_id` points at the resulting
-    canvas_executions row (and published report, when publish=true).
+    """AutomationTriggeredEvent is one (trigger, run) dispatch.
+    `canvas_execution_id` and `report_id` are set when dispatch published
+    an execution or report.
     """
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
@@ -640,16 +723,23 @@ class AutomationTriggeredEvent(google.protobuf.message.Message):
     MODIFIED_DATE_FIELD_NUMBER: builtins.int
     CREATED_BY_USER_ID_FIELD_NUMBER: builtins.int
     MODIFIED_BY_USER_ID_FIELD_NUMBER: builtins.int
+    REPORT_ID_FIELD_NUMBER: builtins.int
+    SCHEDULED_FOR_FIELD_NUMBER: builtins.int
     automation_triggered_event_id: builtins.str
     organization_id: builtins.str
     automation_trigger_id: builtins.str
     run_id: builtins.str
+    """Empty on SCHEDULE fires. Not proto3 optional: that would move field 4 into a oneof."""
     state: global___AutomationTriggeredEventState.ValueType
     canvas_execution_id: builtins.str
     attempt_count: builtins.int
     last_error: builtins.str
     created_by_user_id: builtins.str
     modified_by_user_id: builtins.str
+    report_id: builtins.str
+    """Published report for the dispatched execution. Unset when dispatch did
+    not publish.
+    """
     @property
     def dispatch_after(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -658,6 +748,10 @@ class AutomationTriggeredEvent(google.protobuf.message.Message):
     def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
     def modified_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    @property
+    def scheduled_for(self) -> google.protobuf.timestamp_pb2.Timestamp:
+        """Scheduled fire this row represents. Set on SCHEDULE only."""
+
     def __init__(
         self,
         *,
@@ -675,13 +769,19 @@ class AutomationTriggeredEvent(google.protobuf.message.Message):
         modified_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         created_by_user_id: builtins.str = ...,
         modified_by_user_id: builtins.str = ...,
+        report_id: builtins.str | None = ...,
+        scheduled_for: google.protobuf.timestamp_pb2.Timestamp | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_canvas_execution_id", b"_canvas_execution_id", "_last_error", b"_last_error", "_terminal_date", b"_terminal_date", "canvas_execution_id", b"canvas_execution_id", "created_date", b"created_date", "dispatch_after", b"dispatch_after", "last_error", b"last_error", "modified_date", b"modified_date", "terminal_date", b"terminal_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_canvas_execution_id", b"_canvas_execution_id", "_last_error", b"_last_error", "_terminal_date", b"_terminal_date", "attempt_count", b"attempt_count", "automation_trigger_id", b"automation_trigger_id", "automation_triggered_event_id", b"automation_triggered_event_id", "canvas_execution_id", b"canvas_execution_id", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "dispatch_after", b"dispatch_after", "last_error", b"last_error", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "organization_id", b"organization_id", "run_id", b"run_id", "state", b"state", "terminal_date", b"terminal_date"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_canvas_execution_id", b"_canvas_execution_id", "_last_error", b"_last_error", "_report_id", b"_report_id", "_scheduled_for", b"_scheduled_for", "_terminal_date", b"_terminal_date", "canvas_execution_id", b"canvas_execution_id", "created_date", b"created_date", "dispatch_after", b"dispatch_after", "last_error", b"last_error", "modified_date", b"modified_date", "report_id", b"report_id", "scheduled_for", b"scheduled_for", "terminal_date", b"terminal_date"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_canvas_execution_id", b"_canvas_execution_id", "_last_error", b"_last_error", "_report_id", b"_report_id", "_scheduled_for", b"_scheduled_for", "_terminal_date", b"_terminal_date", "attempt_count", b"attempt_count", "automation_trigger_id", b"automation_trigger_id", "automation_triggered_event_id", b"automation_triggered_event_id", "canvas_execution_id", b"canvas_execution_id", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "dispatch_after", b"dispatch_after", "last_error", b"last_error", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "organization_id", b"organization_id", "report_id", b"report_id", "run_id", b"run_id", "scheduled_for", b"scheduled_for", "state", b"state", "terminal_date", b"terminal_date"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_canvas_execution_id", b"_canvas_execution_id"]) -> typing.Literal["canvas_execution_id"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_last_error", b"_last_error"]) -> typing.Literal["last_error"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_report_id", b"_report_id"]) -> typing.Literal["report_id"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_scheduled_for", b"_scheduled_for"]) -> typing.Literal["scheduled_for"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_terminal_date", b"_terminal_date"]) -> typing.Literal["terminal_date"] | None: ...
 
@@ -701,7 +801,7 @@ class ListAutomationTriggeredEventsRequest(google.protobuf.message.Message):
     page_token: builtins.str
     filter: builtins.str
     """CEL filter. Available fields: `automation_triggered_event_id`,
-    `automation_trigger_id`, `run_id`, `state`.
+    `automation_trigger_id`, `automation_trigger_name`, `run_id`, `run_name`, `state`.
     """
     order_by: builtins.str
     """Order-by. Available fields: `created_date`, `dispatch_after`.

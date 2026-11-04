@@ -11,6 +11,7 @@ use crate::{
 };
 use sift_connect::SiftChannel;
 use sift_error::prelude::*;
+use sift_rs::retry::RateLimitPolicy;
 use std::{sync::Arc, time::Duration};
 use tokio::{sync::broadcast, task::JoinHandle};
 use uuid::Uuid;
@@ -29,6 +30,8 @@ pub(crate) struct LiveOnlyTaskConfig {
     /// [`LiveOnlyBuilder::retry_policy`](crate::LiveOnlyBuilder::retry_policy).
     pub(crate) retry_policy: Option<RetryPolicy>,
     pub(crate) metrics_streaming_interval: Option<Duration>,
+    /// Rate-limit policy for control-plane calls, including the metrics sub-stream's setup.
+    pub(crate) rate_limit_policy: RateLimitPolicy,
     /// Scoped dispatch to wrap spawned futures. `None` disables scoped dispatch.
     #[cfg(feature = "tracing")]
     pub(crate) scoped_dispatch: Option<tracing::Dispatch>,
@@ -60,6 +63,8 @@ pub(crate) struct LiveWithBackupsTaskConfig {
     pub(crate) retry_policy: RetryPolicy,
     pub(crate) recovery_config: RecoveryConfig,
     pub(crate) metrics_streaming_interval: Option<Duration>,
+    /// Rate-limit policy for control-plane calls, including the metrics sub-stream's setup.
+    pub(crate) rate_limit_policy: RateLimitPolicy,
     /// Scoped dispatch to wrap spawned futures. `None` disables scoped dispatch.
     #[cfg(feature = "tracing")]
     pub(crate) scoped_dispatch: Option<tracing::Dispatch>,
@@ -140,6 +145,7 @@ impl TaskBuilder {
                 interval,
                 config.metrics,
                 config.log_rx,
+                config.rate_limit_policy,
             )
             .await?;
 
@@ -281,6 +287,7 @@ impl TaskBuilder {
                 interval,
                 config.metrics.clone(),
                 config.log_rx,
+                config.rate_limit_policy,
             )
             .await?;
 

@@ -254,6 +254,7 @@ enum PrincipalAttributePrincipalType {
   PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_UNSPECIFIED = 0;
   PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER = 1;
   PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_USER_GROUP = 2;
+  PRINCIPAL_ATTRIBUTE_PRINCIPAL_TYPE_SERVICE_ACCOUNT = 3;
 }
 
 message PrincipalAttributeKey {
@@ -345,10 +346,14 @@ message CheckPrincipalAttributeKeyArchiveImpactRequest {
 message CheckPrincipalAttributeKeyArchiveImpactResponse {
   // Non-archived user principal-attribute value rows for this key that will be archived with the key
   // (same scope as ArchivePrincipalAttributeKeys; includes multiple rows per principal for SET_OF_ENUM).
+  // Service account rows are counted separately.
   int64 active_user_principal_attribute_value_count = 1;
   // Non-archived user_group_attribute_values rows for this key. They are not archived by ArchivePrincipalAttributeKeys,
   // but stop contributing to principal.groupAttributes once the key is archived (evaluation joins active keys only).
   int64 active_user_group_principal_attribute_value_count = 2;
+  // Non-archived service account principal-attribute value rows for this key. These live in user_attribute_values
+  // and are archived with the key, same as user rows.
+  int64 active_service_account_principal_attribute_value_count = 3;
 }
 
 // GetPrincipalAttributeKeyRequest is used to retrieve a principal attribute key.

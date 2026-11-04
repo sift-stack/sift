@@ -267,7 +267,7 @@ class FileAttachmentsAPIAsync(ResourceBase):
             The uploaded FileAttachment.
         """
         remote_file_id = await self._upload_client.upload_attachment(
-            path=path,
+            source=path,
             entity_id=entity._id_or_error,
             entity_type=entity._get_entity_type_name(),
             metadata=metadata,

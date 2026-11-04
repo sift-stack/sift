@@ -229,6 +229,35 @@ pub mod artifact_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        pub async fn promote_artifact_version(
+            &mut self,
+            request: impl tonic::IntoRequest<super::PromoteArtifactVersionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::PromoteArtifactVersionResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.artifacts.v1.ArtifactService/PromoteArtifactVersion",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "sift.artifacts.v1.ArtifactService",
+                        "PromoteArtifactVersion",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
         pub async fn link_artifact_to_conversation(
             &mut self,
             request: impl tonic::IntoRequest<super::LinkArtifactToConversationRequest>,
@@ -395,6 +424,13 @@ pub mod artifact_service_server {
             request: tonic::Request<super::ListArtifactVersionsRequest>,
         ) -> std::result::Result<
             tonic::Response<super::ListArtifactVersionsResponse>,
+            tonic::Status,
+        >;
+        async fn promote_artifact_version(
+            &self,
+            request: tonic::Request<super::PromoteArtifactVersionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::PromoteArtifactVersionResponse>,
             tonic::Status,
         >;
         async fn link_artifact_to_conversation(
@@ -719,6 +755,55 @@ pub mod artifact_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListArtifactVersionsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.artifacts.v1.ArtifactService/PromoteArtifactVersion" => {
+                    #[allow(non_camel_case_types)]
+                    struct PromoteArtifactVersionSvc<T: ArtifactService>(pub Arc<T>);
+                    impl<
+                        T: ArtifactService,
+                    > tonic::server::UnaryService<super::PromoteArtifactVersionRequest>
+                    for PromoteArtifactVersionSvc<T> {
+                        type Response = super::PromoteArtifactVersionResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::PromoteArtifactVersionRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ArtifactService>::promote_artifact_version(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = PromoteArtifactVersionSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

@@ -906,7 +906,7 @@ type ListWebhooksRequest struct {
 	Filter string `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
 	// How to order the retrieved webhooks. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
 	// Available field to order_by is `created_date`.
-	// If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+	// If left empty, items are ordered by `created_date` in descending order (newest-first).
 	// For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
 	// Example: "created_date desc"
 	OrderBy string `protobuf:"bytes,4,opt,name=order_by,json=orderBy,proto3" json:"order_by,omitempty"`
@@ -1576,7 +1576,7 @@ type ListWebhookLogsRequest struct {
 	Filter string `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
 	// How to order the retrieved webhook logs. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
 	// Available field to order_by is `created_date`.
-	// If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+	// If left empty, items are ordered by `created_date` in descending order (newest-first).
 	// For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
 	// Example: "created_date desc"
 	OrderBy string `protobuf:"bytes,4,opt,name=order_by,json=orderBy,proto3" json:"order_by,omitempty"`
