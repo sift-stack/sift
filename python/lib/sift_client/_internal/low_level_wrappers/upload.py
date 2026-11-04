@@ -10,6 +10,7 @@ from requests_toolbelt import MultipartEncoder
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
 from sift_client._internal.util.executor import run_sync_function
+from sift_client._internal.util.http import raise_for_status
 from sift_client.transport import WithRestClient
 
 if TYPE_CHECKING:
@@ -88,7 +89,7 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
         Raises:
             ValueError: If the path doesn't point to a regular file, or a file object has no
                 file_name.
-            Exception: If the upload fails.
+            requests.HTTPError: If the upload fails.
         """
         upload: Path | BinaryIO
         if isinstance(source, (str, Path)):
@@ -179,10 +180,7 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
                 },
             )
 
-            if response.status_code != 200:
-                raise Exception(
-                    f"Request failed with status code {response.status_code} ({response.reason})."
-                )
+            raise_for_status(response)
 
             response_data = response.json()
             return response_data.get("remoteFile", {}).get("remoteFileId")

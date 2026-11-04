@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from requests import HTTPError, Request, Response
 
 from sift_client._internal.low_level_wrappers.upload import UploadLowLevelClient
 
@@ -114,3 +115,26 @@ class TestUploadFileObject:
 
         assert remote_file_id == "rf1"
         client._rest_client.post.assert_called_once()
+
+    def test_upload_error_includes_server_body(self):
+        response = Response()
+        response.status_code, response.reason = 400, "Bad Request"
+        response.url = "https://example.test/api/v0/remote-files/upload"
+        response.request = Request("POST", response.url).prepare()
+        response._content = b"invalid entity_type"
+        client = UploadLowLevelClient.__new__(UploadLowLevelClient)
+        client._rest_client = MagicMock()
+        client._rest_client.post.return_value = response
+
+        with pytest.raises(HTTPError, match="Server response: invalid entity_type"):
+            client._upload_file_sync(
+                io.BytesIO(b"x"),
+                "t.csv",
+                "text/csv",
+                None,
+                "v1",
+                "artifact_versions",
+                None,
+                None,
+                None,
+            )

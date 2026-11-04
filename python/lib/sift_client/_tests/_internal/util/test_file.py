@@ -2,7 +2,45 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from sift_client._internal.util.file import download_file, read_url_bytes
+import pytest
+from requests import HTTPError, Request, Response
+
+from sift_client._internal.util.file import download_file, read_url_bytes, upload_file
+
+
+@pytest.fixture
+def upload_request(tmp_path):
+    path = tmp_path / "data.csv"
+    path.write_text("time,value\n11/02/2026,1\n")
+    response = Response()
+    response.status_code = 400
+    response.reason = "Bad Request"
+    response.url = "https://example.test/api/v2/data-imports:upload/import-id"
+    response.request = Request("POST", response.url).prepare()
+    response.encoding = "utf-8"
+    rest_client = MagicMock()
+    rest_client.post.return_value = response
+    return path, rest_client, response
+
+
+class TestUploadFile:
+    def test_http_error_includes_server_body(self, upload_request):
+        path, rest_client, response = upload_request
+        response._content = b"failed to parse row 20: parsing time"
+
+        with pytest.raises(HTTPError, match="Server response: failed to parse row 20"):
+            upload_file(response.url, path, rest_client=rest_client)
+
+    def test_success_returns_parsed_json(self, upload_request):
+        path, rest_client, response = upload_request
+        response.status_code = 200
+        response.reason = "OK"
+        response._content = b'{"jobId":"job-id"}'
+
+        result = upload_file(response.url, path, rest_client=rest_client)
+
+        assert result == {"jobId": "job-id"}
+        rest_client.post.assert_called_once()
 
 
 class _FakeResponse:
