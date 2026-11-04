@@ -21,7 +21,7 @@ use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
 use super::{ChannelInput, DataService, GET_DATA_PAGE_SIZE, TimeRange};
-use crate::service::common::unix_nanos_to_secs_and_subsec_nanos;
+use crate::service::common::{ColumnNameStyle, unix_nanos_to_secs_and_subsec_nanos};
 
 async fn service_with_mock(mock: MockDataServiceImpl) -> (DataService, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
@@ -256,13 +256,13 @@ async fn get_data_merges_disjoint_timestamps_with_nulls() {
         .fields()
         .iter()
         .enumerate()
-        .find(|(_, f)| f.name().starts_with("a "))
+        .find(|(_, f)| f.name() == "a")
         .expect("missing column for channel a");
     let (b_idx, _) = schema
         .fields()
         .iter()
         .enumerate()
-        .find(|(_, f)| f.name().starts_with("b "))
+        .find(|(_, f)| f.name() == "b")
         .expect("missing column for channel b");
 
     let timestamps = batch.column(0).as_primitive::<Int64Type>();
@@ -431,10 +431,7 @@ async fn get_data_identifies_channels_that_returned_no_samples() {
     let batches = read_parquet(buffer);
     let schema = batches[0].schema();
     assert!(
-        !schema
-            .fields()
-            .iter()
-            .any(|f| f.name().starts_with("quiet ")),
+        !schema.fields().iter().any(|f| f.name() == "quiet"),
         "an empty channel should have no column, which is why it must be reported",
     );
 }
@@ -783,7 +780,7 @@ async fn get_data_sends_saved_calculation_query() {
     let batches = read_parquet(buffer);
     let schema = batches[0].schema();
     assert!(
-        schema.field(1).name().starts_with("thrust_margin {"),
+        schema.field(1).name() == "thrust_margin",
         "a nameless calculated channel column must fall back to its key: {}",
         schema.field(1).name(),
     );
@@ -892,4 +889,155 @@ async fn get_data_flags_a_file_that_mixes_decimated_and_raw_channels() {
     assert_eq!(output.applied_sample_ms.highest(), Some(100));
     assert!(output.applied_sample_ms.decimated());
     assert!(output.applied_sample_ms.mixed());
+}
+
+/// Channel names used to embed quoted `channel_id`, `run`, and `units`, which
+/// the SQL parser rejects. The column name is now a plain identifier and those
+/// fields ride in Parquet metadata, including through a `sql` projection.
+#[tokio::test(flavor = "multi_thread")]
+async fn get_data_column_can_be_referenced_from_sql_without_escaping() {
+    let channel_id = "5ef10963-b163-4c48-a7e2-e4ffd9bbf995";
+    let run_id = "fc1b4ea8-1111-2222-3333-444444444444";
+
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data().times(1).returning(|_| {
+        let payload = DoubleValues {
+            metadata: Some(Metadata {
+                channel: Some(metadata::Channel {
+                    channel_id: "5ef10963-b163-4c48-a7e2-e4ffd9bbf995".into(),
+                    name: "PT-PC".into(),
+                    unit: Some(metadata::channel::Unit {
+                        name: "psia".into(),
+                        abbreviated_name: "psia".into(),
+                    }),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }),
+            values: vec![DoubleValue {
+                timestamp: Some(Timestamp {
+                    seconds: 1,
+                    nanos: 0,
+                }),
+                value: 14.7,
+            }],
+            extras: vec![],
+        };
+        Ok(Response::new(GetDataResponse {
+            data: vec![Any {
+                type_url: "sift.data.v2.DoubleValues".into(),
+                value: Bytes::from(payload.encode_to_vec()),
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    service
+        .get_data(
+            &[raw_channel(channel_id)],
+            TimeRange::Run {
+                run: Box::new(Run {
+                    run_id: run_id.into(),
+                    start_time: Some(Timestamp {
+                        seconds: 0,
+                        nanos: 0,
+                    }),
+                    stop_time: Some(Timestamp {
+                        seconds: 10,
+                        nanos: 0,
+                    }),
+                    ..Default::default()
+                }),
+                start_time_unix_nanos: None,
+                end_time_unix_nanos: None,
+            },
+            0,
+            &mut buffer,
+        )
+        .await
+        .expect("get_data failed");
+
+    let source = read_parquet(buffer.clone());
+    let source_schema = source[0].schema();
+    let field = source_schema.field(1);
+    assert_eq!(field.name(), "PT_PC");
+    assert!(
+        !field.name().contains('"'),
+        "column name must not embed quotes: {}",
+        field.name()
+    );
+    assert_eq!(
+        field.metadata().get("channel_id").map(String::as_str),
+        Some(channel_id)
+    );
+    assert_eq!(
+        field.metadata().get("channel_name").map(String::as_str),
+        Some("PT-PC")
+    );
+    assert_eq!(
+        field.metadata().get("run").map(String::as_str),
+        Some(run_id)
+    );
+    assert_eq!(
+        field.metadata().get("units").map(String::as_str),
+        Some("psia")
+    );
+
+    let tmp = TempDir::new("sql_ident").expect("tempdir");
+    let path = tmp.path().join("data.parquet");
+    std::fs::write(&path, buffer).expect("write parquet");
+
+    let queried = run_sql(vec![path], "t", "SELECT PT_PC FROM t")
+        .await
+        .expect("an unquoted identifier should query the channel");
+    let batches = read_parquet(queried);
+    let out_schema = batches[0].schema();
+    let out_field = out_schema.field(0);
+    assert_eq!(out_field.name(), "PT_PC");
+    assert_eq!(
+        out_field.metadata().get("channel_id").map(String::as_str),
+        Some(channel_id)
+    );
+    assert_eq!(
+        out_field.metadata().get("units").map(String::as_str),
+        Some("psia")
+    );
+    assert_eq!(
+        out_field.metadata().get("run").map(String::as_str),
+        Some(run_id)
+    );
+    let values = batches[0].column(0).as_primitive::<Float64Type>();
+    assert_eq!(values.value(0), 14.7);
+}
+
+#[tokio::test]
+async fn get_data_legacy_column_names_keep_the_brace_form() {
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data().times(1).returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![double_page("c1", "temp", vec![(1_000_000_000, 1.0)])],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    service
+        .get_data_with_column_names(
+            &[raw_channel("c1")],
+            asset_range(0, 3_000_000_000),
+            0,
+            &mut buffer,
+            ColumnNameStyle::Legacy,
+        )
+        .await
+        .expect("get_data failed");
+
+    let batches = read_parquet(buffer);
+    let schema = batches[0].schema();
+    let field = schema.field(1);
+    assert_eq!(field.name(), "temp {channel_id=\"c1\"}");
+    assert!(field.metadata().get("channel_id").is_none());
 }

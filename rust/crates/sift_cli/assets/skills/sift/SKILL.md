@@ -153,10 +153,12 @@ tool.
   names and empty channel IDs before reporting numbers derived from the file.
 
   For an aggregation, use `sample_ms: 0`, then write a small, ordinary SQL
-  query against the exact column name from the Parquet schema. Data columns
-  include metadata (`<name> {channel_id="...", run="...", units="..."}`),
-  so do not reconstruct or simplify that identifier. If it contains double
-  quotes, escape them for a SQL identifier by doubling them (`""`), never with
+  query against the column name in the Parquet schema. Those names are plain
+  SQL identifiers (`temp`, `PT_PC`), so reference them directly.
+  `channel_id`, `channel_name`, `run`, and `units` live in Parquet field
+  metadata, not in the column name. A file written with `column_names: legacy`,
+  or by an older `get_data`, still embeds double quotes in the column name;
+  escape those for a SQL identifier by doubling them (`""`), never with
   backslashes. Prefer an explicit `MIN(column)`, `MAX(column)`, or
   `COUNT(column)` query; do not guess dialect-specific `EXCLUDE` or wildcard
   syntax. After one parse error, read the error and correct the query once; if

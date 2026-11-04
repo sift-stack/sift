@@ -108,6 +108,7 @@ fn get_data_params(channel_regex: &str) -> Parameters<GetDataParams> {
         channel_id: None,
         channel_ids: None,
         output: std::env::temp_dir().join("sift-mcp-get-data-test-never-written.parquet"),
+        column_names: None,
     })
 }
 
@@ -214,7 +215,9 @@ async fn get_data_fetches_exact_channel_ids() {
                 .schema()
                 .fields()
                 .iter()
-                .position(|field| field.name().contains(&format!("channel_id=\"{id}\"")))
+                .position(|field| {
+                    field.metadata().get("channel_id").map(String::as_str) == Some(id.as_str())
+                })
                 .unwrap();
             let values = batch.column(index).as_primitive::<Float64Type>();
             assert_eq!(values.null_count(), 0);
@@ -349,7 +352,16 @@ async fn get_data_duplicate_registrations_agree_with_parquet() {
         .unwrap();
     assert_eq!(batch.num_columns(), 2);
     assert_eq!(batch.num_rows(), 1);
-    assert!(batch.schema().field(1).name().contains("mode-17"));
+    assert_eq!(
+        batch
+            .schema()
+            .field(1)
+            .metadata()
+            .get("channel_id")
+            .map(String::as_str),
+        Some("mode-17")
+    );
+    assert_eq!(batch.schema().field(1).name(), "state_mode");
     let values = batch.column(1).as_primitive::<Float64Type>();
     assert_eq!(values.null_count(), 0);
     assert_eq!(values.value(0), 3.0);
@@ -614,6 +626,7 @@ fn named_params(
         channel_id: None,
         channel_ids: None,
         output,
+        column_names: None,
     })
 }
 
@@ -1199,6 +1212,7 @@ async fn get_data_reports_channel_names_that_matched_nothing() {
             channel_id: None,
             channel_ids: None,
             output: dir.path().join("out.parquet"),
+            column_names: None,
         }))
         .await
         .expect("get_data should still succeed for the channels that matched");
@@ -1265,6 +1279,7 @@ async fn get_data_reports_no_unmatched_names_for_a_regex_selection() {
             channel_id: None,
             channel_ids: None,
             output: dir.path().join("out.parquet"),
+            column_names: None,
         }))
         .await
         .expect("get_data failed");
@@ -1329,6 +1344,7 @@ async fn get_data_reports_matched_channels_that_returned_no_samples() {
             channel_id: None,
             channel_ids: None,
             output: dir.path().join("out.parquet"),
+            column_names: None,
         }))
         .await
         .expect("a partially empty window is still a successful fetch");
@@ -1398,6 +1414,7 @@ async fn no_data_error_reports_both_the_empty_and_the_unmatched_channels() {
             channel_id: None,
             channel_ids: None,
             output: dir.path().join("out.parquet"),
+            column_names: None,
         }))
         .await
         .expect_err("no channel returned samples, so the call fails");
@@ -1582,6 +1599,7 @@ async fn get_data_persist_failure_keeps_the_channel_report() {
             channel_id: None,
             channel_ids: None,
             output: output.clone(),
+            column_names: None,
         }))
         .await
         .expect_err("the output cannot be moved onto a directory");
@@ -1639,6 +1657,7 @@ async fn get_data_leaves_no_file_when_the_data_call_fails() {
             channel_id: None,
             channel_ids: None,
             output: dir.path().join("out.parquet"),
+            column_names: None,
         }))
         .await
         .expect_err("the data call failed");
@@ -1697,6 +1716,7 @@ async fn get_data_leaves_no_file_when_the_request_is_cancelled() {
         channel_id: None,
         channel_ids: None,
         output: output.clone(),
+        column_names: None,
     });
     let request = tokio::spawn(async move { server.get_data(params).await });
 
@@ -1788,6 +1808,7 @@ async fn get_data_writes_into_a_directory_that_does_not_exist_yet() {
             channel_id: None,
             channel_ids: None,
             output: nested.clone(),
+            column_names: None,
         }))
         .await
         .expect("a missing parent directory should not fail the call");
