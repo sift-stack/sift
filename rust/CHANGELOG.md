@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+### What's New
+
+#### Declarative chart schema
+
+`get_chart_schema` makes the deployment's declarative chart schema available to agents.
+`sift-cli get chart-schema` downloads the full schema to standard output or an output file.
 
 ## [v0.14.1] - November 6, 2026
 ### What's New

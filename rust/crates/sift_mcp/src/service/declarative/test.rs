@@ -620,3 +620,236 @@ async fn without_a_rest_endpoint_calls_fail_clearly() {
 
     assert!(format!("{error:#}").contains("without a REST endpoint"));
 }
+
+pub(crate) fn chart_schema_fixture() -> serde_json::Value {
+    serde_json::json!({
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://example.test/chart.schema.json",
+        "title": "Declarative chart",
+        "description": "A chart specification.\nThe root contains a chart.",
+        "type": "object",
+        "properties": {"chart": {"$ref": "#/$defs/chart"}},
+        "$defs": {
+            "chart": {
+                "description": "A chart with\nchannels. Use an axis for each scale.",
+                "type": "object",
+                "properties": {
+                    "channel": {"$ref": "#/$defs/channelIdBinding/properties/channelId"},
+                    "axis": {"$ref": "#/$defs/axis"}
+                },
+                "anyOf": [
+                    {"$ref": "#/$defs/channelIdBinding"},
+                    {"$ref": "#/$defs/axis"},
+                    {"$ref": "https://example.test/other.schema.json#/$defs/external"}
+                ]
+            },
+            "channelIdBinding": {
+                "description": "A channel ID. Use the ID from the channel list.",
+                "type": "object",
+                "properties": {"channelId": {"$ref": "#/$defs/scalar"}}
+            },
+            "axis": {"description": "An axis scale.", "type": "object"},
+            "scalar": {"type": "string"}
+        }
+    })
+}
+
+pub(crate) fn chart_schema_responses() -> Vec<Vec<u8>> {
+    vec![
+        http_response(
+            "200 OK",
+            r#"{"name":"declarative-chart","versions":[{"version":"0","created_at":"2026-01-01T00:00:00Z","is_prerelease":false}]}"#,
+        ),
+        http_response("200 OK", &chart_schema_fixture().to_string()),
+    ]
+}
+
+#[test]
+fn chart_schema_decodes_without_title_or_id() {
+    for missing in [vec!["title"], vec!["$id"], vec!["title", "$id"]] {
+        let mut schema = chart_schema_fixture();
+        for field in &missing {
+            schema.as_object_mut().unwrap().remove(*field);
+        }
+        let decoded: super::ChartSchema = serde_json::from_value(schema.clone()).unwrap();
+        assert_eq!(decoded.title, schema["title"].as_str().unwrap_or_default());
+        assert_eq!(decoded.id, schema["$id"].as_str().unwrap_or_default());
+        assert_eq!(
+            decoded.definitions,
+            schema["$defs"].as_object().unwrap().clone()
+        );
+    }
+}
+
+#[tokio::test]
+async fn chart_schema_uses_get_auth_retries_and_redirects() {
+    let mut responses = chart_schema_responses();
+    responses.insert(0, http_response("503 Service Unavailable", "{}"));
+    responses.insert(2, http_response("429 Too Many Requests", "{}"));
+    responses.insert(
+        3,
+        b"HTTP/1.1 302 Found\r\nlocation: /schema.json\r\ncontent-length: 0\r\nconnection: close\r\n\r\n"
+            .to_vec(),
+    );
+    let (rest_uri, server) =
+        start_sequence_server(responses.into_iter().map(Reply::Respond).collect()).await;
+
+    let schema = service(format!("{rest_uri}/profile/"))
+        .chart_schema()
+        .await
+        .unwrap();
+    let requests = server.await.unwrap();
+
+    assert_eq!(schema.id, "https://example.test/chart.schema.json");
+    assert_eq!(requests.len(), 5);
+    assert_eq!(requests[0], requests[1]);
+    assert_eq!(requests[2], requests[3]);
+    let expected_paths = [
+        "/profile/api/packages/v1/schemas/declarative-chart/versions",
+        "/profile/api/packages/v1/schemas/declarative-chart/versions",
+        "/profile/download/schemas/declarative-chart/0/sift.declarative.schema.v0.json",
+        "/profile/download/schemas/declarative-chart/0/sift.declarative.schema.v0.json",
+        "/schema.json",
+    ];
+    for (request, path) in requests.iter().zip(expected_paths) {
+        let request = String::from_utf8_lossy(request);
+        assert!(request.starts_with(&format!("GET {path} HTTP/1.1\r\n")));
+        assert!(
+            request
+                .lines()
+                .any(|line| line.eq_ignore_ascii_case("authorization: Bearer test-key"))
+        );
+        assert!(
+            request
+                .lines()
+                .any(|line| line.eq_ignore_ascii_case("user-agent: sift_mcp/1.2.3"))
+        );
+        assert_eq!(request.split_once("\r\n\r\n").unwrap().1, "");
+    }
+}
+
+#[tokio::test]
+async fn chart_schema_reports_a_400_on_versions() {
+    for body in [
+        r#"{"error":"schema unavailable"}"#,
+        "an arbitrary response body",
+    ] {
+        let (rest_uri, server) =
+            start_sequence_server(vec![Reply::Respond(http_response("400 Bad Request", body))])
+                .await;
+
+        let error = service(rest_uri).chart_schema().await.unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "This deployment does not serve the declarative chart schema."
+        );
+        assert_eq!(server.await.unwrap().len(), 1);
+    }
+}
+
+#[tokio::test]
+async fn chart_schema_reports_a_404_on_versions() {
+    let (rest_uri, server) = start_sequence_server(vec![Reply::Respond(http_response(
+        "404 Not Found",
+        "an arbitrary response body",
+    ))])
+    .await;
+
+    let error = service(rest_uri).chart_schema().await.unwrap_err();
+    assert_eq!(
+        error.to_string(),
+        "This deployment does not serve the declarative chart schema."
+    );
+    assert_eq!(server.await.unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn chart_schema_reports_a_missing_version_zero() {
+    for versions in [r#"{"versions":[]}"#, r#"{"versions":[{"version":"1"}]}"#] {
+        let (rest_uri, server) =
+            start_sequence_server(vec![Reply::Respond(http_response("200 OK", versions))]).await;
+
+        let error = service(rest_uri).chart_schema().await.unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "This deployment does not serve the declarative chart schema."
+        );
+        assert_eq!(server.await.unwrap().len(), 1);
+    }
+}
+
+#[tokio::test]
+async fn chart_schema_cache_expires_after_five_minutes() {
+    let mut responses = chart_schema_responses();
+    let mut updated = chart_schema_fixture();
+    updated["title"] = serde_json::json!("Updated chart schema");
+    responses.push(responses[0].clone());
+    responses.push(http_response("200 OK", &updated.to_string()));
+    let (rest_uri, server) =
+        start_sequence_server(responses.into_iter().map(Reply::Respond).collect()).await;
+    let service = service(rest_uri);
+
+    let first = service.chart_schema().await.unwrap();
+    service
+        .chart_schema
+        .lock()
+        .await
+        .as_mut()
+        .unwrap()
+        .fetched_at = std::time::Instant::now() - Duration::from_secs(299);
+    let cached = service.clone().chart_schema().await.unwrap();
+    assert!(std::sync::Arc::ptr_eq(&first, &cached));
+
+    service
+        .chart_schema
+        .lock()
+        .await
+        .as_mut()
+        .unwrap()
+        .fetched_at = std::time::Instant::now() - Duration::from_secs(300);
+    let refreshed = service.chart_schema().await.unwrap();
+    assert_eq!(refreshed.title, "Updated chart schema");
+    assert!(!std::sync::Arc::ptr_eq(&first, &refreshed));
+    let requests = server.await.unwrap();
+    assert_eq!(requests.len(), 4);
+    assert_eq!(requests[0], requests[2]);
+    assert_eq!(requests[1], requests[3]);
+}
+
+#[tokio::test]
+async fn chart_schema_does_not_cache_failures() {
+    let success = chart_schema_responses();
+    let failures = [
+        vec![http_response("404 Not Found", "")],
+        vec![http_response("200 OK", r#"{"versions":[]}"#)],
+        vec![http_response("503 Service Unavailable", "{}"); 3],
+        vec![http_response("200 OK", "invalid JSON")],
+        vec![success[0].clone(), http_response("403 Forbidden", "{}")],
+        vec![success[0].clone(), http_response("200 OK", "invalid JSON")],
+        vec![success[0].clone(), http_response("200 OK", "{}")],
+    ];
+    for mut responses in failures {
+        responses.extend(success.clone());
+        let expected_requests = responses.len();
+        let (rest_uri, server) =
+            start_sequence_server(responses.into_iter().map(Reply::Respond).collect()).await;
+        let service = service(rest_uri);
+
+        assert!(service.chart_schema().await.is_err());
+        let schema = service.chart_schema().await.unwrap();
+        assert_eq!(schema.title, "Declarative chart");
+        let cached = service.chart_schema().await.unwrap();
+        assert!(std::sync::Arc::ptr_eq(&schema, &cached));
+        let requests = server.await.unwrap();
+        assert_eq!(requests.len(), expected_requests);
+        assert!(
+            String::from_utf8_lossy(&requests[expected_requests - 2])
+                .starts_with("GET /api/packages/v1/schemas/declarative-chart/versions ")
+        );
+        assert!(
+            String::from_utf8_lossy(&requests[expected_requests - 1]).starts_with(
+                "GET /download/schemas/declarative-chart/0/sift.declarative.schema.v0.json "
+            )
+        );
+    }
+}

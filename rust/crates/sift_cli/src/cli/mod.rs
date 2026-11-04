@@ -360,6 +360,16 @@ pub enum ImportCmd {
 pub enum GetCmd {
     /// Get assets
     Asset(GetAssetArgs),
+
+    /// Download the declarative chart JSON Schema
+    ChartSchema(GetChartSchemaArgs),
+}
+
+#[derive(clap::Args)]
+pub struct GetChartSchemaArgs {
+    /// The file to write the schema to
+    #[arg(short, long)]
+    pub output: Option<PathBuf>,
 }
 
 #[derive(Subcommand)]

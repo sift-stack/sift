@@ -1,15 +1,23 @@
-use std::time::Duration;
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use anyhow::{Context, Result, anyhow, bail};
 use reqwest::{StatusCode, header::USER_AGENT};
 use serde::{Deserialize, Serialize};
-use tokio::time::sleep;
+use serde_json::{Map, Value};
+use tokio::{sync::Mutex, time::sleep};
 
 use crate::service::remote_files::RestConfig;
 
 const VALIDATE_PATH: &str = "/api/v1/declarative:validate";
 const MIGRATE_PATH: &str = "/api/v1/declarative:migrate";
 const SHARE_LINK_PATH: &str = "/api/v1/declarative:sharelink";
+const SCHEMA_VERSIONS_PATH: &str = "/api/packages/v1/schemas/declarative-chart/versions";
+const SCHEMA_PATH: &str = "/download/schemas/declarative-chart/0/sift.declarative.schema.v0.json";
+const SCHEMA_CACHE_TTL: Duration = Duration::from_secs(300);
+const SCHEMA_UNAVAILABLE: &str = "This deployment does not serve the declarative chart schema.";
 /// Longest slice of an error body echoed back in a failure or invalid-spec
 /// message.
 const MAX_ERROR_BODY_CHARS: usize = 500;
@@ -125,6 +133,34 @@ struct InvalidSpecBody {
     message: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+pub(crate) struct ChartSchema {
+    #[serde(rename = "$id")]
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub title: String,
+    #[serde(default)]
+    pub description: String,
+    #[serde(rename = "$defs")]
+    pub definitions: Map<String, Value>,
+}
+
+#[derive(Deserialize)]
+struct SchemaVersions {
+    versions: Vec<SchemaVersion>,
+}
+
+#[derive(Deserialize)]
+struct SchemaVersion {
+    version: String,
+}
+
+struct CachedChartSchema {
+    schema: Arc<ChartSchema>,
+    fetched_at: Instant,
+}
+
 /// Validates and migrates declarative specs through the backend's REST
 /// gateway. The declarative protos are not part of `sift_rs`, so there is no
 /// gRPC client. The backend is the authority on the schema: specs are passed
@@ -134,6 +170,7 @@ pub struct DeclarativeService {
     // Absent only when the server runs without a REST endpoint (some tests).
     client: Option<RestClient>,
     retry: RestRetry,
+    chart_schema: Arc<Mutex<Option<CachedChartSchema>>>,
 }
 
 #[derive(Clone)]
@@ -155,6 +192,7 @@ impl DeclarativeService {
         Self {
             client,
             retry: RestRetry::default(),
+            chart_schema: Arc::default(),
         }
     }
 
@@ -163,6 +201,59 @@ impl DeclarativeService {
     pub fn with_retry(mut self, retry: RestRetry) -> Self {
         self.retry = retry;
         self
+    }
+
+    pub async fn chart_schema_bytes(&self) -> Result<Vec<u8>> {
+        self.fetch_chart_schema()
+            .await?
+            .bytes()
+            .await
+            .context("failed to read the declarative chart schema response")
+            .map(|bytes| bytes.to_vec())
+    }
+
+    pub(crate) async fn chart_schema(&self) -> Result<Arc<ChartSchema>> {
+        let mut cache = self.chart_schema.lock().await;
+        if let Some(cached) = cache.as_ref()
+            && cached.fetched_at.elapsed() < SCHEMA_CACHE_TTL
+        {
+            return Ok(Arc::clone(&cached.schema));
+        }
+
+        let schema = Arc::new(
+            self.fetch_chart_schema()
+                .await?
+                .json()
+                .await
+                .context("failed to decode the declarative chart schema response")?,
+        );
+        *cache = Some(CachedChartSchema {
+            schema: Arc::clone(&schema),
+            fetched_at: Instant::now(),
+        });
+        Ok(schema)
+    }
+
+    async fn fetch_chart_schema(&self) -> Result<reqwest::Response> {
+        let unavailable_statuses = [StatusCode::BAD_REQUEST, StatusCode::NOT_FOUND];
+        let response = self
+            .send(
+                SCHEMA_VERSIONS_PATH,
+                |http, url| http.get(url),
+                "chart schema versions",
+                &unavailable_statuses,
+            )
+            .await?;
+        if unavailable_statuses.contains(&response.status()) {
+            bail!(SCHEMA_UNAVAILABLE);
+        }
+        let versions: SchemaVersions = decode(response, "chart schema versions").await?;
+        if !versions.versions.iter().any(|entry| entry.version == "0") {
+            bail!(SCHEMA_UNAVAILABLE);
+        }
+
+        self.send(SCHEMA_PATH, |http, url| http.get(url), "chart schema", &[])
+            .await
     }
 
     /// Validates `spec` in strict mode. A spec that fails validation is an
@@ -228,9 +319,9 @@ impl DeclarativeService {
         let response = self
             .send(
                 SHARE_LINK_PATH,
-                &ShareLinkRequest { spec },
+                |http, url| http.post(url).json(&ShareLinkRequest { spec }),
                 action,
-                Some(StatusCode::BAD_REQUEST),
+                &[StatusCode::BAD_REQUEST],
             )
             .await?;
 
@@ -264,7 +355,12 @@ impl DeclarativeService {
         R: for<'de> Deserialize<'de>,
     {
         let response = self
-            .send(path, body, action, Some(StatusCode::BAD_REQUEST))
+            .send(
+                path,
+                |http, url| http.post(url).json(body),
+                action,
+                &[StatusCode::BAD_REQUEST],
+            )
             .await?;
         if response.status() == StatusCode::BAD_REQUEST {
             let body = truncate(response.text().await.unwrap_or_default());
@@ -273,15 +369,13 @@ impl DeclarativeService {
         decode(response, action).await.map(Ok)
     }
 
-    /// POSTs `body` under the retry policy. Returns the first successful
-    /// response, or one whose status is `accepted_status`. Any other status
-    /// is an error, retried only when transient.
-    async fn send<B: Serialize>(
+    /// Sends a request and returns `Ok` for accepted statuses. Retries only transient statuses.
+    async fn send(
         &self,
         path: &str,
-        body: &B,
+        build_request: impl Fn(&reqwest::Client, &str) -> reqwest::RequestBuilder,
         action: &str,
-        accepted_status: Option<StatusCode>,
+        accepted_statuses: &[StatusCode],
     ) -> Result<reqwest::Response> {
         let client = self.client.as_ref().context(
             "this server was started without a REST endpoint, so declarative specs cannot be checked",
@@ -291,13 +385,10 @@ impl DeclarativeService {
 
         let mut attempt = 1;
         loop {
-            let result = client
-                .http
-                .post(&url)
+            let result = build_request(&client.http, &url)
                 .timeout(self.retry.request_timeout)
                 .bearer_auth(&client.api_key)
                 .header(USER_AGENT, &client.user_agent)
-                .json(body)
                 .send()
                 .await;
 
@@ -310,7 +401,7 @@ impl DeclarativeService {
                     .context(format!("failed to reach the declarative {action} endpoint")),
                 Ok(response) => {
                     let status = response.status();
-                    if status.is_success() || Some(status) == accepted_status {
+                    if status.is_success() || accepted_statuses.contains(&status) {
                         return Ok(response);
                     }
                     let detail = truncate(response.text().await.unwrap_or_default());
