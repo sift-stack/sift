@@ -17,6 +17,7 @@ enum ResourceType {
   RESOURCE_TYPE_CALCULATED_CHANNEL = 10;
   RESOURCE_TYPE_REPORT_TEMPLATE = 11;
   RESOURCE_TYPE_TEST_REPORT = 12;
+  RESOURCE_TYPE_ACTOR_ACTION = 13;
 
   // Special type for a resource that doesn't yet exist (eg. creating an asset)
   RESOURCE_TYPE_SIFT_APP = 1000;

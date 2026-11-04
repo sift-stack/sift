@@ -2,3 +2,78 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
+from sift.canvas.v1 import canvas_pb2 as sift_dot_canvas_dot_v1_dot_canvas__pb2
+
+
+class CanvasServiceStub(object):
+    """CanvasService is the public canvas API. Authoring and execution stay on the
+    internal service. ExportCanvas is here so a caller can download a canvas
+    without those types.
+    """
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.ExportCanvas = channel.unary_unary(
+                '/sift.canvas.v1.CanvasService/ExportCanvas',
+                request_serializer=sift_dot_canvas_dot_v1_dot_canvas__pb2.ExportCanvasRequest.SerializeToString,
+                response_deserializer=sift_dot_canvas_dot_v1_dot_canvas__pb2.ExportCanvasResponse.FromString,
+                )
+
+
+class CanvasServiceServicer(object):
+    """CanvasService is the public canvas API. Authoring and execution stay on the
+    internal service. ExportCanvas is here so a caller can download a canvas
+    without those types.
+    """
+
+    def ExportCanvas(self, request, context):
+        """ExportCanvas builds one zip of a saved canvas version and returns a
+        presigned URL for it. The zip holds the py:percent source, the parameter
+        sidecar, requirements.txt, file attachments, Python modules, and wheels.
+        EXTERNAL canvases are rejected.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_CanvasServiceServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'ExportCanvas': grpc.unary_unary_rpc_method_handler(
+                    servicer.ExportCanvas,
+                    request_deserializer=sift_dot_canvas_dot_v1_dot_canvas__pb2.ExportCanvasRequest.FromString,
+                    response_serializer=sift_dot_canvas_dot_v1_dot_canvas__pb2.ExportCanvasResponse.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'sift.canvas.v1.CanvasService', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+
+
+ # This class is part of an EXPERIMENTAL API.
+class CanvasService(object):
+    """CanvasService is the public canvas API. Authoring and execution stay on the
+    internal service. ExportCanvas is here so a caller can download a canvas
+    without those types.
+    """
+
+    @staticmethod
+    def ExportCanvas(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.canvas.v1.CanvasService/ExportCanvas',
+            sift_dot_canvas_dot_v1_dot_canvas__pb2.ExportCanvasRequest.SerializeToString,
+            sift_dot_canvas_dot_v1_dot_canvas__pb2.ExportCanvasResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

@@ -7,6 +7,7 @@ import abc
 import collections.abc
 import grpc
 import grpc.aio
+import sift.canvas.v1.canvas_pb2
 import typing
 
 _T = typing.TypeVar("_T")
@@ -15,3 +16,56 @@ class _MaybeAsyncIterator(collections.abc.AsyncIterator[_T], collections.abc.Ite
 
 class _ServicerContext(grpc.ServicerContext, grpc.aio.ServicerContext):  # type: ignore[misc, type-arg]
     ...
+
+class CanvasServiceStub:
+    """CanvasService is the public canvas API. Authoring and execution stay on the
+    internal service. ExportCanvas is here so a caller can download a canvas
+    without those types.
+    """
+
+    def __init__(self, channel: typing.Union[grpc.Channel, grpc.aio.Channel]) -> None: ...
+    ExportCanvas: grpc.UnaryUnaryMultiCallable[
+        sift.canvas.v1.canvas_pb2.ExportCanvasRequest,
+        sift.canvas.v1.canvas_pb2.ExportCanvasResponse,
+    ]
+    """ExportCanvas builds one zip of a saved canvas version and returns a
+    presigned URL for it. The zip holds the py:percent source, the parameter
+    sidecar, requirements.txt, file attachments, Python modules, and wheels.
+    EXTERNAL canvases are rejected.
+    """
+
+class CanvasServiceAsyncStub:
+    """CanvasService is the public canvas API. Authoring and execution stay on the
+    internal service. ExportCanvas is here so a caller can download a canvas
+    without those types.
+    """
+
+    ExportCanvas: grpc.aio.UnaryUnaryMultiCallable[
+        sift.canvas.v1.canvas_pb2.ExportCanvasRequest,
+        sift.canvas.v1.canvas_pb2.ExportCanvasResponse,
+    ]
+    """ExportCanvas builds one zip of a saved canvas version and returns a
+    presigned URL for it. The zip holds the py:percent source, the parameter
+    sidecar, requirements.txt, file attachments, Python modules, and wheels.
+    EXTERNAL canvases are rejected.
+    """
+
+class CanvasServiceServicer(metaclass=abc.ABCMeta):
+    """CanvasService is the public canvas API. Authoring and execution stay on the
+    internal service. ExportCanvas is here so a caller can download a canvas
+    without those types.
+    """
+
+    @abc.abstractmethod
+    def ExportCanvas(
+        self,
+        request: sift.canvas.v1.canvas_pb2.ExportCanvasRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.canvas.v1.canvas_pb2.ExportCanvasResponse, collections.abc.Awaitable[sift.canvas.v1.canvas_pb2.ExportCanvasResponse]]:
+        """ExportCanvas builds one zip of a saved canvas version and returns a
+        presigned URL for it. The zip holds the py:percent source, the parameter
+        sidecar, requirements.txt, file attachments, Python modules, and wheels.
+        EXTERNAL canvases are rejected.
+        """
+
+def add_CanvasServiceServicer_to_server(servicer: CanvasServiceServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...

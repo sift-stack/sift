@@ -34,7 +34,9 @@ class _ArtifactStorageClassEnumTypeWrapper(google.protobuf.internal.enum_type_wr
     ARTIFACT_STORAGE_CLASS_FILE: _ArtifactStorageClass.ValueType  # 1
     """Bytes in remote_files, previewable by MIME type."""
     ARTIFACT_STORAGE_CLASS_STRUCTURED: _ArtifactStorageClass.ValueType  # 2
-    """Content is the JSON payload, no file."""
+    """Deprecated: content as a JSON payload. No longer accepted on create; use
+    FILE or BLOB.
+    """
     ARTIFACT_STORAGE_CLASS_BLOB: _ArtifactStorageClass.ValueType  # 3
     """Bytes in remote_files, opaque, download only."""
 
@@ -45,7 +47,9 @@ ARTIFACT_STORAGE_CLASS_UNSPECIFIED: ArtifactStorageClass.ValueType  # 0
 ARTIFACT_STORAGE_CLASS_FILE: ArtifactStorageClass.ValueType  # 1
 """Bytes in remote_files, previewable by MIME type."""
 ARTIFACT_STORAGE_CLASS_STRUCTURED: ArtifactStorageClass.ValueType  # 2
-"""Content is the JSON payload, no file."""
+"""Deprecated: content as a JSON payload. No longer accepted on create; use
+FILE or BLOB.
+"""
 ARTIFACT_STORAGE_CLASS_BLOB: ArtifactStorageClass.ValueType  # 3
 """Bytes in remote_files, opaque, download only."""
 global___ArtifactStorageClass = ArtifactStorageClass
@@ -201,7 +205,9 @@ class ArtifactVersion(google.protobuf.message.Message):
     FILE_MIME_TYPE_FIELD_NUMBER: builtins.int
     PAYLOAD_FIELD_NUMBER: builtins.int
     METADATA_FIELD_NUMBER: builtins.int
+    FILE_SIZE_FIELD_NUMBER: builtins.int
     IS_CURRENT_FIELD_NUMBER: builtins.int
+    FILE_SHA256_FIELD_NUMBER: builtins.int
     artifact_version_id: builtins.str
     artifact_id: builtins.str
     version: builtins.int
@@ -219,10 +225,18 @@ class ArtifactVersion(google.protobuf.message.Message):
     Clients infer preview behavior from file_name / file_mime_type.
     """
     file_mime_type: builtins.str
+    file_size: builtins.int
+    """Size of the version's file in bytes. Unset until bytes are uploaded."""
     is_current: builtins.bool
     """True when this is the artifact's current version, the one GetArtifact
     returns without a pin. A version still waiting for its upload is never
     current.
+    """
+    file_sha256: builtins.str
+    """Lowercase hex SHA-256 of the version's file bytes, as the client sent it
+    with the upload. The server does not check it against the bytes. Unset when
+    the client sent none. Compare it with the local file's hash before creating
+    a new version, to skip an upload that would change nothing.
     """
     @property
     def source_tool_use_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
@@ -230,7 +244,7 @@ class ArtifactVersion(google.protobuf.message.Message):
     def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
     def payload(self) -> google.protobuf.struct_pb2.Struct:
-        """Set by GetArtifact for STRUCTURED artifacts. The listings omit it."""
+        """Deprecated: STRUCTURED artifacts are no longer accepted. Always unset."""
 
     @property
     def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]:
@@ -252,16 +266,22 @@ class ArtifactVersion(google.protobuf.message.Message):
         file_mime_type: builtins.str | None = ...,
         payload: google.protobuf.struct_pb2.Struct | None = ...,
         metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
+        file_size: builtins.int | None = ...,
         is_current: builtins.bool = ...,
+        file_sha256: builtins.str | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_authoring_message_id", b"_authoring_message_id", "_file_mime_type", b"_file_mime_type", "_file_name", b"_file_name", "_payload", b"_payload", "_remote_file_id", b"_remote_file_id", "_summary", b"_summary", "_title", b"_title", "authoring_message_id", b"authoring_message_id", "created_date", b"created_date", "file_mime_type", b"file_mime_type", "file_name", b"file_name", "payload", b"payload", "remote_file_id", b"remote_file_id", "summary", b"summary", "title", b"title"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_authoring_message_id", b"_authoring_message_id", "_file_mime_type", b"_file_mime_type", "_file_name", b"_file_name", "_payload", b"_payload", "_remote_file_id", b"_remote_file_id", "_summary", b"_summary", "_title", b"_title", "artifact_id", b"artifact_id", "artifact_version_id", b"artifact_version_id", "authoring_message_id", b"authoring_message_id", "created_date", b"created_date", "file_mime_type", b"file_mime_type", "file_name", b"file_name", "is_current", b"is_current", "metadata", b"metadata", "payload", b"payload", "remote_file_id", b"remote_file_id", "source_tool_use_ids", b"source_tool_use_ids", "summary", b"summary", "title", b"title", "version", b"version"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_authoring_message_id", b"_authoring_message_id", "_file_mime_type", b"_file_mime_type", "_file_name", b"_file_name", "_file_sha256", b"_file_sha256", "_file_size", b"_file_size", "_payload", b"_payload", "_remote_file_id", b"_remote_file_id", "_summary", b"_summary", "_title", b"_title", "authoring_message_id", b"authoring_message_id", "created_date", b"created_date", "file_mime_type", b"file_mime_type", "file_name", b"file_name", "file_sha256", b"file_sha256", "file_size", b"file_size", "payload", b"payload", "remote_file_id", b"remote_file_id", "summary", b"summary", "title", b"title"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_authoring_message_id", b"_authoring_message_id", "_file_mime_type", b"_file_mime_type", "_file_name", b"_file_name", "_file_sha256", b"_file_sha256", "_file_size", b"_file_size", "_payload", b"_payload", "_remote_file_id", b"_remote_file_id", "_summary", b"_summary", "_title", b"_title", "artifact_id", b"artifact_id", "artifact_version_id", b"artifact_version_id", "authoring_message_id", b"authoring_message_id", "created_date", b"created_date", "file_mime_type", b"file_mime_type", "file_name", b"file_name", "file_sha256", b"file_sha256", "file_size", b"file_size", "is_current", b"is_current", "metadata", b"metadata", "payload", b"payload", "remote_file_id", b"remote_file_id", "source_tool_use_ids", b"source_tool_use_ids", "summary", b"summary", "title", b"title", "version", b"version"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_authoring_message_id", b"_authoring_message_id"]) -> typing.Literal["authoring_message_id"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_file_mime_type", b"_file_mime_type"]) -> typing.Literal["file_mime_type"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_file_name", b"_file_name"]) -> typing.Literal["file_name"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_file_sha256", b"_file_sha256"]) -> typing.Literal["file_sha256"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_file_size", b"_file_size"]) -> typing.Literal["file_size"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_payload", b"_payload"]) -> typing.Literal["payload"] | None: ...
     @typing.overload
@@ -299,9 +319,55 @@ class ArtifactDetails(google.protobuf.message.Message):
 global___ArtifactDetails = ArtifactDetails
 
 @typing.final
-class ArtifactLinkInput(google.protobuf.message.Message):
+class ArtifactLink(google.protobuf.message.Message):
     """A link from an artifact to another entity, belonging to one version."""
 
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ARTIFACT_LINK_ID_FIELD_NUMBER: builtins.int
+    ARTIFACT_ID_FIELD_NUMBER: builtins.int
+    ARTIFACT_VERSION_ID_FIELD_NUMBER: builtins.int
+    RELATION_FIELD_NUMBER: builtins.int
+    ENTITY_TYPE_FIELD_NUMBER: builtins.int
+    ENTITY_ID_FIELD_NUMBER: builtins.int
+    ORGANIZATION_ID_FIELD_NUMBER: builtins.int
+    CREATED_DATE_FIELD_NUMBER: builtins.int
+    CREATED_BY_USER_ID_FIELD_NUMBER: builtins.int
+    artifact_link_id: builtins.str
+    artifact_id: builtins.str
+    artifact_version_id: builtins.str
+    """The version this row was written at. A row that still applies is restated
+    on each new version (see ArtifactService).
+    """
+    relation: global___ArtifactLinkRelation.ValueType
+    entity_type: global___ArtifactEntityType.ValueType
+    entity_id: builtins.str
+    organization_id: builtins.str
+    created_by_user_id: builtins.str
+    """The user who wrote the row. Unset when an agent or the system wrote it."""
+    @property
+    def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    def __init__(
+        self,
+        *,
+        artifact_link_id: builtins.str = ...,
+        artifact_id: builtins.str = ...,
+        artifact_version_id: builtins.str = ...,
+        relation: global___ArtifactLinkRelation.ValueType = ...,
+        entity_type: global___ArtifactEntityType.ValueType = ...,
+        entity_id: builtins.str = ...,
+        organization_id: builtins.str = ...,
+        created_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        created_by_user_id: builtins.str | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["_created_by_user_id", b"_created_by_user_id", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_created_by_user_id", b"_created_by_user_id", "artifact_id", b"artifact_id", "artifact_link_id", b"artifact_link_id", "artifact_version_id", b"artifact_version_id", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "entity_id", b"entity_id", "entity_type", b"entity_type", "organization_id", b"organization_id", "relation", b"relation"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["_created_by_user_id", b"_created_by_user_id"]) -> typing.Literal["created_by_user_id"] | None: ...
+
+global___ArtifactLink = ArtifactLink
+
+@typing.final
+class ArtifactLinkInput(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     RELATION_FIELD_NUMBER: builtins.int
@@ -350,8 +416,8 @@ class CreateArtifactRequest(google.protobuf.message.Message):
     """
     @property
     def payload(self) -> google.protobuf.struct_pb2.Struct:
-        """Required for STRUCTURED and rejected otherwise. The serialized payload
-        must not exceed 1 MiB.
+        """Deprecated: STRUCTURED artifacts are no longer accepted. Setting it is
+        InvalidArgument.
         """
 
     @property
@@ -435,9 +501,9 @@ class UpdateArtifactRequest(google.protobuf.message.Message):
     @property
     def update_mask(self) -> google.protobuf.field_mask_pb2.FieldMask:
         """The fields to write. Available paths are `artifact_version.title`,
-        `artifact_version.summary`, `artifact_version.payload`,
-        `artifact_version.metadata`, `artifact_version.remote_file_id`, and
-        `links`. A path the service does not know is rejected.
+        `artifact_version.summary`, `artifact_version.metadata`,
+        `artifact_version.remote_file_id`, and `links`. A path the service does
+        not know is rejected.
 
         `artifact_version.remote_file_id` is a declaration, not a value: it says
         the caller is about to upload new bytes for the returned version, so the
@@ -534,10 +600,10 @@ class ListArtifactsRequest(google.protobuf.message.Message):
     created_via, title, file_name, file_type, version, created_date,
     version_created_date (last updated), archived_date, the include_archived
     directive, and metadata through `metadata["<key>"]`. File type is the
-    lowercase extension or MIME subtype; images use "image", structured
-    artifacts use "json", and artifacts without a file use "file". Enum fields
-    compare against proto value names without the prefix, for example
-    `storage_class == "STRUCTURED"`.
+    lowercase extension or MIME subtype; images use "image", JSON files use
+    "json", and artifacts without a file use "file". Enum fields compare
+    against proto value names without the prefix, for example
+    `storage_class == "BLOB"`.
 
     Links filter with a comprehension. `links` sub-fields are relation,
     entity_type, entity_id, and artifact_version_id, for example
@@ -664,6 +730,58 @@ class ListArtifactVersionsResponse(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["next_page_token", b"next_page_token", "versions", b"versions"]) -> None: ...
 
 global___ListArtifactVersionsResponse = ListArtifactVersionsResponse
+
+@typing.final
+class ListArtifactLinksRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ARTIFACT_ID_FIELD_NUMBER: builtins.int
+    RELATION_FIELD_NUMBER: builtins.int
+    PAGE_SIZE_FIELD_NUMBER: builtins.int
+    PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    ARTIFACT_VERSION_ID_FIELD_NUMBER: builtins.int
+    artifact_id: builtins.str
+    relation: global___ArtifactLinkRelation.ValueType
+    page_size: builtins.int
+    page_token: builtins.str
+    artifact_version_id: builtins.str
+    """Defaults to the latest version."""
+    def __init__(
+        self,
+        *,
+        artifact_id: builtins.str = ...,
+        relation: global___ArtifactLinkRelation.ValueType | None = ...,
+        page_size: builtins.int = ...,
+        page_token: builtins.str = ...,
+        artifact_version_id: builtins.str | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["_artifact_version_id", b"_artifact_version_id", "_relation", b"_relation", "artifact_version_id", b"artifact_version_id", "relation", b"relation"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_artifact_version_id", b"_artifact_version_id", "_relation", b"_relation", "artifact_id", b"artifact_id", "artifact_version_id", b"artifact_version_id", "page_size", b"page_size", "page_token", b"page_token", "relation", b"relation"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_artifact_version_id", b"_artifact_version_id"]) -> typing.Literal["artifact_version_id"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_relation", b"_relation"]) -> typing.Literal["relation"] | None: ...
+
+global___ListArtifactLinksRequest = ListArtifactLinksRequest
+
+@typing.final
+class ListArtifactLinksResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    LINKS_FIELD_NUMBER: builtins.int
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    next_page_token: builtins.str
+    @property
+    def links(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ArtifactLink]: ...
+    def __init__(
+        self,
+        *,
+        links: collections.abc.Iterable[global___ArtifactLink] | None = ...,
+        next_page_token: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["links", b"links", "next_page_token", b"next_page_token"]) -> None: ...
+
+global___ListArtifactLinksResponse = ListArtifactLinksResponse
 
 @typing.final
 class LinkArtifactToConversationRequest(google.protobuf.message.Message):
@@ -808,3 +926,63 @@ class UnarchiveArtifactResponse(google.protobuf.message.Message):
     ) -> None: ...
 
 global___UnarchiveArtifactResponse = UnarchiveArtifactResponse
+
+@typing.final
+class BatchArchiveArtifactsRequest(google.protobuf.message.Message):
+    """The artifacts to archive. Every one must belong to the caller."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ARTIFACT_IDS_FIELD_NUMBER: builtins.int
+    @property
+    def artifact_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    def __init__(
+        self,
+        *,
+        artifact_ids: collections.abc.Iterable[builtins.str] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["artifact_ids", b"artifact_ids"]) -> None: ...
+
+global___BatchArchiveArtifactsRequest = BatchArchiveArtifactsRequest
+
+@typing.final
+class BatchArchiveArtifactsResponse(google.protobuf.message.Message):
+    """Empty on success; nothing is archived on failure."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___BatchArchiveArtifactsResponse = BatchArchiveArtifactsResponse
+
+@typing.final
+class BatchUnarchiveArtifactsRequest(google.protobuf.message.Message):
+    """The artifacts to unarchive. Every one must belong to the caller."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ARTIFACT_IDS_FIELD_NUMBER: builtins.int
+    @property
+    def artifact_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    def __init__(
+        self,
+        *,
+        artifact_ids: collections.abc.Iterable[builtins.str] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["artifact_ids", b"artifact_ids"]) -> None: ...
+
+global___BatchUnarchiveArtifactsRequest = BatchUnarchiveArtifactsRequest
+
+@typing.final
+class BatchUnarchiveArtifactsResponse(google.protobuf.message.Message):
+    """Empty on success; nothing is unarchived on failure."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___BatchUnarchiveArtifactsResponse = BatchUnarchiveArtifactsResponse

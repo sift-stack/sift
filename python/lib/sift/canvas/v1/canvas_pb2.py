@@ -12,16 +12,33 @@ from google.protobuf.internal import builder as _builder
 _sym_db = _symbol_database.Default()
 
 
+from google.api import annotations_pb2 as google_dot_api_dot_annotations__pb2
+from google.api import field_behavior_pb2 as google_dot_api_dot_field__behavior__pb2
+from protoc_gen_openapiv2.options import annotations_pb2 as protoc__gen__openapiv2_dot_options_dot_annotations__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1bsift/canvas/v1/canvas.proto\x12\x0esift.canvas.v1*\x8c\x04\n\x19\x43\x61nvasCellExecutionStatus\x12,\n(CANVAS_CELL_EXECUTION_STATUS_UNSPECIFIED\x10\x00\x12,\n(CANVAS_CELL_EXECUTION_STATUS_IN_PROGRESS\x10\x01\x12,\n(CANVAS_CELL_EXECUTION_STATUS_AUTO_PASSED\x10\x02\x12,\n(CANVAS_CELL_EXECUTION_STATUS_AUTO_FAILED\x10\x03\x12.\n*CANVAS_CELL_EXECUTION_STATUS_MANUAL_PASSED\x10\x04\x12.\n*CANVAS_CELL_EXECUTION_STATUS_MANUAL_FAILED\x10\x05\x12&\n\"CANVAS_CELL_EXECUTION_STATUS_ERROR\x10\x06\x12(\n$CANVAS_CELL_EXECUTION_STATUS_SKIPPED\x10\x07\x12%\n!CANVAS_CELL_EXECUTION_STATUS_OPEN\x10\x08\x12\x33\n/CANVAS_CELL_EXECUTION_STATUS_MANUALLY_CANCELLED\x10\t\x12)\n%CANVAS_CELL_EXECUTION_STATUS_IN_QUEUE\x10\nB{\n\x12\x63om.sift.canvas.v1B\x0b\x43\x61nvasProtoP\x01\xa2\x02\x03SCX\xaa\x02\x0eSift.Canvas.V1\xca\x02\x0eSift\\Canvas\\V1\xe2\x02\x1aSift\\Canvas\\V1\\GPBMetadata\xea\x02\x10Sift::Canvas::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1bsift/canvas/v1/canvas.proto\x12\x0esift.canvas.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"h\n\x13\x45xportCanvasRequest\x12 \n\tcanvas_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x08\x63\x61nvasId\x12/\n\x11\x63\x61nvas_version_id\x18\x02 \x01(\tB\x03\xe0\x41\x01R\x0f\x63\x61nvasVersionId\"A\n\x14\x45xportCanvasResponse\x12)\n\x0c\x64ownload_url\x18\x01 \x01(\tB\x06\xe0\x41\x03\xe0\x41\x02R\x0b\x64ownloadUrl*\x8c\x04\n\x19\x43\x61nvasCellExecutionStatus\x12,\n(CANVAS_CELL_EXECUTION_STATUS_UNSPECIFIED\x10\x00\x12,\n(CANVAS_CELL_EXECUTION_STATUS_IN_PROGRESS\x10\x01\x12,\n(CANVAS_CELL_EXECUTION_STATUS_AUTO_PASSED\x10\x02\x12,\n(CANVAS_CELL_EXECUTION_STATUS_AUTO_FAILED\x10\x03\x12.\n*CANVAS_CELL_EXECUTION_STATUS_MANUAL_PASSED\x10\x04\x12.\n*CANVAS_CELL_EXECUTION_STATUS_MANUAL_FAILED\x10\x05\x12&\n\"CANVAS_CELL_EXECUTION_STATUS_ERROR\x10\x06\x12(\n$CANVAS_CELL_EXECUTION_STATUS_SKIPPED\x10\x07\x12%\n!CANVAS_CELL_EXECUTION_STATUS_OPEN\x10\x08\x12\x33\n/CANVAS_CELL_EXECUTION_STATUS_MANUALLY_CANCELLED\x10\t\x12)\n%CANVAS_CELL_EXECUTION_STATUS_IN_QUEUE\x10\n2\xaf\x02\n\rCanvasService\x12\x9d\x02\n\x0c\x45xportCanvas\x12#.sift.canvas.v1.ExportCanvasRequest\x1a$.sift.canvas.v1.ExportCanvasResponse\"\xc1\x01\x92\x41\x92\x01\n\x06\x43\x61nvas\x12\rExport Canvas\x1a[Download one canvas version as a zip of its authoring files, attachments, and dependencies.*\x1c\x43\x61nvasService_ExportCanvasV1\x82\xd3\xe4\x93\x02%\x12#/api/v1/canvases/{canvas_id}/exportB\x90\x01\n\x12\x63om.sift.canvas.v1B\x0b\x43\x61nvasProtoP\x01\xa2\x02\x03SCX\xaa\x02\x0eSift.Canvas.V1\xca\x02\x0eSift\\Canvas\\V1\xe2\x02\x1aSift\\Canvas\\V1\\GPBMetadata\xea\x02\x10Sift::Canvas::V1\x92\x41\x12\x12\x10\n\x0e\x43\x61nvas Serviceb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'sift.canvas.v1.canvas_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
-  _globals['DESCRIPTOR']._serialized_options = b'\n\022com.sift.canvas.v1B\013CanvasProtoP\001\242\002\003SCX\252\002\016Sift.Canvas.V1\312\002\016Sift\\Canvas\\V1\342\002\032Sift\\Canvas\\V1\\GPBMetadata\352\002\020Sift::Canvas::V1'
-  _globals['_CANVASCELLEXECUTIONSTATUS']._serialized_start=48
-  _globals['_CANVASCELLEXECUTIONSTATUS']._serialized_end=572
+  _globals['DESCRIPTOR']._serialized_options = b'\n\022com.sift.canvas.v1B\013CanvasProtoP\001\242\002\003SCX\252\002\016Sift.Canvas.V1\312\002\016Sift\\Canvas\\V1\342\002\032Sift\\Canvas\\V1\\GPBMetadata\352\002\020Sift::Canvas::V1\222A\022\022\020\n\016Canvas Service'
+  _globals['_EXPORTCANVASREQUEST'].fields_by_name['canvas_id']._loaded_options = None
+  _globals['_EXPORTCANVASREQUEST'].fields_by_name['canvas_id']._serialized_options = b'\340A\002'
+  _globals['_EXPORTCANVASREQUEST'].fields_by_name['canvas_version_id']._loaded_options = None
+  _globals['_EXPORTCANVASREQUEST'].fields_by_name['canvas_version_id']._serialized_options = b'\340A\001'
+  _globals['_EXPORTCANVASRESPONSE'].fields_by_name['download_url']._loaded_options = None
+  _globals['_EXPORTCANVASRESPONSE'].fields_by_name['download_url']._serialized_options = b'\340A\003\340A\002'
+  _globals['_CANVASSERVICE'].methods_by_name['ExportCanvas']._loaded_options = None
+  _globals['_CANVASSERVICE'].methods_by_name['ExportCanvas']._serialized_options = b'\222A\222\001\n\006Canvas\022\rExport Canvas\032[Download one canvas version as a zip of its authoring files, attachments, and dependencies.*\034CanvasService_ExportCanvasV1\202\323\344\223\002%\022#/api/v1/canvases/{canvas_id}/export'
+  _globals['_CANVASCELLEXECUTIONSTATUS']._serialized_start=332
+  _globals['_CANVASCELLEXECUTIONSTATUS']._serialized_end=856
+  _globals['_EXPORTCANVASREQUEST']._serialized_start=158
+  _globals['_EXPORTCANVASREQUEST']._serialized_end=262
+  _globals['_EXPORTCANVASRESPONSE']._serialized_start=264
+  _globals['_EXPORTCANVASRESPONSE']._serialized_end=329
+  _globals['_CANVASSERVICE']._serialized_start=859
+  _globals['_CANVASSERVICE']._serialized_end=1162
 # @@protoc_insertion_point(module_scope)

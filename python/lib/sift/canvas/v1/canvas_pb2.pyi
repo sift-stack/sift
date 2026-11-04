@@ -6,6 +6,7 @@ isort:skip_file
 import builtins
 import google.protobuf.descriptor
 import google.protobuf.internal.enum_type_wrapper
+import google.protobuf.message
 import sys
 import typing
 
@@ -52,3 +53,47 @@ CANVAS_CELL_EXECUTION_STATUS_OPEN: CanvasCellExecutionStatus.ValueType  # 8
 CANVAS_CELL_EXECUTION_STATUS_MANUALLY_CANCELLED: CanvasCellExecutionStatus.ValueType  # 9
 CANVAS_CELL_EXECUTION_STATUS_IN_QUEUE: CanvasCellExecutionStatus.ValueType  # 10
 global___CanvasCellExecutionStatus = CanvasCellExecutionStatus
+
+@typing.final
+class ExportCanvasRequest(google.protobuf.message.Message):
+    """The request for a call to `CanvasService_ExportCanvas`."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    CANVAS_ID_FIELD_NUMBER: builtins.int
+    CANVAS_VERSION_ID_FIELD_NUMBER: builtins.int
+    canvas_id: builtins.str
+    """The canvas to export."""
+    canvas_version_id: builtins.str
+    """Empty exports the canvas's current version."""
+    def __init__(
+        self,
+        *,
+        canvas_id: builtins.str = ...,
+        canvas_version_id: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["canvas_id", b"canvas_id", "canvas_version_id", b"canvas_version_id"]) -> None: ...
+
+global___ExportCanvasRequest = ExportCanvasRequest
+
+@typing.final
+class ExportCanvasResponse(google.protobuf.message.Message):
+    """The response of a call to `CanvasService_ExportCanvas`."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    DOWNLOAD_URL_FIELD_NUMBER: builtins.int
+    download_url: builtins.str
+    """Presigned URL for the zip of the py:percent source, parameter sidecar,
+    requirements, attachments under files/, Python modules under deps/, and
+    wheels under wheels/. The URL carries its own authorization and expires.
+    Its Content-Disposition names the file after the canvas, such as "Demo.zip".
+    """
+    def __init__(
+        self,
+        *,
+        download_url: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["download_url", b"download_url"]) -> None: ...
+
+global___ExportCanvasResponse = ExportCanvasResponse

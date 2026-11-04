@@ -41,6 +41,7 @@ func (m *CreateDataImportFromUrlRequest) CloneVT() *CreateDataImportFromUrlReque
 	r.BatchConfig = m.BatchConfig.CloneVT()
 	r.UlogConfig = m.UlogConfig.CloneVT()
 	r.McapConfig = m.McapConfig.CloneVT()
+	r.LeaveRunOpen = m.LeaveRunOpen
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -116,6 +117,7 @@ func (m *CreateDataImportFromUploadRequest) CloneVT() *CreateDataImportFromUploa
 	r.BatchConfig = m.BatchConfig.CloneVT()
 	r.UlogConfig = m.UlogConfig.CloneVT()
 	r.McapConfig = m.McapConfig.CloneVT()
+	r.LeaveRunOpen = m.LeaveRunOpen
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -1055,6 +1057,9 @@ func (this *CreateDataImportFromUrlRequest) EqualVT(that *CreateDataImportFromUr
 	if !this.McapConfig.EqualVT(that.McapConfig) {
 		return false
 	}
+	if this.LeaveRunOpen != that.LeaveRunOpen {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1150,6 +1155,9 @@ func (this *CreateDataImportFromUploadRequest) EqualVT(that *CreateDataImportFro
 		return false
 	}
 	if !this.McapConfig.EqualVT(that.McapConfig) {
+		return false
+	}
+	if this.LeaveRunOpen != that.LeaveRunOpen {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2881,6 +2889,16 @@ func (m *CreateDataImportFromUrlRequest) MarshalToSizedBufferVT(dAtA []byte) (in
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.LeaveRunOpen {
+		i--
+		if m.LeaveRunOpen {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x50
+	}
 	if m.McapConfig != nil {
 		size, err := m.McapConfig.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -3123,6 +3141,16 @@ func (m *CreateDataImportFromUploadRequest) MarshalToSizedBufferVT(dAtA []byte) 
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.LeaveRunOpen {
+		i--
+		if m.LeaveRunOpen {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x50
 	}
 	if m.McapConfig != nil {
 		size, err := m.McapConfig.MarshalToSizedBufferVT(dAtA[:i])
@@ -5709,6 +5737,16 @@ func (m *CreateDataImportFromUrlRequest) MarshalToSizedBufferVTStrict(dAtA []byt
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.LeaveRunOpen {
+		i--
+		if m.LeaveRunOpen {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x50
+	}
 	if m.McapConfig != nil {
 		size, err := m.McapConfig.MarshalToSizedBufferVTStrict(dAtA[:i])
 		if err != nil {
@@ -5951,6 +5989,16 @@ func (m *CreateDataImportFromUploadRequest) MarshalToSizedBufferVTStrict(dAtA []
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.LeaveRunOpen {
+		i--
+		if m.LeaveRunOpen {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x50
 	}
 	if m.McapConfig != nil {
 		size, err := m.McapConfig.MarshalToSizedBufferVTStrict(dAtA[:i])
@@ -8590,6 +8638,9 @@ func (m *CreateDataImportFromUrlRequest) SizeVT() (n int) {
 		l = m.McapConfig.SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	if m.LeaveRunOpen {
+		n += 2
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -8673,6 +8724,9 @@ func (m *CreateDataImportFromUploadRequest) SizeVT() (n int) {
 	if m.McapConfig != nil {
 		l = m.McapConfig.SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.LeaveRunOpen {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -10086,6 +10140,26 @@ func (m *CreateDataImportFromUrlRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LeaveRunOpen", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.LeaveRunOpen = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -10678,6 +10752,26 @@ func (m *CreateDataImportFromUploadRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LeaveRunOpen", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.LeaveRunOpen = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -17527,6 +17621,26 @@ func (m *CreateDataImportFromUrlRequest) UnmarshalVTUnsafe(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LeaveRunOpen", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.LeaveRunOpen = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -18127,6 +18241,26 @@ func (m *CreateDataImportFromUploadRequest) UnmarshalVTUnsafe(dAtA []byte) error
 				return err
 			}
 			iNdEx = postIndex
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LeaveRunOpen", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.LeaveRunOpen = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
