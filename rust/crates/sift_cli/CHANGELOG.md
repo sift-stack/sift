@@ -7,6 +7,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- `export` now exits with an error when the server does not return an export
+  job. Before, `export --no-wait` printed a blank job ID, linked to the jobs
+  page with an empty `jobId`, and exited 0. Without `--no-wait`, it failed with
+  `failed to retrieve job by ID`. Scripts that relied on exit status 0 now
+  fail.
+
 ## [v0.8.0] - November 3, 2026
 
 ### What's New
