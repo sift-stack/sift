@@ -71,10 +71,16 @@ pub fn build_explore_url(
     Some(format!("{host}/explore?method=single&{source}"))
 }
 
+/// Builds a link to the Sift jobs page.
+pub fn build_jobs_page_url(app_uri: Option<&str>) -> Option<String> {
+    let host = app_uri.and_then(normalize_app_uri)?;
+    Some(format!("{host}/manage/jobs"))
+}
+
 /// Builds a link to the Sift jobs page, focused on a single job.
 pub fn build_jobs_url(app_uri: Option<&str>, job_id: &str) -> Option<String> {
-    let host = app_uri.and_then(normalize_app_uri)?;
-    Some(format!("{host}/manage/jobs?jobId={}", encode(job_id)))
+    let page = build_jobs_page_url(app_uri)?;
+    Some(format!("{page}?jobId={}", encode(job_id)))
 }
 
 #[cfg(test)]

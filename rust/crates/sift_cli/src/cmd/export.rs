@@ -33,7 +33,7 @@ use crate::{
         api::create_grpc_channel,
         calculated_channel::{ResolveScope, resolve_calculated_channels},
         channel::resolve_channel_ids,
-        explore_url::{build_jobs_url, explore_or_note},
+        explore_url::{build_jobs_page_url, build_jobs_url, explore_or_note},
         job::JobServiceWrapper,
         progress::Spinner,
         tty::{Output, hyperlink, link_style, stdout_is_tty},
@@ -254,6 +254,27 @@ async fn export(
         .await
         .context("failed to initiate export")?
         .into_inner();
+
+    if job_id.is_empty() {
+        let tip = match build_jobs_page_url(app_uri) {
+            Some(url) => {
+                let link = if stdout_is_tty() {
+                    hyperlink(&link_style(&url), &url)
+                } else {
+                    url
+                };
+                format!("Check the jobs page in Sift: {link}")
+            }
+            None => explore_or_note(None),
+        };
+
+        Output::new()
+            .line("Export failed: the server did not return a job ID")
+            .tip(tip)
+            .eprint();
+
+        return Ok(ExitCode::FAILURE);
+    }
 
     if !no_wait {
         return download_export(grpc_channel, job_id, output).await;
