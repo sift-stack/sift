@@ -436,13 +436,9 @@ impl CalculatedChannelService {
         .context("failed to resolve calculated channels")?;
 
         let BatchResolveCalculatedChannelsResponse { responses } = resp;
-        // The API drops an entry whose source channels the caller may not
-        // read, so a short batch most likely means a permission gap.
         if responses.len() != targets.len() {
             bail!(
-                "resolve returned {} response(s) for {} requested calculated channel(s); \
-                 the API omits a calculated channel when the caller cannot read one of its \
-                 source channels",
+                "resolve returned {} response(s) for {} requested calculated channel(s)",
                 responses.len(),
                 targets.len(),
             );
