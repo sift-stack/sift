@@ -249,13 +249,20 @@ async fn export(
     app_uri: Option<&str>,
 ) -> Result<ExitCode> {
     let mut export_service = ExportServiceClient::new(grpc_channel.clone());
-    let ExportDataResponse { job_id, .. } = export_service
+    let ExportDataResponse {
+        job_id,
+        presigned_url,
+        ..
+    } = export_service
         .export_data(req)
         .await
         .context("failed to initiate export")?
         .into_inner();
 
-    if job_id.is_empty() {
+    if !presigned_url.is_empty() {
+        let spinner = Spinner::new();
+        return download_export_from_presigned_url(presigned_url, output, &spinner).await;
+    } else if job_id.is_empty() {
         let tip = match build_jobs_page_url(app_uri) {
             Some(url) => {
                 let link = if stdout_is_tty() {
@@ -269,7 +276,7 @@ async fn export(
         };
 
         Output::new()
-            .line("The server did not return a job ID")
+            .line("The server returned neither a job ID nor a presigned url")
             .tip(tip)
             .eprint();
 
@@ -277,7 +284,8 @@ async fn export(
     }
 
     if !no_wait {
-        return download_export(grpc_channel, job_id, output).await;
+        let spinner = Spinner::new();
+        return download_export(grpc_channel, job_id, output, &spinner).await;
     }
 
     let tip = match build_jobs_url(app_uri, &job_id) {
@@ -304,34 +312,11 @@ async fn export(
     Ok(ExitCode::SUCCESS)
 }
 
-async fn download_export(
-    grpc_channel: SiftChannel,
-    job_id: String,
+async fn download_export_from_presigned_url(
+    presigned_url: String,
     output: PathBuf,
+    spinner: &Spinner,
 ) -> Result<ExitCode> {
-    let mut export_service = ExportServiceClient::new(grpc_channel.clone());
-    let mut job_service = JobServiceWrapper::new(grpc_channel);
-
-    let job = job_service
-        .get_job(&job_id)
-        .await?
-        .ok_or_else(|| anyhow!("failed to find job {job_id}"))?;
-
-    let spinner = Spinner::new();
-
-    match wait_for_export(job, &mut job_service, &job_id, &spinner).await? {
-        ExitCode::SUCCESS => {}
-        other => return Ok(other),
-    }
-
-    let GetDownloadUrlResponse { presigned_url, .. } = export_service
-        .get_download_url(GetDownloadUrlRequest {
-            job_id: job_id.clone(),
-        })
-        .await
-        .context("failed to get download URL for export")?
-        .into_inner();
-
     let http_client = Client::new();
 
     let mut output_file = match File::create_new(&output) {
@@ -346,8 +331,7 @@ async fn download_export(
         }
     };
 
-    let zip_file_path = temp_dir().join(format!("sift-export-{job_id}.zip"));
-    let mut zip_file = match File::create_new(&zip_file_path) {
+    let mut zip_file = match tempfile::tempfile() {
         Ok(fd) => fd,
         Err(err) => {
             spinner.finish_and_clear();
@@ -391,8 +375,6 @@ async fn download_export(
     io::copy(&mut zip_item, &mut output_file)?;
     output_file.sync_all()?;
 
-    let _ = remove_file(zip_file_path);
-
     spinner.finish_and_clear();
 
     Output::new()
@@ -404,6 +386,36 @@ async fn download_export(
         .print();
 
     Ok(ExitCode::SUCCESS)
+}
+
+async fn download_export(
+    grpc_channel: SiftChannel,
+    job_id: String,
+    output: PathBuf,
+    spinner: &Spinner,
+) -> Result<ExitCode> {
+    let mut export_service = ExportServiceClient::new(grpc_channel.clone());
+    let mut job_service = JobServiceWrapper::new(grpc_channel);
+
+    let job = job_service
+        .get_job(&job_id)
+        .await?
+        .ok_or_else(|| anyhow!("failed to find job {job_id}"))?;
+
+    match wait_for_export(job, &mut job_service, &job_id, &spinner).await? {
+        ExitCode::SUCCESS => {}
+        other => return Ok(other),
+    }
+
+    let GetDownloadUrlResponse { presigned_url, .. } = export_service
+        .get_download_url(GetDownloadUrlRequest {
+            job_id: job_id.clone(),
+        })
+        .await
+        .context("failed to get download URL for export")?
+        .into_inner();
+
+    download_export_from_presigned_url(presigned_url, output, &spinner).await
 }
 
 async fn wait_for_export(
