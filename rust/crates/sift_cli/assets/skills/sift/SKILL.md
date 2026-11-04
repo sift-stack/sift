@@ -188,14 +188,9 @@ tool.
   carries `unresolved_calculated_channels`, the file is missing those columns:
   tell the user which channels did not resolve rather than reporting the file as
   complete.
-- **Test a calculated channel before saving it.** Pass `expressions_json` to
-  `get_data`: a JSON string array of `{ "name", "expression",
-  "channel_references" }` entries, with references shaped as in
-  `create_calculated_channel`. Each entry comes back as its own column, and
-  nothing is saved, so no approval is needed. Use it alone or with one channel
-  selector. Check `unresolved_calculated_channels` for syntax errors or missing
-  channels, compare the column against its inputs, and only then propose the
-  save. Every save writes a new version to the organization.
+- **Test a calculated channel before saving it.** Evaluate the draft with
+  `get_data`'s `expressions_json`, which saves nothing, and propose the save
+  only after the column checks out.
 - **Author or change a calculated channel.** A calculated channel is a CEL
   expression plus an asset scope. `create_calculated_channel` and
   `update_calculated_channel` take the expression with `$1`, `$2`, …

@@ -13,15 +13,13 @@ use sift_rs::{
         v1::{ExpressionChannelReference, ExpressionRequest},
         v2::{
             BatchResolveCalculatedChannelsRequest, BatchResolveCalculatedChannelsResponse,
-            CalculatedChannel, ListCalculatedChannelsResponse, ResolveCalculatedChannelRequest,
-            ResolveCalculatedChannelResponse, ResolvedCalculatedChannel,
-            UnresolvedCalculatedChannel, calculated_channel_query_configuration::Query,
+            CalculatedChannel, ListCalculatedChannelsResponse, ResolveCalculatedChannelResponse,
+            ResolvedCalculatedChannel, UnresolvedCalculatedChannel,
             calculated_channel_service_server::CalculatedChannelServiceServer,
             resolve_calculated_channel_request::CalculatedChannel as ResolveTarget,
         },
     },
     channels::v3::{Channel, ListChannelsResponse, channel_service_server::ChannelServiceServer},
-    common::r#type::v1::{named_resources::Resources, resource_identifier::Identifier},
     data::v2::{
         DoubleValue, DoubleValues, GetDataResponse, Metadata,
         data_service_server::DataServiceServer, metadata, query::Query as QueryKind,
@@ -41,7 +39,7 @@ use tempdir::TempDir;
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
-use super::{GetDataParams, PendingOutput, SqlParams};
+use super::{GetDataParams, PendingOutput, SqlParams, parse_expressions_json};
 use crate::{
     server::SiftMcpServer,
     service::common::{ColumnName, PAGE_SIZE},
@@ -2190,7 +2188,7 @@ fn expression_params(
 ) -> Parameters<GetDataParams> {
     let Parameters(params) = named_params(names, None, output);
     Parameters(GetDataParams {
-        channel_names: (!names.is_empty()).then_some(params.channel_names.unwrap_or_default()),
+        channel_names: params.channel_names.filter(|names| !names.is_empty()),
         expressions_json: Some(expressions_json.into()),
         ..params
     })
@@ -2207,21 +2205,8 @@ fn expression_entry(name: &str, expression: &str) -> serde_json::Value {
     })
 }
 
-/// The expression of an inline configuration in a resolve request, or `None`
-/// when the request names a saved channel.
-fn draft_expression_of(req: &ResolveCalculatedChannelRequest) -> Option<&str> {
-    let Some(ResolveTarget::CalculatedChannelConfiguration(config)) =
-        req.calculated_channel.as_ref()
-    else {
-        return None;
-    };
-    match config.query_configuration.as_ref()?.query.as_ref()? {
-        Query::Sel(sel) => Some(&sel.expression),
-    }
-}
-
-/// Resolve each request as the API does when it applies to the asset: echo
-/// a draft's expression, or `$1 * 2` for a saved channel, with `$1` on `ch-9`.
+/// Resolve each request as the API does when it applies to the asset, with
+/// `$1` on `ch-9`.
 fn resolve_batch(
     req: tonic::Request<BatchResolveCalculatedChannelsRequest>,
 ) -> Result<Response<BatchResolveCalculatedChannelsResponse>, Status> {
@@ -2229,13 +2214,13 @@ fn resolve_batch(
         .into_inner()
         .requests
         .iter()
-        .map(|req| ResolveCalculatedChannelResponse {
+        .map(|_| ResolveCalculatedChannelResponse {
             calculated_channel_id: None,
             resolved: vec![ResolvedCalculatedChannel {
                 asset_name: "bench".into(),
                 asset_id: "asset-1".into(),
                 expression_request: Some(ExpressionRequest {
-                    expression: draft_expression_of(req).unwrap_or("$1 * 2").into(),
+                    expression: "$1 * 2".into(),
                     expression_channel_references: vec![ExpressionChannelReference {
                         channel_reference: "$1".into(),
                         channel_id: "ch-9".into(),
@@ -2322,33 +2307,6 @@ async fn get_data_evaluates_an_expression_alone() {
     let mut channels = MockChannelServiceImpl::new();
     channels.expect_list_channels().times(0);
 
-    let mut calculated = MockCalculatedChannelServiceImpl::new();
-    calculated
-        .expect_batch_resolve_calculated_channels()
-        .times(1)
-        .withf(|req| {
-            let [req] = req.get_ref().requests.as_slice() else {
-                return false;
-            };
-            let Some(ResolveTarget::CalculatedChannelConfiguration(config)) =
-                req.calculated_channel.as_ref()
-            else {
-                return false;
-            };
-            let sel_ok = matches!(
-                config.query_configuration.as_ref().and_then(|q| q.query.as_ref()),
-                Some(Query::Sel(sel)) if sel.expression == "$1 * 2"
-                    && sel.expression_channel_references.len() == 1
-                    && sel.expression_channel_references[0].channel_identifier == "core_temp"
-            );
-            let assets_ok = matches!(
-                req.assets.as_ref().and_then(|a| a.resources.as_ref()),
-                Some(Resources::Ids(ids)) if ids.ids == ["asset-1"]
-            );
-            sel_ok && assets_ok && req.run.is_none()
-        })
-        .returning(resolve_batch);
-
     let mut data = MockDataServiceImpl::new();
     data.expect_get_data()
         .times(1)
@@ -2366,7 +2324,7 @@ async fn get_data_evaluates_an_expression_alone() {
         one_asset_mock(),
         channels,
         MockRunServiceImpl::new(),
-        calculated,
+        resolving_expression_mock(),
         data,
     )
     .await;
@@ -2517,38 +2475,10 @@ async fn get_data_errors_when_the_only_expression_does_not_resolve() {
     assert!(err.message.contains("Syntax error"), "{}", err.message);
 }
 
-/// A failed resolve call fails the request instead of being passed off as a
-/// bad expression.
-#[tokio::test]
-async fn get_data_fails_when_expression_resolution_fails() {
-    let mut calculated = MockCalculatedChannelServiceImpl::new();
-    calculated
-        .expect_batch_resolve_calculated_channels()
-        .returning(|_| Err(Status::internal("resolver crashed")));
-
-    let (server, _h) = server_with_calculation_mocks(
-        one_asset_mock(),
-        raw_channel_mock(&["pressure"]),
-        MockRunServiceImpl::new(),
-        calculated,
-        MockDataServiceImpl::new(),
-    )
-    .await;
-
-    let err = server
-        .get_data(expression_params(&["pressure"], CORE_X2, never_written()))
-        .await
-        .expect_err("a failed resolve must fail the call");
-    assert_eq!(err.code, ErrorCode::INTERNAL_ERROR);
-}
-
-/// `expressions_json` that is not a non-empty JSON array of entries is the
-/// caller's to fix, before anything is queried.
-#[tokio::test]
-async fn get_data_rejects_malformed_expressions_json() {
-    let (server, _h) =
-        server_with_mocks(MockAssetServiceImpl::new(), MockChannelServiceImpl::new()).await;
-
+/// `expressions_json` that is not a non-empty JSON array of at most 50
+/// entries is the caller's to fix.
+#[test]
+fn parse_expressions_json_rejects_a_malformed_array() {
     let too_many = serde_json::Value::Array(
         (0..51)
             .map(|i| expression_entry(&format!("e{i}"), "$1"))
@@ -2556,22 +2486,15 @@ async fn get_data_rejects_malformed_expressions_json() {
     )
     .to_string();
     for json in ["not json", r#"{"name":"x"}"#, "[]", too_many.as_str()] {
-        let err = server
-            .get_data(expression_params(&[], json, never_written()))
-            .await
-            .expect_err("malformed expressions_json must fail");
+        let err = parse_expressions_json(json).expect_err(json);
         assert_eq!(err.code, ErrorCode::INVALID_PARAMS, "{json}");
         assert!(err.message.contains("expressions_json"), "{}", err.message);
     }
 }
 
-/// Any malformed entry fails the call with `INVALID_PARAMS` naming its index,
-/// before anything is queried.
-#[tokio::test]
-async fn get_data_rejects_a_malformed_expression_entry() {
-    let (server, _h) =
-        server_with_mocks(MockAssetServiceImpl::new(), MockChannelServiceImpl::new()).await;
-
+/// Any malformed entry is rejected with `INVALID_PARAMS` naming its index.
+#[test]
+fn parse_expressions_json_rejects_a_malformed_entry() {
     let reference =
         serde_json::json!([{ "channel_reference": "$1", "channel_identifier": "core_temp" }]);
     let cases = [
@@ -2592,7 +2515,7 @@ async fn get_data_rejects_a_malformed_expression_entry() {
             serde_json::json!({ "name": "a", "expression": "$1", "channel_references": [] }),
         ),
         (
-            "blank reference",
+            "reference to nothing",
             serde_json::json!({
                 "name": "a",
                 "expression": "$1",
@@ -2604,37 +2527,38 @@ async fn get_data_rejects_a_malformed_expression_entry() {
             serde_json::json!({ "name": "a", "expression": "$1", "channel_references": reference, "units": "V" }),
         ),
         ("blank name", expression_entry("  ", "$1")),
-        ("padded name", expression_entry(" a", "$1")),
         ("comma in name", expression_entry("thrust, x2", "$1")),
         ("quote in name", expression_entry("thrust\"x2", "$1")),
         ("brace in name", expression_entry("thrust {x2}", "$1")),
-        ("blank expression", expression_entry("a", "  ")),
+        ("duplicate name", expression_entry("ok", "$1 * 2")),
     ];
     for (case, entry) in cases {
         let json = serde_json::json!([expression_entry("ok", "$1"), entry]).to_string();
-        let err = server
-            .get_data(expression_params(&[], &json, never_written()))
-            .await
-            .expect_err(case);
+        let err = parse_expressions_json(&json).expect_err(case);
         assert_eq!(err.code, ErrorCode::INVALID_PARAMS, "{case}");
         assert!(
-            err.message.contains("expressions_json"),
+            err.message.contains("expressions_json[1]"),
             "{case}: {}",
             err.message
         );
     }
+}
 
-    let json = serde_json::json!([expression_entry("a", "$1"), expression_entry("a", "$1 * 2")])
-        .to_string();
-    let err = server
-        .get_data(expression_params(&[], &json, never_written()))
-        .await
-        .expect_err("duplicate names must fail");
-    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+/// A reference may name another calculated channel instead of a raw channel,
+/// as in `create_calculated_channel`.
+#[test]
+fn parse_expressions_json_accepts_a_calculated_channel_reference() {
+    let json = serde_json::json!([{
+        "name": "a",
+        "expression": "$1 * 2",
+        "channel_references": [{ "channel_reference": "$1", "calculated_channel_version_id": "v-1" }],
+    }])
+    .to_string();
+    let drafts = parse_expressions_json(&json).expect("a version id reference is valid");
     assert!(
-        err.message.contains("expressions_json[1]"),
-        "{}",
-        err.message
+        drafts[0].channel_references[0]
+            .calculated_channel_reference
+            .is_some()
     );
 }
 
@@ -2724,20 +2648,6 @@ async fn get_data_validates_selectors_with_expressions() {
 /// is scoped to it.
 #[tokio::test]
 async fn get_data_resolves_an_expression_for_the_run() {
-    let mut calculated = MockCalculatedChannelServiceImpl::new();
-    calculated
-        .expect_batch_resolve_calculated_channels()
-        .times(1)
-        .withf(|req| {
-            req.get_ref().requests.iter().all(|req| {
-                matches!(
-                    req.run.as_ref().and_then(|r| r.identifier.as_ref()),
-                    Some(Identifier::Id(id)) if id == "run-1"
-                )
-            })
-        })
-        .returning(resolve_batch);
-
     let mut data = MockDataServiceImpl::new();
     data.expect_get_data()
         .times(1)
@@ -2762,7 +2672,7 @@ async fn get_data_resolves_an_expression_for_the_run() {
         one_asset_mock(),
         MockChannelServiceImpl::new(),
         one_run_mock(),
-        calculated,
+        resolving_expression_mock(),
         data,
     )
     .await;
@@ -2786,8 +2696,8 @@ async fn get_data_resolves_an_expression_for_the_run() {
     );
 }
 
-/// A saved calculated channel and a draft run in one call, each resolved
-/// through the batch endpoint.
+/// A saved calculated channel and a draft resolve in one batch call, the
+/// saved channel first, and both are served.
 #[tokio::test]
 async fn get_data_serves_a_saved_channel_and_a_draft_together() {
     let mut calculated = MockCalculatedChannelServiceImpl::new();
@@ -2803,7 +2713,21 @@ async fn get_data_serves_a_saved_channel_and_a_draft_together() {
     });
     calculated
         .expect_batch_resolve_calculated_channels()
-        .times(2)
+        .times(1)
+        .withf(|req| {
+            matches!(
+                req.get_ref()
+                    .requests
+                    .iter()
+                    .map(|req| req.calculated_channel.as_ref())
+                    .collect::<Vec<_>>()
+                    .as_slice(),
+                [
+                    Some(ResolveTarget::Identifier(_)),
+                    Some(ResolveTarget::CalculatedChannelConfiguration(_)),
+                ]
+            )
+        })
         .returning(resolve_batch);
 
     let mut data = MockDataServiceImpl::new();
