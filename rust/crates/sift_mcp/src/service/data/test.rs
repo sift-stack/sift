@@ -57,7 +57,7 @@ fn named_raw_channel(channel_id: &str, name: &str) -> ChannelInput {
 }
 
 fn saved_calculation(name: &str, expression: &str, input_channel_id: &str) -> ChannelInput {
-    ChannelInput::SavedCalculation {
+    ChannelInput::Calculation {
         channel_key: name.into(),
         expression_request: Box::new(ExpressionRequest {
             expression: expression.into(),
@@ -460,11 +460,7 @@ async fn get_data_does_not_report_a_calculated_channel_that_returned_data() {
     let mut buffer = Vec::new();
     let output = service
         .get_data(
-            &[ChannelInput::Calculation {
-                name: "derived_thrust".into(),
-                input_channels: Vec::new(),
-                expression: "$1 * 2".into(),
-            }],
+            &[saved_calculation("derived_thrust", "$1 * 2", "ch-1")],
             asset_range(0, 4_000_000_000),
             0,
             &mut buffer,
