@@ -112,7 +112,7 @@ tool.
   to enable them, then restart the MCP client.
 - **Data:** `get_data` writes channel data to a Parquet file. `sql` queries
   Parquet files. `upload_dataset` streams a Parquet dataset into Sift.
-- **Charts:** `create_declarative_chart`.
+- **Charts:** `create_declarative_chart`, `get_chart_schema`.
 - **Links:** `explore_url`.
 - **Docs:** `search_docs`.
 - **Writes:** `create_rule`, `update_rule`, `archive_rule`, `unarchive_rule`,
@@ -232,6 +232,20 @@ tool.
   references/declarative-charts.md). For quick links to Sift Explore, use
   `explore_url` instead. When the user wants a chart and numbers, do both and
   give the user both.
+- **Read the chart schema.** Use `get_chart_schema` for the index or named
+  definitions. For the full schema, run `sift-cli get chart-schema -o chart-schema.json`.
+  Replace `axis` with the definition name, and use this recipe only with the
+  file's 2-space indentation.
+
+  ```sh
+  sift-cli get chart-schema -o chart-schema.json
+  defs=$(grep -n '^  "\$defs": {' chart-schema.json | cut -d: -f1)
+  start=$(awk -v s="$defs" 'NR>s && /^    "axis": \{/ {print NR; exit}' chart-schema.json)
+  end=$(awk -v s="$start" 'NR>s && /^    \}/ {print NR; exit}' chart-schema.json)
+  sed -n "${start},${end}p" chart-schema.json
+  ```
+
+  Treat validation errors from `create_declarative_chart` as the final word.
 - **Answer a question about how Sift works.** Call `search_docs`. Do not answer
   from memory, and cite the page you used.
 - **Create an asset.** There is no `create_asset` MCP tool because Sift creates

@@ -45,7 +45,19 @@ chart:
 
 ## Schema reference
 
-Validation errors are the source of truth for allowed keys and constraints. When keys fail validation, read the reported paths and messages to understand what is allowed. The tool accepts `version: 0` YAML or JSON. A single chart uses `chart` or one entry under `charts` and displays inline in Sift agent chat. Several charts or a top-level `layout` are accepted and return an Explore link.
+Call `get_chart_schema` for the index or named definitions. For the full schema, run `sift-cli get chart-schema -o chart-schema.json`.
+
+Replace `axis` with the definition name, and use this recipe only with the file's 2-space indentation.
+
+```sh
+sift-cli get chart-schema -o chart-schema.json
+defs=$(grep -n '^  "\$defs": {' chart-schema.json | cut -d: -f1)
+start=$(awk -v s="$defs" 'NR>s && /^    "axis": \{/ {print NR; exit}' chart-schema.json)
+end=$(awk -v s="$start" 'NR>s && /^    \}/ {print NR; exit}' chart-schema.json)
+sed -n "${start},${end}p" chart-schema.json
+```
+
+Validation errors from `create_declarative_chart` are the final word for allowed keys and constraints. The tool accepts `version: 0` YAML or JSON. A single chart uses `chart` or one entry under `charts` and displays inline in Sift agent chat. Several charts or a top-level `layout` are accepted and return an Explore link.
 
 ## Run and inline expression example
 
