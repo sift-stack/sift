@@ -17,6 +17,28 @@ stores microseconds, so any remaining nanoseconds are dropped, and a duration lo
 `timedelta.max` raises `OverflowError`. `DurationPy.from_timedelta(delta)` creates a `DurationPy`
 from a `timedelta` and raises `ValueError` if `delta` is negative.
 
+### Bug Fixes
+
+#### Rebuilding a `SiftStream` no longer rejects unchanged flows
+
+Sift accepts some variation in how a flow is declared, such as the order of bit field elements,
+and stores it in a normalized form. A `SiftStream` built with an existing ingestion config
+compared its `IngestionConfigForm` against the normalized flows exactly, so a rebuild with an
+unchanged form could fail with `IncompatibleIngestionConfigChange`.
+
+The comparison now accepts the same variation Sift does:
+
+- bit field elements and enum types in any order.
+- flow and channel names that differ only by case, which Sift treats as the same name.
+- different channel descriptions, which do not affect compatibility.
+
+Channel order, data types, units, and the enum and bit field definitions must still match. The
+error for a real change now names the first difference, for example
+`channel 0 ('pressure'): unit is 'kPa' locally but 'psi' in Sift`.
+
+`Flow` values keep using the flow and channel names declared in the `IngestionConfigForm`, and
+ingest requests use the flow name Sift stores.
+
 ## [v0.14.0] - October 15, 2026
 ### What's New
 

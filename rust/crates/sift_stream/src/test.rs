@@ -76,6 +76,8 @@ pub(crate) struct MockIngestionConfigService {
     // Flow name -> (status to return, remaining calls that should fail).
     flow_create_statuses: Arc<Mutex<HashMap<String, (Status, usize)>>>,
     create_flows_call_count: Arc<AtomicUsize>,
+    // Filters received by `list_ingestion_config_flows`, in call order.
+    list_flows_filters: Arc<Mutex<Vec<String>>>,
 }
 
 impl Default for MockIngestionConfigService {
@@ -101,6 +103,7 @@ impl Default for MockIngestionConfigService {
             deferred_flows: vec![],
             flow_create_statuses: Arc::new(Mutex::new(HashMap::new())),
             create_flows_call_count: Arc::new(AtomicUsize::new(0)),
+            list_flows_filters: Arc::new(Mutex::new(Vec::new())),
         }
     }
 }
@@ -128,6 +131,7 @@ impl MockIngestionConfigService {
             deferred_flows: vec![],
             flow_create_statuses: Arc::new(Mutex::new(HashMap::new())),
             create_flows_call_count: Arc::new(AtomicUsize::new(0)),
+            list_flows_filters: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
@@ -152,6 +156,7 @@ impl MockIngestionConfigService {
             deferred_flows,
             flow_create_statuses: Arc::new(Mutex::new(HashMap::new())),
             create_flows_call_count: Arc::new(AtomicUsize::new(0)),
+            list_flows_filters: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
@@ -172,6 +177,20 @@ impl MockIngestionConfigService {
     /// Counter of `create_ingestion_config_flows` calls received.
     pub(crate) fn create_flows_call_count(&self) -> Arc<AtomicUsize> {
         self.create_flows_call_count.clone()
+    }
+
+    /// Replaces the flows stored for the default existing ingestion config, as Sift would return
+    /// them.
+    pub(crate) fn with_existing_flows(flows: Vec<FlowConfig>) -> Self {
+        Self {
+            existing_flows: Arc::new(Mutex::new(flows)),
+            ..Self::default()
+        }
+    }
+
+    /// Filters received by `list_ingestion_config_flows`, in call order.
+    pub(crate) fn list_flows_filters(&self) -> Arc<Mutex<Vec<String>>> {
+        self.list_flows_filters.clone()
     }
 }
 
@@ -270,7 +289,11 @@ impl IngestionConfigService for MockIngestionConfigService {
 
         let mut existing_flows = self.existing_flows.lock().unwrap();
         for flow in create_flows.flows.iter() {
-            if existing_flows.iter().any(|f| f.name == flow.name) {
+            // Sift treats flow names that differ only by case as the same name.
+            if existing_flows
+                .iter()
+                .any(|f| f.name.to_lowercase() == flow.name.to_lowercase())
+            {
                 return Err(Status::already_exists("flow already exists"));
             }
 
@@ -284,6 +307,10 @@ impl IngestionConfigService for MockIngestionConfigService {
         request: Request<ListIngestionConfigFlowsRequest>,
     ) -> Result<Response<ListIngestionConfigFlowsResponse>, Status> {
         let count = self.list_flows_call_count.fetch_add(1, Ordering::Relaxed);
+        self.list_flows_filters
+            .lock()
+            .unwrap()
+            .push(request.get_ref().filter.clone());
 
         // Race-condition mode: after the first call (which returns nothing, making
         // the caller believe the flows don't exist), return the deferred flows so
