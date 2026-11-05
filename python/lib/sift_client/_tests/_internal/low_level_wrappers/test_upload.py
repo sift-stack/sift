@@ -137,7 +137,7 @@ class TestUploadFileObject:
         remote_file_id = _upload(client, io.BytesIO(b"a,b\n1,2\n"))
 
         assert remote_file_id == "rf1"
-        client._rest_client.post.assert_called_once()
+        cast("MagicMock", client._rest_client.post).assert_called_once()
 
     def test_upload_error_includes_server_body(self):
         response = Response()
