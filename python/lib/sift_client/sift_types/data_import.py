@@ -1221,7 +1221,6 @@ class UlogImportConfig(ImportConfigBase):
                 units=d.channel_config.units,
                 description=d.channel_config.description,
                 enum_types=_enum_types_from_proto(d.channel_config),
-                bit_field_elements=_bit_field_elements_from_proto(d.channel_config),
             )
             for d in proto.data
         ]
@@ -1445,7 +1444,6 @@ class McapImportConfig(ImportConfigBase):
                 units=d.channel_config.units,
                 description=d.channel_config.description,
                 enum_types=_enum_types_from_proto(d.channel_config),
-                bit_field_elements=_bit_field_elements_from_proto(d.channel_config),
             )
             for d in proto.data
         ]
