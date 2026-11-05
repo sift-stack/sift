@@ -6,7 +6,7 @@ import logging
 import mimetypes
 from contextlib import nullcontext
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, BinaryIO, ContextManager
+from typing import TYPE_CHECKING, Any, BinaryIO, ContextManager, cast
 
 from requests_toolbelt import MultipartEncoder
 
@@ -88,8 +88,7 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
             file_name: The stored file name when `source` is a file object; its extension sets
                 the MIME type. A path upload uses the file's own name.
             sha256: Send the SHA-256 of the uploaded bytes with the file. A file object is
-                hashed from its current position. An unseekable file object is sent without a
-                hash.
+                hashed from its current position.
 
         Returns:
             The remote file ID of the uploaded file.
@@ -137,7 +136,7 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
         metadata: dict[str, Any] | None,
         description: str | None,
         organization_id: str | None,
-        sha256: bool = False,
+        sha256: bool,
     ) -> str:
         """Synchronous helper to upload the file.
 
@@ -149,10 +148,6 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
         else:
             opened = nullcontext(source)
         with opened as file:
-            if hasattr(file, "getvalue") and file.tell():
-                # MultipartEncoder sends getvalue(), which ignores the position.
-                file = io.BytesIO(file.read())
-
             form_fields: dict[str, Any] = {
                 "entityId": entity_id,
                 "entityType": entity_type,
@@ -161,14 +156,14 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
             if content_encoding:
                 form_fields["file"] = (
                     file_name,
-                    file,
+                    _FromPosition(file),
                     mimetype,
                     {
                         "Content-Encoding": content_encoding,
                     },
                 )
             else:
-                form_fields["file"] = (file_name, file, mimetype)
+                form_fields["file"] = (file_name, _FromPosition(file), mimetype)
 
             if metadata:
                 import json
@@ -184,9 +179,7 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
                 form_fields["description"] = description
 
             if sha256:
-                digest = _sha256_from_position(file)
-                if digest:
-                    form_fields["sha256"] = digest
+                form_fields["sha256"] = _sha256_from_position(file)
 
             form_data = MultipartEncoder(fields=form_fields)
 
@@ -232,19 +225,35 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
         return file_name, mime, encoding
 
 
-def _sha256_from_position(file: BinaryIO) -> str | None:
-    """Hash `file` from its current position in chunks, then seek back to that position.
+class _FromPosition:
+    """Sends a file object from its current position.
 
-    Returns None when the file cannot seek back, so the upload still reads every byte.
+    MultipartEncoder sends all of `getvalue()` for an `io.BytesIO`, ignoring the position. It
+    sends an object with `read` and `len` as is, and reads until `len` is 0.
     """
-    try:
-        if not file.seekable():
-            return None
+
+    def __init__(self, file: BinaryIO):
+        self._file = file
         start = file.tell()
-    except (AttributeError, OSError):
-        return None
+        self._end = file.seek(0, io.SEEK_END)
+        file.seek(start)
+
+    @property
+    def len(self) -> int:
+        return self._end - self._file.tell()
+
+    def read(self, size: int = -1) -> bytes:
+        return self._file.read(size)
+
+
+def _sha256_from_position(file: BinaryIO) -> str:
+    """Hash `file` from its current position in chunks, then seek back to that position."""
+    start = file.tell()
     digest = hashlib.sha256()
-    for chunk in iter(lambda: file.read(_HASH_CHUNK_SIZE), b""):
-        digest.update(chunk)
+    buffer = bytearray(_HASH_CHUNK_SIZE)
+    view = memoryview(buffer)
+    readinto = cast("io.BufferedIOBase", file).readinto
+    while size := readinto(buffer):
+        digest.update(view[:size])
     file.seek(start)
     return digest.hexdigest()

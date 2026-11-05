@@ -394,7 +394,7 @@ class ArtifactsAPIAsync(_ArtifactsResourceBase):
         Args:
             create: The artifact's title, summary, metadata, links, and surface.
             file: The file to upload: a path, bytes, or a binary file object such as
-                `io.BytesIO`.
+                `io.BytesIO`, sent from its current position.
             file_name: The stored file name when `file` is bytes or a file object. A path
                 upload uses the file's own name.
 
@@ -438,7 +438,8 @@ class ArtifactsAPIAsync(_ArtifactsResourceBase):
         Args:
             artifact: The Artifact or artifact ID to update.
             update: The fields to change.
-            file: New bytes for the new version: a path, bytes, or a binary file object.
+            file: New bytes for the new version: a path, bytes, or a binary file object, sent
+                from its current position.
             file_name: The stored file name when `file` is bytes or a file object. A path
                 upload uses the file's own name.
 
@@ -561,8 +562,7 @@ class ArtifactsAPIAsync(_ArtifactsResourceBase):
     ) -> Artifact:
         """Upload the file to the version `artifact` resolves to, then fetch that version.
 
-        The upload sends the file's SHA-256, which the version returns as `file_sha256`. The
-        version becomes the artifact's current version once the upload commits.
+        The version becomes the artifact's current version once the upload commits.
         """
         version_id = artifact.artifact_version._id_or_error
         await self._upload_client.upload_attachment(

@@ -143,7 +143,7 @@ class ArtifactVersion(BaseType[ArtifactVersionProto, "ArtifactVersion"]):
     remote_file_id: str | None
     file_name: str | None
     file_mime_type: str | None
-    file_sha256: str | None = None
+    file_sha256: str | None
     """Lowercase hex SHA-256 that the upload sent with the file. None if it sent none."""
     metadata: dict[str, str | float | bool]
     created_date: datetime
