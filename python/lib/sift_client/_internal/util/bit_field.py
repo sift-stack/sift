@@ -2,7 +2,7 @@
 
 The import service reads a bit field value as raw bytes, a string of 0s and 1s,
 or URL-safe base64, and fails the import on the first value it can't parse. It
-only reports that after the whole file is uploaded. These checks read the
+only reports that after the whole file uploads. These checks read the
 Parquet schema and a sample of values, and raise before the upload starts.
 """
 
@@ -24,8 +24,6 @@ from sift_client.sift_types.data_import import (
 
 if TYPE_CHECKING:
     from pathlib import Path
-
-    import pyarrow as pa
 
     from sift_client.sift_types.data_import import ImportConfig
 
@@ -64,7 +62,14 @@ def check_bit_field_values(config: ImportConfig, path: Path) -> None:
     else:
         return
     if parquet_columns:
-        _check_parquet(path, parquet_columns)
+        try:
+            from sift_client._internal.util.parquet import check_bit_field_columns
+        except ImportError as e:
+            raise RuntimeError(
+                "pyarrow is required for Parquet import. "
+                "Install it via `pip install sift-stack-py[parquet]`."
+            ) from e
+        check_bit_field_columns(path, parquet_columns)
 
 
 def _is_bit_value(value: str) -> bool:
@@ -105,81 +110,3 @@ def _check_csv(path: Path, first_data_row: int, columns: Mapping[int, DataColumn
                 samples[i].append((row_number, row[i] if i < len(row) else ""))
     for i, dc in columns.items():
         _check_values(dc, samples[i])
-
-
-def _check_parquet(path: Path, columns: Mapping[str, DataColumnBase]) -> None:
-    try:
-        import pyarrow as pa
-        import pyarrow.parquet as pq
-
-        from sift_client._internal.util.parquet import PATH_SEPARATOR
-    except ImportError as e:
-        raise RuntimeError(
-            "pyarrow is required for Parquet import. "
-            "Install it via `pip install sift-stack-py[parquet]`."
-        ) from e
-
-    schema = pq.read_schema(path)
-    string_columns: dict[str, DataColumnBase] = {}
-    for column_path, dc in columns.items():
-        field_type = _field_type(schema, column_path.split(PATH_SEPARATOR))
-        if field_type is None:
-            # The import service reports columns missing from the file.
-            continue
-        if (
-            pa.types.is_binary(field_type)
-            or pa.types.is_large_binary(field_type)
-            or pa.types.is_binary_view(field_type)
-            or pa.types.is_fixed_size_binary(field_type)
-        ):
-            continue
-        if (
-            pa.types.is_string(field_type)
-            or pa.types.is_large_string(field_type)
-            or pa.types.is_string_view(field_type)
-        ):
-            string_columns[column_path] = dc
-            continue
-        raise ValueError(
-            f"bit field column '{dc.name}' is {field_type}, but bit field values must be "
-            f"{ACCEPTED_FORMATS}. Store the column as binary, for example "
-            "pa.array([int(v).to_bytes(2, 'little') for v in values], pa.binary()) for a "
-            "16-bit status word."
-        )
-
-    if not string_columns:
-        return
-    # Read only the sampled rows of the string columns.
-    pf = pq.ParquetFile(path)
-    top_level = sorted({p.split(PATH_SEPARATOR)[0] for p in string_columns})
-    batch = next(pf.iter_batches(batch_size=SAMPLE_ROWS, columns=top_level), None)
-    if batch is None:
-        return
-    table = pa.Table.from_batches([batch])
-    for column_path, dc in string_columns.items():
-        values = _column_values(table, column_path.split(PATH_SEPARATOR))
-        _check_values(dc, ((row, "" if v is None else v) for row, v in enumerate(values, start=1)))
-
-
-def _field_type(schema: pa.Schema, parts: list[str]) -> pa.DataType | None:
-    import pyarrow as pa
-
-    index = schema.get_field_index(parts[0])
-    if index == -1:
-        return None
-    field_type = schema.field(index).type
-    for part in parts[1:]:
-        if not pa.types.is_struct(field_type):
-            return None
-        child = field_type.get_field_index(part)
-        if child == -1:
-            return None
-        field_type = field_type.field(child).type
-    return field_type
-
-
-def _column_values(table: pa.Table, parts: list[str]) -> list[str | None]:
-    column = table.column(parts[0]).combine_chunks()
-    for part in parts[1:]:
-        column = column.field(part)
-    return column.to_pylist()

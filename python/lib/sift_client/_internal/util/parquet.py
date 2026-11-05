@@ -18,6 +18,7 @@ from google.protobuf.timestamp_pb2 import Timestamp as TimestampPb
 from sift.common.type.v1.channel_config_pb2 import ChannelConfig as ChannelConfigProto
 
 from sift_client._internal.time import to_timestamp_nanos
+from sift_client._internal.util.bit_field import ACCEPTED_FORMATS, SAMPLE_ROWS, _check_values
 from sift_client._internal.util.file import extract_parquet_footer
 from sift_client._internal.util.time_column import infer_time_column
 from sift_client.sift_types.channel import ChannelDataType
@@ -33,6 +34,9 @@ from sift_client.sift_types.data_import import (
 
 if TYPE_CHECKING:
     from datetime import datetime
+    from typing import Mapping
+
+    from sift_client.sift_types.data_import import DataColumnBase
 
 # Separator used in column paths to address nested struct fields. Channel
 # names replace it with "." since Sift forbids "|" in channel names.
@@ -320,3 +324,69 @@ def detect_flat_parquet_config(
         footer_offset=footer_offset,
         footer_length=len(footer_bytes),
     )
+
+
+def check_bit_field_columns(path: Path, columns: Mapping[str, DataColumnBase]) -> None:
+    """Raise if a ``BIT_FIELD`` column isn't binary, or its sampled string values don't parse."""
+    schema = pq.read_schema(path)
+    string_columns: dict[str, DataColumnBase] = {}
+    for column_path, dc in columns.items():
+        field_type = _field_type(schema, column_path.split(PATH_SEPARATOR))
+        if field_type is None:
+            # The import service reports columns missing from the file.
+            continue
+        if (
+            pa.types.is_binary(field_type)
+            or pa.types.is_large_binary(field_type)
+            or pa.types.is_binary_view(field_type)
+            or pa.types.is_fixed_size_binary(field_type)
+        ):
+            continue
+        if (
+            pa.types.is_string(field_type)
+            or pa.types.is_large_string(field_type)
+            or pa.types.is_string_view(field_type)
+        ):
+            string_columns[column_path] = dc
+            continue
+        raise ValueError(
+            f"bit field column '{dc.name}' is {field_type}, but bit field values must be "
+            f"{ACCEPTED_FORMATS}. Store the column as binary, for example "
+            "pa.array([int(v).to_bytes(2, 'little') for v in values], pa.binary()) for a "
+            "16-bit status word."
+        )
+
+    if not string_columns:
+        return
+    # Read only the sampled rows of the string columns.
+    pf = pq.ParquetFile(path)
+    top_level = sorted({p.split(PATH_SEPARATOR)[0] for p in string_columns})
+    batch = next(pf.iter_batches(batch_size=SAMPLE_ROWS, columns=top_level), None)
+    if batch is None:
+        return
+    table = pa.Table.from_batches([batch])
+    for column_path, dc in string_columns.items():
+        values = _column_values(table, column_path.split(PATH_SEPARATOR))
+        _check_values(dc, ((row, "" if v is None else v) for row, v in enumerate(values, start=1)))
+
+
+def _field_type(schema: pa.Schema, parts: list[str]) -> pa.DataType | None:
+    index = schema.get_field_index(parts[0])
+    if index == -1:
+        return None
+    field_type = schema.field(index).type
+    for part in parts[1:]:
+        if not pa.types.is_struct(field_type):
+            return None
+        child = field_type.get_field_index(part)
+        if child == -1:
+            return None
+        field_type = field_type.field(child).type
+    return field_type
+
+
+def _column_values(table: pa.Table, parts: list[str]) -> list[str | None]:
+    column = table.column(parts[0]).combine_chunks()
+    for part in parts[1:]:
+        column = column.field(part)
+    return column.to_pylist()
