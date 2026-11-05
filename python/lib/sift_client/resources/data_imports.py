@@ -83,10 +83,11 @@ class DataImportAPIAsync(ResourceBase):
         If neither ``run`` nor ``run_name`` is provided (and none is
         set on the config), ``run_name`` defaults to the filename.
 
-        ``BIT_FIELD`` values must be raw bytes, a string of 0s and 1s, or
-        URL-safe base64. Before uploading, CSV and Parquet ``BIT_FIELD``
-        columns are checked: Parquet columns must be a binary or string
-        type, and a sample of string values must parse.
+        For files with ``ChannelDataType.BIT_FIELD`` columns, each value
+        must be raw bytes, a string of 0s and 1s, or URL-safe base64.
+        Integers aren't supported. Before uploading, this method checks CSV
+        and Parquet bit field columns. A Parquet column must be a binary or
+        string type, and a sample of string values must parse.
 
         Examples:
             Import a CSV file with auto-detected config:

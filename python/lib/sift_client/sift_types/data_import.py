@@ -168,16 +168,20 @@ class DataColumnBase(BaseModel, ABC):
     Attributes:
         name: Channel name.
         data_type: The data type of the channel values.
-        units: Optional units string.
-        description: Optional channel description.
+        units: Optional units string. On a bit field channel, every element
+            shows these units.
+        description: Optional channel description. On a bit field channel,
+            every element shows this description.
         enum_types: Mapping of enum name to key. Only valid when ``data_type``
             is ``ChannelDataType.ENUM``.
         bit_field_elements: Named bit ranges within each value. Only valid when
             ``data_type`` is ``ChannelDataType.BIT_FIELD``, and only on formats
-            that support bit fields.
+            that support bit fields. Each element reads back as an unsigned
+            integer. Elements can't have their own units or description.
     """
 
-    # ULog and MCAP imports can't override a channel to BIT_FIELD.
+    # The ULog and MCAP import jobs only accept the file's native scalar types
+    # as overrides, so they reject BIT_FIELD after the upload.
     _supports_bit_fields: ClassVar[bool] = True
 
     name: str
