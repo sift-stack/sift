@@ -49,6 +49,7 @@ func UseSiftChannel(ctx context.Context, config SiftChannelConfig) (SiftChannel,
 		initAuthStreamInterceptor(config.Apikey),
 	)
 
+	//lint:ignore SA1019 DialContext is supported throughout gRPC 1.x.
 	return grpc.DialContext(
 		ctx,
 		config.Uri,
