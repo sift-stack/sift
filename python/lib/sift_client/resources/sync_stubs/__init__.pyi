@@ -575,7 +575,7 @@ class ArtifactsAPI:
         Args:
             create: The artifact's title, summary, metadata, links, and surface.
             file: The file to upload: a path, bytes, or a binary file object such as
-                `io.BytesIO`.
+                `io.BytesIO`, sent from its current position.
             file_name: The stored file name when `file` is bytes or a file object. A path
                 upload uses the file's own name.
 
@@ -770,7 +770,8 @@ class ArtifactsAPI:
         Args:
             artifact: The Artifact or artifact ID to update.
             update: The fields to change.
-            file: New bytes for the new version: a path, bytes, or a binary file object.
+            file: New bytes for the new version: a path, bytes, or a binary file object, sent
+                from its current position.
             file_name: The stored file name when `file` is bytes or a file object. A path
                 upload uses the file's own name.
 
