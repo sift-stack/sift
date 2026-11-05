@@ -9626,7 +9626,8 @@ Pass a <code>pd.Timestamp</code> for nanosecond precision.</p>
    (sift_client.sift_types.data_import.DataColumnBase.units)" href="#sift_client.sift_types.data_import.DataColumnBase.units">units</a></code></td>
             <td class="doc-attribute-details">
               <div class="doc-md-description">
-                <p>Optional units string.</p>
+                <p>Optional units string. On a bit field channel, every element
+shows these units.</p>
               </div>
               <p>
                   <span class="doc-attribute-annotation">
@@ -9645,7 +9646,8 @@ Pass a <code>pd.Timestamp</code> for nanosecond precision.</p>
    (sift_client.sift_types.data_import.DataColumnBase.description)" href="#sift_client.sift_types.data_import.DataColumnBase.description">description</a></code></td>
             <td class="doc-attribute-details">
               <div class="doc-md-description">
-                <p>Optional channel description.</p>
+                <p>Optional channel description. On a bit field channel,
+every element shows this description.</p>
               </div>
               <p>
                   <span class="doc-attribute-annotation">
@@ -9686,7 +9688,8 @@ is <code>ChannelDataType.ENUM</code>.</p>
               <div class="doc-md-description">
                 <p>Named bit ranges within each value. Only valid when
 <code>data_type</code> is <code>ChannelDataType.BIT_FIELD</code>, and only on formats
-that support bit fields.</p>
+that support bit fields. Each element reads back as an unsigned
+integer. Elements can't have their own units or description.</p>
               </div>
               <p>
                   <span class="doc-attribute-annotation">
