@@ -4802,7 +4802,7 @@ entity_type, entity_id).</p>
             <td class="doc-param-details">
               <div class="doc-md-description">
                 <p>The file to upload: a path, bytes, or a binary file object such as
-<code>io.BytesIO</code>.</p>
+<code>io.BytesIO</code>, sent from its current position.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -5006,7 +5006,8 @@ gets new bytes, and its only <code>SOURCE</code> and <code>DERIVED_FROM</code> l
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>New bytes for the new version: a path, bytes, or a binary file object.</p>
+                <p>New bytes for the new version: a path, bytes, or a binary file object, sent
+from its current position.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
