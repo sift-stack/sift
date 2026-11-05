@@ -85,6 +85,9 @@ class _EntityTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._Enu
     A data file attached to one canvas execution, not to the canvas version.
     entity_id is the canvas_execution_id. The runner merges these into
     client.canvas.files for that run and leaves the version's file set alone.
+    Preview image of a saved exploration's Explore layout; entity_id is the
+    saved_exploration_id.
+    A file in a multi-file agent skill. entity_id is the skill_id.
     """
 
 class EntityType(_EntityType, metaclass=_EntityTypeEnumTypeWrapper): ...
@@ -121,6 +124,9 @@ its own never changes what an existing version runs.
 A data file attached to one canvas execution, not to the canvas version.
 entity_id is the canvas_execution_id. The runner merges these into
 client.canvas.files for that run and leaves the version's file set alone.
+Preview image of a saved exploration's Explore layout; entity_id is the
+saved_exploration_id.
+A file in a multi-file agent skill. entity_id is the skill_id.
 """
 global___EntityType = EntityType
 

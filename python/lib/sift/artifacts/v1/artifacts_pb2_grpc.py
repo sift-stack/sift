@@ -7,8 +7,8 @@ from sift.artifacts.v1 import artifacts_pb2 as sift_dot_artifacts_dot_v1_dot_art
 
 class ArtifactServiceStub(object):
     """ArtifactService manages an organization-scoped, versioned generic artifact
-    store. storage_class decides whether content lives in remote_files or the
-    version's JSON payload. Attachment and provenance are links, and metadata
+    store. Content lives in remote_files, and storage_class decides whether
+    clients may preview it. Attachment and provenance are links, and metadata
     uses the shared metadata values (sift.metadata.v1). No conversation owns an
     artifact.
 
@@ -61,6 +61,11 @@ class ArtifactServiceStub(object):
                 request_serializer=sift_dot_artifacts_dot_v1_dot_artifacts__pb2.PromoteArtifactVersionRequest.SerializeToString,
                 response_deserializer=sift_dot_artifacts_dot_v1_dot_artifacts__pb2.PromoteArtifactVersionResponse.FromString,
                 )
+        self.ListArtifactLinks = channel.unary_unary(
+                '/sift.artifacts.v1.ArtifactService/ListArtifactLinks',
+                request_serializer=sift_dot_artifacts_dot_v1_dot_artifacts__pb2.ListArtifactLinksRequest.SerializeToString,
+                response_deserializer=sift_dot_artifacts_dot_v1_dot_artifacts__pb2.ListArtifactLinksResponse.FromString,
+                )
         self.LinkArtifactToConversation = channel.unary_unary(
                 '/sift.artifacts.v1.ArtifactService/LinkArtifactToConversation',
                 request_serializer=sift_dot_artifacts_dot_v1_dot_artifacts__pb2.LinkArtifactToConversationRequest.SerializeToString,
@@ -81,12 +86,22 @@ class ArtifactServiceStub(object):
                 request_serializer=sift_dot_artifacts_dot_v1_dot_artifacts__pb2.UnarchiveArtifactRequest.SerializeToString,
                 response_deserializer=sift_dot_artifacts_dot_v1_dot_artifacts__pb2.UnarchiveArtifactResponse.FromString,
                 )
+        self.BatchArchiveArtifacts = channel.unary_unary(
+                '/sift.artifacts.v1.ArtifactService/BatchArchiveArtifacts',
+                request_serializer=sift_dot_artifacts_dot_v1_dot_artifacts__pb2.BatchArchiveArtifactsRequest.SerializeToString,
+                response_deserializer=sift_dot_artifacts_dot_v1_dot_artifacts__pb2.BatchArchiveArtifactsResponse.FromString,
+                )
+        self.BatchUnarchiveArtifacts = channel.unary_unary(
+                '/sift.artifacts.v1.ArtifactService/BatchUnarchiveArtifacts',
+                request_serializer=sift_dot_artifacts_dot_v1_dot_artifacts__pb2.BatchUnarchiveArtifactsRequest.SerializeToString,
+                response_deserializer=sift_dot_artifacts_dot_v1_dot_artifacts__pb2.BatchUnarchiveArtifactsResponse.FromString,
+                )
 
 
 class ArtifactServiceServicer(object):
     """ArtifactService manages an organization-scoped, versioned generic artifact
-    store. storage_class decides whether content lives in remote_files or the
-    version's JSON payload. Attachment and provenance are links, and metadata
+    store. Content lives in remote_files, and storage_class decides whether
+    clients may preview it. Attachment and provenance are links, and metadata
     uses the shared metadata values (sift.metadata.v1). No conversation owns an
     artifact.
 
@@ -156,16 +171,16 @@ class ArtifactServiceServicer(object):
         ListArtifacts fields, evaluated against each version.
 
         Makes an older version the latest again by writing a new version whose
-        title, summary, payload, metadata, bytes, and SOURCE and DERIVED_FROM links
-        are copied from it. ATTACHED_TO links carry forward from the latest
-        version. Only the artifact's creator may promote, and promoting the current
-        latest version is a FailedPrecondition.
+        title, summary, metadata, bytes, and SOURCE and DERIVED_FROM links are
+        copied from it. ATTACHED_TO links carry forward from the latest version.
+        Only the artifact's creator may promote, and promoting the current latest
+        version is a FailedPrecondition.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def LinkArtifactToConversation(self, request, context):
+    def ListArtifactLinks(self, request, context):
         """Links an artifact to an entity by writing a new version that carries the
         previous version's links plus this one. An identical link already in the
         latest version succeeds without writing a version.
@@ -176,8 +191,13 @@ class ArtifactServiceServicer(object):
         record provenance and cannot be unlinked (InvalidArgument).
 
         Lists the links of one artifact version, the latest by default.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
-        Links an existing artifact to a conversation. Equivalent to LinkArtifact
+    def LinkArtifactToConversation(self, request, context):
+        """Links an existing artifact to a conversation. Equivalent to LinkArtifact
         with relation ATTACHED_TO and entity_type CONVERSATION. Idempotent:
         linking an already-linked pair succeeds without effect.
         """
@@ -208,6 +228,23 @@ class ArtifactServiceServicer(object):
     def UnarchiveArtifact(self, request, context):
         """Clears archived_date. Idempotent: unarchiving an active artifact
         succeeds without effect.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def BatchArchiveArtifacts(self, request, context):
+        """Archives up to 1000 artifacts. Every artifact must exist in the caller's
+        organization and belong to the caller, or nothing is archived. Artifacts
+        that are already archived keep their archived_date.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def BatchUnarchiveArtifacts(self, request, context):
+        """Unarchives up to 1000 artifacts, with the same rules as
+        BatchArchiveArtifacts.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -246,6 +283,11 @@ def add_ArtifactServiceServicer_to_server(servicer, server):
                     request_deserializer=sift_dot_artifacts_dot_v1_dot_artifacts__pb2.PromoteArtifactVersionRequest.FromString,
                     response_serializer=sift_dot_artifacts_dot_v1_dot_artifacts__pb2.PromoteArtifactVersionResponse.SerializeToString,
             ),
+            'ListArtifactLinks': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListArtifactLinks,
+                    request_deserializer=sift_dot_artifacts_dot_v1_dot_artifacts__pb2.ListArtifactLinksRequest.FromString,
+                    response_serializer=sift_dot_artifacts_dot_v1_dot_artifacts__pb2.ListArtifactLinksResponse.SerializeToString,
+            ),
             'LinkArtifactToConversation': grpc.unary_unary_rpc_method_handler(
                     servicer.LinkArtifactToConversation,
                     request_deserializer=sift_dot_artifacts_dot_v1_dot_artifacts__pb2.LinkArtifactToConversationRequest.FromString,
@@ -266,6 +308,16 @@ def add_ArtifactServiceServicer_to_server(servicer, server):
                     request_deserializer=sift_dot_artifacts_dot_v1_dot_artifacts__pb2.UnarchiveArtifactRequest.FromString,
                     response_serializer=sift_dot_artifacts_dot_v1_dot_artifacts__pb2.UnarchiveArtifactResponse.SerializeToString,
             ),
+            'BatchArchiveArtifacts': grpc.unary_unary_rpc_method_handler(
+                    servicer.BatchArchiveArtifacts,
+                    request_deserializer=sift_dot_artifacts_dot_v1_dot_artifacts__pb2.BatchArchiveArtifactsRequest.FromString,
+                    response_serializer=sift_dot_artifacts_dot_v1_dot_artifacts__pb2.BatchArchiveArtifactsResponse.SerializeToString,
+            ),
+            'BatchUnarchiveArtifacts': grpc.unary_unary_rpc_method_handler(
+                    servicer.BatchUnarchiveArtifacts,
+                    request_deserializer=sift_dot_artifacts_dot_v1_dot_artifacts__pb2.BatchUnarchiveArtifactsRequest.FromString,
+                    response_serializer=sift_dot_artifacts_dot_v1_dot_artifacts__pb2.BatchUnarchiveArtifactsResponse.SerializeToString,
+            ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
             'sift.artifacts.v1.ArtifactService', rpc_method_handlers)
@@ -275,8 +327,8 @@ def add_ArtifactServiceServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class ArtifactService(object):
     """ArtifactService manages an organization-scoped, versioned generic artifact
-    store. storage_class decides whether content lives in remote_files or the
-    version's JSON payload. Attachment and provenance are links, and metadata
+    store. Content lives in remote_files, and storage_class decides whether
+    clients may preview it. Attachment and provenance are links, and metadata
     uses the shared metadata values (sift.metadata.v1). No conversation owns an
     artifact.
 
@@ -396,6 +448,23 @@ class ArtifactService(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
+    def ListArtifactLinks(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.artifacts.v1.ArtifactService/ListArtifactLinks',
+            sift_dot_artifacts_dot_v1_dot_artifacts__pb2.ListArtifactLinksRequest.SerializeToString,
+            sift_dot_artifacts_dot_v1_dot_artifacts__pb2.ListArtifactLinksResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
     def LinkArtifactToConversation(request,
             target,
             options=(),
@@ -460,5 +529,39 @@ class ArtifactService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.artifacts.v1.ArtifactService/UnarchiveArtifact',
             sift_dot_artifacts_dot_v1_dot_artifacts__pb2.UnarchiveArtifactRequest.SerializeToString,
             sift_dot_artifacts_dot_v1_dot_artifacts__pb2.UnarchiveArtifactResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def BatchArchiveArtifacts(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.artifacts.v1.ArtifactService/BatchArchiveArtifacts',
+            sift_dot_artifacts_dot_v1_dot_artifacts__pb2.BatchArchiveArtifactsRequest.SerializeToString,
+            sift_dot_artifacts_dot_v1_dot_artifacts__pb2.BatchArchiveArtifactsResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def BatchUnarchiveArtifacts(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.artifacts.v1.ArtifactService/BatchUnarchiveArtifacts',
+            sift_dot_artifacts_dot_v1_dot_artifacts__pb2.BatchUnarchiveArtifactsRequest.SerializeToString,
+            sift_dot_artifacts_dot_v1_dot_artifacts__pb2.BatchUnarchiveArtifactsResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

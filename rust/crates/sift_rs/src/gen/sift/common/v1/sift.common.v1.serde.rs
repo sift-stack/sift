@@ -114,6 +114,7 @@ impl serde::Serialize for ResourceType {
             Self::CalculatedChannel => "RESOURCE_TYPE_CALCULATED_CHANNEL",
             Self::ReportTemplate => "RESOURCE_TYPE_REPORT_TEMPLATE",
             Self::TestReport => "RESOURCE_TYPE_TEST_REPORT",
+            Self::ActorAction => "RESOURCE_TYPE_ACTOR_ACTION",
             Self::SiftApp => "RESOURCE_TYPE_SIFT_APP",
         };
         serializer.serialize_str(variant)
@@ -139,6 +140,7 @@ impl<'de> serde::Deserialize<'de> for ResourceType {
             "RESOURCE_TYPE_CALCULATED_CHANNEL",
             "RESOURCE_TYPE_REPORT_TEMPLATE",
             "RESOURCE_TYPE_TEST_REPORT",
+            "RESOURCE_TYPE_ACTOR_ACTION",
             "RESOURCE_TYPE_SIFT_APP",
         ];
 
@@ -193,6 +195,7 @@ impl<'de> serde::Deserialize<'de> for ResourceType {
                     "RESOURCE_TYPE_CALCULATED_CHANNEL" => Ok(ResourceType::CalculatedChannel),
                     "RESOURCE_TYPE_REPORT_TEMPLATE" => Ok(ResourceType::ReportTemplate),
                     "RESOURCE_TYPE_TEST_REPORT" => Ok(ResourceType::TestReport),
+                    "RESOURCE_TYPE_ACTOR_ACTION" => Ok(ResourceType::ActorAction),
                     "RESOURCE_TYPE_SIFT_APP" => Ok(ResourceType::SiftApp),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }

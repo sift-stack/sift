@@ -35,6 +35,7 @@ class _ResourceTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._E
     RESOURCE_TYPE_CALCULATED_CHANNEL: _ResourceType.ValueType  # 10
     RESOURCE_TYPE_REPORT_TEMPLATE: _ResourceType.ValueType  # 11
     RESOURCE_TYPE_TEST_REPORT: _ResourceType.ValueType  # 12
+    RESOURCE_TYPE_ACTOR_ACTION: _ResourceType.ValueType  # 13
     RESOURCE_TYPE_SIFT_APP: _ResourceType.ValueType  # 1000
     """Special type for a resource that doesn't yet exist (eg. creating an asset)"""
 
@@ -54,6 +55,7 @@ RESOURCE_TYPE_USER_DEFINED_FUNCTION: ResourceType.ValueType  # 9
 RESOURCE_TYPE_CALCULATED_CHANNEL: ResourceType.ValueType  # 10
 RESOURCE_TYPE_REPORT_TEMPLATE: ResourceType.ValueType  # 11
 RESOURCE_TYPE_TEST_REPORT: ResourceType.ValueType  # 12
+RESOURCE_TYPE_ACTOR_ACTION: ResourceType.ValueType  # 13
 RESOURCE_TYPE_SIFT_APP: ResourceType.ValueType  # 1000
 """Special type for a resource that doesn't yet exist (eg. creating an asset)"""
 global___ResourceType = ResourceType
