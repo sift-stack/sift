@@ -193,8 +193,7 @@ class DataImportAPIAsync(ResourceBase):
 
         # The import service only reports unreadable bit field values after the
         # upload, so check them first.
-        checked_config: ImportConfig = config
-        await run_sync_function(lambda: check_bit_field_values(checked_config, path))
+        await run_sync_function(check_bit_field_values, config, path)
 
         if isinstance(
             config, (ParquetFlatDatasetImportConfig, ParquetSingleChannelPerRowImportConfig)
