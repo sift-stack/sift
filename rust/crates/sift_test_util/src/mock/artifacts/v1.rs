@@ -1,13 +1,16 @@
 use async_trait::async_trait;
 use mockall::mock;
 use sift_rs::artifacts::v1::{
-    ArchiveArtifactRequest, ArchiveArtifactResponse, CreateArtifactRequest, CreateArtifactResponse,
-    GetArtifactRequest, GetArtifactResponse, LinkArtifactToConversationRequest,
-    LinkArtifactToConversationResponse, ListArtifactVersionsRequest, ListArtifactVersionsResponse,
-    ListArtifactsRequest, ListArtifactsResponse, PromoteArtifactVersionRequest,
-    PromoteArtifactVersionResponse, UnarchiveArtifactRequest, UnarchiveArtifactResponse,
-    UnlinkArtifactFromConversationRequest, UnlinkArtifactFromConversationResponse,
-    UpdateArtifactRequest, UpdateArtifactResponse, artifact_service_server::ArtifactService,
+    ArchiveArtifactRequest, ArchiveArtifactResponse, BatchArchiveArtifactsRequest,
+    BatchArchiveArtifactsResponse, BatchUnarchiveArtifactsRequest, BatchUnarchiveArtifactsResponse,
+    CreateArtifactRequest, CreateArtifactResponse, GetArtifactRequest, GetArtifactResponse,
+    LinkArtifactToConversationRequest, LinkArtifactToConversationResponse,
+    ListArtifactLinksRequest, ListArtifactLinksResponse, ListArtifactVersionsRequest,
+    ListArtifactVersionsResponse, ListArtifactsRequest, ListArtifactsResponse,
+    PromoteArtifactVersionRequest, PromoteArtifactVersionResponse, UnarchiveArtifactRequest,
+    UnarchiveArtifactResponse, UnlinkArtifactFromConversationRequest,
+    UnlinkArtifactFromConversationResponse, UpdateArtifactRequest, UpdateArtifactResponse,
+    artifact_service_server::ArtifactService,
 };
 use tonic::{Request, Response, Status};
 
@@ -58,6 +61,13 @@ mock! {
             Response<PromoteArtifactVersionResponse>,
             Status,
         >;
+        async fn list_artifact_links(
+            &self,
+            request: Request<ListArtifactLinksRequest>,
+        ) -> std::result::Result<
+            Response<ListArtifactLinksResponse>,
+            Status,
+        >;
         async fn link_artifact_to_conversation(
             &self,
             request: Request<LinkArtifactToConversationRequest>,
@@ -84,6 +94,20 @@ mock! {
             request: Request<UnarchiveArtifactRequest>,
         ) -> std::result::Result<
             Response<UnarchiveArtifactResponse>,
+            Status,
+        >;
+        async fn batch_archive_artifacts(
+            &self,
+            request: Request<BatchArchiveArtifactsRequest>,
+        ) -> std::result::Result<
+            Response<BatchArchiveArtifactsResponse>,
+            Status,
+        >;
+        async fn batch_unarchive_artifacts(
+            &self,
+            request: Request<BatchUnarchiveArtifactsRequest>,
+        ) -> std::result::Result<
+            Response<BatchUnarchiveArtifactsResponse>,
             Status,
         >;
     }

@@ -19,8 +19,8 @@ class _ServicerContext(grpc.ServicerContext, grpc.aio.ServicerContext):  # type:
 
 class ArtifactServiceStub:
     """ArtifactService manages an organization-scoped, versioned generic artifact
-    store. storage_class decides whether content lives in remote_files or the
-    version's JSON payload. Attachment and provenance are links, and metadata
+    store. Content lives in remote_files, and storage_class decides whether
+    clients may preview it. Attachment and provenance are links, and metadata
     uses the shared metadata values (sift.metadata.v1). No conversation owns an
     artifact.
 
@@ -93,19 +93,29 @@ class ArtifactServiceStub:
     ListArtifacts fields, evaluated against each version.
 
     Makes an older version the latest again by writing a new version whose
-    title, summary, payload, metadata, bytes, and SOURCE and DERIVED_FROM links
-    are copied from it. ATTACHED_TO links carry forward from the latest
-    version. Only the artifact's creator may promote, and promoting the current
-    latest version is a FailedPrecondition.
+    title, summary, metadata, bytes, and SOURCE and DERIVED_FROM links are
+    copied from it. ATTACHED_TO links carry forward from the latest version.
+    Only the artifact's creator may promote, and promoting the current latest
+    version is a FailedPrecondition.
+    """
+
+    ListArtifactLinks: grpc.UnaryUnaryMultiCallable[
+        sift.artifacts.v1.artifacts_pb2.ListArtifactLinksRequest,
+        sift.artifacts.v1.artifacts_pb2.ListArtifactLinksResponse,
+    ]
+    """Revokes an ATTACHED_TO link by writing a new version that omits it. The
+    previous version's rows stay in place. A link missing from the latest
+    version succeeds without writing a version. SOURCE and DERIVED_FROM rows
+    record provenance and cannot be unlinked (InvalidArgument).
+
+    Lists the links of one artifact version, the latest by default.
     """
 
     LinkArtifactToConversation: grpc.UnaryUnaryMultiCallable[
         sift.artifacts.v1.artifacts_pb2.LinkArtifactToConversationRequest,
         sift.artifacts.v1.artifacts_pb2.LinkArtifactToConversationResponse,
     ]
-    """Lists the links of one artifact version, the latest by default.
-
-    Links an existing artifact to a conversation. Equivalent to LinkArtifact
+    """Links an existing artifact to a conversation. Equivalent to LinkArtifact
     with relation ATTACHED_TO and entity_type CONVERSATION. Idempotent:
     linking an already-linked pair succeeds without effect.
     """
@@ -138,10 +148,27 @@ class ArtifactServiceStub:
     succeeds without effect.
     """
 
+    BatchArchiveArtifacts: grpc.UnaryUnaryMultiCallable[
+        sift.artifacts.v1.artifacts_pb2.BatchArchiveArtifactsRequest,
+        sift.artifacts.v1.artifacts_pb2.BatchArchiveArtifactsResponse,
+    ]
+    """Archives up to 1000 artifacts. Every artifact must exist in the caller's
+    organization and belong to the caller, or nothing is archived. Artifacts
+    that are already archived keep their archived_date.
+    """
+
+    BatchUnarchiveArtifacts: grpc.UnaryUnaryMultiCallable[
+        sift.artifacts.v1.artifacts_pb2.BatchUnarchiveArtifactsRequest,
+        sift.artifacts.v1.artifacts_pb2.BatchUnarchiveArtifactsResponse,
+    ]
+    """Unarchives up to 1000 artifacts, with the same rules as
+    BatchArchiveArtifacts.
+    """
+
 class ArtifactServiceAsyncStub:
     """ArtifactService manages an organization-scoped, versioned generic artifact
-    store. storage_class decides whether content lives in remote_files or the
-    version's JSON payload. Attachment and provenance are links, and metadata
+    store. Content lives in remote_files, and storage_class decides whether
+    clients may preview it. Attachment and provenance are links, and metadata
     uses the shared metadata values (sift.metadata.v1). No conversation owns an
     artifact.
 
@@ -213,19 +240,29 @@ class ArtifactServiceAsyncStub:
     ListArtifacts fields, evaluated against each version.
 
     Makes an older version the latest again by writing a new version whose
-    title, summary, payload, metadata, bytes, and SOURCE and DERIVED_FROM links
-    are copied from it. ATTACHED_TO links carry forward from the latest
-    version. Only the artifact's creator may promote, and promoting the current
-    latest version is a FailedPrecondition.
+    title, summary, metadata, bytes, and SOURCE and DERIVED_FROM links are
+    copied from it. ATTACHED_TO links carry forward from the latest version.
+    Only the artifact's creator may promote, and promoting the current latest
+    version is a FailedPrecondition.
+    """
+
+    ListArtifactLinks: grpc.aio.UnaryUnaryMultiCallable[
+        sift.artifacts.v1.artifacts_pb2.ListArtifactLinksRequest,
+        sift.artifacts.v1.artifacts_pb2.ListArtifactLinksResponse,
+    ]
+    """Revokes an ATTACHED_TO link by writing a new version that omits it. The
+    previous version's rows stay in place. A link missing from the latest
+    version succeeds without writing a version. SOURCE and DERIVED_FROM rows
+    record provenance and cannot be unlinked (InvalidArgument).
+
+    Lists the links of one artifact version, the latest by default.
     """
 
     LinkArtifactToConversation: grpc.aio.UnaryUnaryMultiCallable[
         sift.artifacts.v1.artifacts_pb2.LinkArtifactToConversationRequest,
         sift.artifacts.v1.artifacts_pb2.LinkArtifactToConversationResponse,
     ]
-    """Lists the links of one artifact version, the latest by default.
-
-    Links an existing artifact to a conversation. Equivalent to LinkArtifact
+    """Links an existing artifact to a conversation. Equivalent to LinkArtifact
     with relation ATTACHED_TO and entity_type CONVERSATION. Idempotent:
     linking an already-linked pair succeeds without effect.
     """
@@ -258,10 +295,27 @@ class ArtifactServiceAsyncStub:
     succeeds without effect.
     """
 
+    BatchArchiveArtifacts: grpc.aio.UnaryUnaryMultiCallable[
+        sift.artifacts.v1.artifacts_pb2.BatchArchiveArtifactsRequest,
+        sift.artifacts.v1.artifacts_pb2.BatchArchiveArtifactsResponse,
+    ]
+    """Archives up to 1000 artifacts. Every artifact must exist in the caller's
+    organization and belong to the caller, or nothing is archived. Artifacts
+    that are already archived keep their archived_date.
+    """
+
+    BatchUnarchiveArtifacts: grpc.aio.UnaryUnaryMultiCallable[
+        sift.artifacts.v1.artifacts_pb2.BatchUnarchiveArtifactsRequest,
+        sift.artifacts.v1.artifacts_pb2.BatchUnarchiveArtifactsResponse,
+    ]
+    """Unarchives up to 1000 artifacts, with the same rules as
+    BatchArchiveArtifacts.
+    """
+
 class ArtifactServiceServicer(metaclass=abc.ABCMeta):
     """ArtifactService manages an organization-scoped, versioned generic artifact
-    store. storage_class decides whether content lives in remote_files or the
-    version's JSON payload. Attachment and provenance are links, and metadata
+    store. Content lives in remote_files, and storage_class decides whether
+    clients may preview it. Attachment and provenance are links, and metadata
     uses the shared metadata values (sift.metadata.v1). No conversation owns an
     artifact.
 
@@ -345,10 +399,24 @@ class ArtifactServiceServicer(metaclass=abc.ABCMeta):
         ListArtifacts fields, evaluated against each version.
 
         Makes an older version the latest again by writing a new version whose
-        title, summary, payload, metadata, bytes, and SOURCE and DERIVED_FROM links
-        are copied from it. ATTACHED_TO links carry forward from the latest
-        version. Only the artifact's creator may promote, and promoting the current
-        latest version is a FailedPrecondition.
+        title, summary, metadata, bytes, and SOURCE and DERIVED_FROM links are
+        copied from it. ATTACHED_TO links carry forward from the latest version.
+        Only the artifact's creator may promote, and promoting the current latest
+        version is a FailedPrecondition.
+        """
+
+    @abc.abstractmethod
+    def ListArtifactLinks(
+        self,
+        request: sift.artifacts.v1.artifacts_pb2.ListArtifactLinksRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.artifacts.v1.artifacts_pb2.ListArtifactLinksResponse, collections.abc.Awaitable[sift.artifacts.v1.artifacts_pb2.ListArtifactLinksResponse]]:
+        """Revokes an ATTACHED_TO link by writing a new version that omits it. The
+        previous version's rows stay in place. A link missing from the latest
+        version succeeds without writing a version. SOURCE and DERIVED_FROM rows
+        record provenance and cannot be unlinked (InvalidArgument).
+
+        Lists the links of one artifact version, the latest by default.
         """
 
     @abc.abstractmethod
@@ -357,9 +425,7 @@ class ArtifactServiceServicer(metaclass=abc.ABCMeta):
         request: sift.artifacts.v1.artifacts_pb2.LinkArtifactToConversationRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.artifacts.v1.artifacts_pb2.LinkArtifactToConversationResponse, collections.abc.Awaitable[sift.artifacts.v1.artifacts_pb2.LinkArtifactToConversationResponse]]:
-        """Lists the links of one artifact version, the latest by default.
-
-        Links an existing artifact to a conversation. Equivalent to LinkArtifact
+        """Links an existing artifact to a conversation. Equivalent to LinkArtifact
         with relation ATTACHED_TO and entity_type CONVERSATION. Idempotent:
         linking an already-linked pair succeeds without effect.
         """
@@ -396,6 +462,27 @@ class ArtifactServiceServicer(metaclass=abc.ABCMeta):
     ) -> typing.Union[sift.artifacts.v1.artifacts_pb2.UnarchiveArtifactResponse, collections.abc.Awaitable[sift.artifacts.v1.artifacts_pb2.UnarchiveArtifactResponse]]:
         """Clears archived_date. Idempotent: unarchiving an active artifact
         succeeds without effect.
+        """
+
+    @abc.abstractmethod
+    def BatchArchiveArtifacts(
+        self,
+        request: sift.artifacts.v1.artifacts_pb2.BatchArchiveArtifactsRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.artifacts.v1.artifacts_pb2.BatchArchiveArtifactsResponse, collections.abc.Awaitable[sift.artifacts.v1.artifacts_pb2.BatchArchiveArtifactsResponse]]:
+        """Archives up to 1000 artifacts. Every artifact must exist in the caller's
+        organization and belong to the caller, or nothing is archived. Artifacts
+        that are already archived keep their archived_date.
+        """
+
+    @abc.abstractmethod
+    def BatchUnarchiveArtifacts(
+        self,
+        request: sift.artifacts.v1.artifacts_pb2.BatchUnarchiveArtifactsRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.artifacts.v1.artifacts_pb2.BatchUnarchiveArtifactsResponse, collections.abc.Awaitable[sift.artifacts.v1.artifacts_pb2.BatchUnarchiveArtifactsResponse]]:
+        """Unarchives up to 1000 artifacts, with the same rules as
+        BatchArchiveArtifacts.
         """
 
 def add_ArtifactServiceServicer_to_server(servicer: ArtifactServiceServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...

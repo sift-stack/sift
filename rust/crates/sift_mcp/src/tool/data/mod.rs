@@ -17,13 +17,16 @@ use rmcp::{
 use serde::Deserialize;
 use serde_json::Value;
 
-use sift_rs::{assets::v1::Asset, metadata::v1::MetadataValue, runs::v2::Run};
+use sift_rs::{
+    assets::v1::Asset, calculated_channels::v2::CalculatedChannelAbstractChannelReference,
+    metadata::v1::MetadataValue, runs::v2::Run,
+};
 
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::{
-        calculated_channels::UnresolvedCalculation,
+        calculated_channels::{DraftExpression, UnresolvedCalculation},
         common::{self, cel_escape},
         data::{ChannelInput, DataService, NoChannelData, TimeRange},
         ingest::RunForm,
@@ -169,8 +172,27 @@ pub struct GetDataParams {
     /// service returns it. `includeReceivedAt` is accepted as an alias.
     #[serde(default, alias = "includeReceivedAt")]
     include_received_at: bool,
+    expressions_json: Option<String>,
     output: PathBuf,
 }
+
+/// One entry of `expressions_json`: an unsaved calculated channel to evaluate.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ExpressionEntry {
+    name: String,
+    expression: String,
+    channel_references: Vec<CalculatedChannelAbstractChannelReference>,
+}
+
+/// The most entries one `expressions_json` may hold. They resolve in a single
+/// batch call, so this bounds that call rather than a fan-out.
+const MAX_EXPRESSIONS: usize = 50;
+
+/// Characters a column name cannot carry: the expression's name is written into
+/// the Parquet column name's attribute block, which `ColumnName::try_from`
+/// splits on these.
+const RESERVED_NAME_CHARS: [char; 4] = [',', '"', '{', '}'];
 
 /// Which run scopes a `get_data` call, before it is resolved on the asset.
 enum RunSelector {
@@ -234,14 +256,15 @@ impl SiftMcpServer {
         name = "get_data",
         description = "
             Retrieve time-series data for one or more channels of a single asset and write the result to a Parquet file.
-            Serves both raw channels and saved calculated channels.
+            Serves raw channels, saved calculated channels, and unsaved CEL expressions.
 
             Output schema:
               - Column 0 is `timestamp_unix_nanos` (Int64, non-null) holding the merged ascending timestamps across all
                 requested channels.
               - One column per matched channel, named `<channel_name> {channel_id=\"...\", run=\"...\", units=\"...\"}`.
                 Cells are null where that channel has no sample at the row's timestamp. A saved calculated channel
-                has no channel id, so its column carries the calculated channel's name in both places.
+                has no channel id, so its column carries the calculated channel's name in both places. An
+                expression from `expressions_json` does the same with its `name`.
               - Enum and BitField channels carry their decode config in field metadata under the `enum_config` and
                 `bit_field_elements` keys respectively.
               - When `include_received_at` is true and the service returns receipt times, each such channel
@@ -252,13 +275,15 @@ impl SiftMcpServer {
               - A requested channel that produced no samples has NO column at all, not an all-null one. The tool
                 result reports these so they never have to be inferred from the schema:
                 `unmatched_channel_names` lists requested names served by neither a raw channel nor a saved
-                calculated channel. `empty_channels` lists raw channel IDs that returned no samples in the window;
+                calculated channel, plus `expressions_json` names that did not resolve.
+                `empty_channels` lists raw channel IDs that returned no samples in the window;
                 for calculated channels it lists query keys, matching the Parquet `channel_id` attribute.
                 Both keys are ALWAYS present. Two empty arrays mean every selected channel returned samples.
                 Report empty registrations by ID: another registration with the same name may have data.
               - `unresolved_calculated_channels` (`[{ \"name\", \"reason\" }]`) is present when a requested name
-                reached calculated-channel resolution and could not be served. It carries the reason for every
-                name in `unmatched_channel_names`.
+                or an `expressions_json` entry reached calculated-channel resolution and could not be served. It
+                carries the reason for every name in `unmatched_channel_names`. For an expression the reason is
+                the API's message, such as a CEL syntax error or a reference with no channel on the asset.
               - `sample_ms_applied` and `decimated` report what the service actually sampled at, which is not
                 always what was requested: `sample_ms` is ignored for data types that cannot be sampled. Both
                 keys are ALWAYS present; `sample_ms_applied` is null when no page reported a rate.
@@ -285,7 +310,8 @@ impl SiftMcpServer {
                 If a raw result would be too large, narrow the time range or the channel set and issue
                 successive calls — do not decimate to reduce volume.
               - `channel_names`: optional array of exact channel names. Selects all registrations of each name.
-                Set exactly one of `channel_names`, `channel_regex`, `channel_id`, or `channel_ids`.
+                Set exactly one of `channel_names`, `channel_regex`, `channel_id`, or `channel_ids`, or set
+                `expressions_json` with at most one of them.
                 A name with no raw channel on the asset is resolved as an active saved calculated channel and
                 evaluated for the requested asset and run. A raw channel wins a name it shares with a calculated
                 channel, so a calculated channel named after an existing raw channel is not served here.
@@ -300,6 +326,15 @@ impl SiftMcpServer {
                 it, so you can compare generation time (`timestamp_unix_nanos`) with the time Sift received
                 the measurement. Leave it false unless you need that comparison. Latency needs `sample_ms = 0`:
                 a decimated file only has receipt time for the samples LTTB kept.
+              - `expressions_json`: optional JSON string holding an array of unsaved calculated channels to
+                evaluate for the asset and run, one column each:
+                `[{ \"name\": \"<column name>\", \"expression\": \"<CEL>\", \"channel_references\":
+                [{ \"channel_reference\": \"$1\", \"channel_identifier\": \"<channel name>\" }] }]`.
+                References take the same shape as in `create_calculated_channel`. Nothing is saved. At most 50
+                entries, each with at least one reference. Each `name` must be unique, must not contain
+                `,` `\"` `{` `}`, and must not match a requested channel's name or a selected channel's id. An
+                expression the API cannot resolve, such as a CEL syntax error or a reference to a channel the
+                asset lacks, is reported in `unresolved_calculated_channels`; the other entries still run.
               - `output`: filesystem path for the Parquet file. Replaced only when the call succeeds; a failed
                 call leaves no partial file and keeps any existing one. The tool creates missing parent
                 directories.
@@ -317,9 +352,11 @@ impl SiftMcpServer {
                 channel does not apply when the asset is outside its scope or lacks a channel its expression
                 references. Verify the name with `list_calculated_channels` filtered by `asset_id`.
               - `INVALID_PARAMS` if neither `asset_name` nor `asset_id` is set, or if both are set.
+              - `INVALID_PARAMS` if `expressions_json` breaks the rules above; the message names the entry.
               - `INVALID_PARAMS` if both `run_name` and `run_id` are set or either is blank, if `run_name`
                 matches more than one active run (the message lists their ids), if neither is set and the full
-                time range is not supplied, if not exactly one channel selector is set, if a selection array is
+                time range is not supplied, if more than one channel selector is set, if neither a selector nor
+                `expressions_json` is set, if a selection array is
                 empty, or if a channel ID is blank.
               - `INVALID_PARAMS` if the channel selection matches more than 200 channels and would be incomplete.
                 Narrow `channel_regex`, pass explicit `channel_names` or `channel_ids`, or split the request.
@@ -348,6 +385,8 @@ impl SiftMcpServer {
               - Test a query once before you repeat it. When a question spans many runs, channels, or a long time
                 range, fetch one run, one channel, or a short window first. Check `unmatched_channel_names` and
                 `empty_channels` before you issue the rest. A selector mistake repeats in every call.
+              - Test a calculated channel with `expressions_json` before proposing to save it; every save writes a
+                new version to the organization. Check the column against its inputs, then offer the save.
               - Run four calls or fewer in parallel. Wider batches can fail calls that succeed when run alone.
               - After a successful call, if the user hasn't already indicated a next step, offer to run a SQL query
                 against the resulting Parquet file using the `sql` tool. Aggregate with `sql` instead of reading
@@ -365,12 +404,20 @@ impl SiftMcpServer {
             channel_regex,
             channel_id,
             channel_ids,
+            expressions_json,
             start_time_unix_nanos,
             end_time_unix_nanos,
             sample_ms,
             include_received_at,
             output,
         }) = params;
+
+        // The agent writes every entry, so any malformed one is its to fix and
+        // resend before anything is queried.
+        let expressions = expressions_json
+            .as_deref()
+            .map(parse_expressions_json)
+            .transpose()?;
 
         if run_name
             .iter()
@@ -403,7 +450,7 @@ impl SiftMcpServer {
             }
         };
 
-        if [
+        let selector_count = [
             channel_names.is_some(),
             channel_regex.is_some(),
             channel_id.is_some(),
@@ -411,11 +458,11 @@ impl SiftMcpServer {
         ]
         .into_iter()
         .filter(|selected| *selected)
-        .count()
-            != 1
-        {
+        .count();
+        if selector_count > 1 || (selector_count == 0 && expressions.is_none()) {
             return Err(ErrorData::invalid_params(
-                "exactly one of `channel_names`, `channel_regex`, `channel_id`, or `channel_ids` must be set",
+                "set exactly one of `channel_names`, `channel_regex`, `channel_id`, or `channel_ids`, \
+                 or set `expressions_json` with at most one of them",
                 None,
             ));
         }
@@ -437,11 +484,12 @@ impl SiftMcpServer {
                     .map(|n| format!("\"{}\"", cel_escape(n)))
                     .collect::<Vec<_>>()
                     .join(", ");
-                (format!("name in [{items}]"), Some(names))
+                (Some(format!("name in [{items}]")), Some(names))
             }
-            (None, Some(pattern), None) => {
-                (format!("name.matches(\"{}\")", cel_escape(&pattern)), None)
-            }
+            (None, Some(pattern), None) => (
+                Some(format!("name.matches(\"{}\")", cel_escape(&pattern))),
+                None,
+            ),
             (None, None, Some(ids)) => {
                 if ids.is_empty() || ids.iter().any(|id| id.trim().is_empty()) {
                     return Err(ErrorData::invalid_params(
@@ -454,9 +502,10 @@ impl SiftMcpServer {
                     .map(|id| format!("\"{}\"", cel_escape(id)))
                     .collect::<Vec<_>>()
                     .join(", ");
-                (format!("channel_id in [{items}]"), None)
+                (Some(format!("channel_id in [{items}]")), None)
             }
-            _ => unreachable!("validated exactly one channel selector"),
+            (None, None, None) => (None, None),
+            _ => unreachable!("validated at most one channel selector"),
         };
 
         let (asset_filter, asset_label) = match (&asset_name, &asset_id) {
@@ -498,16 +547,23 @@ impl SiftMcpServer {
             None => None,
         };
 
-        let channel_filter = format!(
-            "asset_id == \"{}\" && {channel_search_filter}",
-            asset.asset_id
-        );
-
-        let page = self
-            .channel_service
-            .list_channels(channel_filter, None, Some(common::PAGE_SIZE))
-            .await
-            .map_err(from_anyhow)?;
+        // With only `expressions_json` set there is no raw selection to list.
+        let page = match channel_search_filter {
+            Some(channel_search_filter) => {
+                let channel_filter = format!(
+                    "asset_id == \"{}\" && {channel_search_filter}",
+                    asset.asset_id
+                );
+                self.channel_service
+                    .list_channels(channel_filter, None, Some(common::PAGE_SIZE))
+                    .await
+                    .map_err(from_anyhow)?
+            }
+            None => common::Page {
+                items: Vec::new(),
+                has_more: false,
+            },
+        };
         let channels = page.items;
 
         // A raw channel wins a name it shares with a saved calculated channel;
@@ -532,7 +588,11 @@ impl SiftMcpServer {
             })
             .unwrap_or_default();
 
-        if channels.is_empty() && unmatched_names.is_empty() && requested_ids.is_none() {
+        if selector_count > 0
+            && channels.is_empty()
+            && unmatched_names.is_empty()
+            && requested_ids.is_none()
+        {
             return Err(ErrorData::resource_not_found(
                 format!(
                     "no channels matched the search criteria for asset '{}'",
@@ -580,31 +640,56 @@ impl SiftMcpServer {
             }
         }
 
+        // An expression's name is its query key and its column's channel id.
+        // Two queries sharing a key merge into one column, and a raw channel
+        // sharing a name reads as the same channel, so an expression may reuse
+        // neither a selected channel's name or id nor a saved channel's name.
+        if let Some(expressions) = &expressions {
+            let taken = channels
+                .iter()
+                .flat_map(|c| [c.name.as_str(), c.channel_id.as_str()])
+                .chain(unmatched_names.iter().map(String::as_str))
+                .collect::<HashSet<_>>();
+            let collisions = expressions
+                .iter()
+                .filter(|draft| taken.contains(draft.name.as_str()))
+                .map(|draft| draft.name.clone())
+                .collect::<Vec<_>>();
+            if !collisions.is_empty() {
+                return Err(ErrorData::invalid_params(
+                    format!(
+                        "`expressions_json` names already used by a requested channel: {}; \
+                         rename those expressions",
+                        common::name_list(&collisions)
+                    ),
+                    None,
+                ));
+            }
+        }
+
         let mut channel_inputs = channels
             .into_iter()
             .map(|c| ChannelInput::Raw(Box::new(c)))
             .collect::<Vec<_>>();
 
-        let mut unresolved = Vec::new();
-        if !unmatched_names.is_empty() {
-            let resolution = self
-                .calculated_channel_service
-                .resolve_calculated_channels(
-                    unmatched_names,
-                    asset.asset_id.clone(),
-                    run.as_ref().map(|r| r.run_id.clone()),
-                )
-                .await
-                .map_err(from_anyhow)?;
-
-            channel_inputs.extend(resolution.resolved.into_iter().map(|calculation| {
-                ChannelInput::SavedCalculation {
-                    channel_key: calculation.name,
-                    expression_request: Box::new(calculation.expression_request),
-                }
-            }));
-            unresolved = resolution.unresolved;
-        }
+        // Resolves nothing, and calls nothing, when there is neither.
+        let resolution = self
+            .calculated_channel_service
+            .resolve_calculated_channels(
+                unmatched_names,
+                expressions.unwrap_or_default(),
+                asset.asset_id.clone(),
+                run.as_ref().map(|r| r.run_id.clone()),
+            )
+            .await
+            .map_err(from_anyhow)?;
+        channel_inputs.extend(resolution.resolved.into_iter().map(|calculation| {
+            ChannelInput::Calculation {
+                channel_key: calculation.name,
+                expression_request: Box::new(calculation.expression_request),
+            }
+        }));
+        let unresolved = resolution.unresolved;
 
         let unresolved_report = (!unresolved.is_empty())
             .then(|| unresolved_message(&unresolved, &asset.name, run.as_ref()));
@@ -1121,6 +1206,84 @@ impl SiftMcpServer {
             }
         }
     }
+}
+
+/// Parse `expressions_json` into drafts to resolve. Any malformed entry fails
+/// the call with `INVALID_PARAMS` naming its position, so the agent can fix it
+/// and resend.
+fn parse_expressions_json(json: &str) -> Result<Vec<DraftExpression>, ErrorData> {
+    let entries = serde_json::from_str::<Vec<Value>>(json).map_err(|e| {
+        ErrorData::invalid_params(format!("`expressions_json` is not a JSON array: {e}"), None)
+    })?;
+    if entries.is_empty() {
+        return Err(ErrorData::invalid_params(
+            "`expressions_json` must contain at least one expression",
+            None,
+        ));
+    }
+    if entries.len() > MAX_EXPRESSIONS {
+        return Err(ErrorData::invalid_params(
+            format!(
+                "`expressions_json` holds {} expressions; send at most {MAX_EXPRESSIONS} per call",
+                entries.len()
+            ),
+            None,
+        ));
+    }
+
+    let mut names = HashSet::new();
+    let mut drafts = Vec::with_capacity(entries.len());
+    for (index, entry) in entries.into_iter().enumerate() {
+        let invalid = |problem: String| {
+            ErrorData::invalid_params(format!("`expressions_json[{index}]`: {problem}"), None)
+        };
+        let entry = serde_json::from_value::<ExpressionEntry>(entry).map_err(|e| {
+            invalid(format!(
+                "not a {{ \"name\", \"expression\", \"channel_references\" }} object: {e}"
+            ))
+        })?;
+
+        if entry.name.trim().is_empty() {
+            return Err(invalid("`name` must not be blank".to_string()));
+        }
+        if entry.name.contains(RESERVED_NAME_CHARS) {
+            return Err(invalid(format!(
+                "`name` '{}' must not contain any of , \" {{ }}",
+                entry.name
+            )));
+        }
+        if !names.insert(entry.name.clone()) {
+            return Err(invalid(format!(
+                "`name` '{}' is used by an earlier expression; give each expression a unique name",
+                entry.name
+            )));
+        }
+        if entry.channel_references.is_empty() {
+            return Err(invalid(
+                "`channel_references` must map at least one `$N` to a channel".to_string(),
+            ));
+        }
+        // The API rejects a reference that names neither a channel nor a
+        // calculated channel as an error for the whole batch, so catch it here
+        // where the entry's index is known.
+        if entry.channel_references.iter().any(|reference| {
+            reference.channel_identifier.trim().is_empty()
+                && reference.calculated_channel_reference.is_none()
+        }) {
+            return Err(invalid(
+                "every channel reference needs a `channel_identifier` or a \
+                 `calculated_channel_version_id`"
+                    .to_string(),
+            ));
+        }
+
+        drafts.push(DraftExpression {
+            name: entry.name,
+            expression: entry.expression,
+            channel_references: entry.channel_references,
+        });
+    }
+    Ok(drafts)
 }
 
 /// One phrasing for calculated channels that yielded no data, shared by the

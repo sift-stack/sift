@@ -316,7 +316,7 @@ impl ArtifactService {
                     created_via: input.created_via.map(|value| value as i32),
                     metadata: input.metadata,
                     links: input.links,
-                    payload: None,
+                    ..Default::default()
                 })
                 .await
                 .map(|resp| resp.into_inner())

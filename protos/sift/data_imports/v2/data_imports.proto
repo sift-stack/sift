@@ -88,6 +88,10 @@ message CreateDataImportFromUrlRequest {
   BatchConfig batch_config = 7 [(google.api.field_behavior) = OPTIONAL];
   UlogConfig ulog_config = 8 [(google.api.field_behavior) = OPTIONAL];
   McapConfig mcap_config = 9 [(google.api.field_behavior) = OPTIONAL];
+  // If true, the import does not mark its run stopped, so run-stop automations
+  // do not fire. Set this when more data is coming to the run, then call
+  // StopRun after the last import. Ignored when the import has no run.
+  bool leave_run_open = 10 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message CreateDataImportFromUrlResponse {
@@ -111,6 +115,10 @@ message CreateDataImportFromUploadRequest {
   BatchConfig batch_config = 7 [(google.api.field_behavior) = OPTIONAL];
   UlogConfig ulog_config = 8 [(google.api.field_behavior) = OPTIONAL];
   McapConfig mcap_config = 9 [(google.api.field_behavior) = OPTIONAL];
+  // If true, the import does not mark its run stopped, so run-stop automations
+  // do not fire. Set this when more data is coming to the run, then call
+  // StopRun after the last import. Ignored when the import has no run.
+  bool leave_run_open = 10 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message CreateDataImportFromUploadResponse {

@@ -7,8 +7,9 @@ use sift_rs::{
             CalculatedChannelConfiguration, CalculatedChannelQueryConfiguration,
             CreateCalculatedChannelResponse, GetCalculatedChannelResponse,
             ListCalculatedChannelVersionsResponse, ListCalculatedChannelsResponse,
-            ResolveCalculatedChannelResponse, ResolvedCalculatedChannel,
-            UnresolvedCalculatedChannel, UpdateCalculatedChannelResponse,
+            ResolveCalculatedChannelRequest, ResolveCalculatedChannelResponse,
+            ResolvedCalculatedChannel, UnresolvedCalculatedChannel,
+            UpdateCalculatedChannelResponse,
             calculated_channel_asset_configuration::{AssetScope, AssetSelection},
             calculated_channel_query_configuration::{Query, Sel},
             calculated_channel_service_server::CalculatedChannelServiceServer,
@@ -28,7 +29,9 @@ use sift_test_util::{
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
-use super::{CalculatedChannelService, CalculatedChannelUpdate, NewCalculatedChannel};
+use super::{
+    CalculatedChannelService, CalculatedChannelUpdate, DraftExpression, NewCalculatedChannel,
+};
 use crate::policy::RetryPolicy;
 use crate::service::common::{DEFAULT_LIMIT, PAGE_SIZE};
 
@@ -1158,6 +1161,7 @@ async fn resolve_calculated_channels_scopes_lookup_to_asset_and_builds_resolve_r
     let resolution = service
         .resolve_calculated_channels(
             vec!["thrust_margin".to_string(), "chamber_delta".to_string()],
+            Vec::new(),
             "asset-1".to_string(),
             Some("run-1".to_string()),
         )
@@ -1214,6 +1218,7 @@ async fn resolve_calculated_channels_omits_run_when_absent() {
     let resolution = service
         .resolve_calculated_channels(
             vec!["thrust_margin".to_string()],
+            Vec::new(),
             "asset-1".to_string(),
             None,
         )
@@ -1269,6 +1274,7 @@ async fn resolve_calculated_channels_reports_inapplicable_channel() {
     let resolution = service
         .resolve_calculated_channels(
             vec!["thrust_margin".to_string(), "chamber_delta".to_string()],
+            Vec::new(),
             "asset-1".to_string(),
             Some("run-1".to_string()),
         )
@@ -1320,6 +1326,7 @@ async fn resolve_calculated_channels_rejects_other_asset_resolution() {
     let resolution = service
         .resolve_calculated_channels(
             vec!["thrust_margin".to_string()],
+            Vec::new(),
             "asset-1".to_string(),
             None,
         )
@@ -1349,6 +1356,7 @@ async fn resolve_calculated_channels_flags_unknown_name() {
     let resolution = service
         .resolve_calculated_channels(
             vec!["not_a_channel".to_string()],
+            Vec::new(),
             "asset-1".to_string(),
             None,
         )
@@ -1386,6 +1394,7 @@ async fn resolve_calculated_channels_reports_ambiguous_name() {
     let resolution = service
         .resolve_calculated_channels(
             vec!["thrust_margin".to_string()],
+            Vec::new(),
             "asset-1".to_string(),
             None,
         )
@@ -1423,7 +1432,12 @@ async fn resolve_calculated_channels_rejects_truncated_lookup() {
     let (service, _h) = service_with_mock(mock).await;
 
     let err = service
-        .resolve_calculated_channels(vec!["channel.0".to_string()], "asset-1".to_string(), None)
+        .resolve_calculated_channels(
+            vec!["channel.0".to_string()],
+            Vec::new(),
+            "asset-1".to_string(),
+            None,
+        )
         .await
         .expect_err("a truncated lookup must fail before resolving a partial result");
 
@@ -1450,6 +1464,7 @@ async fn resolve_calculated_channels_propagates_grpc_error() {
     let err = service
         .resolve_calculated_channels(
             vec!["thrust_margin".to_string()],
+            Vec::new(),
             "asset-1".to_string(),
             None,
         )
@@ -1492,6 +1507,7 @@ async fn resolve_calculated_channels_errors_on_response_count_mismatch() {
     let err = service
         .resolve_calculated_channels(
             vec!["thrust_margin".to_string(), "chamber_delta".to_string()],
+            Vec::new(),
             "asset-1".to_string(),
             None,
         )
@@ -1550,6 +1566,7 @@ async fn resolve_calculated_channels_errors_when_responses_are_reordered() {
     let err = service
         .resolve_calculated_channels(
             vec!["thrust_margin".to_string(), "chamber_delta".to_string()],
+            Vec::new(),
             "asset-1".to_string(),
             None,
         )
@@ -1610,6 +1627,7 @@ async fn resolve_calculated_channels_accepts_matching_and_absent_echo() {
     let resolution = service
         .resolve_calculated_channels(
             vec!["thrust_margin".to_string(), "chamber_delta".to_string()],
+            Vec::new(),
             "asset-1".to_string(),
             None,
         )
@@ -1624,4 +1642,198 @@ async fn resolve_calculated_channels_accepts_matching_and_absent_echo() {
             .collect::<Vec<_>>(),
         vec!["thrust_margin", "chamber_delta"],
     );
+}
+
+fn draft(name: &str, expression: &str) -> DraftExpression {
+    DraftExpression {
+        name: name.into(),
+        expression: expression.into(),
+        channel_references: vec![channel_ref("$1", "core_temp")],
+    }
+}
+
+/// The expression of an inline configuration in a resolve request, or an
+/// empty string when the request names a saved channel instead.
+fn draft_expression_of(req: &ResolveCalculatedChannelRequest) -> &str {
+    match req.calculated_channel.as_ref() {
+        Some(ResolveTarget::CalculatedChannelConfiguration(config)) => {
+            match config
+                .query_configuration
+                .as_ref()
+                .and_then(|q| q.query.as_ref())
+            {
+                Some(Query::Sel(sel)) => &sel.expression,
+                None => "",
+            }
+        }
+        _ => "",
+    }
+}
+
+/// All drafts go to resolve in one batch call, each as an inline configuration
+/// scoped to the asset and run; only the entry for the requested asset is kept.
+#[tokio::test]
+async fn resolve_drafts_sends_configuration_and_picks_the_asset() {
+    let mut mock = MockCalculatedChannelServiceImpl::new();
+    mock.expect_batch_resolve_calculated_channels()
+        .times(1)
+        .withf(|req| {
+            let requests = &req.get_ref().requests;
+            requests.len() == 2
+                && requests.iter().all(|req| {
+                    let config_ok = match req.calculated_channel.as_ref() {
+                        Some(ResolveTarget::CalculatedChannelConfiguration(config)) => {
+                            let sel_ok = matches!(
+                                config.query_configuration.as_ref().and_then(|q| q.query.as_ref()),
+                                Some(Query::Sel(sel))
+                                    if sel.expression_channel_references
+                                        == [channel_ref("$1", "core_temp")]
+                            );
+                            let scope_ok = matches!(
+                                config.asset_configuration.as_ref().and_then(|a| a.asset_scope.as_ref()),
+                                Some(AssetScope::Selection(AssetSelection { asset_ids, .. }))
+                                    if asset_ids == &["asset-1"]
+                            );
+                            sel_ok && scope_ok
+                        }
+                        _ => false,
+                    };
+                    let run_ok = matches!(
+                        req.run.as_ref().and_then(|r| r.identifier.as_ref()),
+                        Some(Identifier::Id(id)) if id == "run-1"
+                    );
+                    let assets_ok = matches!(
+                        req.assets.as_ref().and_then(|a| a.resources.as_ref()),
+                        Some(Resources::Ids(ids)) if ids.ids == ["asset-1"]
+                    );
+                    config_ok && run_ok && assets_ok
+                })
+                && draft_expression_of(&requests[0]) == "$1 * 2"
+                && draft_expression_of(&requests[1]) == "$1 + 1"
+        })
+        .returning(|_| {
+            let entry = |asset_id: &str, channel_id: &str| ResolvedCalculatedChannel {
+                asset_name: String::new(),
+                asset_id: asset_id.into(),
+                expression_request: Some(expression_request("$1", channel_id)),
+                output_data_type: 0,
+            };
+            Ok(Response::new(BatchResolveCalculatedChannelsResponse {
+                responses: vec![
+                    ResolveCalculatedChannelResponse {
+                        calculated_channel_id: None,
+                        resolved: vec![entry("other-asset", "ch-other"), entry("asset-1", "ch-9")],
+                        unresolved: vec![],
+                    },
+                    ResolveCalculatedChannelResponse {
+                        calculated_channel_id: None,
+                        resolved: vec![entry("asset-1", "ch-9")],
+                        unresolved: vec![],
+                    },
+                ],
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let resolution = service
+        .resolve_calculated_channels(
+            Vec::new(),
+            vec![draft("core_x2", "$1 * 2"), draft("core_p1", "$1 + 1")],
+            "asset-1".into(),
+            Some("run-1".into()),
+        )
+        .await
+        .expect("resolve should succeed");
+
+    assert!(resolution.unresolved.is_empty());
+    assert_eq!(
+        resolution
+            .resolved
+            .iter()
+            .map(|r| r.name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["core_x2", "core_p1"],
+    );
+    assert_eq!(
+        resolution.resolved[0]
+            .expression_request
+            .expression_channel_references[0]
+            .channel_id,
+        "ch-9",
+    );
+}
+
+/// An expression the API leaves unresolved, or resolves for no entry on the
+/// asset, lands in `unresolved` with a reason; the others still resolve.
+#[tokio::test]
+async fn resolve_drafts_reports_each_failure_per_entry() {
+    let mut mock = MockCalculatedChannelServiceImpl::new();
+    mock.expect_batch_resolve_calculated_channels()
+        .times(1)
+        .returning(|req| {
+            let responses = req
+                .into_inner()
+                .requests
+                .iter()
+                .map(|req| match draft_expression_of(req) {
+                    "missing" => ResolveCalculatedChannelResponse {
+                        calculated_channel_id: None,
+                        resolved: vec![],
+                        unresolved: vec![UnresolvedCalculatedChannel {
+                            asset_name: "bench".into(),
+                            error_message: "bench is missing the following channels: [x]".into(),
+                        }],
+                    },
+                    "silent" => ResolveCalculatedChannelResponse::default(),
+                    _ => ResolveCalculatedChannelResponse {
+                        calculated_channel_id: None,
+                        resolved: vec![ResolvedCalculatedChannel {
+                            asset_name: "bench".into(),
+                            asset_id: "asset-1".into(),
+                            expression_request: Some(expression_request("$1", "ch-1")),
+                            output_data_type: 0,
+                        }],
+                        unresolved: vec![],
+                    },
+                })
+                .collect();
+            Ok(Response::new(BatchResolveCalculatedChannelsResponse {
+                responses,
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let resolution = service
+        .resolve_calculated_channels(
+            Vec::new(),
+            vec![
+                draft("a", "missing"),
+                draft("b", "silent"),
+                draft("c", "$1 * 2"),
+            ],
+            "asset-1".into(),
+            None,
+        )
+        .await
+        .expect("per-entry failures do not fail the call");
+
+    assert_eq!(
+        resolution
+            .resolved
+            .iter()
+            .map(|r| r.name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["c"],
+    );
+    let reasons = resolution
+        .unresolved
+        .iter()
+        .map(|entry| (entry.name.as_str(), entry.reason.as_str()))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        reasons[0],
+        ("a", "bench is missing the following channels: [x]")
+    );
+    assert_eq!(reasons[1].0, "b");
+    assert!(reasons[1].1.contains("does not apply"), "{}", reasons[1].1);
 }
