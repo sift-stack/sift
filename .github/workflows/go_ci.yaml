@@ -79,7 +79,7 @@ jobs:
         uses: golangci/golangci-lint-action@v6
         with:
           working-directory: go
-          version: v1.60
+          version: v1.64
 
   go-ci-status:
     if: always()
