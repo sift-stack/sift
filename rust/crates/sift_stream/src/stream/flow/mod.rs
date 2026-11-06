@@ -2,12 +2,12 @@ use std::collections::HashMap;
 use std::hash::Hash;
 
 use sift_error::prelude::*;
-use sift_rs::common::r#type::v1::ChannelDataType;
+use sift_rs::common::r#type::v1::{ChannelBitFieldElement, ChannelDataType, ChannelEnumType};
 use sift_rs::ingest::v1::IngestWithConfigDataChannelValue;
 use sift_rs::ingest::v1::{
     IngestWithConfigDataStreamRequest, ingest_with_config_data_channel_value::Type,
 };
-use sift_rs::ingestion_configs::v2::FlowConfig;
+use sift_rs::ingestion_configs::v2::{ChannelConfig, FlowConfig};
 use sift_rs::wrappers::ingestion_configs::{
     IngestionConfigServiceWrapper, new_ingestion_config_service,
 };
@@ -311,29 +311,136 @@ where
 #[cfg(test)]
 mod test;
 
+/// Returns `true` if two flow or channel names refer to the same Sift entity. Sift treats names
+/// that differ only by case as the same name.
+pub(crate) fn names_match(a: &str, b: &str) -> bool {
+    a == b || a.to_lowercase() == b.to_lowercase()
+}
+
+/// Describes the first difference that makes `sift` incompatible with `local`, or returns `None`
+/// if Sift's flow is equivalent for ingestion.
+///
+/// Sift accepts some variation in how a flow is declared and normalizes it, so a strict `==`
+/// against the stored flow can report an unchanged flow as modified. This comparison accepts the
+/// same variation:
+///
+/// - flow and channel name casing
+/// - the order of enum types and bit field elements
+/// - channel descriptions
+///
+/// Channel order, data types, units, and the sets of enum types and bit field elements must still
+/// match, because ingestion is positional.
+pub(crate) fn flow_difference(local: &FlowConfig, sift: &FlowConfig) -> Option<String> {
+    if !names_match(&local.name, &sift.name) {
+        return Some(format!(
+            "flow name is '{}' locally but '{}' in Sift",
+            local.name, sift.name
+        ));
+    }
+    if local.channels.len() != sift.channels.len() {
+        return Some(format!(
+            "flow has {} channels locally but {} in Sift",
+            local.channels.len(),
+            sift.channels.len()
+        ));
+    }
+    local
+        .channels
+        .iter()
+        .zip(&sift.channels)
+        .enumerate()
+        .find_map(|(i, (l, s))| {
+            channel_difference(l, s).map(|d| format!("channel {i} ('{}'): {d}", l.name))
+        })
+}
+
+fn channel_difference(local: &ChannelConfig, sift: &ChannelConfig) -> Option<String> {
+    if !names_match(&local.name, &sift.name) {
+        return Some(format!(
+            "name is '{}' locally but '{}' in Sift",
+            local.name, sift.name
+        ));
+    }
+    if local.data_type != sift.data_type {
+        let name = |t: i32| {
+            ChannelDataType::try_from(t)
+                .map(|t| t.as_str_name().to_string())
+                .unwrap_or_else(|_| t.to_string())
+        };
+        return Some(format!(
+            "data type is {} locally but {} in Sift",
+            name(local.data_type),
+            name(sift.data_type)
+        ));
+    }
+    if local.unit != sift.unit {
+        return Some(format!(
+            "unit is '{}' locally but '{}' in Sift",
+            local.unit, sift.unit
+        ));
+    }
+    if sorted_enum_types(local) != sorted_enum_types(sift) {
+        return Some("enum types differ".into());
+    }
+    if sorted_bit_field_elements(local) != sorted_bit_field_elements(sift) {
+        return Some("bit field elements differ".into());
+    }
+    None
+}
+
+fn sorted_enum_types(channel: &ChannelConfig) -> Vec<&ChannelEnumType> {
+    let mut enum_types: Vec<_> = channel.enum_types.iter().collect();
+    enum_types.sort_by(|a, b| (a.key, &a.name, a.is_signed).cmp(&(b.key, &b.name, b.is_signed)));
+    enum_types
+}
+
+fn sorted_bit_field_elements(channel: &ChannelConfig) -> Vec<&ChannelBitFieldElement> {
+    let mut elements: Vec<_> = channel.bit_field_elements.iter().collect();
+    elements.sort_by(|a, b| (a.index, a.bit_count, &a.name).cmp(&(b.index, b.bit_count, &b.name)));
+    elements
+}
+
+/// Returns the flow in `sift_flows` that is equivalent to `local`, if any.
+pub(crate) fn find_equivalent_flow<'a>(
+    local: &FlowConfig,
+    sift_flows: &'a [FlowConfig],
+) -> Option<&'a FlowConfig> {
+    sift_flows
+        .iter()
+        .find(|f| flow_difference(local, f).is_none())
+}
+
 /// Compares two sets of flows and ensures that all flows in `user_specified` has a corresponding
-/// equivalent flow in `sift_flows`. If there is no corresponding flow then it either doesn't exist
-/// in Sift (this would be a bug) or a user made a backwards incompatible change to their ingestion
-/// config.
+/// equivalent flow in `sift_flows`, as defined by [`flow_difference`]. If there is no
+/// corresponding flow then it either doesn't exist in Sift (this would be a bug) or a user made a
+/// backwards incompatible change to their ingestion config.
 pub(crate) fn validate_flows(
     user_specified: &[FlowConfig],
     sift_flows: &[FlowConfig],
 ) -> Result<()> {
     for user_flow in user_specified {
-        let num_matches_by_name = sift_flows
+        let same_name: Vec<&FlowConfig> = sift_flows
             .iter()
-            .filter(|f| user_flow.name == f.name)
-            .count();
-        let num_exact_matches = sift_flows.iter().filter(|f| &user_flow == f).count();
+            .filter(|f| names_match(&user_flow.name, &f.name))
+            .collect();
 
-        if num_matches_by_name > 0 && num_exact_matches == 0 {
-            return Err(Error::new_msg(ErrorKind::IncompatibleIngestionConfigChange, "incompatible change to ingestion config"))
-                .with_context(|| format!("flow(s) with name '{}' exist but their channel configs do not match what the user specified", user_flow.name))
-                .help("Did you modify an existing flow? Try updating the the flow's name or the 'client_key' of `sift_stream::IngestionConfigForm`");
-        } else if num_exact_matches == 0 {
+        if same_name.is_empty() {
             return Err(Error::new_msg(ErrorKind::IncompatibleIngestionConfigChange, "incompatible change to ingestion config"))
                 .with_context(|| format!("flow(s) with name '{}' not found in Sift", user_flow.name))
                 .help("try creating a new ingestion config by providing a new 'client_key' to `sift_stream::IngestionConfigForm` and notify Sift");
+        }
+
+        if same_name
+            .iter()
+            .any(|f| flow_difference(user_flow, f).is_none())
+        {
+            continue;
+        }
+
+        if let Some(difference) = flow_difference(user_flow, same_name[0]) {
+            return Err(Error::new_msg(ErrorKind::IncompatibleIngestionConfigChange, "incompatible change to ingestion config"))
+                .with_context(|| format!("flow(s) with name '{}' exist but their channel configs do not match what the user specified: {difference}", user_flow.name))
+                .help("Did you modify an existing flow? Try updating the the flow's name or the 'client_key' of `sift_stream::IngestionConfigForm`");
         }
     }
     Ok(())

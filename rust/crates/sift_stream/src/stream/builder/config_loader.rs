@@ -1,6 +1,6 @@
 use super::IngestionConfigForm;
 use crate::stream::{
-    flow::{add_new_flows, validate_flows},
+    flow::{add_new_flows, find_equivalent_flow, validate_flows},
     retry::control_plane_retry,
 };
 use sift_connect::SiftChannel;
@@ -18,6 +18,37 @@ use sift_rs::{
     },
 };
 
+/// A flow to register in the local flow cache.
+#[derive(Debug)]
+pub struct LoadedFlow {
+    /// The flow name callers use in [`Flow::flow_name`](crate::Flow::flow_name).
+    pub key: String,
+    /// The flow's channels as the caller declared them, under the flow name Sift stores. The flow
+    /// name is sent on ingest requests; the channel names are what callers set values with.
+    pub config: FlowConfig,
+}
+
+impl LoadedFlow {
+    fn with_sift_name(local: FlowConfig, sift_name: String) -> Self {
+        Self {
+            key: local.name,
+            config: FlowConfig {
+                name: sift_name,
+                channels: local.channels,
+            },
+        }
+    }
+}
+
+impl From<FlowConfig> for LoadedFlow {
+    fn from(config: FlowConfig) -> Self {
+        Self {
+            key: config.name.clone(),
+            config,
+        }
+    }
+}
+
 /// Loads or creates an ingestion config and returns the config, flows, and asset.
 /// This is shared logic used by both IngestionConfigMode and FileBackupMode builders.
 pub async fn load_ingestion_config(
@@ -25,7 +56,7 @@ pub async fn load_ingestion_config(
     ingestion_config: IngestionConfigForm,
     service_options: ServiceOptions,
     rate_limit_policy: RateLimitPolicy,
-) -> Result<(IngestionConfig, Vec<FlowConfig>, Asset)> {
+) -> Result<(IngestionConfig, Vec<LoadedFlow>, Asset)> {
     #[cfg(feature = "tracing")]
     tracing::info_span!("load_ingestion_config");
 
@@ -119,7 +150,8 @@ pub async fn load_ingestion_config(
                 "created new ingestion config"
             );
         }
-        return Ok((ingestion_config, flows, asset));
+        let loaded = flows.into_iter().map(LoadedFlow::from).collect();
+        return Ok((ingestion_config, loaded, asset));
     }
 
     // Fetch existing flow configs that match the names of the provided flow configs
@@ -135,17 +167,21 @@ pub async fn load_ingestion_config(
         .then(String::new)
         .unwrap_or_else(|| format!("flow_name in [{flow_names}]"));
 
-    let existing_flows = {
+    let fetch_flows = |filter: String| {
         let ingestion_config_id = ingestion_config.ingestion_config_id.clone();
-        let filter = filter.clone();
-        retrying_ingestion_config
-            .call(|mut w| {
-                let ingestion_config_id = ingestion_config_id.clone();
-                let filter = filter.clone();
-                async move { w.try_filter_flows(&ingestion_config_id, &filter).await }
-            })
-            .await?
+        let retrying_ingestion_config = &retrying_ingestion_config;
+        async move {
+            retrying_ingestion_config
+                .call(|mut w| {
+                    let ingestion_config_id = ingestion_config_id.clone();
+                    let filter = filter.clone();
+                    async move { w.try_filter_flows(&ingestion_config_id, &filter).await }
+                })
+                .await
+        }
     };
+
+    let existing_flows = fetch_flows(filter.clone()).await?;
 
     // If no flows were provided, use the existing flows in Sift to populate the local flow cache.
     if flows.is_empty() {
@@ -154,33 +190,20 @@ pub async fn load_ingestion_config(
             ingestion_config_id = ingestion_config.ingestion_config_id,
             "no flows provided, using existing flows in Sift to populate the local flow cache"
         );
-        return Ok((ingestion_config, existing_flows, asset));
+        let loaded = existing_flows.into_iter().map(LoadedFlow::from).collect();
+        return Ok((ingestion_config, loaded, asset));
     }
 
     // Find the local flows that Sift does not yet know about so they can be created.
-    let mut flows_to_create: Vec<FlowConfig> = Vec::new();
-    for flow in &flows {
-        let mut flow_exists = false;
+    let flows_to_create: Vec<FlowConfig> = flows
+        .iter()
+        .filter(|f| find_equivalent_flow(f, &existing_flows).is_none())
+        .cloned()
+        .collect();
 
-        for existing_flow in existing_flows.iter().filter(|ef| ef == &flow) {
-            flow_exists = flow
-                .channels
-                .iter()
-                .zip(existing_flow.channels.iter())
-                .all(|(lhs, rhs)| lhs == rhs);
-
-            if flow_exists {
-                break;
-            }
-        }
-
-        // If the flow isn't known to Sift yet, it will need to be created.
-        if !flow_exists {
-            flows_to_create.push(flow.clone());
-        }
-    }
-
-    if !flows_to_create.is_empty() {
+    let sift_flows = if flows_to_create.is_empty() {
+        existing_flows
+    } else {
         // Capture names before moving flows_to_create into add_new_flows.
         #[cfg(feature = "tracing")]
         let flow_names: Vec<String> = flows_to_create.iter().map(|f| f.name.clone()).collect();
@@ -241,24 +264,35 @@ pub async fn load_ingestion_config(
         );
 
         // Fetch all flows Sift knows about with the specified names for validation.
-        let sift_flows = {
-            let ingestion_config_id = ingestion_config.ingestion_config_id.clone();
-            let filter = filter.clone();
-            retrying_ingestion_config
-                .call(|mut w| {
-                    let ingestion_config_id = ingestion_config_id.clone();
-                    let filter = filter.clone();
-                    async move { w.try_filter_flows(&ingestion_config_id, &filter).await }
-                })
-                .await?
-        };
+        let mut sift_flows = fetch_flows(filter).await?;
+
+        // A local flow whose name differs from an existing flow only by case already exists in
+        // Sift, but the name-filtered fetch may not return it. Fetch every flow to find it. This
+        // only happens when a name is still missing after creation.
+        if flows
+            .iter()
+            .any(|f| !sift_flows.iter().any(|sf| sf.name == f.name))
+        {
+            sift_flows = fetch_flows(String::new()).await?;
+        }
 
         validate_flows(&flows, &sift_flows)?;
+        sift_flows
+    };
 
-        Ok((ingestion_config, sift_flows, asset))
-    } else {
-        Ok((ingestion_config, existing_flows, asset))
-    }
+    // Every local flow now has an equivalent flow in Sift. Cache the local flows so the channel
+    // names callers send match the flow descriptors, under the flow names Sift stores.
+    let loaded = flows
+        .into_iter()
+        .map(|local| {
+            let sift_name = find_equivalent_flow(&local, &sift_flows)
+                .map(|f| f.name.clone())
+                .unwrap_or_else(|| local.name.clone());
+            LoadedFlow::with_sift_name(local, sift_name)
+        })
+        .collect();
+
+    Ok((ingestion_config, loaded, asset))
 }
 
 #[cfg(test)]
@@ -268,7 +302,7 @@ mod tests {
         MockIngestionConfigService, create_mock_grpc_channel_with_ingestion_service,
         create_mock_grpc_channel_with_service, rate_limited_status,
     };
-    use sift_rs::common::r#type::v1::ChannelDataType;
+    use sift_rs::common::r#type::v1::{ChannelBitFieldElement, ChannelDataType, ChannelEnumType};
     use sift_rs::ingestion_configs::v2::ChannelConfig;
     use std::sync::atomic::Ordering;
     use std::time::{Duration, Instant};
@@ -569,7 +603,7 @@ mod tests {
         assert_eq!(ingestion_config.client_key, "already_exists_client_key");
         assert_eq!(asset.name, "already_exists_asset");
         assert_eq!(returned_flows.len(), 1);
-        assert_eq!(returned_flows[0].name, "race_flow");
+        assert_eq!(returned_flows[0].key, "race_flow");
     }
 
     /// Loads the mock's existing ingestion config with `flow_names` as new flows to create.
@@ -577,7 +611,7 @@ mod tests {
         service: MockIngestionConfigService,
         flow_names: &[&str],
         rate_limit_policy: RateLimitPolicy,
-    ) -> Result<(IngestionConfig, Vec<FlowConfig>, Asset)> {
+    ) -> Result<(IngestionConfig, Vec<LoadedFlow>, Asset)> {
         let (grpc_channel, _) = create_mock_grpc_channel_with_ingestion_service(service).await;
         let flows = flow_names
             .iter()
@@ -645,7 +679,7 @@ mod tests {
         assert!(start.elapsed() >= delay);
         assert_eq!(calls.load(Ordering::SeqCst), 2);
         assert_eq!(flows.len(), 1);
-        assert_eq!(flows[0].name, "rate_limited_flow");
+        assert_eq!(flows[0].key, "rate_limited_flow");
     }
 
     // A rate limit is only surfaced when it is the sole cause of failure; otherwise waiting
@@ -693,5 +727,230 @@ mod tests {
             assert_eq!(err.kind(), ErrorKind::CreateFlowError, "policy {policy:?}");
             assert_eq!(calls.load(Ordering::SeqCst), 1, "policy {policy:?}");
         }
+    }
+
+    // Sift normalizes some variation in how a flow is declared. The tests below seed the mock with
+    // a stored flow, then load the existing config with an equivalent declaration of that flow,
+    // as a rebuild with an unchanged `IngestionConfigForm` would.
+
+    struct ExistingConfigLoad {
+        result: Result<(IngestionConfig, Vec<LoadedFlow>, Asset)>,
+        create_calls: usize,
+        list_filters: Vec<String>,
+    }
+
+    async fn load_existing(sift_flow: FlowConfig, local_flow: FlowConfig) -> ExistingConfigLoad {
+        let service = MockIngestionConfigService::with_existing_flows(vec![sift_flow]);
+        let create_calls = service.create_flows_call_count();
+        let list_filters = service.list_flows_filters();
+        let (grpc_channel, _) = create_mock_grpc_channel_with_ingestion_service(service).await;
+
+        let form = create_test_ingestion_config_form(
+            "already_exists_asset",
+            "already_exists_client_key",
+            vec![local_flow],
+        );
+        let result = load_ingestion_config(
+            grpc_channel,
+            form,
+            ServiceOptions::default(),
+            RateLimitPolicy::default(),
+        )
+        .await;
+
+        ExistingConfigLoad {
+            result,
+            create_calls: create_calls.load(Ordering::SeqCst),
+            list_filters: list_filters.lock().unwrap().clone(),
+        }
+    }
+
+    fn flow(name: &str, channels: Vec<ChannelConfig>) -> FlowConfig {
+        FlowConfig {
+            name: name.into(),
+            channels,
+        }
+    }
+
+    fn double_channel(name: &str, unit: &str, description: &str) -> ChannelConfig {
+        ChannelConfig {
+            name: name.into(),
+            unit: unit.into(),
+            description: description.into(),
+            data_type: ChannelDataType::Double.into(),
+            ..Default::default()
+        }
+    }
+
+    fn bit_field_channel(indexes: &[i32]) -> ChannelConfig {
+        ChannelConfig {
+            name: "status".into(),
+            data_type: ChannelDataType::BitField.into(),
+            bit_field_elements: indexes
+                .iter()
+                .map(|&index| ChannelBitFieldElement {
+                    name: format!("bits_{index}"),
+                    index,
+                    bit_count: 4,
+                })
+                .collect(),
+            ..Default::default()
+        }
+    }
+
+    fn enum_channel(keys: &[u32]) -> ChannelConfig {
+        ChannelConfig {
+            name: "mode".into(),
+            data_type: ChannelDataType::Enum.into(),
+            enum_types: keys
+                .iter()
+                .map(|&key| ChannelEnumType {
+                    name: format!("value_{key}"),
+                    key,
+                    is_signed: false,
+                })
+                .collect(),
+            ..Default::default()
+        }
+    }
+
+    /// Asserts the load succeeded without creating flows, and returns the single loaded flow.
+    fn assert_loaded_unchanged(load: ExistingConfigLoad) -> LoadedFlow {
+        let (_, mut flows, _) = load.result.expect("load should succeed");
+        assert_eq!(load.create_calls, 0, "no flow should be re-created");
+        assert_eq!(flows.len(), 1);
+        flows.remove(0)
+    }
+
+    #[tokio::test]
+    async fn test_load_ingestion_config_accepts_bit_field_elements_sorted_by_sift() {
+        let local = flow("flow", vec![bit_field_channel(&[4, 0])]);
+        let sift = flow("flow", vec![bit_field_channel(&[0, 4])]);
+
+        let loaded = assert_loaded_unchanged(load_existing(sift, local.clone()).await);
+        assert_eq!(loaded.config, local);
+    }
+
+    #[tokio::test]
+    async fn test_load_ingestion_config_accepts_reordered_enum_types() {
+        let local = flow("flow", vec![enum_channel(&[2, 0, 1])]);
+        let sift = flow("flow", vec![enum_channel(&[0, 1, 2])]);
+
+        let loaded = assert_loaded_unchanged(load_existing(sift, local.clone()).await);
+        assert_eq!(loaded.config, local);
+    }
+
+    #[tokio::test]
+    async fn test_load_ingestion_config_ignores_channel_descriptions() {
+        let local = flow("flow", vec![double_channel("pressure", "psi", "updated")]);
+        let sift = flow("flow", vec![double_channel("pressure", "psi", "original")]);
+
+        assert_loaded_unchanged(load_existing(sift, local).await);
+    }
+
+    #[tokio::test]
+    async fn test_load_ingestion_config_keeps_caller_channel_name_casing() {
+        let local = flow("flow", vec![double_channel("Pressure", "psi", "")]);
+        let sift = flow("flow", vec![double_channel("pressure", "psi", "")]);
+
+        let loaded = assert_loaded_unchanged(load_existing(sift, local).await);
+        // Descriptors are keyed by the caller's channel names, which `Flow` values use.
+        assert_eq!(loaded.config.channels[0].name, "Pressure");
+    }
+
+    #[tokio::test]
+    async fn test_load_ingestion_config_matches_flow_name_case_insensitively() {
+        let local = flow("Col_Group=0", vec![double_channel("pressure", "psi", "")]);
+        let sift = flow("col_group=0", vec![double_channel("pressure", "psi", "")]);
+
+        let load = load_existing(sift, local).await;
+        let list_filters = load.list_filters.clone();
+        // The filtered fetch misses the flow, so it is created once and Sift reports it exists.
+        let create_calls = load.create_calls;
+        let (_, flows, _) = load.result.expect("load should succeed");
+
+        assert_eq!(create_calls, 1);
+        assert_eq!(list_filters.last().map(String::as_str), Some(""));
+        assert_eq!(flows.len(), 1);
+        assert_eq!(
+            flows[0].key, "Col_Group=0",
+            "callers look flows up by their own name"
+        );
+        assert_eq!(
+            flows[0].config.name, "col_group=0",
+            "requests use Sift's flow name"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_load_ingestion_config_skips_unfiltered_fetch_when_flows_match() {
+        let local = flow("flow", vec![double_channel("pressure", "psi", "")]);
+
+        let load = load_existing(local.clone(), local).await;
+        let list_filters = load.list_filters.clone();
+        assert_loaded_unchanged(load);
+        assert_eq!(list_filters, vec!["flow_name in ['flow']".to_string()]);
+    }
+
+    /// Asserts the load failed as an incompatible change whose message names `difference`.
+    fn assert_incompatible(load: ExistingConfigLoad, difference: &str) {
+        let err = load.result.expect_err("load should fail");
+        assert_eq!(err.kind(), ErrorKind::IncompatibleIngestionConfigChange);
+        assert!(
+            err.to_string().contains(difference),
+            "expected '{difference}' in:\n{err}"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_load_ingestion_config_rejects_changed_unit() {
+        let local = flow("flow", vec![double_channel("pressure", "kPa", "")]);
+        let sift = flow("flow", vec![double_channel("pressure", "psi", "")]);
+
+        assert_incompatible(
+            load_existing(sift, local).await,
+            "channel 0 ('pressure'): unit is 'kPa' locally but 'psi' in Sift",
+        );
+    }
+
+    #[tokio::test]
+    async fn test_load_ingestion_config_rejects_added_channel() {
+        let local = flow(
+            "flow",
+            vec![
+                double_channel("pressure", "psi", ""),
+                double_channel("temperature", "degC", ""),
+            ],
+        );
+        let sift = flow("flow", vec![double_channel("pressure", "psi", "")]);
+
+        assert_incompatible(
+            load_existing(sift, local).await,
+            "flow has 2 channels locally but 1 in Sift",
+        );
+    }
+
+    #[tokio::test]
+    async fn test_load_ingestion_config_rejects_reordered_channels() {
+        let pressure = double_channel("pressure", "psi", "");
+        let temperature = double_channel("temperature", "degC", "");
+        let local = flow("flow", vec![temperature.clone(), pressure.clone()]);
+        let sift = flow("flow", vec![pressure, temperature]);
+
+        assert_incompatible(
+            load_existing(sift, local).await,
+            "channel 0 ('temperature'): name is 'temperature' locally but 'pressure' in Sift",
+        );
+    }
+
+    #[tokio::test]
+    async fn test_load_ingestion_config_rejects_changed_enum_values() {
+        let local = flow("flow", vec![enum_channel(&[0, 1, 3])]);
+        let sift = flow("flow", vec![enum_channel(&[0, 1, 2])]);
+
+        assert_incompatible(
+            load_existing(sift, local).await,
+            "channel 0 ('mode'): enum types differ",
+        );
     }
 }

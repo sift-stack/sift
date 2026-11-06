@@ -796,9 +796,8 @@ async fn setup_common(base: StreamConfigBuilder) -> Result<CommonSetup> {
     let mut flows_by_name = HashMap::with_capacity(flows.len());
 
     for flow in flows {
-        let flow_name = flow.name.clone();
-        let flow_descriptor = FlowDescriptor::try_from((&ingestion_config_id, flow))?;
-        flows_by_name.insert(flow_name, flow_descriptor);
+        let flow_descriptor = FlowDescriptor::try_from((&ingestion_config_id, flow.config))?;
+        flows_by_name.insert(flow.key, flow_descriptor);
     }
 
     metrics.loaded_flows.add(flows_by_name.len() as u64);
