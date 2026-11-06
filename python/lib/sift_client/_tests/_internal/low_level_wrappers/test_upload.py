@@ -182,25 +182,40 @@ class TestUploadSha256:
 
         assert _posted_form(client).fields["sha256"] == hashlib.sha256(data).hexdigest()
 
+    @pytest.mark.parametrize("sha256", [True, False], ids=["hashed", "not_hashed"])
+    @pytest.mark.parametrize(
+        "position", [len(b"header|"), len(b"header|payload")], ids=["middle", "end"]
+    )
     @pytest.mark.parametrize(
         "open_file",
         [lambda path: open(path, "rb"), lambda path: io.BytesIO(path.read_bytes())],
         ids=["file", "bytes_io"],
     )
-    def test_file_object_hashes_from_its_position(self, tmp_path, open_file):
+    def test_file_object_sends_whole_file(self, tmp_path, open_file, position, sha256):
         path = tmp_path / "data.bin"
         path.write_bytes(b"header|payload")
         client = _posting_client()
 
         with open_file(path) as file:
-            file.seek(len(b"header|"))
-            _upload(client, file, sha256=True)
+            file.seek(position)
+            _upload(client, file, sha256=sha256)
             form = _posted_form(client)
-            assert form.fields["sha256"] == hashlib.sha256(b"payload").hexdigest()
             body = form.to_string()
 
-        assert b"\r\n\r\npayload\r\n" in body
-        assert b"header|" not in body
+        assert b"\r\n\r\nheader|payload\r\n" in body
+        if sha256:
+            assert form.fields["sha256"] == hashlib.sha256(b"header|payload").hexdigest()
+
+    def test_written_bytes_io_sends_whole_buffer(self):
+        buffer = io.BytesIO()
+        buffer.write(b"payload")
+        client = _posting_client()
+
+        _upload(client, buffer, sha256=True)
+
+        form = _posted_form(client)
+        assert form.fields["sha256"] == hashlib.sha256(b"payload").hexdigest()
+        assert b"\r\n\r\npayload\r\n" in form.to_string()
 
     def test_off_by_default(self):
         client = _posting_client()

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import io
 import logging
 import mimetypes
 from contextlib import nullcontext
@@ -16,6 +15,8 @@ from sift_client._internal.util.http import raise_for_status
 from sift_client.transport import WithRestClient
 
 if TYPE_CHECKING:
+    import io
+
     from sift_client.transport.rest_transport import RestClient
 
 # Configure logging
@@ -79,7 +80,8 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
         """Upload a file attachment to an entity.
 
         Args:
-            source: Path to the file to upload, or an open binary file such as `io.BytesIO`.
+            source: Path to the file to upload, or an open seekable binary file such as
+                `io.BytesIO`. A file object is sent whole, from its start, whatever its position.
             entity_id: The ID of the entity to attach the file to.
             entity_type: The type of entity (e.g., "runs", "annotations", "annotation_logs").
             metadata: Optional metadata for the file (e.g., video/image metadata).
@@ -87,8 +89,7 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
             organization_id: Optional organization ID.
             file_name: The stored file name when `source` is a file object; its extension sets
                 the MIME type. A path upload uses the file's own name.
-            sha256: Send the SHA-256 of the uploaded bytes with the file. A file object is
-                hashed from its current position.
+            sha256: Send the SHA-256 of the file with it.
 
         Returns:
             The remote file ID of the uploaded file.
@@ -148,6 +149,8 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
         else:
             opened = nullcontext(source)
         with opened as file:
+            # MultipartEncoder sends an io.BytesIO whole but an open file from its position.
+            file.seek(0)
             form_fields: dict[str, Any] = {
                 "entityId": entity_id,
                 "entityType": entity_type,
@@ -156,14 +159,14 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
             if content_encoding:
                 form_fields["file"] = (
                     file_name,
-                    _FromPosition(file),
+                    file,
                     mimetype,
                     {
                         "Content-Encoding": content_encoding,
                     },
                 )
             else:
-                form_fields["file"] = (file_name, _FromPosition(file), mimetype)
+                form_fields["file"] = (file_name, file, mimetype)
 
             if metadata:
                 import json
@@ -179,7 +182,7 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
                 form_fields["description"] = description
 
             if sha256:
-                form_fields["sha256"] = _sha256_from_position(file)
+                form_fields["sha256"] = _sha256(file)
 
             form_data = MultipartEncoder(fields=form_fields)
 
@@ -225,35 +228,13 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
         return file_name, mime, encoding
 
 
-class _FromPosition:
-    """Sends a file object from its current position.
-
-    MultipartEncoder sends all of `getvalue()` for an `io.BytesIO`, ignoring the position. It
-    sends an object with `read` and `len` as is, and reads until `len` is 0.
-    """
-
-    def __init__(self, file: BinaryIO):
-        self._file = file
-        start = file.tell()
-        self._end = file.seek(0, io.SEEK_END)
-        file.seek(start)
-
-    @property
-    def len(self) -> int:
-        return self._end - self._file.tell()
-
-    def read(self, size: int = -1) -> bytes:
-        return self._file.read(size)
-
-
-def _sha256_from_position(file: BinaryIO) -> str:
-    """Hash `file` from its current position in chunks, then seek back to that position."""
-    start = file.tell()
+def _sha256(file: BinaryIO) -> str:
+    """Hash `file`, which must be at its start, in chunks, then seek back to the start."""
     digest = hashlib.sha256()
     buffer = bytearray(_HASH_CHUNK_SIZE)
     view = memoryview(buffer)
     readinto = cast("io.BufferedIOBase", file).readinto
     while size := readinto(buffer):
         digest.update(view[:size])
-    file.seek(start)
+    file.seek(0)
     return digest.hexdigest()
