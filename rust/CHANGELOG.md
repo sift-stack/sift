@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+
+## [v0.14.1] - November 6, 2026
 ### What's New
 
 #### `DurationPy` converts to and from `timedelta` (PR [#849](https://github.com/sift-stack/sift/pull/849))
@@ -19,7 +21,7 @@ from a `timedelta` and raises `ValueError` if `delta` is negative.
 
 ### Bug Fixes
 
-#### Rebuilding a `SiftStream` no longer rejects unchanged flows
+#### Rebuilding a `SiftStream` no longer rejects unchanged flows (PR [#873](https://github.com/sift-stack/sift/pull/873))
 
 Sift accepts some variation in how a flow is declared, such as the order of bit field elements,
 and stores it in a normalized form. A `SiftStream` built with an existing ingestion config

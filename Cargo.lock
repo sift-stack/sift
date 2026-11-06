@@ -4940,7 +4940,7 @@ dependencies = [
 
 [[package]]
 name = "sift_connect"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "dirs",
  "sift_error",
@@ -4951,14 +4951,14 @@ dependencies = [
 
 [[package]]
 name = "sift_error"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "indoc",
 ]
 
 [[package]]
 name = "sift_mcp"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "anyhow",
  "arrow",
@@ -4990,7 +4990,7 @@ dependencies = [
 
 [[package]]
 name = "sift_pbfs"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "crc32fast",
  "prost",
@@ -5002,7 +5002,7 @@ dependencies = [
 
 [[package]]
 name = "sift_rs"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "async-trait",
  "chrono",
@@ -5023,7 +5023,7 @@ dependencies = [
 
 [[package]]
 name = "sift_stream"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "async-channel",
  "async-trait",
@@ -5059,7 +5059,7 @@ dependencies = [
 
 [[package]]
 name = "sift_test_util"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "async-trait",
  "hyper-util",
