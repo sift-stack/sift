@@ -138,6 +138,33 @@ fn column_name_try_from_missing_channel_id_errors() {
 }
 
 #[test]
+fn column_name_received_at_round_trips_and_drops_units() {
+    let original = ColumnName::builder("temp", "c1")
+        .run(Some("r42"))
+        .units(Some("C"))
+        .build()
+        .with_received_at();
+    assert!(original.received_at());
+    assert_eq!(original.units(), None);
+    assert_eq!(
+        original.to_string(),
+        "temp {channel_id=\"c1\", run=\"r42\", received_at=\"true\"}"
+    );
+    let parsed = ColumnName::try_from(original.to_string().as_str()).expect("should parse");
+    assert_eq!(parsed, original);
+}
+
+#[test]
+fn column_name_try_from_rejects_received_at_other_than_true() {
+    let err = ColumnName::try_from("temp {channel_id=\"c1\", received_at=\"false\"}")
+        .expect_err("only true is a receipt column");
+    assert!(
+        err.to_string().contains("`received_at` must be \"true\""),
+        "unexpected error: {err}"
+    );
+}
+
+#[test]
 fn column_name_try_from_unknown_key_errors() {
     let err = ColumnName::try_from("temp {channel_id=\"c1\", flavor=\"strawberry\"}")
         .expect_err("unknown key should error");

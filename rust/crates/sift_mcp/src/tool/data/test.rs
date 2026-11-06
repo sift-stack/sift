@@ -110,9 +110,35 @@ fn get_data_params(channel_regex: &str) -> Parameters<GetDataParams> {
         channel_regex: Some(channel_regex.into()),
         channel_id: None,
         channel_ids: None,
+        include_received_at: false,
         expressions_json: None,
         output: std::env::temp_dir().join("sift-mcp-get-data-test-never-written.parquet"),
     })
+}
+
+#[test]
+fn get_data_params_accept_include_received_at_aliases() {
+    let base = serde_json::json!({
+        "asset_name": "bench",
+        "start_time_unix_nanos": 0,
+        "end_time_unix_nanos": 1,
+        "sample_ms": 0,
+        "channel_names": ["temp"],
+        "output": "out.parquet",
+    });
+
+    let omitted: GetDataParams = serde_json::from_value(base.clone()).unwrap();
+    assert!(!omitted.include_received_at);
+
+    let mut snake = base.clone();
+    snake["include_received_at"] = serde_json::json!(true);
+    let snake: GetDataParams = serde_json::from_value(snake).unwrap();
+    assert!(snake.include_received_at);
+
+    let mut camel = base;
+    camel["includeReceivedAt"] = serde_json::json!(true);
+    let camel: GetDataParams = serde_json::from_value(camel).unwrap();
+    assert!(camel.include_received_at);
 }
 
 #[tokio::test]
@@ -617,6 +643,7 @@ fn named_params(
         channel_regex: None,
         channel_id: None,
         channel_ids: None,
+        include_received_at: false,
         expressions_json: None,
         output,
     })
@@ -1203,6 +1230,7 @@ async fn get_data_reports_channel_names_that_matched_nothing() {
             channel_regex: None,
             channel_id: None,
             channel_ids: None,
+            include_received_at: false,
             expressions_json: None,
             output: dir.path().join("out.parquet"),
         }))
@@ -1270,6 +1298,7 @@ async fn get_data_reports_no_unmatched_names_for_a_regex_selection() {
             channel_regex: Some("press.*".into()),
             channel_id: None,
             channel_ids: None,
+            include_received_at: false,
             expressions_json: None,
             output: dir.path().join("out.parquet"),
         }))
@@ -1335,6 +1364,7 @@ async fn get_data_reports_matched_channels_that_returned_no_samples() {
             channel_regex: None,
             channel_id: None,
             channel_ids: None,
+            include_received_at: false,
             expressions_json: None,
             output: dir.path().join("out.parquet"),
         }))
@@ -1405,6 +1435,7 @@ async fn no_data_error_reports_both_the_empty_and_the_unmatched_channels() {
             channel_regex: None,
             channel_id: None,
             channel_ids: None,
+            include_received_at: false,
             expressions_json: None,
             output: dir.path().join("out.parquet"),
         }))
@@ -1590,6 +1621,7 @@ async fn get_data_persist_failure_keeps_the_channel_report() {
             channel_regex: None,
             channel_id: None,
             channel_ids: None,
+            include_received_at: false,
             expressions_json: None,
             output: output.clone(),
         }))
@@ -1648,6 +1680,7 @@ async fn get_data_leaves_no_file_when_the_data_call_fails() {
             channel_regex: None,
             channel_id: None,
             channel_ids: None,
+            include_received_at: false,
             expressions_json: None,
             output: dir.path().join("out.parquet"),
         }))
@@ -1707,6 +1740,7 @@ async fn get_data_leaves_no_file_when_the_request_is_cancelled() {
         channel_regex: None,
         channel_id: None,
         channel_ids: None,
+        include_received_at: false,
         expressions_json: None,
         output: output.clone(),
     });
@@ -1799,6 +1833,7 @@ async fn get_data_writes_into_a_directory_that_does_not_exist_yet() {
             channel_regex: None,
             channel_id: None,
             channel_ids: None,
+            include_received_at: false,
             expressions_json: None,
             output: nested.clone(),
         }))

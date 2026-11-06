@@ -74,9 +74,10 @@ pub fn secs_and_subsec_nanos_to_unix_nanos(sec: i64, subsec_nanos: i32) -> i64 {
 
 /// A fully-qualified Arrow column name with the channel-specific fields the
 /// data pipeline cares about. `Display` emits the canonical Parquet column-name
-/// string: `<name> {channel_id="...", bit_field_element="...", run="...", units="..."}`.
-/// Empty optional fields are omitted. Construct via [`ColumnName::builder`] or
-/// `TryFrom<String>` (when re-hydrating a string from a Parquet schema).
+/// string: `<name> {channel_id="...", bit_field_element="...", run="...", units="...", received_at="true"}`.
+/// Empty optional fields are omitted. `received_at="true"` marks a receipt-time
+/// column rather than the channel's samples. Construct via [`ColumnName::builder`] or
+/// `TryFrom<&str>` (when re-hydrating a string from a Parquet schema).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ColumnName {
     name: String,
@@ -84,6 +85,7 @@ pub struct ColumnName {
     bit_field_element: Option<String>,
     run: Option<String>,
     units: Option<String>,
+    received_at: bool,
 }
 
 impl ColumnName {
@@ -94,6 +96,20 @@ impl ColumnName {
             bit_field_element: None,
             run: None,
             units: None,
+            received_at: false,
+        }
+    }
+
+    /// The same channel identity, marked as that channel's receipt-time column.
+    /// Units are dropped: the column holds unix nanos, not the measurement unit.
+    pub fn with_received_at(&self) -> Self {
+        Self {
+            name: self.name.clone(),
+            channel_id: self.channel_id.clone(),
+            bit_field_element: self.bit_field_element.clone(),
+            run: self.run.clone(),
+            units: None,
+            received_at: true,
         }
     }
 
@@ -116,6 +132,10 @@ impl ColumnName {
     pub fn units(&self) -> Option<&str> {
         self.units.as_deref()
     }
+
+    pub fn received_at(&self) -> bool {
+        self.received_at
+    }
 }
 
 impl fmt::Display for ColumnName {
@@ -129,6 +149,9 @@ impl fmt::Display for ColumnName {
         }
         if let Some(v) = &self.units {
             write!(f, ", units=\"{v}\"")?;
+        }
+        if self.received_at {
+            write!(f, ", received_at=\"true\"")?;
         }
         write!(f, "}}")
     }
@@ -157,6 +180,7 @@ impl TryFrom<&str> for ColumnName {
         let mut bit_field_element: Option<String> = None;
         let mut run: Option<String> = None;
         let mut units: Option<String> = None;
+        let mut received_at = false;
 
         for segment in attrs.split(',') {
             let segment = segment.trim();
@@ -183,6 +207,12 @@ impl TryFrom<&str> for ColumnName {
                 "bit_field_element" => bit_field_element = Some(val),
                 "run" => run = Some(val),
                 "units" => units = Some(val),
+                "received_at" => {
+                    if val != "true" {
+                        bail!("`received_at` must be \"true\"");
+                    }
+                    received_at = true;
+                }
                 other => bail!("unknown attribute key `{other}`"),
             }
         }
@@ -196,6 +226,7 @@ impl TryFrom<&str> for ColumnName {
             bit_field_element,
             run,
             units,
+            received_at,
         })
     }
 }
@@ -210,6 +241,7 @@ pub struct ColumnNameBuilder<'a> {
     bit_field_element: Option<String>,
     run: Option<String>,
     units: Option<String>,
+    received_at: bool,
 }
 
 impl<'a> ColumnNameBuilder<'a> {
@@ -228,6 +260,11 @@ impl<'a> ColumnNameBuilder<'a> {
         self
     }
 
+    pub fn received_at(mut self, value: bool) -> Self {
+        self.received_at = value;
+        self
+    }
+
     pub fn build(self) -> ColumnName {
         ColumnName {
             name: self.name.to_string(),
@@ -235,6 +272,7 @@ impl<'a> ColumnNameBuilder<'a> {
             bit_field_element: self.bit_field_element,
             run: self.run,
             units: self.units,
+            received_at: self.received_at,
         }
     }
 }

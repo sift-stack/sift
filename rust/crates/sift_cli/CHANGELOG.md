@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- `get_data` accepts `include_received_at` (alias `includeReceivedAt`). When
+  set, and the data service returns `sift_received_at`, the Parquet file
+  includes a receipt-time column per channel in unix nanos next to the
+  generated `timestamp_unix_nanos`. `upload_dataset` skips those columns.
 - MCP `get_data` takes an optional `expressions_json` parameter that evaluates
   unsaved CEL expressions for the asset and run and writes each one as its own
   Parquet column. Agents can test a calculated channel before proposing to save
