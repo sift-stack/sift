@@ -4,7 +4,7 @@ import warnings
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from enum import Enum
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, ClassVar, Union
 
 import pandas as pd  # noqa: TC002
 from pydantic import BaseModel, ConfigDict, model_validator
@@ -71,7 +71,7 @@ from sift_client._internal.time import to_timestamp_nanos, to_timestamp_pb
 from sift_client._internal.util.util import caller_stacklevel
 from sift_client.errors import SiftIgnoredInputWarning
 from sift_client.sift_types._base import BaseType
-from sift_client.sift_types.channel import ChannelDataType
+from sift_client.sift_types.channel import ChannelBitFieldElement, ChannelDataType
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -168,20 +168,42 @@ class DataColumnBase(BaseModel, ABC):
     Attributes:
         name: Channel name.
         data_type: The data type of the channel values.
-        units: Optional units string.
-        description: Optional channel description.
+        units: Optional units string. On a bit field channel, every element
+            shows these units.
+        description: Optional channel description. On a bit field channel,
+            every element shows this description.
         enum_types: Mapping of enum name to key. Only valid when ``data_type``
             is ``ChannelDataType.ENUM``.
+        bit_field_elements: Named bit ranges within each value. Only valid when
+            ``data_type`` is ``ChannelDataType.BIT_FIELD``, and only on formats
+            that support bit fields. Each element reads back as an unsigned
+            integer. Elements can't have their own units or description.
     """
+
+    # The ULog and MCAP import jobs only accept the file's native scalar types
+    # as overrides, so they reject BIT_FIELD after the upload.
+    _supports_bit_fields: ClassVar[bool] = True
 
     name: str
     data_type: ChannelDataType
     units: str = ""
     description: str = ""
     enum_types: dict[str, int] | None = None
+    bit_field_elements: list[ChannelBitFieldElement] | None = None
 
     @model_validator(mode="after")
-    def _check_enum_types(self) -> DataColumnBase:
+    def _check_channel_type_fields(self) -> DataColumnBase:
+        # mypy can't call a decorated validator directly, so the checks live in
+        # a plain method that _channel_config_proto can also call.
+        self._validate_channel_type_fields()
+        return self
+
+    def _validate_channel_type_fields(self) -> None:
+        """Raise if ``enum_types`` or ``bit_field_elements`` don't match ``data_type``.
+
+        Assigning fields bypasses the model validators, so this also runs when
+        the column is converted to proto before an import.
+        """
         if self.data_type == ChannelDataType.ENUM or self.enum_types:
             if self.data_type != ChannelDataType.ENUM:
                 raise ValueError(
@@ -194,9 +216,40 @@ class DataColumnBase(BaseModel, ABC):
                 )
             if len(set(self.enum_types.values())) != len(self.enum_types):
                 raise ValueError(f"'enum_types' contains duplicate keys ({self.name}).")
-        return self
+        if self.data_type == ChannelDataType.BIT_FIELD or self.bit_field_elements:
+            if not self._supports_bit_fields:
+                raise ValueError(
+                    f"{type(self).__name__} doesn't support ChannelDataType.BIT_FIELD "
+                    f"({self.name})."
+                )
+            if self.data_type != ChannelDataType.BIT_FIELD:
+                raise ValueError(
+                    f"'bit_field_elements' requires data_type ChannelDataType.BIT_FIELD "
+                    f"({self.name} is {self.data_type.name})."
+                )
+            if not self.bit_field_elements:
+                raise ValueError(
+                    f"data_type ChannelDataType.BIT_FIELD requires 'bit_field_elements' "
+                    f"({self.name})."
+                )
+            names = [el.name for el in self.bit_field_elements]
+            if len(set(names)) != len(names):
+                raise ValueError(f"'bit_field_elements' contains duplicate names ({self.name}).")
+            next_free_bit = 0
+            for el in sorted(self.bit_field_elements, key=lambda el: el.index):
+                if el.index < 0 or el.bit_count < 1:
+                    raise ValueError(
+                        f"bit field element '{el.name}' needs index >= 0 and bit_count >= 1 "
+                        f"({self.name})."
+                    )
+                if el.index < next_free_bit:
+                    raise ValueError(
+                        f"bit field element '{el.name}' overlaps another element ({self.name})."
+                    )
+                next_free_bit = el.index + el.bit_count
 
     def _channel_config_proto(self) -> ChannelConfigProto:
+        self._validate_channel_type_fields()
         proto = ChannelConfigProto(
             name=self.name,
             data_type=self.data_type.value,
@@ -207,11 +260,21 @@ class DataColumnBase(BaseModel, ABC):
             proto.enum_types.extend(
                 ChannelEnumTypeProto(name=name, key=key) for name, key in self.enum_types.items()
             )
+        if self.bit_field_elements:
+            proto.bit_field_elements.extend(el._to_proto() for el in self.bit_field_elements)
         return proto
 
 
 def _enum_types_from_proto(channel_config: ChannelConfigProto) -> dict[str, int] | None:
     return {e.name: e.key for e in channel_config.enum_types} or None
+
+
+def _bit_field_elements_from_proto(
+    channel_config: ChannelConfigProto,
+) -> list[ChannelBitFieldElement] | None:
+    return [
+        ChannelBitFieldElement._from_proto(el) for el in channel_config.bit_field_elements
+    ] or None
 
 
 class ImportConfigBase(BaseModel, ABC):
@@ -389,6 +452,7 @@ class CsvImportConfig(ImportConfigBase):
                 units=ch_cfg.units,
                 description=ch_cfg.description,
                 enum_types=_enum_types_from_proto(ch_cfg),
+                bit_field_elements=_bit_field_elements_from_proto(ch_cfg),
             )
             for col_num, ch_cfg in proto.data_columns.items()
         ]
@@ -547,6 +611,7 @@ class ParquetFlatDatasetImportConfig(ImportConfigBase):
                 units=dc.channel_config.units,
                 description=dc.channel_config.description,
                 enum_types=_enum_types_from_proto(dc.channel_config),
+                bit_field_elements=_bit_field_elements_from_proto(dc.channel_config),
             )
             for dc in fd.data_columns
         ]
@@ -691,6 +756,7 @@ class ParquetSingleChannelPerRowImportConfig(ImportConfigBase):
                 units=sc.channel.units,
                 description=sc.channel.description,
                 enum_types=_enum_types_from_proto(sc.channel),
+                bit_field_elements=_bit_field_elements_from_proto(sc.channel),
             )
         elif scpr.HasField("multi_channel"):
             mc = scpr.multi_channel
@@ -872,6 +938,7 @@ class TdmsImportConfig(ImportConfigBase):
                     scaled=d.scaled if d.HasField("scaled") else None,
                     complex_component=complex_component,
                     enum_types=_enum_types_from_proto(ch),
+                    bit_field_elements=_bit_field_elements_from_proto(ch),
                 )
             )
 
@@ -1032,6 +1099,8 @@ class UlogDataColumn(DataColumnBase):
         name: Sift channel name to create. Defaults to ``default_channel_name``,
             e.g. ``"sensor_accel_0.x"``.
     """
+
+    _supports_bit_fields: ClassVar[bool] = False
 
     message_name: str
     instance: int = 0
@@ -1220,6 +1289,8 @@ class McapDataColumn(DataColumnBase):
             e.g. ``"/imu/data.orientation.x"``.
     """
 
+    _supports_bit_fields: ClassVar[bool] = False
+
     topic: str
     field_path: str
     name: str = ""
@@ -1322,16 +1393,14 @@ class McapImportConfig(ImportConfigBase):
                     f"'{name}'. Rename or remove one before importing."
                 )
             taken_names[name.lower()] = dc.name
+            channel_config = dc._channel_config_proto()
+            channel_config.name = name
+            channel_config.data_type = data_type.value
             proto.data.append(
                 McapDataConfigProto(
                     topic=dc.topic,
                     ros2=McapRos2SelectorProto(field_path=dc.field_path),
-                    channel_config=ChannelConfigProto(
-                        name=name,
-                        data_type=data_type.value,
-                        units=dc.units,
-                        description=dc.description,
-                    ),
+                    channel_config=channel_config,
                 )
             )
 
@@ -1378,6 +1447,7 @@ class McapImportConfig(ImportConfigBase):
                 data_type=ChannelDataType(d.channel_config.data_type),
                 units=d.channel_config.units,
                 description=d.channel_config.description,
+                enum_types=_enum_types_from_proto(d.channel_config),
             )
             for d in proto.data
         ]
