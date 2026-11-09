@@ -51,6 +51,7 @@ pub struct ArtifactArchiveParams {
 }
 
 #[derive(Debug, Default, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct CreateArtifactParams {
     title: Option<String>,
     summary: Option<String>,
@@ -295,6 +296,48 @@ fn with_include_archived(filter: String, include_archived: bool) -> String {
 
 #[tool_router(router = artifacts_router, vis = "pub(crate)")]
 impl SiftMcpServer {
+    #[tool(
+        name = "create_artifacts",
+        description = "Create 1–100 artifacts in one non-atomic call.
+            Output: `successes` contains zero-based `index` and the full `create_artifact` result;
+            `failures` contains `index`, `error` with recovery guidance and `outcome_unknown`;
+            `not_attempted` lists untouched indices. Partial failures set `isError`.
+            Parameters: `items_json` is a JSON ARRAY STRING of parameter objects matching `create_artifact`.
+            Optional fields include title, summary, conversation_id, storage_class, created_via, metadata,
+            links and file_path. Follow the single tool's storage-class, link and file requirements.
+            `selected_indices`: approval host's zero-based original positions. Omit when proposing; the host MUST
+            set it from per-item decisions before execution. Missing masks fail closed; [] writes nothing.
+            Results keep original indices; `not_selected` lists rejected items, which must never be retried.
+            Errors: INVALID_PARAMS for malformed input, unknown parameter keys or outside 1–100 items before writes.
+            Item validation failures are reported individually; backend-wide errors stop the remaining items.
+            Guidance: CONFIRM every artifact and destination before calling. Writes run sequentially.
+            File upload can fail AFTER artifact creation: inspect the error's artifact id before retrying,
+            because the artifact may already exist. Successful items remain committed.
+            Never replay the whole batch. Prefer this over repeated single creates for independent artifacts.",
+        annotations(
+            title = "artifacts/create_artifacts",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false
+        )
+    )]
+    pub async fn create_artifacts(
+        &self,
+        params: Parameters<crate::tool::common::bulk_create::BulkCreateParams>,
+    ) -> error::McpResult {
+        self.require_create()?;
+        let items = crate::tool::common::bulk_create::parse_items::<CreateArtifactParams>(
+            &params.0.items_json,
+        )?;
+        crate::tool::common::bulk_create::create_many_with_partial_writes(
+            items,
+            params.0.selected_indices,
+            |item| self.create_artifact(Parameters(item)),
+            true,
+        )
+        .await
+    }
+
     #[tool(
         name = "list_artifacts",
         description = "

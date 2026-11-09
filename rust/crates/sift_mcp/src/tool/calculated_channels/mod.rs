@@ -32,6 +32,7 @@ pub struct CalculatedChannelVersionListParams {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct CreateCalculatedChannelParams {
     name: String,
     expression: String,
@@ -68,6 +69,45 @@ pub struct CalculatedChannelArchiveParams {
 
 #[tool_router(router = calculated_channels_router, vis = "pub(crate)")]
 impl SiftMcpServer {
+    #[tool(
+        name = "create_calculated_channels",
+        description = "Create 1–100 calculated channels in one non-atomic call.
+            Output: `successes` contains zero-based `index` and the full `create_calculated_channel` result,
+            including `inapplicable_assets` warnings. `failures` contains `index`, `error` with guidance and
+            `outcome_unknown`; `not_attempted` lists untouched indices. Partial failures set `isError`.
+            Parameters: `items_json` is a JSON ARRAY STRING of parameter objects matching `create_calculated_channel`:
+            required `name`, `expression`, `expression_channel_references_json` (a JSON string), plus an asset scope.
+            Use `all_assets: true` OR non-empty `asset_ids`/`tag_ids`. Other optional fields match the single tool.
+            `selected_indices`: approval host's zero-based original positions. Omit when proposing; the host MUST
+            set it from per-item decisions before execution. Missing masks fail closed; [] writes nothing.
+            Results keep original indices; `not_selected` lists rejected items, which must never be retried.
+            Errors: INVALID_PARAMS for malformed input, unknown parameter keys or outside 1–100 items before writes.
+            Item validation failures are reported individually; backend-wide errors stop the remaining items.
+            Guidance: CONFIRM every expression and asset scope first. Writes are sequential and not rolled back.
+            Surface inapplicable-assets warnings. Never replay successful creates; inspect unknown outcomes first.
+            Prefer this over repeated single creates. For dependencies between channels, create the prerequisite
+            first, obtain its version id, then submit a separate batch referencing that id.",
+        annotations(
+            title = "calculated_channels/create_calculated_channels",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false
+        )
+    )]
+    pub async fn create_calculated_channels(
+        &self,
+        params: Parameters<crate::tool::common::bulk_create::BulkCreateParams>,
+    ) -> error::McpResult {
+        self.require_create()?;
+        let items = crate::tool::common::bulk_create::parse_items::<CreateCalculatedChannelParams>(
+            &params.0.items_json,
+        )?;
+        crate::tool::common::bulk_create::create_many(items, params.0.selected_indices, |item| {
+            self.create_calculated_channel(Parameters(item))
+        })
+        .await
+    }
+
     #[tool(
         name = "list_calculated_channels",
         description = "

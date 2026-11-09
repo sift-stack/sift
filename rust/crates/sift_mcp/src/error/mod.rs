@@ -50,7 +50,7 @@ impl Display for AgentSignal {
         match self {
             Self::BackendUnreachable => write!(
                 f,
-                "The Sift backend was unreachable after multiple attempts. \
+                "The Sift backend was unreachable. \
                  Do not retry this tool in this prompt. Inform the user that the backend appears to be down."
             ),
             Self::RateLimited => write!(
@@ -112,6 +112,9 @@ pub fn from_anyhow(error: anyhow::Error) -> rmcp::ErrorData {
                 "status": "stopped",
                 "reason": reason,
                 "guidance": guidance,
+                // Composite creates can fail after committing. Preserve ids and
+                // progress from service context so callers can inspect that state.
+                "context": format!("{error:#}"),
             })),
         };
     }

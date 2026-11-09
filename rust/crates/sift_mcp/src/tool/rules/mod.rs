@@ -19,6 +19,7 @@ use crate::{
 mod test;
 
 #[derive(Debug, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct RuleDefinitionParams {
     rule_json: String,
 }
@@ -50,6 +51,53 @@ pub struct RuleArchiveParams {
 
 #[tool_router(router = rules_router, vis = "pub(crate)")]
 impl SiftMcpServer {
+    #[tool(
+        name = "create_rules",
+        description = "Create 1–100 rules in one non-atomic call. This is CREATE ONLY; existing rules are never updated.
+            Output: `successes` contains zero-based `index` and the full `create_rule` result; `failures` contains
+            `index`, `error` (with recovery guidance), and `outcome_unknown`; `not_attempted` lists untouched indices.
+            Partial failure sets `isError`. `created_count` counts completed creates, not attempted writes.
+            Parameters: `items_json` is a JSON ARRAY STRING of `create_rule` parameter objects, each with `rule_json`
+            (itself a JSON object string). Follow `create_rule` for definition fields and condition/action shapes.
+            Omit `rule_id` from every definition. A supplied id is INVALID_PARAMS, never an update.
+            `selected_indices`: approval host's zero-based original positions. Omit when proposing; the host MUST
+            set it from per-item decisions before execution. Missing masks fail closed; [] writes nothing.
+            Results keep original indices; `not_selected` lists rejected items, which must never be retried.
+            Errors: INVALID_PARAMS for malformed input, unknown parameter keys, or outside 1–100 items, before writing.
+            Item-specific validation errors are reported per item; backend-wide errors stop the remaining items.
+            Guidance: CONFIRM all names, conditions and asset scopes before calling. Writes run sequentially.
+            Successful items stay committed. Never replay the whole batch; verify outcomes marked unknown before retrying.
+            Prefer this tool over repeated `create_rule` calls when creating several independent rules.",
+        annotations(
+            title = "rules/create_rules",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false
+        )
+    )]
+    pub async fn create_rules(
+        &self,
+        params: Parameters<crate::tool::common::bulk_create::BulkCreateParams>,
+    ) -> error::McpResult {
+        self.require_create()?;
+        let items = crate::tool::common::bulk_create::parse_items::<RuleDefinitionParams>(
+            &params.0.items_json,
+        )?;
+        for (index, item) in items.iter().enumerate() {
+            let definition = parse_rule_definition(&item.rule_json)?;
+            if definition.rule_id.is_some() {
+                return Err(ErrorData::invalid_params(
+                    format!("item {index}: omit `rule_id` for create-only batches"),
+                    None,
+                ));
+            }
+        }
+        crate::tool::common::bulk_create::create_many(items, params.0.selected_indices, |item| {
+            self.create_rule(Parameters(item))
+        })
+        .await
+    }
+
     #[tool(
         name = "list_rules",
         description = "

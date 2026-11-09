@@ -35,6 +35,7 @@ pub struct ReportRuleSummaryListParams {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct CreateReportParams {
     run_id: String,
     name: String,
@@ -55,6 +56,48 @@ pub struct UpdateReportParams {
 
 #[tool_router(router = reports_router, vis = "pub(crate)")]
 impl SiftMcpServer {
+    #[tool(
+        name = "create_reports",
+        description = "Start creation of 1–100 reports in one non-atomic call.
+            Output: `successes` contains zero-based `index` and the full `create_report` result, including
+            asynchronous report/job identifiers. Success means creation was started, not that evaluation finished.
+            `failures` contains `index`, `error` with guidance and `outcome_unknown`;
+            `not_attempted` lists untouched indices. Partial failures set `isError`.
+            Parameters: `items_json` is a JSON ARRAY STRING of parameter objects matching `create_report`.
+            Each item needs its own `run_id` and exactly one supported rule/template source.
+            `selected_indices`: approval host's zero-based original positions. Omit when proposing; the host MUST
+            set it from per-item decisions before execution. Missing masks fail closed; [] writes nothing.
+            Results keep original indices; `not_selected` lists rejected items, which must never be retried.
+            Errors: INVALID_PARAMS for malformed input, unknown parameter keys or outside 1–100 items before writes.
+            Item validation failures are reported individually; backend-wide errors stop the remaining items.
+            Guidance: CONFIRM every run and rule/template selection first. Requests run sequentially and accepted
+            jobs are not cancelled on later failure. If metadata fails after evaluation starts, a report may
+            already exist: inspect the failed item's error and list reports before retrying.
+            Never replay the whole batch. Prefer this over repeated single creates for independent reports.",
+        annotations(
+            title = "reports/create_reports",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false
+        )
+    )]
+    pub async fn create_reports(
+        &self,
+        params: Parameters<crate::tool::common::bulk_create::BulkCreateParams>,
+    ) -> error::McpResult {
+        self.require_create()?;
+        let items = crate::tool::common::bulk_create::parse_items::<CreateReportParams>(
+            &params.0.items_json,
+        )?;
+        crate::tool::common::bulk_create::create_many_with_partial_writes(
+            items,
+            params.0.selected_indices,
+            |item| self.create_report(Parameters(item)),
+            true,
+        )
+        .await
+    }
+
     #[tool(
         name = "list_reports",
         description = "

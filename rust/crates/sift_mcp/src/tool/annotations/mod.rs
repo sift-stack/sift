@@ -85,6 +85,7 @@ impl From<AnnotationStateParam> for AnnotationState {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct CreateAnnotationParams {
     name: String,
     description: Option<String>,
@@ -98,6 +99,16 @@ pub struct CreateAnnotationParams {
     run_id: Option<String>,
     assign_to_user_id: Option<String>,
     metadata: Option<Vec<MetadataEntry>>,
+    organization_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct CreateAnnotationsParams {
+    items_json: String,
+    /// Approval host's original input indices. Omit when proposing; [] writes nothing.
+    selected_indices: Option<Vec<usize>>,
+    run_id: Option<String>,
     organization_id: Option<String>,
 }
 
@@ -118,6 +129,95 @@ pub struct UpdateAnnotationParams {
 
 #[tool_router(router = annotations_router, vis = "pub(crate)")]
 impl SiftMcpServer {
+    #[tool(
+        name = "create_annotations",
+        description = "Create 1–100 annotations with one call and one approval, preserving a shared run association.
+            Output: `successes` contains zero-based `index` and the full `create_annotation` result with links.
+            `failures` contains `index`, `error` with guidance, and `outcome_unknown`; `not_attempted` lists untouched
+            indices. `created_count` counts completed creates. Partial failures set `isError`.
+            Parameters:
+            - `items_json`: JSON ARRAY STRING of `create_annotation` parameter objects: required `name`,
+              `start_time_unix_nanos`, `end_time_unix_nanos`, `annotation_type`; optional description, state,
+              assets (NAMES), tags, linked_channel_ids, assign_to_user_id, metadata. Follow the single tool's field
+              semantics. End must be >= start; phase annotations must omit state.
+            - `selected_indices`: approval host's zero-based original input positions. Omit when proposing;
+              the host MUST fill this from per-item user decisions before execution. Missing masks fail closed;
+              an empty mask writes nothing. Results keep original indices; `not_selected` lists rejected items.
+            - `run_id`: shared run id applied to EVERY item. Set it here, never inside `items_json`.
+            - `organization_id`: shared organization when needed; set it here, never per item.
+            Each item must have a run, asset or linked channel association. Tags do not satisfy this requirement.
+            Errors: INVALID_PARAMS for malformed input, unknown keys, outside 1–100 items, per-item run/org fields,
+            empty shared ids or missing associations, before writes. Other item validation errors are per-item.
+            Backend-wide errors stop the remaining items; previous successes stay committed.
+            Guidance: CONFIRM every time range, type and association before calling. Writes run sequentially,
+            one API request per annotation; this is not an atomic backend batch. Never replay the whole batch.
+            Inspect outcomes marked unknown before retrying; a failed response may conceal a completed write.
+            Prefer this over repeated `create_annotation` calls when annotating several ranges on the same run.",
+        annotations(
+            title = "annotations/create_annotations",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false
+        )
+    )]
+    pub async fn create_annotations(
+        &self,
+        params: Parameters<CreateAnnotationsParams>,
+    ) -> error::McpResult {
+        self.require_create()?;
+        let Parameters(CreateAnnotationsParams {
+            items_json,
+            selected_indices,
+            run_id,
+            organization_id,
+        }) = params;
+        if run_id.as_ref().is_some_and(|id| id.trim().is_empty())
+            || organization_id
+                .as_ref()
+                .is_some_and(|id| id.trim().is_empty())
+        {
+            return Err(ErrorData::invalid_params(
+                "shared run/organization ids must not be empty",
+                None,
+            ));
+        }
+        let mut items =
+            crate::tool::common::bulk_create::parse_items::<CreateAnnotationParams>(&items_json)?;
+        for (index, item) in items.iter_mut().enumerate() {
+            if item.run_id.is_some() || item.organization_id.is_some() {
+                return Err(ErrorData::invalid_params(
+                    format!(
+                        "item {index}: set `run_id` and `organization_id` at the top level only"
+                    ),
+                    None,
+                ));
+            }
+            item.run_id = run_id.clone();
+            item.organization_id = organization_id.clone();
+            let has_association = run_id.is_some()
+                || item
+                    .assets
+                    .as_ref()
+                    .is_some_and(|ids| ids.iter().any(|id| !id.trim().is_empty()))
+                || item
+                    .linked_channel_ids
+                    .as_ref()
+                    .is_some_and(|ids| ids.iter().any(|id| !id.trim().is_empty()));
+            if !has_association {
+                return Err(ErrorData::invalid_params(
+                    format!(
+                        "item {index}: supply a shared `run_id`, `assets`, or `linked_channel_ids`; tags are not an association"
+                    ),
+                    None,
+                ));
+            }
+        }
+        crate::tool::common::bulk_create::create_many(items, selected_indices, |item| {
+            self.create_annotation(Parameters(item))
+        })
+        .await
+    }
+
     #[tool(
         name = "list_annotations",
         description = "

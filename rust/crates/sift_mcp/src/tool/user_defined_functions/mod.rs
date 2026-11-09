@@ -32,6 +32,7 @@ pub struct UserDefinedFunctionVersionListParams {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct CreateUserDefinedFunctionParams {
     pub(crate) name: String,
     pub(crate) expression: String,
@@ -69,6 +70,44 @@ struct FunctionInputSpec {
 
 #[tool_router(router = user_defined_functions_router, vis = "pub(crate)")]
 impl SiftMcpServer {
+    #[tool(
+        name = "create_user_defined_functions",
+        description = "Create 1–100 user-defined functions in one non-atomic call.
+            Output: `successes` contains zero-based `index` and the full `create_user_defined_function` result;
+            `failures` contains `index`, `error` with recovery guidance and `outcome_unknown`;
+            `not_attempted` lists untouched indices. Partial failures set `isError`.
+            Parameters: `items_json` is a JSON ARRAY STRING of parameter objects matching
+            `create_user_defined_function`; use that tool's documented function-input and data-type spellings.
+            `selected_indices`: approval host's zero-based original positions. Omit when proposing; the host MUST
+            set it from per-item decisions before execution. Missing masks fail closed; [] writes nothing.
+            Results keep original indices; `not_selected` lists rejected items, which must never be retried.
+            Errors: INVALID_PARAMS for malformed input, unknown parameter keys or outside 1–100 items before writes.
+            Item validation failures are reported individually; backend-wide errors stop the remaining items.
+            Guidance: CONFIRM every function definition before calling. Writes run sequentially and successes
+            remain committed. Never replay the whole batch; inspect unknown outcomes before retrying.
+            Prefer this over repeated single creates. Create dependencies first in a separate call so their
+            version ids can be used by dependants.",
+        annotations(
+            title = "user_defined_functions/create_user_defined_functions",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false
+        )
+    )]
+    pub async fn create_user_defined_functions(
+        &self,
+        params: Parameters<crate::tool::common::bulk_create::BulkCreateParams>,
+    ) -> error::McpResult {
+        self.require_create()?;
+        let items = crate::tool::common::bulk_create::parse_items::<CreateUserDefinedFunctionParams>(
+            &params.0.items_json,
+        )?;
+        crate::tool::common::bulk_create::create_many(items, params.0.selected_indices, |item| {
+            self.create_user_defined_function(Parameters(item))
+        })
+        .await
+    }
+
     #[tool(
         name = "list_user_defined_functions",
         description = "

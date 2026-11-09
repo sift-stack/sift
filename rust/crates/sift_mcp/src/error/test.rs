@@ -22,6 +22,17 @@ fn soft_signal_for_resource_exhausted() {
 }
 
 #[test]
+fn composite_create_error_preserves_created_resource_context() {
+    let error = anyhow::Error::from(Status::unavailable("response lost"))
+        .context("report `report-1` already created; failed to apply report fields");
+    let error = from_anyhow(error);
+    assert_eq!(reason_from_data(&error), "BackendUnreachable");
+    let context = error.data.unwrap()["context"].as_str().unwrap().to_owned();
+    assert!(context.contains("report `report-1` already created"));
+    assert!(context.contains("response lost"));
+}
+
+#[test]
 fn soft_signal_for_unavailable() {
     let err =
         anyhow::Error::from(Status::unavailable("backend gone")).context("failed to query runs");

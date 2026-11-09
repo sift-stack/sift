@@ -27,6 +27,7 @@ pub struct ReportTemplateListParams {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct CreateReportTemplateParams {
     name: String,
     description: Option<String>,
@@ -52,6 +53,43 @@ pub struct UpdateReportTemplateParams {
 
 #[tool_router(router = report_templates_router, vis = "pub(crate)")]
 impl SiftMcpServer {
+    #[tool(
+        name = "create_report_templates",
+        description = "Create 1–100 report templates in one non-atomic call.
+            Output: `successes` contains zero-based `index` and the full `create_report_template` result;
+            `failures` contains `index`, `error` with recovery guidance and `outcome_unknown`;
+            `not_attempted` lists untouched indices. Partial failures set `isError`.
+            Parameters: `items_json` is a JSON ARRAY STRING of parameter objects matching
+            `create_report_template`; follow the single tool's rule-id versus client-key requirements.
+            `selected_indices`: approval host's zero-based original positions. Omit when proposing; the host MUST
+            set it from per-item decisions before execution. Missing masks fail closed; [] writes nothing.
+            Results keep original indices; `not_selected` lists rejected items, which must never be retried.
+            Errors: INVALID_PARAMS for malformed input, unknown parameter keys or outside 1–100 items before writes.
+            Item validation failures are reported individually; backend-wide errors stop the remaining items.
+            Guidance: CONFIRM every template name and rule selection before calling. Writes run sequentially;
+            successes remain committed. Never replay the whole batch; inspect unknown outcomes before retrying.
+            Prefer this over repeated `create_report_template` calls for independent templates.",
+        annotations(
+            title = "report_templates/create_report_templates",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false
+        )
+    )]
+    pub async fn create_report_templates(
+        &self,
+        params: Parameters<crate::tool::common::bulk_create::BulkCreateParams>,
+    ) -> error::McpResult {
+        self.require_create()?;
+        let items = crate::tool::common::bulk_create::parse_items::<CreateReportTemplateParams>(
+            &params.0.items_json,
+        )?;
+        crate::tool::common::bulk_create::create_many(items, params.0.selected_indices, |item| {
+            self.create_report_template(Parameters(item))
+        })
+        .await
+    }
+
     #[tool(
         name = "list_report_templates",
         description = "
