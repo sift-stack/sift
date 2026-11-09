@@ -13,6 +13,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   it changes no telemetry or other Sift resources. `sift-cli get chart-schema`
   exports a fresh schema to standard output or a file.
 
+## [v0.8.1] - November 9, 2026
+
+### What's New
+
 - MCP `get_data` takes an optional `expressions_json` parameter that evaluates
   unsaved CEL expressions for the asset and run and writes each one as its own
   Parquet column. Agents can test a calculated channel before proposing to save
