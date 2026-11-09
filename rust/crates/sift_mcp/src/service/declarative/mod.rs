@@ -1,13 +1,15 @@
 use std::{
+    path::{Path, PathBuf},
     sync::Arc,
-    time::{Duration, Instant},
+    time::{Duration, SystemTime},
 };
 
 use anyhow::{Context, Result, anyhow, bail};
 use reqwest::{StatusCode, header::USER_AGENT};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
-use tokio::{sync::Mutex, time::sleep};
+use sha2::{Digest, Sha256};
+use tokio::{sync::OnceCell, time::sleep};
 
 use crate::service::remote_files::RestConfig;
 
@@ -16,7 +18,10 @@ const MIGRATE_PATH: &str = "/api/v1/declarative:migrate";
 const SHARE_LINK_PATH: &str = "/api/v1/declarative:sharelink";
 const SCHEMA_VERSIONS_PATH: &str = "/api/packages/v1/schemas/declarative-chart/versions";
 const SCHEMA_PATH: &str = "/download/schemas/declarative-chart/0/sift.declarative.schema.v0.json";
-const SCHEMA_CACHE_TTL: Duration = Duration::from_secs(300);
+/// A cached schema file older than this is downloaded again at startup.
+const SCHEMA_MAX_AGE: Duration = Duration::from_secs(24 * 60 * 60);
+const SCHEMA_LOCK_FILENAME: &str = ".lock";
+const SCHEMA_FILENAME: &str = "sift.declarative.schema.v0.json";
 const SCHEMA_UNAVAILABLE: &str = "This deployment does not serve the declarative chart schema.";
 /// Longest slice of an error body echoed back in a failure or invalid-spec
 /// message.
@@ -161,9 +166,102 @@ struct SchemaVersion {
     version: String,
 }
 
-struct CachedChartSchema {
-    schema: Arc<ChartSchema>,
-    fetched_at: Instant,
+/// The schema parsed from the machine-local cache file at `path`. Each call to
+/// `chart_schema` reads the file again, so `schema` and `path` always agree
+/// even when another MCP process refreshes the shared file.
+#[derive(Debug)]
+pub(crate) struct CachedChartSchema {
+    pub schema: ChartSchema,
+    pub path: PathBuf,
+}
+
+async fn blocking<T: Send + 'static>(
+    path: &Path,
+    work: impl FnOnce(&Path) -> T + Send + 'static,
+) -> Result<T> {
+    let path = path.to_owned();
+    tokio::task::spawn_blocking(move || work(&path))
+        .await
+        .context("chart schema cache task failed")
+}
+
+/// True for a regular file modified less than 24 hours ago (not in the future)
+/// that parses as a chart schema.
+fn is_fresh_schema(path: &Path) -> bool {
+    let Ok(metadata) = std::fs::metadata(path) else {
+        return false;
+    };
+    let fresh = metadata.is_file()
+        && metadata
+            .modified()
+            .ok()
+            .and_then(|modified| SystemTime::now().duration_since(modified).ok())
+            .is_some_and(|age| age < SCHEMA_MAX_AGE);
+    fresh
+        && std::fs::read(path)
+            .ok()
+            .is_some_and(|bytes| serde_json::from_slice::<ChartSchema>(&bytes).is_ok())
+}
+
+fn private_dir(dir: &Path) -> Result<()> {
+    let mut builder = std::fs::DirBuilder::new();
+    builder.recursive(true);
+    #[cfg(unix)]
+    std::os::unix::fs::DirBuilderExt::mode(&mut builder, 0o700);
+    builder
+        .create(dir)
+        .with_context(|| format!("failed to create {}", dir.display()))?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700))
+            .with_context(|| format!("failed to make {} private", dir.display()))?;
+    }
+    Ok(())
+}
+
+fn private_file_options() -> std::fs::OpenOptions {
+    let mut options = std::fs::OpenOptions::new();
+    options.write(true);
+    #[cfg(unix)]
+    std::os::unix::fs::OpenOptionsExt::mode(&mut options, 0o600);
+    options
+}
+
+/// Waits for the exclusive cross-process lock. Dropping the file releases it.
+fn lock_schema_dir(dir: &Path) -> Result<std::fs::File> {
+    private_dir(dir)?;
+    let file = private_file_options()
+        .create(true)
+        .truncate(false)
+        .open(dir.join(SCHEMA_LOCK_FILENAME))
+        .context("failed to open the chart schema cache lock")?;
+    file.lock()
+        .context("failed to lock the chart schema cache")?;
+    Ok(file)
+}
+
+/// Writes a private temp file, flushes it to disk, then renames it over the
+/// cache file so readers see the old or the new file but never a partial one.
+fn publish_schema(dir: &Path, path: &Path, bytes: &[u8]) -> Result<()> {
+    use std::io::Write;
+    let temp = dir.join(format!(
+        ".{SCHEMA_FILENAME}.{}.{:016x}.tmp",
+        std::process::id(),
+        rand::random::<u64>()
+    ));
+    let written = (|| -> std::io::Result<()> {
+        let mut file = private_file_options().create_new(true).open(&temp)?;
+        file.write_all(bytes)?;
+        file.flush()?;
+        file.sync_all()?;
+        std::fs::rename(&temp, path)
+    })();
+    if let Err(error) = written {
+        let _ = std::fs::remove_file(&temp);
+        return Err(error).context("failed to save the chart schema cache");
+    }
+    Ok(())
 }
 
 /// Validates and migrates declarative specs through the backend's REST
@@ -175,7 +273,14 @@ pub struct DeclarativeService {
     // Absent only when the server runs without a REST endpoint (some tests).
     client: Option<RestClient>,
     retry: RestRetry,
-    chart_schema: Arc<Mutex<Option<CachedChartSchema>>>,
+    /// Set once the cache file is known to be fresh and valid. Failed
+    /// initializations are retried by the next call.
+    chart_schema_path: Arc<OnceCell<PathBuf>>,
+    /// Replaces the OS user cache directory. Tests always set it.
+    cache_root: Option<PathBuf>,
+    /// Keeps the test cache root alive for every service sharing it.
+    #[cfg(test)]
+    _test_cache: Option<Arc<tempdir::TempDir>>,
 }
 
 #[derive(Clone)]
@@ -197,8 +302,34 @@ impl DeclarativeService {
         Self {
             client,
             retry: RestRetry::default(),
-            chart_schema: Arc::default(),
+            chart_schema_path: Arc::default(),
+            cache_root: None,
+            #[cfg(test)]
+            _test_cache: None,
         }
+        .with_private_test_cache()
+    }
+
+    #[cfg(test)]
+    fn with_private_test_cache(mut self) -> Self {
+        let dir = tempdir::TempDir::new("sift-schema-cache").expect("test cache root");
+        self.cache_root = Some(dir.path().to_path_buf());
+        self._test_cache = Some(Arc::new(dir));
+        self
+    }
+
+    #[cfg(not(test))]
+    fn with_private_test_cache(self) -> Self {
+        self
+    }
+
+    /// Makes a test service use `other`'s cache root, like a second MCP
+    /// process on the same machine. Process state stays separate.
+    #[cfg(test)]
+    pub(crate) fn with_shared_cache_root(mut self, other: &Self) -> Self {
+        self.cache_root = other.cache_root.clone();
+        self._test_cache = other._test_cache.clone();
+        self
     }
 
     /// Overrides the attempt count, backoff base, and per-request timeout.
@@ -208,6 +339,7 @@ impl DeclarativeService {
         self
     }
 
+    /// Explicit CLI downloads are always fresh and never use the schema cache.
     pub async fn chart_schema_bytes(&self) -> Result<Vec<u8>> {
         self.fetch_chart_schema()
             .await?
@@ -217,26 +349,70 @@ impl DeclarativeService {
             .map(|bytes| bytes.to_vec())
     }
 
-    pub(crate) async fn chart_schema(&self) -> Result<Arc<ChartSchema>> {
-        let mut cache = self.chart_schema.lock().await;
-        if let Some(cached) = cache.as_ref()
-            && cached.fetched_at.elapsed() < SCHEMA_CACHE_TTL
-        {
-            return Ok(Arc::clone(&cached.schema));
+    /// Returns the schema from the machine-local cache file. The first
+    /// successful call (the startup preloader) checks the file and downloads
+    /// only if it is missing, corrupt, from the future, or at least 24 hours
+    /// old. After that, calls only read the local file. A failed refresh
+    /// leaves the old file in place and is reported to the caller.
+    pub(crate) async fn chart_schema(&self) -> Result<Arc<CachedChartSchema>> {
+        let path = self
+            .chart_schema_path
+            .get_or_try_init(|| self.ensure_schema_file())
+            .await?
+            .clone();
+        let bytes = tokio::fs::read(&path).await.with_context(|| {
+            format!("failed to read the cached chart schema {}", path.display())
+        })?;
+        let schema = serde_json::from_slice(&bytes).with_context(|| {
+            format!(
+                "the cached chart schema {} is invalid; restart the MCP server to download it again",
+                path.display()
+            )
+        })?;
+        Ok(Arc::new(CachedChartSchema { schema, path }))
+    }
+
+    /// Cache directory for this deployment. The key is the REST base URI
+    /// only, so credentials never reach the path.
+    fn schema_cache_dir(&self) -> Result<PathBuf> {
+        let client = self.client.as_ref().context(
+            "this server was started without a REST endpoint, so the chart schema cannot be downloaded",
+        )?;
+        let root = match &self.cache_root {
+            Some(root) => root.clone(),
+            None => dirs::cache_dir().context("could not find a user cache directory")?,
+        };
+        let digest = Sha256::digest(client.base_uri.as_bytes());
+        let key: String = digest.iter().map(|byte| format!("{byte:02x}")).collect();
+        let dir = root.join("sift-cli").join("schemas").join(key);
+        std::path::absolute(&dir).context("failed to resolve the chart schema cache directory")
+    }
+
+    async fn ensure_schema_file(&self) -> Result<PathBuf> {
+        let dir = self.schema_cache_dir()?;
+        let path = dir.join(SCHEMA_FILENAME);
+        if blocking(&path, |path| is_fresh_schema(path)).await? {
+            return Ok(path);
         }
 
-        let schema = Arc::new(
-            self.fetch_chart_schema()
-                .await?
-                .json()
-                .await
-                .context("failed to decode the declarative chart schema response")?,
-        );
-        *cache = Some(CachedChartSchema {
-            schema: Arc::clone(&schema),
-            fetched_at: Instant::now(),
-        });
-        Ok(schema)
+        // Cross-process lock so concurrent starts download once. The wait runs
+        // on a blocking thread, and the OS releases the lock if we crash.
+        let lock = blocking(&dir, |dir| lock_schema_dir(dir)).await??;
+        if blocking(&path, |path| is_fresh_schema(path)).await? {
+            return Ok(path);
+        }
+        let bytes = self.chart_schema_bytes().await?;
+        serde_json::from_slice::<ChartSchema>(&bytes)
+            .context("failed to decode the declarative chart schema response")?;
+        let target = path.clone();
+        // The lock moves into the blocking closure: if this future is canceled,
+        // a publication already running keeps the lock until it finishes.
+        blocking(&dir, move |dir| {
+            let _lock = lock;
+            publish_schema(dir, &target, &bytes)
+        })
+        .await??;
+        Ok(path)
     }
 
     async fn fetch_chart_schema(&self) -> Result<reqwest::Response> {
@@ -480,5 +656,7 @@ fn invalid_spec_message(body: &str) -> String {
     }
 }
 
+#[cfg(test)]
+mod schema_test;
 #[cfg(test)]
 pub(crate) mod test;

@@ -237,22 +237,10 @@ tool.
   references/declarative-charts.md). For quick links to Sift Explore, use
   `explore_url` instead. When the user wants a chart and numbers, do both and
   give the user both.
-- **Read the chart schema.** Call `get_chart_schema` with no parameters for the
-  index: it returns `definitions` (every definition name with a one-sentence
-  summary) and `root` (the root JSON Schema object with `properties`,
-  `required`, and structural constraints). Then call `get_chart_schema` with
-  the exact definition names you need. Names are camelCase from the index
-  (e.g. `timeseriesChart`), not chart type strings. The result includes
-  `references`; fetch only those you need, not the entire closure. Never guess
-  keys; read the schema first.
-
-  For the full schema as a file, run
-  `sift-cli get chart-schema -o /absolute/path/chart-schema.json` (add
-  `--profile <name>` for a named profile). Parse the saved JSON with `jq` or
-  a JSON tool rather than line-oriented text extraction.
-
-  Validation errors from `create_declarative_chart` are the final word on
-  allowed keys and constraints.
+- **Read the chart schema.** Call `get_chart_schema` once to locate the
+  machine-cached `schema_path`, then reuse that local file. Do not download
+  it for each chart. See [Schema reference](references/declarative-charts.md#schema-reference)
+  for local-file access and the named-definition fallback.
 - **Answer a question about how Sift works.** Call `search_docs`. Do not answer
   from memory, and cite the page you used.
 - **Create an asset.** There is no `create_asset` MCP tool because Sift creates

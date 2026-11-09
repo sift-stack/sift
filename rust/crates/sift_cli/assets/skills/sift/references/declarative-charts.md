@@ -13,13 +13,12 @@ If the user pastes or attaches a complete spec, pass it to `create_declarative_c
 ## Plain-language request
 
 1. Resolve runs with `list_runs` and channels with `list_channels`. Resolve calculated channels with `list_calculated_channels` and bind them with `calculatedChannelId`, not `channel`. Never invent IDs or channel names.
-2. Call `get_chart_schema` with no parameters for the index. Read `root` for the allowed top-level keys and structural constraints, and `definitions` for the available definition names.
-3. Call `get_chart_schema` with the chart type definition for the type you need. Definition names are camelCase from the index (e.g. `timeseriesChart`), not chart type strings. The result includes `references`; fetch only the referenced definitions you need for the spec, not the whole closure.
-4. Write a complete version 0 spec with `dataSources` and one `chart`. Prefer YAML. Use one chart unless the user asked for several or a layout. Never guess allowed keys; use only what the schema defines.
-5. Call `create_declarative_chart` with the full spec.
-6. On `invalid_spec`, fix every reported path and resend the full corrected spec.
-7. After 3 failed attempts, stop and summarize the remaining validation problems instead of retrying.
-8. To edit a chart, resend the full edited spec. Each valid call returns a new `exploreUrl`.
+2. Read the cached schema as described in [Schema reference](#schema-reference). Never guess allowed keys or binding shapes.
+3. Write a complete version 0 spec with `dataSources` and one `chart`. Prefer YAML. Use one chart unless the user asked for several or a layout.
+4. Call `create_declarative_chart` with the full spec.
+5. On `invalid_spec`, fix every reported path and resend the full corrected spec.
+6. After 3 failed attempts, stop and summarize the remaining validation problems instead of retrying.
+7. To edit a chart, resend the full edited spec. Each valid call returns a new `exploreUrl`.
 
 ## Minimal spec
 
@@ -47,15 +46,13 @@ chart:
 
 ## Schema reference
 
-The deployed schema is the authority. Read it through `get_chart_schema` before authoring a spec:
+The MCP keeps a machine-local schema cache, separated by deployment. At startup it reuses a valid file less than 24 hours old; a missing, invalid, or older copy is refreshed in the background. Other tools remain available if the refresh fails, but the schema tool reports the failure rather than silently using a stale copy. There is no periodic download while the MCP is running.
 
-1. Call `get_chart_schema` with no parameters. The index returns `root` (the root JSON Schema object with `properties`, `required`, and structural constraints such as `chart`/`charts` mutual exclusivity) and `definitions` (every definition name with a one-sentence summary).
-2. Call `get_chart_schema` with `definitions` set to the chart type you need, using the camelCase name from the index (e.g. `["timeseriesChart"]`). The result includes the full definition and a `references` list.
-3. Fetch only the referenced definitions you need for the spec. Do not chase every transitive reference.
+1. Call `get_chart_schema` with no parameters once per agent session. It returns the absolute `schema_path`, `root` (top-level constraints), and `definitions` (exact definition names with summaries).
+2. When your host shares the MCP server's filesystem, reuse `schema_path` as a read-only reference. Use a JSON parser to read the root structure and only the `$defs` entries needed for the spec; do not load the entire schema into context or download it again for each chart. The file persists after the MCP exits and can be refreshed by another session.
+3. If local-file access or JSON extraction is unavailable, call `get_chart_schema` with exact definition names from the index (e.g. `["timeseriesChart"]`). These calls read the same local cache rather than downloading it per call. Follow only the `references` needed for the spec, not the entire closure.
 
-For the full schema as a local file, run
-`sift-cli get chart-schema -o /absolute/path/chart-schema.json` (add `--profile <name>` for a named profile).
-Parse the saved file with `jq` or a JSON tool, not line-oriented text extraction.
+For an explicitly requested separate download, run `sift-cli get chart-schema -o /absolute/path/chart-schema.json` with the selected `--profile <name>` when applicable. That standalone command fetches afresh on every invocation; it is not needed for normal MCP authoring.
 
 Validation errors from `create_declarative_chart` are the final word on allowed keys and constraints.
 

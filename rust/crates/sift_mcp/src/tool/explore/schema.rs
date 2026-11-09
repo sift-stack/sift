@@ -5,7 +5,11 @@ use serde_json::{Map, Value, json};
 
 use crate::{error, service::declarative::ChartSchema};
 
-pub(super) fn result(schema: &ChartSchema, names: Option<&[String]>) -> error::McpResult {
+pub(super) fn result(
+    schema: &ChartSchema,
+    schema_path: &std::path::Path,
+    names: Option<&[String]>,
+) -> error::McpResult {
     let Some(names) = names else {
         let definitions: Map<String, Value> = schema
             .definitions
@@ -29,6 +33,7 @@ pub(super) fn result(schema: &ChartSchema, names: Option<&[String]>) -> error::M
             "$id": schema.id,
             "title": schema.title,
             "summary": summary(description),
+            "schema_path": schema_path,
             "root": schema.root,
             "references": references,
             "definitions": definitions,
@@ -73,6 +78,7 @@ pub(super) fn result(schema: &ChartSchema, names: Option<&[String]>) -> error::M
     Ok(CallToolResult::structured(json!({
         "$id": schema.id,
         "title": schema.title,
+        "schema_path": schema_path,
         "definitions": definitions,
         "references": references,
     })))

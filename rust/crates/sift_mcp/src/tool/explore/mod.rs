@@ -17,6 +17,8 @@ use crate::{
 };
 
 #[cfg(test)]
+mod schema_test;
+#[cfg(test)]
 mod test;
 
 mod schema;
@@ -51,7 +53,7 @@ impl SiftMcpServer {
     #[tool(
         name = "get_chart_schema",
         description = "
-            Read the declarative chart JSON Schema from this deployment.
+            Read the deployment's declarative chart JSON Schema from a machine-local cache file.
             With no parameters, return an index with `$id`, `title`, a root `summary`,
             `root` containing all root-level JSON Schema constraints (`type`, `required`,
             `properties`, `if`/`then`, `additionalProperties`, etc.), `references` listing
@@ -59,8 +61,15 @@ impl SiftMcpServer {
             `definitions` as a map from each definition name to the first sentence of its
             description. Read `root` for the top-level spec structure, then fetch the
             definitions needed for its charts and settings.
-            The index includes `save_command`: `sift-cli get chart-schema -o <path>`.
-            Use that command to save the full schema locally. This tool never returns the full schema.
+            Every successful result includes `schema_path`, the absolute path to the full local schema file.
+            Read the needed portions of that file when your host shares this server's filesystem;
+            otherwise request named definitions through this tool. The file is shared by MCP processes
+            for this deployment and persists across restarts. Each MCP startup downloads a new copy
+            in the background only if the file is missing, invalid, or at least 24 hours old.
+            If that refresh fails, this tool returns the error and retries on the next call;
+            it never presents a stale file as current.
+            The index includes `save_command`: `sift-cli get chart-schema -o <path>` for an explicit
+            separate download, not a required authoring step. This tool never returns the full schema.
 
             Parameters:
               - `definitions`: optional list of exact `$defs` names from the index.
@@ -71,7 +80,6 @@ impl SiftMcpServer {
             Errors:
               - `INVALID_PARAMS` for an unknown definition name, with close matches.
               - An error if the deployment does not serve the declarative chart schema.
-            The schema cache expires after five minutes.
         ",
         annotations(title = "explore/get_chart_schema", read_only_hint = true)
     )]
@@ -84,7 +92,11 @@ impl SiftMcpServer {
             .chart_schema()
             .await
             .map_err(error::from_anyhow)?;
-        schema::result(&schema, params.0.definitions.as_deref())
+        schema::result(
+            &schema.schema,
+            &schema.path,
+            params.0.definitions.as_deref(),
+        )
     }
 
     #[tool(
