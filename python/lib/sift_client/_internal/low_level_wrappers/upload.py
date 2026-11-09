@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import logging
 import mimetypes
 from contextlib import nullcontext
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, BinaryIO, ContextManager
+from typing import TYPE_CHECKING, Any, BinaryIO, ContextManager, cast
 
 from requests_toolbelt import MultipartEncoder
 
@@ -14,6 +15,8 @@ from sift_client._internal.util.http import raise_for_status
 from sift_client.transport import WithRestClient
 
 if TYPE_CHECKING:
+    import io
+
     from sift_client.transport.rest_transport import RestClient
 
 # Configure logging
@@ -22,6 +25,8 @@ logger = logging.getLogger(__name__)
 # Parquet MIME types are not included in mimetypes by default
 mimetypes.add_type("application/vnd.apache.parquet", ".pqt")
 mimetypes.add_type("application/vnd.apache.parquet", ".parquet")
+
+_HASH_CHUNK_SIZE = 1024 * 1024
 
 
 class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
@@ -70,11 +75,13 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
         description: str | None = None,
         organization_id: str | None = None,
         file_name: str | None = None,
+        sha256: bool = False,
     ) -> str:
         """Upload a file attachment to an entity.
 
         Args:
-            source: Path to the file to upload, or an open binary file such as `io.BytesIO`.
+            source: Path to the file to upload, or an open seekable binary file such as
+                `io.BytesIO`. A file object is sent whole, from its start, whatever its position.
             entity_id: The ID of the entity to attach the file to.
             entity_type: The type of entity (e.g., "runs", "annotations", "annotation_logs").
             metadata: Optional metadata for the file (e.g., video/image metadata).
@@ -82,6 +89,7 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
             organization_id: Optional organization ID.
             file_name: The stored file name when `source` is a file object; its extension sets
                 the MIME type. A path upload uses the file's own name.
+            sha256: Send the SHA-256 of the file with it.
 
         Returns:
             The remote file ID of the uploaded file.
@@ -115,6 +123,7 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
             metadata,
             description,
             organization_id,
+            sha256,
         )
 
     def _upload_file_sync(
@@ -128,6 +137,7 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
         metadata: dict[str, Any] | None,
         description: str | None,
         organization_id: str | None,
+        sha256: bool,
     ) -> str:
         """Synchronous helper to upload the file.
 
@@ -139,6 +149,8 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
         else:
             opened = nullcontext(source)
         with opened as file:
+            # MultipartEncoder sends an io.BytesIO whole but an open file from its position.
+            file.seek(0)
             form_fields: dict[str, Any] = {
                 "entityId": entity_id,
                 "entityType": entity_type,
@@ -168,6 +180,9 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
 
             if description:
                 form_fields["description"] = description
+
+            if sha256:
+                form_fields["sha256"] = _sha256(file)
 
             form_data = MultipartEncoder(fields=form_fields)
 
@@ -211,3 +226,15 @@ class UploadLowLevelClient(LowLevelClientBase, WithRestClient):
         file_name = path.name
         mime, encoding = mimetypes.guess_type(path)
         return file_name, mime, encoding
+
+
+def _sha256(file: BinaryIO) -> str:
+    """Hash `file`, which must be at its start, in chunks, then seek back to the start."""
+    digest = hashlib.sha256()
+    buffer = bytearray(_HASH_CHUNK_SIZE)
+    view = memoryview(buffer)
+    readinto = cast("io.BufferedIOBase", file).readinto
+    while size := readinto(buffer):
+        digest.update(view[:size])
+    file.seek(0)
+    return digest.hexdigest()

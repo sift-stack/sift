@@ -239,7 +239,11 @@ class TestCreate:
         assert create.links == links
         assert create.created_via is ArtifactCreatedVia.UPLOAD
         artifacts_api._upload_client.upload_attachment.assert_awaited_once_with(
-            source=path, entity_id="v1", entity_type="artifact_versions", file_name=None
+            source=path,
+            entity_id="v1",
+            entity_type="artifact_versions",
+            file_name=None,
+            sha256=True,
         )
         artifacts_api._low_level_client.get_artifact.assert_awaited_once_with(
             artifact_id="a1", artifact_version_id="v1"
@@ -254,6 +258,7 @@ class TestCreate:
         assert kwargs["source"].read() == b"hello"
         assert kwargs["file_name"] == "notes.txt"
         assert kwargs["entity_id"] == "v1"
+        assert kwargs["sha256"] is True
 
     @pytest.mark.asyncio
     async def test_uploads_file_object(self, artifacts_api):
@@ -264,6 +269,7 @@ class TestCreate:
         kwargs = artifacts_api._upload_client.upload_attachment.call_args.kwargs
         assert kwargs["source"] is data
         assert kwargs["file_name"] == "table.csv"
+        assert kwargs["sha256"] is True
 
     @pytest.mark.asyncio
     async def test_file_object_needs_file_name(self, artifacts_api):
@@ -322,7 +328,11 @@ class TestUpdate:
 
         assert artifacts_api._low_level_client.update_artifact.call_args.kwargs["new_file"] is True
         artifacts_api._upload_client.upload_attachment.assert_awaited_once_with(
-            source=path, entity_id="v2", entity_type="artifact_versions", file_name=None
+            source=path,
+            entity_id="v2",
+            entity_type="artifact_versions",
+            file_name=None,
+            sha256=True,
         )
         artifacts_api._low_level_client.get_artifact.assert_awaited_once_with(
             artifact_id="a1", artifact_version_id="v2"
