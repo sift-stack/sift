@@ -144,6 +144,11 @@ pub(crate) struct ChartSchema {
     pub description: String,
     #[serde(rename = "$defs")]
     pub definitions: Map<String, Value>,
+    /// All remaining root-level JSON Schema keywords (`type`, `properties`,
+    /// `required`, `if`, `then`, `additionalProperties`, etc.). Does not
+    /// include `$id`, `title`, `description`, or `$defs`.
+    #[serde(flatten)]
+    pub root: Map<String, Value>,
 }
 
 #[derive(Deserialize)]

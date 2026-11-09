@@ -20,10 +20,17 @@ pub(super) fn result(schema: &ChartSchema, names: Option<&[String]>) -> error::M
         } else {
             &schema.description
         };
+        // Collect sorted, deduplicated $defs names referenced by root constraints.
+        let mut references: BTreeSet<&str> = BTreeSet::new();
+        for value in schema.root.values() {
+            collect_references(value, &mut references);
+        }
         return Ok(CallToolResult::structured(json!({
             "$id": schema.id,
             "title": schema.title,
             "summary": summary(description),
+            "root": schema.root,
+            "references": references,
             "definitions": definitions,
             "save_command": "sift-cli get chart-schema -o <path>",
         })));

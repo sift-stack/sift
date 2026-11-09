@@ -628,7 +628,16 @@ pub(crate) fn chart_schema_fixture() -> serde_json::Value {
         "title": "Declarative chart",
         "description": "A chart specification.\nThe root contains a chart.",
         "type": "object",
-        "properties": {"chart": {"$ref": "#/$defs/chart"}},
+        "required": ["version"],
+        "additionalProperties": false,
+        "properties": {
+            "version": {"type": "integer", "const": 0},
+            "chart": {"$ref": "#/$defs/chart"},
+            "charts": {"type": "object", "additionalProperties": {"$ref": "#/$defs/chart"}},
+            "layout": {"$ref": "#/$defs/layout"}
+        },
+        "if": {"required": ["chart"]},
+        "then": {"not": {"required": ["charts"]}, "properties": {"layout": false}},
         "$defs": {
             "chart": {
                 "description": "A chart with\nchannels. Use an axis for each scale.",
@@ -649,7 +658,8 @@ pub(crate) fn chart_schema_fixture() -> serde_json::Value {
                 "properties": {"channelId": {"$ref": "#/$defs/scalar"}}
             },
             "axis": {"description": "An axis scale.", "type": "object"},
-            "scalar": {"type": "string"}
+            "scalar": {"type": "string"},
+            "layout": {"description": "A layout grid.", "type": "object"}
         }
     })
 }
@@ -678,7 +688,29 @@ fn chart_schema_decodes_without_title_or_id() {
             decoded.definitions,
             schema["$defs"].as_object().unwrap().clone()
         );
+        // Named fields must not leak into root.
+        assert!(!decoded.root.contains_key("$id"));
+        assert!(!decoded.root.contains_key("title"));
+        assert!(!decoded.root.contains_key("description"));
+        assert!(!decoded.root.contains_key("$defs"));
     }
+}
+
+#[test]
+fn chart_schema_root_does_not_include_named_fields() {
+    let decoded: super::ChartSchema = serde_json::from_value(chart_schema_fixture()).unwrap();
+    // Named fields are excluded from root.
+    assert!(!decoded.root.contains_key("$id"));
+    assert!(!decoded.root.contains_key("title"));
+    assert!(!decoded.root.contains_key("description"));
+    assert!(!decoded.root.contains_key("$defs"));
+    // Root constraints are preserved.
+    assert_eq!(decoded.root["type"], "object");
+    assert_eq!(decoded.root["required"], serde_json::json!(["version"]));
+    assert_eq!(decoded.root["additionalProperties"], false);
+    assert!(decoded.root.contains_key("if"));
+    assert!(decoded.root.contains_key("then"));
+    assert!(decoded.root.contains_key("properties"));
 }
 
 #[tokio::test]

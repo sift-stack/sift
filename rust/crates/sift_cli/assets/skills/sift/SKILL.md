@@ -237,20 +237,22 @@ tool.
   references/declarative-charts.md). For quick links to Sift Explore, use
   `explore_url` instead. When the user wants a chart and numbers, do both and
   give the user both.
-- **Read the chart schema.** Use `get_chart_schema` for the index or named
-  definitions. For the full schema, run `sift-cli get chart-schema -o chart-schema.json`.
-  Replace `axis` with the definition name, and use this recipe only with the
-  file's 2-space indentation.
+- **Read the chart schema.** Call `get_chart_schema` with no parameters for the
+  index: it returns `definitions` (every definition name with a one-sentence
+  summary) and `root` (the root JSON Schema object with `properties`,
+  `required`, and structural constraints). Then call `get_chart_schema` with
+  the exact definition names you need. Names are camelCase from the index
+  (e.g. `timeseriesChart`), not chart type strings. The result includes
+  `references`; fetch only those you need, not the entire closure. Never guess
+  keys; read the schema first.
 
-  ```sh
-  sift-cli get chart-schema -o chart-schema.json
-  defs=$(grep -n '^  "\$defs": {' chart-schema.json | cut -d: -f1)
-  start=$(awk -v s="$defs" 'NR>s && /^    "axis": \{/ {print NR; exit}' chart-schema.json)
-  end=$(awk -v s="$start" 'NR>s && /^    \}/ {print NR; exit}' chart-schema.json)
-  sed -n "${start},${end}p" chart-schema.json
-  ```
+  For the full schema as a file, run
+  `sift-cli get chart-schema -o /absolute/path/chart-schema.json` (add
+  `--profile <name>` for a named profile). Parse the saved JSON with `jq` or
+  a JSON tool rather than line-oriented text extraction.
 
-  Treat validation errors from `create_declarative_chart` as the final word.
+  Validation errors from `create_declarative_chart` are the final word on
+  allowed keys and constraints.
 - **Answer a question about how Sift works.** Call `search_docs`. Do not answer
   from memory, and cite the page you used.
 - **Create an asset.** There is no `create_asset` MCP tool because Sift creates

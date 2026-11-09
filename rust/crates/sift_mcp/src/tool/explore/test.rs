@@ -384,6 +384,75 @@ fn create_declarative_chart_has_a_client_event() {
     );
 }
 
+// Gate: require_create fires before any IO. No REST config so the service
+// cannot be called at all; the test proves the error comes from the gate, not
+// from a missing endpoint.
+#[tokio::test]
+async fn create_declarative_chart_blocked_when_allow_create_and_allow_destructive_are_false() {
+    let (client, _srv) = tokio::io::duplex(1024);
+    let channel = sift_test_util::grpc::memory_sift_channel(client).await;
+    let server = SiftMcpServer::new(channel, APP_URI.to_string(), false, false);
+
+    let err = server
+        .create_declarative_chart(Parameters(CreateDeclarativeChartParams {
+            spec: "chart:\n  type: timeseries\n".into(),
+        }))
+        .await
+        .expect_err("gate must fire");
+
+    assert_eq!(err.code, rmcp::model::ErrorCode::INVALID_REQUEST);
+    assert!(
+        err.message.contains("--allow-create"),
+        "error must name the flag: {}",
+        err.message
+    );
+}
+
+#[tokio::test]
+async fn create_declarative_chart_passes_gate_with_allow_create() {
+    // allow_create=true, allow_destructive=false, no REST config.
+    // Gate passes; service call fails with service-unavailable result, not INVALID_REQUEST.
+    let (client, _srv) = tokio::io::duplex(1024);
+    let channel = sift_test_util::grpc::memory_sift_channel(client).await;
+    let server = SiftMcpServer::new(channel, APP_URI.to_string(), true, false);
+
+    let result = server
+        .create_declarative_chart(Parameters(CreateDeclarativeChartParams {
+            spec: "chart:\n  type: timeseries\n".into(),
+        }))
+        .await
+        .expect("gate passed; must be a tool result, not an MCP error");
+
+    let sc = structured(&result);
+    assert_eq!(sc["valid"], false);
+    assert_eq!(
+        sc["reason"], "service_unavailable",
+        "no REST endpoint, not a gate error"
+    );
+}
+
+#[tokio::test]
+async fn create_declarative_chart_passes_gate_with_allow_destructive() {
+    // allow_destructive implies allow_create. No REST config.
+    let (client, _srv) = tokio::io::duplex(1024);
+    let channel = sift_test_util::grpc::memory_sift_channel(client).await;
+    let server = SiftMcpServer::new(channel, APP_URI.to_string(), false, true);
+
+    let result = server
+        .create_declarative_chart(Parameters(CreateDeclarativeChartParams {
+            spec: "chart:\n  type: timeseries\n".into(),
+        }))
+        .await
+        .expect("destructive implies create; gate must pass");
+
+    let sc = structured(&result);
+    assert_eq!(sc["valid"], false);
+    assert_eq!(
+        sc["reason"], "service_unavailable",
+        "no REST endpoint, not a gate error"
+    );
+}
+
 #[tokio::test]
 async fn a_migrate_error_is_an_invalid_spec_result() {
     let (rest_uri, server_task) = serve(vec![http_response(
@@ -787,15 +856,27 @@ async fn get_chart_schema_without_parameters_returns_an_index() {
     let params = serde_json::from_value(serde_json::json!({})).unwrap();
 
     let result = server.get_chart_schema(Parameters(params)).await.unwrap();
+    let fixture = crate::service::declarative::test::chart_schema_fixture();
     let expected = serde_json::json!({
         "$id": "https://example.test/chart.schema.json",
         "title": "Declarative chart",
         "summary": "A chart specification.",
+        "root": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "required": ["version"],
+            "additionalProperties": false,
+            "properties": fixture["properties"],
+            "if": {"required": ["chart"]},
+            "then": {"not": {"required": ["charts"]}, "properties": {"layout": false}}
+        },
+        "references": ["chart", "layout"],
         "definitions": {
             "chart": "A chart with channels.",
             "channelIdBinding": "A channel ID.",
             "axis": "An axis scale.",
-            "scalar": ""
+            "scalar": "",
+            "layout": "A layout grid."
         },
         "save_command": "sift-cli get chart-schema -o <path>"
     });
@@ -813,6 +894,73 @@ async fn get_chart_schema_without_parameters_returns_an_index() {
             "GET /download/schemas/declarative-chart/0/sift.declarative.schema.v0.json "
         )
     );
+}
+
+#[tokio::test]
+async fn get_chart_schema_index_includes_root_constraints_and_sorted_references() {
+    let (rest_uri, server_task) =
+        serve(crate::service::declarative::test::chart_schema_responses()).await;
+    let server = server_with_rest(rest_uri).await;
+    let params = GetChartSchemaParams { definitions: None };
+
+    let result = server.get_chart_schema(Parameters(params)).await.unwrap();
+    let sc = structured(&result);
+
+    // Root is nested under "root", not merged into the top level.
+    let root = sc["root"].as_object().expect("root is an object");
+    assert_eq!(root["type"], "object", "root type");
+    assert_eq!(
+        root["required"],
+        serde_json::json!(["version"]),
+        "root required"
+    );
+    assert_eq!(
+        root["additionalProperties"], false,
+        "root additionalProperties"
+    );
+    assert!(root.get("if").is_some(), "root if clause");
+    let then = root["then"].as_object().expect("root then clause");
+    assert_eq!(
+        then["properties"]["layout"], false,
+        "layout: false mutual exclusion in then.properties"
+    );
+    // $defs must not appear anywhere in the index.
+    assert!(
+        sc.get("$defs").is_none(),
+        "$defs must not appear at index top level"
+    );
+    assert!(
+        root.get("$defs").is_none(),
+        "$defs must not appear inside root"
+    );
+
+    // References are sorted and deduplicated.
+    let refs = sc["references"].as_array().expect("references is an array");
+    let ref_names: Vec<&str> = refs.iter().map(|v| v.as_str().unwrap()).collect();
+    assert_eq!(
+        ref_names,
+        vec!["chart", "layout"],
+        "sorted refs from root properties"
+    );
+    let dedup: std::collections::BTreeSet<_> = ref_names.iter().collect();
+    assert_eq!(
+        dedup.len(),
+        ref_names.len(),
+        "references must be deduplicated"
+    );
+
+    // Definitions index is name → one-sentence summary, not full definition.
+    let defs = sc["definitions"]
+        .as_object()
+        .expect("definitions is an object");
+    assert!(defs.contains_key("chart"));
+    assert!(
+        defs["chart"].is_string(),
+        "definition value is a summary string"
+    );
+    assert!(defs.contains_key("layout"));
+
+    server_task.await.unwrap();
 }
 
 #[tokio::test]

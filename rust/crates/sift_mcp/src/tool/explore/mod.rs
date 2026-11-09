@@ -52,8 +52,13 @@ impl SiftMcpServer {
         name = "get_chart_schema",
         description = "
             Read the declarative chart JSON Schema from this deployment.
-            With no parameters, return an index with `$id`, `title`, a root `summary`, and
-            `definitions` as a map from each definition name to the first sentence of its description.
+            With no parameters, return an index with `$id`, `title`, a root `summary`,
+            `root` containing all root-level JSON Schema constraints (`type`, `required`,
+            `properties`, `if`/`then`, `additionalProperties`, etc.), `references` listing
+            every `$defs` name the `root` constraints reference (sorted, deduplicated), and
+            `definitions` as a map from each definition name to the first sentence of its
+            description. Read `root` for the top-level spec structure, then fetch the
+            definitions needed for its charts and settings.
             The index includes `save_command`: `sift-cli get chart-schema -o <path>`.
             Use that command to save the full schema locally. This tool never returns the full schema.
 
@@ -221,6 +226,7 @@ impl SiftMcpServer {
             Errors:
               - A bad spec is not an MCP error. It returns `valid: false` with `issues` so you can fix and retry.
               - `INVALID_PARAMS` is returned only when `spec` is missing or not a string.
+              - `INVALID_REQUEST` if the server was launched without `--allow-create`.
 
             Guidance:
               - Resolve run IDs and channel names with `list_runs`, `list_channels`, and
@@ -246,6 +252,8 @@ impl SiftMcpServer {
         &self,
         params: Parameters<CreateDeclarativeChartParams>,
     ) -> error::McpResult {
+        self.require_create()?;
+
         let Parameters(CreateDeclarativeChartParams { spec }) = params;
 
         let migration = match self.declarative_service.migrate(&spec).await {

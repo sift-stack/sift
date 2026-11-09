@@ -12,12 +12,14 @@ If the user pastes or attaches a complete spec, pass it to `create_declarative_c
 
 ## Plain-language request
 
-1. Resolve runs with Sift MCP `list_runs` and channels with `list_channels`. Resolve calculated channels with `list_calculated_channels` and bind them with `calculatedChannelId`, not `channel`. Never invent IDs or channel names.
-2. Write a complete version 0 spec with `dataSources` and one `chart`. Prefer YAML. Use one chart unless the user asked for several.
-3. Call `create_declarative_chart` with the full spec.
-4. On `invalid_spec`, fix every reported path and resend the full corrected spec.
-5. After 3 failed attempts, stop and summarize the remaining validation problems instead of retrying.
-6. To edit a chart, resend the full edited spec. Each valid call returns a new `exploreUrl`.
+1. Resolve runs with `list_runs` and channels with `list_channels`. Resolve calculated channels with `list_calculated_channels` and bind them with `calculatedChannelId`, not `channel`. Never invent IDs or channel names.
+2. Call `get_chart_schema` with no parameters for the index. Read `root` for the allowed top-level keys and structural constraints, and `definitions` for the available definition names.
+3. Call `get_chart_schema` with the chart type definition for the type you need. Definition names are camelCase from the index (e.g. `timeseriesChart`), not chart type strings. The result includes `references`; fetch only the referenced definitions you need for the spec, not the whole closure.
+4. Write a complete version 0 spec with `dataSources` and one `chart`. Prefer YAML. Use one chart unless the user asked for several or a layout. Never guess allowed keys; use only what the schema defines.
+5. Call `create_declarative_chart` with the full spec.
+6. On `invalid_spec`, fix every reported path and resend the full corrected spec.
+7. After 3 failed attempts, stop and summarize the remaining validation problems instead of retrying.
+8. To edit a chart, resend the full edited spec. Each valid call returns a new `exploreUrl`.
 
 ## Minimal spec
 
@@ -45,19 +47,26 @@ chart:
 
 ## Schema reference
 
-Call `get_chart_schema` for the index or named definitions. For the full schema, run `sift-cli get chart-schema -o chart-schema.json`.
+The deployed schema is the authority. Read it through `get_chart_schema` before authoring a spec:
 
-Replace `axis` with the definition name, and use this recipe only with the file's 2-space indentation.
+1. Call `get_chart_schema` with no parameters. The index returns `root` (the root JSON Schema object with `properties`, `required`, and structural constraints such as `chart`/`charts` mutual exclusivity) and `definitions` (every definition name with a one-sentence summary).
+2. Call `get_chart_schema` with `definitions` set to the chart type you need, using the camelCase name from the index (e.g. `["timeseriesChart"]`). The result includes the full definition and a `references` list.
+3. Fetch only the referenced definitions you need for the spec. Do not chase every transitive reference.
 
-```sh
-sift-cli get chart-schema -o chart-schema.json
-defs=$(grep -n '^  "\$defs": {' chart-schema.json | cut -d: -f1)
-start=$(awk -v s="$defs" 'NR>s && /^    "axis": \{/ {print NR; exit}' chart-schema.json)
-end=$(awk -v s="$start" 'NR>s && /^    \}/ {print NR; exit}' chart-schema.json)
-sed -n "${start},${end}p" chart-schema.json
-```
+For the full schema as a local file, run
+`sift-cli get chart-schema -o /absolute/path/chart-schema.json` (add `--profile <name>` for a named profile).
+Parse the saved file with `jq` or a JSON tool, not line-oriented text extraction.
 
-Validation errors from `create_declarative_chart` are the final word for allowed keys and constraints. The tool accepts `version: 0` YAML or JSON. A single chart uses `chart` or one entry under `charts` and displays inline in Sift agent chat. Several charts or a top-level `layout` are accepted and return an Explore link.
+Validation errors from `create_declarative_chart` are the final word on allowed keys and constraints.
+
+## Single chart vs multi-chart specs
+
+`chart` and `charts` are mutually exclusive. `layout` requires `charts`.
+
+- **Single chart** (`chart`): the spec contains one chart with no layout. A single chart displays inline in Sift agent chat. No top-level `layout` is allowed.
+- **Multi-chart** (`charts`): an object keyed by aliases, each alias mapping to a chart object. Use `layout` to arrange them. `charts` and `layout` together return a working Explore link.
+
+Prefer `chart` unless the user asked for several charts or a layout.
 
 ## Run and inline expression example
 
@@ -120,4 +129,26 @@ chart:
       source: flight
       axis: L1
       label: Filtered pressure
+```
+
+## Multi-chart layout example
+
+```yaml
+version: 0
+dataSources:
+  flight: { run: { id: 7f3a2b10-0000-4000-8000-000000000001 } }
+charts:
+  pressure:
+    type: timeseries
+    series: [{ channel: pressure, source: flight, axis: L1 }]
+  correlation:
+    type: scatter-plot
+    series:
+      - encoding:
+          xCoordinate: { channel: temperature }
+          yCoordinate: { channel: pressure }
+        source: flight
+layout:
+  rows:
+    - [pressure, correlation]
 ```
