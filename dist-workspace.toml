@@ -31,3 +31,9 @@ github-build-setup = "includes/build-setup.yml"
 [dist.github-custom-runners.x86_64-apple-darwin]
 runner = "macos-15"
 host = "aarch64-apple-darwin"
+
+# Build the arm64 macOS binary on macos-15. cargo-dist 0.31.0 assigns this
+# target to macos-14 by default, and GitHub no longer accepts that runner.
+[dist.github-custom-runners.aarch64-apple-darwin]
+runner = "macos-15"
+host = "aarch64-apple-darwin"
