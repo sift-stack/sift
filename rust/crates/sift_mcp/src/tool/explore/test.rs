@@ -274,9 +274,13 @@ fn chart_tools_have_flat_schemas_and_honest_annotations() {
     assert_eq!(properties.len(), 1);
     assert_eq!(properties["spec"]["type"], "string");
     let annotations = create_tool.annotations.unwrap();
-    assert_eq!(annotations.read_only_hint, Some(false));
+    assert_eq!(annotations.read_only_hint, Some(true));
     assert_eq!(annotations.destructive_hint, Some(false));
-    assert_eq!(annotations.idempotent_hint, Some(false));
+    assert_eq!(annotations.idempotent_hint, Some(true));
+    let description = create_tool.description.unwrap();
+    assert!(description.contains("read-only policy exception"));
+    assert!(description.contains("no create-access flag or confirmation required"));
+    assert!(!description.contains("--allow-create"));
 
     let explore = tool_named("explore_url");
     assert!(
@@ -308,25 +312,45 @@ async fn get_chart_schema_returns_the_cached_file_path_and_small_metadata() {
 }
 
 #[tokio::test]
-async fn create_declarative_chart_is_gated_on_allow_create() {
-    let root = tempdir::TempDir::new("explore-gate").unwrap();
-    let blocked = server_with_rest("http://127.0.0.1:1", &root, false, false).await;
-    let error = create_chart(&blocked, "spec").await.unwrap_err();
-    assert_eq!(error.code, rmcp::model::ErrorCode::INVALID_REQUEST);
-    assert!(
-        error.message.contains("--allow-create"),
-        "{}",
-        error.message
-    );
-
-    // `allow_create` alone and `allow_destructive` alone (which implies it) both pass.
-    for (allow_create, allow_destructive) in [(true, false), (false, true)] {
+async fn chart_share_links_work_in_every_access_mode_without_enabling_other_writes() {
+    let root = tempdir::TempDir::new("explore-access").unwrap();
+    for (allow_create, allow_destructive) in
+        [(false, false), (true, false), (false, true), (true, true)]
+    {
         let (uri, _http) =
             start_sequence_server(vec![reply("200 OK", r#"{"shortLink":"abc"}"#)]).await;
         let server = server_with_rest(&uri, &root, allow_create, allow_destructive).await;
+        if !allow_create && !allow_destructive {
+            assert!(server.require_create().is_err());
+            assert!(server.require_destructive().is_err());
+        }
         let result = create_chart(&server, "spec").await.unwrap();
         assert_eq!(structured(&result)["valid"], true);
     }
+}
+
+#[tokio::test]
+async fn missing_app_uri_is_rejected_before_persisting_a_share_link() {
+    use std::time::Duration;
+    use tokio::{net::TcpListener, time::timeout};
+
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let uri = format!("http://{}", listener.local_addr().unwrap());
+    let root = tempdir::TempDir::new("explore-no-app-uri").unwrap();
+    let mut server = server_with_rest(&uri, &root, false, false).await;
+    server.url_service = crate::service::url::UrlService::new(String::new());
+
+    let error = timeout(Duration::from_secs(1), create_chart(&server, "spec"))
+        .await
+        .expect("app_uri must be checked before any network request")
+        .unwrap_err();
+    assert_eq!(error.code, rmcp::model::ErrorCode::INVALID_PARAMS);
+    assert!(error.message.contains("app_uri"));
+    assert!(
+        timeout(Duration::from_millis(20), listener.accept())
+            .await
+            .is_err()
+    );
 }
 
 fn structured(result: &rmcp::model::CallToolResult) -> Value {

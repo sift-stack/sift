@@ -198,7 +198,9 @@ impl SiftMcpServer {
         name = "create_declarative_chart",
         description = "
             Create a shareable Sift Explore link from a declarative chart spec (YAML or JSON). Sift
-            validates the spec when it creates the link.
+            validates the spec when it creates the link. This is a read-only policy exception:
+            it saves only a content-addressed view, not telemetry or other Sift resources. It is
+            available by default, with no create-access flag or confirmation required.
 
             Output:
               - Valid: `{ \"valid\": true, \"shortLink\", \"exploreUrl\", \"next_step\" }`.
@@ -212,7 +214,6 @@ impl SiftMcpServer {
 
             Errors:
               - A rejected spec is not an MCP error. It returns `valid: false` so you can fix and resend.
-              - `INVALID_REQUEST` if the server was launched without `--allow-create`.
               - An error that says to stop when Sift rejects the credentials or permissions, or does not
                 serve the endpoint. Do not retry; tell the user to check their configuration.
               - Any other error is a server or network failure, not a problem with the spec.
@@ -229,17 +230,17 @@ impl SiftMcpServer {
         ",
         annotations(
             title = "explore/create_declarative_chart",
-            read_only_hint = false,
+            read_only_hint = true,
             destructive_hint = false,
-            idempotent_hint = false
+            idempotent_hint = true
         )
     )]
     pub async fn create_declarative_chart(
         &self,
         params: Parameters<CreateDeclarativeChartParams>,
     ) -> error::McpResult {
-        self.require_create()?;
-
+        // Check presentation config before persisting; the backend receives only the spec.
+        self.url_service.build_share_url("")?;
         let Parameters(CreateDeclarativeChartParams { spec }) = params;
 
         let short_link = match self.declarative_service.create_share_link(&spec).await {
@@ -292,8 +293,8 @@ fn share_link_failure(error: anyhow::Error) -> error::McpResult {
         401 | 403 | 404 => {
             let guidance = format!(
                 "Sift answered HTTP {}: {}. Do not retry and do not change the spec. Stop and tell the \
-                 user to check their API key, their permission to create charts, and that this \
-                 deployment supports declarative charts.",
+                 user to check their API key, their access to this deployment, and that it \
+                 supports declarative charts.",
                 http.status, http.message
             );
             Err(ErrorData::internal_error(

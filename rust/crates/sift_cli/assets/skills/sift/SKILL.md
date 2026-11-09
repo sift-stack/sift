@@ -113,7 +113,8 @@ tool.
 - **Data:** `get_data` writes channel data to a Parquet file. `sql` queries
   Parquet files. `upload_dataset` streams a Parquet dataset into Sift.
 - **Charts:** `get_chart_schema` locates the local schema; `create_declarative_chart`
-  saves a spec-backed Explore share link and needs create access.
+  saves a spec-backed Explore share link. Chart share links are available in
+  read-only mode and need no confirmation.
 - **Links:** `explore_url`.
 - **Docs:** `search_docs`.
 - **Writes:** `create_rule`, `update_rule`, `archive_rule`, `unarchive_rule`,
@@ -272,11 +273,12 @@ tool.
   links from `explore_url`, `create_declarative_chart`, and the `View in Sift:`
   line from `sift-cli import` are deliverables. Never invent a URL that a tool
   did not return.
-- **Confirm every write before you run it.** Show the user the proposed change
-  and its target, then wait for approval.
+- **Confirm every data-changing write before you run it.** Show the user the
+  proposed change and its target, then wait for approval. Chart share links
+  are a read-only exception: they save a view, not data, and need no approval.
 - **Write tools are off by default.** Read-only is the default access mode.
-  `create_*`, `upload_dataset`, and `append_test_measurements` need
-  `--allow-create`. `update_*`, `archive_*`, and `unarchive_*` need
+  Other `create_*` tools, `upload_dataset`, and `append_test_measurements`
+  need `--allow-create`. `update_*`, `archive_*`, and `unarchive_*` need
   `--allow-destructive` (which implies create). If a call is blocked, tell the
   user that this access is disabled by default and ask for explicit approval.
   Never widen access silently.
