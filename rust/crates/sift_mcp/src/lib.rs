@@ -256,7 +256,7 @@ fn start_chart_schema_download(
     }
     let declarative = server.declarative_service.clone();
     Some(tokio::spawn(async move {
-        if let Err(error) = declarative.chart_schema().await {
+        if let Err(error) = declarative.chart_schema_path().await {
             eprintln!("Could not refresh the cached chart schema: {error:#}");
         }
     }))
@@ -279,7 +279,10 @@ mod tests {
     {
     }
 
-    async fn server_with_schema_endpoint(rest_uri: String) -> super::SiftMcpServer {
+    async fn server_with_schema_endpoint(
+        rest_uri: String,
+    ) -> (super::SiftMcpServer, tempdir::TempDir) {
+        let cache = tempdir::TempDir::new("schema-startup-test").unwrap();
         let (client, _server) = tokio::io::duplex(1024);
         let channel = sift_test_util::grpc::memory_sift_channel(client).await;
         let mut server =
@@ -288,35 +291,39 @@ mod tests {
             Some(super::RestConfig::new(rest_uri, "test-key".into())),
             "test",
         )
-        .with_retry(crate::service::declarative::test::fast_retry());
-        server
+        .with_cache_root(cache.path());
+        (server, cache)
     }
 
     #[tokio::test]
     async fn startup_download_populates_the_cache_file_before_any_schema_call() {
-        use crate::service::declarative::test::{
-            Reply, chart_schema_responses, start_sequence_server,
-        };
-        let (rest_uri, http) = start_sequence_server(
-            chart_schema_responses()
-                .into_iter()
-                .map(Reply::Respond)
-                .collect(),
-        )
-        .await;
-        let server = server_with_schema_endpoint(rest_uri).await;
+        let body = r#"{"$defs":{},"type":"object"}"#;
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+            body.len()
+        );
+        let (rest_uri, http) = crate::client_event::start_http_server(response.into_bytes()).await;
+        let (server, _cache) = server_with_schema_endpoint(rest_uri).await;
         let task = super::start_chart_schema_download(&server, true).unwrap();
         task.await.unwrap();
-        assert_eq!(http.await.unwrap().len(), 2);
+        let request = tokio::time::timeout(std::time::Duration::from_secs(2), http)
+            .await
+            .expect("startup must contact the schema endpoint")
+            .unwrap();
+        assert!(String::from_utf8_lossy(&request).starts_with("GET /download/"));
         // The mock is now closed, so this can only succeed from the cache file.
-        let snapshot = server.declarative_service.chart_schema().await.unwrap();
-        assert!(snapshot.path.is_absolute());
-        assert!(snapshot.path.is_file());
+        let path = server
+            .declarative_service
+            .chart_schema_path()
+            .await
+            .unwrap();
+        assert!(path.is_absolute());
+        assert!(path.is_file());
     }
 
     #[tokio::test]
     async fn startup_download_is_skipped_without_rest_or_when_schema_tool_is_ignored() {
-        let mut server = server_with_schema_endpoint("http://127.0.0.1:1".into()).await;
+        let (mut server, _cache) = server_with_schema_endpoint("http://127.0.0.1:1".into()).await;
         assert!(super::start_chart_schema_download(&server, false).is_none());
         server.tool_router.remove_route("get_chart_schema");
         assert!(super::start_chart_schema_download(&server, true).is_none());
@@ -324,36 +331,41 @@ mod tests {
 
     #[tokio::test]
     async fn unavailable_schema_does_not_fail_startup() {
-        use crate::service::declarative::test::{Reply, http_response, start_sequence_server};
-        let (rest_uri, http) =
-            start_sequence_server(vec![Reply::Respond(http_response("404 Not Found", ""))]).await;
-        let server = server_with_schema_endpoint(rest_uri).await;
+        let response = b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+        let (rest_uri, http) = crate::client_event::start_http_server(response.to_vec()).await;
+        let (server, _cache) = server_with_schema_endpoint(rest_uri).await;
         super::start_chart_schema_download(&server, true)
             .unwrap()
             .await
             .expect("schema failure must not fail the background task or MCP startup");
-        assert_eq!(http.await.unwrap().len(), 1);
+        let request = tokio::time::timeout(std::time::Duration::from_secs(2), http)
+            .await
+            .expect("startup must contact the schema endpoint")
+            .unwrap();
+        assert!(String::from_utf8_lossy(&request).starts_with("GET /download/"));
     }
 
     #[tokio::test]
     async fn stalled_schema_download_does_not_block_mcp_initialization_or_other_tools() {
-        use crate::service::declarative::test::{Reply, start_sequence_server};
         use rmcp::ServiceExt;
         use std::time::Duration;
         use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
-        let (rest_uri, http) = start_sequence_server(vec![Reply::Hang]).await;
-        let server = server_with_schema_endpoint(rest_uri).await;
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let rest_uri = format!("http://{}", listener.local_addr().unwrap());
+        let (accepted, request) = tokio::sync::oneshot::channel();
+        let http = tokio::spawn(async move {
+            let _connection = listener.accept().await.unwrap();
+            accepted.send(()).unwrap();
+            std::future::pending::<()>().await;
+        });
+        let (server, _cache) = server_with_schema_endpoint(rest_uri).await;
         let download = super::start_chart_schema_download(&server, true).unwrap();
         // Observe the startup fetch without making a schema tool call.
-        assert_eq!(
-            tokio::time::timeout(Duration::from_secs(2), http)
-                .await
-                .unwrap()
-                .unwrap()
-                .len(),
-            1
-        );
+        tokio::time::timeout(Duration::from_secs(2), request)
+            .await
+            .unwrap()
+            .unwrap();
         let (client, transport) = tokio::io::duplex(65536);
         let serving = tokio::spawn(async move {
             let service = server.serve(transport).await.unwrap();
@@ -393,6 +405,8 @@ mod tests {
             }
         }
         download.abort();
+        assert!(download.await.unwrap_err().is_cancelled());
+        http.abort();
         serving.abort();
     }
 

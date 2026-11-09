@@ -6,10 +6,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### What's New
 
-#### Declarative chart schema
+#### Declarative chart links
 
-`get_chart_schema` makes the deployment's declarative chart schema available to agents.
-`sift-cli get chart-schema` downloads the full schema to standard output or an output file.
+`get_chart_schema` caches the deployment's chart schema locally for agents.
+`create_declarative_chart` saves a strictly validated spec as an Explore share link.
+`sift-cli get chart-schema` exports a fresh schema to standard output or a file.
 
 ## [v0.14.1] - November 6, 2026
 ### What's New

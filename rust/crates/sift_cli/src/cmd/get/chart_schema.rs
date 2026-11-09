@@ -50,15 +50,10 @@ mod test {
 
     #[tokio::test]
     async fn writes_the_chart_schema_to_a_file() {
-        let router = Router::new()
-            .route(
-                "/api/packages/v1/schemas/declarative-chart/versions",
-                get(|| async { r#"{"versions":[{"version":"0"}]}"# }),
-            )
-            .route(
-                "/download/schemas/declarative-chart/0/sift.declarative.schema.v0.json",
-                get(schema),
-            );
+        let router = Router::new().route(
+            "/download/schemas/declarative-chart/0/sift.declarative.schema.v0.json",
+            get(schema),
+        );
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let address: SocketAddr = listener.local_addr().unwrap();
         let server = tokio::spawn(async move { axum::serve(listener, router).await });

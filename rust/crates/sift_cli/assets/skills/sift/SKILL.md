@@ -112,7 +112,8 @@ tool.
   to enable them, then restart the MCP client.
 - **Data:** `get_data` writes channel data to a Parquet file. `sql` queries
   Parquet files. `upload_dataset` streams a Parquet dataset into Sift.
-- **Charts:** `create_declarative_chart`, `get_chart_schema`.
+- **Charts:** `get_chart_schema` locates the local schema; `create_declarative_chart`
+  saves a spec-backed Explore share link and needs create access.
 - **Links:** `explore_url`.
 - **Docs:** `search_docs`.
 - **Writes:** `create_rule`, `update_rule`, `archive_rule`, `unarchive_rule`,
@@ -233,14 +234,11 @@ tool.
   listings without deleting its versions, links, or files. Find archived
   artifacts with `list_artifacts` and `include_archived=true`, then restore one
   with `unarchive_artifact`. Both writes need `--allow-destructive`.
-- **Produce a chart.** Use `create_declarative_chart` with a spec (see
-  references/declarative-charts.md). For quick links to Sift Explore, use
-  `explore_url` instead. When the user wants a chart and numbers, do both and
-  give the user both.
-- **Read the chart schema.** Call `get_chart_schema` once to locate the
-  machine-cached `schema_path`, then reuse that local file. Do not download
-  it for each chart. See [Schema reference](references/declarative-charts.md#schema-reference)
-  for local-file access and the named-definition fallback.
+- **Author a chart.** Call `get_chart_schema` once, reuse its local `schema_path`,
+  and follow [declarative charts](references/declarative-charts.md) to author
+  panels and save an Explore share link with `create_declarative_chart`.
+  Use `explore_url` for a quick read-only deep-link. For a chart and numbers,
+  also use `get_data` and `sql`.
 - **Answer a question about how Sift works.** Call `search_docs`. Do not answer
   from memory, and cite the page you used.
 - **Create an asset.** There is no `create_asset` MCP tool because Sift creates

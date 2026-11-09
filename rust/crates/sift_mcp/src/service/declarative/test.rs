@@ -1,4 +1,7 @@
-use std::time::Duration;
+use std::{
+    path::{Path, PathBuf},
+    time::{Duration, SystemTime},
+};
 
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -6,9 +9,11 @@ use tokio::{
     task::JoinHandle,
 };
 
-use super::{DeclarativeService, Issue, RestRetry, ShareLinkResult};
-use crate::client_event::start_http_server;
+use super::{DeclarativeService, HttpError, SCHEMA_FILENAME, SCHEMA_PATH};
 use crate::service::remote_files::RestConfig;
+
+/// Deliberately odd spacing: the cache must keep the bytes exactly as served.
+const SCHEMA: &str = "{ \"$id\" : \"a\",\n  \"$defs\" : { \"chart\" : {} } }\n";
 
 pub(crate) fn http_response(status: &str, body: &str) -> Vec<u8> {
     format!(
@@ -18,36 +23,10 @@ pub(crate) fn http_response(status: &str, body: &str) -> Vec<u8> {
     .into_bytes()
 }
 
-/// Tiny backoff so retry tests finish quickly.
-pub(crate) fn fast_retry() -> RestRetry {
-    RestRetry {
-        max_attempts: 3,
-        retry_delay: Duration::from_millis(1),
-        request_timeout: Duration::from_secs(5),
-    }
-}
-
-pub(super) fn service(rest_uri: String) -> DeclarativeService {
-    service_with_retry(rest_uri, fast_retry())
-}
-
-pub(super) fn service_with_retry(rest_uri: String, retry: RestRetry) -> DeclarativeService {
-    DeclarativeService::new(Some(RestConfig::new(rest_uri, "test-key".into())), "1.2.3")
-        .with_retry(retry)
-}
-
-/// How the sequence server answers one connection.
-pub(crate) enum Reply {
-    Respond(Vec<u8>),
-    /// Read the request, then never answer, so the client times out.
-    Hang,
-}
-
-/// Serves one `Reply` per incoming connection, in order, then returns every
-/// request it read. `start_http_server` handles a single connection, which is
-/// not enough to observe a retry.
+/// Serves one canned response per incoming connection, in order, then returns every request it read.
+/// `start_http_server` handles one connection, which cannot show a second download or its absence.
 pub(crate) async fn start_sequence_server(
-    replies: Vec<Reply>,
+    responses: Vec<Vec<u8>>,
 ) -> (String, JoinHandle<Vec<Vec<u8>>>) {
     fn request_complete(request: &[u8]) -> bool {
         let Some(header_end) = request.windows(4).position(|window| window == b"\r\n\r\n") else {
@@ -67,7 +46,7 @@ pub(crate) async fn start_sequence_server(
     let address = listener.local_addr().unwrap();
     let server = tokio::spawn(async move {
         let mut requests = Vec::new();
-        for reply in replies {
+        for response in responses {
             let (mut stream, _) = listener.accept().await.unwrap();
             let mut request = Vec::new();
             while !request_complete(&request) {
@@ -80,635 +59,345 @@ pub(crate) async fn start_sequence_server(
                 request.extend_from_slice(&buffer[..count]);
             }
             requests.push(request);
-            match reply {
-                Reply::Respond(response) => stream.write_all(&response).await.unwrap(),
-                Reply::Hang => {
-                    // Keep the connection open without answering. The task is
-                    // dropped with the test runtime.
-                    tokio::spawn(async move {
-                        let _stream = stream;
-                        tokio::time::sleep(Duration::from_secs(60)).await;
-                    });
-                }
-            }
+            stream.write_all(&response).await.unwrap();
         }
         requests
     });
-
     (format!("http://{address}"), server)
 }
 
-fn split_request(request: Vec<u8>) -> (String, serde_json::Value) {
-    let request = String::from_utf8(request).unwrap();
-    let (headers, body) = request.split_once("\r\n\r\n").unwrap();
-    (headers.to_string(), serde_json::from_str(body).unwrap())
+fn ok(body: &str) -> Vec<u8> {
+    http_response("200 OK", body)
 }
 
-#[tokio::test]
-async fn validate_sends_the_spec_verbatim_in_strict_mode() {
-    let (rest_uri, server) = start_http_server(http_response(
-        "200 OK",
-        r#"{"valid":true,"spec":"normalized: spec","warnings":[{"path":"charts[0]","message":"deprecated"}]}"#,
-    ))
-    .await;
+pub(crate) fn service(rest_uri: &str, cache_root: &Path) -> DeclarativeService {
+    DeclarativeService::new(
+        Some(RestConfig::new(rest_uri.into(), "test-key".into())),
+        "1.2.3",
+    )
+    .with_cache_root(cache_root)
+}
 
-    let result = service(rest_uri)
-        .validate("charts:\n  - name: \"a\"\n")
-        .await
-        .unwrap();
+fn cache_root() -> tempdir::TempDir {
+    tempdir::TempDir::new("sift-schema-cache").unwrap()
+}
 
-    let (headers, body) = split_request(server.await.unwrap());
-    assert!(headers.starts_with("POST /api/v1/declarative:validate HTTP/1.1"));
+fn request_text(request: &[u8]) -> (String, String) {
+    let text = String::from_utf8(request.to_vec()).unwrap();
+    let (headers, body) = text.split_once("\r\n\r\n").unwrap();
+    (headers.to_owned(), body.to_owned())
+}
+
+fn assert_header(headers: &str, expected: &str) {
     assert!(
         headers
             .lines()
-            .any(|line| line.eq_ignore_ascii_case("authorization: Bearer test-key"))
-    );
-    assert!(
-        headers
-            .lines()
-            .any(|line| line.eq_ignore_ascii_case("user-agent: sift_mcp/1.2.3"))
-    );
-    assert_eq!(
-        body,
-        serde_json::json!({"spec": "charts:\n  - name: \"a\"\n", "strict": true})
-    );
-
-    assert!(result.valid);
-    assert_eq!(result.spec, "normalized: spec");
-    assert!(result.errors.is_empty());
-    assert_eq!(
-        result.warnings,
-        vec![Issue {
-            path: "charts[0]".into(),
-            message: "deprecated".into()
-        }]
+            .any(|line| line.eq_ignore_ascii_case(expected)),
+        "missing `{expected}` in:\n{headers}"
     );
 }
 
-#[tokio::test]
-async fn validate_returns_errors_for_an_invalid_spec() {
-    let (rest_uri, server) = start_http_server(http_response(
-        "200 OK",
-        r#"{"spec":"bad","errors":[{"path":"charts[0].name","message":"required"},{"path":"","message":"unknown field"}]}"#,
-    ))
-    .await;
-
-    let result = service(rest_uri).validate("bad").await.unwrap();
-    server.await.unwrap();
-
-    assert!(!result.valid);
-    assert_eq!(result.errors.len(), 2);
-    assert_eq!(result.errors[0].path, "charts[0].name");
-    assert_eq!(result.errors[0].message, "required");
-    assert_eq!(result.errors[1].path, "");
-    assert!(result.warnings.is_empty());
-}
-
-#[tokio::test]
-async fn validate_treats_omitted_default_fields_as_empty() {
-    let (rest_uri, server) = start_http_server(http_response("200 OK", "{}")).await;
-
-    let result = service(rest_uri).validate("x").await.unwrap();
-    server.await.unwrap();
-
-    assert!(!result.valid);
-    assert_eq!(result.spec, "");
-    assert!(result.errors.is_empty());
-    assert!(result.warnings.is_empty());
-}
-
-#[tokio::test]
-async fn migrate_returns_the_migrated_spec_and_versions() {
-    let (rest_uri, server) = start_http_server(http_response(
-        "200 OK",
-        r#"{"originalSpec":"old","migratedSpec":"new","sourceVersion":"DECLARATIVE_SCHEMA_VERSION_V0","targetVersion":"DECLARATIVE_SCHEMA_VERSION_V1","warnings":[{"path":"a","message":"renamed"}],"valid":true}"#,
-    ))
-    .await;
-
-    let result = service(rest_uri).migrate("old").await.unwrap();
-
-    let (headers, body) = split_request(server.await.unwrap());
-    assert!(headers.starts_with("POST /api/v1/declarative:migrate HTTP/1.1"));
-    assert_eq!(body, serde_json::json!({"spec": "old"}));
-
-    assert!(result.valid);
-    assert_eq!(result.original_spec, "old");
-    assert_eq!(result.migrated_spec, "new");
-    assert_eq!(result.source_version, "DECLARATIVE_SCHEMA_VERSION_V0");
-    assert_eq!(result.target_version, "DECLARATIVE_SCHEMA_VERSION_V1");
-    assert_eq!(result.warnings.len(), 1);
-    assert!(result.errors.is_empty());
-}
-
-#[tokio::test]
-async fn migrate_with_errors_and_missing_default_fields() {
-    let (rest_uri, server) = start_http_server(http_response(
-        "200 OK",
-        r#"{"originalSpec":"old","errors":[{"path":"b","message":"cannot migrate"}]}"#,
-    ))
-    .await;
-
-    let result = service(rest_uri).migrate("old").await.unwrap();
-    server.await.unwrap();
-
-    assert!(!result.valid);
-    assert_eq!(result.migrated_spec, "");
-    assert_eq!(result.source_version, "");
-    assert_eq!(result.target_version, "");
-    assert!(result.warnings.is_empty());
-    assert_eq!(result.errors[0].message, "cannot migrate");
-}
-
-#[tokio::test]
-async fn a_non_2xx_response_reports_the_status_and_detail() {
-    let (rest_uri, server) = start_http_server(http_response(
-        "403 Forbidden",
-        r#"{"message":"permission denied"}"#,
-    ))
-    .await;
-
-    let error = service(rest_uri).validate("x").await.unwrap_err();
-    server.await.unwrap();
-
-    let message = format!("{error:#}");
-    assert!(message.contains("403"), "{message}");
-    assert!(message.contains("permission denied"), "{message}");
-}
-
-#[tokio::test]
-async fn a_migrate_400_is_an_invalid_result_with_the_backend_message() {
-    let (rest_uri, server) = start_sequence_server(vec![Reply::Respond(http_response(
-        "400 Bad Request",
-        r#"{"message":"spec must not be empty"}"#,
-    ))])
-    .await;
-
-    let result = service(rest_uri).migrate(" ").await.unwrap();
-    let requests = server.await.unwrap();
-
-    assert!(!result.valid);
-    assert_eq!(result.migrated_spec, "");
-    assert_eq!(
-        result.errors,
-        vec![Issue {
-            path: String::new(),
-            message: "spec must not be empty".into()
-        }]
-    );
-    // A 400 is final: no retry.
-    assert_eq!(requests.len(), 1);
-}
-
-#[tokio::test]
-async fn a_validate_400_is_an_invalid_result_with_the_backend_message() {
-    let (rest_uri, server) =
-        start_http_server(http_response("400 Bad Request", "spec must not be empty")).await;
-
-    let result = service(rest_uri).validate(" ").await.unwrap();
-    server.await.unwrap();
-
-    assert!(!result.valid);
-    assert_eq!(
-        result.errors,
-        vec![Issue {
-            path: String::new(),
-            message: "spec must not be empty".into()
-        }]
-    );
-}
-
-#[tokio::test]
-async fn a_non_2xx_migrate_response_is_an_error() {
-    let (rest_uri, server) = start_http_server(http_response(
-        "404 Not Found",
-        r#"{"message":"no such endpoint"}"#,
-    ))
-    .await;
-
-    let error = service(rest_uri).migrate("x").await.unwrap_err();
-    server.await.unwrap();
-
-    let message = format!("{error:#}");
-    assert!(message.contains("migrate"), "{message}");
-    assert!(message.contains("404"), "{message}");
-}
-
-#[tokio::test]
-async fn a_long_error_body_is_truncated_to_500_chars() {
-    let body = "x".repeat(800);
-    let (rest_uri, server) = start_http_server(http_response("403 Forbidden", &body)).await;
-
-    let error = service(rest_uri).validate("x").await.unwrap_err();
-    server.await.unwrap();
-
-    let message = format!("{error:#}");
-    assert!(message.contains(&"x".repeat(500)), "{message}");
-    assert!(!message.contains(&"x".repeat(501)), "{message}");
-}
-
-#[tokio::test]
-async fn a_transient_status_is_retried_until_it_succeeds() {
-    let (rest_uri, server) = start_sequence_server(vec![
-        Reply::Respond(http_response(
-            "503 Service Unavailable",
-            r#"{"message":"try later"}"#,
-        )),
-        Reply::Respond(http_response("200 OK", r#"{"valid":true,"spec":"ok"}"#)),
-    ])
-    .await;
-
-    let result = service(rest_uri).validate("x").await.unwrap();
-    let requests = server.await.unwrap();
-
-    assert!(result.valid);
-    assert_eq!(requests.len(), 2);
-    // Every attempt resends the same request.
-    assert_eq!(requests[0], requests[1]);
-}
-
-#[tokio::test]
-async fn a_429_and_a_408_are_retried() {
-    let (rest_uri, server) = start_sequence_server(vec![
-        Reply::Respond(http_response("429 Too Many Requests", "{}")),
-        Reply::Respond(http_response("408 Request Timeout", "{}")),
-        Reply::Respond(http_response(
-            "200 OK",
-            r#"{"migratedSpec":"new","valid":true}"#,
-        )),
-    ])
-    .await;
-
-    let result = service(rest_uri).migrate("old").await.unwrap();
-    let requests = server.await.unwrap();
-
-    assert_eq!(result.migrated_spec, "new");
-    assert_eq!(requests.len(), 3);
-}
-
-#[tokio::test]
-async fn a_non_retryable_status_fails_without_retrying() {
-    let (rest_uri, server) = start_sequence_server(vec![Reply::Respond(http_response(
-        "404 Not Found",
-        r#"{"message":"no such endpoint"}"#,
-    ))])
-    .await;
-
-    let error = service(rest_uri).validate("x").await.unwrap_err();
-    let requests = server.await.unwrap();
-
-    let message = format!("{error:#}");
-    assert!(message.contains("404"), "{message}");
-    assert!(message.contains("no such endpoint"), "{message}");
-    assert!(!message.contains("attempts"), "{message}");
-    assert_eq!(requests.len(), 1);
-}
-
-#[tokio::test]
-async fn a_persistent_5xx_gives_up_after_three_attempts() {
-    let (rest_uri, server) = start_sequence_server(vec![
-        Reply::Respond(http_response(
-            "500 Internal Server Error",
-            r#"{"message":"boom"}"#,
-        )),
-        Reply::Respond(http_response(
-            "500 Internal Server Error",
-            r#"{"message":"boom"}"#,
-        )),
-        Reply::Respond(http_response(
-            "500 Internal Server Error",
-            r#"{"message":"boom"}"#,
-        )),
-    ])
-    .await;
-
-    let error = service(rest_uri).migrate("x").await.unwrap_err();
-    let requests = server.await.unwrap();
-
-    let message = format!("{error:#}");
-    assert!(message.contains("migrate"), "{message}");
-    assert!(message.contains("failed after 3 attempts"), "{message}");
-    assert!(message.contains("500"), "{message}");
-    assert!(message.contains("boom"), "{message}");
-    assert_eq!(requests.len(), 3);
-}
-
-#[tokio::test]
-async fn max_attempts_is_configurable() {
-    let (rest_uri, server) = start_sequence_server(vec![
-        Reply::Respond(http_response("502 Bad Gateway", "{}")),
-        Reply::Respond(http_response("502 Bad Gateway", "{}")),
-    ])
-    .await;
-    let retry = RestRetry {
-        max_attempts: 2,
-        ..fast_retry()
-    };
-
-    let error = service_with_retry(rest_uri, retry)
-        .validate("x")
-        .await
-        .unwrap_err();
-    let requests = server.await.unwrap();
-
-    assert!(
-        format!("{error:#}").contains("failed after 2 attempts"),
-        "{error:#}"
-    );
-    assert_eq!(requests.len(), 2);
-}
-
-#[tokio::test]
-async fn a_timed_out_request_is_retried() {
-    let (rest_uri, server) = start_sequence_server(vec![
-        Reply::Hang,
-        Reply::Respond(http_response("200 OK", r#"{"valid":true}"#)),
-    ])
-    .await;
-    let retry = RestRetry {
-        request_timeout: Duration::from_millis(100),
-        ..fast_retry()
-    };
-
-    let result = service_with_retry(rest_uri, retry)
-        .validate("x")
-        .await
+fn set_age(path: &Path, age: Duration) {
+    let modified = SystemTime::now() - age;
+    std::fs::File::options()
+        .write(true)
+        .open(path)
+        .unwrap()
+        .set_modified(modified)
         .unwrap();
-    let requests = server.await.unwrap();
+}
 
-    assert!(result.valid);
-    assert_eq!(requests.len(), 2);
+fn http_error(error: &anyhow::Error) -> &HttpError {
+    error
+        .downcast_ref::<HttpError>()
+        .expect("a typed HTTP error")
 }
 
 #[tokio::test]
-async fn a_request_that_always_times_out_reports_the_timeout() {
-    let (rest_uri, server) =
-        start_sequence_server(vec![Reply::Hang, Reply::Hang, Reply::Hang]).await;
-    let retry = RestRetry {
-        request_timeout: Duration::from_millis(50),
-        ..fast_retry()
-    };
+async fn schema_bytes_are_downloaded_fresh_with_auth_and_kept_exactly() {
+    let (uri, server) = start_sequence_server(vec![ok(SCHEMA)]).await;
+    let bytes = DeclarativeService::new(
+        Some(RestConfig::new(format!("{uri}/"), "test-key".into())),
+        "1.2.3",
+    )
+    .chart_schema_bytes()
+    .await
+    .unwrap();
 
-    let error = service_with_retry(rest_uri, retry)
-        .validate("x")
-        .await
-        .unwrap_err();
+    assert_eq!(bytes, SCHEMA.as_bytes());
     let requests = server.await.unwrap();
-
-    let message = format!("{error:#}");
-    assert!(message.contains("timed out after 50ms"), "{message}");
-    assert!(message.contains("failed after 3 attempts"), "{message}");
-    assert_eq!(requests.len(), 3);
-}
-
-#[tokio::test]
-async fn share_link_returns_the_short_link() {
-    let (rest_uri, server) =
-        start_http_server(http_response("200 OK", r#"{"shortLink":"aB3dE9x"}"#)).await;
-
-    let result = service(rest_uri)
-        .create_share_link("charts:\n  - name: \"a\"\n")
-        .await
-        .unwrap();
-
-    let (headers, body) = split_request(server.await.unwrap());
-    assert!(headers.starts_with("POST /api/v1/declarative:sharelink HTTP/1.1"));
+    let (headers, _) = request_text(&requests[0]);
     assert!(
-        headers
-            .lines()
-            .any(|line| line.eq_ignore_ascii_case("authorization: Bearer test-key"))
+        headers.starts_with(&format!("GET {SCHEMA_PATH} HTTP/1.1")),
+        "{headers}"
     );
-    assert_eq!(
-        body,
-        serde_json::json!({"spec": "charts:\n  - name: \"a\"\n"})
-    );
-    assert_eq!(
-        result,
-        ShareLinkResult::Ok {
-            short_link: "aB3dE9x".into()
-        }
-    );
+    assert_header(&headers, "authorization: Bearer test-key");
+    assert_header(&headers, "user-agent: sift_mcp/1.2.3");
 }
 
 #[tokio::test]
-async fn share_link_400_is_an_invalid_spec_not_an_error() {
-    let (rest_uri, server) = start_sequence_server(vec![Reply::Respond(http_response(
-        "400 Bad Request",
-        "charts[0].name is required",
-    ))])
-    .await;
-
-    let result = service(rest_uri).create_share_link("bad").await.unwrap();
-    let requests = server.await.unwrap();
-
-    assert_eq!(
-        result,
-        ShareLinkResult::Invalid {
-            message: "charts[0].name is required".into()
-        }
-    );
-    // A 400 is final: no retry.
-    assert_eq!(requests.len(), 1);
-}
-
-#[tokio::test]
-async fn share_link_400_prefers_the_json_message() {
-    let (rest_uri, server) = start_http_server(http_response(
-        "400 Bad Request",
-        r#"{"code":3,"message":"unknown field"}"#,
-    ))
-    .await;
-
-    let result = service(rest_uri).create_share_link("bad").await.unwrap();
-    server.await.unwrap();
-
-    assert_eq!(
-        result,
-        ShareLinkResult::Invalid {
-            message: "unknown field".into()
-        }
-    );
-}
-
-#[tokio::test]
-async fn share_link_400_message_is_truncated_to_500_chars() {
-    let body = "y".repeat(800);
-    let (rest_uri, server) = start_http_server(http_response("400 Bad Request", &body)).await;
-
-    let result = service(rest_uri).create_share_link("bad").await.unwrap();
-    server.await.unwrap();
-
-    assert_eq!(
-        result,
-        ShareLinkResult::Invalid {
-            message: "y".repeat(500)
-        }
-    );
-}
-
-#[tokio::test]
-async fn share_link_400_with_an_empty_body_uses_a_fallback_message() {
-    let (rest_uri, server) = start_http_server(http_response("400 Bad Request", "")).await;
-
-    let result = service(rest_uri).create_share_link("bad").await.unwrap();
-    server.await.unwrap();
-
-    assert_eq!(
-        result,
-        ShareLinkResult::Invalid {
-            message: "declarative spec failed validation".into()
-        }
-    );
-}
-
-#[tokio::test]
-async fn share_link_without_a_short_link_is_an_error() {
-    for body in ["{}", r#"{"shortLink":""}"#] {
-        let (rest_uri, server) = start_http_server(http_response("200 OK", body)).await;
-
-        let error = service(rest_uri).create_share_link("x").await.unwrap_err();
-        server.await.unwrap();
-
+async fn schema_bytes_reject_bad_responses_and_missing_rest_endpoint() {
+    for body in ["not json", "[]", "{}", r#"{"$defs":[]}"#] {
+        let (uri, _server) = start_sequence_server(vec![ok(body)]).await;
+        let root = cache_root();
+        let error = service(&uri, root.path())
+            .chart_schema_bytes()
+            .await
+            .unwrap_err();
         assert!(
-            format!("{error:#}").contains("did not include shortLink"),
+            error.downcast_ref::<HttpError>().is_none(),
             "{body}: {error:#}"
         );
     }
-}
 
-#[tokio::test]
-async fn share_link_retries_a_transient_failure() {
-    let (rest_uri, server) = start_sequence_server(vec![
-        Reply::Respond(http_response("503 Service Unavailable", "{}")),
-        Reply::Respond(http_response("200 OK", r#"{"shortLink":"Zk4mQ7p"}"#)),
-    ])
-    .await;
-
-    let result = service(rest_uri).create_share_link("x").await.unwrap();
-    let requests = server.await.unwrap();
-
-    assert_eq!(
-        result,
-        ShareLinkResult::Ok {
-            short_link: "Zk4mQ7p".into()
-        }
-    );
-    assert_eq!(requests.len(), 2);
-}
-
-#[tokio::test]
-async fn a_transport_error_is_reported() {
-    // Bind then drop a listener so the port is free and refuses connections.
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let rest_uri = format!("http://{}", listener.local_addr().unwrap());
-    drop(listener);
-
-    let error = service(rest_uri).validate("x").await.unwrap_err();
-
-    assert!(
-        format!("{error:#}").contains("failed to reach the declarative validate endpoint"),
-        "{error:#}"
-    );
-}
-
-#[tokio::test]
-async fn without_a_rest_endpoint_calls_fail_clearly() {
-    let error = DeclarativeService::new(None, "1.2.3")
-        .validate("x")
+    let (uri, _server) = start_sequence_server(vec![http_response("404 Not Found", "")]).await;
+    let root = cache_root();
+    let error = service(&uri, root.path())
+        .chart_schema_bytes()
         .await
         .unwrap_err();
+    assert_eq!(http_error(&error).status.as_u16(), 404);
 
-    assert!(format!("{error:#}").contains("without a REST endpoint"));
+    let error = DeclarativeService::new(None, "1.2.3")
+        .chart_schema_bytes()
+        .await
+        .unwrap_err();
+    assert!(format!("{error:#}").contains("REST endpoint"), "{error:#}");
 }
 
-pub(crate) fn chart_schema_fixture() -> serde_json::Value {
-    serde_json::json!({
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "$id": "https://example.test/chart.schema.json",
-        "title": "Declarative chart",
-        "description": "A chart specification.\nThe root contains a chart.",
-        "type": "object",
-        "required": ["version"],
-        "additionalProperties": false,
-        "properties": {
-            "version": {"type": "integer", "const": 0},
-            "chart": {"$ref": "#/$defs/chart"},
-            "charts": {"type": "object", "additionalProperties": {"$ref": "#/$defs/chart"}},
-            "layout": {"$ref": "#/$defs/layout"}
-        },
-        "if": {"required": ["chart"]},
-        "then": {"not": {"required": ["charts"]}, "properties": {"layout": false}},
-        "$defs": {
-            "chart": {
-                "description": "A chart with\nchannels. Use an axis for each scale.",
-                "type": "object",
-                "properties": {
-                    "channel": {"$ref": "#/$defs/channelIdBinding/properties/channelId"},
-                    "axis": {"$ref": "#/$defs/axis"}
-                },
-                "anyOf": [
-                    {"$ref": "#/$defs/channelIdBinding"},
-                    {"$ref": "#/$defs/axis"},
-                    {"$ref": "https://example.test/other.schema.json#/$defs/external"}
-                ]
-            },
-            "channelIdBinding": {
-                "description": "A channel ID. Use the ID from the channel list.",
-                "type": "object",
-                "properties": {"channelId": {"$ref": "#/$defs/scalar"}}
-            },
-            "axis": {"description": "An axis scale.", "type": "object"},
-            "scalar": {"type": "string"},
-            "layout": {"description": "A layout grid.", "type": "object"}
-        }
-    })
-}
+#[tokio::test]
+async fn schema_path_downloads_once_and_is_reused_by_other_processes() {
+    let (uri, server) = start_sequence_server(vec![ok(SCHEMA)]).await;
+    let root = cache_root();
 
-pub(crate) fn chart_schema_responses() -> Vec<Vec<u8>> {
-    vec![
-        http_response(
-            "200 OK",
-            r#"{"name":"declarative-chart","versions":[{"version":"0","created_at":"2026-01-01T00:00:00Z","is_prerelease":false}]}"#,
-        ),
-        http_response("200 OK", &chart_schema_fixture().to_string()),
-    ]
-}
-
-#[test]
-fn chart_schema_decodes_without_title_or_id() {
-    for missing in [vec!["title"], vec!["$id"], vec!["title", "$id"]] {
-        let mut schema = chart_schema_fixture();
-        for field in &missing {
-            schema.as_object_mut().unwrap().remove(*field);
-        }
-        let decoded: super::ChartSchema = serde_json::from_value(schema.clone()).unwrap();
-        assert_eq!(decoded.title, schema["title"].as_str().unwrap_or_default());
-        assert_eq!(decoded.id, schema["$id"].as_str().unwrap_or_default());
-        assert_eq!(
-            decoded.definitions,
-            schema["$defs"].as_object().unwrap().clone()
-        );
-        // Named fields must not leak into root.
-        assert!(!decoded.root.contains_key("$id"));
-        assert!(!decoded.root.contains_key("title"));
-        assert!(!decoded.root.contains_key("description"));
-        assert!(!decoded.root.contains_key("$defs"));
+    let path = service(&uri, root.path())
+        .chart_schema_path()
+        .await
+        .unwrap();
+    assert!(path.is_absolute());
+    assert!(path.starts_with(root.path()));
+    assert_eq!(path.file_name().unwrap(), SCHEMA_FILENAME);
+    assert_eq!(std::fs::read(&path).unwrap(), SCHEMA.as_bytes());
+    assert_eq!(
+        std::fs::read_dir(path.parent().unwrap()).unwrap().count(),
+        1,
+        "no temp files"
+    );
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mode = |p: &Path| std::fs::metadata(p).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode(&path), 0o600);
+        assert_eq!(mode(path.parent().unwrap()), 0o700);
     }
+
+    // The server has answered its only request, so another service (a second MCP process)
+    // can only succeed from the file.
+    let again = service(&uri, root.path())
+        .chart_schema_path()
+        .await
+        .unwrap();
+    assert_eq!(again, path);
+    assert_eq!(server.await.unwrap().len(), 1);
 }
 
-#[test]
-fn chart_schema_root_does_not_include_named_fields() {
-    let decoded: super::ChartSchema = serde_json::from_value(chart_schema_fixture()).unwrap();
-    // Named fields are excluded from root.
-    assert!(!decoded.root.contains_key("$id"));
-    assert!(!decoded.root.contains_key("title"));
-    assert!(!decoded.root.contains_key("description"));
-    assert!(!decoded.root.contains_key("$defs"));
-    // Root constraints are preserved.
-    assert_eq!(decoded.root["type"], "object");
-    assert_eq!(decoded.root["required"], serde_json::json!(["version"]));
-    assert_eq!(decoded.root["additionalProperties"], false);
-    assert!(decoded.root.contains_key("if"));
-    assert!(decoded.root.contains_key("then"));
-    assert!(decoded.root.contains_key("properties"));
+#[tokio::test]
+async fn schema_path_refreshes_stale_future_corrupt_and_deleted_files() {
+    let bodies = [
+        "{\"$defs\":{\"v\":1}}",
+        "{\"$defs\":{\"v\":2}}",
+        "{\"$defs\":{\"v\":3}}",
+        "{\"$defs\":{\"v\":4}}",
+        "{\"$defs\":{\"v\":5}}",
+    ];
+    let (uri, server) = start_sequence_server(bodies.iter().map(|body| ok(body)).collect()).await;
+    let root = cache_root();
+    let svc = service(&uri, root.path());
+    let hour = Duration::from_secs(3600);
+
+    let path = svc.chart_schema_path().await.unwrap();
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), bodies[0]);
+
+    set_age(&path, 23 * hour);
+    svc.chart_schema_path().await.unwrap();
+    assert_eq!(
+        std::fs::read_to_string(&path).unwrap(),
+        bodies[0],
+        "still fresh"
+    );
+
+    set_age(&path, 25 * hour);
+    svc.chart_schema_path().await.unwrap();
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), bodies[1], "stale");
+
+    let future = SystemTime::now() + hour;
+    std::fs::File::options()
+        .write(true)
+        .open(&path)
+        .unwrap()
+        .set_modified(future)
+        .unwrap();
+    svc.chart_schema_path().await.unwrap();
+    assert_eq!(
+        std::fs::read_to_string(&path).unwrap(),
+        bodies[2],
+        "mtime in the future"
+    );
+
+    std::fs::write(&path, "{ corrupt").unwrap();
+    svc.chart_schema_path().await.unwrap();
+    assert_eq!(
+        std::fs::read_to_string(&path).unwrap(),
+        bodies[3],
+        "corrupt"
+    );
+
+    std::fs::remove_file(&path).unwrap();
+    svc.chart_schema_path().await.unwrap();
+    assert_eq!(
+        std::fs::read_to_string(&path).unwrap(),
+        bodies[4],
+        "deleted"
+    );
+    assert_eq!(server.await.unwrap().len(), 5);
+}
+
+#[tokio::test]
+async fn failed_refresh_keeps_the_previous_file() {
+    let (uri, _server) = start_sequence_server(vec![
+        ok(SCHEMA),
+        http_response("500 Internal Server Error", "{}"),
+        ok("{\"no_defs\":true}"),
+    ])
+    .await;
+    let root = cache_root();
+    let svc = service(&uri, root.path());
+    let path = svc.chart_schema_path().await.unwrap();
+    set_age(&path, Duration::from_secs(25 * 3600));
+
+    let error = svc.chart_schema_path().await.unwrap_err();
+    assert_eq!(http_error(&error).status.as_u16(), 500);
+    svc.chart_schema_path().await.unwrap_err();
+
+    assert_eq!(std::fs::read(&path).unwrap(), SCHEMA.as_bytes());
+    assert_eq!(
+        std::fs::read_dir(path.parent().unwrap()).unwrap().count(),
+        1,
+        "no temp files"
+    );
+}
+
+#[tokio::test]
+async fn cache_paths_isolate_deployments_and_roots_without_leaking_credentials() {
+    let (root_a, root_b) = (cache_root(), cache_root());
+    let path =
+        |uri: &str, root: &Path| -> PathBuf { service(uri, root).schema_cache_path().unwrap() };
+
+    let base = path("https://a.example.test", root_a.path());
+    assert_eq!(base, path("https://a.example.test/", root_a.path()));
+    assert_ne!(base, path("https://b.example.test", root_a.path()));
+    let other_root = path("https://a.example.test", root_b.path());
+    assert_ne!(base, other_root);
+    assert!(other_root.starts_with(root_b.path()));
+    assert!(!base.to_string_lossy().contains("test-key"));
+
+    let no_root = DeclarativeService::new(
+        Some(RestConfig::new("https://a.example.test".into(), "k".into())),
+        "1.2.3",
+    );
+    assert!(no_root.chart_schema_path().await.is_err());
+    let no_rest = DeclarativeService::new(None, "1.2.3").with_cache_root(root_a.path());
+    assert!(no_rest.chart_schema_path().await.is_err());
+}
+
+#[tokio::test]
+async fn concurrent_callers_in_one_process_share_one_download() {
+    let (uri, server) = start_sequence_server(vec![ok(SCHEMA)]).await;
+    let root = cache_root();
+    let svc = service(&uri, root.path());
+
+    let calls = (0..8).map(|_| {
+        let svc = svc.clone();
+        async move { svc.chart_schema_path().await }
+    });
+    let paths = futures::future::join_all(calls).await;
+
+    let first = paths[0].as_ref().unwrap();
+    assert!(paths.iter().all(|path| path.as_ref().unwrap() == first));
+    assert_eq!(server.await.unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn share_link_posts_the_exact_spec_and_returns_the_short_link() {
+    let (uri, server) = start_sequence_server(vec![ok(r#"{"shortLink":"abc 123"}"#)]).await;
+    let root = cache_root();
+    let spec = "charts:\n  - name: \"a\"\n";
+
+    let link = service(&uri, root.path())
+        .create_share_link(spec)
+        .await
+        .unwrap();
+
+    assert_eq!(link, "abc 123");
+    let (headers, body) = request_text(&server.await.unwrap()[0]);
+    assert!(
+        headers.starts_with("POST /api/v1/declarative:sharelink HTTP/1.1"),
+        "{headers}"
+    );
+    assert_header(&headers, "authorization: Bearer test-key");
+    assert_header(&headers, "user-agent: sift_mcp/1.2.3");
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&body).unwrap(),
+        serde_json::json!({ "spec": spec })
+    );
+}
+
+#[tokio::test]
+async fn share_link_failures_are_typed_and_never_return_a_link() {
+    let long_body = "x".repeat(2_000);
+    let cases = [
+        (
+            http_response(
+                "400 Bad Request",
+                r#"{"code":3,"message":"charts[0]: bad"}"#,
+            ),
+            400,
+            "charts[0]: bad",
+        ),
+        (http_response("403 Forbidden", "denied"), 403, "denied"),
+        (
+            http_response("503 Service Unavailable", &long_body),
+            503,
+            &long_body[..500],
+        ),
+    ];
+    for (reply, status, message) in cases {
+        let (uri, _server) = start_sequence_server(vec![reply]).await;
+        let root = cache_root();
+        let error = service(&uri, root.path())
+            .create_share_link("spec")
+            .await
+            .unwrap_err();
+        let http = http_error(&error);
+        assert_eq!(
+            (http.status.as_u16(), http.message.as_str()),
+            (status, message)
+        );
+    }
+
+    for body in ["{}", r#"{"shortLink":""}"#, "not json"] {
+        let (uri, _server) = start_sequence_server(vec![ok(body)]).await;
+        let root = cache_root();
+        let error = service(&uri, root.path())
+            .create_share_link("spec")
+            .await
+            .unwrap_err();
+        assert!(error.downcast_ref::<HttpError>().is_none(), "{body}");
+    }
+
+    let error = DeclarativeService::new(None, "1.2.3")
+        .create_share_link("spec")
+        .await
+        .unwrap_err();
+    assert!(format!("{error:#}").contains("REST endpoint"), "{error:#}");
 }
