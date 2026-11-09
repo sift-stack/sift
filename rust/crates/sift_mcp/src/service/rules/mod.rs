@@ -1,4 +1,4 @@
-use crate::policy::{RetryPolicy, once, with_retry};
+use crate::policy::{RetryPolicy, with_retry};
 use crate::service::common;
 use anyhow::{Context, Result};
 use sift_rs::{
@@ -114,14 +114,18 @@ impl RuleService {
     pub async fn create_rule(&self, update: UpdateRuleRequest) -> Result<String> {
         let channel = self.channel.clone();
 
-        let resp = once(move || async move {
-            let mut client = RuleServiceClient::new(channel);
-            client
-                .create_rule(CreateRuleRequest {
-                    update: Some(update),
-                })
-                .await
-                .map(|resp| resp.into_inner())
+        let resp = with_retry(&self.policy, move || {
+            let channel = channel.clone();
+            let update = update.clone();
+            async move {
+                let mut client = RuleServiceClient::new(channel);
+                client
+                    .create_rule(CreateRuleRequest {
+                        update: Some(update),
+                    })
+                    .await
+                    .map(|resp| resp.into_inner())
+            }
         })
         .await
         .context("failed to create rule")?;

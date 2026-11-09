@@ -124,11 +124,6 @@ fn properties_for_tool(
     arguments: Option<&JsonObject>,
 ) -> HashMap<&'static str, String> {
     let mut properties = HashMap::new();
-    // Bulk creates share their existing resource-family event, but remain
-    // distinguishable from single creates without requiring a backend release.
-    if tool_name.starts_with("create_") && tool_name.ends_with('s') {
-        properties.insert("tool_name", tool_name.to_string());
-    }
     if tool_name == "create_artifact"
         && let Some(file_type) = arguments.and_then(artifact_file_type)
     {

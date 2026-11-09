@@ -57,6 +57,7 @@ use crate::service::{
 
 #[derive(Clone)]
 pub struct SiftMcpServer {
+    channel: SiftChannel,
     pub tool_router: ToolRouter<Self>,
     pub prompt_router: PromptRouter<Self>,
 
@@ -303,6 +304,7 @@ impl SiftMcpServer {
         let user_service = UserService::new(channel.clone(), retry_policy);
 
         Ok(Self {
+            channel,
             annotation_service,
             artifact_service,
             asset_service,
@@ -330,6 +332,33 @@ impl SiftMcpServer {
             update_tool_registered,
             client_event_reporter,
         })
+    }
+
+    pub(crate) fn bulk_create_context(&self) -> Self {
+        // Only bulk calls use one attempt; existing tools retain their retry policies.
+        let policy = RetryPolicy {
+            max_attempts: 1,
+            ..RetryPolicy::default()
+        };
+        Self {
+            annotation_service: AnnotationService::new(self.channel.clone(), policy.clone()),
+            calculated_channel_service: CalculatedChannelService::new(
+                self.channel.clone(),
+                policy.clone(),
+            ),
+            report_service: ReportService::new(self.channel.clone(), policy.clone()),
+            report_template_service: ReportTemplateService::new(
+                self.channel.clone(),
+                policy.clone(),
+            ),
+            rule_service: RuleService::new(self.channel.clone(), policy.clone()),
+            test_report_service: TestReportService::new(self.channel.clone(), policy.clone()),
+            user_defined_function_service: UserDefinedFunctionService::new(
+                self.channel.clone(),
+                policy,
+            ),
+            ..self.clone()
+        }
     }
 
     pub(crate) fn require_create(&self) -> Result<(), ErrorData> {

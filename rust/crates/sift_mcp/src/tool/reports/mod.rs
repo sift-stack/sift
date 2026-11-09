@@ -35,7 +35,6 @@ pub struct ReportRuleSummaryListParams {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-#[serde(deny_unknown_fields)]
 pub struct CreateReportParams {
     run_id: String,
     name: String,
@@ -89,10 +88,11 @@ impl SiftMcpServer {
         let items = crate::tool::common::bulk_create::parse_items::<CreateReportParams>(
             &params.0.items_json,
         )?;
+        let bulk = self.bulk_create_context();
         crate::tool::common::bulk_create::create_many_with_partial_writes(
             items,
             params.0.selected_indices,
-            |item| self.create_report(Parameters(item)),
+            |item| bulk.create_report(Parameters(item)),
             true,
         )
         .await

@@ -85,7 +85,6 @@ impl From<AnnotationStateParam> for AnnotationState {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-#[serde(deny_unknown_fields)]
 pub struct CreateAnnotationParams {
     name: String,
     description: Option<String>,
@@ -212,8 +211,9 @@ impl SiftMcpServer {
                 ));
             }
         }
+        let bulk = self.bulk_create_context();
         crate::tool::common::bulk_create::create_many(items, selected_indices, |item| {
-            self.create_annotation(Parameters(item))
+            bulk.create_annotation(Parameters(item))
         })
         .await
     }

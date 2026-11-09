@@ -23,7 +23,9 @@ pub struct BulkCreateParams {
     pub selected_indices: Option<Vec<usize>>,
 }
 
-pub fn parse_items<T: DeserializeOwned>(items_json: &str) -> Result<Vec<T>, ErrorData> {
+pub fn parse_items<T: DeserializeOwned + JsonSchema>(
+    items_json: &str,
+) -> Result<Vec<T>, ErrorData> {
     let items: Vec<Value> = serde_json::from_str(items_json).map_err(|error| {
         ErrorData::invalid_params(format!("`items_json` must be a JSON array: {error}"), None)
     })?;
@@ -33,10 +35,20 @@ pub fn parse_items<T: DeserializeOwned>(items_json: &str) -> Result<Vec<T>, Erro
             None,
         ));
     }
+    let schema = schemars::schema_for!(T);
     items
         .into_iter()
         .enumerate()
         .map(|(index, item)| {
+            if let Some(fields) = schema.get("properties").and_then(Value::as_object)
+                && let Some(object) = item.as_object()
+                && let Some(unknown) = object.keys().find(|key| !fields.contains_key(*key))
+            {
+                return Err(ErrorData::invalid_params(
+                    format!("`items_json` item {index}: unknown field `{unknown}`"),
+                    None,
+                ));
+            }
             serde_json::from_value(item).map_err(|error| {
                 ErrorData::invalid_params(format!("`items_json` item {index}: {error}"), None)
             })
@@ -165,11 +177,14 @@ where
 mod integration_test;
 
 #[cfg(test)]
+#[path = "bulk_create_retry_test.rs"]
+mod retry_test;
+
+#[cfg(test)]
 mod test {
     use super::*;
 
-    #[derive(Debug, Deserialize)]
-    #[serde(deny_unknown_fields)]
+    #[derive(Debug, Deserialize, JsonSchema)]
     struct Item {
         name: String,
     }

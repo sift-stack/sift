@@ -51,7 +51,6 @@ pub struct ArtifactArchiveParams {
 }
 
 #[derive(Debug, Default, Deserialize, JsonSchema)]
-#[serde(deny_unknown_fields)]
 pub struct CreateArtifactParams {
     title: Option<String>,
     summary: Option<String>,

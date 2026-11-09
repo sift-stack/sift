@@ -19,7 +19,6 @@ use crate::{
 mod test;
 
 #[derive(Debug, Deserialize, JsonSchema)]
-#[serde(deny_unknown_fields)]
 pub struct RuleDefinitionParams {
     rule_json: String,
 }
@@ -92,8 +91,9 @@ impl SiftMcpServer {
                 ));
             }
         }
+        let bulk = self.bulk_create_context();
         crate::tool::common::bulk_create::create_many(items, params.0.selected_indices, |item| {
-            self.create_rule(Parameters(item))
+            bulk.create_rule(Parameters(item))
         })
         .await
     }

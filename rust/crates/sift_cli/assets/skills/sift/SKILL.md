@@ -113,22 +113,7 @@ tool.
 - **Docs:** `search_docs`.
 - **Bulk creates:** `create_annotations`, `create_rules`, `create_calculated_channels`,
   `create_user_defined_functions`, `create_reports`, `create_report_templates`,
-  `create_test_reports`, `create_artifacts`. Prefer these over repeated single creates.
-  Pass `items_json` as a JSON array STRING of the corresponding single-create tool's
-  parameter objects (1–100 items). The approval card lets the user select each
-  item independently. Omit `selected_indices` when proposing a batch: only the
-  approval host fills it from the user's item-level decisions. Execution without
-  an explicit selection fails closed; `[]` writes nothing. Rejected items must
-  never be executed or retried. For annotations, put shared `run_id` and
-  `organization_id` at the top level, never inside an item; every item must retain
-  a run, asset, or linked-channel association. Results carry zero-based input indices:
-  `successes` (each with the full single-create result), `failures`, `not_attempted`,
-  and `not_selected` (items rejected by the user). Filtering never renumbers indices.
-  These calls are sequential and non-atomic, not native batch APIs. Successful
-  writes remain committed. Never replay the entire batch; inspect `outcome_unknown`
-  failures first, because a create can commit before its response is lost or a
-  later step fails. Surface per-item warnings and obey backend-stop guidance.
-  Create prerequisites first; a batch cannot reference ids it has not received yet.
+  `create_test_reports`, `create_artifacts`.
 - **Writes:** `create_rule`, `update_rule`, `archive_rule`, `unarchive_rule`,
   `create_annotation`, `update_annotation`, `create_report`, `update_report`,
   `create_report_template`, `update_report_template`,

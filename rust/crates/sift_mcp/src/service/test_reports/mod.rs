@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 
-use crate::policy::{RetryPolicy, once, with_retry};
+use crate::policy::{RetryPolicy, with_retry};
 use crate::service::common;
 use anyhow::{Context, Result, anyhow};
 use sift_rs::{
@@ -367,12 +367,16 @@ impl TestReportService {
         let BuiltReport { request, steps } = report;
 
         let channel = self.channel.clone();
-        let report_resp = once(move || async move {
-            let mut client = TestReportServiceClient::new(channel);
-            client
-                .create_test_report(request)
-                .await
-                .map(|resp| resp.into_inner())
+        let report_resp = with_retry(&self.policy, move || {
+            let channel = channel.clone();
+            let request = request.clone();
+            async move {
+                let mut client = TestReportServiceClient::new(channel);
+                client
+                    .create_test_report(request)
+                    .await
+                    .map(|resp| resp.into_inner())
+            }
         })
         .await
         .context("failed to create test report")?;
@@ -406,14 +410,18 @@ impl TestReportService {
             let channel = self.channel.clone();
             let report_id = test_report_id.clone();
             let path = step_path.clone();
-            let step_resp = once(move || async move {
-                let mut client = TestReportServiceClient::new(channel);
-                client
-                    .create_test_step(CreateTestStepRequest {
-                        test_step: Some(step),
-                    })
-                    .await
-                    .map(|resp| resp.into_inner())
+            let step_resp = with_retry(&self.policy, move || {
+                let channel = channel.clone();
+                let step = step.clone();
+                async move {
+                    let mut client = TestReportServiceClient::new(channel);
+                    client
+                        .create_test_step(CreateTestStepRequest {
+                            test_step: Some(step),
+                        })
+                        .await
+                        .map(|resp| resp.into_inner())
+                }
             })
             .await
             .with_context(|| {
@@ -443,14 +451,18 @@ impl TestReportService {
             let channel = self.channel.clone();
             let report_id = test_report_id.clone();
             let count = measurements.len();
-            let resp = once(move || async move {
-                let mut client = TestReportServiceClient::new(channel);
-                client
-                    .create_test_measurements(CreateTestMeasurementsRequest {
-                        test_measurements: measurements,
-                    })
-                    .await
-                    .map(|resp| resp.into_inner())
+            let resp = with_retry(&self.policy, move || {
+                let channel = channel.clone();
+                let measurements = measurements.clone();
+                async move {
+                    let mut client = TestReportServiceClient::new(channel);
+                    client
+                        .create_test_measurements(CreateTestMeasurementsRequest {
+                            test_measurements: measurements,
+                        })
+                        .await
+                        .map(|resp| resp.into_inner())
+                }
             })
             .await
             .with_context(|| {

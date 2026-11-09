@@ -32,7 +32,6 @@ pub struct CalculatedChannelVersionListParams {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-#[serde(deny_unknown_fields)]
 pub struct CreateCalculatedChannelParams {
     name: String,
     expression: String,
@@ -102,8 +101,9 @@ impl SiftMcpServer {
         let items = crate::tool::common::bulk_create::parse_items::<CreateCalculatedChannelParams>(
             &params.0.items_json,
         )?;
+        let bulk = self.bulk_create_context();
         crate::tool::common::bulk_create::create_many(items, params.0.selected_indices, |item| {
-            self.create_calculated_channel(Parameters(item))
+            bulk.create_calculated_channel(Parameters(item))
         })
         .await
     }

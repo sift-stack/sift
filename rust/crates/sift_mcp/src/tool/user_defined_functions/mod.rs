@@ -32,7 +32,6 @@ pub struct UserDefinedFunctionVersionListParams {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-#[serde(deny_unknown_fields)]
 pub struct CreateUserDefinedFunctionParams {
     pub(crate) name: String,
     pub(crate) expression: String,
@@ -102,8 +101,9 @@ impl SiftMcpServer {
         let items = crate::tool::common::bulk_create::parse_items::<CreateUserDefinedFunctionParams>(
             &params.0.items_json,
         )?;
+        let bulk = self.bulk_create_context();
         crate::tool::common::bulk_create::create_many(items, params.0.selected_indices, |item| {
-            self.create_user_defined_function(Parameters(item))
+            bulk.create_user_defined_function(Parameters(item))
         })
         .await
     }

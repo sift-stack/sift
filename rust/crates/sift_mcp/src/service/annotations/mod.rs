@@ -1,4 +1,4 @@
-use crate::policy::{RetryPolicy, once, with_retry};
+use crate::policy::{RetryPolicy, with_retry};
 use crate::service::common;
 use anyhow::{Context, Error, Result, anyhow};
 use futures::{StreamExt, stream};
@@ -209,12 +209,16 @@ impl AnnotationService {
         };
 
         let channel = self.channel.clone();
-        let resp = once(move || async move {
-            let mut client = AnnotationServiceClient::new(channel);
-            client
-                .create_annotation(request)
-                .await
-                .map(|resp| resp.into_inner())
+        let resp = with_retry(&self.policy, move || {
+            let channel = channel.clone();
+            let request = request.clone();
+            async move {
+                let mut client = AnnotationServiceClient::new(channel);
+                client
+                    .create_annotation(request)
+                    .await
+                    .map(|resp| resp.into_inner())
+            }
         })
         .await
         .context("failed to create annotation")?;
