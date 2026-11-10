@@ -15,7 +15,7 @@ from pydantic import ValidationError
 
 from sift_client._internal.util.parquet import detect_flat_parquet_config
 from sift_client.resources import DataImportAPIAsync
-from sift_client.sift_types.channel import ChannelDataType
+from sift_client.sift_types.channel import ChannelBitFieldElement, ChannelDataType
 from sift_client.sift_types.data_import import (
     DataTypeKey,
     TimeFormat,
@@ -431,6 +431,38 @@ class TestEmbeddedConfig:
         assert config.time_column.format == TimeFormat.ABSOLUTE_UNIX_MILLISECONDS
         assert config["x"].data_type == ChannelDataType.ENUM
         assert config["x"].enum_types == {"on": 1}
+
+    def test_embedded_bit_field_elements(self, create_parquet_file):
+        table = _embedded_table(
+            [
+                _embedded_field(
+                    "t",
+                    pa.int64(),
+                    _TIME_CONFIG,
+                    {"time_format": "TIME_FORMAT_ABSOLUTE_UNIX_NANOSECONDS"},
+                ),
+                _embedded_field(
+                    "status",
+                    pa.uint8(),
+                    _CHANNEL_CONFIG,
+                    {
+                        "name": "status",
+                        "data_type": "CHANNEL_DATA_TYPE_BIT_FIELD",
+                        "bit_field_elements": [
+                            {"name": "armed", "index": 0, "bit_count": 1},
+                            {"name": "mode", "index": 4, "bit_count": 4},
+                        ],
+                    },
+                ),
+            ]
+        )
+        config = detect_flat_parquet_config(create_parquet_file(table))
+
+        assert config["status"].data_type == ChannelDataType.BIT_FIELD
+        assert config["status"].bit_field_elements == [
+            ChannelBitFieldElement(name="armed", index=0, bit_count=1),
+            ChannelBitFieldElement(name="mode", index=4, bit_count=4),
+        ]
 
     @pytest.mark.parametrize(
         ("fields", "match"),

@@ -5,6 +5,7 @@ pub(crate) mod batch;
 pub mod calculated_channels;
 pub mod channels;
 pub mod data;
+pub mod declarative;
 pub mod docs;
 pub mod ingest;
 pub mod ping;

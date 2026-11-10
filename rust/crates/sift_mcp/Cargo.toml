@@ -35,6 +35,8 @@ tokio-stream.workspace = true
 reqwest = { workspace = true, features = ["json", "multipart", "stream"] }
 mime_guess.workspace = true
 tinyvec.workspace = true
+dirs.workspace = true
+sha2.workspace = true
 
 [dev-dependencies]
 sift_test_util.workspace = true
