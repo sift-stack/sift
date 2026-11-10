@@ -144,13 +144,13 @@ where
         .collect::<Vec<_>>();
     let has_errors = !failures.is_empty() || !not_attempted.is_empty();
     let next_step = format!(
-        "Created {} of {} selected items ({requested_count} proposed); {} failed and {} were not attempted. \
-         Present each indexed result and any warnings to the user. Successful writes are already committed. \
-         Never replay the whole batch. For a failure with `outcome_unknown`, inspect the resource first: \
-         it may already exist or a composite create may have partially completed. Follow each error's guidance; \
-         do not retry backend-wide failures in this prompt. Indices are zero-based input positions.",
+        "Created {} items; {} failed; {} not attempted. \
+         On success, confirm in one short sentence using resource names or links; omit unrequested metadata, \
+         internal indices/masks, and approval/retry narration. Report actionable warnings and failures. \
+         Never replay the batch: successful writes are committed; `outcome_unknown` items may also exist \
+         or be partially created. Inspect uncertain outcomes before retrying, follow each error's guidance, \
+         and do not retry backend-wide failures in this prompt.",
         successes.len(),
-        indices.len(),
         failures.len(),
         not_attempted.len(),
     );
@@ -262,6 +262,27 @@ mod test {
         assert_eq!(body["successes"][0]["index"], 0);
         assert_eq!(body["successes"][1]["index"], 2);
         assert_eq!(body["successes"][1]["result"]["created_item"], 2);
+    }
+
+    #[tokio::test]
+    async fn confirmation_guidance_keeps_indices_internal() {
+        let result = create_many(
+            vec!["first", "second", "third"],
+            Some(vec![0, 2]),
+            |name| async move { Ok(CallToolResult::structured(json!({"name": name}))) },
+        )
+        .await
+        .unwrap();
+        let body = result.structured_content.unwrap();
+        let guidance = body["next_step"].as_str().unwrap();
+        assert!(guidance.contains("confirm in one short sentence using resource names or links"));
+        assert!(guidance.contains(
+            "omit unrequested metadata, internal indices/masks, and approval/retry narration"
+        ));
+        assert!(!guidance.contains("Present each indexed result"));
+        assert_eq!(body["successes"][0]["index"], 0);
+        assert_eq!(body["successes"][1]["index"], 2);
+        assert_eq!(body["not_selected"], json!([1]));
     }
 
     #[tokio::test]
