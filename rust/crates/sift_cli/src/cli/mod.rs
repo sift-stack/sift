@@ -80,9 +80,9 @@ pub enum Cmd {
 
 #[derive(clap::Args)]
 pub struct McpArgs {
-    /// Expose create tools (creates, ingest, appends). When omitted, create
-    /// tool calls return an error instructing the caller to relaunch the
-    /// server with this flag. Implied by `--allow-destructive`.
+    /// Enable data-changing creates, ingest, and appends. Otherwise these calls
+    /// return an error asking the caller to relaunch with this flag. Chart share
+    /// links are a read-only exception. Implied by `--allow-destructive`.
     #[arg(long)]
     pub allow_create: bool,
 
@@ -104,9 +104,9 @@ pub struct McpArgs {
     )]
     pub ignore_tool: Vec<String>,
 
-    /// Disable non-essential network traffic. Feature-flag resolution at startup
-    /// is essential traffic and remains enabled. Release checks are controlled
-    /// separately by `--disable-update-check`.
+    /// Disable non-essential network traffic. Startup feature-flag resolution and
+    /// declarative chart schema downloads are essential and remain enabled.
+    /// Release checks are controlled separately by `--disable-update-check`.
     #[arg(long)]
     pub disable_nonessential_traffic: bool,
 
@@ -360,6 +360,16 @@ pub enum ImportCmd {
 pub enum GetCmd {
     /// Get assets
     Asset(GetAssetArgs),
+
+    /// Download the declarative chart JSON Schema
+    ChartSchema(GetChartSchemaArgs),
+}
+
+#[derive(clap::Args)]
+pub struct GetChartSchemaArgs {
+    /// The file to write the schema to
+    #[arg(short, long)]
+    pub output: Option<PathBuf>,
 }
 
 #[derive(Subcommand)]

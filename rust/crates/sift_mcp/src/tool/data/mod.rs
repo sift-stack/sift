@@ -348,10 +348,10 @@ impl SiftMcpServer {
                 Narrow `channel_regex`, pass explicit `channel_names` or `channel_ids`, or split the request.
 
             Guidance:
-              - If the user's intent is to view/plot/graph/visualize the data in a UI, call `explore_url` first
-                instead — it returns a Sift Explore deep-link and skips the download entirely. Use `get_data` only
-                when the bytes are needed locally for SQL, custom analysis, or a static artifact the user explicitly
-                asked for.
+              - To view/plot/graph/visualize data in a UI, call `explore_url` for a quick deep-link, or
+                `get_chart_schema` then `create_declarative_chart` for an authored spec-backed view. Both skip
+                the telemetry download. Use `get_data` only when bytes are needed locally for SQL, custom
+                analysis, or a static artifact the user explicitly asked for.
               - Data is buffered in memory until size/row thresholds are hit, so very large time ranges or wide
                 channel sets can be slow or memory-heavy. For large pulls, split the time range into successive calls
                 with disjoint `[start, end)` windows. A long call can also hit the client's request timeout and lose

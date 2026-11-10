@@ -42,10 +42,11 @@ skill:
 Three tiers, each a superset of the last. All are opt-in per detected client
 via `sift-cli agent update`:
 
-- **Read-only** (default) — no writes. Any create or destructive tool call
-  returns a structured error naming the remediation command.
-- **Create** — enables `create_*`, `upload_dataset`, and `append_test_measurements`
-  (additive writes that don't modify existing data). Enable with
+- **Read-only** (default) — no data-changing writes. Chart share links are a
+  read-only exception and need no approval. Other create or destructive calls
+  return a structured error naming the remediation command.
+- **Create** — enables the other `create_*` tools, `upload_dataset`, and
+  `append_test_measurements` (additive writes that don't modify existing data). Enable with
   `sift-cli agent update --allow-create`.
 - **Destructive** — enables everything, including `update_*`, `archive_*`, and
   `unarchive_*`. Enable with `sift-cli agent update --allow-destructive`.

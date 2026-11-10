@@ -1,5 +1,7 @@
 # Sift Explore links
 
+To author a chart spec, use `create_declarative_chart` (see [declarative charts](declarative-charts.md)). Use `explore_url` for a quick deep-link to specific assets, runs, or channels.
+
 Build the link with `explore_url`, then present it to the user as a Markdown
 link whose text names what the view shows.
 

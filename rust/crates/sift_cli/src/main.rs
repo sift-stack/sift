@@ -107,9 +107,11 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
         .as_ref()
         .map_or_else(|| "default".to_string().cyan(), |s| s.clone().cyan());
 
-    Output::new()
-        .line(format!("{} profile '{profile}'", "Using".green()))
-        .print();
+    if !matches!(&cmd, Cmd::Get(cli::GetCmd::ChartSchema(_))) {
+        Output::new()
+            .line(format!("{} profile '{profile}'", "Using".green()))
+            .print();
+    }
 
     // These commands require `Context`
     match cmd {
@@ -157,6 +159,7 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
         },
         Cmd::Get(cmd) => match cmd {
             cli::GetCmd::Asset(args) => run_future(cmd::get::assets::run(ctx, args)),
+            cli::GetCmd::ChartSchema(args) => run_future(cmd::get::chart_schema::run(ctx, args)),
         },
         Cmd::Ping => run_future(cmd::ping::run(ctx)),
         _ => Ok(ExitCode::SUCCESS),

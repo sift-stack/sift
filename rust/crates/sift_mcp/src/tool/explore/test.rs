@@ -3,7 +3,10 @@ use serde_json::Value;
 use sift_test_util::grpc::memory_sift_channel;
 
 use super::*;
-use crate::server::SiftMcpServer;
+use crate::{
+    server::SiftMcpServer,
+    service::declarative::test::{http_response, service, start_sequence_server},
+};
 
 const APP_URI: &str = "https://app.siftstack.com";
 
@@ -218,4 +221,229 @@ async fn handler_keeps_both_source_types_when_the_opt_in_is_set() {
         structured_field(result, "url").as_str(),
         Some("https://app.siftstack.com/explore?method=single&assets=asset-id&runs=run-id")
     );
+}
+
+const SCHEMA: &str = "{ \"$defs\" : { \"chart\" : {} } }\n";
+
+/// A server whose declarative service talks to `rest_uri` and caches under `root`.
+async fn server_with_rest(
+    rest_uri: &str,
+    root: &tempdir::TempDir,
+    allow_create: bool,
+    allow_destructive: bool,
+) -> SiftMcpServer {
+    let (client, _server) = tokio::io::duplex(1024);
+    let channel = memory_sift_channel(client).await;
+    let mut server = SiftMcpServer::new(channel, APP_URI.into(), allow_create, allow_destructive);
+    server.declarative_service = service(rest_uri, root.path());
+    server
+}
+
+fn reply(status: &str, body: &str) -> Vec<u8> {
+    http_response(status, body)
+}
+
+async fn create_chart(
+    server: &SiftMcpServer,
+    spec: &str,
+) -> Result<rmcp::model::CallToolResult, rmcp::ErrorData> {
+    server
+        .create_declarative_chart(Parameters(CreateDeclarativeChartParams {
+            spec: spec.into(),
+        }))
+        .await
+}
+
+fn tool_named(name: &str) -> rmcp::model::Tool {
+    SiftMcpServer::explore_router()
+        .list_all()
+        .into_iter()
+        .find(|tool| tool.name == name)
+        .unwrap_or_else(|| panic!("{name} is routed"))
+}
+
+#[test]
+fn chart_tools_have_flat_schemas_and_honest_annotations() {
+    let schema_tool = tool_named("get_chart_schema");
+    let properties = schema_tool.input_schema.get("properties");
+    assert!(properties.is_none_or(|p| p.as_object().is_some_and(|p| p.is_empty())));
+    assert_eq!(schema_tool.annotations.unwrap().read_only_hint, Some(true));
+
+    let create_tool = tool_named("create_declarative_chart");
+    let properties = create_tool.input_schema["properties"].as_object().unwrap();
+    assert_eq!(properties.len(), 1);
+    assert_eq!(properties["spec"]["type"], "string");
+    let annotations = create_tool.annotations.unwrap();
+    assert_eq!(annotations.read_only_hint, Some(true));
+    assert_eq!(annotations.destructive_hint, Some(false));
+    assert_eq!(annotations.idempotent_hint, Some(true));
+    let description = create_tool.description.unwrap();
+    assert!(description.contains("read-only policy exception"));
+    assert!(description.contains("no create-access flag or confirmation required"));
+    assert!(!description.contains("--allow-create"));
+
+    let explore = tool_named("explore_url");
+    assert!(
+        explore
+            .description
+            .unwrap()
+            .contains("`create_declarative_chart`")
+    );
+}
+
+#[tokio::test]
+async fn get_chart_schema_returns_the_cached_file_path_and_small_metadata() {
+    let (uri, _http) = start_sequence_server(vec![reply("200 OK", SCHEMA)]).await;
+    let root = tempdir::TempDir::new("explore-schema").unwrap();
+    let server = server_with_rest(&uri, &root, false, false).await;
+
+    let result = server.get_chart_schema().await.unwrap();
+
+    let structured = result.structured_content.unwrap();
+    let keys: Vec<_> = structured.as_object().unwrap().keys().cloned().collect();
+    assert_eq!(keys, ["next_step", "schema_path", "schema_version"]);
+    assert_eq!(structured["schema_version"], 0);
+    let path = structured["schema_path"].as_str().unwrap();
+    assert_eq!(std::fs::read_to_string(path).unwrap(), SCHEMA);
+    assert!(result.content[0].as_text().unwrap().text.contains(path));
+
+    let no_rest = server_for_explore(APP_URI).await;
+    assert!(no_rest.get_chart_schema().await.is_err());
+}
+
+#[tokio::test]
+async fn chart_share_links_work_in_every_access_mode_without_enabling_other_writes() {
+    let root = tempdir::TempDir::new("explore-access").unwrap();
+    for (allow_create, allow_destructive) in
+        [(false, false), (true, false), (false, true), (true, true)]
+    {
+        let (uri, _http) =
+            start_sequence_server(vec![reply("200 OK", r#"{"shortLink":"abc"}"#)]).await;
+        let server = server_with_rest(&uri, &root, allow_create, allow_destructive).await;
+        if !allow_create && !allow_destructive {
+            assert!(server.require_create().is_err());
+            assert!(server.require_destructive().is_err());
+        }
+        let result = create_chart(&server, "spec").await.unwrap();
+        assert_eq!(structured(&result)["valid"], true);
+    }
+}
+
+#[tokio::test]
+async fn missing_app_uri_is_rejected_before_persisting_a_share_link() {
+    use std::time::Duration;
+    use tokio::{net::TcpListener, time::timeout};
+
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let uri = format!("http://{}", listener.local_addr().unwrap());
+    let root = tempdir::TempDir::new("explore-no-app-uri").unwrap();
+    let mut server = server_with_rest(&uri, &root, false, false).await;
+    server.url_service = crate::service::url::UrlService::new(String::new());
+
+    let error = timeout(Duration::from_secs(1), create_chart(&server, "spec"))
+        .await
+        .expect("app_uri must be checked before any network request")
+        .unwrap_err();
+    assert_eq!(error.code, rmcp::model::ErrorCode::INVALID_PARAMS);
+    assert!(error.message.contains("app_uri"));
+    assert!(
+        timeout(Duration::from_millis(20), listener.accept())
+            .await
+            .is_err()
+    );
+}
+
+fn structured(result: &rmcp::model::CallToolResult) -> Value {
+    result.structured_content.clone().unwrap()
+}
+
+#[tokio::test]
+async fn create_declarative_chart_returns_a_small_success_payload() {
+    let (uri, http) = start_sequence_server(vec![reply("200 OK", r#"{"shortLink":"a/b"}"#)]).await;
+    let root = tempdir::TempDir::new("explore-ok").unwrap();
+    let server = server_with_rest(&uri, &root, true, false).await;
+
+    let result = create_chart(&server, "charts: []\n").await.unwrap();
+
+    let structured = structured(&result);
+    let mut keys: Vec<_> = structured.as_object().unwrap().keys().cloned().collect();
+    keys.sort();
+    assert_eq!(keys, ["exploreUrl", "next_step", "shortLink", "valid"]);
+    assert_eq!(structured["valid"], true);
+    assert_eq!(structured["shortLink"], "a/b");
+    assert_eq!(
+        structured["exploreUrl"],
+        "https://app.siftstack.com/share/a%2Fb"
+    );
+    let text = &result.content[0].as_text().unwrap().text;
+    assert!(text.contains("https://app.siftstack.com/share/a%2Fb"));
+    let request = String::from_utf8(http.await.unwrap().remove(0)).unwrap();
+    assert!(request.ends_with(r#"{"spec":"charts: []\n"}"#), "{request}");
+}
+
+#[tokio::test]
+async fn a_rejected_spec_returns_issues_to_repair() {
+    let body = r#"{"code":3,"message":"charts[0].type: unknown"}"#;
+    let (uri, _http) = start_sequence_server(vec![reply("400 Bad Request", body)]).await;
+    let root = tempdir::TempDir::new("explore-400").unwrap();
+    let server = server_with_rest(&uri, &root, true, false).await;
+
+    let result = create_chart(&server, "bad").await.unwrap();
+
+    let structured = structured(&result);
+    assert_eq!(structured["valid"], false);
+    assert_eq!(structured["reason"], "invalid_spec");
+    assert_eq!(
+        structured["issues"][0]["message"],
+        "charts[0].type: unknown"
+    );
+    let next_step = structured["next_step"].as_str().unwrap();
+    assert!(next_step.contains("resend the complete spec") && next_step.contains('3'));
+    let text = &result.content[0].as_text().unwrap().text;
+    assert!(text.contains("charts[0].type: unknown"));
+}
+
+#[tokio::test]
+async fn other_http_failures_never_suggest_repairing_the_spec() {
+    let root = tempdir::TempDir::new("explore-fail").unwrap();
+    for (status, stop) in [
+        ("401 Unauthorized", true),
+        ("403 Forbidden", true),
+        ("404 Not Found", true),
+        ("500 Internal Server Error", false),
+        ("429 Too Many Requests", false),
+    ] {
+        let (uri, _http) = start_sequence_server(vec![reply(status, "boom")]).await;
+        let server = server_with_rest(&uri, &root, true, false).await;
+
+        let error = create_chart(&server, "spec").await.unwrap_err();
+
+        let number = &status[..3];
+        assert!(
+            error.message.contains(number),
+            "{status}: {}",
+            error.message
+        );
+        assert!(
+            !error.message.contains("resend"),
+            "{status}: {}",
+            error.message
+        );
+        assert_eq!(
+            error.message.contains("Do not retry"),
+            stop,
+            "{status}: {}",
+            error.message
+        );
+        assert_eq!(
+            error.data.is_some_and(|d| d["status"] == "stopped"),
+            stop,
+            "{status}"
+        );
+    }
+
+    // A transport failure is not a spec problem either.
+    let server = server_with_rest("http://127.0.0.1:1", &root, true, false).await;
+    let error = create_chart(&server, "spec").await.unwrap_err();
+    assert!(!error.message.contains("resend"), "{}", error.message);
 }

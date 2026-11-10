@@ -49,8 +49,11 @@ Sift-entity request always wins.
 
 - **None:** lookups, explanations, how-to answers, and one-off numbers or
   short analysis. Do not wrap a chat-sized answer in a file.
-- **Explore links:** plots and timeseries the user wants to inspect. Use native
-  Sift app visualizations instead of creating an intermediate image or HTML.
+- **Declarative charts:** plots, charts, and timeseries the user wants to see.
+  Build or pass a spec to `create_declarative_chart`.
+- **Explore links:** quick deep-links to specific assets, runs, or channels the
+  user wants to inspect in the Sift web app. Use native Sift app
+  visualizations instead of creating an intermediate image or HTML.
 - **Calculated channels:** reusable CEL transforms (unit conversions, rolling
   windows, derived signals, and simple filters) that should be plottable or
   usable by rules on later runs. List existing calculated channels first to
@@ -109,6 +112,9 @@ tool.
   to enable them, then restart the MCP client.
 - **Data:** `get_data` writes channel data to a Parquet file. `sql` queries
   Parquet files. `upload_dataset` streams a Parquet dataset into Sift.
+- **Charts:** `get_chart_schema` locates the local schema; `create_declarative_chart`
+  saves a spec-backed Explore share link. Chart share links are available in
+  read-only mode and need no confirmation.
 - **Links:** `explore_url`.
 - **Docs:** `search_docs`.
 - **Writes:** `create_rule`, `update_rule`, `archive_rule`, `unarchive_rule`,
@@ -229,8 +235,11 @@ tool.
   listings without deleting its versions, links, or files. Find archived
   artifacts with `list_artifacts` and `include_archived=true`, then restore one
   with `unarchive_artifact`. Both writes need `--allow-destructive`.
-- **Produce a chart.** Build a link with `explore_url`. When the user wants a
-  chart and numbers, do both and give the user both.
+- **Author a chart.** Call `get_chart_schema` once, reuse its local `schema_path`,
+  and follow [declarative charts](references/declarative-charts.md) to author
+  panels and save an Explore share link with `create_declarative_chart`.
+  Use `explore_url` for a quick read-only deep-link. For a chart and numbers,
+  also use `get_data` and `sql`.
 - **Answer a question about how Sift works.** Call `search_docs`. Do not answer
   from memory, and cite the page you used.
 - **Create an asset.** There is no `create_asset` MCP tool because Sift creates
@@ -261,13 +270,15 @@ tool.
   tool calls using an empty or placeholder name or id from the missing result.
 - **Present a returned URL as a Markdown link.** Use the item's name as the
   text, or what an Explore view shows, never a bare id or the word "link". The
-  link from `explore_url` and the `View in Sift:` line from `sift-cli import`
-  are deliverables. Never invent a URL that a tool did not return.
-- **Confirm every write before you run it.** Show the user the proposed change
-  and its target, then wait for approval.
+  links from `explore_url`, `create_declarative_chart`, and the `View in Sift:`
+  line from `sift-cli import` are deliverables. Never invent a URL that a tool
+  did not return.
+- **Confirm every data-changing write before you run it.** Show the user the
+  proposed change and its target, then wait for approval. Chart share links
+  are a read-only exception: they save a view, not data, and need no approval.
 - **Write tools are off by default.** Read-only is the default access mode.
-  `create_*`, `upload_dataset`, and `append_test_measurements` need
-  `--allow-create`. `update_*`, `archive_*`, and `unarchive_*` need
+  Other `create_*` tools, `upload_dataset`, and `append_test_measurements`
+  need `--allow-create`. `update_*`, `archive_*`, and `unarchive_*` need
   `--allow-destructive` (which implies create). If a call is blocked, tell the
   user that this access is disabled by default and ask for explicit approval.
   Never widen access silently.
@@ -297,6 +308,7 @@ Read the file that matches the task in front of you. Do not read them all.
 | When the task is | Read |
 |---|---|
 | any `sift-cli` invocation: import, export, config | [references/cli.md](references/cli.md) |
-| a chart, a plot, or an Explore link | [references/explore-links.md](references/explore-links.md) |
+| a declarative chart spec | [references/declarative-charts.md](references/declarative-charts.md) |
+| a quick Explore link | [references/explore-links.md](references/explore-links.md) |
 | install, update, or diagnose the Sift integration | [references/agent-setup.md](references/agent-setup.md) |
 | code written against Sift's libraries or REST API | [references/integration-code.md](references/integration-code.md) |

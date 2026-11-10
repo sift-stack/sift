@@ -1,15 +1,26 @@
 use rmcp::{
+    ErrorData,
     handler::server::wrapper::Parameters,
     model::{CallToolResult, ContentBlock},
     schemars::{self, JsonSchema},
     tool, tool_router,
 };
 use serde::Deserialize;
+use serde_json::json;
 
-use crate::{error, server::SiftMcpServer, service::url::ExploreUrlRequest};
+use crate::{
+    error,
+    server::SiftMcpServer,
+    service::{declarative::HttpError, url::ExploreUrlRequest},
+};
 
 #[cfg(test)]
 mod test;
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct CreateDeclarativeChartParams {
+    spec: String,
+}
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct ExploreUrlParams {
@@ -25,11 +36,55 @@ pub struct ExploreUrlParams {
 #[tool_router(router = explore_router, vis = "pub(crate)")]
 impl SiftMcpServer {
     #[tool(
+        name = "get_chart_schema",
+        description = "
+            Return the path of the declarative chart JSON Schema, cached as a local file for this
+            deployment, so you can write a spec for `create_declarative_chart`. Takes no parameters.
+
+            Output:
+              - `{ \"schema_path\": \"<absolute path>\", \"schema_version\": 0, \"next_step\": \"...\" }`.
+                The schema itself is never returned. It is about 95 KB, so read only what you need.
+
+            Errors:
+              - An error if the deployment does not serve the schema, cannot be reached, or the server
+                has no REST endpoint.
+
+            Guidance:
+              - Call once per session and reuse `schema_path`. The file persists across restarts and is
+                downloaded again by the server when it is missing, invalid, or 24 hours old.
+              - Read the file with your file tools or a JSON parser: the root `properties` and
+                `required` first, then only the `$defs` entries your chart uses.
+        ",
+        annotations(title = "explore/get_chart_schema", read_only_hint = true)
+    )]
+    pub async fn get_chart_schema(&self) -> error::McpResult {
+        let path = self
+            .declarative_service
+            .chart_schema_path()
+            .await
+            .map_err(error::from_anyhow)?;
+        let schema_path = path.display().to_string();
+        let next_step = format!(
+            "The chart schema is at {schema_path}. Read only the parts you need: the root \
+             `properties` and `required`, then the `$defs` entries your chart uses. Do not load the \
+             whole file. Then call `create_declarative_chart` with the spec."
+        );
+        let mut result = CallToolResult::structured(json!({
+            "schema_path": schema_path,
+            "schema_version": 0,
+            "next_step": next_step,
+        }));
+        result.content = vec![ContentBlock::text(next_step)];
+        Ok(result)
+    }
+
+    #[tool(
         name = "explore_url",
         description = "
-            Build a Sift Explore deep-link URL for the given asset/run/channel selection. Pure URL construction — no
-            API call is made. Hand the returned URL to the user verbatim, rendered inline as a clickable link, so
-            they can open the view in the Sift web app.
+            Build a quick Sift Explore deep-link URL that opens specific assets, runs, or channels. Pure URL
+            construction — no API call is made. Hand the returned URL to the user verbatim, rendered inline as a
+            clickable link, so they can open the view in the Sift web app. To plot, chart, graph, or visualize
+            data, call `create_declarative_chart` instead.
 
             Output:
               - `{ \"url\": \"<url>\", \"next_step\": \"...\", \"start_time_unix_nanos\": <i64>?,
@@ -64,9 +119,10 @@ impl SiftMcpServer {
                 known set, or if `end_time_unix_nanos < start_time_unix_nanos`.
 
             Guidance:
-              - Reach for this tool when the user asks to \"see\", \"view\", \"graph\", \"plot\", \"visualize\", or
-                \"open\" data in Sift. Pair it with `get_data` only when the user also wants the data locally for
-                SQL or further processing.
+              - Reach for this tool when the user asks to \"open\" or \"link to\" specific assets, runs, or channels
+                in Sift. Requests to \"plot\", \"chart\", \"graph\", or \"visualize\" data belong to
+                `create_declarative_chart`. Pair this tool with `get_data` only when the user also wants the data
+                locally for SQL or further processing.
               - Do not add the asset alongside a run to be thorough. A run is already scoped to its asset, so
                 the asset adds a second, wider source to the view. Send both only on an explicit request for
                 both.
@@ -136,6 +192,119 @@ impl SiftMcpServer {
         let mut result = CallToolResult::structured(structured);
         result.content = vec![ContentBlock::text(next_step)];
         Ok(result)
+    }
+
+    #[tool(
+        name = "create_declarative_chart",
+        description = "
+            Create a shareable Sift Explore link from a declarative chart spec (YAML or JSON). Sift
+            validates the spec when it creates the link. This is a read-only policy exception:
+            it saves only a content-addressed view, not telemetry or other Sift resources. It is
+            available by default, with no create-access flag or confirmation required.
+
+            Output:
+              - Valid: `{ \"valid\": true, \"shortLink\", \"exploreUrl\", \"next_step\" }`.
+                `exploreUrl` opens the chart in Sift.
+              - Invalid: `{ \"valid\": false, \"reason\": \"invalid_spec\", \"issues\": [{\"message\"}],
+                \"next_step\" }`. Sift rejected the spec; `issues` says why.
+
+            Parameters:
+              - `spec`: the complete spec as a YAML or JSON string, sent to Sift as is. Read the schema
+                with `get_chart_schema` before writing one.
+
+            Errors:
+              - A rejected spec is not an MCP error. It returns `valid: false` so you can fix and resend.
+              - An error that says to stop when Sift rejects the credentials or permissions, or does not
+                serve the endpoint. Do not retry; tell the user to check their configuration.
+              - Any other error is a server or network failure, not a problem with the spec.
+
+            Guidance:
+              - Resolve run IDs and channel names with `list_runs`, `list_channels`, and
+                `list_calculated_channels` before writing the spec. Never invent them.
+              - Bind a calculated channel with `calculatedChannelId`, not by name.
+              - Prefer YAML. Omit `sampling`, `maxGap`, and axis `min`/`max` unless the user asked for them.
+              - On `invalid_spec`, fix every problem listed and resend the complete spec. After 3 failed
+                attempts, stop and summarize the problem to the user.
+              - On a valid result, render `exploreUrl` once as a clickable markdown link with descriptive
+                text, such as what the chart plots. Do not paste the spec into your reply.
+        ",
+        annotations(
+            title = "explore/create_declarative_chart",
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true
+        )
+    )]
+    pub async fn create_declarative_chart(
+        &self,
+        params: Parameters<CreateDeclarativeChartParams>,
+    ) -> error::McpResult {
+        // Check presentation config before persisting; the backend receives only the spec.
+        self.url_service.build_share_url("")?;
+        let Parameters(CreateDeclarativeChartParams { spec }) = params;
+
+        let short_link = match self.declarative_service.create_share_link(&spec).await {
+            Ok(short_link) => short_link,
+            Err(error) => return share_link_failure(error),
+        };
+        let explore_url = self.url_service.build_share_url(&short_link)?;
+
+        let next_step = format!(
+            "The chart spec was accepted and a Sift link was created: {explore_url}\n\nRender this URL \
+             in your response as a clickable markdown link with descriptive text naming what the \
+             chart plots, never the word \"link\" or the bare URL. Mention it once. Do not paste \
+             the spec into your response."
+        );
+        let mut result = CallToolResult::structured(json!({
+            "valid": true,
+            "shortLink": short_link,
+            "exploreUrl": explore_url,
+            "next_step": next_step,
+        }));
+        result.content = vec![ContentBlock::text(next_step)];
+        Ok(result)
+    }
+}
+
+/// Routes a failed share-link call. HTTP 400 means Sift rejected the spec, so the agent may repair
+/// it. 401, 403, and 404 will not change on retry. Everything else carries no repair advice.
+fn share_link_failure(error: anyhow::Error) -> error::McpResult {
+    let Some(http) = error.downcast_ref::<HttpError>() else {
+        return Err(error::from_anyhow(error));
+    };
+    match http.status.as_u16() {
+        400 => {
+            let message = if http.message.is_empty() {
+                "Sift rejected the spec"
+            } else {
+                http.message.as_str()
+            };
+            let next_step = "The spec is not valid. Fix the problem in `issues` and resend the complete \
+                spec. After 3 failed attempts, stop retrying and summarize the problem to the user.";
+            let mut result = CallToolResult::structured(json!({
+                "valid": false,
+                "reason": "invalid_spec",
+                "issues": [{ "message": message }],
+                "next_step": next_step,
+            }));
+            result.content = vec![ContentBlock::text(format!("{message}\n\n{next_step}"))];
+            Ok(result)
+        }
+        401 | 403 | 404 => {
+            let guidance = format!(
+                "Sift answered HTTP {}: {}. Do not retry and do not change the spec. Stop and tell the \
+                 user to check their API key, their access to this deployment, and that it \
+                 supports declarative charts.",
+                http.status, http.message
+            );
+            Err(ErrorData::internal_error(
+                guidance.clone(),
+                Some(
+                    json!({ "status": "stopped", "reason": http.status.as_u16(), "guidance": guidance }),
+                ),
+            ))
+        }
+        _ => Err(error::from_anyhow(error)),
     }
 }
 

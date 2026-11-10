@@ -44,11 +44,11 @@ Non-negotiables. These hold regardless of context pressure:
    objects or enums. (See "Keep parameters flat" below for why.)
 2. Every service function gets a test. Testing tools and other code is encouraged.
 3. Do not write retry logic anywhere except `policy::with_retry`. Call it; don't reinvent it.
-4. Set `read_only_hint` honestly. Read tools are `true`; anything that writes is `false`. Write
+4. Set `read_only_hint` honestly. Read tools are `true`; data-changing writes are `false`. Write
    tools must also set `destructive_hint` and `idempotent_hint` — see Step 4 for the mapping
    (additive vs. update vs. state-flip). These fields follow the MCP tool annotations spec:
    <https://modelcontextprotocol.io/specification/2025-11-25/server/tools>.
-5. Every write handler MUST gate itself as the FIRST line of the handler. Additive-write tools
+5. Every data-changing write handler MUST gate itself as the FIRST line of the handler. Additive-write tools
    (`destructive_hint = false`) call `self.require_create()?`; destructive tools
    (`destructive_hint = true`) call `self.require_destructive()?`. The server is launched
    read-only by default; each gate returns an `INVALID_REQUEST` naming the exact
@@ -56,6 +56,11 @@ Non-negotiables. These hold regardless of context pressure:
    write tool that is always on and bypasses the flags. Note: destructive implies create, so
    destructive tools do not additionally need to call `require_create`.
 6. Do not mirror the API one-to-one. Run Step 0 before writing anything.
+
+`create_declarative_chart` is a read-only policy exception: it saves only a
+content-addressed view, not telemetry or other Sift resources. It is enabled by
+default (`read_only_hint = true`) without a write flag or separate confirmation.
+This exception does not apply to any data-changing create.
 
 ---
 
