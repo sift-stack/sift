@@ -86,7 +86,9 @@ explicit discovered sources and absolute timestamps. Give both `start` and
 `end` for an explicit `timeInterval`; a one-sided interval falls back to run
 bounds. `timeMode: live` is not rendered yet and also falls back to run bounds.
 Do not use inline data sources or inline query objects on a series: Explore
-does not resolve them.
+does not resolve them. Saved calculated channels (`calculatedChannelId`) and
+version-pinned calculated-channel transforms require run-scoped sources;
+Explore skips them on asset-only sources.
 For relative timeseries, run/timestamp anchors and default annotation-name
 anchors (`first`, `last`, or an integer occurrence) work. Avoid `every`,
 annotation overrides, family anchors, and lists of anchors per source; these

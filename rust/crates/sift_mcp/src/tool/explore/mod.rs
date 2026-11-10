@@ -221,7 +221,8 @@ impl SiftMcpServer {
             Guidance:
               - Resolve run IDs and channel names with `list_runs`, `list_channels`, and
                 `list_calculated_channels` before writing the spec. Never invent them.
-              - Bind a calculated channel with `calculatedChannelId`, not by name.
+              - Bind a calculated channel with `calculatedChannelId`, not by name. Use a run-scoped
+                data source: Explore skips saved calculated channels on asset-only sources.
               - Prefer YAML. Omit `sampling`, `maxGap`, and axis `min`/`max` unless the user asked for them.
               - On `invalid_spec`, fix every problem listed and resend the complete spec. After 3 failed
                 attempts, stop and summarize the problem to the user.
@@ -266,19 +267,15 @@ impl SiftMcpServer {
     }
 }
 
-/// Routes a failed share-link call. HTTP 400 means Sift rejected the spec, so the agent may repair
-/// it. 401, 403, and 404 will not change on retry. Everything else carries no repair advice.
+/// Only a gateway InvalidArgument envelope indicates a repairable spec error. Proxy 400s
+/// must not suggest editing the spec. 401, 403, and 404 will not change on retry.
 fn share_link_failure(error: anyhow::Error) -> error::McpResult {
     let Some(http) = error.downcast_ref::<HttpError>() else {
         return Err(error::from_anyhow(error));
     };
     match http.status.as_u16() {
-        400 => {
-            let message = if http.message.is_empty() {
-                "Sift rejected the spec"
-            } else {
-                http.message.as_str()
-            };
+        400 if http.grpc_code == Some(tonic::Code::InvalidArgument as i64) => {
+            let message = &http.message;
             let next_step = "The spec is not valid. Fix the problem in `issues` and resend the complete \
                 spec. After 3 failed attempts, stop retrying and summarize the problem to the user.";
             let mut result = CallToolResult::structured(json!({
