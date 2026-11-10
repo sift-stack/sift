@@ -11,6 +11,7 @@ use sift_rs::{
     metadata::v1::MetadataValue,
 };
 
+use crate::tool::common::bulk_create;
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
@@ -85,7 +86,7 @@ impl From<AnnotationStateParam> for AnnotationState {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-pub struct CreateAnnotationParams {
+pub struct CreateAnnotationItem {
     name: String,
     description: Option<String>,
     start_time_unix_nanos: i64,
@@ -95,19 +96,29 @@ pub struct CreateAnnotationParams {
     assets: Option<Vec<String>>,
     tags: Option<Vec<String>>,
     linked_channel_ids: Option<Vec<String>>,
+    /// Set from the shared top-level `run_id`.
+    #[schemars(skip)]
     run_id: Option<String>,
     assign_to_user_id: Option<String>,
     metadata: Option<Vec<MetadataEntry>>,
+    /// Set from the shared top-level `organization_id`.
+    #[schemars(skip)]
     organization_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct CreateAnnotationsParams {
-    items_json: String,
-    /// Approval host's original input indices. Omit when proposing; [] writes nothing.
+pub struct CreateAnnotationParams {
+    /// 1–100 annotations to create. Pass one item to create one annotation.
+    #[schemars(length(min = 1, max = 100))]
+    #[schemars(with = "Vec<CreateAnnotationItem>")]
+    items: Vec<serde_json::Value>,
+    /// Approval host's zero-based selection of `items` to create. Omit when proposing.
+    /// An empty selection performs no writes.
     selected_indices: Option<Vec<usize>>,
+    /// Run associated with every item.
     run_id: Option<String>,
+    /// Organization for every item, when the caller belongs to several.
     organization_id: Option<String>,
 }
 
@@ -128,96 +139,6 @@ pub struct UpdateAnnotationParams {
 
 #[tool_router(router = annotations_router, vis = "pub(crate)")]
 impl SiftMcpServer {
-    #[tool(
-        name = "create_annotations",
-        description = "Create 1–100 annotations with one call and one approval, preserving a shared run association.
-            Output: `successes` contains zero-based `index` and the full `create_annotation` result with links.
-            `failures` contains `index`, `error` with guidance, and `outcome_unknown`; `not_attempted` lists untouched
-            indices. `created_count` counts completed creates. Partial failures set `isError`.
-            Parameters:
-            - `items_json`: JSON ARRAY STRING of `create_annotation` parameter objects: required `name`,
-              `start_time_unix_nanos`, `end_time_unix_nanos`, `annotation_type`; optional description, state,
-              assets (NAMES), tags, linked_channel_ids, assign_to_user_id, metadata. Follow the single tool's field
-              semantics. End must be >= start; phase annotations must omit state.
-            - `selected_indices`: approval host's zero-based original input positions. Omit when proposing;
-              the host MUST fill this from per-item user decisions before execution. Missing masks fail closed;
-              an empty mask writes nothing. Results keep original indices; `not_selected` lists rejected items.
-            - `run_id`: shared run id applied to EVERY item. Set it here, never inside `items_json`.
-            - `organization_id`: shared organization when needed; set it here, never per item.
-            Each item must have a run, asset or linked channel association. Tags do not satisfy this requirement.
-            Errors: INVALID_PARAMS for malformed input, unknown keys, outside 1–100 items, per-item run/org fields,
-            empty shared ids or missing associations, before writes. Other item validation errors are per-item.
-            Backend-wide errors stop the remaining items; previous successes stay committed.
-            Guidance: CONFIRM every time range, type and association before calling. Writes run sequentially,
-            one API request per annotation; this is not an atomic backend batch. Never replay the whole batch.
-            Inspect outcomes marked unknown before retrying; a failed response may conceal a completed write.
-            Prefer this over repeated `create_annotation` calls when annotating several ranges on the same run.",
-        annotations(
-            title = "annotations/create_annotations",
-            read_only_hint = false,
-            destructive_hint = false,
-            idempotent_hint = false
-        )
-    )]
-    pub async fn create_annotations(
-        &self,
-        params: Parameters<CreateAnnotationsParams>,
-    ) -> error::McpResult {
-        self.require_create()?;
-        let Parameters(CreateAnnotationsParams {
-            items_json,
-            selected_indices,
-            run_id,
-            organization_id,
-        }) = params;
-        if run_id.as_ref().is_some_and(|id| id.trim().is_empty())
-            || organization_id
-                .as_ref()
-                .is_some_and(|id| id.trim().is_empty())
-        {
-            return Err(ErrorData::invalid_params(
-                "shared run/organization ids must not be empty",
-                None,
-            ));
-        }
-        let mut items =
-            crate::tool::common::bulk_create::parse_items::<CreateAnnotationParams>(&items_json)?;
-        for (index, item) in items.iter_mut().enumerate() {
-            if item.run_id.is_some() || item.organization_id.is_some() {
-                return Err(ErrorData::invalid_params(
-                    format!(
-                        "item {index}: set `run_id` and `organization_id` at the top level only"
-                    ),
-                    None,
-                ));
-            }
-            item.run_id = run_id.clone();
-            item.organization_id = organization_id.clone();
-            let has_association = run_id.is_some()
-                || item
-                    .assets
-                    .as_ref()
-                    .is_some_and(|ids| ids.iter().any(|id| !id.trim().is_empty()))
-                || item
-                    .linked_channel_ids
-                    .as_ref()
-                    .is_some_and(|ids| ids.iter().any(|id| !id.trim().is_empty()));
-            if !has_association {
-                return Err(ErrorData::invalid_params(
-                    format!(
-                        "item {index}: supply a shared `run_id`, `assets`, or `linked_channel_ids`; tags are not an association"
-                    ),
-                    None,
-                ));
-            }
-        }
-        let bulk = self.bulk_create_context();
-        crate::tool::common::bulk_create::create_many(items, selected_indices, |item| {
-            bulk.create_annotation(Parameters(item))
-        })
-        .await
-    }
-
     #[tool(
         name = "list_annotations",
         description = "
@@ -304,43 +225,64 @@ impl SiftMcpServer {
     #[tool(
         name = "create_annotation",
         description = "
-            Create a new annotation over a time range. Wraps `annotations/v1 CreateAnnotation`.
+            Create one or more annotations, each over a time range. Wraps `annotations/v1 CreateAnnotation`
+            once per item.
 
             Output:
-              - `{ \"annotation\": Annotation, \"annotation_url\": string|null, \"next_step\": string }`. The
-                returned `Annotation` is the server-assigned state including its new `annotation_id`;
-                `annotation_url` is its Sift web link (`<host>/annotation/<annotation_id>`), or null when the host
-                can't be derived.
+              - `{ requested_count, selected_count, not_selected, created_count, successes, failures,
+                not_attempted, next_step }`. `successes` holds `{ index, result }` per created item, where
+                `index` is the item's zero-based position in `items`. `failures` holds `{ index, error,
+                outcome_unknown }`. `not_attempted` lists items skipped after a backend-wide error. Any
+                failure sets `isError`. Each `result` is:
+                - `{ \"annotation\": Annotation, \"annotation_url\": string|null, \"next_step\": string }`. The
+                  returned `Annotation` is the server-assigned state including its new `annotation_id`;
+                  `annotation_url` is its Sift web link (`<host>/annotation/<annotation_id>`), or null when the host
+                  can't be derived.
 
             Parameters:
-              - `name`: required; the annotation's display name.
-              - `description`: optional free-text description.
-              - `start_time_unix_nanos` / `end_time_unix_nanos`: required time bounds in Unix nanoseconds.
-                `end_time_unix_nanos` must be >= `start_time_unix_nanos`.
-              - `annotation_type`: required; `ANNOTATION_TYPE_DATA_REVIEW` or `ANNOTATION_TYPE_PHASE`.
-              - `state`: optional; `ANNOTATION_STATE_OPEN`, `ANNOTATION_STATE_FLAGGED`, or
-                `ANNOTATION_STATE_RESOLVED`. MUST be omitted when `annotation_type` is `ANNOTATION_TYPE_PHASE`
-                (the server rejects a phase annotation with a state).
-              - `assets`: optional list of asset NAMES to associate.
-              - `tags`: optional list of tag names to associate. Names that do not yet exist are created.
-              - `linked_channel_ids`: optional list of channel ids to link. Only plain channels are supported;
-                bit-field and calculated-channel links are not exposed here.
-              - `run_id`: optional id of the run to associate.
-              - `assign_to_user_id`: optional id of the user to assign the annotation to.
-              - `metadata`: optional list of `{ \"name\": \"<key>\", \"value\": <scalar> }` entries; `value` is a
-                string, number, or boolean. A `name` that does not yet exist in the organization's metadata
-                schema is created on the fly with type inferred from `value`; for an existing key, `value`'s
-                type must match the key's current type.
-              - `organization_id`: optional. Required only when the caller belongs to multiple organizations.
+              - `items`: required array of 1–100 objects, one per annotation. Pass one item to create one
+                annotation. Each item takes:
+                - `name`: required; the annotation's display name.
+                - `description`: optional free-text description.
+                - `start_time_unix_nanos` / `end_time_unix_nanos`: required time bounds in Unix nanoseconds.
+                  `end_time_unix_nanos` must be >= `start_time_unix_nanos`.
+                - `annotation_type`: required; `ANNOTATION_TYPE_DATA_REVIEW` or `ANNOTATION_TYPE_PHASE`.
+                - `state`: optional; `ANNOTATION_STATE_OPEN`, `ANNOTATION_STATE_FLAGGED`, or
+                  `ANNOTATION_STATE_RESOLVED`. MUST be omitted when `annotation_type` is `ANNOTATION_TYPE_PHASE`
+                  (the server rejects a phase annotation with a state).
+                - `assets`: optional list of asset NAMES to associate.
+                - `tags`: optional list of tag names to associate. Names that do not yet exist are created.
+                - `linked_channel_ids`: optional list of channel ids to link. Only plain channels are supported;
+                  bit-field and calculated-channel links are not exposed here.
+                - `assign_to_user_id`: optional id of the user to assign the annotation to.
+                - `metadata`: optional list of `{ \"name\": \"<key>\", \"value\": <scalar> }` entries; `value` is a
+                  string, number, or boolean. A `name` that does not yet exist in the organization's metadata
+                  schema is created on the fly with type inferred from `value`; for an existing key, `value`'s
+                  type must match the key's current type.
+              - `run_id`: optional id of the run to associate with EVERY item. Set it here, never
+                inside an item.
+              - `organization_id`: optional, shared by every item. Required only when the caller belongs
+                to multiple organizations.
+              - `selected_indices`: zero-based positions in `items` to create. An approval host sets this
+                from the user's per-item decisions; omit it when proposing. Omitted means every item,
+                except in a Sift chat pod, where a missing value is rejected. `[]` creates nothing.
 
             Errors:
               - `INVALID_PARAMS` if `name` is empty, the time range is inverted, `annotation_type`/`state` is not a
                 recognized value, a `state` is supplied for a `phase` annotation, the `metadata` list contains
                 duplicate key names, or a value's type does not match an existing metadata key's type.
               - `INTERNAL_ERROR` for upstream gRPC failures (e.g. missing run/asset).
+              - `INVALID_PARAMS` before any write if `items` is empty or has more than 100 entries, or an
+                item has an unknown field or fails local validation. The message names the item index.
+              - Once writing starts, an item-specific error fails only that item. A backend-wide error
+                stops the remaining items; earlier creates stay committed.
 
             Guidance:
               - This is a write. CONFIRM the time range, type, and associations with the user before invoking.
+              - Items run sequentially, one create per item; this is not an atomic batch. Never replay
+                the whole call after a partial failure. Retry only failed items, and check any
+                `outcome_unknown` item first, since its create may have committed.
+              - Use one call with several items, not repeated calls, when creating several annotations.
         ",
         annotations(
             title = "annotations/create_annotation",
@@ -354,8 +296,70 @@ impl SiftMcpServer {
         params: Parameters<CreateAnnotationParams>,
     ) -> error::McpResult {
         self.require_create()?;
-
         let Parameters(CreateAnnotationParams {
+            items,
+            selected_indices,
+            run_id,
+            organization_id,
+        }) = params;
+        if run_id.as_ref().is_some_and(|id| id.trim().is_empty())
+            || organization_id
+                .as_ref()
+                .is_some_and(|id| id.trim().is_empty())
+        {
+            return Err(ErrorData::invalid_params(
+                "shared `run_id` and `organization_id` must not be empty",
+                None,
+            ));
+        }
+        for (index, item) in items.iter().enumerate() {
+            if let Some(key) = ["run_id", "organization_id"]
+                .into_iter()
+                .find(|key| item.get(key).is_some_and(|value| !value.is_null()))
+            {
+                return Err(ErrorData::invalid_params(
+                    format!("`items` item {index}: set `{key}` at the top level, not per item"),
+                    None,
+                ));
+            }
+        }
+        let mut items = bulk_create::parse_items::<CreateAnnotationItem>(items)?;
+        for (index, item) in items.iter_mut().enumerate() {
+            item.run_id = run_id.clone();
+            item.organization_id = organization_id.clone();
+            let has_association = run_id.is_some()
+                || item
+                    .assets
+                    .as_ref()
+                    .is_some_and(|ids| ids.iter().any(|id| !id.trim().is_empty()))
+                || item
+                    .linked_channel_ids
+                    .as_ref()
+                    .is_some_and(|ids| ids.iter().any(|id| !id.trim().is_empty()));
+            if !has_association {
+                return Err(ErrorData::invalid_params(
+                    format!(
+                        "`items` item {index}: supply a shared `run_id`, `assets`, or `linked_channel_ids`; tags are not an association"
+                    ),
+                    None,
+                ));
+            }
+        }
+        let server = self.create_context(items.len());
+        bulk_create::create_many(items, self.selection(selected_indices), |item| {
+            server.create_annotation_item(Parameters(item))
+        })
+        .await
+    }
+
+    /// Create one item. Callers check access and validate the whole call first.
+    pub(crate) async fn create_annotation_item(
+        &self,
+        params: Parameters<CreateAnnotationItem>,
+    ) -> error::McpResult {
+        self.require_create()?;
+
+        let Parameters(CreateAnnotationItem {
             name,
             description,
             start_time_unix_nanos,

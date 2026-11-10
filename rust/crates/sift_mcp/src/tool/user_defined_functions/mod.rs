@@ -11,6 +11,7 @@ use sift_rs::{
     metadata::v1::MetadataValue,
 };
 
+use crate::tool::common::bulk_create;
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
@@ -32,7 +33,7 @@ pub struct UserDefinedFunctionVersionListParams {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-pub struct CreateUserDefinedFunctionParams {
+pub struct CreateUserDefinedFunctionItem {
     pub(crate) name: String,
     pub(crate) expression: String,
     pub(crate) function_inputs_json: String,
@@ -69,45 +70,6 @@ struct FunctionInputSpec {
 
 #[tool_router(router = user_defined_functions_router, vis = "pub(crate)")]
 impl SiftMcpServer {
-    #[tool(
-        name = "create_user_defined_functions",
-        description = "Create 1–100 user-defined functions in one non-atomic call.
-            Output: `successes` contains zero-based `index` and the full `create_user_defined_function` result;
-            `failures` contains `index`, `error` with recovery guidance and `outcome_unknown`;
-            `not_attempted` lists untouched indices. Partial failures set `isError`.
-            Parameters: `items_json` is a JSON ARRAY STRING of parameter objects matching
-            `create_user_defined_function`; use that tool's documented function-input and data-type spellings.
-            `selected_indices`: approval host's zero-based original positions. Omit when proposing; the host MUST
-            set it from per-item decisions before execution. Missing masks fail closed; [] writes nothing.
-            Results keep original indices; `not_selected` lists rejected items, which must never be retried.
-            Errors: INVALID_PARAMS for malformed input, unknown parameter keys or outside 1–100 items before writes.
-            Item validation failures are reported individually; backend-wide errors stop the remaining items.
-            Guidance: CONFIRM every function definition before calling. Writes run sequentially and successes
-            remain committed. Never replay the whole batch; inspect unknown outcomes before retrying.
-            Prefer this over repeated single creates. Create dependencies first in a separate call so their
-            version ids can be used by dependants.",
-        annotations(
-            title = "user_defined_functions/create_user_defined_functions",
-            read_only_hint = false,
-            destructive_hint = false,
-            idempotent_hint = false
-        )
-    )]
-    pub async fn create_user_defined_functions(
-        &self,
-        params: Parameters<crate::tool::common::bulk_create::BulkCreateParams>,
-    ) -> error::McpResult {
-        self.require_create()?;
-        let items = crate::tool::common::bulk_create::parse_items::<CreateUserDefinedFunctionParams>(
-            &params.0.items_json,
-        )?;
-        let bulk = self.bulk_create_context();
-        crate::tool::common::bulk_create::create_many(items, params.0.selected_indices, |item| {
-            bulk.create_user_defined_function(Parameters(item))
-        })
-        .await
-    }
-
     #[tool(
         name = "list_user_defined_functions",
         description = "
@@ -290,32 +252,42 @@ impl SiftMcpServer {
     #[tool(
         name = "create_user_defined_function",
         description = "
-            Create a user defined function: a named, reusable expression that calculated channels, rules,
-            and other user defined functions can call. This is a WRITE.
+            Create one or more user defined functions: named, reusable expressions that calculated channels,
+            rules, and other user defined functions can call. This is a WRITE.
 
             Output:
-              - `{ \"user_defined_function\": UserDefinedFunction, \"user_defined_function_id\": \"<id>\",
-                \"next_step\": \"...\" }`. The returned function is the server's post-create state,
-                including the resolved `function_output_type` and `version` 1.
+              - `{ requested_count, selected_count, not_selected, created_count, successes, failures,
+                not_attempted, next_step }`. `successes` holds `{ index, result }` per created item, where
+                `index` is the item's zero-based position in `items`. `failures` holds `{ index, error,
+                outcome_unknown }`. `not_attempted` lists items skipped after a backend-wide error. Any
+                failure sets `isError`. Each `result` is:
+                - `{ \"user_defined_function\": UserDefinedFunction, \"user_defined_function_id\": \"<id>\",
+                  \"next_step\": \"...\" }`. The returned function is the server's post-create state,
+                  including the resolved `function_output_type` and `version` 1.
 
             Parameters:
-              - `name`: required. The name callers use to reference the function. It must start with a
-                letter, then contain only alphanumeric characters or `_`, and be at most 253 characters.
-              - `expression`: required. The function body. Reference each declared input by its
-                `identifier`. Mirror an existing function retrieved with `list_user_defined_functions`
-                rather than authoring the syntax blind.
-              - `function_inputs_json`: required. A JSON array string declaring the function's inputs, in
-                the order callers pass them. Each element is
-                `{ \"identifier\": \"<name>\", \"data_type\": \"numeric\"|\"string\"|\"bool\",
-                \"constant\": <bool> }`. `data_type` is matched case-insensitively; no other spelling is
-                accepted. `constant` defaults to `false` and marks an input that takes a literal value
-                rather than a channel. Pass `[]` for a function that takes no inputs.
-              - `description`: optional. Human-readable summary.
-              - `user_notes`: optional. Notes recorded against this first version.
-              - `metadata`: optional. Array of `{ \"name\": \"<key>\", \"value\": <scalar> }` where
-                `value` is a string, number, or boolean. A `name` that does not yet exist in the
-                organization's metadata schema is created on the fly with the type inferred from `value`;
-                for an existing key the type must match.
+              - `items`: required array of 1–100 objects, one per user defined function. Pass one item to create one
+                user defined function. Each item takes:
+                - `name`: required. The name callers use to reference the function. It must start with a
+                  letter, then contain only alphanumeric characters or `_`, and be at most 253 characters.
+                - `expression`: required. The function body. Reference each declared input by its
+                  `identifier`. Mirror an existing function retrieved with `list_user_defined_functions`
+                  rather than authoring the syntax blind.
+                - `function_inputs_json`: required. A JSON array string declaring the function's inputs, in
+                  the order callers pass them. Each element is
+                  `{ \"identifier\": \"<name>\", \"data_type\": \"numeric\"|\"string\"|\"bool\",
+                  \"constant\": <bool> }`. `data_type` is matched case-insensitively; no other spelling is
+                  accepted. `constant` defaults to `false` and marks an input that takes a literal value
+                  rather than a channel. Pass `[]` for a function that takes no inputs.
+                - `description`: optional. Human-readable summary.
+                - `user_notes`: optional. Notes recorded against this first version.
+                - `metadata`: optional. Array of `{ \"name\": \"<key>\", \"value\": <scalar> }` where
+                  `value` is a string, number, or boolean. A `name` that does not yet exist in the
+                  organization's metadata schema is created on the fly with the type inferred from `value`;
+                  for an existing key the type must match.
+              - `selected_indices`: zero-based positions in `items` to create. An approval host sets this
+                from the user's per-item decisions; omit it when proposing. Omitted means every item,
+                except in a Sift chat pod, where a missing value is rejected. `[]` creates nothing.
 
             Errors:
               - `INVALID_PARAMS` if `name` or `expression` is empty, `function_inputs_json` is not a JSON
@@ -323,6 +295,10 @@ impl SiftMcpServer {
                 `string`, or `bool`, or the server rejects the expression (unresolved identifier, type
                 mismatch, duplicate function name).
               - `INTERNAL_ERROR` for upstream gRPC failures.
+              - `INVALID_PARAMS` before any write if `items` is empty or has more than 100 entries, or an
+                item has an unknown field or fails local validation. The message names the item index.
+              - Once writing starts, an item-specific error fails only that item. A backend-wide error
+                stops the remaining items; earlier creates stay committed.
 
             Guidance:
               - This creates a live resource. Confirm the name, the expression, and the input list with
@@ -330,6 +306,11 @@ impl SiftMcpServer {
               - An expression may call other user defined functions. List them first so you match their
                 real names, input order, and output types; the server records the calls as
                 `function_dependencies`, and those dependencies then restrict what can be updated later.
+              - Items run sequentially, one create per item; this is not an atomic batch. Never replay
+                the whole call after a partial failure. Retry only failed items, and check any
+                `outcome_unknown` item first, since its create may have committed.
+              - Use one call with several items, not repeated calls, when creating several user defined functions.
+              - When one function calls another, create the dependency first in a separate call.
         ",
         annotations(
             title = "user_defined_functions/create_user_defined_function",
@@ -340,11 +321,30 @@ impl SiftMcpServer {
     )]
     pub async fn create_user_defined_function(
         &self,
-        params: Parameters<CreateUserDefinedFunctionParams>,
+        params: Parameters<bulk_create::CreateItems<CreateUserDefinedFunctionItem>>,
+    ) -> error::McpResult {
+        self.require_create()?;
+        let Parameters(bulk_create::CreateItems {
+            items,
+            selected_indices,
+            ..
+        }) = params;
+        let items = bulk_create::parse_items::<CreateUserDefinedFunctionItem>(items)?;
+        let server = self.create_context(items.len());
+        bulk_create::create_many(items, self.selection(selected_indices), |item| {
+            server.create_user_defined_function_item(Parameters(item))
+        })
+        .await
+    }
+
+    /// Create one item. Callers check access and validate the whole call first.
+    pub(crate) async fn create_user_defined_function_item(
+        &self,
+        params: Parameters<CreateUserDefinedFunctionItem>,
     ) -> error::McpResult {
         self.require_create()?;
 
-        let Parameters(CreateUserDefinedFunctionParams {
+        let Parameters(CreateUserDefinedFunctionItem {
             name,
             expression,
             function_inputs_json,

@@ -12,26 +12,37 @@ use crate::{error::McpResult, service::batch};
 
 pub const MAX_CREATE_ITEMS: usize = 100;
 
+/// Shared item list and approval mask for every create tool.
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct BulkCreateParams {
-    /// JSON array string of 1–100 parameter objects for the corresponding single-create tool.
-    pub items_json: String,
-    /// Approval host's zero-based selection in the original items_json array.
-    /// Omit when proposing a batch; the approval host MUST set it before execution.
-    /// A missing selection is rejected and an empty selection performs no writes.
+pub struct CreateItems<T> {
+    /// 1–100 items to create. Pass one item to create one resource.
+    #[schemars(length(min = 1, max = 100))]
+    #[schemars(with = "Vec<T>")]
+    pub items: Vec<Value>,
+    /// Approval host's zero-based selection of `items` to create. Omit when proposing.
+    /// An empty selection performs no writes.
     pub selected_indices: Option<Vec<usize>>,
+    #[serde(skip)]
+    #[schemars(skip)]
+    _item: std::marker::PhantomData<T>,
+}
+
+/// Prefix an item's validation error with its index in `items`.
+pub fn at_item(index: usize, error: ErrorData) -> ErrorData {
+    ErrorData::new(
+        error.code,
+        format!("`items` item {index}: {}", error.message),
+        error.data,
+    )
 }
 
 pub fn parse_items<T: DeserializeOwned + JsonSchema>(
-    items_json: &str,
+    items: Vec<Value>,
 ) -> Result<Vec<T>, ErrorData> {
-    let items: Vec<Value> = serde_json::from_str(items_json).map_err(|error| {
-        ErrorData::invalid_params(format!("`items_json` must be a JSON array: {error}"), None)
-    })?;
     if items.is_empty() || items.len() > MAX_CREATE_ITEMS {
         return Err(ErrorData::invalid_params(
-            format!("`items_json` must contain 1–{MAX_CREATE_ITEMS} items"),
+            format!("`items` must contain 1–{MAX_CREATE_ITEMS} items"),
             None,
         ));
     }
@@ -45,12 +56,12 @@ pub fn parse_items<T: DeserializeOwned + JsonSchema>(
                 && let Some(unknown) = object.keys().find(|key| !fields.contains_key(*key))
             {
                 return Err(ErrorData::invalid_params(
-                    format!("`items_json` item {index}: unknown field `{unknown}`"),
+                    format!("`items` item {index}: unknown field `{unknown}`"),
                     None,
                 ));
             }
             serde_json::from_value(item).map_err(|error| {
-                ErrorData::invalid_params(format!("`items_json` item {index}: {error}"), None)
+                ErrorData::invalid_params(format!("`items` item {index}: {error}"), None)
             })
         })
         .collect()
@@ -66,21 +77,26 @@ fn should_stop(error: &ErrorData) -> bool {
         && !matches!(reason(error), Some("AlreadyExists" | "Conflict"))
 }
 
-pub async fn create_many<T, F, Fut>(
-    items: Vec<T>,
-    selected_indices: Option<Vec<usize>>,
-    operation: F,
-) -> McpResult
+pub async fn create_many<T, F, Fut>(items: Vec<T>, selection: Selection, operation: F) -> McpResult
 where
     F: FnMut(T) -> Fut,
     Fut: Future<Output = McpResult>,
 {
-    create_many_with_partial_writes(items, selected_indices, operation, false).await
+    create_many_with_partial_writes(items, selection, operation, false).await
+}
+
+/// The approval mask and whether this server requires one.
+#[derive(Debug, Clone)]
+pub struct Selection {
+    pub indices: Option<Vec<usize>>,
+    /// Set when an approval host runs this server (`sift-cli mcp --chat`). A missing mask
+    /// then fails closed so a host regression cannot create unapproved items.
+    pub required: bool,
 }
 
 pub async fn create_many_with_partial_writes<T, F, Fut>(
     items: Vec<T>,
-    selected_indices: Option<Vec<usize>>,
+    selection: Selection,
     operation: F,
     partial_writes: bool,
 ) -> McpResult
@@ -89,9 +105,16 @@ where
     Fut: Future<Output = McpResult>,
 {
     let requested_count = items.len();
-    let selected_indices = selected_indices.ok_or_else(|| ErrorData::invalid_params(
-        "Bulk creates require explicit `selected_indices` from the approval host; no unapproved items were created", None,
-    ))?;
+    let selected_indices = match selection.indices {
+        Some(indices) => indices,
+        None if selection.required => {
+            return Err(ErrorData::invalid_params(
+                "Creates require explicit `selected_indices` from the approval host; no unapproved items were created",
+                None,
+            ));
+        }
+        None => (0..requested_count).collect(),
+    };
     let mut selected = vec![false; requested_count];
     for &index in &selected_indices {
         if index >= requested_count || selected[index] {
@@ -189,30 +212,81 @@ mod test {
         name: String,
     }
 
+    fn required(indices: Option<Vec<usize>>) -> Selection {
+        Selection {
+            indices,
+            required: true,
+        }
+    }
+
     #[test]
     fn validates_the_entire_input_and_bounds_before_writes() {
-        for input in ["[]", "{}", "not json", r#"[{"name":"ok"},{"typo":"bad"}]"#] {
-            assert!(parse_items::<Item>(input).is_err(), "{input}");
+        for input in [
+            json!([]),
+            json!([1]),
+            json!([{"name": "ok"}, {"typo": "bad"}]),
+            json!([{"name": 3}]),
+        ] {
+            let items: Vec<Value> = serde_json::from_value(input.clone()).unwrap();
+            assert!(parse_items::<Item>(items).is_err(), "{input}");
         }
-        assert!(
-            parse_items::<Item>(&serde_json::to_string(&vec![json!({"name":"x"}); 101]).unwrap())
-                .is_err()
-        );
+        assert!(parse_items::<Item>(vec![json!({"name":"x"}); 101]).is_err());
+        let error =
+            parse_items::<Item>(vec![json!({"name": "ok"}), json!({"typo": "bad"})]).unwrap_err();
+        assert!(error.message.contains("item 1"), "{}", error.message);
         assert_eq!(
-            parse_items::<Item>(r#"[{"name":"ok"}]"#).unwrap()[0].name,
+            parse_items::<Item>(vec![json!({"name":"ok"})]).unwrap()[0].name,
             "ok"
         );
     }
 
     #[tokio::test]
+    async fn a_missing_selection_creates_every_item_unless_a_host_requires_one() {
+        let result = create_many(
+            vec![0, 1],
+            Selection {
+                indices: None,
+                required: false,
+            },
+            |item| async move { Ok(CallToolResult::structured(json!({"item": item}))) },
+        )
+        .await
+        .unwrap();
+        let body = result.structured_content.unwrap();
+        assert_eq!(body["created_count"], 2);
+        assert_eq!(body["not_selected"], json!([]));
+        assert!(
+            create_many(vec![0], required(None), |_| async {
+                Ok(CallToolResult::structured(json!({})))
+            })
+            .await
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn the_schema_is_a_bounded_array_of_items() {
+        let schema = serde_json::to_value(schemars::schema_for!(CreateItems<Item>)).unwrap();
+        let items = &schema["properties"]["items"];
+        assert_eq!(items["type"], "array");
+        assert_eq!(items["minItems"], 1);
+        assert_eq!(items["maxItems"], 100);
+        assert_eq!(schema["required"], json!(["items"]));
+    }
+
+    #[tokio::test]
     async fn reports_partial_successes_and_preserves_error_guidance() {
-        let result = create_many(vec![0, 1, 2], Some(vec![0, 1, 2]), |i| async move {
-            if i == 1 {
-                Err(ErrorData::invalid_params("bad item", None))
-            } else {
-                Ok(CallToolResult::structured(json!({"id": i})))
-            }
-        })
+        let result = create_many(
+            vec![0, 1, 2],
+            required(Some(vec![0, 1, 2])),
+            |i| async move {
+                if i == 1 {
+                    Err(ErrorData::invalid_params("bad item", None))
+                } else {
+                    Ok(CallToolResult::structured(json!({"id": i})))
+                }
+            },
+        )
         .await
         .unwrap();
         assert_eq!(result.is_error, Some(true));
@@ -227,7 +301,7 @@ mod test {
     async fn composite_create_can_fail_validation_after_partial_writes() {
         let result = create_many_with_partial_writes(
             vec![0],
-            Some(vec![0]),
+            required(Some(vec![0])),
             |_| async {
                 Err(ErrorData::invalid_params(
                     "report already created; invalid step",
@@ -245,13 +319,17 @@ mod test {
 
     #[tokio::test]
     async fn selecting_two_of_three_never_attempts_the_rejected_item() {
-        let result = create_many(vec![0, 1, 2], Some(vec![2, 0]), |item| async move {
-            assert_ne!(
-                item, 1,
-                "the rejected item must never reach a create handler"
-            );
-            Ok(CallToolResult::structured(json!({"created_item": item})))
-        })
+        let result = create_many(
+            vec![0, 1, 2],
+            required(Some(vec![2, 0])),
+            |item| async move {
+                assert_ne!(
+                    item, 1,
+                    "the rejected item must never reach a create handler"
+                );
+                Ok(CallToolResult::structured(json!({"created_item": item})))
+            },
+        )
         .await
         .unwrap();
         let body = result.structured_content.unwrap();
@@ -268,7 +346,7 @@ mod test {
     async fn confirmation_guidance_keeps_indices_internal() {
         let result = create_many(
             vec!["first", "second", "third"],
-            Some(vec![0, 2]),
+            required(Some(vec![0, 2])),
             |name| async move { Ok(CallToolResult::structured(json!({"name": name}))) },
         )
         .await
@@ -290,14 +368,14 @@ mod test {
         use std::sync::atomic::{AtomicUsize, Ordering};
         let calls = AtomicUsize::new(0);
         for selection in [None, Some(vec![0, 0]), Some(vec![3])] {
-            let result = create_many(vec![0, 1, 2], selection, |item| {
+            let result = create_many(vec![0, 1, 2], required(selection), |item| {
                 calls.fetch_add(1, Ordering::SeqCst);
                 async move { Ok(CallToolResult::structured(json!({"item": item}))) }
             })
             .await;
             assert!(result.is_err());
         }
-        let result = create_many(vec![0, 1, 2], Some(vec![]), |item| {
+        let result = create_many(vec![0, 1, 2], required(Some(vec![])), |item| {
             calls.fetch_add(1, Ordering::SeqCst);
             async move { Ok(CallToolResult::structured(json!({"item": item}))) }
         })
@@ -313,7 +391,7 @@ mod test {
     async fn selected_partial_failures_and_unattempted_items_keep_original_indices() {
         let result = create_many(
             vec![0, 1, 2, 3, 4],
-            Some(vec![0, 2, 4]),
+            required(Some(vec![0, 2, 4])),
             |item| async move {
                 if item == 2 {
                     Err(crate::error::from_anyhow(
@@ -362,7 +440,7 @@ mod test {
 
     #[tokio::test]
     async fn backend_failure_stops_the_tail_and_marks_uncertain_writes() {
-        let result = create_many(vec![0, 1, 2], Some(vec![0, 1, 2]), |_| async {
+        let result = create_many(vec![0, 1, 2], required(Some(vec![0, 1, 2])), |_| async {
             Err(crate::error::from_anyhow(
                 tonic::Status::unavailable("lost response").into(),
             ))

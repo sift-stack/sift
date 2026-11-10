@@ -81,6 +81,8 @@ pub struct SiftMcpServer {
     pub user_service: UserService,
 
     pub allow_create: bool,
+    /// Reject creates without an approval mask. Set when a Sift chat pod hosts this server.
+    require_selection: bool,
     pub allow_destructive: bool,
     cli_version: String,
     pub update_check: Option<UpdateCheckReceiver>,
@@ -326,6 +328,7 @@ impl SiftMcpServer {
             tool_router,
             prompt_router,
             allow_create,
+            require_selection: false,
             allow_destructive,
             cli_version,
             update_check,
@@ -334,8 +337,34 @@ impl SiftMcpServer {
         })
     }
 
-    pub(crate) fn bulk_create_context(&self) -> Self {
-        // Only bulk calls use one attempt; existing tools retain their retry policies.
+    /// Require an approval mask on every create, as an approval host does.
+    pub fn with_require_selection(mut self, require_selection: bool) -> Self {
+        self.require_selection = require_selection;
+        self
+    }
+
+    pub(crate) fn selection(
+        &self,
+        indices: Option<Vec<usize>>,
+    ) -> crate::tool::common::bulk_create::Selection {
+        crate::tool::common::bulk_create::Selection {
+            indices,
+            required: self.require_selection,
+        }
+    }
+
+    /// The server that runs a create call's items. A single item keeps the standard
+    /// retry policies; several items use one attempt each, since a lost response
+    /// after a commit would otherwise duplicate an item mid-batch.
+    pub(crate) fn create_context(&self, item_count: usize) -> Self {
+        if item_count > 1 {
+            self.bulk_create_context()
+        } else {
+            self.clone()
+        }
+    }
+
+    fn bulk_create_context(&self) -> Self {
         let policy = RetryPolicy {
             max_attempts: 1,
             ..RetryPolicy::default()

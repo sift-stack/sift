@@ -8,6 +8,7 @@ use rmcp::{
 use serde::Deserialize;
 use sift_rs::rules::v1::{UpdateConditionRequest, UpdateRuleRequest};
 
+use crate::tool::common::bulk_create;
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
@@ -19,7 +20,7 @@ use crate::{
 mod test;
 
 #[derive(Debug, Deserialize, JsonSchema)]
-pub struct RuleDefinitionParams {
+pub struct CreateRuleItem {
     rule_json: String,
 }
 
@@ -50,54 +51,6 @@ pub struct RuleArchiveParams {
 
 #[tool_router(router = rules_router, vis = "pub(crate)")]
 impl SiftMcpServer {
-    #[tool(
-        name = "create_rules",
-        description = "Create 1–100 rules in one non-atomic call. This is CREATE ONLY; existing rules are never updated.
-            Output: `successes` contains zero-based `index` and the full `create_rule` result; `failures` contains
-            `index`, `error` (with recovery guidance), and `outcome_unknown`; `not_attempted` lists untouched indices.
-            Partial failure sets `isError`. `created_count` counts completed creates, not attempted writes.
-            Parameters: `items_json` is a JSON ARRAY STRING of `create_rule` parameter objects, each with `rule_json`
-            (itself a JSON object string). Follow `create_rule` for definition fields and condition/action shapes.
-            Omit `rule_id` from every definition. A supplied id is INVALID_PARAMS, never an update.
-            `selected_indices`: approval host's zero-based original positions. Omit when proposing; the host MUST
-            set it from per-item decisions before execution. Missing masks fail closed; [] writes nothing.
-            Results keep original indices; `not_selected` lists rejected items, which must never be retried.
-            Errors: INVALID_PARAMS for malformed input, unknown parameter keys, or outside 1–100 items, before writing.
-            Item-specific validation errors are reported per item; backend-wide errors stop the remaining items.
-            Guidance: CONFIRM all names, conditions and asset scopes before calling. Writes run sequentially.
-            Successful items stay committed. Never replay the whole batch; verify outcomes marked unknown before retrying.
-            Prefer this tool over repeated `create_rule` calls when creating several independent rules.",
-        annotations(
-            title = "rules/create_rules",
-            read_only_hint = false,
-            destructive_hint = false,
-            idempotent_hint = false
-        )
-    )]
-    pub async fn create_rules(
-        &self,
-        params: Parameters<crate::tool::common::bulk_create::BulkCreateParams>,
-    ) -> error::McpResult {
-        self.require_create()?;
-        let items = crate::tool::common::bulk_create::parse_items::<RuleDefinitionParams>(
-            &params.0.items_json,
-        )?;
-        for (index, item) in items.iter().enumerate() {
-            let definition = parse_rule_definition(&item.rule_json)?;
-            if definition.rule_id.is_some() {
-                return Err(ErrorData::invalid_params(
-                    format!("item {index}: omit `rule_id` for create-only batches"),
-                    None,
-                ));
-            }
-        }
-        let bulk = self.bulk_create_context();
-        crate::tool::common::bulk_create::create_many(items, params.0.selected_indices, |item| {
-            bulk.create_rule(Parameters(item))
-        })
-        .await
-    }
-
     #[tool(
         name = "list_rules",
         description = "
@@ -252,35 +205,54 @@ impl SiftMcpServer {
     #[tool(
         name = "create_rule",
         description = "
-            Create a Sift rule from a full rule definition supplied as a JSON string. This is a WRITE.
+            Create one or more Sift rules, each from a full rule definition supplied as a JSON string.
+            This is a WRITE.
 
             Output:
-              - `{ \"rule_id\": \"<id>\", \"rule_url\": string|null, \"next_step\": \"...\" }`. `rule_id` is the
-                server-assigned id of the new rule; `rule_url` is its Sift web link (`<host>/rules/<rule_id>`), or
-                null when the host can't be derived.
+              - `{ requested_count, selected_count, not_selected, created_count, successes, failures,
+                not_attempted, next_step }`. `successes` holds `{ index, result }` per created item, where
+                `index` is the item's zero-based position in `items`. `failures` holds `{ index, error,
+                outcome_unknown }`. `not_attempted` lists items skipped after a backend-wide error. Any
+                failure sets `isError`. Each `result` is:
+                - `{ \"rule_id\": \"<id>\", \"rule_url\": string|null, \"next_step\": \"...\" }`. `rule_id` is the
+                  server-assigned id of the new rule; `rule_url` is its Sift web link (`<host>/rules/<rule_id>`), or
+                  null when the host can't be derived.
 
             Parameters:
-              - `rule_json`: a JSON object matching `protos/sift/rules/v1/rules.proto::UpdateRuleRequest`. Use the
-                proto field names. Omit `rule_id` (this is a create). Key fields:
-                - `name` (required), `description` (required).
-                - `conditions` (required): array of `{ \"expression\": {...}, \"actions\": [...] }`. The
-                  expression and action shapes are non-trivial; mirror an existing rule retrieved via
-                  `list_rules` rather than authoring blind.
-                - `asset_configuration`: `{ \"asset_ids\": [...], \"tag_ids\": [...] }` — which assets/tags the
-                  rule applies to.
-                - `metadata` (required): array of metadata values (may be empty: `[]`).
-                - `client_key` (optional): a caller-defined identifier. Immutable after creation.
-                - `is_live_evaluation_enabled` (optional): evaluate against live data.
+              - `items`: required array of 1–100 objects, one per rule. Pass one item to create one
+                rule. Each item takes:
+                - `rule_json`: a JSON object matching `protos/sift/rules/v1/rules.proto::UpdateRuleRequest`. Use the
+                  proto field names. Omit `rule_id` (this is a create). Key fields:
+                  - `name` (required), `description` (required).
+                  - `conditions` (required): array of `{ \"expression\": {...}, \"actions\": [...] }`. The
+                    expression and action shapes are non-trivial; mirror an existing rule retrieved via
+                    `list_rules` rather than authoring blind.
+                  - `asset_configuration`: `{ \"asset_ids\": [...], \"tag_ids\": [...] }` — which assets/tags the
+                    rule applies to.
+                  - `metadata` (required): array of metadata values (may be empty: `[]`).
+                  - `client_key` (optional): a caller-defined identifier. Immutable after creation.
+                  - `is_live_evaluation_enabled` (optional): evaluate against live data.
+              - `selected_indices`: zero-based positions in `items` to create. An approval host sets this
+                from the user's per-item decisions; omit it when proposing. Omitted means every item,
+                except in a Sift chat pod, where a missing value is rejected. `[]` creates nothing.
 
             Errors:
               - `INVALID_PARAMS` if `rule_json` is not valid JSON or does not match the rule schema.
               - `INTERNAL_ERROR` for upstream gRPC failures (e.g. a referenced asset does not exist).
+              - `INVALID_PARAMS` before any write if `items` is empty or has more than 100 entries, or an
+                item has an unknown field or fails local validation. The message names the item index.
+              - Once writing starts, an item-specific error fails only that item. A backend-wide error
+                stops the remaining items; earlier creates stay committed.
 
             Guidance:
               - Rule definitions are complex. Retrieve a similar rule with `list_rules` first and adapt its shape;
                 do not invent `conditions`/`actions` structures.
               - This creates a live resource. Confirm the rule's name, the target assets/tags, and the conditions
                 with the user before calling. Do not silently default them.
+              - Items run sequentially, one create per item; this is not an atomic batch. Never replay
+                the whole call after a partial failure. Retry only failed items, and check any
+                `outcome_unknown` item first, since its create may have committed.
+              - Use one call with several items, not repeated calls, when creating several rules.
         ",
         annotations(
             title = "rules/create_rule",
@@ -289,10 +261,42 @@ impl SiftMcpServer {
             idempotent_hint = false,
         )
     )]
-    pub async fn create_rule(&self, params: Parameters<RuleDefinitionParams>) -> error::McpResult {
+    pub async fn create_rule(
+        &self,
+        params: Parameters<bulk_create::CreateItems<CreateRuleItem>>,
+    ) -> error::McpResult {
+        self.require_create()?;
+        let Parameters(bulk_create::CreateItems {
+            items,
+            selected_indices,
+            ..
+        }) = params;
+        let items = bulk_create::parse_items::<CreateRuleItem>(items)?;
+        for (index, item) in items.iter().enumerate() {
+            let definition = parse_rule_definition(&item.rule_json)
+                .map_err(|error| bulk_create::at_item(index, error))?;
+            if definition.rule_id.is_some() {
+                return Err(ErrorData::invalid_params(
+                    format!("`items` item {index}: omit `rule_id`; this tool only creates"),
+                    None,
+                ));
+            }
+        }
+        let server = self.create_context(items.len());
+        bulk_create::create_many(items, self.selection(selected_indices), |item| {
+            server.create_rule_item(Parameters(item))
+        })
+        .await
+    }
+
+    /// Create one item. Callers check access and validate the whole call first.
+    pub(crate) async fn create_rule_item(
+        &self,
+        params: Parameters<CreateRuleItem>,
+    ) -> error::McpResult {
         self.require_create()?;
 
-        let Parameters(RuleDefinitionParams { rule_json }) = params;
+        let Parameters(CreateRuleItem { rule_json }) = params;
 
         let update = parse_rule_definition(&rule_json)?;
         let rule_name = update.name.clone();

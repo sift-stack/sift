@@ -11,7 +11,7 @@ use tonic::{Status, transport::Server};
 use crate::{server::SiftMcpServer, tool::common::test_support::structured};
 
 macro_rules! check_retry_isolation {
-    ($name:ident, $mock:path, $service:path, $expect:ident, $bulk:ident, $single:ident, $item:expr, $total:expr) => {
+    ($name:ident, $mock:path, $service:path, $expect:ident, $tool:ident, $item:expr, $total:expr) => {
         #[tokio::test]
         async fn $name() {
             use $mock as Mock;
@@ -34,36 +34,42 @@ macro_rules! check_retry_isolation {
                     .unwrap();
             });
             let server = SiftMcpServer::new(channel, "https://app.test.local".into(), true, false);
-            let mut item = $item;
+            let item = $item;
             let mut input = json!({
-                "items_json": json!([item.clone(), item.clone()]).to_string(),
+                "items": [item.clone(), item.clone()],
                 "selected_indices": [0, 1],
             });
-            if stringify!($bulk) == "create_annotations" {
+            if stringify!($tool) == "create_annotation" {
                 input["run_id"] = json!("run-1");
-                item["run_id"] = json!("run-1");
             }
             let mut unknown_item = $item;
             unknown_item["unexpected_parameter"] = json!(true);
             let mut invalid = input.clone();
-            invalid["items_json"] = json!([unknown_item]).to_string().into();
-            invalid["selected_indices"] = json!([0]);
+            invalid["items"] = json!([item.clone(), unknown_item]);
             let params = serde_json::from_value(invalid).unwrap();
-            let error = server.$bulk(Parameters(params)).await.unwrap_err();
+            let error = server.$tool(Parameters(params)).await.unwrap_err();
+            assert!(error.message.contains("item 1"), "{}", error.message);
             assert!(error.message.contains("unexpected_parameter"));
             assert_eq!(calls.load(Ordering::SeqCst), 0);
 
-            let params = serde_json::from_value(input).unwrap();
-            let body = structured(server.$bulk(Parameters(params)).await.unwrap());
+            // Several items: one attempt each, and a lost response stops the rest.
+            let params = serde_json::from_value(input.clone()).unwrap();
+            let body = structured(server.$tool(Parameters(params)).await.unwrap());
             assert_eq!(calls.load(Ordering::SeqCst), 1);
             assert_eq!(body["created_count"], 0);
             assert_eq!(body["failures"][0]["outcome_unknown"], true);
             assert_eq!(body["not_attempted"], json!([1]));
 
-            item["unexpected_parameter"] = json!(true);
-            let params = serde_json::from_value(item).unwrap();
-            let error = server.$single(Parameters(params)).await.unwrap_err();
-            assert_eq!(error.data.unwrap()["reason"], "BackendUnreachable");
+            // One item keeps the standard retry policy.
+            let mut single = input;
+            single["items"] = json!([item]);
+            single["selected_indices"] = json!([0]);
+            let params = serde_json::from_value(single).unwrap();
+            let body = structured(server.$tool(Parameters(params)).await.unwrap());
+            assert_eq!(
+                body["failures"][0]["error"]["data"]["reason"],
+                "BackendUnreachable"
+            );
             assert_eq!(calls.load(Ordering::SeqCst), $total);
             handle.abort();
         }
@@ -71,72 +77,65 @@ macro_rules! check_retry_isolation {
 }
 
 check_retry_isolation!(
-    annotations_keep_single_create_retries,
+    annotations_retry_only_single_items,
     sift_test_util::mock::annotations::v1::MockAnnotationServiceImpl,
     sift_rs::annotations::v1::annotation_service_server::AnnotationServiceServer,
     expect_create_annotation,
-    create_annotations,
     create_annotation,
     json!({"name":"range", "start_time_unix_nanos":1_000_000_000_i64,
         "end_time_unix_nanos":2_000_000_000_i64, "annotation_type":"data_review"}),
     4
 );
 check_retry_isolation!(
-    rules_keep_single_create_retries,
+    rules_retry_only_single_items,
     sift_test_util::mock::rules::v1::MockRuleServiceImpl,
     sift_rs::rules::v1::rule_service_server::RuleServiceServer,
     expect_create_rule,
-    create_rules,
     create_rule,
     json!({"rule_json":json!({"name":"rule", "description":""}).to_string()}),
     4
 );
 check_retry_isolation!(
-    calculated_channels_keep_single_create_retries,
+    calculated_channels_retry_only_single_items,
     sift_test_util::mock::calculated_channels::v2::MockCalculatedChannelServiceImpl,
     sift_rs::calculated_channels::v2::calculated_channel_service_server::CalculatedChannelServiceServer,
     expect_create_calculated_channel,
-    create_calculated_channels,
     create_calculated_channel,
     json!({"name":"channel", "expression":"1", "expression_channel_references_json":"[]", "all_assets":true}),
     4
 );
 check_retry_isolation!(
-    user_defined_functions_keep_single_create_retries,
+    user_defined_functions_retry_only_single_items,
     sift_test_util::mock::user_defined_functions::v1::MockUserDefinedFunctionServiceImpl,
     sift_rs::user_defined_functions::v1::user_defined_function_service_server::UserDefinedFunctionServiceServer,
     expect_create_user_defined_function,
-    create_user_defined_functions,
     create_user_defined_function,
     json!({"name":"function", "expression":"1", "function_inputs_json":"[]"}),
     4
 );
 check_retry_isolation!(
-    reports_keep_single_create_retries,
+    reports_retry_only_single_items,
     sift_test_util::mock::rule_evaluation::v1::MockRuleEvaluationServiceImpl,
     sift_rs::rule_evaluation::v1::rule_evaluation_service_server::RuleEvaluationServiceServer,
     expect_evaluate_rules,
-    create_reports,
     create_report,
     json!({"name":"report", "run_id":"run-1", "rule_ids":["rule-1"]}),
     4
 );
 check_retry_isolation!(
-    report_templates_keep_single_create_retries,
+    report_templates_retry_only_single_items,
     sift_test_util::mock::report_templates::v1::MockReportTemplateServiceImpl,
     sift_rs::report_templates::v1::report_template_service_server::ReportTemplateServiceServer,
     expect_create_report_template,
-    create_report_templates,
     create_report_template,
     json!({"name":"template", "rule_ids":["rule-1"]}),
     4
 );
 check_retry_isolation!(
-    test_reports_keep_single_create_retries,
+    test_reports_retry_only_single_items,
     sift_test_util::mock::test_reports::v1::MockTestReportServiceImpl,
     sift_rs::test_reports::v1::test_report_service_server::TestReportServiceServer,
     expect_create_test_report,
-    create_test_reports,
     create_test_report,
     json!({"report_json":json!({"name":"report", "test_system_name":"system", "test_case":"case"}).to_string()}),
     4
@@ -146,7 +145,6 @@ check_retry_isolation!(
     sift_test_util::mock::artifacts::v1::MockArtifactServiceImpl,
     sift_rs::artifacts::v1::artifact_service_server::ArtifactServiceServer,
     expect_create_artifact,
-    create_artifacts,
     create_artifact,
     json!({"title":"artifact"}),
     2

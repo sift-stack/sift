@@ -218,6 +218,7 @@ async fn run_server(credentials: Credentials, use_tls: bool, config: RunConfig) 
         config.rest_config,
         config.ignored_tools,
     )?
+    .with_require_selection(config.client_name == ClientName::Chat)
     .serve(stdio())
     .await
     .context("failed to start MCP server")?;

@@ -12,6 +12,7 @@ use sift_rs::artifacts::v1::{
     ArtifactLinkRelation, ArtifactStorageClass, ArtifactVersion,
 };
 
+use crate::tool::common::bulk_create;
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
@@ -51,7 +52,7 @@ pub struct ArtifactArchiveParams {
 }
 
 #[derive(Debug, Default, Deserialize, JsonSchema)]
-pub struct CreateArtifactParams {
+pub struct CreateArtifactItem {
     title: Option<String>,
     summary: Option<String>,
     conversation_id: Option<String>,
@@ -295,48 +296,6 @@ fn with_include_archived(filter: String, include_archived: bool) -> String {
 
 #[tool_router(router = artifacts_router, vis = "pub(crate)")]
 impl SiftMcpServer {
-    #[tool(
-        name = "create_artifacts",
-        description = "Create 1–100 artifacts in one non-atomic call.
-            Output: `successes` contains zero-based `index` and the full `create_artifact` result;
-            `failures` contains `index`, `error` with recovery guidance and `outcome_unknown`;
-            `not_attempted` lists untouched indices. Partial failures set `isError`.
-            Parameters: `items_json` is a JSON ARRAY STRING of parameter objects matching `create_artifact`.
-            Optional fields include title, summary, conversation_id, storage_class, created_via, metadata,
-            links and file_path. Follow the single tool's storage-class, link and file requirements.
-            `selected_indices`: approval host's zero-based original positions. Omit when proposing; the host MUST
-            set it from per-item decisions before execution. Missing masks fail closed; [] writes nothing.
-            Results keep original indices; `not_selected` lists rejected items, which must never be retried.
-            Errors: INVALID_PARAMS for malformed input, unknown parameter keys or outside 1–100 items before writes.
-            Item validation failures are reported individually; backend-wide errors stop the remaining items.
-            Guidance: CONFIRM every artifact and destination before calling. Writes run sequentially.
-            File upload can fail AFTER artifact creation: inspect the error's artifact id before retrying,
-            because the artifact may already exist. Successful items remain committed.
-            Never replay the whole batch. Prefer this over repeated single creates for independent artifacts.",
-        annotations(
-            title = "artifacts/create_artifacts",
-            read_only_hint = false,
-            destructive_hint = false,
-            idempotent_hint = false
-        )
-    )]
-    pub async fn create_artifacts(
-        &self,
-        params: Parameters<crate::tool::common::bulk_create::BulkCreateParams>,
-    ) -> error::McpResult {
-        self.require_create()?;
-        let items = crate::tool::common::bulk_create::parse_items::<CreateArtifactParams>(
-            &params.0.items_json,
-        )?;
-        crate::tool::common::bulk_create::create_many_with_partial_writes(
-            items,
-            params.0.selected_indices,
-            |item| self.create_artifact(Parameters(item)),
-            true,
-        )
-        .await
-    }
-
     #[tool(
         name = "list_artifacts",
         description = "
@@ -747,40 +706,50 @@ impl SiftMcpServer {
     #[tool(
         name = "create_artifact",
         description = "
-            Create a NEW artifact. It can carry a local file.
+            Create one or more NEW artifacts. Each can carry a local file.
 
             This tool only creates. To change an artifact that already exists, call `update_artifact`
             with its `artifact_id`; calling this one again mints a duplicate the user has to reconcile.
 
             Output:
-              - `{ \"artifact\": Artifact, \"artifact_url\": string|null, \"next_step\": string }`. The
-                returned artifact is version 1, including `artifact_id`, `artifact_version_id`, and `version`.
-                When a file was uploaded it also carries `file_name`, `file_mime_type`, `remote_file_id`, and
-                a short-lived signed `download_url`. `artifact_url` is the artifact's Sift web link
-                (`<host>/artifacts/<artifact_id>`), or null when the host can't be derived.
+              - `{ requested_count, selected_count, not_selected, created_count, successes, failures,
+                not_attempted, next_step }`. `successes` holds `{ index, result }` per created item, where
+                `index` is the item's zero-based position in `items`. `failures` holds `{ index, error,
+                outcome_unknown }`. `not_attempted` lists items skipped after a backend-wide error. Any
+                failure sets `isError`. Each `result` is:
+                - `{ \"artifact\": Artifact, \"artifact_url\": string|null, \"next_step\": string }`. The
+                  returned artifact is version 1, including `artifact_id`, `artifact_version_id`, and `version`.
+                  When a file was uploaded it also carries `file_name`, `file_mime_type`, `remote_file_id`, and
+                  a short-lived signed `download_url`. `artifact_url` is the artifact's Sift web link
+                  (`<host>/artifacts/<artifact_id>`), or null when the host can't be derived.
 
             Parameters:
-              - `title`: optional display title stored on the version.
-              - `summary`: optional short description stored on the version.
-              - `conversation_id`: optional. Links the new artifact to that conversation. The caller must be
-                the conversation\'s author.
-              - `storage_class`: optional; `file` (default) or `blob`, matched case-insensitively. Proto names
-                are also accepted.
-              - `created_via`: optional; `agent` (default), `canvas`, or `upload`, matched
-                case-insensitively. Proto names are also accepted.
-              - `metadata`: optional list of `{ \"name\": \"<key>\", \"value\": <scalar> }` entries.
-              - `links`: optional list of `{ \"relation\", \"entity_type\", \"entity_id\" }` entries. `relation`
-                accepts `attached_to`, `source`, or `derived_from`, plus proto names. `entity_type` accepts
-                `conversation`, `canvas`, `run`, `asset`, `artifact`, or `tool_use`, plus proto names.
-                Use `source` for what the artifact was built from, such as the `run` or `asset` whose data
-                it summarizes. `derived_from` is only for another artifact (`entity_type: \"artifact\"`);
-                the server rejects it for any other entity type. `attached_to` places the artifact where it
-                surfaces, such as a `conversation` or `canvas`; prefer `conversation_id` over an explicit
-                conversation link.
-              - `file_path`: optional absolute or relative path of a local file to upload as this
-                version\'s content. The file streams to Sift\'s file store; its name and extension drive
-                the mime type and how the UI previews it. Regular, non-empty files up to 1 GiB.
-                Omit it to record metadata only (content can not be attached later to the same version).
+              - `items`: required array of 1–100 objects, one per artifact. Pass one item to create one
+                artifact. Each item takes:
+                - `title`: optional display title stored on the version.
+                - `summary`: optional short description stored on the version.
+                - `conversation_id`: optional. Links the new artifact to that conversation. The caller must be
+                  the conversation\'s author.
+                - `storage_class`: optional; `file` (default) or `blob`, matched case-insensitively. Proto names
+                  are also accepted.
+                - `created_via`: optional; `agent` (default), `canvas`, or `upload`, matched
+                  case-insensitively. Proto names are also accepted.
+                - `metadata`: optional list of `{ \"name\": \"<key>\", \"value\": <scalar> }` entries.
+                - `links`: optional list of `{ \"relation\", \"entity_type\", \"entity_id\" }` entries. `relation`
+                  accepts `attached_to`, `source`, or `derived_from`, plus proto names. `entity_type` accepts
+                  `conversation`, `canvas`, `run`, `asset`, `artifact`, or `tool_use`, plus proto names.
+                  Use `source` for what the artifact was built from, such as the `run` or `asset` whose data
+                  it summarizes. `derived_from` is only for another artifact (`entity_type: \"artifact\"`);
+                  the server rejects it for any other entity type. `attached_to` places the artifact where it
+                  surfaces, such as a `conversation` or `canvas`; prefer `conversation_id` over an explicit
+                  conversation link.
+                - `file_path`: optional absolute or relative path of a local file to upload as this
+                  version\'s content. The file streams to Sift\'s file store; its name and extension drive
+                  the mime type and how the UI previews it. Regular, non-empty files up to 1 GiB.
+                  Omit it to record metadata only (content can not be attached later to the same version).
+              - `selected_indices`: zero-based positions in `items` to create. An approval host sets this
+                from the user's per-item decisions; omit it when proposing. Omitted means every item,
+                except in a Sift chat pod, where a missing value is rejected. `[]` creates nothing.
 
             Access:
               - Needs `--allow-create`.
@@ -793,6 +762,10 @@ impl SiftMcpServer {
               - `INTERNAL_ERROR` for upstream failures. When the message says the artifact was created but
                 the upload failed, the version exists without content — report that to the user instead of
                 calling `create_artifact` again, which would mint a duplicate.
+              - `INVALID_PARAMS` before any write if `items` is empty or has more than 100 entries, or an
+                item has an unknown field or fails local validation. The message names the item index.
+              - Once writing starts, an item-specific error fails only that item. A backend-wide error
+                stops the remaining items; earlier creates stay committed.
 
             Guidance:
               - This is a write. CONFIRM the title and destination conversation with the user before invoking.
@@ -802,6 +775,11 @@ impl SiftMcpServer {
                 `file_path`.
               - Leave `created_via` unset inside a Sift agent session; it defaults to `agent`.
               - One artifact per real deliverable. Do not create artifacts for intermediate scratch files.
+              - Items run sequentially, one create per item; this is not an atomic batch. Never replay
+                the whole call after a partial failure. Retry only failed items, and check any
+                `outcome_unknown` item first, since its create may have committed.
+              - Use one call with several items, not repeated calls, when creating several artifacts.
+              - A failed item may still have created its artifact. List artifacts before retrying it.
         ",
         annotations(
             title = "artifacts/create_artifact",
@@ -812,11 +790,32 @@ impl SiftMcpServer {
     )]
     pub async fn create_artifact(
         &self,
-        params: Parameters<CreateArtifactParams>,
+        params: Parameters<bulk_create::CreateItems<CreateArtifactItem>>,
+    ) -> error::McpResult {
+        self.require_create()?;
+        let Parameters(bulk_create::CreateItems {
+            items,
+            selected_indices,
+            ..
+        }) = params;
+        let items = bulk_create::parse_items::<CreateArtifactItem>(items)?;
+        bulk_create::create_many_with_partial_writes(
+            items,
+            self.selection(selected_indices),
+            |item| self.create_artifact_item(Parameters(item)),
+            true,
+        )
+        .await
+    }
+
+    /// Create one item. Callers check access and validate the whole call first.
+    pub(crate) async fn create_artifact_item(
+        &self,
+        params: Parameters<CreateArtifactItem>,
     ) -> error::McpResult {
         self.require_create()?;
 
-        let Parameters(CreateArtifactParams {
+        let Parameters(CreateArtifactItem {
             title,
             summary,
             conversation_id,

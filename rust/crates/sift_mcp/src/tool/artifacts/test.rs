@@ -19,7 +19,7 @@ use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
 use super::{
-    ArtifactArchiveParams, ArtifactVersionListParams, CreateArtifactParams, DownloadArtifactParams,
+    ArtifactArchiveParams, ArtifactVersionListParams, CreateArtifactItem, DownloadArtifactParams,
     UpdateArtifactParams, display_name, parse_created_via, parse_storage_class,
 };
 use crate::{
@@ -578,7 +578,7 @@ async fn archive_and_unarchive_trim_the_artifact_id() {
 async fn create_artifact_blocked_without_allow_create() {
     let (server, _h) = server_with_mock(MockArtifactServiceImpl::new(), false).await;
     let err = server
-        .create_artifact(Parameters(CreateArtifactParams::default()))
+        .create_artifact_item(Parameters(CreateArtifactItem::default()))
         .await
         .expect_err("gated");
     assert_eq!(err.code, ErrorCode::INVALID_REQUEST);
@@ -794,15 +794,15 @@ async fn update_artifact_requires_an_id_and_something_to_change() {
 #[tokio::test]
 async fn create_artifact_validates_storage_and_links() {
     for params in [
-        CreateArtifactParams {
+        CreateArtifactItem {
             storage_class: Some("structured".into()),
             ..Default::default()
         },
-        CreateArtifactParams {
+        CreateArtifactItem {
             storage_class: Some("unknown".into()),
             ..Default::default()
         },
-        CreateArtifactParams {
+        CreateArtifactItem {
             links: Some(vec![super::ArtifactLinkParam {
                 relation: "attached_to".into(),
                 entity_type: String::new(),
@@ -810,7 +810,7 @@ async fn create_artifact_validates_storage_and_links() {
             }]),
             ..Default::default()
         },
-        CreateArtifactParams {
+        CreateArtifactItem {
             links: Some(vec![super::ArtifactLinkParam {
                 relation: "attached_to".into(),
                 entity_type: "conversation".into(),
@@ -818,7 +818,7 @@ async fn create_artifact_validates_storage_and_links() {
             }]),
             ..Default::default()
         },
-        CreateArtifactParams {
+        CreateArtifactItem {
             links: Some(vec![super::ArtifactLinkParam {
                 relation: "invalid".into(),
                 entity_type: "conversation".into(),
@@ -826,7 +826,7 @@ async fn create_artifact_validates_storage_and_links() {
             }]),
             ..Default::default()
         },
-        CreateArtifactParams {
+        CreateArtifactItem {
             links: Some(vec![super::ArtifactLinkParam {
                 relation: "attached_to".into(),
                 entity_type: "conversations".into(),
@@ -837,7 +837,7 @@ async fn create_artifact_validates_storage_and_links() {
     ] {
         let (server, _h) = server_with_mock(MockArtifactServiceImpl::new(), true).await;
         let err = server
-            .create_artifact(Parameters(params))
+            .create_artifact_item(Parameters(params))
             .await
             .expect_err("invalid storage input");
         assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
@@ -869,7 +869,7 @@ async fn create_artifact_sends_generic_fields() {
 
     let (server, _h) = server_with_mock(mock, true).await;
     server
-        .create_artifact(Parameters(CreateArtifactParams {
+        .create_artifact_item(Parameters(CreateArtifactItem {
             storage_class: Some("blob".into()),
             created_via: Some("agent".into()),
             metadata: Some(vec![MetadataEntry {
@@ -900,7 +900,7 @@ async fn create_artifact_happy_path() {
 
     let (server, _h) = server_with_mock(mock, true).await;
     let resp = server
-        .create_artifact(Parameters(CreateArtifactParams {
+        .create_artifact_item(Parameters(CreateArtifactItem {
             title: Some("report".into()),
             conversation_id: Some("conv-1".into()),
             ..Default::default()
@@ -975,7 +975,7 @@ async fn create_artifact_with_file_path_uploads_and_returns_the_refreshed_artifa
     ));
 
     let resp = server
-        .create_artifact(Parameters(CreateArtifactParams {
+        .create_artifact_item(Parameters(CreateArtifactItem {
             title: Some("report".into()),
             summary: None,
             conversation_id: None,
@@ -1008,7 +1008,7 @@ async fn create_artifact_with_file_path_uploads_and_returns_the_refreshed_artifa
 async fn create_artifact_rejects_an_empty_file_path() {
     let (server, _h) = server_with_mock(MockArtifactServiceImpl::new(), true).await;
     let err = server
-        .create_artifact(Parameters(CreateArtifactParams {
+        .create_artifact_item(Parameters(CreateArtifactItem {
             title: None,
             summary: None,
             conversation_id: None,
@@ -1054,7 +1054,7 @@ async fn create_artifact_names_the_created_artifact_when_the_upload_fails() {
     ));
 
     let err = server
-        .create_artifact(Parameters(CreateArtifactParams {
+        .create_artifact_item(Parameters(CreateArtifactItem {
             title: None,
             summary: None,
             conversation_id: None,
@@ -1110,7 +1110,7 @@ async fn create_artifact_with_file_path_says_so_when_the_download_link_is_missin
     ));
 
     let resp = server
-        .create_artifact(Parameters(CreateArtifactParams {
+        .create_artifact_item(Parameters(CreateArtifactItem {
             title: Some("report".into()),
             summary: None,
             conversation_id: None,

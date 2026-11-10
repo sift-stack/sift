@@ -9,7 +9,7 @@ use sift_test_util::{
 use tokio::task::JoinHandle;
 use tonic::{Response, transport::Server};
 
-use super::{AppendMeasurementsParams, CreateTestReportParams};
+use super::{AppendMeasurementsParams, CreateTestReportItem};
 use crate::{server::SiftMcpServer, tool::common::test_support::structured_field};
 
 async fn server_with_mock(mock: MockTestReportServiceImpl) -> (SiftMcpServer, JoinHandle<()>) {
@@ -44,11 +44,11 @@ async fn create_test_report_surfaces_url() {
 
     let (server, _h) = server_with_mock(mock).await;
 
-    let params = CreateTestReportParams {
+    let params = CreateTestReportItem {
         report_json: r#"{"name":"n","test_system_name":"s","test_case":"c"}"#.into(),
     };
     let resp = server
-        .create_test_report(Parameters(params))
+        .create_test_report_item(Parameters(params))
         .await
         .expect("create_test_report failed");
 

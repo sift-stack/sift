@@ -19,7 +19,7 @@ use crate::{
     tool::{
         common::test_support::{list_params, list_params_with_fields, structured},
         user_defined_functions::{
-            ArchiveUserDefinedFunctionParams, CreateUserDefinedFunctionParams,
+            ArchiveUserDefinedFunctionParams, CreateUserDefinedFunctionItem,
             UpdateUserDefinedFunctionParams, UserDefinedFunctionVersionListParams,
         },
     },
@@ -74,8 +74,8 @@ fn version_list_params(
     })
 }
 
-fn create_params(function_inputs_json: &str) -> Parameters<CreateUserDefinedFunctionParams> {
-    Parameters(CreateUserDefinedFunctionParams {
+fn create_params(function_inputs_json: &str) -> Parameters<CreateUserDefinedFunctionItem> {
+    Parameters(CreateUserDefinedFunctionItem {
         name: "rms".into(),
         expression: "sqrt(mean($x * $x))".into(),
         function_inputs_json: function_inputs_json.into(),
@@ -340,7 +340,7 @@ async fn create_blocked_without_allow_create() {
     let (server, _h) = server_with_mock(mock, false, false).await;
 
     let err = server
-        .create_user_defined_function(create_params(
+        .create_user_defined_function_item(create_params(
             "[{\"identifier\":\"x\",\"data_type\":\"numeric\"}]",
         ))
         .await
@@ -363,7 +363,7 @@ async fn create_rejects_malformed_function_inputs_json() {
     let (server, _h) = server_with_mock(mock, true, false).await;
 
     let err = server
-        .create_user_defined_function(create_params("{not json"))
+        .create_user_defined_function_item(create_params("{not json"))
         .await
         .expect_err("expected malformed JSON to be rejected");
 
@@ -377,7 +377,7 @@ async fn create_rejects_unknown_data_type() {
     let (server, _h) = server_with_mock(mock, true, false).await;
 
     let err = server
-        .create_user_defined_function(create_params(
+        .create_user_defined_function_item(create_params(
             "[{\"identifier\":\"x\",\"data_type\":\"complex\"}]",
         ))
         .await
@@ -395,7 +395,7 @@ async fn create_rejects_a_name_that_starts_with_a_digit() {
     params.0.name = "1udf".into();
 
     let err = server
-        .create_user_defined_function(params)
+        .create_user_defined_function_item(params)
         .await
         .expect_err("expected invalid name to be rejected");
 
@@ -425,7 +425,7 @@ async fn create_rejects_a_name_longer_than_253_characters() {
     params.0.name = format!("a{}", "b".repeat(253));
 
     let err = server
-        .create_user_defined_function(params)
+        .create_user_defined_function_item(params)
         .await
         .expect_err("expected invalid name to be rejected");
 
@@ -463,7 +463,7 @@ async fn create_returns_the_new_function_and_next_step() {
     let (server, _h) = server_with_mock(mock, true, false).await;
 
     let resp = server
-        .create_user_defined_function(create_params(
+        .create_user_defined_function_item(create_params(
             "[{\"identifier\":\"x\",\"data_type\":\"numeric\",\"constant\":false}]",
         ))
         .await
@@ -725,7 +725,7 @@ async fn create_rejects_the_proto_enum_spelling_of_data_type() {
     let (server, _h) = server_with_mock(mock, true, false).await;
 
     let err = server
-        .create_user_defined_function(create_params(
+        .create_user_defined_function_item(create_params(
             "[{\"identifier\":\"x\",\"data_type\":\"FUNCTION_DATA_TYPE_NUMERIC\"}]",
         ))
         .await
@@ -745,7 +745,7 @@ async fn create_rejects_a_camel_case_data_type_key() {
     let (server, _h) = server_with_mock(mock, true, false).await;
 
     let err = server
-        .create_user_defined_function(create_params(
+        .create_user_defined_function_item(create_params(
             "[{\"identifier\":\"x\",\"dataType\":\"numeric\"}]",
         ))
         .await
@@ -789,7 +789,7 @@ async fn create_maps_every_documented_data_type() {
     let (server, _h) = server_with_mock(mock, true, false).await;
 
     server
-        .create_user_defined_function(create_params(
+        .create_user_defined_function_item(create_params(
             "[{\"identifier\":\"x\",\"data_type\":\"numeric\"},\
               {\"identifier\":\"label\",\"data_type\":\"STRING\",\"constant\":true},\
               {\"identifier\":\"flag\",\"data_type\":\"bool\",\"constant\":false}]",

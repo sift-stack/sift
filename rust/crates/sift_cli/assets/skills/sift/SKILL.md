@@ -111,9 +111,9 @@ tool.
   Parquet files. `upload_dataset` streams a Parquet dataset into Sift.
 - **Links:** `explore_url`.
 - **Docs:** `search_docs`.
-- **Bulk creates:** `create_annotations`, `create_rules`, `create_calculated_channels`,
-  `create_user_defined_functions`, `create_reports`, `create_report_templates`,
-  `create_test_reports`, `create_artifacts`.
+- **Creates:** every `create_*` write takes an `items` array of 1 to 100
+  objects. Pass one item to create one resource, or several to create a batch
+  in one call. Results report each item by its index in `items`.
 - **Writes:** `create_rule`, `update_rule`, `archive_rule`, `unarchive_rule`,
   `create_annotation`, `update_annotation`, `create_report`, `update_report`,
   `create_report_template`, `update_report_template`,
