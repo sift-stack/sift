@@ -28,6 +28,8 @@ const MAX_ERROR_BODY_CHARS: usize = 500;
 #[derive(Debug)]
 pub(crate) struct HttpError {
     pub status: StatusCode,
+    /// Present only for a gRPC-gateway error envelope with a nonempty string message.
+    pub grpc_code: Option<i64>,
     pub message: String,
 }
 
@@ -142,7 +144,7 @@ impl DeclarativeService {
     }
 
     /// Creates a share link for `spec`, sent exactly as given. The backend validates the spec;
-    /// a rejected one is an `HttpError` with status 400.
+    /// a rejected one is an `HttpError` with status 400 and gRPC InvalidArgument code.
     pub(crate) async fn create_share_link(&self, spec: &str) -> Result<String> {
         let body = json!({ "spec": spec });
         let response: ShareLinkResponse = self
@@ -180,11 +182,7 @@ impl DeclarativeService {
             return Ok(response);
         }
         let body = response.text().await.unwrap_or_default();
-        Err(HttpError {
-            status,
-            message: error_message(&body),
-        }
-        .into())
+        Err(parse_http_error(status, &body).into())
     }
 }
 
@@ -256,14 +254,23 @@ fn write_private_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
     Ok(())
 }
 
-/// The backend's JSON `message` when present, else the raw body, cut to a readable length.
-fn error_message(body: &str) -> String {
-    let message = serde_json::from_str::<Value>(body)
-        .ok()
-        .and_then(|value| value.get("message")?.as_str().map(str::to_owned))
-        .filter(|message| !message.is_empty())
-        .unwrap_or_else(|| body.to_owned());
-    message.chars().take(MAX_ERROR_BODY_CHARS).collect()
+/// Preserve a recognized gateway status separately from proxy errors such as HTML 400s.
+fn parse_http_error(status: StatusCode, body: &str) -> HttpError {
+    let payload = serde_json::from_str::<Value>(body).ok();
+    let message = payload
+        .as_ref()
+        .and_then(|value| value.get("message")?.as_str())
+        .filter(|message| !message.is_empty());
+    let grpc_code = message.and_then(|_| payload.as_ref()?.get("code")?.as_i64());
+    HttpError {
+        status,
+        grpc_code,
+        message: message
+            .unwrap_or(body)
+            .chars()
+            .take(MAX_ERROR_BODY_CHARS)
+            .collect(),
+    }
 }
 
 #[cfg(test)]

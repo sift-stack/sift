@@ -362,16 +362,23 @@ async fn share_link_failures_are_typed_and_never_return_a_link() {
                 r#"{"code":3,"message":"charts[0]: bad"}"#,
             ),
             400,
+            Some(3),
             "charts[0]: bad",
         ),
-        (http_response("403 Forbidden", "denied"), 403, "denied"),
+        (
+            http_response("403 Forbidden", "denied"),
+            403,
+            None,
+            "denied",
+        ),
         (
             http_response("503 Service Unavailable", &long_body),
             503,
+            None,
             &long_body[..500],
         ),
     ];
-    for (reply, status, message) in cases {
+    for (reply, status, grpc_code, message) in cases {
         let (uri, _server) = start_sequence_server(vec![reply]).await;
         let root = cache_root();
         let error = service(&uri, root.path())
@@ -380,8 +387,8 @@ async fn share_link_failures_are_typed_and_never_return_a_link() {
             .unwrap_err();
         let http = http_error(&error);
         assert_eq!(
-            (http.status.as_u16(), http.message.as_str()),
-            (status, message)
+            (http.status.as_u16(), http.grpc_code, http.message.as_str()),
+            (status, grpc_code, message)
         );
     }
 

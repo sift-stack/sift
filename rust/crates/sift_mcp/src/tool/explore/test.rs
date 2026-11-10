@@ -404,6 +404,35 @@ async fn a_rejected_spec_returns_issues_to_repair() {
 }
 
 #[tokio::test]
+async fn non_validation_bad_requests_are_not_reported_as_invalid_specs() {
+    let root = tempdir::TempDir::new("explore-proxy-400").unwrap();
+    for body in [
+        "<html>The plain HTTP request was sent to HTTPS port</html>",
+        r#"{"error":"Bad Request - WAF"}"#,
+        r#"{"message":"proxy rejected the request"}"#,
+        r#"{"code":13,"message":"proxy failure"}"#,
+        r#"{"code":3,"message":null}"#,
+        r#"{"code":3,"message":""}"#,
+        r#"{"code":"3","message":"not a gateway status"}"#,
+    ] {
+        let (uri, _http) = start_sequence_server(vec![reply("400 Bad Request", body)]).await;
+        let server = server_with_rest(&uri, &root, false, false).await;
+
+        let error = create_chart(&server, "spec").await.unwrap_err();
+
+        assert!(error.message.contains("400"), "{body}: {error}");
+        assert!(
+            !error.message.contains("resend the complete spec"),
+            "{body}: {error}"
+        );
+        assert!(
+            !error.message.contains("The spec is not valid"),
+            "{body}: {error}"
+        );
+    }
+}
+
+#[tokio::test]
 async fn other_http_failures_never_suggest_repairing_the_spec() {
     let root = tempdir::TempDir::new("explore-fail").unwrap();
     for (status, stop) in [
