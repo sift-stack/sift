@@ -7,11 +7,18 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+## [v0.8.2] - November 10, 2026
+
+### What's New
+
 - MCP `get_chart_schema` caches the deployment's declarative chart schema
   locally for 24 hours. `create_declarative_chart` saves a validated spec as an
   Explore share link, available in read-only mode without confirmation because
   it changes no telemetry or other Sift resources. `sift-cli get chart-schema`
   exports a fresh schema to standard output or a file.
+- Chart creation now distinguishes invalid specs from other request errors, so
+  agents only try to repair specs rejected by validation. The bundled guidance
+  also directs agents to use run-scoped sources for saved calculated channels.
 
 ## [v0.8.1] - November 9, 2026
 
