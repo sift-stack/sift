@@ -21,6 +21,7 @@ from sift_client.resources import (
     PrincipalAttributeEnumValuesAPIAsync,
     PrincipalAttributeKeysAPIAsync,
     PrincipalAttributesAPIAsync,
+    ProcessedChannelsAPIAsync,
     ReportsAPIAsync,
     ReportTemplatesAPIAsync,
     ResourceAttributeAssignmentsAPIAsync,
@@ -114,6 +115,7 @@ UsersAPI = generate_sync_api(UsersAPIAsync, "UsersAPI")
 WebhooksAPI = generate_sync_api(WebhooksAPIAsync, "WebhooksAPI")
 DataExportAPI = generate_sync_api(DataExportAPIAsync, "DataExportAPI")
 DataImportAPI = generate_sync_api(DataImportAPIAsync, "DataImportAPI")
+ProcessedChannelsAPI = generate_sync_api(ProcessedChannelsAPIAsync, "ProcessedChannelsAPI")
 
 __all__ = [
     "AnnotationLogsAPI",
@@ -133,6 +135,7 @@ __all__ = [
     "PrincipalAttributeEnumValuesAPI",
     "PrincipalAttributeKeysAPI",
     "PrincipalAttributesAPI",
+    "ProcessedChannelsAPI",
     "ReportTemplatesAPI",
     "ReportsAPI",
     "ResourceAttributeAssignmentsAPI",

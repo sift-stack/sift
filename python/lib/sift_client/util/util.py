@@ -16,6 +16,7 @@ if TYPE_CHECKING:
         IngestionAPIAsync,
         JobsAPIAsync,
         PingAPIAsync,
+        ProcessedChannelsAPIAsync,
         ReportsAPIAsync,
         RulesAPIAsync,
         RunsAPIAsync,
@@ -93,6 +94,9 @@ class AsyncAPIs(NamedTuple):
 
     data_import: DataImportAPIAsync
     """Instance of the Data Import API for making asynchronous requests."""
+
+    processed_channel: ProcessedChannelsAPIAsync
+    """Instance of the Processed Channels API for making asynchronous requests. Experimental."""
 
 
 def count_non_none(*args: Any) -> int:

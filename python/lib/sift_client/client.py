@@ -34,6 +34,8 @@ from sift_client.resources import (
     PingAPIAsync,
     PrincipalAttributesAPI,
     PrincipalAttributesAPIAsync,
+    ProcessedChannelsAPI,
+    ProcessedChannelsAPIAsync,
     ReportsAPI,
     ReportsAPIAsync,
     ResourceAttributesAPI,
@@ -54,6 +56,7 @@ from sift_client.resources import (
     WebhooksAPIAsync,
 )
 from sift_client.resources.access_control import AccessControlAPI, AccessControlAPIAsync
+from sift_client.resources.processed_channels import warn_experimental
 from sift_client.transport import (
     GrpcClient,
     RestClient,
@@ -281,6 +284,7 @@ class SiftClient(
         self.webhooks = WebhooksAPI(self)
         self.data_export = DataExportAPI(self)
         self.data_import = DataImportAPI(self)
+        self._processed_channel = ProcessedChannelsAPI(self)
 
         # Accessor for the asynchronous APIs
         self.async_ = AsyncAPIs(
@@ -308,6 +312,7 @@ class SiftClient(
             webhooks=WebhooksAPIAsync(self),
             data_export=DataExportAPIAsync(self),
             data_import=DataImportAPIAsync(self),
+            processed_channel=ProcessedChannelsAPIAsync(self),
         )
 
     @classmethod
@@ -343,6 +348,12 @@ class SiftClient(
     def profile(self) -> str | None:
         """The ``sift.toml`` profile that supplied this client's credentials."""
         return self._credentials.profile if self._credentials else None
+
+    @property
+    def processed_channel(self) -> ProcessedChannelsAPI:
+        """Instance of the Processed Channels API for making synchronous requests. Experimental."""
+        warn_experimental(stacklevel=2)
+        return self._processed_channel
 
     @property
     def grpc_client(self) -> GrpcClient:

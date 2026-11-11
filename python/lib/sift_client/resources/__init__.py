@@ -191,6 +191,7 @@ from sift_client.resources.users import UsersAPIAsync
 from sift_client.resources.webhooks import WebhooksAPIAsync
 from sift_client.resources.data_imports import DataImportAPIAsync
 from sift_client.resources.exports import DataExportAPIAsync
+from sift_client.resources.processed_channels import ProcessedChannelsAPIAsync
 
 # ruff: noqa All imports needs to be imported before sync_stubs to avoid circular import
 from sift_client.resources.sync_stubs import (
@@ -225,6 +226,7 @@ from sift_client.resources.sync_stubs import (
     FileAttachmentsAPI,
     DataExportAPI,
     DataImportAPI,
+    ProcessedChannelsAPI,
 )
 
 import sys
@@ -303,4 +305,6 @@ __all__ = [
     "DataExportAPIAsync",
     "DataImportAPI",
     "DataImportAPIAsync",
+    "ProcessedChannelsAPI",
+    "ProcessedChannelsAPIAsync",
 ]

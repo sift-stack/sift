@@ -206,6 +206,15 @@ from sift_client.sift_types.principal_attribute import (
     PrincipalRef,
     PrincipalType,
 )
+from sift_client.sift_types.processed_channel import (
+    ProcessedChannelCode,
+    ProcessedChannelInput,
+    ProcessedChannelRequestError,
+    ProcessedChannelUpload,
+    ProcessedChannelUploadError,
+    ProcessedChannelWrite,
+    ProcessedChannelWriteStatus,
+)
 from sift_client.sift_types.report import Report, ReportRuleStatus, ReportRuleSummary, ReportUpdate
 from sift_client.sift_types.report_template import (
     ReportTemplate,
@@ -344,6 +353,13 @@ __all__ = [
     "PrincipalAttributeValueType",
     "PrincipalRef",
     "PrincipalType",
+    "ProcessedChannelCode",
+    "ProcessedChannelInput",
+    "ProcessedChannelRequestError",
+    "ProcessedChannelUpload",
+    "ProcessedChannelUploadError",
+    "ProcessedChannelWrite",
+    "ProcessedChannelWriteStatus",
     "Report",
     "ReportRuleStatus",
     "ReportRuleSummary",
