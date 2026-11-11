@@ -50,7 +50,8 @@ Sift-entity request always wins.
 - **None:** lookups, explanations, how-to answers, and one-off numbers or
   short analysis. Do not wrap a chat-sized answer in a file.
 - **Declarative charts:** plots, charts, and timeseries the user wants to see.
-  Build or pass a spec to `create_declarative_chart`.
+  Build or pass a spec to `create_declarative_chart`. It delivers to Explore
+  unless the user wants the chart in a Canvas or in Sift Edge Desktop.
 - **Explore links:** quick deep-links to specific assets, runs, or channels the
   user wants to inspect in the Sift web app. Use native Sift app
   visualizations instead of creating an intermediate image or HTML.
@@ -113,8 +114,11 @@ tool.
 - **Data:** `get_data` writes channel data to a Parquet file. `sql` queries
   Parquet files. `upload_dataset` streams a Parquet dataset into Sift.
 - **Charts:** `get_chart_schema` locates the local schema; `create_declarative_chart`
-  saves a spec-backed Explore share link. Chart share links are available in
-  read-only mode and need no confirmation.
+  checks a spec for the surface that draws it and delivers it only when Sift
+  reports no warnings, or the user keeps them. For Explore it saves a share link, and for Canvas or Sift
+  Edge Desktop it returns how to load the spec. With
+  `output` it also saves the spec as a local YAML file. Chart share links are
+  available in read-only mode and need no confirmation.
 - **Links:** `explore_url`.
 - **Docs:** `search_docs`.
 - **Writes:** `create_rule`, `update_rule`, `archive_rule`, `unarchive_rule`,
@@ -237,7 +241,7 @@ tool.
   with `unarchive_artifact`. Both writes need `--allow-destructive`.
 - **Author a chart.** Call `get_chart_schema` once, reuse its local `schema_path`,
   and follow [declarative charts](references/declarative-charts.md) to author
-  panels and save an Explore share link with `create_declarative_chart`.
+  panels, pick the surface, and deliver the chart with `create_declarative_chart`.
   Use `explore_url` for a quick read-only deep-link. For a chart and numbers,
   also use `get_data` and `sql`.
 - **Answer a question about how Sift works.** Call `search_docs`. Do not answer

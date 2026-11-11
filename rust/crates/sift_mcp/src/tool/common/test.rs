@@ -1,9 +1,11 @@
 use super::{
-    ListParams, list_body, project_fields, read_result,
-    test_support::{assert_keys_before, content_texts},
+    ListParams, PendingOutput, list_body, project_fields, read_result,
+    test_support::{assert_keys_before, content_texts, dir_entries},
     url_clause,
 };
 use serde_json::{Value, json};
+use std::{io::Write, path::PathBuf};
+use tempdir::TempDir;
 
 /// `filter` is deliberately required on list tools: the caller must choose a
 /// scope explicitly, with the empty string as the documented way to request
@@ -369,4 +371,115 @@ fn read_result_keeps_payload_in_content_after_next_step() {
     let payload: Value = serde_json::from_str(&texts[1]).expect("payload should be JSON");
     assert_eq!(payload, body);
     assert_eq!(result.structured_content, Some(body));
+}
+
+#[test]
+fn output_file_creates_missing_parent_directories() {
+    let dir = TempDir::new("sift-mcp-output-dirs").expect("temp dir");
+    let nested = dir
+        .path()
+        .join("runs")
+        .join("monza")
+        .join("laptimes.parquet");
+
+    PendingOutput::create(&nested)
+        .expect("nested output path")
+        .persist()
+        .expect("persist");
+
+    assert!(nested.exists());
+}
+
+#[test]
+fn output_file_replaces_an_existing_file_on_persist() {
+    let dir = TempDir::new("sift-mcp-output-replace").expect("temp dir");
+    let path = dir.path().join("laptimes.parquet");
+    std::fs::write(&path, b"stale").expect("seed file");
+
+    let mut output = PendingOutput::create(&path).expect("existing output path");
+    output.file().write_all(b"fresh").expect("write");
+    output.persist().expect("persist");
+
+    assert_eq!(std::fs::read(&path).expect("read"), b"fresh");
+    assert_eq!(dir_entries(&dir), vec![path]);
+}
+
+#[test]
+fn unpersisted_output_is_removed_and_leaves_the_existing_file() {
+    let dir = TempDir::new("sift-mcp-output-drop").expect("temp dir");
+    let path = dir.path().join("laptimes.parquet");
+    std::fs::write(&path, b"stale").expect("seed file");
+
+    let mut output = PendingOutput::create(&path).expect("existing output path");
+    output.file().write_all(b"partial").expect("write");
+    drop(output);
+
+    assert_eq!(std::fs::read(&path).expect("read"), b"stale");
+    assert_eq!(dir_entries(&dir), vec![path]);
+}
+
+#[cfg(unix)]
+#[test]
+fn persist_through_a_symlink_replaces_the_target_and_keeps_the_link() {
+    let dir = TempDir::new("sift-mcp-output-symlink").expect("temp dir");
+    let target = dir.path().join("laptimes.parquet");
+    let link = dir.path().join("latest.parquet");
+    std::fs::write(&target, b"stale").expect("seed file");
+    std::os::unix::fs::symlink("laptimes.parquet", &link).expect("symlink");
+
+    let mut output = PendingOutput::create(&link).expect("symlinked output path");
+    output.file().write_all(b"fresh").expect("write");
+    output.persist().expect("persist");
+
+    let link_meta = std::fs::symlink_metadata(&link).expect("link metadata");
+    assert!(link_meta.file_type().is_symlink(), "the link was replaced");
+    assert_eq!(
+        std::fs::read_link(&link).expect("read link"),
+        PathBuf::from("laptimes.parquet")
+    );
+    assert_eq!(std::fs::read(&target).expect("read target"), b"fresh");
+    assert_eq!(dir_entries(&dir).len(), 2, "{:?}", dir_entries(&dir));
+}
+
+#[cfg(unix)]
+#[test]
+fn persist_through_a_dangling_symlink_creates_the_target() {
+    let dir = TempDir::new("sift-mcp-output-dangling").expect("temp dir");
+    let target = dir.path().join("runs").join("laptimes.parquet");
+    let link = dir.path().join("latest.parquet");
+    std::os::unix::fs::symlink(&target, &link).expect("symlink");
+
+    let mut output = PendingOutput::create(&link).expect("dangling output path");
+    output.file().write_all(b"fresh").expect("write");
+    output.persist().expect("persist");
+
+    assert!(
+        std::fs::symlink_metadata(&link)
+            .expect("link metadata")
+            .file_type()
+            .is_symlink()
+    );
+    assert_eq!(std::fs::read(&target).expect("read target"), b"fresh");
+}
+
+#[cfg(unix)]
+#[test]
+fn persist_keeps_the_permissions_of_the_file_it_replaces() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let dir = TempDir::new("sift-mcp-output-mode").expect("temp dir");
+    let path = dir.path().join("laptimes.parquet");
+    std::fs::write(&path, b"stale").expect("seed file");
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).expect("chmod");
+
+    let mut output = PendingOutput::create(&path).expect("existing output path");
+    output.file().write_all(b"fresh").expect("write");
+    output.persist().expect("persist");
+
+    let mode = std::fs::metadata(&path)
+        .expect("metadata")
+        .permissions()
+        .mode();
+    assert_eq!(mode & 0o777, 0o600);
+    assert_eq!(std::fs::read(&path).expect("read"), b"fresh");
 }

@@ -1,10 +1,4 @@
-use std::{
-    collections::HashSet,
-    ffi::OsString,
-    fs::{self, File},
-    io::ErrorKind,
-    path::{Path, PathBuf},
-};
+use std::{collections::HashSet, fs::File, path::PathBuf};
 
 use anyhow::Context;
 use rmcp::{
@@ -31,126 +25,8 @@ use crate::{
         data::{ChannelInput, DataService, NoChannelData, TimeRange},
         ingest::RunForm,
     },
-    tool::common::{MetadataEntry, url_clause},
+    tool::common::{MetadataEntry, PendingOutput, url_clause},
 };
-
-/// Matches the usual `ELOOP` limit, so a symlink cycle fails instead of spinning.
-const MAX_SYMLINK_HOPS: usize = 40;
-
-/// An output file written to a hidden sibling of its destination and moved into
-/// place by `persist`. Dropping it unpersisted, on an error or when the request
-/// future is dropped, removes the partial file, so a failed call leaves nothing
-/// at the destination and an earlier result there survives.
-struct PendingOutput {
-    path: PathBuf,
-    temp_path: PathBuf,
-    file: Option<File>,
-    persisted: bool,
-}
-
-impl PendingOutput {
-    fn create(path: &Path) -> anyhow::Result<Self> {
-        // Write next to the file a symlink names, not next to the link, so the
-        // rename replaces the target and the link survives.
-        let path = resolve_symlinks(path)?;
-        let file_name = path
-            .file_name()
-            .with_context(|| format!("output path `{}` has no file name", path.display()))?;
-        if let Some(parent) = path
-            .parent()
-            .filter(|parent| !parent.as_os_str().is_empty())
-        {
-            fs::create_dir_all(parent).with_context(|| {
-                format!("failed to create output directory `{}`", parent.display())
-            })?;
-        }
-
-        let mut temp_name = OsString::from(".");
-        temp_name.push(file_name);
-        temp_name.push(format!(".{:016x}.partial", rand::random::<u64>()));
-        let temp_path = path.with_file_name(temp_name);
-
-        let file = File::options()
-            .write(true)
-            .create_new(true)
-            .open(&temp_path)
-            .context("failed to open output parquet file")?;
-
-        Ok(Self {
-            path,
-            temp_path,
-            file: Some(file),
-            persisted: false,
-        })
-    }
-
-    fn file(&mut self) -> &mut File {
-        self.file.as_mut().expect("file is open until persisted")
-    }
-
-    fn persist(mut self) -> anyhow::Result<()> {
-        if let Some(file) = self.file.take() {
-            // Some filesystems can commit the rename before the data, so a
-            // crash right after it would leave an empty or truncated output.
-            file.sync_all()
-                .context("failed to flush output parquet file to disk")?;
-            // Closed before the rename: Windows refuses to rename an open file.
-        }
-
-        // Keep the mode of the file being replaced. Ownership and ACLs are not
-        // carried over: changing them needs privileges the server lacks.
-        match fs::metadata(&self.path) {
-            Ok(existing) => fs::set_permissions(&self.temp_path, existing.permissions())
-                .context("failed to copy permissions from the existing output file")?,
-            Err(err) if err.kind() == ErrorKind::NotFound => {}
-            Err(err) => {
-                return Err(err).with_context(|| {
-                    format!("failed to read existing output `{}`", self.path.display())
-                });
-            }
-        }
-
-        fs::rename(&self.temp_path, &self.path).with_context(|| {
-            format!(
-                "failed to move output into place at `{}`",
-                self.path.display()
-            )
-        })?;
-        self.persisted = true;
-        Ok(())
-    }
-}
-
-/// Follows `path` through any symlinks to the file they name. A dangling link
-/// resolves to its missing target, which the write then creates, as opening the
-/// link for writing would have.
-fn resolve_symlinks(path: &Path) -> anyhow::Result<PathBuf> {
-    let mut resolved = path.to_path_buf();
-    for _ in 0..MAX_SYMLINK_HOPS {
-        match fs::symlink_metadata(&resolved) {
-            Ok(meta) if meta.file_type().is_symlink() => {
-                let target = fs::read_link(&resolved)
-                    .with_context(|| format!("failed to read symlink `{}`", resolved.display()))?;
-                // `join` keeps an absolute target as is.
-                resolved = match resolved.parent() {
-                    Some(parent) => parent.join(target),
-                    None => target,
-                };
-            }
-            _ => return Ok(resolved),
-        }
-    }
-    anyhow::bail!("too many levels of symbolic links at `{}`", path.display())
-}
-
-impl Drop for PendingOutput {
-    fn drop(&mut self) {
-        if !self.persisted {
-            drop(self.file.take());
-            let _ = fs::remove_file(&self.temp_path);
-        }
-    }
-}
 
 #[cfg(test)]
 mod test;
