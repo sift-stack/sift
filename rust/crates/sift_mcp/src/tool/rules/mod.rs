@@ -282,9 +282,8 @@ impl SiftMcpServer {
                 ));
             }
         }
-        let server = self.create_context(items.len());
         bulk_create::create_many(items, self.selection(selected_indices), |item| {
-            server.create_rule_item(Parameters(item))
+            self.create_rule_item(Parameters(item))
         })
         .await
     }

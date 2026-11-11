@@ -330,9 +330,8 @@ impl SiftMcpServer {
             ..
         }) = params;
         let items = bulk_create::parse_items::<CreateUserDefinedFunctionItem>(items)?;
-        let server = self.create_context(items.len());
         bulk_create::create_many(items, self.selection(selected_indices), |item| {
-            server.create_user_defined_function_item(Parameters(item))
+            self.create_user_defined_function_item(Parameters(item))
         })
         .await
     }

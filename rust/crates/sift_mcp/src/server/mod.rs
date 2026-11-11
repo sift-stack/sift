@@ -6,7 +6,7 @@ use rmcp::{
     handler::server::tool::{ToolCallContext, ToolRouter},
     model::{
         CacheScope, CallToolRequestParams, CallToolResponse, Implementation, ListToolsResult,
-        PaginatedRequestParams, ProtocolVersion, ServerCapabilities, ServerInfo,
+        PaginatedRequestParams, ProtocolVersion, ServerCapabilities, ServerConfig,
     },
     prompt_handler,
     service::RequestContext,
@@ -57,7 +57,6 @@ use crate::service::{
 
 #[derive(Clone)]
 pub struct SiftMcpServer {
-    channel: SiftChannel,
     pub tool_router: ToolRouter<Self>,
     pub prompt_router: PromptRouter<Self>,
 
@@ -137,7 +136,7 @@ impl ServerHandler for SiftMcpServer {
         Ok(result)
     }
 
-    fn get_info(&self) -> ServerInfo {
+    fn get_info(&self) -> ServerConfig {
         let instructions = match &self.update_check {
             Some(receiver) => {
                 let update_check = receiver.borrow();
@@ -156,7 +155,7 @@ impl ServerHandler for SiftMcpServer {
             None => BASE_INSTRUCTIONS.to_string(),
         };
 
-        ServerInfo::new(
+        ServerConfig::new(
             ServerCapabilities::builder()
                 .enable_tools()
                 .enable_prompts()
@@ -308,7 +307,6 @@ impl SiftMcpServer {
         let user_service = UserService::new(channel.clone(), retry_policy);
 
         Ok(Self {
-            channel,
             annotation_service,
             artifact_service,
             asset_service,
@@ -353,43 +351,6 @@ impl SiftMcpServer {
         crate::tool::common::bulk_create::Selection {
             indices,
             required: self.require_selection,
-        }
-    }
-
-    /// The server that runs a create call's items. A single item keeps the standard
-    /// retry policies; several items use one attempt each, since a lost response
-    /// after a commit would otherwise duplicate an item mid-batch.
-    pub(crate) fn create_context(&self, item_count: usize) -> Self {
-        if item_count > 1 {
-            self.bulk_create_context()
-        } else {
-            self.clone()
-        }
-    }
-
-    fn bulk_create_context(&self) -> Self {
-        let policy = RetryPolicy {
-            max_attempts: 1,
-            ..RetryPolicy::default()
-        };
-        Self {
-            annotation_service: AnnotationService::new(self.channel.clone(), policy.clone()),
-            calculated_channel_service: CalculatedChannelService::new(
-                self.channel.clone(),
-                policy.clone(),
-            ),
-            report_service: ReportService::new(self.channel.clone(), policy.clone()),
-            report_template_service: ReportTemplateService::new(
-                self.channel.clone(),
-                policy.clone(),
-            ),
-            rule_service: RuleService::new(self.channel.clone(), policy.clone()),
-            test_report_service: TestReportService::new(self.channel.clone(), policy.clone()),
-            user_defined_function_service: UserDefinedFunctionService::new(
-                self.channel.clone(),
-                policy,
-            ),
-            ..self.clone()
         }
     }
 

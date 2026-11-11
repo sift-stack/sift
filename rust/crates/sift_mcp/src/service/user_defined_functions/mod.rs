@@ -1,4 +1,4 @@
-use crate::policy::{RetryPolicy, with_retry};
+use crate::policy::{RetryPolicy, once, with_retry};
 use crate::service::common;
 use anyhow::{Context, Result, anyhow};
 use pbjson_types::FieldMask;
@@ -209,28 +209,19 @@ impl UserDefinedFunctionService {
     ) -> Result<UserDefinedFunction> {
         let channel = self.channel.clone();
 
-        let resp = with_retry(&self.policy, move || {
-            let channel = channel.clone();
-            let name = name.clone();
-            let description = description.clone();
-            let expression = expression.clone();
-            let function_inputs = function_inputs.clone();
-            let user_notes = user_notes.clone();
-            let metadata = metadata.clone();
-            async move {
-                let mut client = UserDefinedFunctionServiceClient::new(channel);
-                client
-                    .create_user_defined_function(CreateUserDefinedFunctionRequest {
-                        name,
-                        description,
-                        expression,
-                        function_inputs,
-                        user_notes,
-                        metadata,
-                    })
-                    .await
-                    .map(|resp| resp.into_inner())
-            }
+        let resp = once(move || async move {
+            let mut client = UserDefinedFunctionServiceClient::new(channel);
+            client
+                .create_user_defined_function(CreateUserDefinedFunctionRequest {
+                    name,
+                    description,
+                    expression,
+                    function_inputs,
+                    user_notes,
+                    metadata,
+                })
+                .await
+                .map(|resp| resp.into_inner())
         })
         .await
         .context("failed to create user defined function")?;

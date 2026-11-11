@@ -3,7 +3,7 @@ use std::future::{self, Future};
 use anyhow::{Context, Result};
 use rmcp::{
     ErrorData, RoleServer, ServerHandler, ServiceExt,
-    model::{ListToolsResult, PaginatedRequestParams, ServerCapabilities, ServerInfo},
+    model::{ListToolsResult, PaginatedRequestParams, ServerCapabilities, ServerConfig},
     service::{MaybeSendFuture, RequestContext},
     transport::stdio,
 };
@@ -39,8 +39,8 @@ impl ServerHandler for StartupErrorServer {
         future::ready(Err(self.error()))
     }
 
-    fn get_info(&self) -> ServerInfo {
-        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+    fn get_info(&self) -> ServerConfig {
+        ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
             .with_instructions(self.message.clone())
     }
 }

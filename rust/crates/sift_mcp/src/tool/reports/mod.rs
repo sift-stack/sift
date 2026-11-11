@@ -270,11 +270,10 @@ impl SiftMcpServer {
             ..
         }) = params;
         let items = bulk_create::parse_items::<CreateReportItem>(items)?;
-        let server = self.create_context(items.len());
         bulk_create::create_many_with_partial_writes(
             items,
             self.selection(selected_indices),
-            |item| server.create_report_item(Parameters(item)),
+            |item| self.create_report_item(Parameters(item)),
             true,
         )
         .await

@@ -16,6 +16,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   `organization_id` once, at the top level, for every item. Results list each
   item's outcome by index under `successes`, `failures`, and `not_attempted`.
   An item-specific failure does not stop the others.
+- Single-item MCP creates no longer retry on `Unavailable`, to avoid duplicate
+  resources. Reads after a create keep their retry.
 
 ## [v0.8.2] - November 10, 2026
 

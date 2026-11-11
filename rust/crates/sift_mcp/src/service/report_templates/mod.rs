@@ -1,4 +1,4 @@
-use crate::policy::{RetryPolicy, with_retry};
+use crate::policy::{RetryPolicy, once, with_retry};
 use crate::service::common;
 use anyhow::{Context, Result, anyhow};
 use pbjson_types::FieldMask;
@@ -110,6 +110,7 @@ impl ReportTemplateService {
         Ok(results)
     }
 
+    #[expect(clippy::too_many_arguments)]
     pub async fn create_report_template(
         &self,
         organization_id: Option<String>,
@@ -144,16 +145,12 @@ impl ReportTemplateService {
         };
 
         let channel = self.channel.clone();
-        let resp = with_retry(&self.policy, move || {
-            let channel = channel.clone();
-            let request = request.clone();
-            async move {
-                let mut client = ReportTemplateServiceClient::new(channel);
-                client
-                    .create_report_template(request)
-                    .await
-                    .map(|resp| resp.into_inner())
-            }
+        let resp = once(move || async move {
+            let mut client = ReportTemplateServiceClient::new(channel);
+            client
+                .create_report_template(request)
+                .await
+                .map(|resp| resp.into_inner())
         })
         .await
         .context("failed to create report template")?;
