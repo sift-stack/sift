@@ -53,15 +53,23 @@ the user asks for a file; otherwise `next_step` says when to offer one.
 
 ## Build a workspace from several charts
 
-1. Make each chart with its own call and the default surface, and refine it
-   with the user. Each result is a preview.
-2. Merge the charts the user approved into one spec: combine `dataSources`,
-   key each chart under `charts`, and add a `layout`. Send it once with the
-   surface the workspace is for, such as `explore` or `canvas`.
-3. Offer to save the spec as YAML.
+Use this when the user wants several charts in one view, such as a dashboard
+or workspace, or asks to combine charts you already made. How to iterate
+depends on where results appear:
 
-When the workspace is for `edge`, make each chart with `surface: edge`, so
-`warnings` show what it will not draw while you iterate.
+- **In Sift Agents**, each chart is drawn inline in chat. Preview one chart per
+  call on the default surface and refine it with the user. Once two or more
+  charts are approved, offer to assemble them.
+- **In other clients**, each result is a link the user opens in Explore. Build
+  the whole workspace as one spec from the start and revise that spec, so each
+  revision is one link.
+
+To assemble, combine `dataSources`, key each chart under `charts`, and add a
+`layout`. Send the final spec with the surface the workspace is for, such as
+`explore` or `canvas`, then offer to save it as YAML.
+
+When the workspace is for `edge`, check the spec with `surface: edge` while you
+iterate, so `warnings` show what it will not draw.
 
 ## Schema reference
 
