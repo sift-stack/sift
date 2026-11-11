@@ -7,8 +7,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
-- MCP `create_declarative_chart` takes an optional `surface`: `explore` (the
-  default), `canvas`, or `edge`. It validates the spec for that surface and
+- MCP `create_declarative_chart` takes an optional `surface`: `explore`,
+  `canvas`, `edge`, or `agents` (agent chat). The default is `agents` inside
+  Sift Agents and `explore` elsewhere. It validates the spec for that surface and
   delivers it only when Sift reports no warnings. Otherwise it returns the
   warnings, the parts the surface does not draw, and creates no share link.
   `accept_warnings` delivers the spec anyway, for authoring ahead of support

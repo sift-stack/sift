@@ -241,7 +241,8 @@ tool.
   with `unarchive_artifact`. Both writes need `--allow-destructive`.
 - **Author a chart.** Call `get_chart_schema` once, reuse its local `schema_path`,
   and follow [declarative charts](references/declarative-charts.md) to author
-  panels, pick the surface, and deliver the chart with `create_declarative_chart`.
+  panels, pick the surface, and deliver the chart with `create_declarative_chart`,
+  or to assemble several charts into one workspace.
   Use `explore_url` for a quick read-only deep-link. For a chart and numbers,
   also use `get_data` and `sql`.
 - **Answer a question about how Sift works.** Call `search_docs`. Do not answer

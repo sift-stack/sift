@@ -13,7 +13,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use tokio::sync::Mutex;
 
-use crate::service::remote_files::RestConfig;
+use crate::{ClientName, service::remote_files::RestConfig};
 
 const SHARE_LINK_PATH: &str = "/api/v1/declarative:sharelink";
 const VALIDATE_PATH: &str = "/api/v1/declarative:validate";
@@ -62,16 +62,35 @@ pub(crate) enum ChartSurface {
     Explore,
     Canvas,
     Edge,
+    /// Agent chat in Sift Agents.
+    Agents,
 }
 
 impl ChartSurface {
-    pub(crate) const ALL: [Self; 3] = [Self::Explore, Self::Canvas, Self::Edge];
+    pub(crate) const ALL: [Self; 4] = [Self::Explore, Self::Canvas, Self::Edge, Self::Agents];
 
     pub(crate) fn as_str(self) -> &'static str {
         match self {
             Self::Explore => "explore",
             Self::Canvas => "canvas",
             Self::Edge => "edge",
+            Self::Agents => "agents",
+        }
+    }
+
+    /// Charts made in a Sift chat pod appear in agent chat.
+    fn default_for(client_name: ClientName) -> Self {
+        match client_name {
+            ClientName::Chat => Self::Agents,
+            ClientName::SiftMcp => Self::Explore,
+        }
+    }
+
+    /// Explore and agent chat open a saved share link. The others load the spec itself.
+    pub(crate) fn shares_link(self) -> bool {
+        match self {
+            Self::Explore | Self::Agents => true,
+            Self::Canvas | Self::Edge => false,
         }
     }
 
@@ -80,6 +99,7 @@ impl ChartSurface {
             Self::Explore => "DECLARATIVE_SURFACE_EXPLORE",
             Self::Canvas => "DECLARATIVE_SURFACE_CANVAS",
             Self::Edge => "DECLARATIVE_SURFACE_EDGE",
+            Self::Agents => "DECLARATIVE_SURFACE_AGENTS",
         }
     }
 }
@@ -153,6 +173,8 @@ pub struct DeclarativeService {
     /// Serializes cache refreshes within this process. Other processes may download too; the
     /// atomic rename keeps every reader on a complete file.
     refresh: Arc<Mutex<()>>,
+    /// The surface when the caller names none, which depends on where the server runs.
+    default_surface: ChartSurface,
     /// The last check, so sending the same spec again, such as to save it, repeats no request.
     last_check: LastResult<(ChartSurface, SpecDigest), SpecCheck>,
     /// The last share link. Links are content-addressed, so the same spec gets the same link.
@@ -209,7 +231,13 @@ struct RestClient {
 
 impl DeclarativeService {
     pub fn new(rest_config: Option<RestConfig>, cli_version: &str) -> Self {
+        let default_surface = rest_config
+            .as_ref()
+            .map_or(ChartSurface::Explore, |config| {
+                ChartSurface::default_for(config.client_name)
+            });
         Self {
+            default_surface,
             client: rest_config.map(|config| RestClient {
                 http: reqwest::Client::new(),
                 base_uri: config.rest_uri.trim_end_matches('/').to_owned(),
@@ -221,6 +249,10 @@ impl DeclarativeService {
             last_check: LastResult::default(),
             last_share_link: LastResult::default(),
         }
+    }
+
+    pub(crate) fn default_surface(&self) -> ChartSurface {
+        self.default_surface
     }
 
     /// Tests pick their own private cache root, so none touches the real user cache.

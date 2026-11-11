@@ -599,3 +599,24 @@ async fn share_link_reuses_the_last_link_for_the_same_spec() {
     assert_eq!(links, ["first", "first", "second"]);
     assert_eq!(server.await.unwrap().len(), 2);
 }
+
+#[test]
+fn the_default_surface_follows_the_client() {
+    let chat = RestConfig {
+        client_name: crate::ClientName::Chat,
+        ..RestConfig::new("http://sift.test".into(), "test-key".into())
+    };
+    assert_eq!(
+        DeclarativeService::new(Some(chat), "1.2.3").default_surface(),
+        ChartSurface::Agents
+    );
+    let root = cache_root();
+    assert_eq!(
+        service("http://sift.test", root.path()).default_surface(),
+        ChartSurface::Explore
+    );
+    assert_eq!(
+        DeclarativeService::new(None, "1.2.3").default_surface(),
+        ChartSurface::Explore
+    );
+}

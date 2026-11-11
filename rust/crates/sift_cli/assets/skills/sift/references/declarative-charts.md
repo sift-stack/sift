@@ -2,24 +2,26 @@
 
 Author version 0 YAML or JSON using Sift's existing declarative schema, then
 deliver it with `create_declarative_chart`. The same spec draws in Explore,
-Canvas, and Sift Edge Desktop. It does not promise an inline chart in the
-calling chat client. For a simple read-only deep-link, use `explore_url`.
+Canvas, Sift Edge Desktop, and agent chat in Sift Agents. Other chat clients
+get a link, not an inline chart. For a simple read-only deep-link, use
+`explore_url`.
 
 ## Choose the surface
 
-Pass `surface` to `create_declarative_chart`. Use the surface the user names,
-and Explore otherwise.
+Pass `surface` to `create_declarative_chart` when the user names where the
+chart goes.
 
 | User wants the chart | `surface` | Result |
 |---|---|---|
-| In the Sift web app, or did not say | `explore` (default) | A saved Explore share link. |
+| Did not say | omit: `agents` inside Sift Agents, `explore` elsewhere | A saved share link. |
+| In Explore | `explore` | A saved Explore share link. |
 | In a Canvas | `canvas` | Steps to paste the spec into a Canvas chart cell. Nothing is saved in Sift. |
 | In Sift Edge Desktop | `edge` | Steps to load the spec as a `.yaml` file in Sift Edge Desktop. Nothing is saved in Sift. |
 
 On every surface, `output` also writes the spec to a local file, exactly as
 sent, when it is delivered. Use an absolute `.yaml` path. Always pass it for
 `edge`, which loads the spec from a file. For the other surfaces, pass it when
-the user asks for a file; otherwise `next_step` says how to offer one.
+the user asks for a file; otherwise `next_step` says when to offer one.
 
 ## Workflow
 
@@ -48,6 +50,18 @@ the user asks for a file; otherwise `next_step` says how to offer one.
 8. Follow `next_step` from the delivered result. It says how to present the
    chart on the surface. For numbers too, use `get_data` and `sql` separately;
    plotting does not require a local telemetry download.
+
+## Build a workspace from several charts
+
+1. Make each chart with its own call and the default surface, and refine it
+   with the user. Each result is a preview.
+2. Merge the charts the user approved into one spec: combine `dataSources`,
+   key each chart under `charts`, and add a `layout`. Send it once with the
+   surface the workspace is for, such as `explore` or `canvas`.
+3. Offer to save the spec as YAML.
+
+When the workspace is for `edge`, make each chart with `surface: edge`, so
+`warnings` show what it will not draw while you iterate.
 
 ## Schema reference
 

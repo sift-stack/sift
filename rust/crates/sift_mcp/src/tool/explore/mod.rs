@@ -216,7 +216,7 @@ impl SiftMcpServer {
             with no create-access flag or confirmation required.
 
             Output:
-              - Explore: `{ \"valid\": true, \"surface\": \"explore\", \"shortLink\", \"exploreUrl\",
+              - Explore or agents: `{ \"valid\": true, \"surface\", \"shortLink\", \"exploreUrl\",
                 \"next_step\" }`. `exploreUrl` opens the chart in Sift.
               - Canvas or Edge: `{ \"valid\": true, \"surface\", \"next_step\" }`. Nothing is saved in Sift;
                 `next_step` says how to load the spec.
@@ -232,8 +232,9 @@ impl SiftMcpServer {
             Parameters:
               - `spec`: the complete spec as a YAML or JSON string, sent to Sift as is. Read the schema
                 with `get_chart_schema` before writing one.
-              - `surface`: optional, `explore` (default), `canvas`, or `edge`. Use `canvas` when the user
-                wants the chart in a Canvas, and `edge` for Sift Edge Desktop.
+              - `surface`: optional, `explore`, `canvas`, `edge`, or `agents` (agent chat in Sift Agents).
+                Omit it unless the user names where the chart goes: the default is `agents` inside Sift
+                Agents and `explore` elsewhere.
               - `output`: optional absolute `.yaml` path. On delivery, the spec is written there exactly as
                 sent; otherwise any existing file is kept. Always pass it for `edge`, which loads the spec
                 from a file. A relative path resolves against the MCP server's working directory.
@@ -250,8 +251,7 @@ impl SiftMcpServer {
             Guidance:
               - Resolve run IDs and channel names with `list_runs`, `list_channels`, and
                 `list_calculated_channels` before writing the spec. Never invent them.
-              - Bind a calculated channel with `calculatedChannelId`, not by name. Use a run-scoped data
-                source: Explore skips saved calculated channels on asset-only sources.
+              - Bind a calculated channel with `calculatedChannelId`, not by name.
               - Prefer YAML. Omit `sampling`, `maxGap`, and axis `min`/`max` unless the user asked for them.
               - Follow `next_step` on every result. It says how to fix and resend, or how to present the
                 chart.
@@ -273,8 +273,8 @@ impl SiftMcpServer {
             output,
             accept_warnings,
         }) = params;
-        let surface = parse_surface(surface)?;
-        if surface == ChartSurface::Explore {
+        let surface = parse_surface(surface, self.declarative_service.default_surface())?;
+        if surface.shares_link() {
             // Check presentation config before persisting; the backend receives only the spec.
             self.url_service.build_share_url("")?;
         }
@@ -299,7 +299,7 @@ impl SiftMcpServer {
 
         let mut structured = checked_body(surface, &check);
         let delivery = match surface {
-            ChartSurface::Explore => {
+            ChartSurface::Explore | ChartSurface::Agents => {
                 let short_link = match self.declarative_service.create_share_link(&spec).await {
                     Ok(short_link) => short_link,
                     Err(error) => return request_failure(error),
@@ -339,11 +339,11 @@ impl SiftMcpServer {
     }
 }
 
-/// `None` or blank means Explore.
-fn parse_surface(value: Option<String>) -> Result<ChartSurface, ErrorData> {
+/// `None` or blank means `default`.
+fn parse_surface(value: Option<String>, default: ChartSurface) -> Result<ChartSurface, ErrorData> {
     let lowered = value.unwrap_or_default().trim().to_ascii_lowercase();
     if lowered.is_empty() {
-        return Ok(ChartSurface::Explore);
+        return Ok(default);
     }
     ChartSurface::ALL
         .into_iter()
@@ -383,8 +383,10 @@ fn compose_next_step(delivery: String, saved: Option<&str>, check: &SpecCheck) -
             "\n\nThe spec is saved at `{path}`. Tell the user where it is."
         )),
         None => next_step.push_str(
-            "\n\nOffer to save the spec as a local YAML file. If the user wants one, send the same \
-             spec again, unchanged, with `output` set to an absolute `.yaml` path.",
+            "\n\nIf the user may keep or reuse this chart, such as when building a \
+             workspace or iterating on a view, offer to save the spec as a YAML file: send the same \
+             spec again, unchanged, with `output` set to an absolute `.yaml` path. Skip the offer for \
+             a one-off chart.",
         ),
     }
     if !check.surface_gaps_checked {

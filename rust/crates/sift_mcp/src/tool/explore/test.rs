@@ -424,9 +424,9 @@ async fn create_declarative_chart_returns_a_small_success_payload() {
     );
     let text = &result.content[0].as_text().unwrap().text;
     assert!(text.contains("https://app.siftstack.com/share/a%2Fb"));
-    // Without `output`, every surface offers a local copy.
+    // Without `output`, the result carries the save-offer guidance.
     assert!(
-        text.contains("Offer to save the spec as a local YAML file"),
+        text.contains("Skip the offer for a one-off chart"),
         "{text}"
     );
     let requests = http.await.unwrap();
@@ -611,7 +611,7 @@ fn with_warnings() -> Vec<u8> {
 #[tokio::test]
 async fn warnings_block_delivery_on_every_surface() {
     let root = tempdir::TempDir::new("explore-warnings").unwrap();
-    for surface in ["explore", "canvas", "edge"] {
+    for surface in ChartSurface::ALL.map(ChartSurface::as_str) {
         let (uri, http) = start_sequence_server(vec![with_warnings()]).await;
         let server = server_with_rest(&uri, &root, false, false).await;
 
@@ -710,12 +710,47 @@ async fn saving_a_delivered_spec_repeats_no_request() {
 }
 
 #[tokio::test]
+async fn chat_defaults_to_the_agents_surface_and_still_returns_a_link() {
+    let (uri, http) = start_sequence_server(vec![valid(), share_link("abc")]).await;
+    let root = tempdir::TempDir::new("explore-chat").unwrap();
+    let mut server = server_with_rest(&uri, &root, false, false).await;
+    let chat = crate::service::remote_files::RestConfig {
+        client_name: crate::ClientName::Chat,
+        ..crate::service::remote_files::RestConfig::new(uri.clone(), "test-key".into())
+    };
+    server.declarative_service =
+        crate::service::declarative::DeclarativeService::new(Some(chat), "1.2.3")
+            .with_cache_root(root.path());
+
+    let result = create_chart(&server, "spec").await.unwrap();
+
+    assert_eq!(structured(&result)["shortLink"], "abc");
+    assert_eq!(
+        request_json(&http.await.unwrap()[0])["surface"],
+        "DECLARATIVE_SURFACE_AGENTS"
+    );
+}
+
+#[test]
+fn an_explicit_surface_overrides_the_default() {
+    assert_eq!(
+        parse_surface(Some("canvas".into()), ChartSurface::Agents).unwrap(),
+        ChartSurface::Canvas
+    );
+    assert_eq!(
+        parse_surface(None, ChartSurface::Agents).unwrap(),
+        ChartSurface::Agents
+    );
+}
+
+#[tokio::test]
 async fn output_writes_the_accepted_spec_as_sent_on_every_surface() {
     let root = tempdir::TempDir::new("explore-output").unwrap();
     let spec = "version: 0\n# comments and key order survive\nchart: {type: table}\n";
-    for surface in ["explore", "canvas", "edge"] {
+    for chart_surface in ChartSurface::ALL {
+        let surface = chart_surface.as_str();
         let mut replies = vec![valid()];
-        if surface == "explore" {
+        if chart_surface.shares_link() {
             replies.push(share_link("abc"));
         }
         let (uri, _http) = start_sequence_server(replies).await;
@@ -743,7 +778,7 @@ async fn output_writes_the_accepted_spec_as_sent_on_every_surface() {
             "{surface}: {next_step}"
         );
         assert!(
-            !next_step.contains("Offer to save"),
+            !next_step.contains("Skip the offer"),
             "{surface}: {next_step}"
         );
     }
@@ -848,7 +883,7 @@ async fn an_unknown_surface_is_rejected_before_any_request() {
     let error = create_chart_with(
         &server,
         CreateDeclarativeChartParams {
-            surface: Some("agents".into()),
+            surface: Some("dashboard".into()),
             ..params("spec")
         },
     )
@@ -857,7 +892,7 @@ async fn an_unknown_surface_is_rejected_before_any_request() {
 
     assert_eq!(error.code, rmcp::model::ErrorCode::INVALID_PARAMS);
     assert!(
-        error.message.contains("explore, canvas, edge"),
+        error.message.contains("explore, canvas, edge, agents"),
         "{}",
         error.message
     );
