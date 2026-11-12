@@ -5,7 +5,8 @@ use sift_test_util::grpc::memory_sift_channel;
 use super::*;
 use crate::{
     server::SiftMcpServer,
-    service::declarative::test::{http_response, service, start_sequence_server},
+    service::declarative::test::{http_response, request_json, service, start_sequence_server},
+    tool::common::test_support::{content_texts, dir_entries},
 };
 
 const APP_URI: &str = "https://app.siftstack.com";
@@ -247,11 +248,45 @@ async fn create_chart(
     server: &SiftMcpServer,
     spec: &str,
 ) -> Result<rmcp::model::CallToolResult, rmcp::ErrorData> {
-    server
-        .create_declarative_chart(Parameters(CreateDeclarativeChartParams {
-            spec: spec.into(),
-        }))
-        .await
+    create_chart_with(server, params(spec)).await
+}
+
+/// Params with only `spec` set. Override the rest with struct update syntax.
+fn params(spec: &str) -> CreateDeclarativeChartParams {
+    CreateDeclarativeChartParams {
+        spec: spec.into(),
+        surface: None,
+        output: None,
+        accept_warnings: None,
+    }
+}
+
+async fn create_chart_with(
+    server: &SiftMcpServer,
+    params: CreateDeclarativeChartParams,
+) -> Result<rmcp::model::CallToolResult, rmcp::ErrorData> {
+    server.create_declarative_chart(Parameters(params)).await
+}
+
+/// A validate response with no errors or warnings.
+fn valid() -> Vec<u8> {
+    reply("200 OK", r#"{"valid":true}"#)
+}
+
+fn share_link(short_link: &str) -> Vec<u8> {
+    reply("200 OK", &format!(r#"{{"shortLink":"{short_link}"}}"#))
+}
+
+/// The top-level keys of a JSON object, sorted.
+fn keys(value: &Value) -> Vec<&str> {
+    let mut keys: Vec<_> = value
+        .as_object()
+        .unwrap()
+        .keys()
+        .map(String::as_str)
+        .collect();
+    keys.sort_unstable();
+    keys
 }
 
 fn tool_named(name: &str) -> rmcp::model::Tool {
@@ -271,8 +306,19 @@ fn chart_tools_have_flat_schemas_and_honest_annotations() {
 
     let create_tool = tool_named("create_declarative_chart");
     let properties = create_tool.input_schema["properties"].as_object().unwrap();
-    assert_eq!(properties.len(), 1);
+    assert_eq!(properties.len(), 4);
     assert_eq!(properties["spec"]["type"], "string");
+    for (optional, kind) in [
+        ("surface", "string"),
+        ("output", "string"),
+        ("accept_warnings", "boolean"),
+    ] {
+        assert_eq!(
+            properties[optional]["type"],
+            serde_json::json!([kind, "null"]),
+            "{optional}"
+        );
+    }
     let annotations = create_tool.annotations.unwrap();
     assert_eq!(annotations.read_only_hint, Some(true));
     assert_eq!(annotations.destructive_hint, Some(false));
@@ -317,8 +363,7 @@ async fn chart_share_links_work_in_every_access_mode_without_enabling_other_writ
     for (allow_create, allow_destructive) in
         [(false, false), (true, false), (false, true), (true, true)]
     {
-        let (uri, _http) =
-            start_sequence_server(vec![reply("200 OK", r#"{"shortLink":"abc"}"#)]).await;
+        let (uri, _http) = start_sequence_server(vec![valid(), share_link("abc")]).await;
         let server = server_with_rest(&uri, &root, allow_create, allow_destructive).await;
         if !allow_create && !allow_destructive {
             assert!(server.require_create().is_err());
@@ -359,17 +404,19 @@ fn structured(result: &rmcp::model::CallToolResult) -> Value {
 
 #[tokio::test]
 async fn create_declarative_chart_returns_a_small_success_payload() {
-    let (uri, http) = start_sequence_server(vec![reply("200 OK", r#"{"shortLink":"a/b"}"#)]).await;
+    let (uri, http) = start_sequence_server(vec![valid(), share_link("a/b")]).await;
     let root = tempdir::TempDir::new("explore-ok").unwrap();
     let server = server_with_rest(&uri, &root, true, false).await;
 
     let result = create_chart(&server, "charts: []\n").await.unwrap();
 
     let structured = structured(&result);
-    let mut keys: Vec<_> = structured.as_object().unwrap().keys().cloned().collect();
-    keys.sort();
-    assert_eq!(keys, ["exploreUrl", "next_step", "shortLink", "valid"]);
+    assert_eq!(
+        keys(&structured),
+        ["exploreUrl", "next_step", "shortLink", "surface", "valid"]
+    );
     assert_eq!(structured["valid"], true);
+    assert_eq!(structured["surface"], "explore");
     assert_eq!(structured["shortLink"], "a/b");
     assert_eq!(
         structured["exploreUrl"],
@@ -377,8 +424,18 @@ async fn create_declarative_chart_returns_a_small_success_payload() {
     );
     let text = &result.content[0].as_text().unwrap().text;
     assert!(text.contains("https://app.siftstack.com/share/a%2Fb"));
-    let request = String::from_utf8(http.await.unwrap().remove(0)).unwrap();
-    assert!(request.ends_with(r#"{"spec":"charts: []\n"}"#), "{request}");
+    // Without `output`, the result carries the save-offer guidance.
+    assert!(
+        text.contains("Skip the offer for a one-off chart"),
+        "{text}"
+    );
+    let requests = http.await.unwrap();
+    assert_eq!(
+        request_json(&requests[0]),
+        serde_json::json!({ "spec": "charts: []\n", "strict": true, "surface": "DECLARATIVE_SURFACE_EXPLORE" })
+    );
+    let share = String::from_utf8(requests[1].clone()).unwrap();
+    assert!(share.ends_with(r#"{"spec":"charts: []\n"}"#), "{share}");
 }
 
 #[tokio::test]
@@ -475,4 +532,368 @@ async fn other_http_failures_never_suggest_repairing_the_spec() {
     let server = server_with_rest("http://127.0.0.1:1", &root, true, false).await;
     let error = create_chart(&server, "spec").await.unwrap_err();
     assert!(!error.message.contains("resend"), "{}", error.message);
+}
+
+#[tokio::test]
+async fn an_invalid_spec_returns_each_error_with_its_path_and_saves_nothing() {
+    let body = r#"{"errors":[{"path":"/chart/type","message":"unknown chart type"}]}"#;
+    let (uri, http) = start_sequence_server(vec![reply("200 OK", body)]).await;
+    let root = tempdir::TempDir::new("explore-invalid").unwrap();
+    let server = server_with_rest(&uri, &root, false, false).await;
+
+    let result = create_chart(&server, "bad").await.unwrap();
+
+    let structured = structured(&result);
+    assert_eq!(structured["valid"], false);
+    assert_eq!(structured["reason"], "invalid_spec");
+    assert_eq!(
+        structured["issues"],
+        serde_json::json!([{ "path": "/chart/type", "message": "unknown chart type" }])
+    );
+    let text = &result.content[0].as_text().unwrap().text;
+    assert!(text.contains("/chart/type: unknown chart type"), "{text}");
+    assert_eq!(
+        http.await.unwrap().len(),
+        1,
+        "no share link for an invalid spec"
+    );
+}
+
+#[tokio::test]
+async fn canvas_and_edge_check_the_spec_and_return_loading_steps_without_a_link() {
+    let root = tempdir::TempDir::new("explore-surfaces").unwrap();
+    for (surface, proto, step) in [
+        (
+            "canvas",
+            "DECLARATIVE_SURFACE_CANVAS",
+            "Charts > Timeseries",
+        ),
+        ("edge", "DECLARATIVE_SURFACE_EDGE", "Load view or spec"),
+    ] {
+        let (uri, http) = start_sequence_server(vec![valid()]).await;
+        let mut server = server_with_rest(&uri, &root, false, false).await;
+        // Canvas and Edge never build an Explore link, so they need no app URI.
+        server.url_service = crate::service::url::UrlService::new(String::new());
+
+        let result = create_chart_with(
+            &server,
+            CreateDeclarativeChartParams {
+                surface: Some(surface.into()),
+                ..params("spec")
+            },
+        )
+        .await
+        .unwrap();
+
+        let structured = structured(&result);
+        assert_eq!(
+            keys(&structured),
+            ["next_step", "surface", "valid"],
+            "{surface}"
+        );
+        assert_eq!(structured["surface"], surface);
+        let next_step = structured["next_step"].as_str().unwrap();
+        assert!(next_step.contains(step), "{surface}: {next_step}");
+        let requests = http.await.unwrap();
+        assert_eq!(requests.len(), 1, "{surface}: no share link");
+        assert_eq!(request_json(&requests[0])["surface"], proto);
+    }
+}
+
+/// A validate response that accepts the spec with one contract warning, which every surface gets.
+fn with_warnings() -> Vec<u8> {
+    reply(
+        "200 OK",
+        r#"{"valid":true,"warnings":[{"path":"/charts/a","message":"skipped"}]}"#,
+    )
+}
+
+#[tokio::test]
+async fn warnings_block_delivery_on_every_surface() {
+    let root = tempdir::TempDir::new("explore-warnings").unwrap();
+    for surface in ChartSurface::ALL.map(ChartSurface::as_str) {
+        let (uri, http) = start_sequence_server(vec![with_warnings()]).await;
+        let server = server_with_rest(&uri, &root, false, false).await;
+
+        let result = create_chart_with(
+            &server,
+            CreateDeclarativeChartParams {
+                surface: Some(surface.into()),
+                ..params("spec")
+            },
+        )
+        .await
+        .unwrap();
+
+        let structured = structured(&result);
+        assert_eq!(
+            keys(&structured),
+            ["next_step", "reason", "surface", "valid", "warnings"],
+            "{surface}"
+        );
+        assert_eq!(structured["reason"], "warnings", "{surface}");
+        assert_eq!(
+            structured["warnings"],
+            serde_json::json!([{ "path": "/charts/a", "message": "skipped" }])
+        );
+        let next_step = structured["next_step"].as_str().unwrap();
+        assert!(
+            next_step.contains("nothing was delivered")
+                && next_step.contains("`accept_warnings: true`"),
+            "{surface}: {next_step}"
+        );
+        // Clients that show only text content still see the warnings.
+        let text = content_texts(&result).concat();
+        assert!(text.contains("skipped"), "{surface}: {text}");
+        assert_eq!(http.await.unwrap().len(), 1, "{surface}: no share link");
+    }
+}
+
+#[tokio::test]
+async fn accepted_warnings_deliver_the_spec_and_report_them() {
+    let (uri, _http) = start_sequence_server(vec![with_warnings(), share_link("abc")]).await;
+    let root = tempdir::TempDir::new("explore-accept").unwrap();
+    let server = server_with_rest(&uri, &root, false, false).await;
+    let path = root.path().join("future.yaml");
+
+    let blocked = create_chart(&server, "spec").await.unwrap();
+    let accepted = create_chart_with(
+        &server,
+        CreateDeclarativeChartParams {
+            output: Some(path.clone()),
+            accept_warnings: Some(true),
+            ..params("spec")
+        },
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(structured(&blocked)["reason"], "warnings");
+    let structured = structured(&accepted);
+    assert_eq!(structured["shortLink"], "abc");
+    assert_eq!(
+        structured["warnings"],
+        serde_json::json!([{ "path": "/charts/a", "message": "skipped" }])
+    );
+    let next_step = structured["next_step"].as_str().unwrap();
+    assert!(
+        next_step.contains("does not draw the parts in `warnings` yet"),
+        "{next_step}"
+    );
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), "spec");
+}
+
+#[tokio::test]
+async fn saving_a_delivered_spec_repeats_no_request() {
+    let (uri, http) = start_sequence_server(vec![valid(), share_link("abc")]).await;
+    let root = tempdir::TempDir::new("explore-save-after").unwrap();
+    let server = server_with_rest(&uri, &root, false, false).await;
+    let path = root.path().join("chart.yaml");
+
+    let delivered = create_chart(&server, "spec").await.unwrap();
+    let saved = create_chart_with(
+        &server,
+        CreateDeclarativeChartParams {
+            output: Some(path.clone()),
+            ..params("spec")
+        },
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(
+        structured(&saved)["shortLink"],
+        structured(&delivered)["shortLink"]
+    );
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), "spec");
+    assert_eq!(http.await.unwrap().len(), 2, "one validate, one share link");
+}
+
+#[tokio::test]
+async fn chat_defaults_to_the_agents_surface_and_still_returns_a_link() {
+    let (uri, http) = start_sequence_server(vec![valid(), share_link("abc")]).await;
+    let root = tempdir::TempDir::new("explore-chat").unwrap();
+    let mut server = server_with_rest(&uri, &root, false, false).await;
+    let chat = crate::service::remote_files::RestConfig {
+        client_name: crate::ClientName::Chat,
+        ..crate::service::remote_files::RestConfig::new(uri.clone(), "test-key".into())
+    };
+    server.declarative_service =
+        crate::service::declarative::DeclarativeService::new(Some(chat), "1.2.3")
+            .with_cache_root(root.path());
+
+    let result = create_chart(&server, "spec").await.unwrap();
+
+    assert_eq!(structured(&result)["shortLink"], "abc");
+    assert_eq!(
+        request_json(&http.await.unwrap()[0])["surface"],
+        "DECLARATIVE_SURFACE_AGENTS"
+    );
+}
+
+#[test]
+fn an_explicit_surface_overrides_the_default() {
+    assert_eq!(
+        parse_surface(Some("canvas".into()), ChartSurface::Agents).unwrap(),
+        ChartSurface::Canvas
+    );
+    assert_eq!(
+        parse_surface(None, ChartSurface::Agents).unwrap(),
+        ChartSurface::Agents
+    );
+}
+
+#[tokio::test]
+async fn output_writes_the_accepted_spec_as_sent_on_every_surface() {
+    let root = tempdir::TempDir::new("explore-output").unwrap();
+    let spec = "version: 0\n# comments and key order survive\nchart: {type: table}\n";
+    for chart_surface in ChartSurface::ALL {
+        let surface = chart_surface.as_str();
+        let mut replies = vec![valid()];
+        if chart_surface.shares_link() {
+            replies.push(share_link("abc"));
+        }
+        let (uri, _http) = start_sequence_server(replies).await;
+        let server = server_with_rest(&uri, &root, false, false).await;
+        let path = root.path().join("charts").join(format!("{surface}.yaml"));
+
+        let result = create_chart_with(
+            &server,
+            CreateDeclarativeChartParams {
+                surface: Some(surface.into()),
+                output: Some(path.clone()),
+                ..params(spec)
+            },
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), spec, "{surface}");
+        let structured = structured(&result);
+        let shown = path.to_string_lossy();
+        assert_eq!(structured["output"], *shown, "{surface}");
+        let next_step = structured["next_step"].as_str().unwrap();
+        assert!(
+            next_step.contains(&format!("saved at `{shown}`")),
+            "{surface}: {next_step}"
+        );
+        assert!(
+            !next_step.contains("Skip the offer"),
+            "{surface}: {next_step}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn an_undelivered_spec_keeps_the_existing_output_and_leaves_no_partial_file() {
+    let root = tempdir::TempDir::new("explore-output-kept").unwrap();
+    // Apart from the service's cache root, so only the output can appear here.
+    let out = tempdir::TempDir::new("explore-output-kept-out").unwrap();
+    let path = out.path().join("chart.yaml");
+    std::fs::write(&path, "earlier spec").unwrap();
+    let invalid = reply(
+        "200 OK",
+        r#"{"errors":[{"path":"/chart","message":"bad"}]}"#,
+    );
+    let share_link_fails = reply("500 Internal Server Error", "boom");
+    for replies in [
+        vec![invalid],
+        vec![with_warnings()],
+        vec![valid(), share_link_fails],
+    ] {
+        let (uri, _http) = start_sequence_server(replies).await;
+        let server = server_with_rest(&uri, &root, false, false).await;
+
+        let _ = create_chart_with(
+            &server,
+            CreateDeclarativeChartParams {
+                output: Some(path.clone()),
+                ..params("new spec")
+            },
+        )
+        .await;
+
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "earlier spec");
+        assert_eq!(dir_entries(&out), vec![path.clone()]);
+    }
+}
+
+#[tokio::test]
+async fn an_unwritable_output_fails_before_the_share_link() {
+    let root = tempdir::TempDir::new("explore-output-blocked").unwrap();
+    let blocker = root.path().join("blocker");
+    std::fs::write(&blocker, "a file, not a directory").unwrap();
+    let (uri, http) = start_sequence_server(vec![valid()]).await;
+    let server = server_with_rest(&uri, &root, false, false).await;
+
+    let result = create_chart_with(
+        &server,
+        CreateDeclarativeChartParams {
+            output: Some(blocker.join("chart.yaml")),
+            ..params("spec")
+        },
+    )
+    .await;
+
+    assert!(result.is_err());
+    assert_eq!(http.await.unwrap().len(), 1, "no share link");
+}
+
+#[tokio::test]
+async fn a_deployment_without_the_surface_still_checks_the_schema() {
+    // Another surface's gap shows the deployment ignored `edge`; it must not block delivery.
+    let unscoped = reply(
+        "200 OK",
+        r#"{"valid":true,"warnings":[{"path":"/a","message":"x","surfaces":["DECLARATIVE_SURFACE_EXPLORE"]}]}"#,
+    );
+    let (uri, _http) = start_sequence_server(vec![unscoped]).await;
+    let root = tempdir::TempDir::new("explore-old-deployment").unwrap();
+    let server = server_with_rest(&uri, &root, false, false).await;
+
+    let result = create_chart_with(
+        &server,
+        CreateDeclarativeChartParams {
+            surface: Some("edge".into()),
+            ..params("spec")
+        },
+    )
+    .await
+    .unwrap();
+
+    let structured = structured(&result);
+    assert_eq!(structured["valid"], true);
+    assert_eq!(structured["surfaceGapsChecked"], false);
+    assert!(
+        structured.get("reason").is_none(),
+        "delivered: {structured}"
+    );
+    assert!(
+        structured["next_step"]
+            .as_str()
+            .unwrap()
+            .contains("checked against the schema only")
+    );
+}
+
+#[tokio::test]
+async fn an_unknown_surface_is_rejected_before_any_request() {
+    let root = tempdir::TempDir::new("explore-bad-surface").unwrap();
+    let server = server_with_rest("http://127.0.0.1:1", &root, false, false).await;
+
+    let error = create_chart_with(
+        &server,
+        CreateDeclarativeChartParams {
+            surface: Some("dashboard".into()),
+            ..params("spec")
+        },
+    )
+    .await
+    .unwrap_err();
+
+    assert_eq!(error.code, rmcp::model::ErrorCode::INVALID_PARAMS);
+    assert!(
+        error.message.contains("explore, canvas, edge, agents"),
+        "{}",
+        error.message
+    );
 }
