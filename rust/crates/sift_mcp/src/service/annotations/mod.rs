@@ -1,19 +1,22 @@
 use crate::policy::{RetryPolicy, once, with_retry};
-use crate::service::common;
-use anyhow::{Context, Error, Result, anyhow};
+use crate::{
+    error::from_anyhow,
+    service::common,
+    tool::common::bulk::{self, Op},
+};
+use anyhow::{Context, Result, anyhow};
 use futures::{StreamExt, stream};
 use pbjson_types::{FieldMask, Timestamp};
 use sift_rs::{
     SiftChannel,
     annotations::v1::{
         Annotation, AnnotationLinkedChannel, AnnotationState, AnnotationType,
-        BatchArchiveAnnotationsRequest, CreateAnnotationRequest, ListAnnotationsRequest,
-        ListAnnotationsResponse, UpdateAnnotationRequest, annotation_linked_channel,
-        annotation_service_client::AnnotationServiceClient,
+        ArchiveAnnotationRequest, CreateAnnotationRequest, ListAnnotationsRequest,
+        ListAnnotationsResponse, UnarchiveAnnotationRequest, UpdateAnnotationRequest,
+        annotation_linked_channel, annotation_service_client::AnnotationServiceClient,
     },
     metadata::v1::MetadataValue,
 };
-use tonic::Code;
 
 #[cfg(test)]
 mod test;
@@ -23,7 +26,7 @@ const MAX_CONCURRENT_ANNOTATION_UPDATES: usize = 50;
 #[derive(Debug)]
 pub struct AnnotationUpdateFailure {
     pub annotation_id: String,
-    pub error: Error,
+    pub error: rmcp::ErrorData,
 }
 
 #[derive(Debug)]
@@ -31,8 +34,6 @@ pub struct UpdateAnnotationsResult {
     pub annotations: Vec<Annotation>,
     pub failures: Vec<AnnotationUpdateFailure>,
     pub not_attempted: Vec<String>,
-    pub batch_archive_error: Option<Error>,
-    pub archive_skipped: bool,
 }
 
 async fn fan_out_bounded<T, R, F, Fut>(items: Vec<T>, concurrency: usize, mut op: F) -> Vec<R>
@@ -50,21 +51,6 @@ where
         .await;
     results.sort_unstable_by_key(|(index, _)| *index);
     results.into_iter().map(|(_, result)| result).collect()
-}
-
-fn is_backend_wide_failure(error: &Error) -> bool {
-    error.downcast_ref::<tonic::Status>().is_some_and(|status| {
-        matches!(
-            status.code(),
-            Code::ResourceExhausted
-                | Code::Unavailable
-                | Code::DeadlineExceeded
-                | Code::Internal
-                | Code::Unauthenticated
-                | Code::PermissionDenied
-                | Code::Cancelled
-        )
-    })
 }
 
 /// Build a protobuf `Timestamp` from Unix nanoseconds via the shared helper.
@@ -223,26 +209,23 @@ impl AnnotationService {
             .ok_or_else(|| anyhow!("create_annotation response missing annotation"))
     }
 
-    pub async fn batch_archive_annotations(
-        &self,
-        annotation_ids: Vec<String>,
-    ) -> Result<Vec<Annotation>> {
+    pub async fn archive_annotation(&self, annotation_id: String) -> Result<Annotation> {
         let channel = self.channel.clone();
         let resp = with_retry(&self.policy, move || {
             let channel = channel.clone();
-            let annotation_ids = annotation_ids.clone();
+            let annotation_id = annotation_id.clone();
             async move {
                 let mut client = AnnotationServiceClient::new(channel);
                 client
-                    .batch_archive_annotations(BatchArchiveAnnotationsRequest { annotation_ids })
+                    .archive_annotation(ArchiveAnnotationRequest { annotation_id })
                     .await
                     .map(|resp| resp.into_inner())
             }
         })
         .await
-        .context("failed to batch archive annotations")?;
-
-        Ok(resp.annotations)
+        .context("failed to archive annotation")?;
+        resp.annotation
+            .ok_or_else(|| anyhow!("archive_annotation response missing annotation"))
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -269,136 +252,85 @@ impl AnnotationService {
             || tags.is_some()
             || linked_channel_ids.is_some()
             || metadata.is_some();
-        let mut annotations = Vec::new();
+        let mut annotations = Vec::with_capacity(annotation_ids.len());
         let mut failures = Vec::new();
         let mut not_attempted = Vec::new();
 
-        if has_field_update {
-            annotations.reserve(annotation_ids.len());
-            for chunk_start in (0..annotation_ids.len()).step_by(MAX_CONCURRENT_ANNOTATION_UPDATES)
-            {
-                let chunk_end =
-                    (chunk_start + MAX_CONCURRENT_ANNOTATION_UPDATES).min(annotation_ids.len());
-                let service = self.clone();
-                let name = name.clone();
-                let description = description.clone();
-                let assigned_to_user_id = assigned_to_user_id.clone();
-                let tags = tags.clone();
-                let linked_channel_ids = linked_channel_ids.clone();
-                let metadata = metadata.clone();
-                let updates = fan_out_bounded(
-                    annotation_ids[chunk_start..chunk_end].to_vec(),
-                    MAX_CONCURRENT_ANNOTATION_UPDATES,
-                    move |annotation_id| {
-                        let service = service.clone();
-                        let name = name.clone();
-                        let description = description.clone();
-                        let assigned_to_user_id = assigned_to_user_id.clone();
-                        let tags = tags.clone();
-                        let linked_channel_ids = linked_channel_ids.clone();
-                        let metadata = metadata.clone();
-                        async move {
-                            let result = service
-                                .update_annotation(
-                                    annotation_id.clone(),
-                                    name,
-                                    description,
-                                    start_time_unix_nanos,
-                                    end_time_unix_nanos,
-                                    assigned_to_user_id,
-                                    state,
-                                    tags,
-                                    linked_channel_ids,
-                                    metadata,
+        for chunk in annotation_ids.chunks(MAX_CONCURRENT_ANNOTATION_UPDATES) {
+            let updates = fan_out_bounded(
+                chunk.to_vec(),
+                MAX_CONCURRENT_ANNOTATION_UPDATES,
+                |annotation_id| {
+                    let service = self.clone();
+                    let name = name.clone();
+                    let description = description.clone();
+                    let assigned_to_user_id = assigned_to_user_id.clone();
+                    let tags = tags.clone();
+                    let linked_channel_ids = linked_channel_ids.clone();
+                    let metadata = metadata.clone();
+                    async move {
+                        let result = async {
+                            let annotation = if has_field_update {
+                                Some(
+                                    service
+                                        .update_annotation(
+                                            annotation_id.clone(),
+                                            name,
+                                            description,
+                                            start_time_unix_nanos,
+                                            end_time_unix_nanos,
+                                            assigned_to_user_id,
+                                            state,
+                                            tags,
+                                            linked_channel_ids,
+                                            metadata,
+                                        )
+                                        .await?,
                                 )
-                                .await;
-                            (annotation_id, result)
+                            } else {
+                                None
+                            };
+                            match is_archived {
+                                Some(true) => {
+                                    service.archive_annotation(annotation_id.clone()).await
+                                }
+                                Some(false) => {
+                                    service.unarchive_annotation(annotation_id.clone()).await
+                                }
+                                None => annotation.context("no annotation changes requested"),
+                            }
                         }
-                    },
-                )
-                .await;
-                let stop_after_batch = updates
-                    .iter()
-                    .any(|(_, result)| result.as_ref().is_err_and(is_backend_wide_failure));
-
-                for (annotation_id, result) in updates {
-                    match result {
-                        Ok(annotation) => annotations.push(annotation),
-                        Err(error) => failures.push(AnnotationUpdateFailure {
-                            annotation_id,
-                            error,
-                        }),
+                        .await;
+                        (annotation_id, result)
                     }
-                }
-
-                if stop_after_batch {
-                    not_attempted.extend_from_slice(&annotation_ids[chunk_end..]);
-                    break;
-                }
-            }
-        }
-
-        let mut batch_archive_error = None;
-        let mut archive_skipped = false;
-        if is_archived == Some(true) {
-            if failures.is_empty() && not_attempted.is_empty() {
-                let result = self.batch_archive_annotations(annotation_ids).await;
+                },
+            )
+            .await;
+            let mut stop = false;
+            for (annotation_id, result) in updates {
                 match result {
-                    Ok(archived) => annotations = archived,
-                    Err(error) => batch_archive_error = Some(error),
-                }
-            } else {
-                archive_skipped = true;
-            }
-        } else if is_archived == Some(false) && failures.is_empty() && not_attempted.is_empty() {
-            annotations.clear();
-            annotations.reserve(annotation_ids.len());
-            for chunk_start in (0..annotation_ids.len()).step_by(MAX_CONCURRENT_ANNOTATION_UPDATES)
-            {
-                let chunk_end =
-                    (chunk_start + MAX_CONCURRENT_ANNOTATION_UPDATES).min(annotation_ids.len());
-                let service = self.clone();
-                let unarchives = fan_out_bounded(
-                    annotation_ids[chunk_start..chunk_end].to_vec(),
-                    MAX_CONCURRENT_ANNOTATION_UPDATES,
-                    move |annotation_id| {
-                        let service = service.clone();
-                        async move {
-                            let result = service.unarchive_annotation(annotation_id.clone()).await;
-                            (annotation_id, result)
-                        }
-                    },
-                )
-                .await;
-                let stop_after_batch = unarchives
-                    .iter()
-                    .any(|(_, result)| result.as_ref().is_err_and(is_backend_wide_failure));
-
-                for (annotation_id, result) in unarchives {
-                    match result {
-                        Ok(annotation) => annotations.push(annotation),
-                        Err(error) => failures.push(AnnotationUpdateFailure {
+                    Ok(annotation) => annotations.push(annotation),
+                    Err(error) => {
+                        let error = from_anyhow(error);
+                        stop |= bulk::should_stop(Op::Update, &error);
+                        failures.push(AnnotationUpdateFailure {
                             annotation_id,
                             error,
-                        }),
+                        });
                     }
                 }
-
-                if stop_after_batch {
-                    not_attempted.extend_from_slice(&annotation_ids[chunk_end..]);
-                    break;
-                }
             }
-        } else if is_archived == Some(false) {
-            archive_skipped = true;
+            if stop {
+                let attempted = annotations.len() + failures.len();
+                not_attempted.extend_from_slice(&annotation_ids[attempted..]);
+                break;
+            }
         }
 
         Ok(UpdateAnnotationsResult {
             annotations,
             failures,
             not_attempted,
-            batch_archive_error,
-            archive_skipped,
         })
     }
 
@@ -489,7 +421,6 @@ impl AnnotationService {
             .ok_or_else(|| anyhow!("update_annotation response missing annotation"))
     }
 
-    #[allow(deprecated)] // The backend requires this deprecated field to unarchive annotations.
     pub async fn unarchive_annotation(&self, annotation_id: String) -> Result<Annotation> {
         let channel = self.channel.clone();
         let resp = with_retry(&self.policy, move || {
@@ -498,16 +429,7 @@ impl AnnotationService {
             async move {
                 let mut client = AnnotationServiceClient::new(channel);
                 client
-                    .update_annotation(UpdateAnnotationRequest {
-                        annotation: Some(Annotation {
-                            annotation_id,
-                            deleted_date: None,
-                            ..Default::default()
-                        }),
-                        update_mask: Some(FieldMask {
-                            paths: vec!["deleted_date".into()],
-                        }),
-                    })
+                    .unarchive_annotation(UnarchiveAnnotationRequest { annotation_id })
                     .await
                     .map(|resp| resp.into_inner())
             }

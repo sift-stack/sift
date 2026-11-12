@@ -7,9 +7,9 @@ use std::{
 };
 
 use sift_rs::annotations::v1::{
-    Annotation, AnnotationState, AnnotationType, BatchArchiveAnnotationsResponse,
-    CreateAnnotationResponse, ListAnnotationsResponse, UpdateAnnotationResponse,
-    annotation_service_server::AnnotationServiceServer,
+    Annotation, AnnotationState, AnnotationType, ArchiveAnnotationResponse,
+    CreateAnnotationResponse, ListAnnotationsResponse, UnarchiveAnnotationResponse,
+    UpdateAnnotationResponse, annotation_service_server::AnnotationServiceServer,
 };
 use sift_test_util::{grpc::memory_sift_channel, mock::annotations::v1::MockAnnotationServiceImpl};
 use tokio::{sync::Semaphore, task::JoinHandle};
@@ -326,55 +326,192 @@ async fn create_annotation_propagates_grpc_error() {
 }
 
 #[tokio::test]
-async fn batch_archive_annotations_forwards_ids() {
+async fn archive_annotation_forwards_id() {
     let mut mock = MockAnnotationServiceImpl::new();
-    mock.expect_batch_archive_annotations()
-        .withf(|req| req.get_ref().annotation_ids == ["ann1", "ann2"])
+    mock.expect_archive_annotation()
+        .times(1)
+        .withf(|req| req.get_ref().annotation_id == "ann1")
         .returning(|req| {
-            let annotations = req
-                .into_inner()
-                .annotation_ids
-                .into_iter()
-                .map(|annotation_id| Annotation {
-                    annotation_id,
+            Ok(Response::new(ArchiveAnnotationResponse {
+                annotation: Some(Annotation {
+                    annotation_id: req.into_inner().annotation_id,
                     is_archived: true,
                     ..Default::default()
-                })
-                .collect();
-            Ok(Response::new(BatchArchiveAnnotationsResponse {
-                annotations,
+                }),
             }))
         });
-
     let (service, _h) = service_with_mock(mock).await;
-
-    let annotations = service
-        .batch_archive_annotations(vec!["ann1".into(), "ann2".into()])
+    let annotation = service
+        .archive_annotation("ann1".into())
         .await
-        .expect("batch archive failed");
-
-    assert_eq!(annotations.len(), 2);
-    assert!(annotations.iter().all(|annotation| annotation.is_archived));
+        .expect("archive failed");
+    assert_eq!(annotation.annotation_id, "ann1");
+    assert!(annotation.is_archived);
 }
 
 #[tokio::test]
-async fn batch_archive_annotations_propagates_grpc_error() {
+async fn archive_annotation_propagates_grpc_error() {
     let mut mock = MockAnnotationServiceImpl::new();
-    mock.expect_batch_archive_annotations()
+    mock.expect_archive_annotation()
         .returning(|_| Err(Status::not_found("no such annotation")));
 
     let (service, _h) = service_with_mock(mock).await;
 
     let error = service
-        .batch_archive_annotations(vec!["ann1".into()])
+        .archive_annotation("ann1".into())
         .await
-        .expect_err("expected batch archive error");
+        .expect_err("expected archive error");
 
-    assert!(
-        error
-            .to_string()
-            .contains("failed to batch archive annotations")
-    );
+    assert!(error.to_string().contains("failed to archive annotation"));
+}
+
+#[tokio::test]
+async fn update_annotations_only_archives_ids_whose_field_update_succeeded() {
+    for archived in [true, false] {
+        let mut mock = MockAnnotationServiceImpl::new();
+        let updated = Arc::new(std::sync::Mutex::new(std::collections::HashSet::new()));
+        let updates = Arc::clone(&updated);
+        mock.expect_update_annotation()
+            .times(3)
+            .returning(move |req| {
+                let annotation = req.into_inner().annotation.unwrap();
+                if annotation.annotation_id == "ann2" {
+                    return Err(Status::not_found("missing"));
+                }
+                updates
+                    .lock()
+                    .unwrap()
+                    .insert(annotation.annotation_id.clone());
+                Ok(Response::new(UpdateAnnotationResponse {
+                    annotation: Some(annotation),
+                }))
+            });
+        if archived {
+            mock.expect_archive_annotation()
+                .times(2)
+                .returning(move |req| {
+                    let id = req.into_inner().annotation_id;
+                    assert!(updated.lock().unwrap().contains(&id));
+                    assert_ne!(id, "ann2");
+                    Ok(Response::new(ArchiveAnnotationResponse {
+                        annotation: Some(Annotation {
+                            annotation_id: id,
+                            is_archived: true,
+                            ..Default::default()
+                        }),
+                    }))
+                });
+        } else {
+            mock.expect_unarchive_annotation()
+                .times(2)
+                .returning(move |req| {
+                    let id = req.into_inner().annotation_id;
+                    assert!(updated.lock().unwrap().contains(&id));
+                    assert_ne!(id, "ann2");
+                    Ok(Response::new(UnarchiveAnnotationResponse {
+                        annotation: Some(Annotation {
+                            annotation_id: id,
+                            ..Default::default()
+                        }),
+                    }))
+                });
+        }
+        let (service, _h) = service_with_mock(mock).await;
+        let outcome = service
+            .update_annotations(
+                vec!["ann1".into(), "ann2".into(), "ann3".into()],
+                Some("renamed".into()),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(archived),
+            )
+            .await
+            .unwrap();
+        assert_eq!(outcome.annotations.len(), 2);
+        assert_eq!(outcome.failures.len(), 1);
+        assert_eq!(outcome.failures[0].annotation_id, "ann2");
+    }
+}
+
+#[tokio::test]
+async fn archive_item_errors_do_not_stop_later_groups() {
+    for code in [
+        tonic::Code::NotFound,
+        tonic::Code::PermissionDenied,
+        tonic::Code::FailedPrecondition,
+    ] {
+        let mut mock = MockAnnotationServiceImpl::new();
+        mock.expect_archive_annotation()
+            .times(51)
+            .returning(move |req| {
+                let annotation_id = req.into_inner().annotation_id;
+                if annotation_id == "ann0" {
+                    return Err(Status::new(code, "item failed"));
+                }
+                Ok(Response::new(ArchiveAnnotationResponse {
+                    annotation: Some(Annotation {
+                        annotation_id,
+                        is_archived: true,
+                        ..Default::default()
+                    }),
+                }))
+            });
+        let (service, _h) = service_with_mock(mock).await;
+        let outcome = service
+            .update_annotations(
+                (0..51).map(|i| format!("ann{i}")).collect(),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(true),
+            )
+            .await
+            .unwrap();
+        assert_eq!(outcome.annotations.len(), 50);
+        assert_eq!(outcome.failures.len(), 1);
+        assert!(outcome.not_attempted.is_empty());
+        assert_eq!(outcome.annotations.last().unwrap().annotation_id, "ann50");
+    }
+}
+
+#[tokio::test]
+async fn archive_backend_failure_stops_ids_not_yet_started() {
+    let mut mock = MockAnnotationServiceImpl::new();
+    mock.expect_archive_annotation()
+        .times(50)
+        .returning(|_| Err(Status::unavailable("offline")));
+    let (service, _h) = service_with_mock(mock).await;
+    let ids = (0..60).map(|i| format!("ann{i}")).collect::<Vec<_>>();
+    let outcome = service
+        .update_annotations(
+            ids.clone(),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some(true),
+        )
+        .await
+        .unwrap();
+    assert_eq!(outcome.failures.len(), 50);
+    assert_eq!(outcome.not_attempted, ids[50..]);
 }
 
 #[tokio::test]
