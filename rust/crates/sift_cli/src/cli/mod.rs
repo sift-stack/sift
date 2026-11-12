@@ -475,6 +475,10 @@ pub struct ImportCsvArgs {
     #[arg(short = 'f', long, default_value_t = TimeFormat::default(), hide_possible_values = true, help_heading = "Time")]
     pub time_format: TimeFormat,
 
+    /// Unix date format, e.g. "%m-%d-%Y %H:%M:%S", used with `--time-format custom`
+    #[arg(long, default_value_t = String::default(), hide_possible_values = true, help_heading = "Time")]
+    pub time_format_str: String,
+
     /// Start time (RFC3339) to use if time format is relative
     #[arg(short = 's', long, help_heading = "Time")]
     pub relative_start_time: Option<String>,
@@ -604,6 +608,10 @@ pub struct FlatDatasetArgs {
     #[arg(short = 'f', long, hide_possible_values = true, help_heading = "Time")]
     pub time_format: Option<TimeFormat>,
 
+    /// Unix date format, e.g. "%m-%d-%Y %H:%M:%S", used with `--time-format custom`
+    #[arg(long, default_value_t = String::default(), help_heading = "Time")]
+    pub time_format_str: String,
+
     /// Start time (RFC3339) to use if time format is relative
     #[arg(short = 's', long, help_heading = "Time")]
     pub relative_start_time: Option<String>,
@@ -644,6 +652,10 @@ pub struct ChannelPerRowCommonArgs {
     /// Time format used in the time column. Inferred from the time column's Arrow type if omitted
     #[arg(short = 'f', long, hide_possible_values = true, help_heading = "Time")]
     pub time_format: Option<TimeFormat>,
+
+    /// Unix date format, e.g. "%m-%d-%Y %H:%M:%S", used with `--time-format custom`
+    #[arg(long, default_value_t = String::default(), help_heading = "Time")]
+    pub time_format_str: String,
 
     /// Start time (RFC3339) to use if time format is relative
     #[arg(short = 's', long, help_heading = "Time")]
@@ -695,6 +707,7 @@ pub struct ChannelPerRowArgs {
     pub mode: ChannelMode,
     pub time_path: Option<String>,
     pub time_format: Option<TimeFormat>,
+    pub time_format_str: String,
     pub relative_start_time: Option<String>,
     pub data_path: String,
     pub channel_name: Option<String>,
@@ -712,6 +725,7 @@ impl From<ChannelPerRowSingleArgs> for ChannelPerRowArgs {
             mode: ChannelMode::Single,
             time_path: args.common.time_path,
             time_format: args.common.time_format,
+            time_format_str: args.common.time_format_str,
             relative_start_time: args.common.relative_start_time,
             data_path: args.common.data_path,
             channel_name: Some(args.channel_name),
@@ -731,6 +745,7 @@ impl From<ChannelPerRowMultiArgs> for ChannelPerRowArgs {
             mode: ChannelMode::Multi,
             time_path: args.common.time_path,
             time_format: args.common.time_format,
+            time_format_str: args.common.time_format_str,
             relative_start_time: args.common.relative_start_time,
             data_path: args.common.data_path,
             channel_name: None,

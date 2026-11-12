@@ -120,6 +120,18 @@ fn build_hdf5_config_relative_time_format_requires_start() {
 }
 
 #[test]
+fn build_hdf5_config_custom_time_format_errors() {
+    let mut args = make_args();
+    args.time_format = Some(TimeFormat::Custom);
+    let err = build_hdf5_config(&args).unwrap_err();
+    assert!(
+        err.chain()
+            .any(|e| e.to_string().contains("only supported by `import csv`")),
+        "expected validation error, got: {err:#}"
+    );
+}
+
+#[test]
 fn is_time_dataset_name_recognizes_known_names() {
     assert!(is_time_dataset_name("time"));
     assert!(is_time_dataset_name("Time"));

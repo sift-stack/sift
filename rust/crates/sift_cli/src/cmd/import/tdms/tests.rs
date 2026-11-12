@@ -179,6 +179,18 @@ fn build_tdms_config_invalid_start_time_override_errors() {
 }
 
 #[test]
+fn build_tdms_config_custom_time_format_errors() {
+    let mut args = make_args();
+    args.time_format = Some(TimeFormat::Custom);
+    let err = build_tdms_config(&args).unwrap_err();
+    assert!(
+        err.chain()
+            .any(|e| e.to_string().contains("only supported by `import csv`")),
+        "expected validation error, got: {err:#}"
+    );
+}
+
+#[test]
 fn test_tdms_to_sift_data_type() {
     assert_eq!(
         tdms_to_sift_data_type(TdmsDataType::SingleFloat(4)),

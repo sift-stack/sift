@@ -19,7 +19,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - MCP `create_declarative_chart` takes an optional `output` path. On any
   surface, it writes the delivered spec to that local file. Sending the spec
   just delivered again, to save it, repeats no request to Sift.
-  
+- `sift-cli import csv` and `sift-cli import parquet` accept `--time-format custom`
+  with `--time-format-str` for timestamps in a custom Unix date format, such as
+  `%m-%d-%Y %H:%M:%S`.
+
 ## [v0.9.0] - November 12, 2026
 
 ### What's New
