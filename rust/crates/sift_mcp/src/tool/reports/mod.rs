@@ -87,7 +87,7 @@ pub struct CreateReportItem {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-pub struct UpdateReportParams {
+pub struct UpdateReportItem {
     report_id: String,
     metadata: Vec<MetadataEntry>,
 }
@@ -431,16 +431,22 @@ impl SiftMcpServer {
     #[tool(
         name = "update_report",
         description = "
-            Update an existing report's metadata. Wraps `reports/v1 UpdateReport`.
+            Update one or more reports' metadata. This is a WRITE. Wraps `reports/v1 UpdateReport`.
 
             Output:
-              - `{ \"report\": Report, \"report_url\": string|null, \"next_step\": string }`. The returned `Report`
+              - `{ requested_count, selected_count, not_selected, updated_count, successes, failures,
+                not_attempted, next_step }`. `successes` holds `{ index, result }`; `failures` holds
+                `{ index, error, outcome_unknown }`. Any failure sets `isError`. Each result is
+                `{ \"report\": Report, \"report_url\": string|null, \"next_step\": string }`. The returned `Report`
                 is re-fetched after the update (the update RPC itself returns no body). `report_url` is the report's
                 Sift web link, or null when the host can't be derived. `Report` has the `list_reports` item
                 shape: rule totals, no per-rule summaries.
 
             Parameters:
-              - `report_id`: required; the id of the report to update.
+              - `items`: required array of 1–100 objects, one per report, with the fields below.
+              - `selected_indices`: host-owned zero-based positions in `items`. Omit when proposing.
+                Omitted selects every item except in Sift chat, where a missing mask fails closed. `[]` writes nothing.
+              - `report_id`: required in each item; the id of the report to update.
               - `metadata`: required; REPLACES the report's full metadata list. Each entry is
                 `{ \"name\": \"<key>\", \"value\": <scalar> }` where `value` is a string, number, or boolean.
                 Pass `[]` to clear all metadata. A `name` that does not yet exist in the organization's
@@ -451,12 +457,17 @@ impl SiftMcpServer {
             archive flow are not exposed here.
 
             Errors:
+              - `INVALID_PARAMS` before any write for empty/oversized items, duplicate ids, unknown fields,
+                or empty ids; errors name the item index. Item-local errors fail only that item.
+                Backend-wide errors stop the tail; earlier writes stay committed.
               - `INVALID_PARAMS` if `report_id` is empty, the `metadata` list contains duplicate key names, or
                 a value's type does not match an existing metadata key's type.
               - `RESOURCE_NOT_FOUND` if no report matches `report_id`.
               - `INTERNAL_ERROR` for upstream gRPC failures.
 
             Guidance:
+              - Items run sequentially; this is not atomic. Use one call for several reports. Never replay
+                the whole call after a partial failure; retry only failed, not `not_selected`, items.
               - This is a write with REPLACE semantics. CONFIRM the full metadata list with the user — for appends,
                 read the current report via `list_reports` filtered by `report_id == \"<id>\"` and send the union.
         ",
@@ -467,26 +478,49 @@ impl SiftMcpServer {
             idempotent_hint = true,
         )
     )]
-    pub async fn update_report(&self, params: Parameters<UpdateReportParams>) -> error::McpResult {
+    pub async fn update_report(
+        &self,
+        params: Parameters<crate::tool::common::bulk::BulkItems<UpdateReportItem>>,
+    ) -> error::McpResult {
+        use crate::tool::common::bulk::{self, Op};
         self.require_destructive()?;
-
-        let Parameters(UpdateReportParams {
-            report_id,
-            metadata,
-        }) = params;
-
-        if report_id.is_empty() {
-            return Err(ErrorData::invalid_params(
-                "`report_id` must not be empty",
-                None,
-            ));
-        }
-
-        let metadata = metadata
+        let Parameters(params) = params;
+        let items = bulk::parse_items::<UpdateReportItem>(params.items)?;
+        let updates = items
             .into_iter()
-            .map(MetadataValue::from)
-            .collect::<Vec<_>>();
+            .enumerate()
+            .map(|(index, item)| {
+                if item.report_id.trim().is_empty() {
+                    return Err(bulk::at_item(
+                        index,
+                        ErrorData::invalid_params("`report_id` must not be empty", None),
+                    ));
+                }
+                Ok((
+                    item.report_id,
+                    item.metadata
+                        .into_iter()
+                        .map(MetadataValue::from)
+                        .collect::<Vec<_>>(),
+                ))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        bulk::reject_duplicate_targets(&updates, "report", |(id, _)| Some(id.clone()))?;
+        bulk::run(
+            Op::Update,
+            updates,
+            self.selection(params.selected_indices),
+            false,
+            |(id, metadata)| self.update_report_item(id, metadata),
+        )
+        .await
+    }
 
+    async fn update_report_item(
+        &self,
+        report_id: String,
+        metadata: Vec<MetadataValue>,
+    ) -> error::McpResult {
         let report = self
             .report_service
             .update_report(report_id, metadata)
@@ -495,8 +529,7 @@ impl SiftMcpServer {
 
         let report_url = self.url_service.build_report_url(&report.report_id).ok();
         let next_step = format!(
-            "Updated metadata on report `{}` ({}).{} Surface the new state to the user and confirm \
-             nothing was unintentionally dropped — metadata is a REPLACE operation.",
+            "Updated metadata on report `{}` ({}).{}",
             report.name,
             report.report_id,
             url_clause("report", Some(&report.name), report_url.as_deref()),

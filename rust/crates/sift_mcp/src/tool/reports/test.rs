@@ -18,7 +18,113 @@ use sift_test_util::{
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
-use super::{CreateReportItem, ReportListParams, ReportRuleSummaryListParams, UpdateReportParams};
+use super::{CreateReportItem, ReportListParams, ReportRuleSummaryListParams};
+
+mod bulk {
+    use super::*;
+    use serde_json::{Value, json};
+
+    async fn call(server: &SiftMcpServer, value: Value) -> crate::error::McpResult {
+        server
+            .update_report(Parameters(serde_json::from_value(value).unwrap()))
+            .await
+    }
+    fn item(id: &str) -> Value {
+        json!({"report_id": id, "metadata": []})
+    }
+    fn body(result: rmcp::model::CallToolResult) -> Value {
+        result.structured_content.unwrap()
+    }
+
+    #[tokio::test]
+    async fn selected_subset_writes_only_selected_items() {
+        let mut mock = MockReportServiceImpl::new();
+        mock.expect_update_report()
+            .times(1)
+            .withf(|req| req.get_ref().report.as_ref().unwrap().report_id == "selected")
+            .returning(|_| Ok(Response::new(UpdateReportResponse {})));
+        mock.expect_get_report().times(1).returning(|_| {
+            Ok(Response::new(GetReportResponse {
+                report: Some(Report {
+                    report_id: "selected".into(),
+                    ..Default::default()
+                }),
+            }))
+        });
+        let (server, handle) = server_with_mock(mock).await;
+        let body = body(
+            call(
+                &server,
+                json!({"items": [item("skip"), item("selected")], "selected_indices": [1]}),
+            )
+            .await
+            .unwrap(),
+        );
+        assert_eq!(body["successes"][0]["index"], 1);
+        assert_eq!(body["not_selected"], json!([0]));
+        handle.abort();
+    }
+
+    #[tokio::test]
+    async fn not_found_continues_and_unavailable_stops_tail() {
+        let mut mock = MockReportServiceImpl::new();
+        mock.expect_update_report().returning(|req| {
+            match req.get_ref().report.as_ref().unwrap().report_id.as_str() {
+                "missing" => Err(Status::not_found("missing report")),
+                "down" => Err(Status::unavailable("backend down")),
+                "never" => panic!("tail must not run"),
+                _ => Ok(Response::new(UpdateReportResponse {})),
+            }
+        });
+        mock.expect_get_report().times(1).returning(|_| {
+            Ok(Response::new(GetReportResponse {
+                report: Some(Report {
+                    report_id: "ok".into(),
+                    ..Default::default()
+                }),
+            }))
+        });
+        let (server, handle) = server_with_mock(mock).await;
+        let body = body(
+            call(
+                &server,
+                json!({"items": [item("missing"), item("ok"), item("down"), item("never")]}),
+            )
+            .await
+            .unwrap(),
+        );
+        assert_eq!(body["updated_count"], 1);
+        assert_eq!(
+            body["failures"][0]["error"]["code"],
+            ErrorCode::RESOURCE_NOT_FOUND.0
+        );
+        assert_eq!(body["failures"][1]["index"], 2);
+        assert_eq!(body["not_attempted"], json!([3]));
+        handle.abort();
+    }
+
+    #[tokio::test]
+    async fn invalid_duplicate_and_missing_chat_mask_fail_before_rpc() {
+        let (server, handle) = server_with_mock(MockReportServiceImpl::new()).await;
+        let server = server.with_require_selection(true);
+        for items in [
+            json!([item("a"), item("a")]),
+            json!([item("a"), item(" ")]),
+            json!([{"report_id": "a", "metadata": [], "unknown": true}]),
+        ] {
+            let error = call(&server, json!({"items": items, "selected_indices": [0]}))
+                .await
+                .unwrap_err();
+            assert_eq!(error.code, ErrorCode::INVALID_PARAMS);
+        }
+        let error = call(&server, json!({"items": [item("a")]}))
+            .await
+            .unwrap_err();
+        assert!(error.message.contains("nothing was written"));
+        handle.abort();
+    }
+}
+
 use crate::{
     server::SiftMcpServer,
     tool::common::test_support::{content_texts, structured_field},
@@ -553,14 +659,16 @@ async fn update_report_happy_path() {
     let (server, _h) = server_with_mock(mock).await;
 
     let resp = server
-        .update_report(Parameters(UpdateReportParams {
-            report_id: "rep1".into(),
-            metadata: vec![],
-        }))
+        .update_report(Parameters(
+            serde_json::from_value(
+                serde_json::json!({"items": [{"report_id": "rep1", "metadata": []}]}),
+            )
+            .unwrap(),
+        ))
         .await
         .expect("update_report failed");
 
-    let report = structured_field(resp, "report");
+    let report = structured_field(resp, "successes")[0]["result"]["report"].clone();
     assert_eq!(report["name"], "after update");
 }
 
@@ -569,10 +677,12 @@ async fn update_report_rejects_empty_id() {
     let (server, _h) = server_with_mock(MockReportServiceImpl::new()).await;
 
     let err = server
-        .update_report(Parameters(UpdateReportParams {
-            report_id: String::new(),
-            metadata: vec![],
-        }))
+        .update_report(Parameters(
+            serde_json::from_value(
+                serde_json::json!({"items": [{"report_id": "", "metadata": []}]}),
+            )
+            .unwrap(),
+        ))
         .await
         .expect_err("expected error");
 
