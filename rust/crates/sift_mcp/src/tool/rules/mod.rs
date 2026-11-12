@@ -8,7 +8,10 @@ use rmcp::{
 use serde::Deserialize;
 use sift_rs::rules::v1::{UpdateConditionRequest, UpdateRuleRequest};
 
-use crate::tool::common::bulk_create;
+use crate::tool::common::{
+    bulk::{self, BulkItems, Op},
+    bulk_create,
+};
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
@@ -32,7 +35,7 @@ pub struct RuleVersionListParams {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-pub struct UpdateRuleParams {
+pub struct UpdateRuleItem {
     rule_id: String,
     name: Option<String>,
     description: Option<String>,
@@ -44,7 +47,7 @@ pub struct UpdateRuleParams {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-pub struct RuleArchiveParams {
+pub struct RuleArchiveItem {
     rule_id: Option<String>,
     client_key: Option<String>,
 }
@@ -326,38 +329,54 @@ impl SiftMcpServer {
     #[tool(
         name = "update_rule",
         description = "
-            Update specific fields of an existing Sift rule, identified by `rule_id`. This is a WRITE. Only the
-            fields you set are changed; everything else on the rule is preserved. The tool fetches the current
-            rule, overlays your changes, and saves the result, so it is safe to call with just the fields you
-            want to modify.
+            Update specific fields of one or more existing Sift rules. This is a WRITE. Only the fields you
+            set on an item are changed; everything else on that rule is preserved. The tool fetches the
+            current rule, overlays your changes, and saves the result, so each item needs only the fields
+            you want to modify.
 
             Output:
-              - `{ \"rule_id\": \"<id>\", \"rule_url\": string|null, \"next_step\": \"...\" }`. `rule_url` is the
-                rule's Sift web link, or null when the host can't be derived.
+              - `{ requested_count, selected_count, not_selected, updated_count, successes, failures,
+                not_attempted, next_step }`. `successes` holds `{ index, result }` per updated item, where
+                `index` is the item's zero-based position in `items`. `failures` holds `{ index, error,
+                outcome_unknown }`. `not_attempted` lists items skipped after a backend-wide error. Any
+                failure sets `isError`. Each `result` is:
+                - `{ \"rule_id\": \"<id>\", \"rule_url\": string|null, \"next_step\": \"...\" }`. `rule_url` is
+                  the rule's Sift web link, or null when the host can't be derived.
 
             Parameters:
-              - `rule_id`: required. The rule to update.
-              - `name`: optional. New rule name.
-              - `description`: optional. New description.
-              - `version_notes`: optional. Notes attached to this update in the rule's version history.
-              - `is_live_evaluation_enabled`: optional. Enable or disable live evaluation.
-              - `asset_ids`: optional. Replaces the rule's set of target asset ids.
-              - `tag_ids`: optional. Replaces the rule's set of target tag ids.
-              - `conditions_json`: optional. Replaces the rule's conditions. A JSON array matching the
-                `conditions` field of `create_rule`'s `rule_json`. Omit it to keep the existing conditions
-                unchanged — only provide it when you intend to rewrite the rule's logic.
-              - At least one field besides `rule_id` must be set.
+              - `items`: required array of 1–100 objects, one per rule. Pass one item to update one
+                rule. Each item takes:
+                - `rule_id`: required. The rule to update.
+                - `name`: optional. New rule name.
+                - `description`: optional. New description.
+                - `version_notes`: optional. Notes attached to this update in the rule's version history.
+                - `is_live_evaluation_enabled`: optional. Enable or disable live evaluation.
+                - `asset_ids`: optional. Replaces the rule's set of target asset ids.
+                - `tag_ids`: optional. Replaces the rule's set of target tag ids.
+                - `conditions_json`: optional. Replaces the rule's conditions. A JSON array matching the
+                  `conditions` field of `create_rule`'s `rule_json`. Omit it to keep the existing conditions
+                  unchanged — only provide it when you intend to rewrite the rule's logic.
+                - At least one field besides `rule_id` must be set.
+              - `selected_indices`: zero-based positions in `items` to update. An approval host sets this
+                from the user's per-item decisions; omit it when proposing. Omitted means every item,
+                except in a Sift chat pod, where a missing value is rejected. `[]` updates nothing.
 
             Errors:
-              - `INVALID_PARAMS` if no field besides `rule_id` is set, or if `conditions_json` is not a valid
-                conditions array.
-              - `RESOURCE_NOT_FOUND` if no rule has the given `rule_id`.
-              - `INTERNAL_ERROR` for upstream gRPC failures.
+              - `INVALID_PARAMS` before any write if `items` is empty or has more than 100 entries, if two
+                items target the same `rule_id`, or if an item has an unknown field, an empty `rule_id`, no
+                field besides `rule_id`, or a `conditions_json` that is not a valid conditions array. The
+                message names the item index.
+              - Once writing starts, an item-specific error (`RESOURCE_NOT_FOUND` for a missing rule,
+                invalid values, or no permission on that rule) fails only that item. A backend-wide error
+                stops the remaining items; earlier updates stay committed.
 
             Guidance:
               - Prefer this over recreating a rule. To change only the name, pass `rule_id` and `name`; the
                 conditions, metadata, and asset targeting are preserved automatically.
               - Confirm the intended changes with the user before calling.
+              - Items run sequentially, one update per item; this is not an atomic batch. Never replay
+                the whole call after a partial failure. Retry only failed items.
+              - Use one call with several items, not repeated calls, when updating several rules.
         ",
         annotations(
             title = "rules/update_rule",
@@ -366,49 +385,34 @@ impl SiftMcpServer {
             idempotent_hint = true,
         )
     )]
-    pub async fn update_rule(&self, params: Parameters<UpdateRuleParams>) -> error::McpResult {
+    pub async fn update_rule(
+        &self,
+        params: Parameters<BulkItems<UpdateRuleItem>>,
+    ) -> error::McpResult {
         self.require_destructive()?;
-
-        let Parameters(UpdateRuleParams {
-            rule_id,
-            name,
-            description,
-            version_notes,
-            is_live_evaluation_enabled,
-            asset_ids,
-            tag_ids,
-            conditions_json,
+        let Parameters(BulkItems {
+            items,
+            selected_indices,
+            ..
         }) = params;
+        let items = bulk::parse_items::<UpdateRuleItem>(items)?;
+        let updates = items
+            .into_iter()
+            .enumerate()
+            .map(|(index, item)| rule_update(item).map_err(|error| bulk::at_item(index, error)))
+            .collect::<Result<Vec<_>, _>>()?;
+        bulk::reject_duplicate_targets(&updates, "rule", |(rule_id, _)| Some(rule_id.clone()))?;
+        bulk::run(
+            Op::Update,
+            updates,
+            self.selection(selected_indices),
+            false,
+            |(rule_id, changes)| self.update_rule_item(rule_id, changes),
+        )
+        .await
+    }
 
-        let conditions = conditions_json
-            .as_deref()
-            .map(parse_conditions)
-            .transpose()?;
-
-        let changes = RuleUpdate {
-            name,
-            description,
-            version_notes,
-            is_live_evaluation_enabled,
-            asset_ids,
-            tag_ids,
-            conditions,
-        };
-
-        let nothing_to_change = changes.name.is_none()
-            && changes.description.is_none()
-            && changes.version_notes.is_none()
-            && changes.is_live_evaluation_enabled.is_none()
-            && changes.asset_ids.is_none()
-            && changes.tag_ids.is_none()
-            && changes.conditions.is_none();
-        if nothing_to_change {
-            return Err(ErrorData::invalid_params(
-                "at least one field besides `rule_id` must be set",
-                None,
-            ));
-        }
-
+    async fn update_rule_item(&self, rule_id: String, changes: RuleUpdate) -> error::McpResult {
         let rule_name = changes.name.clone();
         let rule_id = self
             .rule_service
@@ -418,9 +422,7 @@ impl SiftMcpServer {
 
         let rule_url = self.url_service.build_rule_url(&rule_id).ok();
         let next_step = format!(
-            "Updated rule `{rule_id}`.{} Tell the user the update succeeded. If they haven't \
-             indicated a next step, offer to confirm it with `list_rules` \
-             (filter `rule_id == \"{rule_id}\"`).",
+            "Updated rule `{rule_id}`.{}",
             url_clause("rule", rule_name.as_deref(), rule_url.as_deref()),
         );
 
@@ -436,25 +438,40 @@ impl SiftMcpServer {
     #[tool(
         name = "archive_rule",
         description = "
-            Archive a Sift rule so it no longer evaluates. This is a WRITE. Reversible with `unarchive_rule`.
+            Archive one or more Sift rules so they no longer evaluate. This is a WRITE. Reversible with
+            `unarchive_rule`.
 
             Output:
-              - `{ \"archived\": true, \"rule_url\": string|null, \"next_step\": \"...\" }`. `rule_url` is the
-                rule's Sift web link when targeted by `rule_id`; null when targeted by `client_key` or when the
-                host can't be derived.
+              - `{ requested_count, selected_count, not_selected, archived_count, successes, failures,
+                not_attempted, next_step }`. `successes` holds `{ index, result }` per archived item, where
+                `index` is the item's zero-based position in `items`. `failures` holds `{ index, error,
+                outcome_unknown }`. `not_attempted` lists items skipped after a backend-wide error. Any
+                failure sets `isError`. Each `result` is:
+                - `{ \"rule_id\": \"<id>\", \"name\": string, \"archived\": true, \"rule_url\": string|null }`.
+                  `rule_url` is the rule's Sift web link, or null when the host can't be derived.
 
             Parameters:
-              - `rule_id`: optional. The id of the rule to archive.
-              - `client_key`: optional. The caller-defined key of the rule to archive.
-              - Exactly one of `rule_id` or `client_key` must be set.
+              - `items`: required array of 1–100 objects, one per rule. Pass one item to archive one
+                rule. Each item takes exactly one of:
+                - `rule_id`: the id of the rule to archive.
+                - `client_key`: the caller-defined key of the rule to archive.
+              - `selected_indices`: zero-based positions in `items` to archive. An approval host sets this
+                from the user's per-item decisions; omit it when proposing. Omitted means every item,
+                except in a Sift chat pod, where a missing value is rejected. `[]` archives nothing.
 
             Errors:
-              - `INVALID_PARAMS` if neither or both of `rule_id` and `client_key` are set.
-              - `INTERNAL_ERROR` for upstream gRPC failures.
+              - `INVALID_PARAMS` before any write if `items` is empty or has more than 100 entries, if two
+                items name the same rule id or client key, or if an item sets neither or both of `rule_id`
+                and `client_key`. The message names the item index.
+              - Once writing starts, an item-specific error (`RESOURCE_NOT_FOUND` when no rule matches,
+                an external rule, or no permission on that rule) fails only that item. A backend-wide error
+                stops the remaining items; earlier archives stay committed.
 
             Guidance:
               - Archiving stops live evaluation but does not delete the rule; it can be restored with
-                `unarchive_rule`. Confirm the target rule with the user before calling.
+                `unarchive_rule`. Confirm the target rules with the user before calling.
+              - A rule that is already archived counts as a success.
+              - Use one call with several items, not repeated calls, when archiving several rules.
         ",
         annotations(
             title = "rules/archive_rule",
@@ -463,59 +480,49 @@ impl SiftMcpServer {
             idempotent_hint = true,
         )
     )]
-    pub async fn archive_rule(&self, params: Parameters<RuleArchiveParams>) -> error::McpResult {
+    pub async fn archive_rule(
+        &self,
+        params: Parameters<BulkItems<RuleArchiveItem>>,
+    ) -> error::McpResult {
         self.require_destructive()?;
-
-        let Parameters(RuleArchiveParams {
-            rule_id,
-            client_key,
-        }) = params;
-
-        let (rule_id, client_key) = rule_identifier(rule_id, client_key)?;
-
-        let rule_url = rule_url_for(self, &rule_id);
-
-        self.rule_service
-            .archive_rule(rule_id, client_key)
-            .await
-            .map_err(from_anyhow)?;
-
-        let next_step = format!(
-            "Rule archived.{} Tell the user it is archived and will no longer evaluate, \
-             and that `unarchive_rule` restores it.",
-            url_clause("rule", None, rule_url.as_deref()),
-        );
-
-        let mut result = CallToolResult::structured(serde_json::json!({
-            "archived": true,
-            "rule_url": rule_url,
-            "next_step": next_step,
-        }));
-        result.content = vec![ContentBlock::text(next_step)];
-        Ok(result)
+        self.set_rules_archived(params, Op::Archive).await
     }
 
     #[tool(
         name = "unarchive_rule",
         description = "
-            Restore a previously archived Sift rule so it evaluates again. This is a WRITE.
+            Restore one or more previously archived Sift rules so they evaluate again. This is a WRITE.
 
             Output:
-              - `{ \"unarchived\": true, \"rule_url\": string|null, \"next_step\": \"...\" }`. `rule_url` is the
-                rule's Sift web link when targeted by `rule_id`; null when targeted by `client_key` or when the
-                host can't be derived.
+              - `{ requested_count, selected_count, not_selected, unarchived_count, successes, failures,
+                not_attempted, next_step }`. `successes` holds `{ index, result }` per unarchived item,
+                where `index` is the item's zero-based position in `items`. `failures` holds `{ index,
+                error, outcome_unknown }`. `not_attempted` lists items skipped after a backend-wide error.
+                Any failure sets `isError`. Each `result` is:
+                - `{ \"rule_id\": \"<id>\", \"name\": string, \"unarchived\": true, \"rule_url\": string|null }`.
+                  `rule_url` is the rule's Sift web link, or null when the host can't be derived.
 
             Parameters:
-              - `rule_id`: optional. The id of the rule to unarchive.
-              - `client_key`: optional. The caller-defined key of the rule to unarchive.
-              - Exactly one of `rule_id` or `client_key` must be set.
+              - `items`: required array of 1–100 objects, one per rule. Pass one item to unarchive one
+                rule. Each item takes exactly one of:
+                - `rule_id`: the id of the rule to unarchive.
+                - `client_key`: the caller-defined key of the rule to unarchive.
+              - `selected_indices`: zero-based positions in `items` to unarchive. An approval host sets
+                this from the user's per-item decisions; omit it when proposing. Omitted means every item,
+                except in a Sift chat pod, where a missing value is rejected. `[]` unarchives nothing.
 
             Errors:
-              - `INVALID_PARAMS` if neither or both of `rule_id` and `client_key` are set.
-              - `INTERNAL_ERROR` for upstream gRPC failures.
+              - `INVALID_PARAMS` before any write if `items` is empty or has more than 100 entries, if two
+                items name the same rule id or client key, or if an item sets neither or both of `rule_id`
+                and `client_key`. The message names the item index.
+              - Once writing starts, an item-specific error (`RESOURCE_NOT_FOUND` when no rule matches,
+                an external rule, or no permission on that rule) fails only that item. A backend-wide error
+                stops the remaining items; earlier unarchives stay committed.
 
             Guidance:
-              - Confirm the target rule with the user before calling.
+              - Confirm the target rules with the user before calling.
+              - A rule that is not archived counts as a success.
+              - Use one call with several items, not repeated calls, when unarchiving several rules.
         ",
         annotations(
             title = "rules/unarchive_rule",
@@ -524,36 +531,128 @@ impl SiftMcpServer {
             idempotent_hint = true,
         )
     )]
-    pub async fn unarchive_rule(&self, params: Parameters<RuleArchiveParams>) -> error::McpResult {
+    pub async fn unarchive_rule(
+        &self,
+        params: Parameters<BulkItems<RuleArchiveItem>>,
+    ) -> error::McpResult {
         self.require_destructive()?;
+        self.set_rules_archived(params, Op::Unarchive).await
+    }
 
-        let Parameters(RuleArchiveParams {
-            rule_id,
-            client_key,
+    async fn set_rules_archived(
+        &self,
+        params: Parameters<BulkItems<RuleArchiveItem>>,
+        op: Op,
+    ) -> error::McpResult {
+        let Parameters(BulkItems {
+            items,
+            selected_indices,
+            ..
         }) = params;
+        let targets = bulk::parse_items::<RuleArchiveItem>(items)?
+            .into_iter()
+            .enumerate()
+            .map(|(index, item)| {
+                rule_identifier(item.rule_id, item.client_key)
+                    .map_err(|error| bulk::at_item(index, error))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        bulk::reject_duplicate_targets(&targets, "rule", |(rule_id, client_key)| {
+            Some(if rule_id.is_empty() {
+                format!("client_key:{client_key}")
+            } else {
+                format!("rule_id:{rule_id}")
+            })
+        })?;
+        bulk::run(
+            op,
+            targets,
+            self.selection(selected_indices),
+            false,
+            |(rule_id, client_key)| self.set_rule_archived(rule_id, client_key, op),
+        )
+        .await
+    }
 
-        let (rule_id, client_key) = rule_identifier(rule_id, client_key)?;
-
-        let rule_url = rule_url_for(self, &rule_id);
-
-        self.rule_service
-            .unarchive_rule(rule_id, client_key)
+    /// Resolve the rule first: the archive RPCs succeed silently when nothing
+    /// matches, which would report a typo as archived.
+    async fn set_rule_archived(
+        &self,
+        rule_id: String,
+        client_key: String,
+        op: Op,
+    ) -> error::McpResult {
+        let rule = self
+            .rule_service
+            .find_rule(rule_id, client_key)
             .await
             .map_err(from_anyhow)?;
+        let archived = op == Op::Archive;
+        let write = if archived {
+            self.rule_service
+                .archive_rule(rule.rule_id.clone(), String::new())
+                .await
+        } else {
+            self.rule_service
+                .unarchive_rule(rule.rule_id.clone(), String::new())
+                .await
+        };
+        write.map_err(from_anyhow)?;
 
-        let next_step = format!(
-            "Rule unarchived.{} Tell the user it is restored and will evaluate again.",
-            url_clause("rule", None, rule_url.as_deref()),
-        );
-
-        let mut result = CallToolResult::structured(serde_json::json!({
-            "unarchived": true,
-            "rule_url": rule_url,
-            "next_step": next_step,
-        }));
-        result.content = vec![ContentBlock::text(next_step)];
-        Ok(result)
+        let state = if archived { "archived" } else { "unarchived" };
+        Ok(CallToolResult::structured(serde_json::json!({
+            "rule_id": rule.rule_id,
+            "name": rule.name,
+            state: true,
+            "rule_url": rule_url_for(self, &rule.rule_id),
+        })))
     }
+}
+
+fn rule_update(item: UpdateRuleItem) -> Result<(String, RuleUpdate), ErrorData> {
+    let UpdateRuleItem {
+        rule_id,
+        name,
+        description,
+        version_notes,
+        is_live_evaluation_enabled,
+        asset_ids,
+        tag_ids,
+        conditions_json,
+    } = item;
+    if rule_id.trim().is_empty() {
+        return Err(ErrorData::invalid_params(
+            "`rule_id` must not be empty",
+            None,
+        ));
+    }
+    let conditions = conditions_json
+        .as_deref()
+        .map(parse_conditions)
+        .transpose()?;
+    let changes = RuleUpdate {
+        name,
+        description,
+        version_notes,
+        is_live_evaluation_enabled,
+        asset_ids,
+        tag_ids,
+        conditions,
+    };
+    let nothing_to_change = changes.name.is_none()
+        && changes.description.is_none()
+        && changes.version_notes.is_none()
+        && changes.is_live_evaluation_enabled.is_none()
+        && changes.asset_ids.is_none()
+        && changes.tag_ids.is_none()
+        && changes.conditions.is_none();
+    if nothing_to_change {
+        return Err(ErrorData::invalid_params(
+            "at least one field besides `rule_id` must be set",
+            None,
+        ));
+    }
+    Ok((rule_id, changes))
 }
 
 /// Build the web URL for a rule when its `rule_id` is known. Returns `None` when
