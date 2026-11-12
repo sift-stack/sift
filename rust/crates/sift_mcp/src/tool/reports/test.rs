@@ -2,7 +2,8 @@ use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
 use sift_rs::{
     reports::v1::{
         GetReportResponse, ListReportRuleSummariesResponse, ListReportsResponse, Report,
-        ReportRuleSummary, UpdateReportResponse, report_service_server::ReportServiceServer,
+        ReportRuleStatus, ReportRuleSummary, UpdateReportResponse,
+        report_service_server::ReportServiceServer,
     },
     rule_evaluation::v1::{
         EvaluateRulesResponse, rule_evaluation_service_server::RuleEvaluationServiceServer,
@@ -116,6 +117,59 @@ async fn list_reports_returns_single_page() {
     assert_eq!(reports.as_array().unwrap().len(), 1);
     assert_eq!(reports[0]["reportId"], "rep1");
     assert_eq!(reports[0]["url"], "https://app.test.local/reports/rep1");
+}
+
+#[tokio::test]
+async fn list_reports_replaces_rule_summaries_with_totals() {
+    let mut report_mock = MockReportServiceImpl::new();
+    report_mock.expect_list_reports().returning(|_| {
+        let summary = |status: ReportRuleStatus, num_failed: u32| ReportRuleSummary {
+            rule_id: "rule-1".into(),
+            status: status.into(),
+            num_open: 1,
+            num_failed,
+            num_passed: 2,
+            ..Default::default()
+        };
+        Ok(Response::new(ListReportsResponse {
+            reports: vec![Report {
+                report_id: "rep1".into(),
+                summaries: vec![
+                    summary(ReportRuleStatus::Finished, 3),
+                    summary(ReportRuleStatus::Finished, 0),
+                    summary(ReportRuleStatus::Error, 0),
+                ],
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (server, _h) = server_with_mock(report_mock).await;
+
+    let resp = server
+        .list_reports(report_params("", None))
+        .await
+        .expect("list_reports failed");
+
+    let texts = content_texts(&resp);
+    assert!(!texts.iter().any(|text| text.contains("rule-1")));
+
+    let reports = structured_field(resp, "reports");
+    let report = &reports[0];
+    assert!(report.get("summaries").is_none());
+    assert_eq!(report["rule_count"], 3);
+    assert_eq!(report["num_open"], 3);
+    assert_eq!(report["num_failed"], 3);
+    assert_eq!(report["num_passed"], 6);
+    assert_eq!(
+        report["rule_status_counts"],
+        serde_json::json!({
+            "REPORT_RULE_STATUS_ERROR": 1,
+            "REPORT_RULE_STATUS_FINISHED": 2,
+        })
+    );
+    assert_eq!(report["url"], "https://app.test.local/reports/rep1");
 }
 
 #[tokio::test]

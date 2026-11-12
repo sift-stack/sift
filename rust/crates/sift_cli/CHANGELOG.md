@@ -7,6 +7,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- MCP `list_reports`, `create_report` and `update_report` no longer return the
+  per-rule `summaries` of a report. A listing of reports with many rules could
+  be megabytes large. Each report now carries `rule_count`, `num_open`,
+  `num_failed`, `num_passed` and `rule_status_counts`. Call
+  `list_report_rule_summaries` for the per-rule detail.
+
 ## [v0.8.2] - November 10, 2026
 
 ### What's New
