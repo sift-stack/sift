@@ -602,12 +602,12 @@ impl SiftMcpServer {
                 .ok()
         })?;
         let successes = outcome
-            .annotations
+            .updated_ids
             .iter()
             .zip(annotations)
-            .map(|(annotation, value)| {
+            .map(|(annotation_id, value)| {
                 (
-                    positions[&annotation.annotation_id],
+                    positions[annotation_id],
                     CallToolResult::structured(serde_json::json!({"annotation": value})),
                 )
             })
@@ -629,7 +629,8 @@ impl SiftMcpServer {
             successes,
             failures,
             not_attempted,
-            false,
+            // An archive change that fails can follow a committed field update.
+            has_field_update && is_archived.is_some(),
         )
     }
 }

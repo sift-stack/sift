@@ -32,6 +32,9 @@ pub struct AnnotationUpdateFailure {
 #[derive(Debug)]
 pub struct UpdateAnnotationsResult {
     pub annotations: Vec<Annotation>,
+    /// The requested id of each entry in `annotations`, in the same order. The
+    /// returned annotation's own id may differ in form from the request.
+    pub updated_ids: Vec<String>,
     pub failures: Vec<AnnotationUpdateFailure>,
     pub not_attempted: Vec<String>,
 }
@@ -253,6 +256,7 @@ impl AnnotationService {
             || linked_channel_ids.is_some()
             || metadata.is_some();
         let mut annotations = Vec::with_capacity(annotation_ids.len());
+        let mut updated_ids = Vec::with_capacity(annotation_ids.len());
         let mut failures = Vec::new();
         let mut not_attempted = Vec::new();
 
@@ -309,7 +313,10 @@ impl AnnotationService {
             let mut stop = false;
             for (annotation_id, result) in updates {
                 match result {
-                    Ok(annotation) => annotations.push(annotation),
+                    Ok(annotation) => {
+                        annotations.push(annotation);
+                        updated_ids.push(annotation_id);
+                    }
                     Err(error) => {
                         let error = from_anyhow(error);
                         stop |= bulk::should_stop(Op::Update, &error);
@@ -329,6 +336,7 @@ impl AnnotationService {
 
         Ok(UpdateAnnotationsResult {
             annotations,
+            updated_ids,
             failures,
             not_attempted,
         })

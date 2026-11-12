@@ -1029,3 +1029,41 @@ async fn update_annotation_propagates_grpc_error() {
         ErrorCode::RESOURCE_NOT_FOUND.0
     );
 }
+
+#[tokio::test]
+async fn update_annotation_maps_results_by_the_requested_id() {
+    let mut mock = MockAnnotationServiceImpl::new();
+    mock.expect_update_annotation().times(1).returning(|req| {
+        let mut annotation = req.into_inner().annotation.unwrap();
+        annotation.annotation_id = annotation.annotation_id.to_lowercase();
+        Ok(Response::new(UpdateAnnotationResponse {
+            annotation: Some(annotation),
+        }))
+    });
+    let (server, _h) = server_with_mock(mock).await;
+    let mut params = update_params("ANN-1");
+    params.name = Some("renamed".into());
+    let body = structured(server.update_annotation(Parameters(params)).await.unwrap());
+    assert_eq!(body["updated_count"], 1);
+    assert_eq!(body["successes"][0]["index"], 0);
+}
+
+#[tokio::test]
+async fn a_failed_archive_after_a_field_update_is_an_uncertain_outcome() {
+    let mut mock = MockAnnotationServiceImpl::new();
+    mock.expect_update_annotation().times(1).returning(|req| {
+        Ok(Response::new(UpdateAnnotationResponse {
+            annotation: req.into_inner().annotation,
+        }))
+    });
+    mock.expect_archive_annotation()
+        .times(1)
+        .returning(|_| Err(Status::not_found("gone")));
+    let (server, _h) = server_with_mock(mock).await;
+    let mut params = update_params("ann1");
+    params.name = Some("renamed".into());
+    params.is_archived = Some(true);
+    let body = structured(server.update_annotation(Parameters(params)).await.unwrap());
+    assert_eq!(body["failures"][0]["index"], 0);
+    assert_eq!(body["failures"][0]["outcome_unknown"], true);
+}
