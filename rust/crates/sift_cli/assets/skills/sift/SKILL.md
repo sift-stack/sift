@@ -4,18 +4,17 @@ description: >-
   Use for Sift tasks: ingesting or importing time-series data, querying
   assets/runs/channels/users, managing calculated channels, rules, and
   user-defined functions, exporting or decimating data, running SQL over data,
-  opening a view in Sift Explore, writing code that integrates with Sift,
-  installing, updating, or diagnosing the Sift agent integration, or looking
-  up how Sift works in its product and API documentation. Covers the Sift MCP
-  server (started by `sift-cli mcp`), `sift-cli`, the Sift REST API over cURL,
-  the Sift Python library (`sift_client`), and the Sift Rust streaming library
-  (`sift_stream`).
-  Triggers include phrases like "import this file into Sift", "stream data to
-  Sift", "list assets/runs/channels", "runs I created", "runs a teammate
-  created", "export a run", "query Sift", "graph", "plot", "visualize", "open in
-  Explore", "write code to integrate with Sift", "how does X work in Sift",
-  "what does this endpoint do", "list calculated channels", "preview a rule",
-  or "look up the Sift API reference".
+  opening a view or making a chart in Explore, Canvas, or Sift Edge Desktop,
+  writing code that integrates with Sift, installing, updating, or diagnosing
+  the Sift agent integration, or looking up Sift's product and API docs.
+  Covers the Sift MCP server (`sift-cli mcp`), `sift-cli`, REST over cURL,
+  `sift_client` (Python), and `sift_stream` (Rust).
+  Triggers include "import this file into Sift", "stream data to Sift", "list
+  assets/runs/channels", "runs I created", "runs a teammate created", "export a
+  run", "query Sift", "graph", "plot", "visualize", "open in Explore", "chart
+  for a Canvas", "view this in Sift Edge Desktop", "write code to integrate
+  with Sift", "how does X work in Sift", "what does this endpoint do", "list
+  calculated channels", "preview a rule", or "look up the Sift API reference".
 ---
 
 <!--
