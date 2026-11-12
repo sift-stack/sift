@@ -1,3 +1,4 @@
+pub(crate) mod bulk;
 pub(crate) mod bulk_create;
 
 use rmcp::ErrorData;
