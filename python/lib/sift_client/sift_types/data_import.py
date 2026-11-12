@@ -92,6 +92,7 @@ class TimeFormat(Enum):
     ABSOLUTE_UNIX_MILLISECONDS = TimeFormatProto.TIME_FORMAT_ABSOLUTE_UNIX_MILLISECONDS
     ABSOLUTE_UNIX_MICROSECONDS = TimeFormatProto.TIME_FORMAT_ABSOLUTE_UNIX_MICROSECONDS
     ABSOLUTE_UNIX_NANOSECONDS = TimeFormatProto.TIME_FORMAT_ABSOLUTE_UNIX_NANOSECONDS
+    CUSTOM = TimeFormatProto.TIME_FORMAT_CUSTOM
 
     @property
     def is_relative(self) -> bool:
@@ -143,6 +144,8 @@ class TimeColumnBase(BaseModel, ABC):
             (caller-passed ``time_format`` > server-detected format >
             ``ABSOLUTE_UNIX_NANOSECONDS`` fallback). Importing without a
             format set raises ``ValueError``.
+        custom_format: Unix date format, e.g. ``%m-%d-%Y %H:%M:%S``. Required at
+            import when ``format`` is ``TimeFormat.CUSTOM``; ignored otherwise.
         relative_start_time: Required when using a relative time format.
             Pass a ``pd.Timestamp`` for nanosecond precision.
     """
@@ -151,7 +154,17 @@ class TimeColumnBase(BaseModel, ABC):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     format: TimeFormat | None = None
+    custom_format: str = ""
     relative_start_time: pd.Timestamp | datetime | None = None
+
+    def _check_custom_format(self) -> None:
+        """Raise if the format is custom with no format string.
+
+        Checked at import rather than construction, so a config can be read
+        back or edited before ``custom_format`` is set.
+        """
+        if self.format == TimeFormat.CUSTOM and not self.custom_format.strip():
+            raise ValueError("'custom_format' is required when using TimeFormat.CUSTOM.")
 
     @model_validator(mode="after")
     def _check_relative_start_time(self) -> TimeColumnBase:
@@ -361,9 +374,11 @@ class CsvTimeColumn(TimeColumnBase):
                 "Pass time_format to detect_config/import_from_path, or set "
                 "config.time_column.format explicitly."
             )
+        self._check_custom_format()
         proto = CsvTimeColumnProto(
             column_number=self.column,
             format=self.format.value,
+            custom_format=self.custom_format,
         )
         if self.relative_start_time is not None:
             proto.relative_start_time.CopyFrom(to_timestamp_pb(self.relative_start_time))
@@ -442,6 +457,7 @@ class CsvImportConfig(ImportConfigBase):
         time_column = CsvTimeColumn(
             column=proto.time_column.column_number,
             format=time_format,
+            custom_format=proto.time_column.custom_format,
             relative_start_time=relative_start_time,
         )
         data_columns = [
@@ -493,9 +509,11 @@ class ParquetTimeColumn(TimeColumnBase):
                 "Pass time_format to detect_config/import_from_path, or set "
                 "config.time_column.format explicitly."
             )
+        self._check_custom_format()
         proto = ParquetTimeColumnProto(
             path=self.path,
             format=self.format.value,
+            custom_format=self.custom_format,
         )
         if self.relative_start_time is not None:
             proto.relative_start_time.CopyFrom(to_timestamp_pb(self.relative_start_time))
@@ -511,6 +529,7 @@ class ParquetTimeColumn(TimeColumnBase):
         return cls(
             path=proto.path or "",
             format=fmt,
+            custom_format=proto.custom_format,
             relative_start_time=relative_start_time,
         )
 
@@ -887,6 +906,8 @@ class TdmsImportConfig(ImportConfigBase):
             proto.start_time_override.CopyFrom(to_timestamp_pb(self.start_time_override))
         proto.fallback_method = self.fallback_method.value
         if self.time_format is not None:
+            if self.time_format == TimeFormat.CUSTOM:
+                raise ValueError("TimeFormat.CUSTOM is only supported for CSV and Parquet imports.")
             proto.time_format = self.time_format.value
         if self.relative_start_time is not None:
             proto.relative_start_time.CopyFrom(to_timestamp_pb(self.relative_start_time))
@@ -1045,6 +1066,8 @@ class Hdf5ImportConfig(ImportConfigBase):
                 "config.time_format explicitly (e.g. TimeFormat.ABSOLUTE_UNIX_NANOSECONDS "
                 "or TimeFormat.ABSOLUTE_DATETIME) before importing."
             )
+        if self.time_format == TimeFormat.CUSTOM:
+            raise ValueError("TimeFormat.CUSTOM is only supported for CSV and Parquet imports.")
         proto = Hdf5ConfigProto(
             asset_name=self.asset_name,
             run_name=self.run_name or "",
