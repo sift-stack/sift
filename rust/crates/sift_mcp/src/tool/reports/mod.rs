@@ -6,18 +6,56 @@ use rmcp::{
     tool, tool_router,
 };
 use serde::Deserialize;
-use sift_rs::metadata::v1::MetadataValue;
+use serde_json::Value;
+use sift_rs::{
+    metadata::v1::MetadataValue,
+    reports::v1::{Report, ReportRuleStatus},
+};
 
-use crate::tool::common::bulk_create;
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::reports::{ReportSource, RuleIdentifier},
-    tool::common::{MetadataEntry, read_result, url_clause, with_urls},
+    tool::common::{MetadataEntry, bulk_create, read_result, url_clause},
 };
 
 #[cfg(test)]
 mod test;
+
+/// Serialize a report without its per-rule `summaries`, which grow with the
+/// rule count and can make one result megabytes large. Totals replace them;
+/// `list_report_rule_summaries` gives the per-rule detail.
+fn report_view(report: &Report, url: Option<String>) -> Result<Value, ErrorData> {
+    let mut value = serde_json::to_value(report)
+        .map_err(|e| ErrorData::internal_error(format!("failed to serialize report: {e}"), None))?;
+    let Some(obj) = value.as_object_mut() else {
+        return Ok(value);
+    };
+    obj.remove("summaries");
+
+    let mut status_counts = serde_json::Map::new();
+    let (mut num_open, mut num_failed, mut num_passed) = (0u64, 0u64, 0u64);
+    for summary in &report.summaries {
+        num_open += u64::from(summary.num_open);
+        num_failed += u64::from(summary.num_failed);
+        num_passed += u64::from(summary.num_passed);
+        let status = ReportRuleStatus::try_from(summary.status)
+            .unwrap_or(ReportRuleStatus::Unspecified)
+            .as_str_name();
+        let count = status_counts.entry(status).or_insert(Value::from(0u64));
+        *count = Value::from(count.as_u64().unwrap_or(0) + 1);
+    }
+
+    obj.insert("rule_count".into(), Value::from(report.summaries.len()));
+    obj.insert("num_open".into(), Value::from(num_open));
+    obj.insert("num_failed".into(), Value::from(num_failed));
+    obj.insert("num_passed".into(), Value::from(num_passed));
+    obj.insert("rule_status_counts".into(), Value::Object(status_counts));
+    if let Some(url) = url {
+        obj.insert("url".into(), Value::String(url));
+    }
+    Ok(value)
+}
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct ReportListParams {
@@ -62,12 +100,15 @@ impl SiftMcpServer {
             List reports in Sift, optionally filtered by a CEL expression and ordered by one or more fields.
 
             Output:
-              - `{ \"reports\": [Report, ...] }`. Each item is the full Sift `Report` shape including `report_id`,
-                `report_template_id`, `run_id`, `organization_id`, `name`, `description`, per-rule `summaries`,
-                tags, metadata, timestamps, and archive state, plus an added `url` field with the report's Sift
-                web link (`<host>/reports/<report_id>`). `url` is omitted when the host can't be derived.
-                Present each report to the user as a Markdown link with its name as the text and `url` as the
-                target.
+              - `{ \"reports\": [Report, ...] }`. Each item has `report_id`, `report_template_id`, `run_id`,
+                `organization_id`, `name`, `description`, tags, metadata, timestamps, and archive state, plus
+                an added `url` field with the report's Sift web link (`<host>/reports/<report_id>`). `url` is
+                omitted when the host can't be derived. Present each report to the user as a Markdown link
+                with its name as the text and `url` as the target.
+              - Per-rule summaries are not included. Each item carries totals instead: `rule_count`,
+                `num_open`, `num_failed`, `num_passed` (annotation counts summed over the rules), and
+                `rule_status_counts` (rules per `REPORT_RULE_STATUS_*`). Call `list_report_rule_summaries`
+                with the `report_id` for the per-rule breakdown.
 
             Parameters:
               - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
@@ -112,9 +153,10 @@ impl SiftMcpServer {
             .await
             .map_err(from_anyhow)?;
 
-        let reports = with_urls(&reports, |r| {
-            self.url_service.build_report_url(&r.report_id).ok()
-        })?;
+        let reports = reports
+            .iter()
+            .map(|r| report_view(r, self.url_service.build_report_url(&r.report_id).ok()))
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(CallToolResult::structured(
             serde_json::json!({ "reports": reports }),
@@ -210,7 +252,8 @@ impl SiftMcpServer {
                 - `{ \"report\": Report, \"report_url\": string|null, \"job_id\": string|null,
                   \"created_annotation_count\": number, \"next_step\": string }`. The returned `Report` may still
                   be in a running state — poll `list_report_rule_summaries` to track progress. `report_url` is
-                  the report's Sift web link, or null when it can't be derived.
+                  the report's Sift web link, or null when it can't be derived. `Report` has the
+                  `list_reports` item shape: rule totals, no per-rule summaries.
 
             Parameters:
               - `items`: required array of 1–100 objects, one per report. Pass one item to create one
@@ -375,7 +418,7 @@ impl SiftMcpServer {
         );
 
         let mut result = CallToolResult::structured(serde_json::json!({
-            "report": output.report,
+            "report": report_view(&output.report, None)?,
             "report_url": report_url,
             "job_id": output.job_id,
             "created_annotation_count": output.created_annotation_count,
@@ -393,7 +436,8 @@ impl SiftMcpServer {
             Output:
               - `{ \"report\": Report, \"report_url\": string|null, \"next_step\": string }`. The returned `Report`
                 is re-fetched after the update (the update RPC itself returns no body). `report_url` is the report's
-                Sift web link, or null when the host can't be derived.
+                Sift web link, or null when the host can't be derived. `Report` has the `list_reports` item
+                shape: rule totals, no per-rule summaries.
 
             Parameters:
               - `report_id`: required; the id of the report to update.
@@ -459,7 +503,7 @@ impl SiftMcpServer {
         );
 
         let mut result = CallToolResult::structured(serde_json::json!({
-            "report": report,
+            "report": report_view(&report, None)?,
             "report_url": report_url,
             "next_step": next_step,
         }));
