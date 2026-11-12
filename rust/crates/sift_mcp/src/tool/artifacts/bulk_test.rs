@@ -130,38 +130,30 @@ async fn resource_errors_continue_and_backend_errors_stop() {
             match op {
                 "archive" => {
                     mock.expect_archive_artifact()
-                        .withf(|req| req.get_ref().artifact_id == "bad")
-                        .returning(move |_| Err(Status::new(code, "failed")));
-                    if !stop {
-                        mock.expect_archive_artifact()
-                            .times(1)
-                            .withf(|req| req.get_ref().artifact_id == "good")
-                            .returning(|_| Ok(Response::new(ArchiveArtifactResponse {})));
-                    }
+                        .times(if stop { 1 } else { 2 })
+                        .returning(move |req| match req.get_ref().artifact_id.as_str() {
+                            "bad" => Err(Status::new(code, "failed")),
+                            "good" if !stop => Ok(Response::new(ArchiveArtifactResponse {})),
+                            _ => panic!("unexpected write"),
+                        });
                 }
                 "unarchive" => {
                     mock.expect_unarchive_artifact()
-                        .withf(|req| req.get_ref().artifact_id == "bad")
-                        .returning(move |_| Err(Status::new(code, "failed")));
-                    if !stop {
-                        mock.expect_unarchive_artifact()
-                            .times(1)
-                            .withf(|req| req.get_ref().artifact_id == "good")
-                            .returning(|_| Ok(Response::new(UnarchiveArtifactResponse {})));
-                    }
+                        .times(if stop { 1 } else { 2 })
+                        .returning(move |req| match req.get_ref().artifact_id.as_str() {
+                            "bad" => Err(Status::new(code, "failed")),
+                            "good" if !stop => Ok(Response::new(UnarchiveArtifactResponse {})),
+                            _ => panic!("unexpected write"),
+                        });
                 }
                 _ => {
                     mock.expect_update_artifact()
-                        .withf(|req| req.get_ref().artifact_id == "bad")
-                        .returning(move |_| Err(Status::new(code, "failed")));
-                    if !stop {
-                        mock.expect_update_artifact()
-                            .times(1)
-                            .withf(|req| req.get_ref().artifact_id == "good")
-                            .returning(|req| {
-                                Ok(Response::new(updated(&req.get_ref().artifact_id)))
-                            });
-                    }
+                        .times(if stop { 1 } else { 2 })
+                        .returning(move |req| match req.get_ref().artifact_id.as_str() {
+                            "bad" => Err(Status::new(code, "failed")),
+                            "good" if !stop => Ok(Response::new(updated("good"))),
+                            _ => panic!("unexpected write"),
+                        });
                 }
             }
             let (server, _h) = server_with_mock(mock, true).await;

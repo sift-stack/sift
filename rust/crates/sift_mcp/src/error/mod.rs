@@ -122,8 +122,6 @@ pub fn from_anyhow(error: anyhow::Error) -> rmcp::ErrorData {
 
     if let Ok(grpc_status) = error.downcast::<Status>() {
         code = from_grpc_code(grpc_status.code());
-        // The resource's state rejected the write, so nothing was written and the
-        // backend is healthy. Bulk writes use this to fail only the one item.
         if grpc_status.code() == Code::FailedPrecondition {
             data = Some(serde_json::json!({"reason": "FailedPrecondition"}));
         }

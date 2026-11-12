@@ -243,9 +243,9 @@ impl SiftMcpServer {
                 - `description`: optional free-text description.
                 - `start_time_unix_nanos` / `end_time_unix_nanos`: required time bounds in Unix nanoseconds.
                   `end_time_unix_nanos` must be >= `start_time_unix_nanos`.
-                - `annotation_type`: required; `ANNOTATION_TYPE_DATA_REVIEW` or `ANNOTATION_TYPE_PHASE`.
-                - `state`: optional; `ANNOTATION_STATE_OPEN`, `ANNOTATION_STATE_FLAGGED`, or
-                  `ANNOTATION_STATE_RESOLVED`. MUST be omitted when `annotation_type` is `ANNOTATION_TYPE_PHASE`
+                - `annotation_type`: required; `\"ANNOTATION_TYPE_DATA_REVIEW\"` or `\"ANNOTATION_TYPE_PHASE\"`.
+                - `state`: optional; `\"ANNOTATION_STATE_OPEN\"`, `\"ANNOTATION_STATE_FLAGGED\"`, or
+                  `\"ANNOTATION_STATE_RESOLVED\"`. MUST be omitted when `annotation_type` is `\"ANNOTATION_TYPE_PHASE\"`
                   (the server rejects a phase annotation with a state).
                 - `assets`: optional list of asset NAMES to associate.
                 - `tags`: optional list of tag names to associate. Names that do not yet exist are created.
@@ -462,8 +462,8 @@ impl SiftMcpServer {
               - `description`: optional new description.
               - `start_time_unix_nanos` / `end_time_unix_nanos`: optional new time bounds in Unix nanoseconds.
               - `assigned_to_user_id`: optional new assignee user id.
-              - `state`: optional; `ANNOTATION_STATE_OPEN`, `ANNOTATION_STATE_FLAGGED`, or
-                `ANNOTATION_STATE_RESOLVED`.
+              - `state`: optional JSON string: `\"ANNOTATION_STATE_OPEN\"`, `\"ANNOTATION_STATE_FLAGGED\"`, or
+                `\"ANNOTATION_STATE_RESOLVED\"`.
               - `tags`: optional; REPLACES the full tag list. Pass `[]` to clear all tags.
               - `linked_channel_ids`: optional; REPLACES the full linked-channel list with plain channel links.
                 Pass `[]` to clear. Bit-field and calculated-channel links are not exposed here.
@@ -629,7 +629,6 @@ impl SiftMcpServer {
             successes,
             failures,
             not_attempted,
-            // An archive change that fails can follow a committed field update.
             has_field_update && is_archived.is_some(),
         )
     }

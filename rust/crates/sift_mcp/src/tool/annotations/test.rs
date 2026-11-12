@@ -112,6 +112,20 @@ fn annotation_tool_schemas_publish_exact_enum_values() {
 }
 
 #[test]
+fn write_descriptions_quote_json_enum_values() {
+    for name in ["create_annotation", "update_annotation"] {
+        let tool = annotation_tool(name);
+        let description = tool.description.as_deref().unwrap();
+        for state in ["OPEN", "FLAGGED", "RESOLVED"] {
+            assert!(
+                description.contains(&format!("`\"ANNOTATION_STATE_{state}\"`")),
+                "{name}: {description}"
+            );
+        }
+    }
+}
+
+#[test]
 fn list_annotations_description_publishes_filter_enum_values() {
     let tool = annotation_tool("list_annotations");
     let description = tool.description.expect("tool must have a description");

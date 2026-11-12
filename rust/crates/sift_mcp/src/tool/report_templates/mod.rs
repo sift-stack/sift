@@ -419,12 +419,12 @@ impl SiftMcpServer {
         self.require_destructive()?;
 
         let Parameters(params) = params;
-        let updates = bulk::parse_items::<UpdateReportTemplateItem>(params.items)?
-            .into_iter()
-            .enumerate()
-            .map(|(index, item)| template_update(item).map_err(|error| bulk::at_item(index, error)))
-            .collect::<Result<Vec<_>, _>>()?;
-        bulk::reject_duplicate_targets(&updates, "report template", |(id, _)| Some(id.clone()))?;
+        let updates = bulk::prepare(
+            params.items,
+            "report template",
+            template_update,
+            |(id, _)| Some(id.clone()),
+        )?;
         bulk::run(
             Op::Update,
             updates,

@@ -165,39 +165,6 @@ mod bulk {
     }
 
     #[tokio::test]
-    async fn permission_denied_fails_one_item_and_unavailable_stops_the_rest() {
-        let mut mock = MockRuleServiceImpl::new();
-        mock.expect_get_rule()
-            .returning(|request| match request.get_ref().rule_id.as_str() {
-                "denied" => Err(Status::permission_denied("no edit permission")),
-                "down" => Err(Status::unavailable("backend down")),
-                rule_id => found(rule_id),
-            });
-        mock.expect_archive_rule()
-            .times(1)
-            .returning(|_| Ok(Response::new(ArchiveRuleResponse {})));
-        let (server, handle) = server(mock).await;
-        let items = ["denied", "ok", "down", "never"].map(|id| json!({"rule_id": id}));
-        let body = structured(
-            server
-                .archive_rule(params(
-                    json!({"items": items, "selected_indices": [0, 1, 2, 3]}),
-                ))
-                .await
-                .unwrap(),
-        );
-        assert_eq!(body["archived_count"], 1);
-        assert_eq!(body["failures"][0]["index"], 0);
-        assert_eq!(
-            body["failures"][0]["error"]["data"]["reason"],
-            "PermissionDenied"
-        );
-        assert_eq!(body["failures"][1]["index"], 2);
-        assert_eq!(body["not_attempted"], json!([3]));
-        handle.abort();
-    }
-
-    #[tokio::test]
     async fn invalid_or_duplicate_items_fail_before_any_rpc() {
         let (server, handle) = server(MockRuleServiceImpl::new()).await;
         for (items, needle) in [
@@ -242,30 +209,6 @@ mod bulk {
             assert!(error.message.contains(needle), "{}", error.message);
         }
         handle.abort();
-    }
-
-    #[tokio::test]
-    async fn the_chat_host_must_send_a_mask() {
-        let (server, handle) = server(MockRuleServiceImpl::new()).await;
-        let error = server
-            .archive_rule(params(json!({"items": [{"rule_id": "a"}]})))
-            .await
-            .unwrap_err();
-        assert!(
-            error.message.contains("nothing was written"),
-            "{}",
-            error.message
-        );
-        handle.abort();
-    }
-
-    #[test]
-    fn the_legacy_single_rule_shape_is_rejected() {
-        let error = serde_json::from_value::<
-            crate::tool::common::bulk::BulkItems<super::super::RuleArchiveItem>,
-        >(json!({"rule_id": "a"}))
-        .unwrap_err();
-        assert!(error.to_string().contains("`items`"), "{error}");
     }
 
     #[tokio::test]

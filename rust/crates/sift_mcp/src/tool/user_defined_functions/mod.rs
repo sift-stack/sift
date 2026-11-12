@@ -294,8 +294,8 @@ impl SiftMcpServer {
 
             Errors:
               - `INVALID_PARAMS` if `name` or `expression` is empty, `function_inputs_json` is not a JSON
-                array of input objects, an `identifier` is empty, a `data_type` is not one of `numeric`,
-                `string`, or `bool`, or the server rejects the expression (unresolved identifier, type
+                array of input objects, an `identifier` is empty, a `data_type` is not one of `\"numeric\"`,
+                `\"string\"`, or `\"bool\"`, or the server rejects the expression (unresolved identifier, type
                 mismatch, duplicate function name).
               - `INTERNAL_ERROR` for upstream gRPC failures.
               - `INVALID_PARAMS` before any write if `items` is empty or has more than 100 entries, or an
@@ -469,14 +469,12 @@ impl SiftMcpServer {
         self.require_destructive()?;
 
         let Parameters(params) = params;
-        let updates = bulk::parse_items::<UpdateUserDefinedFunctionItem>(params.items)?
-            .into_iter()
-            .enumerate()
-            .map(|(index, item)| udf_update(item).map_err(|error| bulk::at_item(index, error)))
-            .collect::<Result<Vec<_>, _>>()?;
-        bulk::reject_duplicate_targets(&updates, "user defined function", |(id, _)| {
-            Some(id.clone())
-        })?;
+        let updates = bulk::prepare(
+            params.items,
+            "user defined function",
+            udf_update,
+            |(id, _)| Some(id.clone()),
+        )?;
         bulk::run(
             Op::Update,
             updates,
@@ -626,18 +624,20 @@ impl SiftMcpServer {
         op: Op,
     ) -> error::McpResult {
         let Parameters(params) = params;
-        let items = bulk::parse_items::<ArchiveUserDefinedFunctionItem>(params.items)?;
-        for (index, item) in items.iter().enumerate() {
-            if item.user_defined_function_id.trim().is_empty() {
-                return Err(bulk::at_item(
-                    index,
-                    ErrorData::invalid_params("`user_defined_function_id` must not be empty", None),
-                ));
-            }
-        }
-        bulk::reject_duplicate_targets(&items, "user defined function", |item| {
-            Some(item.user_defined_function_id.clone())
-        })?;
+        let items = bulk::prepare(
+            params.items,
+            "user defined function",
+            |item: ArchiveUserDefinedFunctionItem| {
+                if item.user_defined_function_id.trim().is_empty() {
+                    return Err(ErrorData::invalid_params(
+                        "`user_defined_function_id` must not be empty",
+                        None,
+                    ));
+                }
+                Ok(item)
+            },
+            |item| Some(item.user_defined_function_id.clone()),
+        )?;
         bulk::run(
             op,
             items,

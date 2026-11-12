@@ -13,7 +13,6 @@ use crate::{error::McpResult, service::batch};
 
 pub const MAX_ITEMS: usize = 100;
 
-/// Shared item list and approval mask for every bulk write tool.
 #[derive(Debug, JsonSchema)]
 #[schemars(deny_unknown_fields)]
 pub struct BulkItems<T> {
@@ -50,9 +49,6 @@ impl<'de, T> Deserialize<'de> for BulkItems<T> {
     }
 }
 
-/// The single place that decides which top-level shapes a bulk tool accepts.
-/// Only `items` (plus the host's `selected_indices`) is accepted. A call in the
-/// old one-resource shape is rejected with a migration hint.
 fn bulk_call(object: Map<String, Value>) -> Result<BulkCall, String> {
     if !object.contains_key("items") {
         return Err(
@@ -64,13 +60,27 @@ fn bulk_call(object: Map<String, Value>) -> Result<BulkCall, String> {
     serde_json::from_value(Value::Object(object)).map_err(|error| error.to_string())
 }
 
-/// Prefix an item's validation error with its index in `items`.
 pub fn at_item(index: usize, error: ErrorData) -> ErrorData {
     ErrorData::new(
         error.code,
         format!("`items` item {index}: {}", error.message),
         error.data,
     )
+}
+
+pub fn prepare<T: DeserializeOwned + JsonSchema, U>(
+    items: Vec<Value>,
+    resource: &str,
+    validate: impl Fn(T) -> Result<U, ErrorData>,
+    target: impl Fn(&U) -> Option<String>,
+) -> Result<Vec<U>, ErrorData> {
+    let items = parse_items::<T>(items)?
+        .into_iter()
+        .enumerate()
+        .map(|(index, item)| validate(item).map_err(|error| at_item(index, error)))
+        .collect::<Result<Vec<_>, _>>()?;
+    reject_duplicate_targets(&items, resource, target)?;
+    Ok(items)
 }
 
 pub fn parse_items<T: DeserializeOwned + JsonSchema>(
@@ -103,8 +113,6 @@ pub fn parse_items<T: DeserializeOwned + JsonSchema>(
         .collect()
 }
 
-/// Reject a call in which two items write the same resource, so the result
-/// never depends on item order. `target` returns `None` for items without one.
 pub fn reject_duplicate_targets<T>(
     items: &[T],
     resource: &str,
@@ -123,7 +131,6 @@ pub fn reject_duplicate_targets<T>(
     Ok(())
 }
 
-/// The approval mask and whether this server requires one.
 #[derive(Debug, Clone)]
 pub struct Selection {
     pub indices: Option<Vec<usize>>,
@@ -132,8 +139,6 @@ pub struct Selection {
     pub required: bool,
 }
 
-/// The kind of write a bulk tool performs. It sets the result's count field,
-/// its wording, and which errors stop the remaining items.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Op {
     Create,
@@ -166,10 +171,6 @@ fn reason(error: &ErrorData) -> Option<&str> {
     error.data.as_ref()?.get("reason")?.as_str()
 }
 
-/// Item-specific errors let the remaining items run. Anything that points at the
-/// backend or the caller's session stops them. Permission on an existing resource
-/// is scoped to that resource (rule assets, artifact creator), so it is item-specific
-/// for writes to existing resources.
 pub(crate) fn should_stop(op: Op, error: &ErrorData) -> bool {
     if error.code == ErrorCode::INVALID_PARAMS || error.code == ErrorCode::RESOURCE_NOT_FOUND {
         return false;
@@ -181,7 +182,6 @@ pub(crate) fn should_stop(op: Op, error: &ErrorData) -> bool {
     }
 }
 
-/// The approval mask applied to `count` input items.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Selected {
     /// Input positions to write, in input order.
@@ -191,7 +191,6 @@ pub struct Selected {
 }
 
 impl Selected {
-    /// Keep only the selected items, in input order.
     pub fn filter<T>(&self, items: Vec<T>) -> Vec<T> {
         let mut keep = self.indices.iter().peekable();
         items
@@ -202,8 +201,6 @@ impl Selected {
     }
 }
 
-/// Validate the approval mask for `count` input items. A required mask that is
-/// missing fails closed before any write.
 pub fn select(count: usize, selection: Selection) -> Result<Selected, ErrorData> {
     let selected_indices = match selection.indices {
         Some(indices) => indices,
@@ -268,7 +265,6 @@ where
     )
 }
 
-/// Build the bulk result body. Every index is a position in the caller's input.
 pub fn report(
     op: Op,
     requested_count: usize,
@@ -285,8 +281,6 @@ pub fn report(
     let failures = failures
         .into_iter()
         .map(|(index, error)| {
-            // An interrupted write or a composite task can commit before returning
-            // an error. Never instruct callers to blindly replay a failed write.
             let outcome_unknown = partial_writes
                 || (error.code != ErrorCode::INVALID_PARAMS
                     && error.code != ErrorCode::RESOURCE_NOT_FOUND
@@ -329,7 +323,6 @@ pub fn report(
     let text = body.to_string();
     let mut result = CallToolResult::structured(body);
     result.is_error = Some(has_errors);
-    // Models in some MCP clients cannot see structuredContent.
     result.content = vec![ContentBlock::text(next_step), ContentBlock::text(text)];
     Ok(result)
 }
@@ -417,39 +410,6 @@ mod test {
         }
     }
 
-    #[tokio::test]
-    async fn a_failed_precondition_fails_one_update_without_stopping_the_rest() {
-        let precondition = signal(tonic::Code::FailedPrecondition);
-        assert_eq!(
-            precondition.data.as_ref().unwrap()["reason"],
-            "FailedPrecondition"
-        );
-        assert!(should_stop(Op::Create, &precondition));
-        let result = run(
-            Op::Update,
-            vec![0, 1, 2],
-            Selection {
-                indices: Some(vec![0, 1, 2]),
-                required: true,
-            },
-            false,
-            |item| async move {
-                if item == 0 {
-                    Err(signal(tonic::Code::FailedPrecondition))
-                } else {
-                    Ok(CallToolResult::structured(json!({"item": item})))
-                }
-            },
-        )
-        .await
-        .unwrap();
-        let body = result.structured_content.unwrap();
-        assert_eq!(body["updated_count"], 2);
-        assert_eq!(body["failures"][0]["index"], 0);
-        assert_eq!(body["failures"][0]["outcome_unknown"], false);
-        assert_eq!(body["not_attempted"], json!([]));
-    }
-
     #[test]
     fn select_keeps_input_positions_and_filters_in_order() {
         let selected = select(
@@ -516,31 +476,52 @@ mod test {
     }
 
     #[tokio::test]
-    async fn a_permission_failure_on_one_archive_does_not_stop_the_rest() {
-        let result = run(
-            Op::Archive,
-            vec![0, 1, 2],
-            Selection {
-                indices: Some(vec![0, 1, 2]),
-                required: true,
-            },
-            false,
-            |item| async move {
-                if item == 1 {
-                    Err(signal(tonic::Code::PermissionDenied))
-                } else {
-                    Ok(CallToolResult::structured(json!({"item": item})))
-                }
-            },
-        )
-        .await
-        .unwrap();
-        assert_eq!(result.is_error, Some(true));
-        let body = result.structured_content.unwrap();
-        assert_eq!(body["archived_count"], 2);
-        assert_eq!(body["failures"][0]["index"], 1);
-        assert_eq!(body["failures"][0]["outcome_unknown"], false);
-        assert_eq!(body["not_attempted"], json!([]));
+    async fn selected_item_failures_and_stop_rules_preserve_input_positions() {
+        use tonic::Code::{
+            AlreadyExists, FailedPrecondition, NotFound, PermissionDenied, Unavailable,
+        };
+        for op in [Op::Create, Op::Update, Op::Archive, Op::Unarchive] {
+            for code in [
+                NotFound,
+                PermissionDenied,
+                FailedPrecondition,
+                AlreadyExists,
+                Unavailable,
+            ] {
+                let stops = code == Unavailable
+                    || (op == Op::Create && matches!(code, PermissionDenied | FailedPrecondition));
+                let result = run(
+                    op,
+                    vec![0, 1, 2, 3],
+                    Selection {
+                        indices: Some(vec![3, 2, 0]),
+                        required: true,
+                    },
+                    false,
+                    |item| async move {
+                        match item {
+                            1 => panic!("unselected item ran"),
+                            2 => Err(signal(code)),
+                            3 if stops => panic!("tail ran after backend failure"),
+                            _ => Ok(CallToolResult::structured(json!({"item": item}))),
+                        }
+                    },
+                )
+                .await
+                .unwrap();
+                assert_eq!(result.is_error, Some(true));
+                let body = result.structured_content.unwrap();
+                assert_eq!(body["not_selected"], json!([1]));
+                assert_eq!(body[op.count_key()], if stops { 1 } else { 2 });
+                assert_eq!(body["successes"][0]["index"], 0);
+                assert_eq!(body["failures"][0]["index"], 2);
+                assert_eq!(body["failures"][0]["outcome_unknown"], code == Unavailable);
+                assert_eq!(
+                    body["not_attempted"],
+                    if stops { json!([3]) } else { json!([]) }
+                );
+            }
+        }
     }
 
     #[tokio::test]

@@ -187,11 +187,15 @@ impl SiftMcpServer {
             selected_indices,
             ..
         }) = params;
-        let items = bulk::parse_items::<UpdateAssetItem>(items)?;
-        for (index, item) in items.iter().enumerate() {
-            validate_update_asset(item).map_err(|error| bulk::at_item(index, error))?;
-        }
-        bulk::reject_duplicate_targets(&items, "asset", |item| Some(item.asset_id.clone()))?;
+        let items = bulk::prepare(
+            items,
+            "asset",
+            |item: UpdateAssetItem| {
+                validate_update_asset(&item)?;
+                Ok(item)
+            },
+            |item| Some(item.asset_id.clone()),
+        )?;
         bulk::run(
             Op::Update,
             items,

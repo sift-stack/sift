@@ -329,23 +329,18 @@ impl SiftMcpServer {
     #[tool(
         name = "update_rule",
         description = "
-            Update specific fields of one or more existing Sift rules. This is a WRITE. Only the fields you
-            set on an item are changed; everything else on that rule is preserved. The tool fetches the
-            current rule, overlays your changes, and saves the result, so each item needs only the fields
-            you want to modify.
+            Update fields of existing Sift rules, preserving omitted fields. This is a WRITE.
 
             Output:
               - `{ requested_count, selected_count, not_selected, updated_count, successes, failures,
-                not_attempted, next_step }`. `successes` holds `{ index, result }` per updated item, where
-                `index` is the item's zero-based position in `items`. `failures` holds `{ index, error,
-                outcome_unknown }`. `not_attempted` lists items skipped after a backend-wide error. Any
-                failure sets `isError`. Each `result` is:
+                not_attempted, next_step }`. Successes: `{ index, result }`; failures: `{ index, error,
+                outcome_unknown }`. Indices refer to input positions; backend failures leave a `not_attempted`
+                tail. Any failure sets `isError`. Each result is:
                 - `{ \"rule_id\": \"<id>\", \"rule_url\": string|null, \"next_step\": \"...\" }`. `rule_url` is
                   the rule's Sift web link, or null when the host can't be derived.
 
             Parameters:
-              - `items`: required array of 1–100 objects, one per rule. Pass one item to update one
-                rule. Each item takes:
+              - `items`: 1–100 objects, each with:
                 - `rule_id`: required. The rule to update.
                 - `name`: optional. New rule name.
                 - `description`: optional. New description.
@@ -357,9 +352,8 @@ impl SiftMcpServer {
                   `conditions` field of `create_rule`'s `rule_json`. Omit it to keep the existing conditions
                   unchanged — only provide it when you intend to rewrite the rule's logic.
                 - At least one field besides `rule_id` must be set.
-              - `selected_indices`: zero-based positions in `items` to update. An approval host sets this
-                from the user's per-item decisions; omit it when proposing. Omitted means every item,
-                except in a Sift chat pod, where a missing value is rejected. `[]` updates nothing.
+              - `selected_indices`: host-owned zero-based input positions; omit when proposing.
+                Omitted selects all outside Sift chat; chat requires a mask. `[]` writes nothing.
 
             Errors:
               - `INVALID_PARAMS` before any write if `items` is empty or has more than 100 entries, if two
@@ -395,13 +389,9 @@ impl SiftMcpServer {
             selected_indices,
             ..
         }) = params;
-        let items = bulk::parse_items::<UpdateRuleItem>(items)?;
-        let updates = items
-            .into_iter()
-            .enumerate()
-            .map(|(index, item)| rule_update(item).map_err(|error| bulk::at_item(index, error)))
-            .collect::<Result<Vec<_>, _>>()?;
-        bulk::reject_duplicate_targets(&updates, "rule", |(rule_id, _)| Some(rule_id.clone()))?;
+        let updates = bulk::prepare(items, "rule", rule_update, |(rule_id, _)| {
+            Some(rule_id.clone())
+        })?;
         bulk::run(
             Op::Update,
             updates,
@@ -443,21 +433,18 @@ impl SiftMcpServer {
 
             Output:
               - `{ requested_count, selected_count, not_selected, archived_count, successes, failures,
-                not_attempted, next_step }`. `successes` holds `{ index, result }` per archived item, where
-                `index` is the item's zero-based position in `items`. `failures` holds `{ index, error,
-                outcome_unknown }`. `not_attempted` lists items skipped after a backend-wide error. Any
-                failure sets `isError`. Each `result` is:
+                not_attempted, next_step }`. Successes: `{ index, result }`; failures: `{ index, error,
+                outcome_unknown }`. Indices refer to input positions; backend failures leave a `not_attempted`
+                tail. Any failure sets `isError`. Each result is:
                 - `{ \"rule_id\": \"<id>\", \"name\": string, \"archived\": true, \"rule_url\": string|null }`.
                   `rule_url` is the rule's Sift web link, or null when the host can't be derived.
 
             Parameters:
-              - `items`: required array of 1–100 objects, one per rule. Pass one item to archive one
-                rule. Each item takes exactly one of:
+              - `items`: 1–100 objects, each with exactly one of:
                 - `rule_id`: the id of the rule to archive.
                 - `client_key`: the caller-defined key of the rule to archive.
-              - `selected_indices`: zero-based positions in `items` to archive. An approval host sets this
-                from the user's per-item decisions; omit it when proposing. Omitted means every item,
-                except in a Sift chat pod, where a missing value is rejected. `[]` archives nothing.
+              - `selected_indices`: host-owned zero-based input positions; omit when proposing.
+                Omitted selects all outside Sift chat; chat requires a mask. `[]` writes nothing.
 
             Errors:
               - `INVALID_PARAMS` before any write if `items` is empty or has more than 100 entries, if two
@@ -495,21 +482,18 @@ impl SiftMcpServer {
 
             Output:
               - `{ requested_count, selected_count, not_selected, unarchived_count, successes, failures,
-                not_attempted, next_step }`. `successes` holds `{ index, result }` per unarchived item,
-                where `index` is the item's zero-based position in `items`. `failures` holds `{ index,
-                error, outcome_unknown }`. `not_attempted` lists items skipped after a backend-wide error.
-                Any failure sets `isError`. Each `result` is:
+                not_attempted, next_step }`. Successes: `{ index, result }`; failures: `{ index, error,
+                outcome_unknown }`. Indices refer to input positions; backend failures leave a `not_attempted`
+                tail. Any failure sets `isError`. Each result is:
                 - `{ \"rule_id\": \"<id>\", \"name\": string, \"unarchived\": true, \"rule_url\": string|null }`.
                   `rule_url` is the rule's Sift web link, or null when the host can't be derived.
 
             Parameters:
-              - `items`: required array of 1–100 objects, one per rule. Pass one item to unarchive one
-                rule. Each item takes exactly one of:
+              - `items`: 1–100 objects, each with exactly one of:
                 - `rule_id`: the id of the rule to unarchive.
                 - `client_key`: the caller-defined key of the rule to unarchive.
-              - `selected_indices`: zero-based positions in `items` to unarchive. An approval host sets
-                this from the user's per-item decisions; omit it when proposing. Omitted means every item,
-                except in a Sift chat pod, where a missing value is rejected. `[]` unarchives nothing.
+              - `selected_indices`: host-owned zero-based input positions; omit when proposing.
+                Omitted selects all outside Sift chat; chat requires a mask. `[]` writes nothing.
 
             Errors:
               - `INVALID_PARAMS` before any write if `items` is empty or has more than 100 entries, if two
@@ -549,21 +533,18 @@ impl SiftMcpServer {
             selected_indices,
             ..
         }) = params;
-        let targets = bulk::parse_items::<RuleArchiveItem>(items)?
-            .into_iter()
-            .enumerate()
-            .map(|(index, item)| {
-                rule_identifier(item.rule_id, item.client_key)
-                    .map_err(|error| bulk::at_item(index, error))
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-        bulk::reject_duplicate_targets(&targets, "rule", |(rule_id, client_key)| {
-            Some(if rule_id.is_empty() {
-                format!("client_key:{client_key}")
-            } else {
-                format!("rule_id:{rule_id}")
-            })
-        })?;
+        let targets = bulk::prepare(
+            items,
+            "rule",
+            |item: RuleArchiveItem| rule_identifier(item.rule_id, item.client_key),
+            |(rule_id, client_key)| {
+                Some(if rule_id.is_empty() {
+                    format!("client_key:{client_key}")
+                } else {
+                    format!("rule_id:{rule_id}")
+                })
+            },
+        )?;
         bulk::run(
             op,
             targets,
@@ -574,8 +555,6 @@ impl SiftMcpServer {
         .await
     }
 
-    /// Resolve the rule first: the archive RPCs succeed silently when nothing
-    /// matches, which would report a typo as archived.
     async fn set_rule_archived(
         &self,
         rule_id: String,

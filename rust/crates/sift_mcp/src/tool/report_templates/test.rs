@@ -105,39 +105,6 @@ mod bulk {
     }
 
     #[tokio::test]
-    async fn not_found_continues_and_unavailable_stops_tail() {
-        let mut mock = MockReportTemplateServiceImpl::new();
-        mock.expect_update_report_template().returning(|req| {
-            let template = req.into_inner().report_template.unwrap();
-            match template.report_template_id.as_str() {
-                "missing" => Err(Status::not_found("missing template")),
-                "down" => Err(Status::unavailable("backend down")),
-                "never" => panic!("tail must not run"),
-                _ => Ok(Response::new(UpdateReportTemplateResponse {
-                    report_template: Some(template),
-                })),
-            }
-        });
-        let (server, handle) = server_with_mock(mock).await;
-        let body = body(
-            call(
-                &server,
-                json!({"items": [item("missing"), item("ok"), item("down"), item("never")]}),
-            )
-            .await
-            .unwrap(),
-        );
-        assert_eq!(body["updated_count"], 1);
-        assert_eq!(
-            body["failures"][0]["error"]["code"],
-            ErrorCode::RESOURCE_NOT_FOUND.0
-        );
-        assert_eq!(body["failures"][1]["index"], 2);
-        assert_eq!(body["not_attempted"], json!([3]));
-        handle.abort();
-    }
-
-    #[tokio::test]
     async fn invalid_duplicate_and_missing_chat_mask_fail_before_rpc() {
         let (server, handle) = server_with_mock(MockReportTemplateServiceImpl::new()).await;
         let server = server.with_require_selection(true);

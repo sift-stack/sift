@@ -740,17 +740,21 @@ impl SiftMcpServer {
             selected_indices,
             ..
         }) = params;
-        let mut items = bulk::parse_items::<ArtifactArchiveItem>(items)?;
-        for (index, item) in items.iter_mut().enumerate() {
-            item.artifact_id = item.artifact_id.trim().to_owned();
-            if item.artifact_id.is_empty() {
-                return Err(bulk::at_item(
-                    index,
-                    ErrorData::invalid_params("`artifact_id` must not be empty", None),
-                ));
-            }
-        }
-        bulk::reject_duplicate_targets(&items, "artifact", |item| Some(item.artifact_id.clone()))?;
+        let items = bulk::prepare(
+            items,
+            "artifact",
+            |mut item: ArtifactArchiveItem| {
+                item.artifact_id = item.artifact_id.trim().to_owned();
+                if item.artifact_id.is_empty() {
+                    return Err(ErrorData::invalid_params(
+                        "`artifact_id` must not be empty",
+                        None,
+                    ));
+                }
+                Ok(item)
+            },
+            |item| Some(item.artifact_id.clone()),
+        )?;
         bulk::run(
             op,
             items,
@@ -828,18 +832,18 @@ impl SiftMcpServer {
                 - `summary`: optional short description stored on the version.
                 - `conversation_id`: optional. Links the new artifact to that conversation. The caller must be
                   the conversation\'s author.
-                - `storage_class`: optional; `file` (default) or `blob`, matched case-insensitively. Proto names
+                - `storage_class`: optional; `\"file\"` (default) or `\"blob\"`, matched case-insensitively. Proto names
                   are also accepted.
-                - `created_via`: optional; `agent` (default), `canvas`, or `upload`, matched
+                - `created_via`: optional; `\"agent\"` (default), `\"canvas\"`, or `\"upload\"`, matched
                   case-insensitively. Proto names are also accepted.
                 - `metadata`: optional list of `{ \"name\": \"<key>\", \"value\": <scalar> }` entries.
                 - `links`: optional list of `{ \"relation\", \"entity_type\", \"entity_id\" }` entries. `relation`
-                  accepts `attached_to`, `source`, or `derived_from`, plus proto names. `entity_type` accepts
-                  `conversation`, `canvas`, `run`, `asset`, `artifact`, or `tool_use`, plus proto names.
-                  Use `source` for what the artifact was built from, such as the `run` or `asset` whose data
-                  it summarizes. `derived_from` is only for another artifact (`entity_type: \"artifact\"`);
-                  the server rejects it for any other entity type. `attached_to` places the artifact where it
-                  surfaces, such as a `conversation` or `canvas`; prefer `conversation_id` over an explicit
+                  accepts `\"attached_to\"`, `\"source\"`, or `\"derived_from\"`, plus proto names. `entity_type` accepts
+                  `\"conversation\"`, `\"canvas\"`, `\"run\"`, `\"asset\"`, `\"artifact\"`, or `\"tool_use\"`, plus proto names.
+                  Use `\"source\"` for what the artifact was built from, such as the `\"run\"` or `\"asset\"` whose data
+                  it summarizes. `\"derived_from\"` is only for another artifact (`entity_type: \"artifact\"`);
+                  the server rejects it for any other entity type. `\"attached_to\"` places the artifact where it
+                  surfaces, such as a `\"conversation\"` or `\"canvas\"`; prefer `conversation_id` over an explicit
                   conversation link.
                 - `file_path`: optional absolute or relative path of a local file to upload as this
                   version\'s content. The file streams to Sift\'s file store; its name and extension drive
@@ -871,7 +875,7 @@ impl SiftMcpServer {
               - Use `storage_class: \"blob\"` for opaque intermediates.
               - To store JSON, such as a computed table, write it to a local `.json` file and pass it as
                 `file_path`.
-              - Leave `created_via` unset inside a Sift agent session; it defaults to `agent`.
+              - Leave `created_via` unset inside a Sift agent session; it defaults to `\"agent\"`.
               - One artifact per real deliverable. Do not create artifacts for intermediate scratch files.
               - Items run sequentially, one create per item; this is not an atomic batch. Never replay
                 the whole call after a partial failure. Retry only failed items, and check any
@@ -1049,12 +1053,16 @@ impl SiftMcpServer {
             selected_indices,
             ..
         }) = params;
-        let mut items = bulk::parse_items::<UpdateArtifactItem>(items)?;
-        for (index, item) in items.iter_mut().enumerate() {
-            item.artifact_id = item.artifact_id.trim().to_owned();
-            validate_update_artifact(item).map_err(|error| bulk::at_item(index, error))?;
-        }
-        bulk::reject_duplicate_targets(&items, "artifact", |item| Some(item.artifact_id.clone()))?;
+        let items = bulk::prepare(
+            items,
+            "artifact",
+            |mut item: UpdateArtifactItem| {
+                item.artifact_id = item.artifact_id.trim().to_owned();
+                validate_update_artifact(&item)?;
+                Ok(item)
+            },
+            |item| Some(item.artifact_id.clone()),
+        )?;
         bulk::run(
             Op::Update,
             items,

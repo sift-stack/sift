@@ -492,14 +492,12 @@ impl SiftMcpServer {
         self.require_destructive()?;
 
         let Parameters(params) = params;
-        let updates = bulk::parse_items::<UpdateCalculatedChannelItem>(params.items)?
-            .into_iter()
-            .enumerate()
-            .map(|(index, item)| {
-                calculated_channel_update(item).map_err(|error| bulk::at_item(index, error))
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-        bulk::reject_duplicate_targets(&updates, "calculated channel", |(id, _)| Some(id.clone()))?;
+        let updates = bulk::prepare(
+            params.items,
+            "calculated channel",
+            calculated_channel_update,
+            |(id, _)| Some(id.clone()),
+        )?;
         bulk::run(
             Op::Update,
             updates,
@@ -661,13 +659,15 @@ impl SiftMcpServer {
         op: Op,
     ) -> error::McpResult {
         let Parameters(params) = params;
-        let items = bulk::parse_items::<CalculatedChannelArchiveItem>(params.items)?;
-        for (index, item) in items.iter().enumerate() {
-            require_id(&item.calculated_channel_id).map_err(|error| bulk::at_item(index, error))?;
-        }
-        bulk::reject_duplicate_targets(&items, "calculated channel", |item| {
-            Some(item.calculated_channel_id.clone())
-        })?;
+        let items = bulk::prepare(
+            params.items,
+            "calculated channel",
+            |item: CalculatedChannelArchiveItem| {
+                require_id(&item.calculated_channel_id)?;
+                Ok(item)
+            },
+            |item| Some(item.calculated_channel_id.clone()),
+        )?;
         bulk::run(
             op,
             items,

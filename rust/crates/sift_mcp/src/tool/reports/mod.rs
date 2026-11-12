@@ -488,15 +488,14 @@ impl SiftMcpServer {
     ) -> error::McpResult {
         self.require_destructive()?;
         let Parameters(params) = params;
-        let items = bulk::parse_items::<UpdateReportItem>(params.items)?;
-        let updates = items
-            .into_iter()
-            .enumerate()
-            .map(|(index, item)| {
+        let updates = bulk::prepare(
+            params.items,
+            "report",
+            |item: UpdateReportItem| {
                 if item.report_id.trim().is_empty() {
-                    return Err(bulk::at_item(
-                        index,
-                        ErrorData::invalid_params("`report_id` must not be empty", None),
+                    return Err(ErrorData::invalid_params(
+                        "`report_id` must not be empty",
+                        None,
                     ));
                 }
                 Ok((
@@ -506,9 +505,9 @@ impl SiftMcpServer {
                         .map(MetadataValue::from)
                         .collect::<Vec<_>>(),
                 ))
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-        bulk::reject_duplicate_targets(&updates, "report", |(id, _)| Some(id.clone()))?;
+            },
+            |(id, _)| Some(id.clone()),
+        )?;
         bulk::run(
             Op::Update,
             updates,

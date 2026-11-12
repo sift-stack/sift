@@ -206,11 +206,15 @@ impl SiftMcpServer {
             selected_indices,
             ..
         }) = params;
-        let items = bulk::parse_items::<UpdateRunItem>(items)?;
-        for (index, item) in items.iter().enumerate() {
-            validate_update_run(item).map_err(|error| bulk::at_item(index, error))?;
-        }
-        bulk::reject_duplicate_targets(&items, "run", |item| Some(item.run_id.clone()))?;
+        let items = bulk::prepare(
+            items,
+            "run",
+            |item: UpdateRunItem| {
+                validate_update_run(&item)?;
+                Ok(item)
+            },
+            |item| Some(item.run_id.clone()),
+        )?;
         bulk::run(
             Op::Update,
             items,
