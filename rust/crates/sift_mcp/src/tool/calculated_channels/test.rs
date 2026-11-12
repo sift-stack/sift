@@ -13,7 +13,7 @@ use tonic::{Response, Status, transport::Server};
 
 use super::{
     CalculatedChannelArchiveParams, CalculatedChannelVersionListParams,
-    CreateCalculatedChannelParams, UpdateCalculatedChannelParams,
+    CreateCalculatedChannelItem, UpdateCalculatedChannelParams,
 };
 use crate::{
     server::SiftMcpServer,
@@ -60,8 +60,8 @@ async fn server_with_mock_and_flags(
     )
 }
 
-fn create_params() -> CreateCalculatedChannelParams {
-    CreateCalculatedChannelParams {
+fn create_params() -> CreateCalculatedChannelItem {
+    CreateCalculatedChannelItem {
         name: "thrust_margin".into(),
         expression: "$1 - $2".into(),
         expression_channel_references_json: REFERENCES_JSON.into(),
@@ -298,7 +298,7 @@ async fn create_calculated_channel_blocked_without_allow_create() {
     let (server, _h) = server_with_mock_and_flags(mock, false, false).await;
 
     let err = server
-        .create_calculated_channel(Parameters(create_params()))
+        .create_calculated_channel_item(Parameters(create_params()))
         .await
         .expect_err("expected create gate to reject the call");
 
@@ -327,7 +327,7 @@ async fn create_calculated_channel_returns_structured_result() {
     let (server, _h) = server_with_mock(mock).await;
 
     let resp = server
-        .create_calculated_channel(Parameters(create_params()))
+        .create_calculated_channel_item(Parameters(create_params()))
         .await
         .expect("create_calculated_channel failed");
 
@@ -351,7 +351,7 @@ async fn create_calculated_channel_rejects_malformed_references_json() {
     params.expression_channel_references_json = "{not json".into();
 
     let err = server
-        .create_calculated_channel(Parameters(params))
+        .create_calculated_channel_item(Parameters(params))
         .await
         .expect_err("expected error");
 
@@ -368,7 +368,7 @@ async fn create_calculated_channel_rejects_all_assets_with_asset_ids() {
     params.asset_ids = Some(vec!["asset-1".into()]);
 
     let err = server
-        .create_calculated_channel(Parameters(params))
+        .create_calculated_channel_item(Parameters(params))
         .await
         .expect_err("expected error");
 
@@ -383,7 +383,7 @@ async fn create_calculated_channel_requires_an_asset_scope() {
     params.all_assets = None;
 
     let err = server
-        .create_calculated_channel(Parameters(params))
+        .create_calculated_channel_item(Parameters(params))
         .await
         .expect_err("expected error");
 
@@ -398,7 +398,7 @@ async fn create_calculated_channel_rejects_empty_name() {
     params.name = String::new();
 
     let err = server
-        .create_calculated_channel(Parameters(params))
+        .create_calculated_channel_item(Parameters(params))
         .await
         .expect_err("expected error");
 
@@ -413,7 +413,7 @@ async fn create_calculated_channel_rejects_empty_expression() {
     params.expression = String::new();
 
     let err = server
-        .create_calculated_channel(Parameters(params))
+        .create_calculated_channel_item(Parameters(params))
         .await
         .expect_err("expected error");
 

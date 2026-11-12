@@ -16,7 +16,7 @@ use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
 use super::{
-    AnnotationListParams, AnnotationStateParam, AnnotationTypeParam, CreateAnnotationParams,
+    AnnotationListParams, AnnotationStateParam, AnnotationTypeParam, CreateAnnotationItem,
     UpdateAnnotationParams,
 };
 use crate::{
@@ -65,7 +65,14 @@ fn contains_enum(schema: &serde_json::Value, node: &serde_json::Value, expected:
 
 fn assert_property_enum(tool: &Tool, property: &str, expected: &[&str]) {
     let schema = serde_json::Value::Object(tool.input_schema.as_ref().clone());
-    let property_schema = &schema["properties"][property];
+    // Create tools nest each resource's fields inside `items`.
+    let item = schema["properties"]["items"]["items"]["$ref"]
+        .as_str()
+        .and_then(|reference| reference.strip_prefix("#/$defs/"));
+    let property_schema = match item {
+        Some(name) => &schema["$defs"][name]["properties"][property],
+        None => &schema["properties"][property],
+    };
     assert!(
         contains_enum(&schema, property_schema, expected),
         "`{}` must define `{property}` with enum values {expected:?}; schema: {schema}",
@@ -140,8 +147,8 @@ async fn server_with_mock(mock: MockAnnotationServiceImpl) -> (SiftMcpServer, Jo
     )
 }
 
-fn create_params() -> CreateAnnotationParams {
-    CreateAnnotationParams {
+fn create_params() -> CreateAnnotationItem {
+    CreateAnnotationItem {
         name: "review window".into(),
         description: None,
         start_time_unix_nanos: 1_000_000_000,
@@ -238,7 +245,7 @@ async fn create_annotation_happy_path() {
     let (server, _h) = server_with_mock(mock).await;
 
     let resp = server
-        .create_annotation(Parameters(create_params()))
+        .create_annotation_item(Parameters(create_params()))
         .await
         .expect("create_annotation failed");
 
@@ -254,7 +261,7 @@ async fn create_annotation_rejects_empty_name() {
     params.name = String::new();
 
     let err = server
-        .create_annotation(Parameters(params))
+        .create_annotation_item(Parameters(params))
         .await
         .expect_err("expected error");
 
@@ -270,7 +277,7 @@ async fn create_annotation_rejects_inverted_time_range() {
     params.end_time_unix_nanos = 1;
 
     let err = server
-        .create_annotation(Parameters(params))
+        .create_annotation_item(Parameters(params))
         .await
         .expect_err("expected error");
 
@@ -279,7 +286,7 @@ async fn create_annotation_rejects_inverted_time_range() {
 
 #[test]
 fn create_annotation_params_reject_unknown_type() {
-    let params = serde_json::from_value::<CreateAnnotationParams>(serde_json::json!({
+    let params = serde_json::from_value::<CreateAnnotationItem>(serde_json::json!({
         "name": "review window",
         "start_time_unix_nanos": 1_000_000_000,
         "end_time_unix_nanos": 2_000_000_000,
@@ -291,7 +298,7 @@ fn create_annotation_params_reject_unknown_type() {
 
 #[test]
 fn annotation_params_accept_published_enum_values() {
-    let create = serde_json::from_value::<CreateAnnotationParams>(serde_json::json!({
+    let create = serde_json::from_value::<CreateAnnotationItem>(serde_json::json!({
         "name": "review window",
         "start_time_unix_nanos": 1_000_000_000,
         "end_time_unix_nanos": 2_000_000_000,
@@ -342,7 +349,7 @@ async fn create_annotation_rejects_state_on_phase() {
     params.state = Some(AnnotationStateParam::Open);
 
     let err = server
-        .create_annotation(Parameters(params))
+        .create_annotation_item(Parameters(params))
         .await
         .expect_err("expected error");
 

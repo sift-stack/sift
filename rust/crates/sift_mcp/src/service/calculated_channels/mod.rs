@@ -1,4 +1,4 @@
-use crate::policy::{RetryPolicy, with_retry};
+use crate::policy::{RetryPolicy, once, with_retry};
 use crate::service::common;
 use anyhow::{Context, Result, anyhow, bail};
 use pbjson_types::FieldMask;
@@ -541,16 +541,12 @@ impl CalculatedChannelService {
         };
 
         let grpc_channel = self.channel.clone();
-        let resp = with_retry(&self.policy, move || {
-            let grpc_channel = grpc_channel.clone();
-            let request = request.clone();
-            async move {
-                let mut client = CalculatedChannelServiceClient::new(grpc_channel);
-                client
-                    .create_calculated_channel(request)
-                    .await
-                    .map(|resp| resp.into_inner())
-            }
+        let resp = once(move || async move {
+            let mut client = CalculatedChannelServiceClient::new(grpc_channel);
+            client
+                .create_calculated_channel(request)
+                .await
+                .map(|resp| resp.into_inner())
         })
         .await
         .context("failed to create calculated channel")?;

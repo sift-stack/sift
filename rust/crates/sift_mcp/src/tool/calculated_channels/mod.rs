@@ -10,6 +10,7 @@ use sift_rs::{
     calculated_channels::v2::CalculatedChannelAbstractChannelReference, metadata::v1::MetadataValue,
 };
 
+use crate::tool::common::bulk_create;
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
@@ -32,7 +33,7 @@ pub struct CalculatedChannelVersionListParams {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-pub struct CreateCalculatedChannelParams {
+pub struct CreateCalculatedChannelItem {
     name: String,
     expression: String,
     expression_channel_references_json: String,
@@ -253,41 +254,55 @@ impl SiftMcpServer {
     #[tool(
         name = "create_calculated_channel",
         description = "
-            Create a calculated channel: a derived channel defined by a SEL expression over other channels,
-            scoped to a set of assets. This is a WRITE.
+            Create one or more calculated channels: derived channels defined by a SEL expression over other
+            channels, scoped to a set of assets. This is a WRITE.
 
             Output:
-              - `{ \"calculated_channel\": CalculatedChannel, \"inapplicable_assets\": [...],
-                \"next_step\": string }`. `inapplicable_assets` lists in-scope assets that do NOT have every
-                channel the expression references; each entry carries `asset_id`, `asset_name`, `tag_names`, and
-                `missing_channels`. A non-empty list means the channel was created but will not evaluate on those
-                assets.
+              - `{ requested_count, selected_count, not_selected, created_count, successes, failures,
+                not_attempted, next_step }`. `successes` holds `{ index, result }` per created item, where
+                `index` is the item's zero-based position in `items`. `failures` holds `{ index, error,
+                outcome_unknown }`. `not_attempted` lists items skipped after a backend-wide error. Any
+                failure sets `isError`. Each `result` is:
+                - `{ \"calculated_channel\": CalculatedChannel, \"inapplicable_assets\": [...],
+                  \"next_step\": string }`. `inapplicable_assets` lists in-scope assets that do NOT have every
+                  channel the expression references; each entry carries `asset_id`, `asset_name`, `tag_names`, and
+                  `missing_channels`. A non-empty list means the channel was created but will not evaluate on those
+                  assets.
 
             Parameters:
-              - `name`: required. The calculated channel's name.
-              - `expression`: required. A SEL expression whose channel operands are placeholders (`$1`, `$2`, …)
-                resolved by `expression_channel_references_json`. Example: `\"$1 - $2\"`.
-              - `expression_channel_references_json`: required. A JSON array string mapping each placeholder to a
-                channel. Each entry is
-                `{ \"channel_reference\": \"$1\", \"channel_identifier\": \"<channel name>\" }`. To reference
-                another calculated channel instead of a raw channel, replace `channel_identifier` with
-                `\"calculated_channel_version_id\": \"<version id>\"`. Pass `[]` only for an expression with no
-                channel operands. This parameter is a JSON STRING, not an object.
-              - `description`: optional. Free-text description.
-              - `user_notes`: optional. Notes recorded against this version.
-              - `units`: optional. Units of the computed output.
-              - `client_key`: optional. A caller-defined identifier. Immutable after creation.
-              - `all_assets`: optional. `true` scopes the channel to every asset in the organization.
-              - `asset_ids` / `tag_ids`: optional. Scope the channel to specific assets and/or tagged assets.
-              - Exactly one scope form is allowed: either `all_assets: true`, or a non-empty `asset_ids` /
-                `tag_ids` selection. Setting both is rejected.
-              - `metadata`: optional. Array of `{ \"name\": \"<key>\", \"value\": <scalar> }` entries.
+              - `items`: required array of 1–100 objects, one per calculated channel. Pass one item to create one
+                calculated channel. Each item takes:
+                - `name`: required. The calculated channel's name.
+                - `expression`: required. A SEL expression whose channel operands are placeholders (`$1`, `$2`, …)
+                  resolved by `expression_channel_references_json`. Example: `\"$1 - $2\"`.
+                - `expression_channel_references_json`: required. A JSON array string mapping each placeholder to a
+                  channel. Each entry is
+                  `{ \"channel_reference\": \"$1\", \"channel_identifier\": \"<channel name>\" }`. To reference
+                  another calculated channel instead of a raw channel, replace `channel_identifier` with
+                  `\"calculated_channel_version_id\": \"<version id>\"`. Pass `[]` only for an expression with no
+                  channel operands. This parameter is a JSON STRING, not an object.
+                - `description`: optional. Free-text description.
+                - `user_notes`: optional. Notes recorded against this version.
+                - `units`: optional. Units of the computed output.
+                - `client_key`: optional. A caller-defined identifier. Immutable after creation.
+                - `all_assets`: optional. `true` scopes the channel to every asset in the organization.
+                - `asset_ids` / `tag_ids`: optional. Scope the channel to specific assets and/or tagged assets.
+                - Exactly one scope form is allowed: either `all_assets: true`, or a non-empty `asset_ids` /
+                  `tag_ids` selection. Setting both is rejected.
+                - `metadata`: optional. Array of `{ \"name\": \"<key>\", \"value\": <scalar> }` entries.
+              - `selected_indices`: zero-based positions in `items` to create. An approval host sets this
+                from the user's per-item decisions; omit it when proposing. Omitted means every item,
+                except in a Sift chat pod, where a missing value is rejected. `[]` creates nothing.
 
             Errors:
               - `INVALID_PARAMS` if `name` or `expression` is empty, `expression_channel_references_json` is not a
                 valid reference array, no asset scope is given, or both scope forms are set.
               - `INVALID_REQUEST` if the server was launched without `--allow-create`.
               - `INTERNAL_ERROR` for upstream gRPC failures (e.g. a referenced channel does not exist).
+              - `INVALID_PARAMS` before any write if `items` is empty or has more than 100 entries, or an
+                item has an unknown field or fails local validation. The message names the item index.
+              - Once writing starts, an item-specific error fails only that item. A backend-wide error
+                stops the remaining items; earlier creates stay committed.
 
             Guidance:
               - Resolve the exact channel names with `list_channels` before writing the references — a typo makes
@@ -296,6 +311,12 @@ impl SiftMcpServer {
                 before calling.
               - Report any `inapplicable_assets` back to the user; that list is the API telling you the scope and
                 the expression disagree.
+              - Items run sequentially, one create per item; this is not an atomic batch. Never replay
+                the whole call after a partial failure. Retry only failed items, and check any
+                `outcome_unknown` item first, since its create may have committed.
+              - Use one call with several items, not repeated calls, when creating several calculated channels.
+              - When one channel references another, create the prerequisite first, read its version id
+                from the result, then reference that id in a separate call.
         ",
         annotations(
             title = "calculated_channels/create_calculated_channel",
@@ -306,11 +327,29 @@ impl SiftMcpServer {
     )]
     pub async fn create_calculated_channel(
         &self,
-        params: Parameters<CreateCalculatedChannelParams>,
+        params: Parameters<bulk_create::CreateItems<CreateCalculatedChannelItem>>,
+    ) -> error::McpResult {
+        self.require_create()?;
+        let Parameters(bulk_create::CreateItems {
+            items,
+            selected_indices,
+            ..
+        }) = params;
+        let items = bulk_create::parse_items::<CreateCalculatedChannelItem>(items)?;
+        bulk_create::create_many(items, self.selection(selected_indices), |item| {
+            self.create_calculated_channel_item(Parameters(item))
+        })
+        .await
+    }
+
+    /// Create one item. Callers check access and validate the whole call first.
+    pub(crate) async fn create_calculated_channel_item(
+        &self,
+        params: Parameters<CreateCalculatedChannelItem>,
     ) -> error::McpResult {
         self.require_create()?;
 
-        let Parameters(CreateCalculatedChannelParams {
+        let Parameters(CreateCalculatedChannelItem {
             name,
             expression,
             expression_channel_references_json,

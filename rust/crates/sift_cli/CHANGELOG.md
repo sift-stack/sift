@@ -7,6 +7,22 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+## [v0.9.0] - November 12, 2026
+
+### What's New
+
+- MCP create tools now create 1 to 100 resources per call. `create_annotation`,
+  `create_rule`, `create_calculated_channel`, `create_user_defined_function`,
+  `create_report`, `create_report_template`, `create_test_report`, and
+  `create_artifact` take an `items` array of the fields each one took before.
+  This is a breaking change for existing callers; pass a one-element `items`
+  list for one resource. `create_annotation` takes `run_id` and
+  `organization_id` once, at the top level, for every item. Results list each
+  item's outcome by index under `successes`, `failures`, and `not_attempted`.
+  An item-specific failure does not stop the others.
+- Single-item MCP creates no longer retry on `Unavailable`, to avoid duplicate
+  resources. Reads after a create keep their retry.
+
 ## [v0.8.3] - November 11, 2026
 
 ### What's New

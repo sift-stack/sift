@@ -16,7 +16,7 @@ use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::reports::{ReportSource, RuleIdentifier},
-    tool::common::{MetadataEntry, read_result, url_clause},
+    tool::common::{MetadataEntry, bulk_create, read_result, url_clause},
 };
 
 #[cfg(test)]
@@ -74,7 +74,7 @@ pub struct ReportRuleSummaryListParams {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-pub struct CreateReportParams {
+pub struct CreateReportItem {
     run_id: String,
     name: String,
     organization_id: Option<String>,
@@ -241,38 +241,59 @@ impl SiftMcpServer {
     #[tool(
         name = "create_report",
         description = "
-            Create a report over a run and start its evaluation.
+            Create one or more reports, each over a run, and start their evaluation.
 
             Output:
-              - `{ \"report\": Report, \"report_url\": string|null, \"job_id\": string|null,
-                \"created_annotation_count\": number, \"next_step\": string }`. The returned `Report` may still
-                be in a running state — poll `list_report_rule_summaries` to track progress. `report_url` is
-                the report's Sift web link, or null when it can't be derived. `Report` has the `list_reports`
-                item shape: rule totals, no per-rule summaries.
+              - `{ requested_count, selected_count, not_selected, created_count, successes, failures,
+                not_attempted, next_step }`. `successes` holds `{ index, result }` per created item, where
+                `index` is the item's zero-based position in `items`. `failures` holds `{ index, error,
+                outcome_unknown }`. `not_attempted` lists items skipped after a backend-wide error. Any
+                failure sets `isError`. Each `result` is:
+                - `{ \"report\": Report, \"report_url\": string|null, \"job_id\": string|null,
+                  \"created_annotation_count\": number, \"next_step\": string }`. The returned `Report` may still
+                  be in a running state — poll `list_report_rule_summaries` to track progress. `report_url` is
+                  the report's Sift web link, or null when it can't be derived. `Report` has the
+                  `list_reports` item shape: rule totals, no per-rule summaries.
 
             Parameters:
-              - `run_id`: required; the run the report is generated over.
-              - `name`: required; the report name.
-              - `organization_id`: optional. Required only when the caller belongs to multiple organizations.
-              - `description`: optional free-form description.
-              - `metadata`: optional list of `{ \"name\": \"<key>\", \"value\": <scalar> }` entries (REPLACE
-                semantics on the metadata list).
+              - `items`: required array of 1–100 objects, one per report. Pass one item to create one
+                report. Each item takes:
+                - `run_id`: required; the run the report is generated over.
+                - `name`: required; the report name.
+                - `organization_id`: optional. Required only when the caller belongs to multiple organizations.
+                - `description`: optional free-form description.
+                - `metadata`: optional list of `{ \"name\": \"<key>\", \"value\": <scalar> }` entries (REPLACE
+                  semantics on the metadata list).
 
-              The report SOURCE is one of two mutually exclusive shapes — provide exactly one:
-              - Template: set `report_template_id`. The template defines which rules run.
-              - Rules: leave `report_template_id` unset and provide EXACTLY ONE of `rule_ids`, `rule_client_keys`,
-                or `rule_version_ids`. `rule_ids` / `rule_client_keys` resolve to each rule's current version;
-                `rule_version_ids` pins to specific historical versions.
+                The report SOURCE is one of two mutually exclusive shapes — provide exactly one:
+                - Template: set `report_template_id`. The template defines which rules run.
+                - Rules: leave `report_template_id` unset and provide EXACTLY ONE of `rule_ids`, `rule_client_keys`,
+                  or `rule_version_ids`. `rule_ids` / `rule_client_keys` resolve to each rule's current version;
+                  `rule_version_ids` pins to specific historical versions.
+              - `selected_indices`: zero-based positions in `items` to create. An approval host sets this
+                from the user's per-item decisions; omit it when proposing. Omitted means every item,
+                except in a Sift chat pod, where a missing value is rejected. `[]` creates nothing.
 
             Errors:
               - `INVALID_PARAMS` if `run_id` or `name` is empty, if both a template and rule identifiers are given,
                 if neither is given, or if more than one rule-identifier list is given.
               - `INTERNAL_ERROR` for upstream gRPC failures.
+              - `INVALID_PARAMS` before any write if `items` is empty or has more than 100 entries, or an
+                item has an unknown field or fails local validation. The message names the item index.
+              - Once writing starts, an item-specific error fails only that item. A backend-wide error
+                stops the remaining items; earlier creates stay committed.
 
             Guidance:
               - This is a write that starts report execution. CONFIRM the run, source, and name with the user
                 before invoking.
               - Use `list_report_rule_summaries` on the returned `report_id` to track per-rule progress.
+              - Items run sequentially, one create per item; this is not an atomic batch. Never replay
+                the whole call after a partial failure. Retry only failed items, and check any
+                `outcome_unknown` item first, since its create may have committed.
+              - Use one call with several items, not repeated calls, when creating several reports.
+              - Each success means evaluation started, not that it finished. Started jobs are not cancelled
+                when a later item fails. If an item fails after its evaluation starts, its report may exist:
+                list reports before retrying it.
         ",
         annotations(
             title = "reports/create_report",
@@ -281,10 +302,34 @@ impl SiftMcpServer {
             idempotent_hint = false,
         )
     )]
-    pub async fn create_report(&self, params: Parameters<CreateReportParams>) -> error::McpResult {
+    pub async fn create_report(
+        &self,
+        params: Parameters<bulk_create::CreateItems<CreateReportItem>>,
+    ) -> error::McpResult {
+        self.require_create()?;
+        let Parameters(bulk_create::CreateItems {
+            items,
+            selected_indices,
+            ..
+        }) = params;
+        let items = bulk_create::parse_items::<CreateReportItem>(items)?;
+        bulk_create::create_many_with_partial_writes(
+            items,
+            self.selection(selected_indices),
+            |item| self.create_report_item(Parameters(item)),
+            true,
+        )
+        .await
+    }
+
+    /// Create one item. Callers check access and validate the whole call first.
+    pub(crate) async fn create_report_item(
+        &self,
+        params: Parameters<CreateReportItem>,
+    ) -> error::McpResult {
         self.require_create()?;
 
-        let Parameters(CreateReportParams {
+        let Parameters(CreateReportItem {
             run_id,
             name,
             organization_id,

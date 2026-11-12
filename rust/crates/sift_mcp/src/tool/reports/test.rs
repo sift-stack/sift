@@ -18,16 +18,14 @@ use sift_test_util::{
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
-use super::{
-    CreateReportParams, ReportListParams, ReportRuleSummaryListParams, UpdateReportParams,
-};
+use super::{CreateReportItem, ReportListParams, ReportRuleSummaryListParams, UpdateReportParams};
 use crate::{
     server::SiftMcpServer,
     tool::common::test_support::{content_texts, structured_field},
 };
 
-fn create_report_params() -> CreateReportParams {
-    CreateReportParams {
+fn create_report_params() -> CreateReportItem {
+    CreateReportItem {
         run_id: "run-1".into(),
         name: "nightly report".into(),
         organization_id: None,
@@ -431,7 +429,7 @@ async fn create_report_from_rules_happy_path() {
     params.rule_ids = Some(vec!["rule-1".into()]);
 
     let resp = server
-        .create_report(Parameters(params))
+        .create_report_item(Parameters(params))
         .await
         .expect("create_report failed");
 
@@ -485,7 +483,7 @@ async fn create_report_applies_description() {
     params.description = Some("evaluates nightly runs".into());
 
     let resp = server
-        .create_report(Parameters(params))
+        .create_report_item(Parameters(params))
         .await
         .expect("create_report failed");
 
@@ -498,7 +496,7 @@ async fn create_report_rejects_no_source() {
     let (server, _h) = server_with_mock(MockReportServiceImpl::new()).await;
 
     let err = server
-        .create_report(Parameters(create_report_params()))
+        .create_report_item(Parameters(create_report_params()))
         .await
         .expect_err("expected error");
 
@@ -514,7 +512,7 @@ async fn create_report_rejects_both_sources() {
     params.rule_ids = Some(vec!["rule-1".into()]);
 
     let err = server
-        .create_report(Parameters(params))
+        .create_report_item(Parameters(params))
         .await
         .expect_err("expected error");
 
@@ -530,7 +528,7 @@ async fn create_report_rejects_multiple_rule_identifiers() {
     params.rule_client_keys = Some(vec!["ck-1".into()]);
 
     let err = server
-        .create_report(Parameters(params))
+        .create_report_item(Parameters(params))
         .await
         .expect_err("expected error");
 

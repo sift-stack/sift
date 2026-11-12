@@ -219,7 +219,8 @@ async fn run_server(credentials: Credentials, use_tls: bool, config: RunConfig) 
         config.feature_flags,
         config.rest_config,
         config.ignored_tools,
-    )?;
+    )?
+    .with_require_selection(config.client_name == ClientName::Chat);
     let _schema_download =
         ChartSchemaDownload(start_chart_schema_download(&server, has_rest_config));
     let service = server
