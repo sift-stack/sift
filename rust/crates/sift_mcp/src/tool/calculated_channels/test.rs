@@ -12,8 +12,7 @@ use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
 use super::{
-    CalculatedChannelArchiveParams, CalculatedChannelVersionListParams,
-    CreateCalculatedChannelItem, UpdateCalculatedChannelParams,
+    CalculatedChannelVersionListParams, CreateCalculatedChannelItem, UpdateCalculatedChannelItem,
 };
 use crate::{
     server::SiftMcpServer,
@@ -76,8 +75,195 @@ fn create_params() -> CreateCalculatedChannelItem {
     }
 }
 
-fn update_params() -> UpdateCalculatedChannelParams {
-    UpdateCalculatedChannelParams {
+mod bulk {
+    use super::*;
+    use serde_json::{Value, json};
+
+    const TOOLS: [&str; 3] = ["update", "archive", "unarchive"];
+
+    async fn call(server: &SiftMcpServer, tool: &str, value: Value) -> crate::error::McpResult {
+        match tool {
+            "update" => {
+                server
+                    .update_calculated_channel(Parameters(serde_json::from_value(value).unwrap()))
+                    .await
+            }
+            "archive" => {
+                server
+                    .archive_calculated_channel(Parameters(serde_json::from_value(value).unwrap()))
+                    .await
+            }
+            _ => {
+                server
+                    .unarchive_calculated_channel(Parameters(
+                        serde_json::from_value(value).unwrap(),
+                    ))
+                    .await
+            }
+        }
+    }
+
+    fn item(id: &str, tool: &str) -> Value {
+        if tool == "update" {
+            json!({"calculated_channel_id": id, "name": "renamed"})
+        } else {
+            json!({"calculated_channel_id": id})
+        }
+    }
+
+    fn mock_reads(mock: &mut MockCalculatedChannelServiceImpl) {
+        mock.expect_get_calculated_channel().returning(|req| {
+            let id = req.into_inner().calculated_channel_id;
+            let mut channel = stored_channel();
+            channel.calculated_channel_id = id;
+            Ok(Response::new(GetCalculatedChannelResponse {
+                calculated_channel: if channel.calculated_channel_id == "missing" {
+                    None
+                } else {
+                    Some(channel)
+                },
+            }))
+        });
+    }
+
+    #[tokio::test]
+    async fn repeated_archive_and_unarchive_are_successes() {
+        for tool in ["archive", "unarchive"] {
+            let mut mock = MockCalculatedChannelServiceImpl::new();
+            mock.expect_update_calculated_channel()
+                .times(2)
+                .returning(|req| {
+                    Ok(Response::new(UpdateCalculatedChannelResponse {
+                        calculated_channel: req.into_inner().calculated_channel,
+                        inapplicable_assets: vec![],
+                    }))
+                });
+            let (server, handle) = server_with_mock(mock).await;
+            for _ in 0..2 {
+                let result = call(&server, tool, json!({"items": [item("same", tool)]}))
+                    .await
+                    .unwrap();
+                assert!(!result.is_error.unwrap_or(false));
+                assert_eq!(structured(result)["successes"].as_array().unwrap().len(), 1);
+            }
+            handle.abort();
+        }
+    }
+
+    #[tokio::test]
+    async fn selected_subset_writes_only_selected_items() {
+        for tool in TOOLS {
+            let mut mock = MockCalculatedChannelServiceImpl::new();
+            mock_reads(&mut mock);
+            mock.expect_update_calculated_channel()
+                .times(1)
+                .withf(|req| {
+                    req.get_ref()
+                        .calculated_channel
+                        .as_ref()
+                        .unwrap()
+                        .calculated_channel_id
+                        == "selected"
+                })
+                .returning(|req| {
+                    Ok(Response::new(UpdateCalculatedChannelResponse {
+                        calculated_channel: req.into_inner().calculated_channel,
+                        inapplicable_assets: vec![],
+                    }))
+                });
+            let (server, handle) = server_with_mock(mock).await;
+            let result = call(&server, tool, json!({"items": [item("skip", tool), item("selected", tool)], "selected_indices": [1]})).await.unwrap();
+            let body = structured(result);
+            assert_eq!(body["successes"][0]["index"], 1);
+            assert_eq!(body["not_selected"], json!([0]));
+            handle.abort();
+        }
+    }
+
+    #[tokio::test]
+    async fn not_found_continues_and_unavailable_stops_tail() {
+        for tool in TOOLS {
+            let mut mock = MockCalculatedChannelServiceImpl::new();
+            mock_reads(&mut mock);
+            mock.expect_update_calculated_channel().returning(|req| {
+                let channel = req.into_inner().calculated_channel.unwrap();
+                match channel.calculated_channel_id.as_str() {
+                    "missing" => Err(Status::not_found("missing channel")),
+                    "down" => Err(Status::unavailable("backend down")),
+                    "never" => panic!("tail must not run"),
+                    _ => Ok(Response::new(UpdateCalculatedChannelResponse {
+                        calculated_channel: Some(channel),
+                        inapplicable_assets: vec![],
+                    })),
+                }
+            });
+            let (server, handle) = server_with_mock(mock).await;
+            let body = structured(call(&server, tool, json!({"items": [item("missing", tool), item("ok", tool), item("down", tool), item("never", tool)]})).await.unwrap());
+            assert_eq!(body["successes"][0]["index"], 1);
+            assert_eq!(
+                body["failures"][0]["error"]["code"],
+                ErrorCode::RESOURCE_NOT_FOUND.0
+            );
+            assert_eq!(body["failures"][1]["index"], 2);
+            assert_eq!(body["not_attempted"], json!([3]));
+            handle.abort();
+        }
+    }
+
+    #[tokio::test]
+    async fn invalid_duplicate_and_missing_chat_mask_fail_before_rpc() {
+        for tool in TOOLS {
+            let (server, handle) = server_with_mock(MockCalculatedChannelServiceImpl::new()).await;
+            let server = server.with_require_selection(true);
+            for items in [
+                json!([item("a", tool), item("a", tool)]),
+                json!([item("a", tool), item(" ", tool)]),
+                json!([{"calculated_channel_id": "b", "unknown": true}]),
+            ] {
+                let error = call(
+                    &server,
+                    tool,
+                    json!({"items": items, "selected_indices": [0]}),
+                )
+                .await
+                .unwrap_err();
+                assert_eq!(error.code, ErrorCode::INVALID_PARAMS);
+            }
+            let error = call(&server, tool, json!({"items": [item("a", tool)]}))
+                .await
+                .unwrap_err();
+            assert!(error.message.contains("nothing was written"));
+            handle.abort();
+        }
+    }
+}
+
+fn update_call(
+    item: UpdateCalculatedChannelItem,
+) -> Parameters<super::BulkItems<UpdateCalculatedChannelItem>> {
+    assert!(item.metadata.is_none());
+    Parameters(
+        serde_json::from_value(serde_json::json!({"items": [{
+            "calculated_channel_id": item.calculated_channel_id,
+            "name": item.name, "description": item.description, "units": item.units,
+            "expression": item.expression,
+            "expression_channel_references_json": item.expression_channel_references_json,
+            "all_assets": item.all_assets, "asset_ids": item.asset_ids, "tag_ids": item.tag_ids,
+            "user_notes": item.user_notes,
+        }]}))
+        .unwrap(),
+    )
+}
+
+fn archive_call(id: &str) -> Parameters<super::BulkItems<super::CalculatedChannelArchiveItem>> {
+    Parameters(
+        serde_json::from_value(serde_json::json!({"items": [{"calculated_channel_id": id}]}))
+            .unwrap(),
+    )
+}
+
+fn update_params() -> UpdateCalculatedChannelItem {
+    UpdateCalculatedChannelItem {
         calculated_channel_id: "cc1".into(),
         name: None,
         description: None,
@@ -429,7 +615,7 @@ async fn update_calculated_channel_blocked_without_allow_destructive() {
     params.name = Some("renamed".into());
 
     let err = server
-        .update_calculated_channel(Parameters(params))
+        .update_calculated_channel(update_call(params))
         .await
         .expect_err("expected destructive gate to reject the call");
 
@@ -442,7 +628,7 @@ async fn update_calculated_channel_rejects_empty_update() {
     let (server, _h) = server_with_mock(MockCalculatedChannelServiceImpl::new()).await;
 
     let err = server
-        .update_calculated_channel(Parameters(update_params()))
+        .update_calculated_channel(update_call(update_params()))
         .await
         .expect_err("expected error");
 
@@ -460,7 +646,7 @@ async fn update_calculated_channel_rejects_user_notes_only_update() {
     params.user_notes = Some("just a note".into());
 
     let err = server
-        .update_calculated_channel(Parameters(params))
+        .update_calculated_channel(update_call(params))
         .await
         .expect_err("expected error");
 
@@ -480,7 +666,7 @@ async fn update_calculated_channel_rejects_expression_without_references() {
     params.expression = Some("$1 * 2".into());
 
     let err = server
-        .update_calculated_channel(Parameters(params))
+        .update_calculated_channel(update_call(params))
         .await
         .expect_err("expected error");
 
@@ -496,7 +682,7 @@ async fn update_calculated_channel_rejects_malformed_references_json() {
     params.expression_channel_references_json = Some("{not json".into());
 
     let err = server
-        .update_calculated_channel(Parameters(params))
+        .update_calculated_channel(update_call(params))
         .await
         .expect_err("expected error");
 
@@ -512,7 +698,7 @@ async fn update_calculated_channel_rejects_all_assets_with_asset_ids() {
     params.asset_ids = Some(vec!["asset-1".into()]);
 
     let err = server
-        .update_calculated_channel(Parameters(params))
+        .update_calculated_channel(update_call(params))
         .await
         .expect_err("expected error");
 
@@ -547,11 +733,11 @@ async fn update_calculated_channel_returns_structured_result() {
     params.name = Some("renamed".into());
 
     let resp = server
-        .update_calculated_channel(Parameters(params))
+        .update_calculated_channel(update_call(params))
         .await
         .expect("update_calculated_channel failed");
 
-    let body = structured(resp);
+    let body = structured(resp)["successes"][0]["result"].clone();
     assert_eq!(body["calculated_channel"]["name"], "renamed");
     assert_eq!(body["calculated_channel"]["version"], 4);
     assert!(body["next_step"].is_string());
@@ -563,9 +749,7 @@ async fn archive_calculated_channel_blocked_without_allow_destructive() {
     let (server, _h) = server_with_mock_and_flags(mock, false, false).await;
 
     let err = server
-        .archive_calculated_channel(Parameters(CalculatedChannelArchiveParams {
-            calculated_channel_id: "cc1".into(),
-        }))
+        .archive_calculated_channel(archive_call("cc1"))
         .await
         .expect_err("expected destructive gate to reject the call");
 
@@ -579,9 +763,7 @@ async fn unarchive_calculated_channel_blocked_without_allow_destructive() {
     let (server, _h) = server_with_mock_and_flags(mock, false, false).await;
 
     let err = server
-        .unarchive_calculated_channel(Parameters(CalculatedChannelArchiveParams {
-            calculated_channel_id: "cc1".into(),
-        }))
+        .unarchive_calculated_channel(archive_call("cc1"))
         .await
         .expect_err("expected destructive gate to reject the call");
 
@@ -613,13 +795,11 @@ async fn archive_calculated_channel_returns_structured_result() {
     let (server, _h) = server_with_mock(mock).await;
 
     let resp = server
-        .archive_calculated_channel(Parameters(CalculatedChannelArchiveParams {
-            calculated_channel_id: "cc1".into(),
-        }))
+        .archive_calculated_channel(archive_call("cc1"))
         .await
         .expect("archive_calculated_channel failed");
 
-    let body = structured(resp);
+    let body = structured(resp)["successes"][0]["result"].clone();
     assert_eq!(body["archived"], true);
     assert_eq!(body["calculated_channel"]["calculatedChannelId"], "cc1");
     assert!(body["next_step"].is_string());
@@ -649,13 +829,11 @@ async fn unarchive_calculated_channel_returns_structured_result() {
     let (server, _h) = server_with_mock(mock).await;
 
     let resp = server
-        .unarchive_calculated_channel(Parameters(CalculatedChannelArchiveParams {
-            calculated_channel_id: "cc1".into(),
-        }))
+        .unarchive_calculated_channel(archive_call("cc1"))
         .await
         .expect("unarchive_calculated_channel failed");
 
-    let body = structured(resp);
+    let body = structured(resp)["successes"][0]["result"].clone();
     assert_eq!(body["unarchived"], true);
     assert!(body["next_step"].is_string());
 }
@@ -678,13 +856,11 @@ async fn archive_calculated_channel_surfaces_a_returned_unarchived_state() {
     let (server, _h) = server_with_mock(mock).await;
 
     let resp = server
-        .archive_calculated_channel(Parameters(CalculatedChannelArchiveParams {
-            calculated_channel_id: "cc1".into(),
-        }))
+        .archive_calculated_channel(archive_call("cc1"))
         .await
         .expect("archive_calculated_channel failed");
 
-    let body = structured(resp);
+    let body = structured(resp)["successes"][0]["result"].clone();
     assert_eq!(body["archived"], false);
     assert!(body["next_step"].as_str().unwrap().contains("unarchived"));
 }
@@ -707,13 +883,11 @@ async fn unarchive_calculated_channel_surfaces_a_returned_archived_state() {
     let (server, _h) = server_with_mock(mock).await;
 
     let resp = server
-        .unarchive_calculated_channel(Parameters(CalculatedChannelArchiveParams {
-            calculated_channel_id: "cc1".into(),
-        }))
+        .unarchive_calculated_channel(archive_call("cc1"))
         .await
         .expect("unarchive_calculated_channel failed");
 
-    let body = structured(resp);
+    let body = structured(resp)["successes"][0]["result"].clone();
     assert_eq!(body["unarchived"], false);
     assert!(body["next_step"].as_str().unwrap().contains("archived"));
 }
@@ -723,9 +897,7 @@ async fn archive_calculated_channel_rejects_empty_id() {
     let (server, _h) = server_with_mock(MockCalculatedChannelServiceImpl::new()).await;
 
     let err = server
-        .archive_calculated_channel(Parameters(CalculatedChannelArchiveParams {
-            calculated_channel_id: String::new(),
-        }))
+        .archive_calculated_channel(archive_call(""))
         .await
         .expect_err("expected error");
 
