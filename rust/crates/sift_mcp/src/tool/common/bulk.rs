@@ -181,6 +181,58 @@ pub(crate) fn should_stop(op: Op, error: &ErrorData) -> bool {
     }
 }
 
+/// The approval mask applied to `count` input items.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Selected {
+    /// Input positions to write, in input order.
+    pub indices: Vec<usize>,
+    /// Input positions the approval host left out.
+    pub not_selected: Vec<usize>,
+}
+
+impl Selected {
+    /// Keep only the selected items, in input order.
+    pub fn filter<T>(&self, items: Vec<T>) -> Vec<T> {
+        let mut keep = self.indices.iter().peekable();
+        items
+            .into_iter()
+            .enumerate()
+            .filter_map(|(index, item)| keep.next_if(|&&selected| selected == index).map(|_| item))
+            .collect()
+    }
+}
+
+/// Validate the approval mask for `count` input items. A required mask that is
+/// missing fails closed before any write.
+pub fn select(count: usize, selection: Selection) -> Result<Selected, ErrorData> {
+    let selected_indices = match selection.indices {
+        Some(indices) => indices,
+        None if selection.required => {
+            return Err(ErrorData::invalid_params(
+                "Writes require explicit `selected_indices` from the approval host; nothing was written. \
+                 The chat host is out of date for this tool. Tell the user the change could not be \
+                 applied from chat yet.",
+                None,
+            ));
+        }
+        None => (0..count).collect(),
+    };
+    let mut selected = vec![false; count];
+    for &index in &selected_indices {
+        if index >= count || selected[index] {
+            return Err(ErrorData::invalid_params(
+                "`selected_indices` must contain unique, in-range input indices",
+                None,
+            ));
+        }
+        selected[index] = true;
+    }
+    Ok(Selected {
+        indices: (0..count).filter(|&index| selected[index]).collect(),
+        not_selected: (0..count).filter(|&index| !selected[index]).collect(),
+    })
+}
+
 pub async fn run<T, F, Fut>(
     op: Op,
     items: Vec<T>,
@@ -193,54 +245,44 @@ where
     Fut: Future<Output = McpResult>,
 {
     let requested_count = items.len();
-    let selected_indices = match selection.indices {
-        Some(indices) => indices,
-        None if selection.required => {
-            return Err(ErrorData::invalid_params(
-                "Writes require explicit `selected_indices` from the approval host; nothing was written. \
-                 The chat host is out of date for this tool. Tell the user the change could not be \
-                 applied from chat yet.",
-                None,
-            ));
-        }
-        None => (0..requested_count).collect(),
-    };
-    let mut selected = vec![false; requested_count];
-    for &index in &selected_indices {
-        if index >= requested_count || selected[index] {
-            return Err(ErrorData::invalid_params(
-                "`selected_indices` must contain unique, in-range input indices",
-                None,
-            ));
-        }
-        selected[index] = true;
-    }
-    let indices = (0..requested_count)
-        .filter(|&index| selected[index])
-        .collect::<Vec<_>>();
-    let not_selected = (0..requested_count)
-        .filter(|&index| !selected[index])
-        .collect::<Vec<_>>();
-    let items = items
-        .into_iter()
-        .enumerate()
-        .filter_map(|(index, item)| selected[index].then_some(item))
-        .collect();
+    let selected = select(requested_count, selection)?;
+    let items = selected.filter(items);
     let outcome = batch::execute(items, operation, |error| should_stop(op, error)).await;
-    let not_attempted = outcome
-        .not_attempted
+    let original = |index: usize| selected.indices[index];
+    report(
+        op,
+        requested_count,
+        &selected,
+        outcome
+            .successes
+            .into_iter()
+            .map(|(index, result)| (original(index), result))
+            .collect(),
+        outcome
+            .failures
+            .into_iter()
+            .map(|(index, error)| (original(index), error))
+            .collect(),
+        outcome.not_attempted.into_iter().map(original).collect(),
+        partial_writes,
+    )
+}
+
+/// Build the bulk result body. Every index is a position in the caller's input.
+pub fn report(
+    op: Op,
+    requested_count: usize,
+    selected: &Selected,
+    successes: Vec<(usize, CallToolResult)>,
+    failures: Vec<(usize, ErrorData)>,
+    not_attempted: Vec<usize>,
+    partial_writes: bool,
+) -> McpResult {
+    let successes = successes
         .into_iter()
-        .map(|index| indices[index])
+        .map(|(index, result)| json!({"index": index, "result": result.structured_content}))
         .collect::<Vec<_>>();
-    let successes = outcome
-        .successes
-        .into_iter()
-        .map(
-            |(index, result)| json!({"index": indices[index], "result": result.structured_content}),
-        )
-        .collect::<Vec<_>>();
-    let failures = outcome
-        .failures
+    let failures = failures
         .into_iter()
         .map(|(index, error)| {
             // An interrupted write or a composite task can commit before returning
@@ -257,7 +299,7 @@ where
                                 | "FailedPrecondition"
                         )
                     ));
-            json!({"index": indices[index], "error": error, "outcome_unknown": outcome_unknown})
+            json!({"index": index, "error": error, "outcome_unknown": outcome_unknown})
         })
         .collect::<Vec<_>>();
     let has_errors = !failures.is_empty() || !not_attempted.is_empty();
@@ -276,8 +318,8 @@ where
     );
     let mut body = Map::new();
     body.insert("requested_count".into(), json!(requested_count));
-    body.insert("selected_count".into(), json!(indices.len()));
-    body.insert("not_selected".into(), json!(not_selected));
+    body.insert("selected_count".into(), json!(selected.indices.len()));
+    body.insert("not_selected".into(), json!(selected.not_selected));
     body.insert(op.count_key().into(), json!(successes.len()));
     body.insert("successes".into(), json!(successes));
     body.insert("failures".into(), json!(failures));
@@ -406,6 +448,50 @@ mod test {
         assert_eq!(body["failures"][0]["index"], 0);
         assert_eq!(body["failures"][0]["outcome_unknown"], false);
         assert_eq!(body["not_attempted"], json!([]));
+    }
+
+    #[test]
+    fn select_keeps_input_positions_and_filters_in_order() {
+        let selected = select(
+            4,
+            Selection {
+                indices: Some(vec![3, 1]),
+                required: true,
+            },
+        )
+        .unwrap();
+        assert_eq!(selected.indices, vec![1, 3]);
+        assert_eq!(selected.not_selected, vec![0, 2]);
+        assert_eq!(selected.filter(vec!["a", "b", "c", "d"]), vec!["b", "d"]);
+        for indices in [Some(vec![4]), Some(vec![1, 1])] {
+            assert!(
+                select(
+                    4,
+                    Selection {
+                        indices,
+                        required: false
+                    }
+                )
+                .is_err()
+            );
+        }
+        assert!(
+            select(
+                2,
+                Selection {
+                    indices: None,
+                    required: true
+                }
+            )
+            .is_err()
+        );
+        assert_eq!(
+            select(2, all()).unwrap(),
+            Selected {
+                indices: vec![0, 1],
+                not_selected: vec![],
+            }
+        );
     }
 
     #[tokio::test]
