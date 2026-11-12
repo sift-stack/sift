@@ -8,7 +8,10 @@ use rmcp::{
 use serde::Deserialize;
 use sift_rs::metadata::v1::MetadataValue;
 
-use crate::tool::common::bulk_create;
+use crate::tool::common::{
+    bulk::{self, BulkItems, Op},
+    bulk_create,
+};
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
@@ -40,7 +43,7 @@ pub struct CreateReportTemplateItem {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-pub struct UpdateReportTemplateParams {
+pub struct UpdateReportTemplateItem {
     report_template_id: String,
     name: Option<String>,
     description: Option<String>,
@@ -49,6 +52,59 @@ pub struct UpdateReportTemplateParams {
     rule_client_keys: Option<Vec<String>>,
     metadata: Option<Vec<MetadataEntry>>,
     is_archived: Option<bool>,
+}
+
+fn template_update(
+    item: UpdateReportTemplateItem,
+) -> Result<(String, ReportTemplateUpdate), ErrorData> {
+    let UpdateReportTemplateItem {
+        report_template_id,
+        name,
+        description,
+        tag_names,
+        rule_ids,
+        rule_client_keys,
+        metadata,
+        is_archived,
+    } = item;
+    if report_template_id.trim().is_empty() {
+        return Err(ErrorData::invalid_params(
+            "`report_template_id` must not be empty",
+            None,
+        ));
+    }
+    let rules = match (rule_ids, rule_client_keys) {
+        (None, None) => None,
+        (Some(ids), None) => Some(TemplateRuleIdentifier::RuleIds(ids)),
+        (None, Some(keys)) => Some(TemplateRuleIdentifier::RuleClientKeys(keys)),
+        (Some(_), Some(_)) => {
+            return Err(ErrorData::invalid_params(
+                "provide only one of `rule_ids` or `rule_client_keys`, not both",
+                None,
+            ));
+        }
+    };
+    let changes = ReportTemplateUpdate {
+        name,
+        description,
+        tag_names,
+        rules,
+        is_archived,
+        metadata: metadata.map(|m| m.into_iter().map(MetadataValue::from).collect::<Vec<_>>()),
+    };
+    if changes.name.is_none()
+        && changes.description.is_none()
+        && changes.tag_names.is_none()
+        && changes.rules.is_none()
+        && changes.metadata.is_none()
+        && changes.is_archived.is_none()
+    {
+        return Err(ErrorData::invalid_params(
+            "provide at least one field to update: `name`, `description`, `tag_names`, `rule_ids`, `rule_client_keys`, `metadata`, or `is_archived`",
+            None,
+        ));
+    }
+    Ok((report_template_id, changes))
 }
 
 #[tool_router(router = report_templates_router, vis = "pub(crate)")]
@@ -298,16 +354,22 @@ impl SiftMcpServer {
     #[tool(
         name = "update_report_template",
         description = "
-            Update selected fields on an existing report template. Wraps `report_templates/v1 UpdateReportTemplate`.
+            Update selected fields on one or more report templates. This is a WRITE. Wraps `report_templates/v1 UpdateReportTemplate`.
 
             Output:
-              - `{ \"report_template\": ReportTemplate, \"report_template_url\": string|null, \"next_step\": string }`.
+              - `{ requested_count, selected_count, not_selected, updated_count, successes, failures,
+                not_attempted, next_step }`. `successes` holds `{ index, result }`; `failures` holds
+                `{ index, error, outcome_unknown }`. Any failure sets `isError`. Each result is
+                `{ \"report_template\": ReportTemplate, \"report_template_url\": string|null, \"next_step\": string }`.
                 The returned template reflects the post-update server state. `report_template_url` is the
                 template's Sift web link, or null when the host can't be derived. Link the template only to this
                 URL, never to a report's page.
 
             Parameters:
-              - `report_template_id`: required; the id of the template to update.
+              - `items`: required array of 1–100 objects, one per template, with the fields below.
+              - `selected_indices`: host-owned zero-based positions in `items`. Omit when proposing.
+                Omitted selects every item except in Sift chat, where a missing mask fails closed. `[]` writes nothing.
+              - `report_template_id`: required in each item; the id of the template to update.
               - `name`: optional new name.
               - `description`: optional new description.
               - `tag_names`: optional REPLACEMENT list of tag names. Passing this overwrites the template's full
@@ -326,12 +388,17 @@ impl SiftMcpServer {
             `metadata`, or `is_archived`) must be set.
 
             Errors:
+              - `INVALID_PARAMS` before any write for empty/oversized items, duplicate ids, unknown fields,
+                or empty ids; errors name the item index. Item-local errors fail only that item.
+                Backend-wide errors stop the tail; earlier writes stay committed.
               - `INVALID_PARAMS` if `report_template_id` is empty, no updatable field is provided, or both
                 `rule_ids` and `rule_client_keys` are provided.
               - `RESOURCE_NOT_FOUND` if no template matches `report_template_id`.
               - `INTERNAL_ERROR` for upstream gRPC failures.
 
             Guidance:
+              - Items run sequentially; this is not atomic. Use one call for several templates. Never replay
+                the whole call after a partial failure; retry only failed, not `not_selected`, items.
               - This is a write with REPLACE semantics on `tags`, `rules`, and `metadata`. CONFIRM the intended
                 shape with the user — for appends, read the current template via `list_report_templates` filtered
                 by `report_template_id == \"<id>\"` and send the union.
@@ -347,65 +414,32 @@ impl SiftMcpServer {
     )]
     pub async fn update_report_template(
         &self,
-        params: Parameters<UpdateReportTemplateParams>,
+        params: Parameters<BulkItems<UpdateReportTemplateItem>>,
     ) -> error::McpResult {
         self.require_destructive()?;
 
-        let Parameters(UpdateReportTemplateParams {
-            report_template_id,
-            name,
-            description,
-            tag_names,
-            rule_ids,
-            rule_client_keys,
-            metadata,
-            is_archived,
-        }) = params;
+        let Parameters(params) = params;
+        let updates = bulk::parse_items::<UpdateReportTemplateItem>(params.items)?
+            .into_iter()
+            .enumerate()
+            .map(|(index, item)| template_update(item).map_err(|error| bulk::at_item(index, error)))
+            .collect::<Result<Vec<_>, _>>()?;
+        bulk::reject_duplicate_targets(&updates, "report template", |(id, _)| Some(id.clone()))?;
+        bulk::run(
+            Op::Update,
+            updates,
+            self.selection(params.selected_indices),
+            false,
+            |(id, changes)| self.update_report_template_item(id, changes),
+        )
+        .await
+    }
 
-        if report_template_id.is_empty() {
-            return Err(ErrorData::invalid_params(
-                "`report_template_id` must not be empty",
-                None,
-            ));
-        }
-
-        let rules = match (rule_ids, rule_client_keys) {
-            (None, None) => None,
-            (Some(ids), None) => Some(TemplateRuleIdentifier::RuleIds(ids)),
-            (None, Some(keys)) => Some(TemplateRuleIdentifier::RuleClientKeys(keys)),
-            (Some(_), Some(_)) => {
-                return Err(ErrorData::invalid_params(
-                    "provide only one of `rule_ids` or `rule_client_keys`, not both",
-                    None,
-                ));
-            }
-        };
-
-        let metadata = metadata.map(|m| m.into_iter().map(MetadataValue::from).collect::<Vec<_>>());
-
-        let changes = ReportTemplateUpdate {
-            name,
-            description,
-            tag_names,
-            rules,
-            metadata,
-            is_archived,
-        };
-
-        if changes.name.is_none()
-            && changes.description.is_none()
-            && changes.tag_names.is_none()
-            && changes.rules.is_none()
-            && changes.metadata.is_none()
-            && changes.is_archived.is_none()
-        {
-            return Err(ErrorData::invalid_params(
-                "provide at least one field to update: `name`, `description`, `tag_names`, `rule_ids`, \
-                 `rule_client_keys`, `metadata`, or `is_archived`",
-                None,
-            ));
-        }
-
+    async fn update_report_template_item(
+        &self,
+        report_template_id: String,
+        changes: ReportTemplateUpdate,
+    ) -> error::McpResult {
         let template = self
             .report_template_service
             .update_report_template(report_template_id, changes)
@@ -422,8 +456,7 @@ impl SiftMcpServer {
             .build_report_template_url(&template.report_template_id)
             .ok();
         let next_step = format!(
-            "Updated report template `{}` ({}).{}{} Surface the new state to the user and confirm nothing \
-             was unintentionally dropped — `tags`, `rules`, and `metadata` use REPLACE semantics.",
+            "Updated report template `{}` ({}).{}{}",
             template.name,
             template.report_template_id,
             archive_clause,
