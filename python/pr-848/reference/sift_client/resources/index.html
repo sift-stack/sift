@@ -22235,8 +22235,8 @@ entity_type, entity_id).</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>The file to upload: a path, bytes, or a binary file object such as
-<code>io.BytesIO</code>.</p>
+                <p>The file to upload: a path, bytes, or a seekable binary file object such as
+<code>io.BytesIO</code>. A file object is sent whole, whatever its position.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -22440,7 +22440,8 @@ gets new bytes, and its only <code>SOURCE</code> and <code>DERIVED_FROM</code> l
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>New bytes for the new version: a path, bytes, or a binary file object.</p>
+                <p>New bytes for the new version: a path, bytes, or a seekable binary file
+object. A file object is sent whole, whatever its position.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -33278,13 +33279,13 @@ representation of ingestion flows using standard Python data structures and type
    (sift_client.sift_types.run.Tag)" href="../sift_types/#sift_client.sift_types.Tag">Tag</a></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">asset_metadata</span><span class="p">:</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="float">float</span></span> <span class="o">|</span> <span class="n"><span title="bool">bool</span></span><span class="p">]</span>
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">streaming_mode</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            StreamingMode (sift_client.resources.ingestion.StreamingMode)" href="ingestion/#sift_client.resources.ingestion.StreamingMode">StreamingMode</a></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            LIVE_WITH_BACKUPS
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">streaming_mode</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            StreamingMode (sift_client.resources.ingestion.StreamingMode)" href="ingestion/#sift_client.resources.ingestion.StreamingMode">StreamingMode</a></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            LIVE_ONLY
 
 
   
       class-attribute
       instance-attribute
-   (sift_client.resources.ingestion.StreamingMode.LIVE_WITH_BACKUPS)" href="ingestion/#sift_client.resources.ingestion.StreamingMode.LIVE_WITH_BACKUPS">LIVE_WITH_BACKUPS</a></span><span class="p">,</span>
+   (sift_client.resources.ingestion.StreamingMode.LIVE_ONLY)" href="ingestion/#sift_client.resources.ingestion.StreamingMode.LIVE_ONLY">LIVE_ONLY</a></span><span class="p">,</span>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">retry_policy</span><span class="p">:</span> <span class="n"><span title="sift_stream_bindings.RetryPolicyPy">RetryPolicyPy</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">disk_backup_policy</span><span class="p">:</span> <span class="n"><span title="sift_stream_bindings.DiskBackupPolicyPy">DiskBackupPolicyPy</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">checkpoint_interval_seconds</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -33416,7 +33417,8 @@ representation of ingestion flows using standard Python data structures and type
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Transport mode for the stream. Defaults to LIVE_WITH_BACKUPS.</p>
+                <p>Transport mode for the stream. Defaults to LIVE_ONLY, without disk
+backups. Set to LIVE_WITH_BACKUPS to opt in to local disk backups.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -33425,13 +33427,13 @@ representation of ingestion flows using standard Python data structures and type
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
-                      <code><a class="autorefs autorefs-internal" title="            LIVE_WITH_BACKUPS
+                      <code><a class="autorefs autorefs-internal" title="            LIVE_ONLY
 
 
   
       class-attribute
       instance-attribute
-   (sift_client.resources.ingestion.StreamingMode.LIVE_WITH_BACKUPS)" href="ingestion/#sift_client.resources.ingestion.StreamingMode.LIVE_WITH_BACKUPS">LIVE_WITH_BACKUPS</a></code>
+   (sift_client.resources.ingestion.StreamingMode.LIVE_ONLY)" href="ingestion/#sift_client.resources.ingestion.StreamingMode.LIVE_ONLY">LIVE_ONLY</a></code>
                   </span>
               </p>
             </td>
@@ -33688,13 +33690,13 @@ retry, or the retries run out. When <code>retry_delay</code> is not None,
    (sift_client.sift_types.run.Tag)" href="../sift_types/#sift_client.sift_types.Tag">Tag</a></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">asset_metadata</span><span class="p">:</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="float">float</span></span> <span class="o">|</span> <span class="n"><span title="bool">bool</span></span><span class="p">]</span>
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">streaming_mode</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            StreamingMode (sift_client.resources.ingestion.StreamingMode)" href="ingestion/#sift_client.resources.ingestion.StreamingMode">StreamingMode</a></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            LIVE_WITH_BACKUPS
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">streaming_mode</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            StreamingMode (sift_client.resources.ingestion.StreamingMode)" href="ingestion/#sift_client.resources.ingestion.StreamingMode">StreamingMode</a></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            LIVE_ONLY
 
 
   
       class-attribute
       instance-attribute
-   (sift_client.resources.ingestion.StreamingMode.LIVE_WITH_BACKUPS)" href="ingestion/#sift_client.resources.ingestion.StreamingMode.LIVE_WITH_BACKUPS">LIVE_WITH_BACKUPS</a></span><span class="p">,</span>
+   (sift_client.resources.ingestion.StreamingMode.LIVE_ONLY)" href="ingestion/#sift_client.resources.ingestion.StreamingMode.LIVE_ONLY">LIVE_ONLY</a></span><span class="p">,</span>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">retry_policy</span><span class="p">:</span> <span class="n"><span title="sift_stream_bindings.RetryPolicyPy">RetryPolicyPy</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">disk_backup_policy</span><span class="p">:</span> <span class="n"><span title="sift_stream_bindings.DiskBackupPolicyPy">DiskBackupPolicyPy</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">checkpoint_interval_seconds</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -33845,7 +33847,8 @@ flows and avoid any first-send latency for those flows.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Transport mode for the stream. Defaults to LIVE_WITH_BACKUPS.</p>
+                <p>Transport mode for the stream. Defaults to LIVE_ONLY, without disk
+backups. Set to LIVE_WITH_BACKUPS to opt in to local disk backups.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -33854,13 +33857,13 @@ flows and avoid any first-send latency for those flows.</p>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
-                      <code><a class="autorefs autorefs-internal" title="            LIVE_WITH_BACKUPS
+                      <code><a class="autorefs autorefs-internal" title="            LIVE_ONLY
 
 
   
       class-attribute
       instance-attribute
-   (sift_client.resources.ingestion.StreamingMode.LIVE_WITH_BACKUPS)" href="ingestion/#sift_client.resources.ingestion.StreamingMode.LIVE_WITH_BACKUPS">LIVE_WITH_BACKUPS</a></code>
+   (sift_client.resources.ingestion.StreamingMode.LIVE_ONLY)" href="ingestion/#sift_client.resources.ingestion.StreamingMode.LIVE_ONLY">LIVE_ONLY</a></code>
                   </span>
               </p>
             </td>
@@ -63049,16 +63052,20 @@ before saving it.</p>
    (sift_client.sift_types.data_import.ImportConfig)" href="../sift_types/data_import/#sift_client.sift_types.data_import.ImportConfig">ImportConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">data_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            DataTypeKey (sift_client.sift_types.data_import.DataTypeKey)" href="../sift_types/data_import/#sift_client.sift_types.data_import.DataTypeKey">DataTypeKey</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">time_format</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="../sift_types/data_import/#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">run</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            Run
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">relative_start_time</span><span class="p">:</span> <span class="n"><span title="pandas.Timestamp">Timestamp</span></span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="o">|</span> <span class="n"><span title="datetime.datetime">datetime</span></span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="o">|</span> <span class="n"><span title="str">str</span></span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">run</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            Run
 
 
   
       pydantic-model
    (sift_client.sift_types.run.Run)" href="../sift_types/run/#sift_client.sift_types.run.Run">Run</a></span> <span class="o">|</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">run_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">show_progress</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">leave_run_open</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">run_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">show_progress</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">leave_run_open</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
 
 
   
@@ -63080,6 +63087,11 @@ When <code>asset</code> is provided it overrides the config value;
 otherwise the config's <code>asset_name</code> is used.
 If neither <code>run</code> nor <code>run_name</code> is provided (and none is
 set on the config), <code>run_name</code> defaults to the filename.</p>
+<p>For files with <code>ChannelDataType.BIT_FIELD</code> columns, each value
+must be raw bytes, a string of 0s and 1s, or URL-safe base64.
+Integers aren't supported. Before uploading, this method checks CSV
+and Parquet bit field columns. A Parquet column must be a binary or
+string type, and a sample of string values must parse.</p>
 
 
 <table>
@@ -63203,6 +63215,35 @@ not provided.</p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
                       <code><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="../sift_types/data_import/#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>relative_start_time</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Start time for a relative time format.
+A string is parsed with <code>pd.Timestamp</code>; a string or
+<code>pd.Timestamp</code> keeps nanosecond precision.
+For ULog, this is the log start time and takes precedence
+over the log's GPS fix. For MCAP, set it only for logs whose
+<code>log_time</code> is not on the Unix epoch; <code>log_time</code> is then
+read as nanoseconds elapsed from this time. For other
+formats, it is required with a relative time format and
+ignored with a warning otherwise. Only used when <code>config</code>
+is not provided.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="pandas.Timestamp">Timestamp</span> | <span title="datetime.datetime">datetime</span> | <span title="str">str</span> | None</code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
@@ -63387,6 +63428,19 @@ which stops the run when the import finishes.</p>
             <td class="doc-raises-details">
               <div class="doc-md-description">
                 <p>If the file does not exist.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+              <span class="doc-raises-annotation">
+                  <code><span title="ValueError">ValueError</span></code>
+              </span>
+            </td>
+            <td class="doc-raises-details">
+              <div class="doc-md-description">
+                <p>If a <code>BIT_FIELD</code> column's values aren't in a format
+the import service reads, such as integers.</p>
               </div>
             </td>
           </tr>
@@ -63986,7 +64040,12 @@ followed by the import's <code>run_id</code>.</p>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">file_path</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span><span class="p">,</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">data_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            DataTypeKey (sift_client.sift_types.data_import.DataTypeKey)" href="../sift_types/data_import/#sift_client.sift_types.data_import.DataTypeKey">DataTypeKey</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">time_format</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="../sift_types/data_import/#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            ImportConfig
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">relative_start_time</span><span class="p">:</span> <span class="n"><span title="pandas.Timestamp">Timestamp</span></span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="o">|</span> <span class="n"><span title="datetime.datetime">datetime</span></span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="o">|</span> <span class="n"><span title="str">str</span></span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            ImportConfig
 
 
   
@@ -64097,6 +64156,34 @@ detected/default time handling.</p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
                       <code><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="../sift_types/data_import/#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>relative_start_time</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Start time for a relative time format.
+A string is parsed with <code>pd.Timestamp</code>; a string or
+<code>pd.Timestamp</code> keeps nanosecond precision.
+For ULog, this is the log start time and takes precedence
+over the log's GPS fix. For MCAP, set it only for logs whose
+<code>log_time</code> is not on the Unix epoch; <code>log_time</code> is then
+read as nanoseconds elapsed from this time. For other
+formats, it is required with a relative time format and
+ignored with a warning otherwise.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="pandas.Timestamp">Timestamp</span> | <span title="datetime.datetime">datetime</span> | <span title="str">str</span> | None</code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
@@ -67931,8 +68018,8 @@ they link to.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>The file to upload: a path, bytes, or a binary file object such as
-<code>io.BytesIO</code>.</p>
+                <p>The file to upload: a path, bytes, or a seekable binary file object such as
+<code>io.BytesIO</code>. A file object is sent whole, whatever its position.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -69337,7 +69424,8 @@ gets new bytes, and its only <code>SOURCE</code> and <code>DERIVED_FROM</code> l
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>New bytes for the new version: a path, bytes, or a binary file object.</p>
+                <p>New bytes for the new version: a path, bytes, or a seekable binary file
+object. A file object is sent whole, whatever its position.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -100874,7 +100962,12 @@ name removed from channel name display.</p>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">file_path</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span><span class="p">,</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">data_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            DataTypeKey (sift_client.sift_types.data_import.DataTypeKey)" href="../sift_types/data_import/#sift_client.sift_types.data_import.DataTypeKey">DataTypeKey</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">time_format</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="../sift_types/data_import/#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            ImportConfig
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">relative_start_time</span><span class="p">:</span> <span class="n"><span title="pandas.Timestamp">Timestamp</span></span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="o">|</span> <span class="n"><span title="datetime.datetime">datetime</span></span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="o">|</span> <span class="n"><span title="str">str</span></span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            ImportConfig
 
 
   
@@ -100985,6 +101078,34 @@ detected/default time handling.</p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
                       <code><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="../sift_types/data_import/#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>relative_start_time</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Start time for a relative time format.
+A string is parsed with <code>pd.Timestamp</code>; a string or
+<code>pd.Timestamp</code> keeps nanosecond precision.
+For ULog, this is the log start time and takes precedence
+over the log's GPS fix. For MCAP, set it only for logs whose
+<code>log_time</code> is not on the Unix epoch; <code>log_time</code> is then
+read as nanoseconds elapsed from this time. For other
+formats, it is required with a relative time format and
+ignored with a warning otherwise.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="pandas.Timestamp">Timestamp</span> | <span title="datetime.datetime">datetime</span> | <span title="str">str</span> | None</code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
@@ -101373,16 +101494,20 @@ followed by the import's <code>run_id</code>.</p>
    (sift_client.sift_types.data_import.ImportConfig)" href="../sift_types/data_import/#sift_client.sift_types.data_import.ImportConfig">ImportConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">data_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            DataTypeKey (sift_client.sift_types.data_import.DataTypeKey)" href="../sift_types/data_import/#sift_client.sift_types.data_import.DataTypeKey">DataTypeKey</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">time_format</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="../sift_types/data_import/#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">run</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            Run
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">relative_start_time</span><span class="p">:</span> <span class="n"><span title="pandas.Timestamp">Timestamp</span></span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="o">|</span> <span class="n"><span title="datetime.datetime">datetime</span></span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="o">|</span> <span class="n"><span title="str">str</span></span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">run</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            Run
 
 
   
       pydantic-model
    (sift_client.sift_types.run.Run)" href="../sift_types/run/#sift_client.sift_types.run.Run">Run</a></span> <span class="o">|</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">run_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">show_progress</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">leave_run_open</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">run_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">show_progress</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">leave_run_open</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
 
 
   
@@ -101404,6 +101529,11 @@ When <code>asset</code> is provided it overrides the config value;
 otherwise the config's <code>asset_name</code> is used.
 If neither <code>run</code> nor <code>run_name</code> is provided (and none is
 set on the config), <code>run_name</code> defaults to the filename.</p>
+<p>For files with <code>ChannelDataType.BIT_FIELD</code> columns, each value
+must be raw bytes, a string of 0s and 1s, or URL-safe base64.
+Integers aren't supported. Before uploading, this method checks CSV
+and Parquet bit field columns. A Parquet column must be a binary or
+string type, and a sample of string values must parse.</p>
 
 
 <table>
@@ -101527,6 +101657,35 @@ not provided.</p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
                       <code><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="../sift_types/data_import/#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>relative_start_time</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Start time for a relative time format.
+A string is parsed with <code>pd.Timestamp</code>; a string or
+<code>pd.Timestamp</code> keeps nanosecond precision.
+For ULog, this is the log start time and takes precedence
+over the log's GPS fix. For MCAP, set it only for logs whose
+<code>log_time</code> is not on the Unix epoch; <code>log_time</code> is then
+read as nanoseconds elapsed from this time. For other
+formats, it is required with a relative time format and
+ignored with a warning otherwise. Only used when <code>config</code>
+is not provided.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="pandas.Timestamp">Timestamp</span> | <span title="datetime.datetime">datetime</span> | <span title="str">str</span> | None</code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
@@ -101711,6 +101870,19 @@ which stops the run when the import finishes.</p>
             <td class="doc-raises-details">
               <div class="doc-md-description">
                 <p>If the file does not exist.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+              <span class="doc-raises-annotation">
+                  <code><span title="ValueError">ValueError</span></code>
+              </span>
+            </td>
+            <td class="doc-raises-details">
+              <div class="doc-md-description">
+                <p>If a <code>BIT_FIELD</code> column's values aren't in a format
+the import service reads, such as integers.</p>
               </div>
             </td>
           </tr>

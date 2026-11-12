@@ -2095,7 +2095,6 @@ and should generally be used within a with-block for correct resource management
 being terminated during idle periods. A custom <code>sift_py.grpc.keepalive.KeepaliveConfig</code> may also be provided.
 - <code>use_ssl</code>: INTERNAL USE. Meant to be used for local development.
 - <code>cert_via_openssl</code>: Enable this if you want to use OpenSSL to load the certificates.
-Run <code>pip install sift-stack-py[openssl]</code> to install the dependencies required to use this option.
 This works around this issue with grpc loading SSL certificates: https://github.com/grpc/grpc/issues/29682.
 Default is False.</p>
 

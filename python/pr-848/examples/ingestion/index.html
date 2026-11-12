@@ -770,6 +770,17 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
+  <a href="#streaming-backups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Streaming backups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#topics-covered" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -992,6 +1003,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#streaming-backups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Streaming backups
       
     </span>
   </a>
@@ -1822,6 +1844,8 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <h2 id="prerequisites">Prerequisites<a class="anchor-link" href="#prerequisites">¶</a></h2><p><strong>Important</strong>: The ingestion streaming client requires the <code>sift-stream</code> optional dependency. Install it with:</p>
 <div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>sift-stack-py<span class="o">[</span>sift-stream<span class="o">]</span>
 </pre></div>
+<h2 id="streaming-backups">Streaming backups<a class="anchor-link" href="#streaming-backups">¶</a></h2><p>Both streaming client factories default to <code>StreamingMode.LIVE_ONLY</code>: telemetry streams to Sift without local disk backups.</p>
+<p>To enable local backups and replay after delivery failures, import <code>StreamingMode</code> from <code>sift_client.resources.ingestion</code> and pass <code>streaming_mode=StreamingMode.LIVE_WITH_BACKUPS</code> to <code>create_ingestion_config_streaming_client</code> or <code>create_auto_register_streaming_client</code>.</p>
 <h2 id="topics-covered">Topics Covered<a class="anchor-link" href="#topics-covered">¶</a></h2><ol>
 <li><strong>Basic Example</strong>: Simple single flow sending using FlowConfig</li>
 <li><strong>Advanced FlowBuilderPy</strong>: High-performance flow building with direct run ID management</li>

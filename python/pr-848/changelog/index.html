@@ -748,15 +748,15 @@ You're not viewing the latest version.
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#v0240-october-20-2026" class="md-nav__link">
+  <a href="#v0250-october-26-2026" class="md-nav__link">
     <span class="md-ellipsis">
       
-        [v0.24.0] - October 20, 2026
+        [v0.25.0] - October 26, 2026
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="[v0.24.0] - October 20, 2026">
+    <nav class="md-nav" aria-label="[v0.25.0] - October 26, 2026">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -772,6 +772,45 @@ You're not viewing the latest version.
         
           <li class="md-nav__item">
   <a href="#fixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0240-october-20-2026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [v0.24.0] - October 20, 2026
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[v0.24.0] - October 20, 2026">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#features_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixes_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Fixes
@@ -3120,15 +3159,15 @@ You're not viewing the latest version.
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#v0240-october-20-2026" class="md-nav__link">
+  <a href="#v0250-october-26-2026" class="md-nav__link">
     <span class="md-ellipsis">
       
-        [v0.24.0] - October 20, 2026
+        [v0.25.0] - October 26, 2026
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="[v0.24.0] - October 20, 2026">
+    <nav class="md-nav" aria-label="[v0.25.0] - October 26, 2026">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -3144,6 +3183,45 @@ You're not viewing the latest version.
         
           <li class="md-nav__item">
   <a href="#fixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0240-october-20-2026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [v0.24.0] - October 20, 2026
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[v0.24.0] - October 20, 2026">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#features_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixes_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Fixes
@@ -5483,14 +5561,28 @@ You're not viewing the latest version.
 <p>This project adheres to <a href="http://semver.org/">Semantic Versioning</a>.</p>
 <!-- towncrier release notes start -->
 
-<h2 id="v0240-october-20-2026">[v0.24.0] - October 20, 2026<a class="headerlink" href="#v0240-october-20-2026" title="Permanent link">&para;</a></h2>
+<h2 id="v0250-october-26-2026">[v0.25.0] - October 26, 2026<a class="headerlink" href="#v0250-october-26-2026" title="Permanent link">&para;</a></h2>
 <h3 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>detect_config</code> and <code>import_from_path</code> detect flat dataset Parquet configs on the client, so wide Parquet files no longer fail detection with <code>RESOURCE_EXHAUSTED</code> when their footer exceeds the server's 20 MiB request limit. (<a href="https://github.com/sift-stack/sift/pull/819">#819</a>)</li>
+</ul>
+<p>Flat dataset Parquet detection now requires pyarrow. Install it with <code>pip install sift-stack-py[parquet]</code>. The <code>file-imports</code> extra includes it.</p>
+<p><code>detect_config</code> and <code>import_from_path</code> also accept <code>relative_start_time</code>, so files with a relative time format can be detected and imported without editing the config.
+- Added <code>metrics_streaming_interval</code> and <code>rate_limit_policy</code> to <code>create_ingestion_config_streaming_client</code> and <code>create_auto_register_streaming_client</code>.</p>
+<p><code>metrics_streaming_interval</code> takes a <code>timedelta</code> and defaults to 500 ms. Pass <code>None</code> to disable metrics streaming. <code>rate_limit_policy</code> takes a <code>RateLimitPolicyPy</code> from <code>sift_stream_bindings</code> and controls how rate-limited control-plane calls, such as stream setup, <code>attach_run</code>, and flow registration, are handled. By default, the stream waits the delay Sift requests before retrying. When a rate limit is not retried, or the retries run out, these calls raise <code>RateLimitedErrorPy</code>, and <code>retry_delay.to_timedelta()</code> returns the delay Sift requested. This release requires <code>sift-stream-bindings</code> 0.6.1.</p>
+<h3 id="fixes">Fixes<a class="headerlink" href="#fixes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Removed the <code>pyOpenSSL</code> dependency. <code>cert_via_openssl</code> now converts certificates with the standard library <code>ssl</code> module, so the <code>openssl</code> extra is no longer needed and is removed. The extra capped <code>cryptography</code> below 42, which kept installs on a release with known vulnerabilities. (<a href="https://github.com/sift-stack/sift/pull/855">#855</a>)</li>
+<li>Raised the <code>filelock</code> upper bound to <code>&lt;5</code>, so Python 3.11+ installs resolve <code>filelock</code> 4.2.1 or later, which fixes GHSA-v4x8-3wr5-3wq8, GHSA-9vhv-jxww-xfm5, and GHSA-567q-5qvw-pf92. (<a href="https://github.com/sift-stack/sift/pull/855">#855</a>)</li>
+</ul>
+<h2 id="v0240-october-20-2026">[v0.24.0] - October 20, 2026<a class="headerlink" href="#v0240-october-20-2026" title="Permanent link">&para;</a></h2>
+<h3 id="features_1">Features<a class="headerlink" href="#features_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Test-results log uploads are faster: consecutive measurements are now sent in one <code>CreateTestMeasurements</code> call, a retry after an unknown outcome checks the server first and reports it with the new <code>SiftReplayReconciledWarning</code>, and pytest now waits up to 120s (was 30s) at session end for the background upload, asking it to stop cleanly if it runs over. (<a href="https://github.com/sift-stack/sift/pull/810">#810</a>)</li>
 <li>Added <code>client.artifacts</code> for finding artifacts by the runs and assets they link to, browsing version history through <code>client.artifacts.versions</code>, and downloading any version's file. (<a href="https://github.com/sift-stack/sift/pull/845">#845</a>)</li>
 <li>Added the generated <code>sift.artifacts.v1</code> protobuf modules and updated the generated protobuf modules to the current public Sift API.</li>
 </ul>
-<h3 id="fixes">Fixes<a class="headerlink" href="#fixes" title="Permanent link">&para;</a></h3>
+<h3 id="fixes_1">Fixes<a class="headerlink" href="#fixes_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Allowed <code>RestConfig</code> to omit <code>api_key</code>, creating a REST client without a default <code>Authorization</code> header.</li>
 </ul>
