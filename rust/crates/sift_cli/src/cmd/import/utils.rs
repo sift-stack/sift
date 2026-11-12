@@ -84,11 +84,22 @@ pub fn gzip_file(file: File) -> Result<Vec<u8>> {
     Ok(compressed_data)
 }
 
+/// `time_format_str` is `None` for imports that don't accept `--time-format-str`.
 pub fn validate_time_format(
     time_format: TimeFormat,
     relative_start_time: &Option<String>,
+    time_format_str: Option<&str>,
 ) -> Result<()> {
     match time_format {
+        TimeFormat::Custom => match time_format_str {
+            None => Err(anyhow!(
+                "--time-format custom is only supported by `import csv` and `import parquet`"
+            )),
+            Some(s) if s.trim().is_empty() => Err(anyhow!(
+                "--time-format-str is required if time format is custom"
+            )),
+            Some(_) => Ok(()),
+        },
         TimeFormat::RelativeNanoseconds
         | TimeFormat::RelativeMicroseconds
         | TimeFormat::RelativeMilliseconds
@@ -169,4 +180,26 @@ pub fn try_parse_bit_field_config(val: &str) -> Result<Vec<ChannelBitFieldElemen
         });
     }
     Ok(result)
+}
+
+#[cfg(test)]
+mod test_validate_time_format {
+    use super::*;
+
+    #[test]
+    fn custom_requires_time_format_str() {
+        let err = validate_time_format(TimeFormat::Custom, &None, Some("")).unwrap_err();
+        assert!(err.to_string().contains("--time-format-str is required"));
+    }
+
+    #[test]
+    fn custom_with_time_format_str_is_ok() {
+        validate_time_format(TimeFormat::Custom, &None, Some("%m-%d-%Y %H:%M:%S")).unwrap();
+    }
+
+    #[test]
+    fn custom_rejected_without_time_format_str_flag() {
+        let err = validate_time_format(TimeFormat::Custom, &None, None).unwrap_err();
+        assert!(err.to_string().contains("only supported by `import csv`"));
+    }
 }

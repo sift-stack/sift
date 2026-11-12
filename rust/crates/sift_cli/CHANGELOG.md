@@ -30,6 +30,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - `create_rule` now documents the annotation action, and both rule tools
   refuse a rule without exactly one condition instead of passing on Sift's
   internal error.
+- `sift-cli import csv` and `sift-cli import parquet` accept `--time-format custom`
+  with `--time-format-str` for timestamps in a custom Unix date format, such as
+  `%m-%d-%Y %H:%M:%S`.
 
 ## [v0.9.0] - November 16, 2026
 

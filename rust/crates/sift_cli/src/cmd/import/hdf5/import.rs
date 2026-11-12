@@ -132,7 +132,7 @@ pub fn build_hdf5_config(args: &ImportHdf5Args) -> Result<Hdf5Config> {
     let time_format = args
         .time_format
         .ok_or_else(|| anyhow!("--time-format is required for HDF5 imports"))?;
-    validate_time_format(time_format, &args.relative_start_time)
+    validate_time_format(time_format, &args.relative_start_time, None)
         .context("validating time format for hdf5")?;
 
     let relative_start_time = match &args.relative_start_time {
