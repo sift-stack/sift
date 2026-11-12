@@ -9539,8 +9539,8 @@ format set raises <code>ValueError</code>.</p>
    (sift_client.sift_types.data_import.TimeColumnBase.format_str)" href="#sift_client.sift_types.data_import.TimeColumnBase.format_str">format_str</a></code></td>
             <td class="doc-attribute-details">
               <div class="doc-md-description">
-                <p>Unix date format, e.g. <code>%m-%d-%Y %H:%M:%S</code>, used when
-<code>format</code> is <code>TimeFormat.CUSTOM</code>.</p>
+                <p>Unix date format, e.g. <code>%m-%d-%Y %H:%M:%S</code>. Required at
+import when <code>format</code> is <code>TimeFormat.CUSTOM</code>; ignored otherwise.</p>
               </div>
               <p>
                   <span class="doc-attribute-annotation">
