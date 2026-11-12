@@ -20,6 +20,14 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   A missing or forbidden resource fails only its own item.
 - `archive_rule` and `unarchive_rule` now report a missing rule as not found
   instead of reporting success.
+- `update_annotation` takes `selected_indices` over `annotation_ids`, so an
+  approval host can apply the shared changes to some ids and not others. It
+  takes up to 1000 ids, or up to 100 when it runs under an approval host
+  (`sift-cli mcp --chat`). Archiving and unarchiving now run per id. The result
+  now uses the same per-item `successes`, `failures`, and `not_attempted` lists
+  as the other bulk writes, indexed by position in `annotation_ids`. This is a
+  breaking change: the `batch_archive_error` and `archive_skipped` fields are
+  removed.
 
 ## [v0.9.0] - November 12, 2026
 
