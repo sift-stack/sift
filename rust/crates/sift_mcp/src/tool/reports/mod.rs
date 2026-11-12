@@ -16,7 +16,11 @@ use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::reports::{ReportSource, RuleIdentifier},
-    tool::common::{MetadataEntry, bulk_create, read_result, url_clause},
+    tool::common::{
+        MetadataEntry,
+        bulk::{self, BulkItems, Op},
+        bulk_create, read_result, url_clause,
+    },
 };
 
 #[cfg(test)]
@@ -480,9 +484,8 @@ impl SiftMcpServer {
     )]
     pub async fn update_report(
         &self,
-        params: Parameters<crate::tool::common::bulk::BulkItems<UpdateReportItem>>,
+        params: Parameters<BulkItems<UpdateReportItem>>,
     ) -> error::McpResult {
-        use crate::tool::common::bulk::{self, Op};
         self.require_destructive()?;
         let Parameters(params) = params;
         let items = bulk::parse_items::<UpdateReportItem>(params.items)?;
