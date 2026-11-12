@@ -7,6 +7,20 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- MCP update, archive and unarchive tools now write 1 to 100 resources per
+  call: `update_rule`, `archive_rule`, `unarchive_rule`, `update_artifact`,
+  `archive_artifact`, `unarchive_artifact`, `update_run`, `update_asset`,
+  `update_calculated_channel`, `archive_calculated_channel`,
+  `unarchive_calculated_channel`, `update_user_defined_function`,
+  `archive_user_defined_function`, `unarchive_user_defined_function`,
+  `update_report`, and `update_report_template`. Each takes an `items` array
+  of the fields it took before. This is a breaking change for existing
+  callers; pass a one-element `items` list for one resource. Results use the
+  same per-item `successes`, `failures`, and `not_attempted` lists as creates.
+  A missing or forbidden resource fails only its own item.
+- `archive_rule` and `unarchive_rule` now report a missing rule as not found
+  instead of reporting success.
+
 ## [v0.9.0] - November 12, 2026
 
 ### What's New
