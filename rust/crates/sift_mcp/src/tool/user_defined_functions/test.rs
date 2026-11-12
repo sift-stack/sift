@@ -19,8 +19,8 @@ use crate::{
     tool::{
         common::test_support::{list_params, list_params_with_fields, structured},
         user_defined_functions::{
-            ArchiveUserDefinedFunctionParams, CreateUserDefinedFunctionItem,
-            UpdateUserDefinedFunctionParams, UserDefinedFunctionVersionListParams,
+            ArchiveUserDefinedFunctionItem, CreateUserDefinedFunctionItem,
+            UpdateUserDefinedFunctionItem, UserDefinedFunctionVersionListParams,
         },
     },
 };
@@ -85,25 +85,203 @@ fn create_params(function_inputs_json: &str) -> Parameters<CreateUserDefinedFunc
     })
 }
 
+mod bulk {
+    use super::*;
+    use serde_json::{Value, json};
+
+    const TOOLS: [&str; 3] = ["update", "archive", "unarchive"];
+
+    async fn call(server: &SiftMcpServer, tool: &str, value: Value) -> crate::error::McpResult {
+        match tool {
+            "update" => {
+                server
+                    .update_user_defined_function(Parameters(
+                        serde_json::from_value(value).unwrap(),
+                    ))
+                    .await
+            }
+            "archive" => {
+                server
+                    .archive_user_defined_function(Parameters(
+                        serde_json::from_value(value).unwrap(),
+                    ))
+                    .await
+            }
+            _ => {
+                server
+                    .unarchive_user_defined_function(Parameters(
+                        serde_json::from_value(value).unwrap(),
+                    ))
+                    .await
+            }
+        }
+    }
+
+    fn item(id: &str, tool: &str) -> Value {
+        if tool == "update" {
+            json!({"user_defined_function_id": id, "description": "updated"})
+        } else {
+            json!({"user_defined_function_id": id})
+        }
+    }
+
+    fn mock_reads(mock: &mut MockUserDefinedFunctionServiceImpl) {
+        mock.expect_get_user_defined_function().returning(|req| {
+            let id = req.into_inner().user_defined_function_id;
+            Ok(Response::new(GetUserDefinedFunctionResponse {
+                user_defined_function: if id == "missing" {
+                    None
+                } else {
+                    Some(UserDefinedFunction {
+                        user_defined_function_id: id,
+                        name: "function".into(),
+                        ..Default::default()
+                    })
+                },
+            }))
+        });
+    }
+
+    #[tokio::test]
+    async fn already_archived_or_unarchived_are_successes() {
+        for tool in ["archive", "unarchive"] {
+            let mut mock = MockUserDefinedFunctionServiceImpl::new();
+            let is_archived = tool == "archive";
+            mock.expect_get_user_defined_function()
+                .times(1)
+                .returning(move |_| {
+                    Ok(Response::new(GetUserDefinedFunctionResponse {
+                        user_defined_function: Some(UserDefinedFunction {
+                            user_defined_function_id: "same".into(),
+                            is_archived,
+                            ..Default::default()
+                        }),
+                    }))
+                });
+            mock.expect_update_user_defined_function()
+                .times(1)
+                .returning(|req| {
+                    Ok(Response::new(UpdateUserDefinedFunctionResponse {
+                        user_defined_function: req.into_inner().user_defined_function,
+                    }))
+                });
+            let (server, handle) = server_with_mock(mock, true, true).await;
+            let result = call(&server, tool, json!({"items": [item("same", tool)]}))
+                .await
+                .unwrap();
+            assert!(!result.is_error.unwrap_or(false));
+            assert_eq!(structured(result)["successes"].as_array().unwrap().len(), 1);
+            handle.abort();
+        }
+    }
+
+    #[tokio::test]
+    async fn selected_subset_writes_only_selected_items() {
+        for tool in TOOLS {
+            let mut mock = MockUserDefinedFunctionServiceImpl::new();
+            mock_reads(&mut mock);
+            mock.expect_update_user_defined_function()
+                .times(1)
+                .withf(|req| {
+                    req.get_ref()
+                        .user_defined_function
+                        .as_ref()
+                        .unwrap()
+                        .user_defined_function_id
+                        == "selected"
+                })
+                .returning(|req| {
+                    Ok(Response::new(UpdateUserDefinedFunctionResponse {
+                        user_defined_function: req.into_inner().user_defined_function,
+                    }))
+                });
+            let (server, handle) = server_with_mock(mock, true, true).await;
+            let body = structured(call(&server, tool, json!({"items": [item("skip", tool), item("selected", tool)], "selected_indices": [1]})).await.unwrap());
+            assert_eq!(body["successes"][0]["index"], 1);
+            assert_eq!(body["not_selected"], json!([0]));
+            handle.abort();
+        }
+    }
+
+    #[tokio::test]
+    async fn not_found_continues_and_unavailable_stops_tail() {
+        for tool in TOOLS {
+            let mut mock = MockUserDefinedFunctionServiceImpl::new();
+            mock_reads(&mut mock);
+            mock.expect_update_user_defined_function().returning(|req| {
+                let function = req.into_inner().user_defined_function.unwrap();
+                match function.user_defined_function_id.as_str() {
+                    "missing" => Err(Status::not_found("missing function")),
+                    "down" => Err(Status::unavailable("backend down")),
+                    "never" => panic!("tail must not run"),
+                    _ => Ok(Response::new(UpdateUserDefinedFunctionResponse {
+                        user_defined_function: Some(function),
+                    })),
+                }
+            });
+            let (server, handle) = server_with_mock(mock, true, true).await;
+            let body = structured(call(&server, tool, json!({"items": [item("missing", tool), item("ok", tool), item("down", tool), item("never", tool)]})).await.unwrap());
+            assert_eq!(body["successes"][0]["index"], 1);
+            assert_eq!(
+                body["failures"][0]["error"]["code"],
+                ErrorCode::RESOURCE_NOT_FOUND.0
+            );
+            assert_eq!(body["failures"][1]["index"], 2);
+            assert_eq!(body["not_attempted"], json!([3]));
+            handle.abort();
+        }
+    }
+
+    #[tokio::test]
+    async fn invalid_duplicate_and_missing_chat_mask_fail_before_rpc() {
+        for tool in TOOLS {
+            let (server, handle) =
+                server_with_mock(MockUserDefinedFunctionServiceImpl::new(), true, true).await;
+            let server = server.with_require_selection(true);
+            for items in [
+                json!([item("a", tool), item("a", tool)]),
+                json!([item("a", tool), item(" ", tool)]),
+                json!([{"user_defined_function_id": "b", "unknown": true}]),
+            ] {
+                let error = call(
+                    &server,
+                    tool,
+                    json!({"items": items, "selected_indices": [0]}),
+                )
+                .await
+                .unwrap_err();
+                assert_eq!(error.code, ErrorCode::INVALID_PARAMS);
+            }
+            let error = call(&server, tool, json!({"items": [item("a", tool)]}))
+                .await
+                .unwrap_err();
+            assert!(error.message.contains("nothing was written"));
+            handle.abort();
+        }
+    }
+}
+
 fn update_params(
     name: Option<&str>,
     description: Option<&str>,
     function_inputs_json: Option<&str>,
-) -> Parameters<UpdateUserDefinedFunctionParams> {
-    Parameters(UpdateUserDefinedFunctionParams {
-        user_defined_function_id: "f1".into(),
-        name: name.map(str::to_string),
-        description: description.map(str::to_string),
-        expression: None,
-        function_inputs_json: function_inputs_json.map(str::to_string),
-        metadata: None,
-    })
+) -> Parameters<super::BulkItems<UpdateUserDefinedFunctionItem>> {
+    Parameters(
+        serde_json::from_value(serde_json::json!({"items": [{
+            "user_defined_function_id": "f1", "name": name, "description": description,
+            "function_inputs_json": function_inputs_json,
+        }]}))
+        .unwrap(),
+    )
 }
 
-fn archive_params(id: &str) -> Parameters<ArchiveUserDefinedFunctionParams> {
-    Parameters(ArchiveUserDefinedFunctionParams {
-        user_defined_function_id: id.into(),
-    })
+fn archive_params(id: &str) -> Parameters<super::BulkItems<ArchiveUserDefinedFunctionItem>> {
+    Parameters(
+        serde_json::from_value(serde_json::json!({"items": [{
+            "user_defined_function_id": id,
+        }]}))
+        .unwrap(),
+    )
 }
 
 fn expect_current_udf(mock: &mut MockUserDefinedFunctionServiceImpl, id: &str) {
@@ -600,7 +778,7 @@ async fn update_returns_the_new_version() {
         .await
         .expect("update_user_defined_function failed");
 
-    let body = structured(resp);
+    let body = structured(resp)["successes"][0]["result"].clone();
     assert_eq!(body["user_defined_function"]["version"], 4);
     assert_eq!(
         body["user_defined_function"]["userDefinedFunctionVersionId"],
@@ -679,7 +857,7 @@ async fn archive_sets_the_archive_flag_and_reports_it() {
         .await
         .expect("archive_user_defined_function failed");
 
-    let body = structured(resp);
+    let body = structured(resp)["successes"][0]["result"].clone();
     assert_eq!(body["archived"], true);
     assert_eq!(body["user_defined_function"]["isArchived"], true);
 }
@@ -713,7 +891,7 @@ async fn unarchive_clears_the_archive_flag_and_reports_it() {
         .await
         .expect("unarchive_user_defined_function failed");
 
-    let body = structured(resp);
+    let body = structured(resp)["successes"][0]["result"].clone();
     assert_eq!(body["unarchived"], true);
 }
 
