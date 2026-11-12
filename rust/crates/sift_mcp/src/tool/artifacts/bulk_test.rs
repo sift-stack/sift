@@ -122,6 +122,7 @@ async fn resource_errors_continue_and_backend_errors_stop() {
         for code in [
             tonic::Code::NotFound,
             tonic::Code::PermissionDenied,
+            tonic::Code::FailedPrecondition,
             tonic::Code::Unavailable,
         ] {
             let mut mock = MockArtifactServiceImpl::new();

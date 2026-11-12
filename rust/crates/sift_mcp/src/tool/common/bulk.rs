@@ -176,7 +176,7 @@ pub(crate) fn should_stop(op: Op, error: &ErrorData) -> bool {
     }
     match reason(error) {
         Some("AlreadyExists" | "Conflict") => false,
-        Some("PermissionDenied") => op == Op::Create,
+        Some("PermissionDenied" | "FailedPrecondition") => op == Op::Create,
         _ => true,
     }
 }
@@ -250,7 +250,12 @@ where
                     && error.code != ErrorCode::RESOURCE_NOT_FOUND
                     && !matches!(
                         reason(&error),
-                        Some("AlreadyExists" | "PermissionDenied" | "Unauthenticated")
+                        Some(
+                            "AlreadyExists"
+                                | "PermissionDenied"
+                                | "Unauthenticated"
+                                | "FailedPrecondition"
+                        )
                     ));
             json!({"index": indices[index], "error": error, "outcome_unknown": outcome_unknown})
         })
@@ -368,6 +373,39 @@ mod test {
                 assert!(should_stop(op, &signal(code)), "{op:?} {code:?}");
             }
         }
+    }
+
+    #[tokio::test]
+    async fn a_failed_precondition_fails_one_update_without_stopping_the_rest() {
+        let precondition = signal(tonic::Code::FailedPrecondition);
+        assert_eq!(
+            precondition.data.as_ref().unwrap()["reason"],
+            "FailedPrecondition"
+        );
+        assert!(should_stop(Op::Create, &precondition));
+        let result = run(
+            Op::Update,
+            vec![0, 1, 2],
+            Selection {
+                indices: Some(vec![0, 1, 2]),
+                required: true,
+            },
+            false,
+            |item| async move {
+                if item == 0 {
+                    Err(signal(tonic::Code::FailedPrecondition))
+                } else {
+                    Ok(CallToolResult::structured(json!({"item": item})))
+                }
+            },
+        )
+        .await
+        .unwrap();
+        let body = result.structured_content.unwrap();
+        assert_eq!(body["updated_count"], 2);
+        assert_eq!(body["failures"][0]["index"], 0);
+        assert_eq!(body["failures"][0]["outcome_unknown"], false);
+        assert_eq!(body["not_attempted"], json!([]));
     }
 
     #[tokio::test]
