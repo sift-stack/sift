@@ -9,7 +9,7 @@ use sift_test_util::{
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
-use super::{CreateReportTemplateParams, ReportTemplateListParams, UpdateReportTemplateParams};
+use super::{CreateReportTemplateItem, ReportTemplateListParams, UpdateReportTemplateParams};
 use crate::{server::SiftMcpServer, tool::common::test_support::structured_field};
 
 async fn server_with_mock(mock: MockReportTemplateServiceImpl) -> (SiftMcpServer, JoinHandle<()>) {
@@ -43,8 +43,8 @@ async fn server_with_mock_and_flags(
     )
 }
 
-fn create_params() -> CreateReportTemplateParams {
-    CreateReportTemplateParams {
+fn create_params() -> CreateReportTemplateItem {
+    CreateReportTemplateItem {
         name: "safety".into(),
         description: None,
         client_key: None,
@@ -176,7 +176,7 @@ async fn create_report_template_happy_path() {
     params.rule_ids = Some(vec!["rule-1".into(), "rule-2".into()]);
 
     let resp = server
-        .create_report_template(Parameters(params))
+        .create_report_template_item(Parameters(params))
         .await
         .expect("create_report_template failed");
 
@@ -203,7 +203,7 @@ async fn create_report_template_rejects_empty_name() {
     params.rule_ids = Some(vec!["rule-1".into()]);
 
     let err = server
-        .create_report_template(Parameters(params))
+        .create_report_template_item(Parameters(params))
         .await
         .expect_err("expected error");
 
@@ -215,7 +215,7 @@ async fn create_report_template_rejects_no_rules() {
     let (server, _h) = server_with_mock(MockReportTemplateServiceImpl::new()).await;
 
     let err = server
-        .create_report_template(Parameters(create_params()))
+        .create_report_template_item(Parameters(create_params()))
         .await
         .expect_err("expected error");
 
@@ -231,7 +231,7 @@ async fn create_report_template_rejects_both_rule_shapes() {
     params.rule_client_keys = Some(vec!["ck-1".into()]);
 
     let err = server
-        .create_report_template(Parameters(params))
+        .create_report_template_item(Parameters(params))
         .await
         .expect_err("expected error");
 
@@ -325,7 +325,7 @@ async fn create_report_template_blocked_without_allow_create() {
     let (server, _h) = server_with_mock_and_flags(mock, false, false).await;
 
     let err = server
-        .create_report_template(Parameters(create_params()))
+        .create_report_template_item(Parameters(create_params()))
         .await
         .expect_err("expected create gate to reject the call");
 

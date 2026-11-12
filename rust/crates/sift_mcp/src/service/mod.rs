@@ -1,6 +1,7 @@
 pub mod annotations;
 pub mod artifacts;
 pub mod assets;
+pub(crate) mod batch;
 pub mod calculated_channels;
 pub mod channels;
 pub mod data;

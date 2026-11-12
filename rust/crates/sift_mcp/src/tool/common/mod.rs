@@ -6,6 +6,8 @@ use std::{
 };
 
 use anyhow::Context;
+pub(crate) mod bulk_create;
+
 use rmcp::ErrorData;
 use rmcp::model::{CallToolResult, ContentBlock};
 use rmcp::schemars::{self, JsonSchema};

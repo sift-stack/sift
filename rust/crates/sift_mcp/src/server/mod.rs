@@ -6,7 +6,7 @@ use rmcp::{
     handler::server::tool::{ToolCallContext, ToolRouter},
     model::{
         CacheScope, CallToolRequestParams, CallToolResponse, Implementation, ListToolsResult,
-        PaginatedRequestParams, ProtocolVersion, ServerCapabilities, ServerInfo,
+        PaginatedRequestParams, ProtocolVersion, ServerCapabilities, ServerConfig,
     },
     prompt_handler,
     service::RequestContext,
@@ -81,6 +81,8 @@ pub struct SiftMcpServer {
     pub user_service: UserService,
 
     pub allow_create: bool,
+    /// Reject creates without an approval mask. Set when a Sift chat pod hosts this server.
+    require_selection: bool,
     pub allow_destructive: bool,
     cli_version: String,
     pub update_check: Option<UpdateCheckReceiver>,
@@ -134,7 +136,7 @@ impl ServerHandler for SiftMcpServer {
         Ok(result)
     }
 
-    fn get_info(&self) -> ServerInfo {
+    fn get_info(&self) -> ServerConfig {
         let instructions = match &self.update_check {
             Some(receiver) => {
                 let update_check = receiver.borrow();
@@ -153,7 +155,7 @@ impl ServerHandler for SiftMcpServer {
             None => BASE_INSTRUCTIONS.to_string(),
         };
 
-        ServerInfo::new(
+        ServerConfig::new(
             ServerCapabilities::builder()
                 .enable_tools()
                 .enable_prompts()
@@ -327,12 +329,29 @@ impl SiftMcpServer {
             tool_router,
             prompt_router,
             allow_create,
+            require_selection: false,
             allow_destructive,
             cli_version,
             update_check,
             update_tool_registered,
             client_event_reporter,
         })
+    }
+
+    /// Require an approval mask on every create, as an approval host does.
+    pub fn with_require_selection(mut self, require_selection: bool) -> Self {
+        self.require_selection = require_selection;
+        self
+    }
+
+    pub(crate) fn selection(
+        &self,
+        indices: Option<Vec<usize>>,
+    ) -> crate::tool::common::bulk_create::Selection {
+        crate::tool::common::bulk_create::Selection {
+            indices,
+            required: self.require_selection,
+        }
     }
 
     pub(crate) fn require_create(&self) -> Result<(), ErrorData> {

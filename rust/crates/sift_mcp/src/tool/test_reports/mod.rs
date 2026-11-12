@@ -7,6 +7,7 @@ use rmcp::{
 };
 use serde::Deserialize;
 
+use crate::tool::common::bulk_create;
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
@@ -31,7 +32,7 @@ pub struct CountParams {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-pub struct CreateTestReportParams {
+pub struct CreateTestReportItem {
     pub(crate) report_json: String,
 }
 
@@ -363,49 +364,69 @@ impl SiftMcpServer {
     #[tool(
         name = "create_test_report",
         description = "
-            Create a test report together with its tree of steps and measurements in one call,
-            from a single JSON document. WRITE: this creates data in Sift. Confirm the destination
+            Create one or more test reports, each with its tree of steps and measurements, from one
+            JSON document per report. WRITE: this creates data in Sift. Confirm the destination
             with the user before calling, and report back what was created.
 
             Parameters:
-              - `report_json`: a JSON object describing the report. Shape:
-                - Report fields: `name` (required), `test_system_name` (required), `test_case`
-                  (required), `status` (optional, default `PASSED`; accepts `PASSED` or
-                  `TEST_STATUS_PASSED`), `start_time`/`end_time` (optional RFC3339, e.g.
-                  \"2026-06-24T10:00:00Z\"; default now), `serial_number`, `part_number`,
-                  `system_operator`, `run_id` (optional; links the report to an existing Sift run),
-                  `metadata` (optional flat object of string/number/bool values).
-                - `steps`: optional array. Each step has `name` (required), `status` (optional,
-                  default `PASSED`), `step_type` (optional, default `ACTION`; one of `SEQUENCE`,
-                  `GROUP`, `ACTION`, `FLOW_CONTROL`), `description`, `start_time`/`end_time`
-                  (optional, default the report window), `error_info` (`{ error_code, error_message }`),
-                  `metadata`, `measurements`, and a nested `steps` array for children. `step_path`
-                  and `parent_step_id` are computed from nesting (roots `1`, `2`; child of `1` is
-                  `1.1`) — do not supply them.
-                - Each measurement has `name` (required), EXACTLY ONE of `numeric_value`,
-                  `string_value`, or `boolean_value`, optional `numeric_bounds` (`{ min, max }`, with
-                  `numeric_value`) or `string_expected` (with `string_value`), `unit`, `passed`
-                  (optional; computed from bounds when omitted — numeric bounds inclusive, string
-                  equals `string_expected`, else true), `measurement_type` (optional; derived from
-                  the value kind), `timestamp` (optional RFC3339, default the step start), `description`,
-                  `channel_names` (array), and `metadata`.
+              - `items`: required array of 1–100 objects, one per test report. Pass one item to create one
+                test report. Each item takes:
+                - `report_json`: a JSON object describing the report. Shape:
+                  - Report fields: `name` (required), `test_system_name` (required), `test_case`
+                    (required), `status` (optional, default `PASSED`; accepts `PASSED` or
+                    `TEST_STATUS_PASSED`), `start_time`/`end_time` (optional RFC3339, e.g.
+                    \"2026-06-24T10:00:00Z\"; default now), `serial_number`, `part_number`,
+                    `system_operator`, `run_id` (optional; links the report to an existing Sift run),
+                    `metadata` (optional flat object of string/number/bool values).
+                  - `steps`: optional array. Each step has `name` (required), `status` (optional,
+                    default `PASSED`), `step_type` (optional, default `ACTION`; one of `SEQUENCE`,
+                    `GROUP`, `ACTION`, `FLOW_CONTROL`), `description`, `start_time`/`end_time`
+                    (optional, default the report window), `error_info` (`{ error_code, error_message }`),
+                    `metadata`, `measurements`, and a nested `steps` array for children. `step_path`
+                    and `parent_step_id` are computed from nesting (roots `1`, `2`; child of `1` is
+                    `1.1`) — do not supply them.
+                  - Each measurement has `name` (required), EXACTLY ONE of `numeric_value`,
+                    `string_value`, or `boolean_value`, optional `numeric_bounds` (`{ min, max }`, with
+                    `numeric_value`) or `string_expected` (with `string_value`), `unit`, `passed`
+                    (optional; computed from bounds when omitted — numeric bounds inclusive, string
+                    equals `string_expected`, else true), `measurement_type` (optional; derived from
+                    the value kind), `timestamp` (optional RFC3339, default the step start), `description`,
+                    `channel_names` (array), and `metadata`.
+              - `selected_indices`: zero-based positions in `items` to create. An approval host sets this
+                from the user's per-item decisions; omit it when proposing. Omitted means every item,
+                except in a Sift chat pod, where a missing value is rejected. `[]` creates nothing.
 
             Output:
-              - `{ \"test_report_id\": \"...\", \"steps_created\": N, \"measurements_created\": M, \"report_url\": string|null, \"next_step\": \"...\" }`.
-                `report_url` is the report's Sift web link (`<host>/test-results/<id>`), or null when
-                the host cannot be derived (self-hosted deployments). Surface it to the user as a
-                clickable link.
+              - `{ requested_count, selected_count, not_selected, created_count, successes, failures,
+                not_attempted, next_step }`. `successes` holds `{ index, result }` per created item, where
+                `index` is the item's zero-based position in `items`. `failures` holds `{ index, error,
+                outcome_unknown }`. `not_attempted` lists items skipped after a backend-wide error. Any
+                failure sets `isError`. Each `result` is:
+                - `{ \"test_report_id\": \"...\", \"steps_created\": N, \"measurements_created\": M, \"report_url\": string|null, \"next_step\": \"...\" }`.
+                  `report_url` is the report's Sift web link (`<host>/test-results/<id>`), or null when
+                  the host cannot be derived (self-hosted deployments). Surface it to the user as a
+                  clickable link.
 
             Errors:
               - `INVALID_PARAMS` if `report_json` is not valid JSON, omits a required field, names an
                 unknown enum value, has a non-RFC3339 timestamp, or a measurement does not set exactly
                 one value (or pairs bounds with the wrong value kind).
               - `INTERNAL_ERROR` for upstream gRPC failures.
+              - `INVALID_PARAMS` before any write if `items` is empty or has more than 100 entries, or an
+                item has an unknown field or fails local validation. The message names the item index.
+              - Once writing starts, an item-specific error fails only that item. A backend-wide error
+                stops the remaining items; earlier creates stay committed.
 
             Guidance:
               - The create calls are not transactional. If a step or measurement fails after the report
                 is created, the report and earlier steps remain; the error names the created
                 `test_report_id`. Verify with `list_test_steps` (filter `test_report_id == \"...\"`).
+              - Items run sequentially, one create per item; this is not an atomic batch. Never replay
+                the whole call after a partial failure. Retry only failed items, and check any
+                `outcome_unknown` item first, since its create may have committed.
+              - Use one call with several items, not repeated calls, when creating several test reports.
+              - An item that fails partway can leave a partially created report. List test reports before
+                retrying it.
         ",
         annotations(
             title = "test_reports/create_test_report",
@@ -416,11 +437,32 @@ impl SiftMcpServer {
     )]
     pub async fn create_test_report(
         &self,
-        params: Parameters<CreateTestReportParams>,
+        params: Parameters<bulk_create::CreateItems<CreateTestReportItem>>,
+    ) -> error::McpResult {
+        self.require_create()?;
+        let Parameters(bulk_create::CreateItems {
+            items,
+            selected_indices,
+            ..
+        }) = params;
+        let items = bulk_create::parse_items::<CreateTestReportItem>(items)?;
+        bulk_create::create_many_with_partial_writes(
+            items,
+            self.selection(selected_indices),
+            |item| self.create_test_report_item(Parameters(item)),
+            true,
+        )
+        .await
+    }
+
+    /// Create one item. Callers check access and validate the whole call first.
+    pub(crate) async fn create_test_report_item(
+        &self,
+        params: Parameters<CreateTestReportItem>,
     ) -> error::McpResult {
         self.require_create()?;
 
-        let Parameters(CreateTestReportParams { report_json }) = params;
+        let Parameters(CreateTestReportItem { report_json }) = params;
 
         let report_spec = parse_report_spec(&report_json)?;
         let built = spec::build(report_spec)

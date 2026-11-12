@@ -120,6 +120,9 @@ tool.
   available in read-only mode and need no confirmation.
 - **Links:** `explore_url`.
 - **Docs:** `search_docs`.
+- **Creates:** every `create_*` write takes an `items` array of 1 to 100
+  objects. Pass one item to create one resource, or several to create a batch
+  in one call. Results report each item by its index in `items`.
 - **Writes:** `create_rule`, `update_rule`, `archive_rule`, `unarchive_rule`,
   `create_annotation`, `update_annotation`, `create_report`, `update_report`,
   `create_report_template`, `update_report_template`,

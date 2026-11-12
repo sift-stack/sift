@@ -1,4 +1,4 @@
-use crate::policy::{RetryPolicy, with_retry};
+use crate::policy::{RetryPolicy, once, with_retry};
 use crate::service::common;
 use anyhow::{Context, Result, anyhow};
 use pbjson_types::FieldMask;
@@ -240,16 +240,12 @@ impl ReportService {
         };
 
         let channel = self.channel.clone();
-        let resp = with_retry(&self.policy, move || {
-            let channel = channel.clone();
-            let request = evaluate_request.clone();
-            async move {
-                let mut client = RuleEvaluationServiceClient::new(channel);
-                client
-                    .evaluate_rules(request)
-                    .await
-                    .map(|resp| resp.into_inner())
-            }
+        let resp = once(move || async move {
+            let mut client = RuleEvaluationServiceClient::new(channel);
+            client
+                .evaluate_rules(evaluate_request)
+                .await
+                .map(|resp| resp.into_inner())
         })
         .await
         .context("failed to create report")?;

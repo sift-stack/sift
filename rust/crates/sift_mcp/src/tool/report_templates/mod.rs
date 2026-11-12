@@ -8,6 +8,7 @@ use rmcp::{
 use serde::Deserialize;
 use sift_rs::metadata::v1::MetadataValue;
 
+use crate::tool::common::bulk_create;
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
@@ -27,7 +28,7 @@ pub struct ReportTemplateListParams {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-pub struct CreateReportTemplateParams {
+pub struct CreateReportTemplateItem {
     name: String,
     description: Option<String>,
     client_key: Option<String>,
@@ -130,43 +131,61 @@ impl SiftMcpServer {
     #[tool(
         name = "create_report_template",
         description = "
-            Create a report template from a set of standard rules. A report template is a named, reusable
+            Create one or more report templates, each from a set of standard rules. A report template is a named, reusable
             bundle of rules that any future `create_report` call can reference via `report_template_id`. Only
             standard rules (`is_external: false`) can be attached; ad-hoc rules (`is_external: true`) are
             rejected by the server. Wraps `report_templates/v1 CreateReportTemplate`.
 
             Output:
-              - `{ \"report_template\": ReportTemplate, \"report_template_url\": string|null, \"next_step\": string }`.
-                The returned template is the server-assigned state including its new `report_template_id`,
-                resolved `rules` (with `display_order` set), and timestamps. `report_template_url` is the
-                template's Sift web link, or null when the host can't be derived. Link the template only to this
-                URL, never to a report's page.
+              - `{ requested_count, selected_count, not_selected, created_count, successes, failures,
+                not_attempted, next_step }`. `successes` holds `{ index, result }` per created item, where
+                `index` is the item's zero-based position in `items`. `failures` holds `{ index, error,
+                outcome_unknown }`. `not_attempted` lists items skipped after a backend-wide error. Any
+                failure sets `isError`. Each `result` is:
+                - `{ \"report_template\": ReportTemplate, \"report_template_url\": string|null, \"next_step\": string }`.
+                  The returned template is the server-assigned state including its new `report_template_id`,
+                  resolved `rules` (with `display_order` set), and timestamps. `report_template_url` is the
+                  template's Sift web link, or null when the host can't be derived. Link the template only to this
+                  URL, never to a report's page.
 
             Parameters:
-              - `name`: required; the template name.
-              - `description`: optional; free-form description of what the template evaluates.
-              - `client_key`: optional; a stable caller-defined key for referring to this template. Must be unique
-                within the organization.
-              - `tag_names`: optional list of tag names to attach to the template.
-              - `organization_id`: optional. Required only when the caller belongs to multiple organizations.
-              - `metadata`: optional list of `{ \"name\": \"<key>\", \"value\": <scalar> }` entries.
+              - `items`: required array of 1–100 objects, one per report template. Pass one item to create one
+                report template. Each item takes:
+                - `name`: required; the template name.
+                - `description`: optional; free-form description of what the template evaluates.
+                - `client_key`: optional; a stable caller-defined key for referring to this template. Must be unique
+                  within the organization.
+                - `tag_names`: optional list of tag names to attach to the template.
+                - `organization_id`: optional. Required only when the caller belongs to multiple organizations.
+                - `metadata`: optional list of `{ \"name\": \"<key>\", \"value\": <scalar> }` entries.
 
-              Provide EXACTLY ONE of the following to identify the rules on the new template:
-              - `rule_ids`: ordered list of rule IDs. Position in the list becomes each rule's `display_order`
-                on the template (first = 0, second = 1, ...).
-              - `rule_client_keys`: list of rule client keys. Server resolves keys to rules; the resulting rule
-                order on the template is server-defined (not the position in this list).
+                Provide EXACTLY ONE of the following to identify the rules on the new template:
+                - `rule_ids`: ordered list of rule IDs. Position in the list becomes each rule's `display_order`
+                  on the template (first = 0, second = 1, ...).
+                - `rule_client_keys`: list of rule client keys. Server resolves keys to rules; the resulting rule
+                  order on the template is server-defined (not the position in this list).
+              - `selected_indices`: zero-based positions in `items` to create. An approval host sets this
+                from the user's per-item decisions; omit it when proposing. Omitted means every item,
+                except in a Sift chat pod, where a missing value is rejected. `[]` creates nothing.
 
             Errors:
               - `INVALID_PARAMS` if `name` is empty, or if zero or more than one of `rule_ids`/`rule_client_keys`
                 is provided.
               - `INTERNAL_ERROR` for upstream gRPC failures (e.g. unknown rule).
+              - `INVALID_PARAMS` before any write if `items` is empty or has more than 100 entries, or an
+                item has an unknown field or fails local validation. The message names the item index.
+              - Once writing starts, an item-specific error fails only that item. A backend-wide error
+                stops the remaining items; earlier creates stay committed.
 
             Guidance:
               - This is a write. CONFIRM the template name and the rule set with the user before invoking.
               - Prefer `rule_ids` when you want deterministic on-template ordering.
               - After creation, invoke `create_report` with the new `report_template_id` to run the template
                 over a run.
+              - Items run sequentially, one create per item; this is not an atomic batch. Never replay
+                the whole call after a partial failure. Retry only failed items, and check any
+                `outcome_unknown` item first, since its create may have committed.
+              - Use one call with several items, not repeated calls, when creating several report templates.
         ",
         annotations(
             title = "report_templates/create_report_template",
@@ -177,11 +196,29 @@ impl SiftMcpServer {
     )]
     pub async fn create_report_template(
         &self,
-        params: Parameters<CreateReportTemplateParams>,
+        params: Parameters<bulk_create::CreateItems<CreateReportTemplateItem>>,
+    ) -> error::McpResult {
+        self.require_create()?;
+        let Parameters(bulk_create::CreateItems {
+            items,
+            selected_indices,
+            ..
+        }) = params;
+        let items = bulk_create::parse_items::<CreateReportTemplateItem>(items)?;
+        bulk_create::create_many(items, self.selection(selected_indices), |item| {
+            self.create_report_template_item(Parameters(item))
+        })
+        .await
+    }
+
+    /// Create one item. Callers check access and validate the whole call first.
+    pub(crate) async fn create_report_template_item(
+        &self,
+        params: Parameters<CreateReportTemplateItem>,
     ) -> error::McpResult {
         self.require_create()?;
 
-        let Parameters(CreateReportTemplateParams {
+        let Parameters(CreateReportTemplateItem {
             name,
             description,
             client_key,
