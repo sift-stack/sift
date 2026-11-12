@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+## [v0.9.0] - November 12, 2026
+
+### What's New
+
 - MCP create tools now create 1 to 100 resources per call. `create_annotation`,
   `create_rule`, `create_calculated_channel`, `create_user_defined_function`,
   `create_report`, `create_report_template`, `create_test_report`, and
