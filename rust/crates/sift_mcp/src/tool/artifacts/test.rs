@@ -1,3 +1,6 @@
+#[path = "bulk_test.rs"]
+mod bulk;
+
 use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
 use sift_rs::{
     artifacts::v1::{
@@ -19,8 +22,9 @@ use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
 use super::{
-    ArtifactArchiveParams, ArtifactVersionListParams, CreateArtifactItem, DownloadArtifactParams,
-    UpdateArtifactParams, display_name, parse_created_via, parse_storage_class,
+    ArtifactArchiveItem as ArtifactArchiveParams, ArtifactVersionListParams, CreateArtifactItem,
+    DownloadArtifactParams, UpdateArtifactItem as UpdateArtifactParams, display_name,
+    parse_created_via, parse_storage_class,
 };
 use crate::{
     server::SiftMcpServer,
@@ -434,7 +438,7 @@ async fn archive_artifact_blocked_without_allow_destructive() {
     )
     .await;
     let err = server
-        .archive_artifact(Parameters(ArtifactArchiveParams {
+        .archive_artifact_item(Parameters(ArtifactArchiveParams {
             artifact_id: "art-1".into(),
         }))
         .await
@@ -453,7 +457,7 @@ async fn unarchive_artifact_blocked_without_allow_destructive() {
     )
     .await;
     let err = server
-        .unarchive_artifact(Parameters(ArtifactArchiveParams {
+        .unarchive_artifact_item(Parameters(ArtifactArchiveParams {
             artifact_id: "art-1".into(),
         }))
         .await
@@ -466,7 +470,7 @@ async fn unarchive_artifact_blocked_without_allow_destructive() {
 async fn archive_artifact_rejects_empty_artifact_id() {
     let (server, _h) = server_with_mock(MockArtifactServiceImpl::new(), true).await;
     let err = server
-        .archive_artifact(Parameters(ArtifactArchiveParams {
+        .archive_artifact_item(Parameters(ArtifactArchiveParams {
             artifact_id: "  ".into(),
         }))
         .await
@@ -478,7 +482,7 @@ async fn archive_artifact_rejects_empty_artifact_id() {
 async fn unarchive_artifact_rejects_empty_artifact_id() {
     let (server, _h) = server_with_mock(MockArtifactServiceImpl::new(), true).await;
     let err = server
-        .unarchive_artifact(Parameters(ArtifactArchiveParams {
+        .unarchive_artifact_item(Parameters(ArtifactArchiveParams {
             artifact_id: "  ".into(),
         }))
         .await
@@ -495,7 +499,7 @@ async fn archive_artifact_returns_structured_result() {
 
     let (server, _h) = server_with_mock(mock, true).await;
     let response = server
-        .archive_artifact(Parameters(ArtifactArchiveParams {
+        .archive_artifact_item(Parameters(ArtifactArchiveParams {
             artifact_id: "art-1".into(),
         }))
         .await
@@ -523,7 +527,7 @@ async fn unarchive_artifact_returns_structured_result() {
 
     let (server, _h) = server_with_mock(mock, true).await;
     let response = server
-        .unarchive_artifact(Parameters(ArtifactArchiveParams {
+        .unarchive_artifact_item(Parameters(ArtifactArchiveParams {
             artifact_id: "art-1".into(),
         }))
         .await
@@ -554,13 +558,13 @@ async fn archive_and_unarchive_trim_the_artifact_id() {
 
     let (server, _h) = server_with_mock(mock, true).await;
     let archived = server
-        .archive_artifact(Parameters(ArtifactArchiveParams {
+        .archive_artifact_item(Parameters(ArtifactArchiveParams {
             artifact_id: " art-1\n".into(),
         }))
         .await
         .expect("archive");
     let unarchived = server
-        .unarchive_artifact(Parameters(ArtifactArchiveParams {
+        .unarchive_artifact_item(Parameters(ArtifactArchiveParams {
             artifact_id: " art-1\n".into(),
         }))
         .await
@@ -595,7 +599,7 @@ async fn update_artifact_blocked_without_allow_destructive() {
     )
     .await;
     let err = server
-        .update_artifact(Parameters(UpdateArtifactParams {
+        .update_artifact_item(Parameters(UpdateArtifactParams {
             artifact_id: "art-1".into(),
             title: Some("v2".into()),
             ..Default::default()
@@ -640,7 +644,7 @@ async fn update_artifact_masks_only_what_was_passed() {
 
     let (server, _h) = server_with_mock(mock, true).await;
     let resp = server
-        .update_artifact(Parameters(UpdateArtifactParams {
+        .update_artifact_item(Parameters(UpdateArtifactParams {
             artifact_id: "art-1".into(),
             title: Some("Renamed".into()),
             ..Default::default()
@@ -692,7 +696,7 @@ async fn update_artifact_without_a_file_reports_the_kept_file() {
 
     let (server, _h) = server_with_mocks(mock, remote_files, true, true).await;
     let resp = server
-        .update_artifact(Parameters(UpdateArtifactParams {
+        .update_artifact_item(Parameters(UpdateArtifactParams {
             artifact_id: "art-1".into(),
             title: Some("Renamed".into()),
             ..Default::default()
@@ -763,7 +767,7 @@ async fn update_artifact_maps_each_parameter_to_its_own_path() {
             });
         let (server, _h) = server_with_mock(mock, true).await;
         server
-            .update_artifact(Parameters(params))
+            .update_artifact_item(Parameters(params))
             .await
             .unwrap_or_else(|err| panic!("{want}: {err:?}"));
     }
@@ -784,7 +788,7 @@ async fn update_artifact_requires_an_id_and_something_to_change() {
         },
     ] {
         let err = server
-            .update_artifact(Parameters(params))
+            .update_artifact_item(Parameters(params))
             .await
             .expect_err("rejected");
         assert_eq!(err.code, ErrorCode::INVALID_PARAMS);

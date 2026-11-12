@@ -1,3 +1,6 @@
+#[path = "bulk_test.rs"]
+mod bulk;
+
 use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
 use sift_rs::runs::v2::{
     ListRunsResponse, Run, UpdateRunResponse, run_service_server::RunServiceServer,
@@ -6,7 +9,7 @@ use sift_test_util::{grpc::memory_sift_channel, mock::runs::v2::MockRunServiceIm
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
-use super::UpdateRunParams;
+use super::UpdateRunItem as UpdateRunParams;
 use crate::{
     server::SiftMcpServer,
     tool::common::test_support::{
@@ -216,7 +219,7 @@ async fn update_run_happy_path_surfaces_url() {
     params.name = Some("renamed".into());
 
     let resp = server
-        .update_run(Parameters(params))
+        .update_run_item(Parameters(params))
         .await
         .expect("update_run failed");
 
@@ -231,7 +234,7 @@ async fn update_run_rejects_empty_id() {
     let (server, _h) = server_with_mock(MockRunServiceImpl::new()).await;
 
     let err = server
-        .update_run(Parameters(update_run_params("")))
+        .update_run_item(Parameters(update_run_params("")))
         .await
         .expect_err("expected error");
 
@@ -243,7 +246,7 @@ async fn update_run_rejects_no_fields() {
     let (server, _h) = server_with_mock(MockRunServiceImpl::new()).await;
 
     let err = server
-        .update_run(Parameters(update_run_params("r1")))
+        .update_run_item(Parameters(update_run_params("r1")))
         .await
         .expect_err("expected error");
 

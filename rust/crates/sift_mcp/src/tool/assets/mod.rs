@@ -11,11 +11,15 @@ use sift_rs::metadata::v1::MetadataValue;
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
-    tool::common::{ListParams, MetadataEntry, list_body, url_clause, with_urls},
+    tool::common::{
+        ListParams, MetadataEntry,
+        bulk::{self, BulkItems, Op},
+        list_body, url_clause, with_urls,
+    },
 };
 
 #[derive(Debug, Deserialize, JsonSchema)]
-pub struct UpdateAssetParams {
+pub struct UpdateAssetItem {
     asset_id: String,
     tags: Option<Vec<String>>,
     metadata: Option<Vec<MetadataEntry>>,
@@ -23,6 +27,22 @@ pub struct UpdateAssetParams {
 
 #[cfg(test)]
 mod test;
+
+fn validate_update_asset(item: &UpdateAssetItem) -> Result<(), ErrorData> {
+    if item.asset_id.trim().is_empty() {
+        return Err(ErrorData::invalid_params(
+            "`asset_id` must not be empty",
+            None,
+        ));
+    }
+    if item.tags.is_none() && item.metadata.is_none() {
+        return Err(ErrorData::invalid_params(
+            "at least one of `tags` or `metadata` must be provided",
+            None,
+        ));
+    }
+    Ok(())
+}
 
 #[tool_router(router = assets_router, vis = "pub(crate)")]
 impl SiftMcpServer {
@@ -102,14 +122,20 @@ impl SiftMcpServer {
     #[tool(
         name = "update_asset",
         description = "
-            Update an existing asset's tags and/or metadata. Wraps `assets/v1 UpdateAsset`.
+            Update one or more assets' tags and/or metadata. Wraps `assets/v1 UpdateAsset`.
 
             Output:
+              - `{ requested_count, selected_count, not_selected, updated_count, successes, failures,
+                not_attempted, next_step }`. Each success holds `{ index, result }`, each failure holds
+                `{ index, error, outcome_unknown }`, and any failure sets `isError`. Each result is:
               - `{ \"asset\": Asset, \"asset_url\": string|null, \"next_step\": string }`. The returned `Asset` is
                 the post-update state from the server; `asset_url` is its Sift web link
                 (`<host>/asset/<asset_id>`), or null when the host can't be derived.
 
             Parameters:
+              - `items`: required array of 1–100 objects, one per asset. Each item takes the fields below.
+              - `selected_indices`: zero-based item positions supplied by the approval host; omit when
+                proposing. Omitted selects all outside chat; chat requires a mask. `[]` updates nothing.
               - `asset_id`: required; the id of the asset to update.
               - `tags`: optional; REPLACES the asset's full tag list with this array. To add a
                 single tag, first read the current tags via `list_assets` filtered by
@@ -130,8 +156,13 @@ impl SiftMcpServer {
                 type does not match an existing metadata key's type.
               - `RESOURCE_NOT_FOUND` if no asset matches `asset_id`.
               - `INTERNAL_ERROR` for upstream gRPC failures.
+              - `INVALID_PARAMS` before any write for an empty or oversized `items`, duplicate targets,
+                unknown item fields, or invalid items; the error names the item index.
+              - Item-local errors fail only that item. Backend-wide errors stop the remaining items.
 
             Guidance:
+              - Items run sequentially; the call is not atomic. Never replay the whole call after a
+                partial failure. Check `outcome_unknown` items before retrying, and never retry `not_selected` items.
               - This is a write. CONFIRM the target asset and the full proposed `tags` /
                 `metadata` lists with the user before invoking — silent truncation is the most
                 common foot-gun because the operation is REPLACE, not merge.
@@ -146,27 +177,39 @@ impl SiftMcpServer {
             idempotent_hint = true,
         )
     )]
-    pub async fn update_asset(&self, params: Parameters<UpdateAssetParams>) -> error::McpResult {
+    pub async fn update_asset(
+        &self,
+        params: Parameters<BulkItems<UpdateAssetItem>>,
+    ) -> error::McpResult {
         self.require_destructive()?;
+        let Parameters(BulkItems {
+            items,
+            selected_indices,
+            ..
+        }) = params;
+        let items = bulk::parse_items::<UpdateAssetItem>(items)?;
+        for (index, item) in items.iter().enumerate() {
+            validate_update_asset(item).map_err(|error| bulk::at_item(index, error))?;
+        }
+        bulk::reject_duplicate_targets(&items, "asset", |item| Some(item.asset_id.clone()))?;
+        bulk::run(
+            Op::Update,
+            items,
+            self.selection(selected_indices),
+            false,
+            |item| self.update_asset_item(Parameters(item)),
+        )
+        .await
+    }
 
-        let Parameters(UpdateAssetParams {
+    async fn update_asset_item(&self, params: Parameters<UpdateAssetItem>) -> error::McpResult {
+        self.require_destructive()?;
+        validate_update_asset(&params.0)?;
+        let Parameters(UpdateAssetItem {
             asset_id,
             tags,
             metadata,
         }) = params;
-
-        if asset_id.is_empty() {
-            return Err(ErrorData::invalid_params(
-                "`asset_id` must not be empty",
-                None,
-            ));
-        }
-        if tags.is_none() && metadata.is_none() {
-            return Err(ErrorData::invalid_params(
-                "at least one of `tags` or `metadata` must be provided",
-                None,
-            ));
-        }
 
         let metadata = metadata.map(|m| m.into_iter().map(MetadataValue::from).collect::<Vec<_>>());
 
@@ -178,9 +221,7 @@ impl SiftMcpServer {
 
         let asset_url = self.url_service.build_asset_url(&asset.asset_id).ok();
         let next_step = format!(
-            "Updated asset `{}` ({}).{} Surface the new state to the user and confirm the change \
-             matches their intent. Remember: tags and metadata are REPLACE operations — verify \
-             nothing was unintentionally dropped.",
+            "Updated asset `{}` ({}).{}",
             asset.name,
             asset.asset_id,
             url_clause("asset", Some(&asset.name), asset_url.as_deref()),

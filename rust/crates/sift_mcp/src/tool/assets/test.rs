@@ -1,3 +1,6 @@
+#[path = "bulk_test.rs"]
+mod bulk;
+
 use rmcp::{ServerHandler, handler::server::wrapper::Parameters, model::ErrorCode};
 use sift_rs::assets::v1::{Asset, ListAssetsResponse, asset_service_server::AssetServiceServer};
 use sift_test_util::{grpc::memory_sift_channel, mock::assets::v1::MockAssetServiceImpl};
@@ -8,7 +11,7 @@ use crate::{
     server::SiftMcpServer,
     service::common::DEFAULT_LIMIT,
     tool::{
-        assets::UpdateAssetParams,
+        assets::UpdateAssetItem as UpdateAssetParams,
         common::test_support::{list_params, structured_field},
     },
 };
@@ -242,7 +245,7 @@ async fn update_asset_blocked_without_allow_destructive() {
     let (server, _h) = server_with_mock_and_flag(mock, false).await;
 
     let err = server
-        .update_asset(Parameters(UpdateAssetParams {
+        .update_asset_item(Parameters(UpdateAssetParams {
             asset_id: "a1".into(),
             tags: Some(vec!["engine".into()]),
             metadata: None,
