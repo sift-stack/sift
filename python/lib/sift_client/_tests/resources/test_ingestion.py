@@ -15,13 +15,25 @@ from sift_client.resources.ingestion import (
 sift_stream_bindings = pytest.importorskip("sift_stream_bindings")
 
 
+FACTORY_NAMES = [
+    "create_ingestion_config_streaming_client",
+    "create_auto_register_streaming_client",
+]
+
+
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "factory_name",
-    ["create_ingestion_config_streaming_client", "create_auto_register_streaming_client"],
-)
-@pytest.mark.parametrize("streaming_mode", [None, StreamingMode.LIVE_WITH_BACKUPS])
-async def test_streaming_mode_default_and_opt_in(
+@pytest.mark.parametrize("factory_name", FACTORY_NAMES)
+async def test_streaming_mode_is_required(mock_client, factory_name):
+    api = IngestionAPIAsync(mock_client)
+
+    with pytest.raises(TypeError, match="streaming_mode"):
+        await getattr(api, factory_name)(ingestion_config=MagicMock())
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("factory_name", FACTORY_NAMES)
+@pytest.mark.parametrize("streaming_mode", list(StreamingMode))
+async def test_streaming_mode_is_passed_through(
     mock_client, monkeypatch, factory_name, streaming_mode
 ):
     build_stream = AsyncMock()
@@ -36,14 +48,11 @@ async def test_streaming_mode_default_and_opt_in(
         MagicMock(from_stream=AsyncMock()),
     )
     api = IngestionAPIAsync(mock_client)
-    kwargs = {} if streaming_mode is None else {"streaming_mode": streaming_mode}
 
-    await getattr(api, factory_name)(ingestion_config=MagicMock(), **kwargs)
+    await getattr(api, factory_name)(ingestion_config=MagicMock(), streaming_mode=streaming_mode)
 
     build_stream.assert_awaited_once()
-    assert build_stream.call_args.kwargs["streaming_mode"] == (
-        StreamingMode.LIVE_ONLY if streaming_mode is None else streaming_mode
-    )
+    assert build_stream.call_args.kwargs["streaming_mode"] == streaming_mode
 
 
 def _rate_limited_error():

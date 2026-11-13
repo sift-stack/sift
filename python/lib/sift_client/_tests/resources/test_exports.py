@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from sift_client import SiftClient
 from sift_client.resources import DataExportAPI
 from sift_client.resources.exports import DataExportAPIAsync
-from sift_client.resources.ingestion import TracingConfig
+from sift_client.resources.ingestion import StreamingMode, TracingConfig
 from sift_client.sift_types.calculated_channel import (
     CalculatedChannel,
     CalculatedChannelCreate,
@@ -109,6 +109,7 @@ async def ingested_export_channel(sift_client, nostromo_asset):
 
     async with await sift_client.async_.ingestion.create_ingestion_config_streaming_client(
         ingestion_config=ingestion_config,
+        streaming_mode=StreamingMode.LIVE_ONLY,
         tracing_config=TracingConfig.disabled(),  # suppresses ./logs
     ) as stream:
         await stream.send(

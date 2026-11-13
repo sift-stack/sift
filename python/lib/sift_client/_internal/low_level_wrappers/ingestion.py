@@ -245,11 +245,11 @@ async def _build_sift_stream_instance(
     api_key: str,
     grpc_uri: str,
     ingestion_config_form: IngestionConfigFormPy,
+    streaming_mode: StreamingMode,
     run_form: RunFormPy | None = None,
     run_id: str | None = None,
     asset_tags: list[str] | None = None,
     asset_metadata: list[MetadataPy] | None = None,
-    streaming_mode: StreamingMode = ...,  # type: ignore[assignment]
     retry_policy: RetryPolicyPy | None = None,
     disk_backup_policy: DiskBackupPolicyPy | None = None,
     checkpoint_interval_seconds: int | None = None,
@@ -276,9 +276,6 @@ async def _build_sift_stream_instance(
 
     _default_max_log_files = 7
     _default_logfile_prefix = "sift_stream_bindings.log"
-
-    if streaming_mode is ...:  # type: ignore[comparison-overlap]
-        streaming_mode = StreamingMode.LIVE_ONLY
 
     # None disables metrics streaming, so it passes through to the builder as-is. Zero is
     # rejected here because SiftStream cannot schedule metrics on a zero interval.
@@ -355,11 +352,11 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
         api_key: str,
         grpc_uri: str,
         ingestion_config_form: IngestionConfigFormPy,
+        streaming_mode: StreamingMode,
         run_form: RunFormPy | None = None,
         run_id: str | None = None,
         asset_tags: list[str] | None = None,
         asset_metadata: list[MetadataPy] | None = None,
-        streaming_mode: StreamingMode = ...,  # type: ignore[assignment]
         retry_policy: RetryPolicyPy | None = None,
         disk_backup_policy: DiskBackupPolicyPy | None = None,
         checkpoint_interval_seconds: int | None = None,

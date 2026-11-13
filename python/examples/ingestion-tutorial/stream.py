@@ -27,6 +27,9 @@ from dotenv import dotenv_values
 # Core Sift client and connection configuration.
 from sift_client import SiftClient, SiftConnectionConfig
 
+# Selects whether streaming keeps local telemetry backups.
+from sift_client.resources.ingestion import StreamingMode
+
 # Sift ingestion types used to define telemetry structure and runs.
 from sift_client.sift_types import (
     RunCreate,  # Represents a telemetry collection session
@@ -170,9 +173,8 @@ async def main() -> None:
     # All telemetry sent within this context will appear inside
     # this Run in Sift.
     #
-    # Streaming defaults to LIVE_ONLY (no local telemetry backups).
-    # To opt in, import StreamingMode from sift_client.resources.ingestion
-    # and pass streaming_mode=StreamingMode.LIVE_WITH_BACKUPS below.
+    # streaming_mode is required. LIVE_ONLY streams without local telemetry
+    # backups. Pass StreamingMode.LIVE_WITH_BACKUPS to keep them.
     #
     # WARNING: SiftStream should be reused for the entire program duration.
     # Do NOT recreate the streaming client per batch or per iteration —
@@ -181,6 +183,7 @@ async def main() -> None:
     async with await client.async_.ingestion.create_ingestion_config_streaming_client(
         ingestion_config=ingestion_config,
         run=run,
+        streaming_mode=StreamingMode.LIVE_ONLY,
     ) as ingest_client:
         # Continue streaming until the user terminates the program
         while True:
