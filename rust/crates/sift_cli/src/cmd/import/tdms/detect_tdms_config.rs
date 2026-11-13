@@ -59,7 +59,8 @@ pub async fn run(ctx: Context, args: ImportTdmsArgs) -> Result<ExitCode> {
     let file = File::open(&args.common.path).context("failed to open tdms file")?;
 
     let create_data_import_req =
-        create_data_import_request(tdms_config).context("failed to create data import req")?;
+        create_data_import_request(tdms_config, args.common.leave_run_open)
+            .context("failed to create data import req")?;
 
     let CreateDataImportFromUploadResponse { upload_url, .. } = data_imports_client
         .create_data_import_from_upload(create_data_import_req)
@@ -133,9 +134,13 @@ pub fn build_tdms_config(args: &ImportTdmsArgs) -> Result<TdmsConfig> {
     })
 }
 
-fn create_data_import_request(config: TdmsConfig) -> Result<CreateDataImportFromUploadRequest> {
+fn create_data_import_request(
+    config: TdmsConfig,
+    leave_run_open: bool,
+) -> Result<CreateDataImportFromUploadRequest> {
     let req = CreateDataImportFromUploadRequest {
         tdms_config: Some(config),
+        leave_run_open,
         ..Default::default()
     };
     Ok(req)
