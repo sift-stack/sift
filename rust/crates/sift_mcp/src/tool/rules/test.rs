@@ -146,6 +146,14 @@ mod bulk {
             ),
             (json!([{}]), "item 0"),
             (
+                json!([{"rule_id": "a"}, {"rule_id": " "}]),
+                "item 1: `rule_id` must not be empty",
+            ),
+            (
+                json!([{"rule_id": "a"}, {"client_key": ""}]),
+                "item 1: `client_key` must not be empty",
+            ),
+            (
                 json!([{"rule_id": "a", "typo": true}]),
                 "unknown field `typo`",
             ),

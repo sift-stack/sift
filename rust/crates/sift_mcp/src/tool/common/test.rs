@@ -28,6 +28,14 @@ fn exactly_one_returns_the_set_field_and_rejects_both_or_neither() {
         "{}",
         neither.message
     );
+    for (blank, field) in [
+        (one(Some(" "), None), "rule_id"),
+        (one(None, Some("")), "client_key"),
+    ] {
+        let error = blank.unwrap_err();
+        assert_eq!(error.code, rmcp::model::ErrorCode::INVALID_PARAMS);
+        assert_eq!(error.message, format!("`{field}` must not be empty"));
+    }
 }
 
 #[test]

@@ -61,14 +61,21 @@ pub(crate) fn require_non_empty(field: &str, value: &str) -> Result<(), ErrorDat
 
 /// Resolve two mutually exclusive optional params into the `(first, second)` request
 /// fields, with an empty string for the unset one. Returns `INVALID_PARAMS` unless
-/// exactly one is set, since the API would silently pick one for the caller.
+/// exactly one is set and not blank, since the API would silently pick one for the
+/// caller and a blank value would only fail after earlier bulk items were written.
 pub(crate) fn exactly_one(
     (first_name, first): (&str, Option<String>),
     (second_name, second): (&str, Option<String>),
 ) -> Result<(String, String), ErrorData> {
     match (first, second) {
-        (Some(first), None) => Ok((first, String::new())),
-        (None, Some(second)) => Ok((String::new(), second)),
+        (Some(first), None) => {
+            require_non_empty(first_name, &first)?;
+            Ok((first, String::new()))
+        }
+        (None, Some(second)) => {
+            require_non_empty(second_name, &second)?;
+            Ok((String::new(), second))
+        }
         (Some(_), Some(_)) => Err(ErrorData::invalid_params(
             format!("exactly one of `{first_name}` or `{second_name}` must be set, not both"),
             None,
@@ -298,8 +305,7 @@ impl ListBody {
     /// leads with an instruction; it becomes its own text block ahead of the
     /// JSON, as in [`read_result`].
     pub(crate) fn into_result(self, next_step: Option<String>) -> CallToolResult {
-        let text = serde_json::to_string(&ItemsLast(&self))
-            .unwrap_or_else(|_| Value::Object(self.body.clone()).to_string());
+        let text = json_with_key_last(&self.body, self.items_key);
         let mut content = Vec::with_capacity(2);
         if let Some(next_step) = next_step {
             content.push(ContentBlock::text(next_step));
@@ -318,20 +324,29 @@ impl ListBody {
     }
 }
 
-/// Serializes a [`ListBody`] with its items key moved to the end.
+/// Serialize `body` with `last` moved to the end, so an agent harness that cuts an
+/// oversized result from the end loses the bulky items before the counts and
+/// guidance. List and bulk write results both use this.
+pub(crate) fn json_with_key_last(body: &serde_json::Map<String, Value>, last: &str) -> String {
+    serde_json::to_string(&KeyLast { body, last })
+        .unwrap_or_else(|_| Value::Object(body.clone()).to_string())
+}
+
 /// `SerializeMap` writes entries in the order they are given, which
 /// `serde_json::Map` would otherwise re-sort.
-struct ItemsLast<'a>(&'a ListBody);
+struct KeyLast<'a> {
+    body: &'a serde_json::Map<String, Value>,
+    last: &'a str,
+}
 
-impl Serialize for ItemsLast<'_> {
+impl Serialize for KeyLast<'_> {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let ListBody { items_key, body } = self.0;
-        let mut out = serializer.serialize_map(Some(body.len()))?;
-        for (key, value) in body.iter().filter(|(key, _)| key != items_key) {
+        let mut out = serializer.serialize_map(Some(self.body.len()))?;
+        for (key, value) in self.body.iter().filter(|(key, _)| *key != self.last) {
             out.serialize_entry(key, value)?;
         }
-        if let Some(items) = body.get(*items_key) {
-            out.serialize_entry(items_key, items)?;
+        if let Some(value) = self.body.get(self.last) {
+            out.serialize_entry(self.last, value)?;
         }
         out.end()
     }

@@ -18,7 +18,7 @@ use crate::{
     service::artifacts::{ArtifactView, CreateArtifactInput, UpdateArtifactInput, UpdatePath},
     tool::common::{
         MetadataEntry,
-        bulk::{self, BulkItems, Op},
+        bulk::{BulkItems, Op},
         list_body, require_non_empty, to_values,
     },
 };
@@ -819,17 +819,13 @@ impl SiftMcpServer {
         params: Parameters<BulkItems<CreateArtifactItem>>,
     ) -> error::McpResult {
         self.require_create()?;
-        let Parameters(BulkItems {
-            items,
-            selected_indices,
-            ..
-        }) = params;
-        // An upload can fail after the artifact exists, so every failure may be a partial write.
-        bulk::run(
+        // An upload can fail after the artifact exists.
+        self.bulk_write_partial(
             Op::Create,
-            bulk::parse_items::<CreateArtifactItem>(items)?,
-            self.selection(selected_indices),
-            true,
+            params.0,
+            "artifact",
+            Ok,
+            |_| None,
             |item| self.create_artifact_item(Parameters(item)),
         )
         .await
@@ -970,13 +966,10 @@ impl SiftMcpServer {
         params: Parameters<BulkItems<UpdateArtifactItem>>,
     ) -> error::McpResult {
         self.require_destructive()?;
-        let Parameters(BulkItems {
-            items,
-            selected_indices,
-            ..
-        }) = params;
-        let items = bulk::prepare(
-            items,
+        // An upload can fail after the version is written.
+        self.bulk_write_partial(
+            Op::Update,
+            params.0,
             "artifact",
             |mut item: UpdateArtifactItem| {
                 item.artifact_id = item.artifact_id.trim().to_owned();
@@ -984,13 +977,6 @@ impl SiftMcpServer {
                 Ok(item)
             },
             |item| Some(item.artifact_id.clone()),
-        )?;
-        // An upload can fail after the version is written, so every failure may be a partial write.
-        bulk::run(
-            Op::Update,
-            items,
-            self.selection(selected_indices),
-            true,
             |item| self.update_artifact_item(item),
         )
         .await

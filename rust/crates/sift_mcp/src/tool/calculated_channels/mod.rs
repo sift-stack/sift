@@ -501,8 +501,8 @@ impl SiftMcpServer {
               - `{ requested_count, selected_count, not_selected, archived_count, successes, failures,
                 not_attempted, next_step }`. `successes` holds `{ index, result }`; `failures` holds
                 `{ index, error, outcome_unknown }`. Any failure sets `isError`. Each result is
-                `{ \"archived\": boolean, \"calculated_channel\": CalculatedChannel, \"warning\"?: string }`.
-                `archived` reflects the returned channel state; `warning` appears when the server did not archive it.
+                `{ \"archived\": true, \"calculated_channel\": CalculatedChannel }`. If the server returns the
+                channel still unarchived, that item is a failure with `outcome_unknown: true`.
 
             Parameters:
               - `items`: each item takes `calculated_channel_id`, the id to archive.
@@ -546,8 +546,8 @@ impl SiftMcpServer {
               - `{ requested_count, selected_count, not_selected, unarchived_count, successes, failures,
                 not_attempted, next_step }`. `successes` holds `{ index, result }`; `failures` holds
                 `{ index, error, outcome_unknown }`. Any failure sets `isError`. Each result is
-                `{ \"unarchived\": boolean, \"calculated_channel\": CalculatedChannel, \"warning\"?: string }`.
-                `unarchived` reflects the returned channel state; `warning` appears when the server did not restore it.
+                `{ \"unarchived\": true, \"calculated_channel\": CalculatedChannel }`. If the server returns the
+                channel still archived, that item is a failure with `outcome_unknown: true`.
 
             Parameters:
               - `items`: each item takes `calculated_channel_id`, the id to restore.
@@ -613,21 +613,25 @@ impl SiftMcpServer {
         .map_err(from_anyhow)?;
 
         let channel = written.calculated_channel;
-        let applied = channel.is_archived == archive;
-        let mut body = serde_json::json!({
-            op.state_key(): applied,
-            "calculated_channel": channel,
-        });
-        if !applied {
-            body["warning"] = format!(
-                "The server returned this calculated channel with `is_archived: {}` after the \
-                 request. Do not report it as {}; verify its state before continuing.",
-                channel.is_archived,
-                op.state_key(),
-            )
-            .into();
+        if channel.is_archived != archive {
+            // A Conflict fails only this item and marks its outcome unknown, without
+            // stopping the rest of the batch.
+            return Err(ErrorData::internal_error(
+                format!(
+                    "The server returned calculated channel `{}` with `is_archived: {}` after the \
+                     request, so it may not be {}. Check it with `list_calculated_channels` \
+                     before retrying or reporting it.",
+                    channel.calculated_channel_id,
+                    channel.is_archived,
+                    op.state_key(),
+                ),
+                Some(serde_json::json!({"reason": "Conflict"})),
+            ));
         }
-        Ok(CallToolResult::structured(body))
+        Ok(CallToolResult::structured(serde_json::json!({
+            op.state_key(): true,
+            "calculated_channel": channel,
+        })))
     }
 }
 

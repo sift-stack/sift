@@ -66,6 +66,22 @@ mod bulk {
     }
 
     #[tokio::test]
+    async fn a_failed_read_after_a_committed_update_is_an_unknown_outcome() {
+        let mut mock = MockReportServiceImpl::new();
+        mock.expect_update_report()
+            .times(1)
+            .returning(|_| Ok(Response::new(UpdateReportResponse {})));
+        mock.expect_get_report()
+            .times(1)
+            .returning(|_| Err(Status::not_found("deleted after the update")));
+        let (server, handle) = server_with_mock(mock).await;
+        let body = body(call(&server, json!({"items": [item("r1")]})).await.unwrap());
+        assert_eq!(body["failures"][0]["error"]["code"], -32002);
+        assert_eq!(body["failures"][0]["outcome_unknown"], true);
+        handle.abort();
+    }
+
+    #[tokio::test]
     async fn invalid_duplicate_and_missing_chat_mask_fail_before_rpc() {
         let (server, handle) = server_with_mock(MockReportServiceImpl::new()).await;
         let server = server.with_require_selection(true);

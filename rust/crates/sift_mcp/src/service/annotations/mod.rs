@@ -1,9 +1,5 @@
 use crate::policy::{RetryPolicy, once, with_retry};
-use crate::{
-    error::from_anyhow,
-    service::common,
-    tool::common::bulk::{self, Op},
-};
+use crate::service::common;
 use anyhow::{Context, Result, anyhow};
 use futures::{StreamExt, stream};
 use pbjson_types::{FieldMask, Timestamp};
@@ -24,18 +20,18 @@ mod test;
 const MAX_CONCURRENT_ANNOTATION_UPDATES: usize = 50;
 
 #[derive(Debug)]
-pub struct AnnotationUpdateFailure {
+pub struct AnnotationUpdateFailure<E> {
     pub annotation_id: String,
-    pub error: rmcp::ErrorData,
+    pub error: E,
 }
 
 #[derive(Debug)]
-pub struct UpdateAnnotationsResult {
+pub struct UpdateAnnotationsResult<E> {
     pub annotations: Vec<Annotation>,
     /// The requested id of each entry in `annotations`, in the same order. The
     /// returned annotation's own id may differ in form from the request.
     pub updated_ids: Vec<String>,
-    pub failures: Vec<AnnotationUpdateFailure>,
+    pub failures: Vec<AnnotationUpdateFailure<E>>,
     pub not_attempted: Vec<String>,
 }
 
@@ -231,8 +227,11 @@ impl AnnotationService {
             .ok_or_else(|| anyhow!("archive_annotation response missing annotation"))
     }
 
+    /// Update and then archive or unarchive each id, up to 50 at a time. `classify` maps
+    /// each failure to the caller's error type and says whether it stops the ids not yet
+    /// started, so this service stays independent of how a caller reports errors.
     #[allow(clippy::too_many_arguments)]
-    pub async fn update_annotations(
+    pub async fn update_annotations<E>(
         &self,
         annotation_ids: Vec<String>,
         name: Option<String>,
@@ -245,7 +244,8 @@ impl AnnotationService {
         linked_channel_ids: Option<Vec<String>>,
         metadata: Option<Vec<MetadataValue>>,
         is_archived: Option<bool>,
-    ) -> Result<UpdateAnnotationsResult> {
+        classify: impl Fn(anyhow::Error) -> (E, bool),
+    ) -> Result<UpdateAnnotationsResult<E>> {
         let has_field_update = name.is_some()
             || description.is_some()
             || start_time_unix_nanos.is_some()
@@ -318,8 +318,8 @@ impl AnnotationService {
                         updated_ids.push(annotation_id);
                     }
                     Err(error) => {
-                        let error = from_anyhow(error);
-                        stop |= bulk::should_stop(Op::Update, &error);
+                        let (error, stops) = classify(error);
+                        stop |= stops;
                         failures.push(AnnotationUpdateFailure {
                             annotation_id,
                             error,

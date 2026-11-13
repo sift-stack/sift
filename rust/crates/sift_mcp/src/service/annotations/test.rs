@@ -16,6 +16,22 @@ use tokio::{sync::Semaphore, task::JoinHandle};
 use tonic::{Response, Status, transport::Server};
 
 use super::{AnnotationService, fan_out_bounded};
+
+/// Stop the batch on anything but an item-local gRPC failure, as the tool's classifier does.
+fn classify(error: anyhow::Error) -> (anyhow::Error, bool) {
+    let item_local = error.downcast_ref::<Status>().is_some_and(|status| {
+        matches!(
+            status.code(),
+            tonic::Code::NotFound
+                | tonic::Code::InvalidArgument
+                | tonic::Code::PermissionDenied
+                | tonic::Code::FailedPrecondition
+                | tonic::Code::AlreadyExists
+                | tonic::Code::Aborted
+        )
+    });
+    (error, !item_local)
+}
 use crate::service::common::DEFAULT_LIMIT;
 
 async fn service_with_mock(mock: MockAnnotationServiceImpl) -> (AnnotationService, JoinHandle<()>) {
@@ -430,6 +446,7 @@ async fn update_annotations_only_archives_ids_whose_field_update_succeeded() {
                 None,
                 None,
                 Some(archived),
+                classify,
             )
             .await
             .unwrap();
@@ -476,6 +493,7 @@ async fn archive_item_errors_do_not_stop_later_groups() {
                 None,
                 None,
                 Some(true),
+                classify,
             )
             .await
             .unwrap();
@@ -491,7 +509,7 @@ async fn archive_backend_failure_stops_ids_not_yet_started() {
     let mut mock = MockAnnotationServiceImpl::new();
     mock.expect_archive_annotation()
         .times(50)
-        .returning(|_| Err(Status::unavailable("offline")));
+        .returning(|_| Err(Status::resource_exhausted("offline")));
     let (service, _h) = service_with_mock(mock).await;
     let ids = (0..60).map(|i| format!("ann{i}")).collect::<Vec<_>>();
     let outcome = service
@@ -507,6 +525,7 @@ async fn archive_backend_failure_stops_ids_not_yet_started() {
             None,
             None,
             Some(true),
+            classify,
         )
         .await
         .unwrap();
@@ -542,6 +561,7 @@ async fn update_annotations_collects_failures_and_continues() {
             None,
             None,
             None,
+            classify,
         )
         .await
         .expect("bulk update failed");
@@ -581,6 +601,7 @@ async fn update_annotations_stops_after_backend_wide_failure() {
             None,
             None,
             None,
+            classify,
         )
         .await
         .expect("bulk update failed");

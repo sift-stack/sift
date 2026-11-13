@@ -222,7 +222,7 @@ async fn update_annotation_approves_two_of_three_ids() {
     assert_eq!(body["successes"][0]["index"], 0);
     assert_eq!(body["successes"][1]["index"], 2);
     assert_eq!(
-        body["successes"][1]["result"]["annotation"]["url"],
+        body["successes"][1]["result"]["url"],
         "https://app.test.local/annotation/ann3"
     );
 }
@@ -232,7 +232,7 @@ async fn update_annotation_reports_original_positions_for_selected_failures_and_
     let mut mock = MockAnnotationServiceImpl::new();
     mock.expect_update_annotation()
         .times(50)
-        .returning(|_| Err(Status::unavailable("offline")));
+        .returning(|_| Err(Status::resource_exhausted("offline")));
     let (server, _h) = server_with_mock(mock).await;
     let mut params = update_params("ann0");
     params
@@ -541,10 +541,22 @@ async fn update_annotation_happy_path() {
         .expect("update_annotation failed");
 
     let successes = structured_field(resp, "successes");
-    assert_eq!(successes[0]["result"]["annotation"]["name"], "renamed");
+    assert_eq!(successes[0]["result"]["name"], "renamed");
     assert_eq!(
-        successes[0]["result"]["annotation"]["url"],
+        successes[0]["result"]["url"],
         "https://app.test.local/annotation/ann1"
+    );
+    let mut keys = successes[0]["result"]
+        .as_object()
+        .unwrap()
+        .keys()
+        .cloned()
+        .collect::<Vec<_>>();
+    keys.sort();
+    assert_eq!(
+        keys,
+        ["annotation_id", "is_archived", "name", "state", "url"],
+        "the per-id result stays compact"
     );
 }
 
@@ -570,8 +582,8 @@ async fn update_annotation_updates_each_annotation() {
         .expect("update_annotation failed");
 
     let successes = structured_field(resp, "successes");
-    assert_eq!(successes[0]["result"]["annotation"]["annotationId"], "ann1");
-    assert_eq!(successes[1]["result"]["annotation"]["annotationId"], "ann2");
+    assert_eq!(successes[0]["result"]["annotation_id"], "ann1");
+    assert_eq!(successes[1]["result"]["annotation_id"], "ann2");
 }
 
 #[tokio::test]
@@ -603,14 +615,8 @@ async fn update_annotation_reports_partial_failures_and_continues() {
     assert_eq!(resp.content.len(), 2);
     assert!(content.contains("no such annotation"));
     let body = structured(resp);
-    assert_eq!(
-        body["successes"][0]["result"]["annotation"]["annotationId"],
-        "ann1"
-    );
-    assert_eq!(
-        body["successes"][1]["result"]["annotation"]["annotationId"],
-        "ann3"
-    );
+    assert_eq!(body["successes"][0]["result"]["annotation_id"], "ann1");
+    assert_eq!(body["successes"][1]["result"]["annotation_id"], "ann3");
     assert_eq!(body["successes"][1]["index"], 2);
     assert_eq!(body["failures"][0]["index"], 1);
     assert_eq!(
@@ -677,7 +683,7 @@ async fn update_annotation_archives_each_annotation() {
 
     let successes = structured_field(resp, "successes");
     assert_eq!(successes.as_array().unwrap().len(), 2);
-    assert_eq!(successes[0]["result"]["annotation"]["isArchived"], true);
+    assert_eq!(successes[0]["result"]["is_archived"], true);
 }
 
 #[tokio::test]
@@ -763,14 +769,8 @@ async fn update_annotation_skips_archive_after_partial_field_failure() {
     assert_eq!(resp.is_error, Some(true));
     let body = structured(resp);
     assert!(body.get("archive_skipped").is_none());
-    assert_eq!(
-        body["successes"][0]["result"]["annotation"]["annotationId"],
-        "ann1"
-    );
-    assert_eq!(
-        body["successes"][0]["result"]["annotation"]["isArchived"],
-        true
-    );
+    assert_eq!(body["successes"][0]["result"]["annotation_id"], "ann1");
+    assert_eq!(body["successes"][0]["result"]["is_archived"], true);
     assert_eq!(body["failures"][0]["index"], 1);
 }
 
@@ -846,10 +846,7 @@ async fn update_annotation_reports_partial_unarchive_failures() {
 
     assert_eq!(resp.is_error, Some(true));
     let body = structured(resp);
-    assert_eq!(
-        body["successes"][0]["result"]["annotation"]["annotationId"],
-        "ann1"
-    );
+    assert_eq!(body["successes"][0]["result"]["annotation_id"], "ann1");
     assert_eq!(body["failures"][0]["index"], 1);
     assert_eq!(
         body["failures"][0]["error"]["code"],
@@ -886,8 +883,8 @@ async fn update_annotation_unarchives_each_annotation() {
 
     let successes = structured_field(resp, "successes");
     assert_eq!(successes.as_array().unwrap().len(), 2);
-    assert_eq!(successes[0]["result"]["annotation"]["annotationId"], "ann1");
-    assert_eq!(successes[1]["result"]["annotation"]["annotationId"], "ann2");
+    assert_eq!(successes[0]["result"]["annotation_id"], "ann1");
+    assert_eq!(successes[1]["result"]["annotation_id"], "ann2");
 }
 
 #[tokio::test]
@@ -895,7 +892,7 @@ async fn update_annotation_reports_unarchive_ids_not_attempted_after_backend_wid
     let mut mock = MockAnnotationServiceImpl::new();
     mock.expect_unarchive_annotation()
         .times(50)
-        .returning(|_| Err(Status::unavailable("backend unavailable")));
+        .returning(|_| Err(Status::resource_exhausted("backend unavailable")));
 
     let (server, _h) = server_with_mock(mock).await;
 

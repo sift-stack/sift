@@ -291,8 +291,9 @@ pub async fn list_webhooks(&self, params: Parameters<ListParams>) -> error::McpR
 - **Bulk writes.** A tool that takes `items` gates itself first, then calls
   `self.bulk_write(op, params.0, resource, validate, target, write)` from `tool/common/bulk.rs`.
   `validate` checks one item before any write, `target` returns the key that must not repeat
-  across items, and `write` performs one item. Reach for `bulk::prepare` and `bulk::run` directly
-  only when a failure can follow a partial write (`create_artifact`, `create_report`). The
+  across items, and `write` performs one item. Use `self.bulk_write_partial` instead when one
+  item takes several RPCs, so a failure can follow a committed change (`create_artifact`,
+  `update_report`). The
   call-level `next_step` covers the batch, so an item result carries no `next_step` of its own,
   only a `warning` when that item needs the user's attention. Artifact results are the one
   exception: the Sift chat host matches `Created artifact <id>` in them. Do not repeat the

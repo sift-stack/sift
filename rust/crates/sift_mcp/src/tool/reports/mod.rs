@@ -18,7 +18,7 @@ use crate::{
     service::reports::{ReportSource, RuleIdentifier},
     tool::common::{
         MetadataEntry,
-        bulk::{self, BulkItems, Op},
+        bulk::{BulkItems, Op},
         read_result, require_non_empty, url_clause,
     },
 };
@@ -307,17 +307,13 @@ impl SiftMcpServer {
         params: Parameters<BulkItems<CreateReportItem>>,
     ) -> error::McpResult {
         self.require_create()?;
-        let Parameters(BulkItems {
-            items,
-            selected_indices,
-            ..
-        }) = params;
-        // Evaluation can fail after the report exists, so every failure may be a partial write.
-        bulk::run(
+        // Evaluation can fail after the report exists.
+        self.bulk_write_partial(
             Op::Create,
-            bulk::parse_items::<CreateReportItem>(items)?,
-            self.selection(selected_indices),
-            true,
+            params.0,
+            "report",
+            Ok,
+            |_| None,
             |item| self.create_report_item(Parameters(item)),
         )
         .await
@@ -458,7 +454,8 @@ impl SiftMcpServer {
         params: Parameters<BulkItems<UpdateReportItem>>,
     ) -> error::McpResult {
         self.require_destructive()?;
-        self.bulk_write(
+        // The update commits before the report is read back, so a failed read is a partial write.
+        self.bulk_write_partial(
             Op::Update,
             params.0,
             "report",

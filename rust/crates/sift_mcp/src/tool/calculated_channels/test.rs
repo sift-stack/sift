@@ -862,15 +862,14 @@ async fn archive_calculated_channel_surfaces_a_returned_unarchived_state() {
         .archive_calculated_channel(archive_call("cc1"))
         .await
         .expect("archive_calculated_channel failed");
-
-    let body = structured(resp)["successes"][0]["result"].clone();
-    assert_eq!(body["archived"], false);
-    let warning = body["warning"].as_str().expect("warning");
-    assert!(warning.contains("`is_archived: false`"), "{warning}");
-    assert!(
-        warning.contains("Do not report it as archived"),
-        "{warning}"
-    );
+    assert_eq!(resp.is_error, Some(true));
+    let body = structured(resp);
+    assert_eq!(body["archived_count"], 0);
+    let failure = &body["failures"][0];
+    assert_eq!(failure["outcome_unknown"], true);
+    let message = failure["error"]["message"].as_str().expect("message");
+    assert!(message.contains("`is_archived: false`"), "{message}");
+    assert!(message.contains("may not be archived"), "{message}");
 }
 
 #[tokio::test]
@@ -894,15 +893,14 @@ async fn unarchive_calculated_channel_surfaces_a_returned_archived_state() {
         .unarchive_calculated_channel(archive_call("cc1"))
         .await
         .expect("unarchive_calculated_channel failed");
-
-    let body = structured(resp)["successes"][0]["result"].clone();
-    assert_eq!(body["unarchived"], false);
-    let warning = body["warning"].as_str().expect("warning");
-    assert!(warning.contains("`is_archived: true`"), "{warning}");
-    assert!(
-        warning.contains("Do not report it as unarchived"),
-        "{warning}"
-    );
+    assert_eq!(resp.is_error, Some(true));
+    let body = structured(resp);
+    assert_eq!(body["unarchived_count"], 0);
+    let failure = &body["failures"][0];
+    assert_eq!(failure["outcome_unknown"], true);
+    let message = failure["error"]["message"].as_str().expect("message");
+    assert!(message.contains("`is_archived: true`"), "{message}");
+    assert!(message.contains("may not be unarchived"), "{message}");
 }
 
 #[tokio::test]

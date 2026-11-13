@@ -430,8 +430,9 @@ impl SiftMcpServer {
 
             Output:
               - `{ requested_count, selected_count, not_selected, updated_count, successes, failures,
-                not_attempted, next_step }`. Successes hold `{ index, result: { annotation } }`; the annotation
-                includes a `url` field when the host can be derived. Failures hold `{ index, error, outcome_unknown }`.
+                not_attempted, next_step }`. Successes hold `{ index, result: { annotation_id, name, state,
+                is_archived, url } }`; `url` is null when the host can't be derived. Read the full annotation
+                with `list_annotations` if you need other fields. Failures hold `{ index, error, outcome_unknown }`.
                 Every index is a zero-based position in `annotation_ids`. `not_attempted` lists positions not started
                 after a backend-wide error. Any failure sets `isError`.
 
@@ -573,23 +574,38 @@ impl SiftMcpServer {
                 linked_channel_ids,
                 metadata,
                 is_archived,
+                |error| {
+                    let error = from_anyhow(error);
+                    let stop = bulk::should_stop(Op::Update, &error);
+                    (error, stop)
+                },
             )
             .await
             .map_err(from_anyhow)?;
 
-        let annotations = with_urls(&outcome.annotations, |annotation| {
-            self.url_service
-                .build_annotation_url(&annotation.annotation_id)
-                .ok()
-        })?;
+        // A compact result per id keeps 100 updates well inside a chat host's output cap.
         let successes = outcome
             .updated_ids
             .iter()
-            .zip(annotations)
-            .map(|(annotation_id, value)| {
+            .zip(&outcome.annotations)
+            .map(|(annotation_id, annotation)| {
+                let state = annotation
+                    .state
+                    .and_then(|state| AnnotationState::try_from(state).ok())
+                    .map(|state| state.as_str_name());
+                let url = self
+                    .url_service
+                    .build_annotation_url(&annotation.annotation_id)
+                    .ok();
                 (
                     positions[annotation_id],
-                    CallToolResult::structured(serde_json::json!({"annotation": value})),
+                    CallToolResult::structured(serde_json::json!({
+                        "annotation_id": annotation.annotation_id,
+                        "name": annotation.name,
+                        "state": state,
+                        "is_archived": annotation.is_archived,
+                        "url": url,
+                    })),
                 )
             })
             .collect();

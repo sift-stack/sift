@@ -195,14 +195,29 @@ impl SiftMcpServer {
         Fut: Future<Output = McpResult>,
     {
         let items = prepare(params.items, resource, validate, target)?;
-        run(
-            op,
-            items,
-            self.selection(params.selected_indices),
-            false,
-            write,
-        )
-        .await
+        let selection = self.selection(params.selected_indices);
+        run(op, items, selection, false, write).await
+    }
+
+    /// [`Self::bulk_write`] for an item whose write takes several RPCs, so a failure can
+    /// follow a committed change. Every failure is then reported as `outcome_unknown`.
+    pub(crate) async fn bulk_write_partial<T, U, F, Fut>(
+        &self,
+        op: Op,
+        params: BulkItems<T>,
+        resource: &str,
+        validate: impl Fn(T) -> Result<U, ErrorData>,
+        target: impl Fn(&U) -> Option<String>,
+        write: F,
+    ) -> McpResult
+    where
+        T: DeserializeOwned + JsonSchema,
+        F: FnMut(U) -> Fut,
+        Fut: Future<Output = McpResult>,
+    {
+        let items = prepare(params.items, resource, validate, target)?;
+        let selection = self.selection(params.selected_indices);
+        run(op, items, selection, true, write).await
     }
 }
 
@@ -361,9 +376,10 @@ pub fn report(
     body.insert("failures".into(), json!(failures));
     body.insert("not_attempted".into(), json!(not_attempted));
     body.insert("next_step".into(), json!(next_step));
-    let body = Value::Object(body);
-    let text = body.to_string();
-    let mut result = CallToolResult::structured(body);
+    // Successes go last in the text block: when a host truncates a large batch, the
+    // counts, failures and guidance survive.
+    let text = super::json_with_key_last(&body, "successes");
+    let mut result = CallToolResult::structured(Value::Object(body));
     result.is_error = Some(has_errors);
     result.content = vec![ContentBlock::text(next_step), ContentBlock::text(text)];
     Ok(result)
@@ -493,6 +509,25 @@ mod test {
                 indices: vec![0, 1],
                 not_selected: vec![],
             }
+        );
+    }
+
+    #[tokio::test]
+    async fn the_text_block_writes_successes_after_counts_and_failures() {
+        let result = run(Op::Update, vec![0, 1], all(), false, |item| async move {
+            if item == 1 {
+                Err(ErrorData::resource_not_found("missing", None))
+            } else {
+                Ok(CallToolResult::structured(json!({"item": item})))
+            }
+        })
+        .await
+        .unwrap();
+        let text = &result.content[1].as_text().unwrap().text;
+        crate::tool::common::test_support::assert_keys_before(
+            text,
+            &["updated_count", "failures", "not_attempted", "next_step"],
+            "successes",
         );
     }
 
