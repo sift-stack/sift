@@ -40,6 +40,7 @@ class _TimeFormatEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._Enu
     TIME_FORMAT_ABSOLUTE_UNIX_MILLISECONDS: _TimeFormat.ValueType  # 13
     TIME_FORMAT_ABSOLUTE_UNIX_MICROSECONDS: _TimeFormat.ValueType  # 14
     TIME_FORMAT_ABSOLUTE_UNIX_NANOSECONDS: _TimeFormat.ValueType  # 15
+    TIME_FORMAT_CUSTOM: _TimeFormat.ValueType  # 16
 
 class TimeFormat(_TimeFormat, metaclass=_TimeFormatEnumTypeWrapper): ...
 
@@ -56,6 +57,7 @@ TIME_FORMAT_ABSOLUTE_UNIX_SECONDS: TimeFormat.ValueType  # 12
 TIME_FORMAT_ABSOLUTE_UNIX_MILLISECONDS: TimeFormat.ValueType  # 13
 TIME_FORMAT_ABSOLUTE_UNIX_MICROSECONDS: TimeFormat.ValueType  # 14
 TIME_FORMAT_ABSOLUTE_UNIX_NANOSECONDS: TimeFormat.ValueType  # 15
+TIME_FORMAT_CUSTOM: TimeFormat.ValueType  # 16
 global___TimeFormat = TimeFormat
 
 class _DataTypeKey:
@@ -512,9 +514,12 @@ class CsvTimeColumn(google.protobuf.message.Message):
     COLUMN_NUMBER_FIELD_NUMBER: builtins.int
     FORMAT_FIELD_NUMBER: builtins.int
     RELATIVE_START_TIME_FIELD_NUMBER: builtins.int
+    CUSTOM_FORMAT_FIELD_NUMBER: builtins.int
     column_number: builtins.int
     """The column number (1-indexed) of the time column."""
     format: global___TimeFormat.ValueType
+    custom_format: builtins.str
+    """Unix date format, e.g. `%m-%d-%Y %H:%M:%S`, used when custom format is chosen."""
     @property
     def relative_start_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     def __init__(
@@ -523,9 +528,10 @@ class CsvTimeColumn(google.protobuf.message.Message):
         column_number: builtins.int = ...,
         format: global___TimeFormat.ValueType = ...,
         relative_start_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        custom_format: builtins.str = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_relative_start_time", b"_relative_start_time", "relative_start_time", b"relative_start_time"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_relative_start_time", b"_relative_start_time", "column_number", b"column_number", "format", b"format", "relative_start_time", b"relative_start_time"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_relative_start_time", b"_relative_start_time", "column_number", b"column_number", "custom_format", b"custom_format", "format", b"format", "relative_start_time", b"relative_start_time"]) -> None: ...
     def WhichOneof(self, oneof_group: typing.Literal["_relative_start_time", b"_relative_start_time"]) -> typing.Literal["relative_start_time"] | None: ...
 
 global___CsvTimeColumn = CsvTimeColumn
@@ -725,8 +731,11 @@ class ParquetTimeColumn(google.protobuf.message.Message):
     PATH_FIELD_NUMBER: builtins.int
     FORMAT_FIELD_NUMBER: builtins.int
     RELATIVE_START_TIME_FIELD_NUMBER: builtins.int
+    CUSTOM_FORMAT_FIELD_NUMBER: builtins.int
     path: builtins.str
     format: global___TimeFormat.ValueType
+    custom_format: builtins.str
+    """Unix date format, e.g. `%m-%d-%Y %H:%M:%S`, used when custom format is chosen."""
     @property
     def relative_start_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     def __init__(
@@ -735,9 +744,10 @@ class ParquetTimeColumn(google.protobuf.message.Message):
         path: builtins.str = ...,
         format: global___TimeFormat.ValueType = ...,
         relative_start_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        custom_format: builtins.str = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_relative_start_time", b"_relative_start_time", "relative_start_time", b"relative_start_time"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_relative_start_time", b"_relative_start_time", "format", b"format", "path", b"path", "relative_start_time", b"relative_start_time"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_relative_start_time", b"_relative_start_time", "custom_format", b"custom_format", "format", b"format", "path", b"path", "relative_start_time", b"relative_start_time"]) -> None: ...
     def WhichOneof(self, oneof_group: typing.Literal["_relative_start_time", b"_relative_start_time"]) -> typing.Literal["relative_start_time"] | None: ...
 
 global___ParquetTimeColumn = ParquetTimeColumn

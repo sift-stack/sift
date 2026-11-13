@@ -107,6 +107,8 @@ message Channel {
   bool active = 16;
 }
 
+// How a channel's data reaches Sift.
+
 // The request for a call to `ChannelService_GetChannel`.
 message GetChannelRequest {
   string channel_id = 1 [(google.api.field_behavior) = REQUIRED];

@@ -140,6 +140,7 @@ enum TimeFormat {
   TIME_FORMAT_ABSOLUTE_UNIX_MILLISECONDS = 13;
   TIME_FORMAT_ABSOLUTE_UNIX_MICROSECONDS = 14;
   TIME_FORMAT_ABSOLUTE_UNIX_NANOSECONDS = 15;
+  TIME_FORMAT_CUSTOM = 16;
 }
 
 message CsvConfig {
@@ -167,6 +168,8 @@ message CsvTimeColumn {
   uint32 column_number = 1;
   TimeFormat format = 2;
   optional google.protobuf.Timestamp relative_start_time = 3;
+  // Unix date format, e.g. `%m-%d-%Y %H:%M:%S`, used when custom format is chosen.
+  string custom_format = 4 [(google.api.field_behavior) = OPTIONAL];
 }
 
 enum DataTypeKey {
@@ -275,6 +278,8 @@ message ParquetTimeColumn {
   string path = 1;
   TimeFormat format = 2;
   optional google.protobuf.Timestamp relative_start_time = 3;
+  // Unix date format, e.g. `%m-%d-%Y %H:%M:%S`, used when custom format is chosen.
+  string custom_format = 4 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message ParquetDataColumn {

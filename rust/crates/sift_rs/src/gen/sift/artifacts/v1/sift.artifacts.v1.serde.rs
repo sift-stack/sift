@@ -584,6 +584,7 @@ impl serde::Serialize for ArtifactEntityType {
             Self::Asset => "ARTIFACT_ENTITY_TYPE_ASSET",
             Self::Artifact => "ARTIFACT_ENTITY_TYPE_ARTIFACT",
             Self::ToolUse => "ARTIFACT_ENTITY_TYPE_TOOL_USE",
+            Self::CanvasExecution => "ARTIFACT_ENTITY_TYPE_CANVAS_EXECUTION",
         };
         serializer.serialize_str(variant)
     }
@@ -602,6 +603,7 @@ impl<'de> serde::Deserialize<'de> for ArtifactEntityType {
             "ARTIFACT_ENTITY_TYPE_ASSET",
             "ARTIFACT_ENTITY_TYPE_ARTIFACT",
             "ARTIFACT_ENTITY_TYPE_TOOL_USE",
+            "ARTIFACT_ENTITY_TYPE_CANVAS_EXECUTION",
         ];
 
         struct GeneratedVisitor;
@@ -649,6 +651,7 @@ impl<'de> serde::Deserialize<'de> for ArtifactEntityType {
                     "ARTIFACT_ENTITY_TYPE_ASSET" => Ok(ArtifactEntityType::Asset),
                     "ARTIFACT_ENTITY_TYPE_ARTIFACT" => Ok(ArtifactEntityType::Artifact),
                     "ARTIFACT_ENTITY_TYPE_TOOL_USE" => Ok(ArtifactEntityType::ToolUse),
+                    "ARTIFACT_ENTITY_TYPE_CANVAS_EXECUTION" => Ok(ArtifactEntityType::CanvasExecution),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }
