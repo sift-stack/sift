@@ -486,15 +486,6 @@ pub struct ImportCsvArgs {
     /// Preview the parsed schema without uploading
     #[arg(short, long)]
     pub preview: bool,
-
-    /// Leave the run open when the import finishes.
-    ///
-    /// By default a finished import marks its run stopped, which fires
-    /// run-stop automations. Set this when more files are coming to the run,
-    /// then stop the run after the last import. Ignored when the import has
-    /// no run.
-    #[arg(long)]
-    pub leave_run_open: bool,
 }
 
 #[derive(clap::Args)]
@@ -553,15 +544,6 @@ pub struct CommonImportArgs {
     /// Preview the parsed schema without uploading
     #[arg(short, long)]
     pub preview: bool,
-
-    /// Leave the run open when the import finishes.
-    ///
-    /// By default a finished import marks its run stopped, which fires
-    /// run-stop automations. Set this when more files are coming to the run,
-    /// then stop the run after the last import. Ignored when the import has
-    /// no run.
-    #[arg(long)]
-    pub leave_run_open: bool,
 }
 
 #[derive(Subcommand)]

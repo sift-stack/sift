@@ -72,8 +72,7 @@ pub async fn run(ctx: Context, args: ImportMcapArgs) -> Result<ExitCode> {
 
     let file = File::open(&args.common.path).context("failed to open mcap file")?;
 
-    let create_data_import_req =
-        create_data_import_request(mcap_config, args.common.leave_run_open);
+    let create_data_import_req = create_data_import_request(mcap_config);
 
     let CreateDataImportFromUploadResponse { upload_url, .. } = data_imports_client
         .create_data_import_from_upload(create_data_import_req)
@@ -180,13 +179,9 @@ pub fn channel_configs(
     configs
 }
 
-fn create_data_import_request(
-    config: McapConfig,
-    leave_run_open: bool,
-) -> CreateDataImportFromUploadRequest {
+fn create_data_import_request(config: McapConfig) -> CreateDataImportFromUploadRequest {
     CreateDataImportFromUploadRequest {
         mcap_config: Some(config),
-        leave_run_open,
         ..Default::default()
     }
 }

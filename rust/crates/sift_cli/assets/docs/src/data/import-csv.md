@@ -32,9 +32,6 @@ sift-cli import csv ./telemetry.csv \
   --wait
 ```
 
-If you have more than one file for that run, import them together. See
-[Several files in one run](./importing.md#several-files-in-one-run).
-
 ## Pointing at the right rows and time column
 
 If your file has metadata rows above the header, or the timestamp is not the

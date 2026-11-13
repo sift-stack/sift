@@ -23,7 +23,6 @@ fn make_args() -> ImportTdmsArgs {
             run_id: None,
             wait: false,
             preview: false,
-            leave_run_open: false,
         },
         start_time_override: None,
         fallback_method: TdmsFallbackMethod::FailOnError,
