@@ -23,6 +23,7 @@ fn make_args() -> ImportHdf5Args {
             run_id: None,
             wait: false,
             preview: false,
+            leave_run_open: false,
         },
         schema: Hdf5Schema::OneD,
         time_format: Some(TimeFormat::AbsoluteRfc3339),

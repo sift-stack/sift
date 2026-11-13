@@ -19,7 +19,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - MCP `create_declarative_chart` takes an optional `output` path. On any
   surface, it writes the delivered spec to that local file. Sending the spec
   just delivered again, to save it, repeats no request to Sift.
-  
+
+- `import` accepts `--leave-run-open`. A finished import marks its run stopped
+  and fires run-stop automations unless the flag is set. Stop the run after
+  the last import. The flag does nothing when the import has no run.
+
 ## [v0.9.0] - November 12, 2026
 
 ### What's New

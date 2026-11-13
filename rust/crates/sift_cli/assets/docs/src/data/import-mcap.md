@@ -27,6 +27,9 @@ sift-cli import mcap ./recording.mcap \
   --wait
 ```
 
+If you have more than one file for that run, import them together. See
+[Several files in one run](./importing.md#several-files-in-one-run).
+
 ## Previewing the detected channels
 
 `--preview` (`-p`) parses the file locally and prints the channels the import

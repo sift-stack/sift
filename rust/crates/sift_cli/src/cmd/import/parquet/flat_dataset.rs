@@ -255,6 +255,7 @@ fn create_data_import_request(
             .into(),
             config: config.config,
         }),
+        leave_run_open: args.common.leave_run_open,
         ..Default::default()
     };
     Ok(req)
