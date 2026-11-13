@@ -41,8 +41,8 @@ jobs:
         with:
           script: |
             const matrix = [
-              {os: 'ubuntu', arch: 'x86_64', runner: 'ubuntu-latest', platform_tag: 'linux_x86_64'},
-              {os: 'ubuntu', arch: 'aarch64', runner: 'ubuntu-latest', platform_tag: 'linux_aarch64'},
+              {os: 'ubuntu', arch: 'x86_64', runner: 'ubuntu-24.04', platform_tag: 'linux_x86_64'},
+              {os: 'ubuntu', arch: 'aarch64', runner: 'ubuntu-24.04', platform_tag: 'linux_aarch64'},
               {os: 'macos', arch: 'x86_64', runner: 'macos-latest', platform_tag: 'macos_x86_64'},
               {os: 'macos', arch: 'arm64', runner: 'macos-latest', platform_tag: 'macos_arm64'},
               {os: 'windows', arch: 'amd64', runner: 'windows-latest', platform_tag: 'win_amd64'}
@@ -51,7 +51,7 @@ jobs:
 
   build_wheel:
     name: Build sift-stack-py distributions
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
