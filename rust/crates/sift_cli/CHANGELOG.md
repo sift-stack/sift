@@ -7,6 +7,19 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- MCP `create_declarative_chart` takes an optional `surface`: `explore`,
+  `canvas`, `edge`, or `agents` (agent chat). The default is `agents` inside
+  Sift Agents and `explore` elsewhere. It validates the spec for that surface and
+  delivers it only when Sift reports no warnings. Otherwise it returns the
+  warnings, the parts the surface does not draw, and creates no share link.
+  `accept_warnings` delivers the spec anyway, for authoring ahead of support
+  that is coming. For Canvas and Sift Edge Desktop it returns the steps to load
+  the spec instead of saving a share link. Invalid specs now report each error
+  with its JSON Pointer path.
+- MCP `create_declarative_chart` takes an optional `output` path. On any
+  surface, it writes the delivered spec to that local file. Sending the spec
+  just delivered again, to save it, repeats no request to Sift.
+
 - `import` accepts `--leave-run-open`. A finished import marks its run stopped
   and fires run-stop automations unless the flag is set. Stop the run after
   the last import. The flag does nothing when the import has no run.

@@ -1,3 +1,9 @@
+use std::{
+    io::Write,
+    path::{Path, PathBuf},
+};
+
+use anyhow::Context;
 use rmcp::{
     ErrorData,
     handler::server::wrapper::Parameters,
@@ -6,12 +12,16 @@ use rmcp::{
     tool, tool_router,
 };
 use serde::Deserialize;
-use serde_json::json;
+use serde_json::{Value, json};
 
 use crate::{
     error,
     server::SiftMcpServer,
-    service::{declarative::HttpError, url::ExploreUrlRequest},
+    service::{
+        declarative::{ChartSurface, HttpError, SpecCheck, SpecIssue},
+        url::ExploreUrlRequest,
+    },
+    tool::common::{PendingOutput, read_result},
 };
 
 #[cfg(test)]
@@ -20,6 +30,9 @@ mod test;
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct CreateDeclarativeChartParams {
     spec: String,
+    surface: Option<String>,
+    output: Option<PathBuf>,
+    accept_warnings: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -197,23 +210,40 @@ impl SiftMcpServer {
     #[tool(
         name = "create_declarative_chart",
         description = "
-            Create a shareable Sift Explore link from a declarative chart spec (YAML or JSON). Sift
-            validates the spec when it creates the link. This is a read-only policy exception:
-            it saves only a content-addressed view, not telemetry or other Sift resources. It is
-            available by default, with no create-access flag or confirmation required.
+            Check a declarative chart spec (YAML or JSON) with Sift for the surface that will draw it,
+            then deliver it there. This is a read-only policy exception: an Explore link saves only a
+            content-addressed view, not telemetry or other Sift resources. It is available by default,
+            with no create-access flag or confirmation required.
 
             Output:
-              - Valid: `{ \"valid\": true, \"shortLink\", \"exploreUrl\", \"next_step\" }`.
-                `exploreUrl` opens the chart in Sift.
-              - Invalid: `{ \"valid\": false, \"reason\": \"invalid_spec\", \"issues\": [{\"message\"}],
-                \"next_step\" }`. Sift rejected the spec; `issues` says why.
+              - Explore or agents: `{ \"valid\": true, \"surface\", \"shortLink\", \"exploreUrl\",
+                \"next_step\" }`. `exploreUrl` opens the chart in Sift.
+              - Canvas or Edge: `{ \"valid\": true, \"surface\", \"next_step\" }`. Nothing is saved in Sift;
+                `next_step` says how to load the spec.
+              - `output`: the path the spec was written to, when `output` was given.
+              - `warnings`: `[{\"path\", \"message\"}]`, parts the surface will not draw as written. `path`
+                is a JSON Pointer. Unless `accept_warnings` is set, the result is `reason: \"warnings\"`
+                and nothing is delivered: no link, file, or loading steps.
+              - `surfaceGapsChecked: false`: the deployment does not know the surface yet, so only the
+                schema was checked.
+              - Invalid: `{ \"valid\": false, \"reason\": \"invalid_spec\", \"issues\": [{\"path\",
+                \"message\"}], \"next_step\" }`.
 
             Parameters:
               - `spec`: the complete spec as a YAML or JSON string, sent to Sift as is. Read the schema
                 with `get_chart_schema` before writing one.
+              - `surface`: optional, `explore`, `canvas`, `edge`, or `agents` (agent chat in Sift Agents).
+                Omit it unless the user names where the chart goes: the default is `agents` inside Sift
+                Agents and `explore` elsewhere.
+              - `output`: optional absolute `.yaml` path. On delivery, the spec is written there exactly as
+                sent; otherwise any existing file is kept. Always pass it for `edge`, which loads the spec
+                from a file. A relative path resolves against the MCP server's working directory.
+              - `accept_warnings`: optional, default false. Deliver despite warnings. Set it only when the
+                user chose to keep parts the surface does not draw yet.
 
             Errors:
-              - A rejected spec is not an MCP error. It returns `valid: false` so you can fix and resend.
+              - `INVALID_PARAMS` for an unknown `surface`.
+              - An error when `output` cannot be written. Pick another path.
               - An error that says to stop when Sift rejects the credentials or permissions, or does not
                 serve the endpoint. Do not retry; tell the user to check their configuration.
               - Any other error is a server or network failure, not a problem with the spec.
@@ -221,13 +251,10 @@ impl SiftMcpServer {
             Guidance:
               - Resolve run IDs and channel names with `list_runs`, `list_channels`, and
                 `list_calculated_channels` before writing the spec. Never invent them.
-              - Bind a calculated channel with `calculatedChannelId`, not by name. Use a run-scoped
-                data source: Explore skips saved calculated channels on asset-only sources.
+              - Bind a calculated channel with `calculatedChannelId`, not by name.
               - Prefer YAML. Omit `sampling`, `maxGap`, and axis `min`/`max` unless the user asked for them.
-              - On `invalid_spec`, fix every problem listed and resend the complete spec. After 3 failed
-                attempts, stop and summarize the problem to the user.
-              - On a valid result, render `exploreUrl` once as a clickable markdown link with descriptive
-                text, such as what the chart plots. Do not paste the spec into your reply.
+              - Follow `next_step` on every result. It says how to fix and resend, or how to present the
+                chart.
         ",
         annotations(
             title = "explore/create_declarative_chart",
@@ -240,52 +267,200 @@ impl SiftMcpServer {
         &self,
         params: Parameters<CreateDeclarativeChartParams>,
     ) -> error::McpResult {
-        // Check presentation config before persisting; the backend receives only the spec.
-        self.url_service.build_share_url("")?;
-        let Parameters(CreateDeclarativeChartParams { spec }) = params;
+        let Parameters(CreateDeclarativeChartParams {
+            spec,
+            surface,
+            output,
+            accept_warnings,
+        }) = params;
+        let surface = parse_surface(surface, self.declarative_service.default_surface())?;
+        if surface.shares_link() {
+            // Check presentation config before persisting; the backend receives only the spec.
+            self.url_service.build_share_url("")?;
+        }
 
-        let short_link = match self.declarative_service.create_share_link(&spec).await {
-            Ok(short_link) => short_link,
-            Err(error) => return share_link_failure(error),
+        let check = match self.declarative_service.check_spec(&spec, surface).await {
+            Ok(check) => check,
+            Err(error) => return request_failure(error),
         };
-        let explore_url = self.url_service.build_share_url(&short_link)?;
+        if !check.valid {
+            return Ok(invalid_spec(check.errors));
+        }
+        if !check.warnings.is_empty() && !accept_warnings.unwrap_or(false) {
+            return Ok(undelivered(surface, &check));
+        }
+        // Opened before the share link, so an unusable path fails before anything is saved in Sift.
+        // Dropping it unpersisted, as an early return does, leaves `output` untouched.
+        let pending = output
+            .as_deref()
+            .map(|path| pending_spec(path, &spec))
+            .transpose()
+            .map_err(error::from_anyhow)?;
 
-        let next_step = format!(
-            "The chart spec was accepted and a Sift link was created: {explore_url}\n\nRender this URL \
-             in your response as a clickable markdown link with descriptive text naming what the \
-             chart plots, never the word \"link\" or the bare URL. Mention it once. Do not paste \
-             the spec into your response."
-        );
-        let mut result = CallToolResult::structured(json!({
-            "valid": true,
-            "shortLink": short_link,
-            "exploreUrl": explore_url,
-            "next_step": next_step,
-        }));
-        result.content = vec![ContentBlock::text(next_step)];
-        Ok(result)
+        let mut structured = checked_body(surface, &check);
+        let delivery = match surface {
+            ChartSurface::Explore | ChartSurface::Agents => {
+                let short_link = match self.declarative_service.create_share_link(&spec).await {
+                    Ok(short_link) => short_link,
+                    Err(error) => return request_failure(error),
+                };
+                let explore_url = self.url_service.build_share_url(&short_link)?;
+                structured["shortLink"] = json!(short_link);
+                structured["exploreUrl"] = json!(explore_url);
+                format!(
+                    "The chart spec was accepted and a Sift link was created: {explore_url}\n\nRender \
+                     this URL in your response as a clickable markdown link with descriptive text \
+                     naming what the chart plots, never the word \"link\" or the bare URL. Mention it \
+                     once. Do not paste the spec into your response."
+                )
+            }
+            ChartSurface::Canvas => "The spec is valid for Canvas. Give the user the spec in a YAML \
+                code block. To draw it, the user adds a chart cell (Add block, then Charts > \
+                Timeseries), turns on Advanced, and pastes the spec into the editor. The Advanced \
+                editor takes every chart type."
+                .to_owned(),
+            ChartSurface::Edge => "The spec is valid for Sift Edge Desktop. To load it, the user \
+                turns on `experimental.workspace_json_io` in Options, right-clicks the Explore sidebar \
+                button, selects \"Load view or spec\", then picks or drops the `.yaml` file, or pastes \
+                the spec. Sift Edge reports anything it does not draw when it loads the spec."
+                .to_owned(),
+        };
+        if let Some(file) = pending {
+            file.persist().map_err(error::from_anyhow)?;
+        }
+        let saved = output.map(|path| path.to_string_lossy().into_owned());
+        if let Some(path) = &saved {
+            structured["output"] = json!(path);
+        }
+        let next_step = compose_next_step(delivery, saved.as_deref(), &check);
+        structured["next_step"] = json!(next_step);
+        // Keep the payload in the text content too, for clients that show only text.
+        Ok(read_result(structured, next_step))
     }
+}
+
+/// `None` or blank means `default`.
+fn parse_surface(value: Option<String>, default: ChartSurface) -> Result<ChartSurface, ErrorData> {
+    let lowered = value.unwrap_or_default().trim().to_ascii_lowercase();
+    if lowered.is_empty() {
+        return Ok(default);
+    }
+    ChartSurface::ALL
+        .into_iter()
+        .find(|surface| surface.as_str() == lowered)
+        .ok_or_else(|| {
+            let names: Vec<_> = ChartSurface::ALL.map(ChartSurface::as_str).into();
+            ErrorData::invalid_params(
+                format!(
+                    "unknown `surface` `{lowered}`; expected one of {}",
+                    names.join(", ")
+                ),
+                None,
+            )
+        })
+}
+
+/// Writes `spec` to a temporary file beside `path`. `persist` moves it into place.
+fn pending_spec(path: &Path, spec: &str) -> anyhow::Result<PendingOutput> {
+    let mut file = PendingOutput::create(path)?;
+    file.file()
+        .write_all(spec.as_bytes())
+        .context("failed to write the spec to the output file")?;
+    Ok(file)
+}
+
+/// Adds what the surface will not draw yet, where the local copy is or an offer of one, and a note
+/// when the deployment could not check the surface.
+fn compose_next_step(delivery: String, saved: Option<&str>, check: &SpecCheck) -> String {
+    let mut next_step = delivery;
+    if !check.warnings.is_empty() {
+        next_step.push_str(
+            "\n\nThis surface does not draw the parts in `warnings` yet. Tell the user which ones.",
+        );
+    }
+    match saved {
+        Some(path) => next_step.push_str(&format!(
+            "\n\nThe spec is saved at `{path}`. Tell the user where it is."
+        )),
+        None => next_step.push_str(
+            "\n\nIf the user may keep or reuse this chart, such as when building a \
+             workspace or iterating on a view, offer to save the spec as a YAML file: send the same \
+             spec again, unchanged, with `output` set to an absolute `.yaml` path. Skip the offer for \
+             a one-off chart.",
+        ),
+    }
+    if !check.surface_gaps_checked {
+        next_step.push_str(
+            "\n\nThis Sift deployment does not report what this surface cannot draw yet, so the \
+             spec was checked against the schema only.",
+        );
+    }
+    next_step
+}
+
+/// A valid spec the surface will not draw as written. Nothing is delivered until it has no warnings.
+fn undelivered(surface: ChartSurface, check: &SpecCheck) -> CallToolResult {
+    let next_step = "Sift accepts the spec, but this surface will not draw the parts in `warnings` as \
+        written, so nothing was delivered: no link, file, or loading steps. Fix or remove each one \
+        and resend the complete spec. If a warning is for something the user asked for, ask the user \
+        first: they may want to keep it, such as when authoring ahead of support that is coming. To \
+        keep what is left, resend the same spec with `accept_warnings: true`. After 3 attempts with \
+        warnings left, stop and summarize them to the user.";
+    let mut structured = checked_body(surface, check);
+    structured["reason"] = json!("warnings");
+    structured["next_step"] = json!(next_step);
+    // `warnings` must reach the agent, so keep the payload in the text content too.
+    read_result(structured, next_step.to_owned())
+}
+
+/// The fields every valid result shares. `warnings` and `surfaceGapsChecked` appear only when
+/// they say something.
+fn checked_body(surface: ChartSurface, check: &SpecCheck) -> Value {
+    let mut body = json!({ "valid": true, "surface": surface.as_str() });
+    if !check.warnings.is_empty() {
+        body["warnings"] = json!(check.warnings);
+    }
+    if !check.surface_gaps_checked {
+        body["surfaceGapsChecked"] = json!(false);
+    }
+    body
+}
+
+fn invalid_spec(mut issues: Vec<SpecIssue>) -> CallToolResult {
+    if issues.is_empty() {
+        issues.push(SpecIssue::root("Sift rejected the spec without details."));
+    }
+    let next_step = "The spec is not valid. Fix every problem in `issues` and resend the complete \
+        spec. After 3 failed attempts, stop retrying and summarize the problem to the user.";
+    let listed: Vec<String> = issues
+        .iter()
+        .map(|issue| match issue.path.as_str() {
+            "" => issue.message.clone(),
+            path => format!("{path}: {}", issue.message),
+        })
+        .collect();
+    let mut result = CallToolResult::structured(json!({
+        "valid": false,
+        "reason": "invalid_spec",
+        "issues": issues,
+        "next_step": next_step,
+    }));
+    result.content = vec![ContentBlock::text(format!(
+        "{}\n\n{next_step}",
+        listed.join("\n")
+    ))];
+    result
 }
 
 /// Only a gateway InvalidArgument envelope indicates a repairable spec error. Proxy 400s
 /// must not suggest editing the spec. 401, 403, and 404 will not change on retry.
-fn share_link_failure(error: anyhow::Error) -> error::McpResult {
+fn request_failure(error: anyhow::Error) -> error::McpResult {
     let Some(http) = error.downcast_ref::<HttpError>() else {
         return Err(error::from_anyhow(error));
     };
     match http.status.as_u16() {
-        400 if http.grpc_code == Some(tonic::Code::InvalidArgument as i64) => {
-            let message = &http.message;
-            let next_step = "The spec is not valid. Fix the problem in `issues` and resend the complete \
-                spec. After 3 failed attempts, stop retrying and summarize the problem to the user.";
-            let mut result = CallToolResult::structured(json!({
-                "valid": false,
-                "reason": "invalid_spec",
-                "issues": [{ "message": message }],
-                "next_step": next_step,
-            }));
-            result.content = vec![ContentBlock::text(format!("{message}\n\n{next_step}"))];
-            Ok(result)
+        400 if http.is_invalid_argument() => {
+            Ok(invalid_spec(vec![SpecIssue::root(http.message.clone())]))
         }
         401 | 403 | 404 => {
             let guidance = format!(

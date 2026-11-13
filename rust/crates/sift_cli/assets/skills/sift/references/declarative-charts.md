@@ -1,9 +1,27 @@
 # Declarative charts
 
 Author version 0 YAML or JSON using Sift's existing declarative schema, then
-create an Explore share link with `create_declarative_chart`. This saves a
-spec-backed view, not an image or artifact. It does not promise an inline chart
-in the calling chat client. For a simple read-only deep-link, use `explore_url`.
+deliver it with `create_declarative_chart`. The same spec draws in Explore,
+Canvas, Sift Edge Desktop, and agent chat in Sift Agents. Other chat clients
+get a link, not an inline chart. For a simple read-only deep-link, use
+`explore_url`.
+
+## Choose the surface
+
+Pass `surface` to `create_declarative_chart` when the user names where the
+chart goes.
+
+| User wants the chart | `surface` | Result |
+|---|---|---|
+| Did not say | omit: `agents` inside Sift Agents, `explore` elsewhere | A saved share link. |
+| In Explore | `explore` | A saved Explore share link. |
+| In a Canvas | `canvas` | Steps to paste the spec into a Canvas chart cell. Nothing is saved in Sift. |
+| In Sift Edge Desktop | `edge` | Steps to load the spec as a `.yaml` file in Sift Edge Desktop. Nothing is saved in Sift. |
+
+On every surface, `output` also writes the spec to a local file, exactly as
+sent, when it is delivered. Use an absolute `.yaml` path. Always pass it for
+`edge`, which loads the spec from a file. For the other surfaces, pass it when
+the user asks for a file; otherwise `next_step` says when to offer one.
 
 ## Workflow
 
@@ -18,14 +36,40 @@ in the calling chat client. For a simple read-only deep-link, use `explore_url`.
    read-only exception: it changes no telemetry or other Sift resources and
    needs neither create access nor a separate confirmation.
 5. Pass the spec's **contents** as the flat `spec` string to
-   `create_declarative_chart`, not a file path. The backend parses and strictly
-   validates the spec before saving it; this tool does not migrate old versions.
+   `create_declarative_chart`, not a file path, with the `surface` you chose.
+   It sends the spec to Sift's validate endpoint for that surface before it
+   delivers anything. It does not migrate old versions.
 6. On `invalid_spec`, fix the indicated fields using the local schema and retry
    at most three times. Do not repair the spec for an authentication, permission,
    endpoint, or network failure; surface that failure instead.
-7. On success, present the returned `exploreUrl` once as a descriptive Markdown
-   link. Do not paste the spec unless asked. For numbers too, use `get_data`
-   and `sql` separately; plotting does not require a local telemetry download.
+7. On `reason: warnings`, nothing was delivered: the surface will not draw the
+   listed parts as written. Follow `next_step` to fix and resend. Before you
+   remove something the user asked for, ask whether to keep it for support that
+   is coming; `accept_warnings: true` keeps it. The warnings are the source of
+   truth for what each surface draws.
+8. Follow `next_step` from the delivered result. It says how to present the
+   chart on the surface. For numbers too, use `get_data` and `sql` separately;
+   plotting does not require a local telemetry download.
+
+## Build a workspace from several charts
+
+Use this when the user wants several charts in one view, such as a dashboard
+or workspace, or asks to combine charts you already made. How to iterate
+depends on where results appear:
+
+- **In Sift Agents**, each chart is drawn inline in chat. Preview one chart per
+  call on the default surface and refine it with the user. Once two or more
+  charts are approved, offer to assemble them.
+- **In other clients**, each result is a link the user opens in Explore. Build
+  the whole workspace as one spec from the start and revise that spec, so each
+  revision is one link.
+
+To assemble, combine `dataSources`, key each chart under `charts`, and add a
+`layout`. Send the final spec with the surface the workspace is for, such as
+`explore` or `canvas`, then offer to save it as YAML.
+
+When the workspace is for `edge`, check the spec with `surface: edge` while you
+iterate, so `warnings` show what it will not draw.
 
 ## Schema reference
 
@@ -81,15 +125,6 @@ panels or combine `chart` and `charts`.
 
 ## Runtime limits
 
-Schema-valid does not always mean an Explore setting is implemented. Prefer
-explicit discovered sources and absolute timestamps. Give both `start` and
-`end` for an explicit `timeInterval`; a one-sided interval falls back to run
-bounds. `timeMode: live` is not rendered yet and also falls back to run bounds.
-Do not use inline data sources or inline query objects on a series: Explore
-does not resolve them. Saved calculated channels (`calculatedChannelId`) and
-version-pinned calculated-channel transforms require run-scoped sources;
-Explore skips them on asset-only sources.
-For relative timeseries, run/timestamp anchors and default annotation-name
-anchors (`first`, `last`, or an integer occurrence) work. Avoid `every`,
-annotation overrides, family anchors, and lists of anchors per source; these
-fall back to run starts rather than producing the requested alignment.
+Sift's validate endpoint describes the runtime limits of each surface. They
+appear as `warnings` in the `create_declarative_chart` result. Rely on those
+warnings, not on a fixed list.

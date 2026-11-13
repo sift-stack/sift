@@ -8,14 +8,15 @@ use std::{
 
 use anyhow::{Context, Result, bail};
 use reqwest::{Method, Response, StatusCode, header::USER_AGENT};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use tokio::sync::Mutex;
 
-use crate::service::remote_files::RestConfig;
+use crate::{ClientName, service::remote_files::RestConfig};
 
 const SHARE_LINK_PATH: &str = "/api/v1/declarative:sharelink";
+const VALIDATE_PATH: &str = "/api/v1/declarative:validate";
 const SCHEMA_PATH: &str = "/download/schemas/declarative-chart/0/sift.declarative.schema.v0.json";
 const SCHEMA_FILENAME: &str = "sift.declarative.schema.v0.json";
 /// A cached schema file at least this old is downloaded again.
@@ -33,6 +34,14 @@ pub(crate) struct HttpError {
     pub message: String,
 }
 
+impl HttpError {
+    /// A gateway envelope with gRPC InvalidArgument: Sift rejected the request content.
+    pub(crate) fn is_invalid_argument(&self) -> bool {
+        self.status == StatusCode::BAD_REQUEST
+            && self.grpc_code == Some(tonic::Code::InvalidArgument as i64)
+    }
+}
+
 impl fmt::Display for HttpError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Sift returned HTTP {}: {}", self.status, self.message)
@@ -47,6 +56,111 @@ struct ShareLinkResponse {
     short_link: String,
 }
 
+/// A part of Sift that draws declarative charts.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum ChartSurface {
+    Explore,
+    Canvas,
+    Edge,
+    /// Agent chat in Sift Agents.
+    Agents,
+}
+
+impl ChartSurface {
+    pub(crate) const ALL: [Self; 4] = [Self::Explore, Self::Canvas, Self::Edge, Self::Agents];
+
+    pub(crate) fn as_str(self) -> &'static str {
+        match self {
+            Self::Explore => "explore",
+            Self::Canvas => "canvas",
+            Self::Edge => "edge",
+            Self::Agents => "agents",
+        }
+    }
+
+    /// Charts made in a Sift chat pod appear in agent chat.
+    fn default_for(client_name: ClientName) -> Self {
+        match client_name {
+            ClientName::Chat => Self::Agents,
+            ClientName::SiftMcp => Self::Explore,
+        }
+    }
+
+    /// Explore and agent chat open a saved share link. The others load the spec itself.
+    pub(crate) fn shares_link(self) -> bool {
+        match self {
+            Self::Explore | Self::Agents => true,
+            Self::Canvas | Self::Edge => false,
+        }
+    }
+
+    fn proto_name(self) -> &'static str {
+        match self {
+            Self::Explore => "DECLARATIVE_SURFACE_EXPLORE",
+            Self::Canvas => "DECLARATIVE_SURFACE_CANVAS",
+            Self::Edge => "DECLARATIVE_SURFACE_EDGE",
+            Self::Agents => "DECLARATIVE_SURFACE_AGENTS",
+        }
+    }
+}
+
+/// One validation error or warning. `path` is a JSON Pointer into the spec, empty for the root.
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(default)]
+pub(crate) struct SpecIssue {
+    pub path: String,
+    pub message: String,
+}
+
+impl SpecIssue {
+    /// An issue at the document root.
+    pub(crate) fn root(message: impl Into<String>) -> Self {
+        Self {
+            path: String::new(),
+            message: message.into(),
+        }
+    }
+}
+
+/// The validate response. Proto3 JSON omits default values, so every field defaults.
+#[derive(Debug, Default, Deserialize)]
+#[serde(default)]
+struct ValidateResponse {
+    valid: bool,
+    errors: Vec<SpecIssue>,
+    warnings: Vec<ValidateWarning>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(default)]
+struct ValidateWarning {
+    #[serde(flatten)]
+    issue: SpecIssue,
+    /// Empty for a contract warning, which applies to every surface.
+    surfaces: Vec<String>,
+}
+
+impl ValidateWarning {
+    fn applies_to(&self, surface: ChartSurface) -> bool {
+        self.surfaces.is_empty()
+            || self
+                .surfaces
+                .iter()
+                .any(|name| name == surface.proto_name())
+    }
+}
+
+/// The result of checking a spec for one surface.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct SpecCheck {
+    pub valid: bool,
+    pub errors: Vec<SpecIssue>,
+    /// Contract warnings, plus what the surface cannot draw when `surface_gaps_checked`.
+    pub warnings: Vec<SpecIssue>,
+    /// False when the deployment ignored the surface, so only the contract was checked.
+    pub surface_gaps_checked: bool,
+}
+
 /// Talks to the declarative chart REST endpoints. The declarative protos are not part of
 /// `sift_rs`, so there is no gRPC client. The backend is the authority on the spec: it is passed
 /// through verbatim and never parsed here.
@@ -59,6 +173,52 @@ pub struct DeclarativeService {
     /// Serializes cache refreshes within this process. Other processes may download too; the
     /// atomic rename keeps every reader on a complete file.
     refresh: Arc<Mutex<()>>,
+    /// The surface when the caller names none, which depends on where the server runs.
+    default_surface: ChartSurface,
+    /// The last check, so sending the same spec again, such as to save it, repeats no request.
+    last_check: LastResult<(ChartSurface, SpecDigest), SpecCheck>,
+    /// The last share link. Links are content-addressed, so the same spec gets the same link.
+    last_share_link: LastResult<SpecDigest, String>,
+}
+
+type SpecDigest = [u8; 32];
+
+fn spec_digest(spec: &str) -> SpecDigest {
+    Sha256::digest(spec.as_bytes()).into()
+}
+
+/// The most recent result and its key. Never held across an await.
+struct LastResult<K, V>(Arc<std::sync::Mutex<Option<(K, V)>>>);
+
+impl<K, V> Clone for LastResult<K, V> {
+    fn clone(&self) -> Self {
+        Self(Arc::clone(&self.0))
+    }
+}
+
+impl<K, V> Default for LastResult<K, V> {
+    fn default() -> Self {
+        Self(Arc::default())
+    }
+}
+
+impl<K: PartialEq, V: Clone> LastResult<K, V> {
+    fn get(&self, key: &K) -> Option<V> {
+        let last = self
+            .0
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        last.as_ref()
+            .filter(|(last_key, _)| last_key == key)
+            .map(|(_, value)| value.clone())
+    }
+
+    fn set(&self, key: K, value: V) {
+        *self
+            .0
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some((key, value));
+    }
 }
 
 #[derive(Clone)]
@@ -71,7 +231,13 @@ struct RestClient {
 
 impl DeclarativeService {
     pub fn new(rest_config: Option<RestConfig>, cli_version: &str) -> Self {
+        let default_surface = rest_config
+            .as_ref()
+            .map_or(ChartSurface::Explore, |config| {
+                ChartSurface::default_for(config.client_name)
+            });
         Self {
+            default_surface,
             client: rest_config.map(|config| RestClient {
                 http: reqwest::Client::new(),
                 base_uri: config.rest_uri.trim_end_matches('/').to_owned(),
@@ -80,7 +246,13 @@ impl DeclarativeService {
             }),
             cache_root: if cfg!(test) { None } else { dirs::cache_dir() },
             refresh: Arc::default(),
+            last_check: LastResult::default(),
+            last_share_link: LastResult::default(),
         }
+    }
+
+    pub(crate) fn default_surface(&self) -> ChartSurface {
+        self.default_surface
     }
 
     /// Tests pick their own private cache root, so none touches the real user cache.
@@ -143,9 +315,35 @@ impl DeclarativeService {
         .context("failed to resolve the chart schema cache path")
     }
 
+    /// Strictly validates `spec` and reports what `surface` cannot draw. The same spec and surface
+    /// as the last check get its result again without a request.
+    pub(crate) async fn check_spec(&self, spec: &str, surface: ChartSurface) -> Result<SpecCheck> {
+        let key = (surface, spec_digest(spec));
+        if let Some(check) = self.last_check.get(&key) {
+            return Ok(check);
+        }
+
+        let body = json!({ "spec": spec, "strict": true, "surface": surface.proto_name() });
+        let response: ValidateResponse = self
+            .send(Method::POST, VALIDATE_PATH, Some(&body))
+            .await?
+            .json()
+            .await
+            .context("failed to decode the declarative validate response")?;
+        let check = spec_check(response, surface);
+        self.last_check.set(key, check.clone());
+        Ok(check)
+    }
+
     /// Creates a share link for `spec`, sent exactly as given. The backend validates the spec;
-    /// a rejected one is an `HttpError` with status 400 and gRPC InvalidArgument code.
+    /// a rejected one is an `HttpError` with status 400 and gRPC InvalidArgument code. The same
+    /// spec as the last link gets that link again without a request.
     pub(crate) async fn create_share_link(&self, spec: &str) -> Result<String> {
+        let digest = spec_digest(spec);
+        if let Some(short_link) = self.last_share_link.get(&digest) {
+            return Ok(short_link);
+        }
+
         let body = json!({ "spec": spec });
         let response: ShareLinkResponse = self
             .send(Method::POST, SHARE_LINK_PATH, Some(&body))
@@ -156,6 +354,8 @@ impl DeclarativeService {
         if response.short_link.is_empty() {
             bail!("declarative share link response did not include shortLink");
         }
+        self.last_share_link
+            .set(digest, response.short_link.clone());
         Ok(response.short_link)
     }
 
@@ -183,6 +383,27 @@ impl DeclarativeService {
         }
         let body = response.text().await.unwrap_or_default();
         Err(parse_http_error(status, &body).into())
+    }
+}
+
+/// Keeps the warnings that apply to `surface`. The gateway drops a surface name the deployment
+/// does not know, and the deployment then reports the gaps of every surface. A warning tagged only
+/// with other surfaces shows that happened, so `surface_gaps_checked` is false.
+fn spec_check(response: ValidateResponse, surface: ChartSurface) -> SpecCheck {
+    let surface_gaps_checked = response
+        .warnings
+        .iter()
+        .all(|warning| warning.applies_to(surface));
+    SpecCheck {
+        valid: response.valid,
+        errors: response.errors,
+        warnings: response
+            .warnings
+            .into_iter()
+            .filter(|warning| warning.applies_to(surface))
+            .map(|warning| warning.issue)
+            .collect(),
+        surface_gaps_checked,
     }
 }
 
