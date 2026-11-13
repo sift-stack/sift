@@ -269,10 +269,6 @@ fn download_warning(artifact: &ArtifactView, uploaded: bool) -> Option<&'static 
 
 /// One bulk write result: the artifact, the name the UI shows for it, its Sift link, a
 /// one-line `next_step`, and a `warning` when one applies.
-///
-/// Unlike other bulk results, artifact results keep a per-item `next_step`: the Sift chat
-/// host finds the artifacts to show by matching `Created artifact <id>` and
-/// `artifact <id>` in the tool result, so this text is a host contract.
 fn artifact_result(
     server: &SiftMcpServer,
     artifact: &ArtifactView,

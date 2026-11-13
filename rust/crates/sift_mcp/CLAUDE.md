@@ -295,8 +295,7 @@ pub async fn list_webhooks(&self, params: Parameters<ListParams>) -> error::McpR
   item takes several RPCs, so a failure can follow a committed change (`create_artifact`,
   `update_report`). The
   call-level `next_step` covers the batch, so an item result carries no `next_step` of its own,
-  only a `warning` when that item needs the user's attention. Artifact results are the one
-  exception: the Sift chat host matches `Created artifact <id>` in them. Do not repeat the
+  only a `warning` when that item needs the user's attention. Do not repeat the
   `selected_indices` or `items` bounds in the description; the `BulkItems` schema documents them.
 - **Read tools keep their payload in `content`.** Clients such as Claude Code show the model
   `content`, not `structuredContent`. Replacing `content` with `next_step` alone hides the payload
