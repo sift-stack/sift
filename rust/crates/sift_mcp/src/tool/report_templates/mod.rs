@@ -1,22 +1,22 @@
 use rmcp::{
     ErrorData,
     handler::server::wrapper::Parameters,
-    model::{CallToolResult, ContentBlock},
+    model::CallToolResult,
     schemars::{self, JsonSchema},
     tool, tool_router,
 };
 use serde::Deserialize;
 use sift_rs::metadata::v1::MetadataValue;
 
-use crate::tool::common::{
-    bulk::{self, BulkItems, Op},
-    bulk_create,
-};
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::report_templates::{ReportTemplateUpdate, TemplateRuleIdentifier},
-    tool::common::{MetadataEntry, url_clause, with_urls},
+    tool::common::{
+        MetadataEntry,
+        bulk::{BulkItems, Op},
+        require_non_empty, with_urls,
+    },
 };
 
 #[cfg(test)]
@@ -67,12 +67,7 @@ fn template_update(
         metadata,
         is_archived,
     } = item;
-    if report_template_id.trim().is_empty() {
-        return Err(ErrorData::invalid_params(
-            "`report_template_id` must not be empty",
-            None,
-        ));
-    }
+    require_non_empty("report_template_id", &report_template_id)?;
     let rules = match (rule_ids, rule_client_keys) {
         (None, None) => None,
         (Some(ids), None) => Some(TemplateRuleIdentifier::RuleIds(ids)),
@@ -198,15 +193,14 @@ impl SiftMcpServer {
                 `index` is the item's zero-based position in `items`. `failures` holds `{ index, error,
                 outcome_unknown }`. `not_attempted` lists items skipped after a backend-wide error. Any
                 failure sets `isError`. Each `result` is:
-                - `{ \"report_template\": ReportTemplate, \"report_template_url\": string|null, \"next_step\": string }`.
+                - `{ \"report_template\": ReportTemplate, \"report_template_url\": string|null }`.
                   The returned template is the server-assigned state including its new `report_template_id`,
                   resolved `rules` (with `display_order` set), and timestamps. `report_template_url` is the
                   template's Sift web link, or null when the host can't be derived. Link the template only to this
                   URL, never to a report's page.
 
             Parameters:
-              - `items`: required array of 1–100 objects, one per report template. Pass one item to create one
-                report template. Each item takes:
+              - `items`: one object per report template. Each item takes:
                 - `name`: required; the template name.
                 - `description`: optional; free-form description of what the template evaluates.
                 - `client_key`: optional; a stable caller-defined key for referring to this template. Must be unique
@@ -220,9 +214,6 @@ impl SiftMcpServer {
                   on the template (first = 0, second = 1, ...).
                 - `rule_client_keys`: list of rule client keys. Server resolves keys to rules; the resulting rule
                   order on the template is server-defined (not the position in this list).
-              - `selected_indices`: zero-based positions in `items` to create. An approval host sets this
-                from the user's per-item decisions; omit it when proposing. Omitted means every item,
-                except in a Sift chat pod, where a missing value is rejected. `[]` creates nothing.
 
             Errors:
               - `INVALID_PARAMS` if `name` is empty, or if zero or more than one of `rule_ids`/`rule_client_keys`
@@ -252,18 +243,17 @@ impl SiftMcpServer {
     )]
     pub async fn create_report_template(
         &self,
-        params: Parameters<bulk_create::CreateItems<CreateReportTemplateItem>>,
+        params: Parameters<BulkItems<CreateReportTemplateItem>>,
     ) -> error::McpResult {
         self.require_create()?;
-        let Parameters(bulk_create::CreateItems {
-            items,
-            selected_indices,
-            ..
-        }) = params;
-        let items = bulk_create::parse_items::<CreateReportTemplateItem>(items)?;
-        bulk_create::create_many(items, self.selection(selected_indices), |item| {
-            self.create_report_template_item(Parameters(item))
-        })
+        self.bulk_write(
+            Op::Create,
+            params.0,
+            "report template",
+            Ok,
+            |_| None,
+            |item| self.create_report_template_item(Parameters(item)),
+        )
         .await
     }
 
@@ -285,9 +275,7 @@ impl SiftMcpServer {
             rule_client_keys,
         }) = params;
 
-        if name.is_empty() {
-            return Err(ErrorData::invalid_params("`name` must not be empty", None));
-        }
+        require_non_empty("name", &name)?;
 
         let rules = match (rule_ids, rule_client_keys) {
             (Some(ids), None) => TemplateRuleIdentifier::RuleIds(ids),
@@ -328,27 +316,10 @@ impl SiftMcpServer {
             .url_service
             .build_report_template_url(&template.report_template_id)
             .ok();
-        let next_step = format!(
-            "Created report template `{}` ({}) with {} rule(s).{} Surface it to the user. To run the \
-             template over a run, call `create_report` with `report_template_id = \"{}\"`.",
-            template.name,
-            template.report_template_id,
-            template.rules.len(),
-            url_clause(
-                "report template",
-                Some(&template.name),
-                report_template_url.as_deref()
-            ),
-            template.report_template_id,
-        );
-
-        let mut result = CallToolResult::structured(serde_json::json!({
+        Ok(CallToolResult::structured(serde_json::json!({
             "report_template": template,
             "report_template_url": report_template_url,
-            "next_step": next_step,
-        }));
-        result.content = vec![ContentBlock::text(next_step)];
-        Ok(result)
+        })))
     }
 
     #[tool(
@@ -360,15 +331,13 @@ impl SiftMcpServer {
               - `{ requested_count, selected_count, not_selected, updated_count, successes, failures,
                 not_attempted, next_step }`. `successes` holds `{ index, result }`; `failures` holds
                 `{ index, error, outcome_unknown }`. Any failure sets `isError`. Each result is
-                `{ \"report_template\": ReportTemplate, \"report_template_url\": string|null, \"next_step\": string }`.
+                `{ \"report_template\": ReportTemplate, \"report_template_url\": string|null }`.
                 The returned template reflects the post-update server state. `report_template_url` is the
                 template's Sift web link, or null when the host can't be derived. Link the template only to this
                 URL, never to a report's page.
 
             Parameters:
-              - `items`: required array of 1–100 objects, one per template, with the fields below.
-              - `selected_indices`: host-owned zero-based positions in `items`. Omit when proposing.
-                Omitted selects every item except in Sift chat, where a missing mask fails closed. `[]` writes nothing.
+              - `items`: one object per template, with the fields below.
               - `report_template_id`: required in each item; the id of the template to update.
               - `name`: optional new name.
               - `description`: optional new description.
@@ -417,19 +386,12 @@ impl SiftMcpServer {
         params: Parameters<BulkItems<UpdateReportTemplateItem>>,
     ) -> error::McpResult {
         self.require_destructive()?;
-
-        let Parameters(params) = params;
-        let updates = bulk::prepare(
-            params.items,
+        self.bulk_write(
+            Op::Update,
+            params.0,
             "report template",
             template_update,
             |(id, _)| Some(id.clone()),
-        )?;
-        bulk::run(
-            Op::Update,
-            updates,
-            self.selection(params.selected_indices),
-            false,
             |(id, changes)| self.update_report_template_item(id, changes),
         )
         .await
@@ -446,33 +408,13 @@ impl SiftMcpServer {
             .await
             .map_err(from_anyhow)?;
 
-        let archive_clause = if template.is_archived {
-            " Template is now archived."
-        } else {
-            ""
-        };
         let report_template_url = self
             .url_service
             .build_report_template_url(&template.report_template_id)
             .ok();
-        let next_step = format!(
-            "Updated report template `{}` ({}).{}{}",
-            template.name,
-            template.report_template_id,
-            archive_clause,
-            url_clause(
-                "report template",
-                Some(&template.name),
-                report_template_url.as_deref()
-            ),
-        );
-
-        let mut result = CallToolResult::structured(serde_json::json!({
+        Ok(CallToolResult::structured(serde_json::json!({
             "report_template": template,
             "report_template_url": report_template_url,
-            "next_step": next_step,
-        }));
-        result.content = vec![ContentBlock::text(next_step)];
-        Ok(result)
+        })))
     }
 }

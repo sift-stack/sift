@@ -28,6 +28,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   as the other bulk writes, indexed by position in `annotation_ids`. This is a
   breaking change: the `batch_archive_error` and `archive_skipped` fields are
   removed.
+- Bulk write results no longer repeat a `next_step` inside every item. The
+  call-level `next_step` covers the whole batch, and an item carries a `warning`
+  only when it needs attention, such as a calculated channel that will not
+  evaluate on some assets. `create_artifact` and `update_artifact` items keep a
+  one-line `next_step` naming the artifact and version.
 - MCP `create_declarative_chart` takes an optional `surface`: `explore`,
   `canvas`, `edge`, or `agents` (agent chat). The default is `agents` inside
   Sift Agents and `explore` elsewhere. It validates the spec for that surface and

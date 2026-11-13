@@ -1,7 +1,7 @@
 use rmcp::{
     ErrorData,
     handler::server::wrapper::Parameters,
-    model::{CallToolResult, ContentBlock},
+    model::CallToolResult,
     schemars::{self, JsonSchema},
     tool, tool_router,
 };
@@ -10,17 +10,17 @@ use sift_rs::{
     calculated_channels::v2::CalculatedChannelAbstractChannelReference, metadata::v1::MetadataValue,
 };
 
-use crate::tool::common::{
-    bulk::{self, BulkItems, Op},
-    bulk_create,
-};
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::calculated_channels::{
         CalculatedChannelUpdate, CalculatedChannelWrite, NewCalculatedChannel,
     },
-    tool::common::{ListParams, MetadataEntry, list_body, to_values},
+    tool::common::{
+        ListParams, MetadataEntry,
+        bulk::{BulkItems, Op},
+        list_body, require_non_empty, to_values,
+    },
 };
 
 #[cfg(test)]
@@ -228,7 +228,7 @@ impl SiftMcpServer {
             fields,
         }) = params;
 
-        require_id(&calculated_channel_id)?;
+        require_non_empty("calculated_channel_id", &calculated_channel_id)?;
 
         let page = self
             .calculated_channel_service
@@ -267,14 +267,13 @@ impl SiftMcpServer {
                 outcome_unknown }`. `not_attempted` lists items skipped after a backend-wide error. Any
                 failure sets `isError`. Each `result` is:
                 - `{ \"calculated_channel\": CalculatedChannel, \"inapplicable_assets\": [...],
-                  \"next_step\": string }`. `inapplicable_assets` lists in-scope assets that do NOT have every
+                  \"warning\"?: string }`. `inapplicable_assets` lists in-scope assets that do NOT have every
                   channel the expression references; each entry carries `asset_id`, `asset_name`, `tag_names`, and
                   `missing_channels`. A non-empty list means the channel was created but will not evaluate on those
-                  assets.
+                  assets, and `warning` says so.
 
             Parameters:
-              - `items`: required array of 1–100 objects, one per calculated channel. Pass one item to create one
-                calculated channel. Each item takes:
+              - `items`: one object per calculated channel. Each item takes:
                 - `name`: required. The calculated channel's name.
                 - `expression`: required. A SEL expression whose channel operands are placeholders (`$1`, `$2`, …)
                   resolved by `expression_channel_references_json`. Example: `\"$1 - $2\"`.
@@ -293,9 +292,6 @@ impl SiftMcpServer {
                 - Exactly one scope form is allowed: either `all_assets: true`, or a non-empty `asset_ids` /
                   `tag_ids` selection. Setting both is rejected.
                 - `metadata`: optional. Array of `{ \"name\": \"<key>\", \"value\": <scalar> }` entries.
-              - `selected_indices`: zero-based positions in `items` to create. An approval host sets this
-                from the user's per-item decisions; omit it when proposing. Omitted means every item,
-                except in a Sift chat pod, where a missing value is rejected. `[]` creates nothing.
 
             Errors:
               - `INVALID_PARAMS` if `name` or `expression` is empty, `expression_channel_references_json` is not a
@@ -330,18 +326,17 @@ impl SiftMcpServer {
     )]
     pub async fn create_calculated_channel(
         &self,
-        params: Parameters<bulk_create::CreateItems<CreateCalculatedChannelItem>>,
+        params: Parameters<BulkItems<CreateCalculatedChannelItem>>,
     ) -> error::McpResult {
         self.require_create()?;
-        let Parameters(bulk_create::CreateItems {
-            items,
-            selected_indices,
-            ..
-        }) = params;
-        let items = bulk_create::parse_items::<CreateCalculatedChannelItem>(items)?;
-        bulk_create::create_many(items, self.selection(selected_indices), |item| {
-            self.create_calculated_channel_item(Parameters(item))
-        })
+        self.bulk_write(
+            Op::Create,
+            params.0,
+            "calculated channel",
+            Ok,
+            |_| None,
+            |item| self.create_calculated_channel_item(Parameters(item)),
+        )
         .await
     }
 
@@ -408,17 +403,7 @@ impl SiftMcpServer {
             .await
             .map_err(from_anyhow)?;
 
-        let next_step = format!(
-            "Created calculated channel `{}` (`{}`).{} Tell the user the new id. If they haven't \
-             indicated a next step, offer to confirm it with `list_calculated_channels` \
-             (filter `calculated_channel_id == \"{}\"`).",
-            written.calculated_channel.name,
-            written.calculated_channel.calculated_channel_id,
-            inapplicable_clause(&written),
-            written.calculated_channel.calculated_channel_id,
-        );
-
-        Ok(write_result(written, next_step, None))
+        Ok(write_result(written))
     }
 
     #[tool(
@@ -433,14 +418,12 @@ impl SiftMcpServer {
                 not_attempted, next_step }`. `successes` holds `{ index, result }`; `failures` holds
                 `{ index, error, outcome_unknown }`. Any failure sets `isError`. Each result is:
                 `{ \"calculated_channel\": CalculatedChannel, \"inapplicable_assets\": [...],
-                \"next_step\": string }`. The returned channel is the new version's post-update state.
-                `inapplicable_assets` lists in-scope assets missing a channel the expression references.
+                \"warning\"?: string }`. The returned channel is the new version's post-update state.
+                `inapplicable_assets` lists in-scope assets missing a channel the expression references;
+                `warning` appears when it is non-empty.
 
             Parameters:
-              - `items`: required array of 1–100 objects, one per calculated channel, with the fields below.
-                Pass one item to update one channel.
-              - `selected_indices`: host-owned zero-based positions in `items`. Omit when proposing.
-                Omitted selects every item except in Sift chat, where a missing mask fails closed. `[]` writes nothing.
+              - `items`: one object per calculated channel, with the fields below.
               - `calculated_channel_id`: required in each item. The calculated channel to update.
               - `name`: optional. New name.
               - `description`: optional. New description.
@@ -490,43 +473,22 @@ impl SiftMcpServer {
         params: Parameters<BulkItems<UpdateCalculatedChannelItem>>,
     ) -> error::McpResult {
         self.require_destructive()?;
-
-        let Parameters(params) = params;
-        let updates = bulk::prepare(
-            params.items,
+        self.bulk_write(
+            Op::Update,
+            params.0,
             "calculated channel",
             calculated_channel_update,
             |(id, _)| Some(id.clone()),
-        )?;
-        bulk::run(
-            Op::Update,
-            updates,
-            self.selection(params.selected_indices),
-            false,
-            |(id, changes)| self.update_calculated_channel_item(id, changes),
+            |(id, changes)| async move {
+                let written = self
+                    .calculated_channel_service
+                    .update_calculated_channel(id, changes)
+                    .await
+                    .map_err(from_anyhow)?;
+                Ok(write_result(written))
+            },
         )
         .await
-    }
-
-    async fn update_calculated_channel_item(
-        &self,
-        calculated_channel_id: String,
-        changes: CalculatedChannelUpdate,
-    ) -> error::McpResult {
-        let written = self
-            .calculated_channel_service
-            .update_calculated_channel(calculated_channel_id, changes)
-            .await
-            .map_err(from_anyhow)?;
-
-        let next_step = format!(
-            "Updated calculated channel `{}` to version {}.{}",
-            written.calculated_channel.calculated_channel_id,
-            written.calculated_channel.version,
-            inapplicable_clause(&written),
-        );
-
-        Ok(write_result(written, next_step, None))
     }
 
     #[tool(
@@ -539,13 +501,11 @@ impl SiftMcpServer {
               - `{ requested_count, selected_count, not_selected, archived_count, successes, failures,
                 not_attempted, next_step }`. `successes` holds `{ index, result }`; `failures` holds
                 `{ index, error, outcome_unknown }`. Any failure sets `isError`. Each result is
-                `{ \"archived\": boolean, \"calculated_channel\": CalculatedChannel, \"next_step\": string }`.
-                `archived` reflects the returned channel state.
+                `{ \"archived\": boolean, \"calculated_channel\": CalculatedChannel, \"warning\"?: string }`.
+                `archived` reflects the returned channel state; `warning` appears when the server did not archive it.
 
             Parameters:
-              - `items`: required array of 1–100 objects, each with `calculated_channel_id`, the id to archive.
-              - `selected_indices`: host-owned zero-based positions in `items`. Omit when proposing.
-                Omitted selects every item except in Sift chat, where a missing mask fails closed. `[]` writes nothing.
+              - `items`: each item takes `calculated_channel_id`, the id to archive.
 
             Errors:
               - `INVALID_PARAMS` before any write for empty/oversized items, duplicate ids, unknown fields,
@@ -573,39 +533,8 @@ impl SiftMcpServer {
         params: Parameters<BulkItems<CalculatedChannelArchiveItem>>,
     ) -> error::McpResult {
         self.require_destructive()?;
-        self.bulk_calculated_channel_archive(params, Op::Archive)
+        self.set_calculated_channels_archived(params, Op::Archive)
             .await
-    }
-
-    async fn archive_calculated_channel_item(
-        &self,
-        calculated_channel_id: String,
-    ) -> error::McpResult {
-        let written = self
-            .calculated_channel_service
-            .archive_calculated_channel(calculated_channel_id)
-            .await
-            .map_err(from_anyhow)?;
-
-        let archived = written.calculated_channel.is_archived;
-        let next_step = if archived {
-            format!(
-                "Archived calculated channel `{}`.",
-                written.calculated_channel.calculated_channel_id,
-            )
-        } else {
-            format!(
-                "The server returned calculated channel `{}` as unarchived after the archive request. \
-                 Do not report it as archived; verify its state before continuing.",
-                written.calculated_channel.calculated_channel_id,
-            )
-        };
-
-        Ok(write_result(
-            written,
-            next_step,
-            Some(("archived", archived)),
-        ))
     }
 
     #[tool(
@@ -617,13 +546,11 @@ impl SiftMcpServer {
               - `{ requested_count, selected_count, not_selected, unarchived_count, successes, failures,
                 not_attempted, next_step }`. `successes` holds `{ index, result }`; `failures` holds
                 `{ index, error, outcome_unknown }`. Any failure sets `isError`. Each result is
-                `{ \"unarchived\": boolean, \"calculated_channel\": CalculatedChannel, \"next_step\": string }`.
-                `unarchived` reflects the returned channel state.
+                `{ \"unarchived\": boolean, \"calculated_channel\": CalculatedChannel, \"warning\"?: string }`.
+                `unarchived` reflects the returned channel state; `warning` appears when the server did not restore it.
 
             Parameters:
-              - `items`: required array of 1–100 objects, each with `calculated_channel_id`, the id to restore.
-              - `selected_indices`: host-owned zero-based positions in `items`. Omit when proposing.
-                Omitted selects every item except in Sift chat, where a missing mask fails closed. `[]` writes nothing.
+              - `items`: each item takes `calculated_channel_id`, the id to restore.
 
             Errors:
               - `INVALID_PARAMS` before any write for empty/oversized items, duplicate ids, unknown fields,
@@ -649,72 +576,58 @@ impl SiftMcpServer {
         params: Parameters<BulkItems<CalculatedChannelArchiveItem>>,
     ) -> error::McpResult {
         self.require_destructive()?;
-        self.bulk_calculated_channel_archive(params, Op::Unarchive)
+        self.set_calculated_channels_archived(params, Op::Unarchive)
             .await
     }
 
-    async fn bulk_calculated_channel_archive(
+    async fn set_calculated_channels_archived(
         &self,
         params: Parameters<BulkItems<CalculatedChannelArchiveItem>>,
         op: Op,
     ) -> error::McpResult {
-        let Parameters(params) = params;
-        let items = bulk::prepare(
-            params.items,
+        self.bulk_write(
+            op,
+            params.0,
             "calculated channel",
             |item: CalculatedChannelArchiveItem| {
-                require_id(&item.calculated_channel_id)?;
-                Ok(item)
+                require_non_empty("calculated_channel_id", &item.calculated_channel_id)?;
+                Ok(item.calculated_channel_id)
             },
-            |item| Some(item.calculated_channel_id.clone()),
-        )?;
-        bulk::run(
-            op,
-            items,
-            self.selection(params.selected_indices),
-            false,
-            |item| async move {
-                if op == Op::Archive {
-                    self.archive_calculated_channel_item(item.calculated_channel_id)
-                        .await
-                } else {
-                    self.unarchive_calculated_channel_item(item.calculated_channel_id)
-                        .await
-                }
-            },
+            |id| Some(id.clone()),
+            |id| self.set_calculated_channel_archived(id, op),
         )
         .await
     }
 
-    async fn unarchive_calculated_channel_item(
-        &self,
-        calculated_channel_id: String,
-    ) -> error::McpResult {
-        let written = self
-            .calculated_channel_service
-            .unarchive_calculated_channel(calculated_channel_id)
-            .await
-            .map_err(from_anyhow)?;
-
-        let unarchived = !written.calculated_channel.is_archived;
-        let next_step = if unarchived {
-            format!(
-                "Unarchived calculated channel `{}`.",
-                written.calculated_channel.calculated_channel_id,
-            )
+    async fn set_calculated_channel_archived(&self, id: String, op: Op) -> error::McpResult {
+        let archive = op == Op::Archive;
+        let written = if archive {
+            self.calculated_channel_service
+                .archive_calculated_channel(id)
+                .await
         } else {
-            format!(
-                "The server returned calculated channel `{}` as archived after the unarchive request. \
-                 Do not report it as restored; verify its state before continuing.",
-                written.calculated_channel.calculated_channel_id,
-            )
-        };
+            self.calculated_channel_service
+                .unarchive_calculated_channel(id)
+                .await
+        }
+        .map_err(from_anyhow)?;
 
-        Ok(write_result(
-            written,
-            next_step,
-            Some(("unarchived", unarchived)),
-        ))
+        let channel = written.calculated_channel;
+        let applied = channel.is_archived == archive;
+        let mut body = serde_json::json!({
+            op.state_key(): applied,
+            "calculated_channel": channel,
+        });
+        if !applied {
+            body["warning"] = format!(
+                "The server returned this calculated channel with `is_archived: {}` after the \
+                 request. Do not report it as {}; verify its state before continuing.",
+                channel.is_archived,
+                op.state_key(),
+            )
+            .into();
+        }
+        Ok(CallToolResult::structured(body))
     }
 }
 
@@ -734,7 +647,7 @@ fn calculated_channel_update(
         metadata,
         user_notes,
     } = item;
-    require_id(&calculated_channel_id)?;
+    require_non_empty("calculated_channel_id", &calculated_channel_id)?;
     if expression.is_some() != expression_channel_references_json.is_some() {
         return Err(ErrorData::invalid_params(
             "`expression` and `expression_channel_references_json` must be provided together",
@@ -770,17 +683,6 @@ fn calculated_channel_update(
         ));
     }
     Ok((calculated_channel_id, changes))
-}
-
-/// Reject an empty `calculated_channel_id` before any RPC.
-fn require_id(calculated_channel_id: &str) -> Result<(), ErrorData> {
-    if calculated_channel_id.trim().is_empty() {
-        return Err(ErrorData::invalid_params(
-            "`calculated_channel_id` must not be empty",
-            None,
-        ));
-    }
-    Ok(())
 }
 
 /// Deserialize the JSON-string channel reference array, mapping any parse error
@@ -825,41 +727,20 @@ fn metadata_values(metadata: Option<Vec<MetadataEntry>>) -> Vec<MetadataValue> {
         .collect()
 }
 
-/// A trailing `next_step` clause naming the assets the API reported the channel
-/// cannot evaluate on. Empty when every in-scope asset applies.
-fn inapplicable_clause(written: &CalculatedChannelWrite) -> String {
-    if written.inapplicable_assets.is_empty() {
-        return String::new();
-    }
-    format!(
-        " {} in-scope asset(s) are missing a referenced channel and will not evaluate this \
-         calculated channel; see `inapplicable_assets`.",
-        written.inapplicable_assets.len()
-    )
-}
-
-/// Shape a write result: the stored channel, the inapplicable assets when the
-/// API reported any, `next_step` on both the structured body and the content
-/// block, plus an optional state flag (`archived` / `unarchived`).
-fn write_result(
-    written: CalculatedChannelWrite,
-    next_step: String,
-    flag: Option<(&str, bool)>,
-) -> CallToolResult {
+/// Shape a create or update result: the stored channel, the assets the API reported
+/// it will not evaluate on, and a `warning` naming them when there are any.
+fn write_result(written: CalculatedChannelWrite) -> CallToolResult {
     let mut body = serde_json::json!({
         "calculated_channel": written.calculated_channel,
-        "next_step": next_step.clone(),
+        "inapplicable_assets": written.inapplicable_assets,
     });
-    match flag {
-        Some((key, value)) => {
-            body[key] = serde_json::json!(value);
-        }
-        None => {
-            body["inapplicable_assets"] = serde_json::json!(written.inapplicable_assets);
-        }
+    if !written.inapplicable_assets.is_empty() {
+        body["warning"] = format!(
+            "{} in-scope asset(s) are missing a referenced channel and will not evaluate this \
+             calculated channel; see `inapplicable_assets`.",
+            written.inapplicable_assets.len()
+        )
+        .into();
     }
-
-    let mut result = CallToolResult::structured(body);
-    result.content = vec![ContentBlock::text(next_step)];
-    result
+    CallToolResult::structured(body)
 }

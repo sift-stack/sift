@@ -1,11 +1,44 @@
 use super::{
-    ListParams, PendingOutput, list_body, project_fields, read_result,
+    ListParams, PendingOutput, exactly_one, list_body, project_fields, read_result,
+    require_non_empty,
     test_support::{assert_keys_before, content_texts, dir_entries},
     url_clause,
 };
 use serde_json::{Value, json};
 use std::{io::Write, path::PathBuf};
 use tempdir::TempDir;
+
+#[test]
+fn exactly_one_returns_the_set_field_and_rejects_both_or_neither() {
+    let one = |a: Option<&str>, b: Option<&str>| {
+        exactly_one(
+            ("rule_id", a.map(Into::into)),
+            ("client_key", b.map(Into::into)),
+        )
+    };
+    assert_eq!(one(Some("r"), None).unwrap(), ("r".into(), String::new()));
+    assert_eq!(one(None, Some("c")).unwrap(), (String::new(), "c".into()));
+    let both = one(Some("r"), Some("c")).unwrap_err();
+    assert_eq!(both.code, rmcp::model::ErrorCode::INVALID_PARAMS);
+    assert!(both.message.contains("not both"), "{}", both.message);
+    let neither = one(None, None).unwrap_err();
+    assert_eq!(neither.code, rmcp::model::ErrorCode::INVALID_PARAMS);
+    assert!(
+        neither.message.contains("`rule_id` or `client_key`"),
+        "{}",
+        neither.message
+    );
+}
+
+#[test]
+fn require_non_empty_names_the_blank_field() {
+    assert!(require_non_empty("rule_id", "rule-1").is_ok());
+    for blank in ["", "  \n"] {
+        let error = require_non_empty("rule_id", blank).unwrap_err();
+        assert_eq!(error.code, rmcp::model::ErrorCode::INVALID_PARAMS);
+        assert_eq!(error.message, "`rule_id` must not be empty");
+    }
+}
 
 /// `filter` is deliberately required on list tools: the caller must choose a
 /// scope explicitly, with the empty string as the documented way to request

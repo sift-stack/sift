@@ -48,6 +48,38 @@ pub struct MetadataEntry {
     pub(crate) value: MetadataScalar,
 }
 
+/// Reject a blank required id or name with `INVALID_PARAMS` naming the field.
+pub(crate) fn require_non_empty(field: &str, value: &str) -> Result<(), ErrorData> {
+    if value.trim().is_empty() {
+        return Err(ErrorData::invalid_params(
+            format!("`{field}` must not be empty"),
+            None,
+        ));
+    }
+    Ok(())
+}
+
+/// Resolve two mutually exclusive optional params into the `(first, second)` request
+/// fields, with an empty string for the unset one. Returns `INVALID_PARAMS` unless
+/// exactly one is set, since the API would silently pick one for the caller.
+pub(crate) fn exactly_one(
+    (first_name, first): (&str, Option<String>),
+    (second_name, second): (&str, Option<String>),
+) -> Result<(String, String), ErrorData> {
+    match (first, second) {
+        (Some(first), None) => Ok((first, String::new())),
+        (None, Some(second)) => Ok((String::new(), second)),
+        (Some(_), Some(_)) => Err(ErrorData::invalid_params(
+            format!("exactly one of `{first_name}` or `{second_name}` must be set, not both"),
+            None,
+        )),
+        (None, None) => Err(ErrorData::invalid_params(
+            format!("one of `{first_name}` or `{second_name}` must be set"),
+            None,
+        )),
+    }
+}
+
 /// A trailing clause for a tool's `next_step` that tells the model how to
 /// present an entity's Sift web link. The Sift chat renders a Markdown link as
 /// a chip whose text must be the entity's own name: `[name](url)`. When the
@@ -538,6 +570,30 @@ pub(crate) mod test_support {
                 "`{key}` must come before `{later}` in {text}"
             );
         }
+    }
+
+    /// Build a bulk write tool's params from a JSON `items` array and an optional mask.
+    pub(crate) fn bulk_params<T>(
+        items: Value,
+        selected_indices: Option<Vec<usize>>,
+    ) -> Parameters<super::bulk::BulkItems<T>> {
+        Parameters(
+            serde_json::from_value(
+                serde_json::json!({"items": items, "selected_indices": selected_indices}),
+            )
+            .expect("valid bulk params"),
+        )
+    }
+
+    /// The `result` of the first success in a bulk write. Panics when any item failed.
+    pub(crate) fn first_result(result: CallToolResult) -> Value {
+        let body = structured(result);
+        assert_eq!(
+            body["failures"],
+            serde_json::json!([]),
+            "expected no failures in {body}"
+        );
+        body["successes"][0]["result"].clone()
     }
 
     /// Extract a single field from a tool result's structured JSON body.

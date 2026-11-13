@@ -1,7 +1,7 @@
 use rmcp::{
     ErrorData,
     handler::server::wrapper::Parameters,
-    model::{CallToolResult, ContentBlock},
+    model::CallToolResult,
     schemars::{self, JsonSchema},
     tool, tool_router,
 };
@@ -12,15 +12,15 @@ use sift_rs::artifacts::v1::{
     ArtifactLinkRelation, ArtifactStorageClass, ArtifactVersion,
 };
 
-use crate::tool::common::{
-    bulk::{self, BulkItems, Op},
-    bulk_create,
-};
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::artifacts::{ArtifactView, CreateArtifactInput, UpdateArtifactInput, UpdatePath},
-    tool::common::{MetadataEntry, list_body, to_values, url_clause},
+    tool::common::{
+        MetadataEntry,
+        bulk::{self, BulkItems, Op},
+        list_body, require_non_empty, to_values,
+    },
 };
 
 #[cfg(test)]
@@ -229,12 +229,7 @@ fn parse_links(links: Option<Vec<ArtifactLinkParam>>) -> Result<Vec<ArtifactLink
 }
 
 fn validate_update_artifact(item: &UpdateArtifactItem) -> Result<(), ErrorData> {
-    if item.artifact_id.trim().is_empty() {
-        return Err(ErrorData::invalid_params(
-            "`artifact_id` must not be empty",
-            None,
-        ));
-    }
+    require_non_empty("artifact_id", &item.artifact_id)?;
     let file_path = normalized_file_path(item.file_path.clone())?;
     let links = parse_links(item.links.clone())?;
     if item.title.is_none()
@@ -262,34 +257,38 @@ fn validate_update_artifact(item: &UpdateArtifactItem) -> Result<(), ErrorData> 
     Ok(())
 }
 
-fn content_note(artifact: &ArtifactView, uploaded: bool) -> &'static str {
-    if uploaded && artifact.download_url.is_some() {
-        " Its file content was uploaded and the user can preview and download it."
-    } else if uploaded {
-        " Its file content was uploaded, but the refreshed artifact or its download link \
-         could not be fetched; call `download_artifact` for the link."
-    } else if artifact.download_url.is_some() {
-        " It keeps the previous version's file, which the user can preview and download."
-    } else if artifact.version().remote_file_id.is_some() {
-        " It keeps the previous version's file, but its download link could not be fetched; \
-         call `download_artifact` for the link."
-    } else {
-        " It has no file content; the user has nothing to preview or download."
-    }
+/// A warning when the artifact has file content but no download link came back, so
+/// the caller does not tell the user the file is missing.
+fn download_warning(artifact: &ArtifactView, uploaded: bool) -> Option<&'static str> {
+    let has_file = uploaded || artifact.version().remote_file_id.is_some();
+    (has_file && artifact.download_url.is_none()).then_some(
+        "The file content is stored, but its download link could not be fetched; call \
+         `download_artifact` for the link.",
+    )
 }
 
+/// One bulk write result: the artifact, the name the UI shows for it, its Sift link, a
+/// one-line `next_step`, and a `warning` when one applies.
+///
+/// Unlike other bulk results, artifact results keep a per-item `next_step`: the Sift chat
+/// host finds the artifacts to show by matching `Created artifact <id>` and
+/// `artifact <id>` in the tool result, so this text is a host contract.
 fn artifact_result(
+    server: &SiftMcpServer,
     artifact: &ArtifactView,
-    artifact_url: Option<String>,
     next_step: String,
+    warning: Option<&str>,
 ) -> error::McpResult {
-    let mut result = CallToolResult::structured(serde_json::json!({
+    let mut body = serde_json::json!({
         "artifact": artifact_view_value(artifact)?,
-        "artifact_url": artifact_url,
+        "name": display_name(artifact),
+        "artifact_url": artifact_url_for(server, &artifact.artifact_id(), None),
         "next_step": next_step,
-    }));
-    result.content = vec![ContentBlock::text(next_step)];
-    Ok(result)
+    });
+    if let Some(warning) = warning {
+        body["warning"] = warning.into();
+    }
+    Ok(CallToolResult::structured(body))
 }
 
 /// Build the web URL for an artifact, pinned to `artifact_version_id` when set.
@@ -614,14 +613,12 @@ impl SiftMcpServer {
             Output:
               - `{ requested_count, selected_count, not_selected, archived_count, successes, failures,
                 not_attempted, next_step }`. Each success holds `{ index, result }`, where result has
-                `artifact_id`, `archived: true`, `artifact_url`, and `next_step`. The URL links the artifact
+                `artifact_id`, `archived: true`, and `artifact_url`. The URL links the artifact
                 in Sift, or is null if the host cannot be derived. Failures hold `{ index, error, outcome_unknown }`.
                 Any failure sets `isError`.
 
             Parameters:
-              - `items`: required array of 1–100 objects. Each item takes `artifact_id`, the stable artifact id.
-              - `selected_indices`: zero-based item positions supplied by the approval host; omit when proposing.
-                Omitted selects all outside chat; chat requires a mask. `[]` archives nothing.
+              - `items`: each item takes `artifact_id`, the stable artifact id.
 
             Errors:
               - `INVALID_PARAMS` before any write for empty or oversized `items`, duplicate targets, unknown
@@ -647,42 +644,8 @@ impl SiftMcpServer {
         &self,
         params: Parameters<BulkItems<ArtifactArchiveItem>>,
     ) -> error::McpResult {
-        self.archive_artifacts(params, Op::Archive).await
-    }
-
-    async fn archive_artifact_item(
-        &self,
-        params: Parameters<ArtifactArchiveItem>,
-    ) -> error::McpResult {
         self.require_destructive()?;
-        let Parameters(ArtifactArchiveItem { artifact_id }) = params;
-        // The service trims the id, so the link has to use the trimmed value too.
-        let artifact_id = artifact_id.trim().to_owned();
-        if artifact_id.is_empty() {
-            return Err(ErrorData::invalid_params(
-                "`artifact_id` must not be empty",
-                None,
-            ));
-        }
-
-        let artifact_url = artifact_url_for(self, &artifact_id, None);
-        self.artifact_service
-            .archive_artifact(artifact_id.clone())
-            .await
-            .map_err(from_anyhow)?;
-
-        let next_step = format!(
-            "Archived artifact `{artifact_id}`.{}",
-            url_clause("artifact", None, artifact_url.as_deref()),
-        );
-        let mut result = CallToolResult::structured(serde_json::json!({
-            "artifact_id": artifact_id,
-            "archived": true,
-            "artifact_url": artifact_url,
-            "next_step": next_step,
-        }));
-        result.content = vec![ContentBlock::text(next_step)];
-        Ok(result)
+        self.set_artifacts_archived(params, Op::Archive).await
     }
 
     #[tool(
@@ -694,14 +657,12 @@ impl SiftMcpServer {
             Output:
               - `{ requested_count, selected_count, not_selected, unarchived_count, successes, failures,
                 not_attempted, next_step }`. Each success holds `{ index, result }`, where result has
-                `artifact_id`, `unarchived: true`, `artifact_url`, and `next_step`. The URL links the artifact
+                `artifact_id`, `unarchived: true`, and `artifact_url`. The URL links the artifact
                 in Sift, or is null if the host cannot be derived. Failures hold `{ index, error, outcome_unknown }`.
                 Any failure sets `isError`.
 
             Parameters:
-              - `items`: required array of 1–100 objects. Each item takes `artifact_id`, the stable artifact id.
-              - `selected_indices`: zero-based item positions supplied by the approval host; omit when proposing.
-                Omitted selects all outside chat; chat requires a mask. `[]` unarchives nothing.
+              - `items`: each item takes `artifact_id`, the stable artifact id.
 
             Errors:
               - `INVALID_PARAMS` before any write for empty or oversized `items`, duplicate targets, unknown
@@ -726,83 +687,48 @@ impl SiftMcpServer {
         &self,
         params: Parameters<BulkItems<ArtifactArchiveItem>>,
     ) -> error::McpResult {
-        self.archive_artifacts(params, Op::Unarchive).await
+        self.require_destructive()?;
+        self.set_artifacts_archived(params, Op::Unarchive).await
     }
 
-    async fn archive_artifacts(
+    async fn set_artifacts_archived(
         &self,
         params: Parameters<BulkItems<ArtifactArchiveItem>>,
         op: Op,
     ) -> error::McpResult {
-        self.require_destructive()?;
-        let Parameters(BulkItems {
-            items,
-            selected_indices,
-            ..
-        }) = params;
-        let items = bulk::prepare(
-            items,
-            "artifact",
-            |mut item: ArtifactArchiveItem| {
-                item.artifact_id = item.artifact_id.trim().to_owned();
-                if item.artifact_id.is_empty() {
-                    return Err(ErrorData::invalid_params(
-                        "`artifact_id` must not be empty",
-                        None,
-                    ));
-                }
-                Ok(item)
-            },
-            |item| Some(item.artifact_id.clone()),
-        )?;
-        bulk::run(
+        self.bulk_write(
             op,
-            items,
-            self.selection(selected_indices),
-            false,
-            |item| async move {
-                match op {
-                    Op::Archive => self.archive_artifact_item(Parameters(item)).await,
-                    _ => self.unarchive_artifact_item(Parameters(item)).await,
-                }
+            params.0,
+            "artifact",
+            |item: ArtifactArchiveItem| {
+                // The service trims the id, so the link has to use the trimmed value too.
+                let artifact_id = item.artifact_id.trim().to_owned();
+                require_non_empty("artifact_id", &artifact_id)?;
+                Ok(artifact_id)
             },
+            |artifact_id| Some(artifact_id.clone()),
+            |artifact_id| self.set_artifact_archived(artifact_id, op),
         )
         .await
     }
 
-    async fn unarchive_artifact_item(
-        &self,
-        params: Parameters<ArtifactArchiveItem>,
-    ) -> error::McpResult {
-        self.require_destructive()?;
-        let Parameters(ArtifactArchiveItem { artifact_id }) = params;
-        // The service trims the id, so the link has to use the trimmed value too.
-        let artifact_id = artifact_id.trim().to_owned();
-        if artifact_id.is_empty() {
-            return Err(ErrorData::invalid_params(
-                "`artifact_id` must not be empty",
-                None,
-            ));
-        }
+    async fn set_artifact_archived(&self, artifact_id: String, op: Op) -> error::McpResult {
+        let write = if op == Op::Archive {
+            self.artifact_service
+                .archive_artifact(artifact_id.clone())
+                .await
+        } else {
+            self.artifact_service
+                .unarchive_artifact(artifact_id.clone())
+                .await
+        };
+        write.map_err(from_anyhow)?;
 
-        let artifact_url = artifact_url_for(self, &artifact_id, None);
-        self.artifact_service
-            .unarchive_artifact(artifact_id.clone())
-            .await
-            .map_err(from_anyhow)?;
-
-        let next_step = format!(
-            "Unarchived artifact `{artifact_id}`.{}",
-            url_clause("artifact", None, artifact_url.as_deref()),
-        );
-        let mut result = CallToolResult::structured(serde_json::json!({
+        Ok(CallToolResult::structured(serde_json::json!({
             "artifact_id": artifact_id,
-            "unarchived": true,
-            "artifact_url": artifact_url,
-            "next_step": next_step,
-        }));
-        result.content = vec![ContentBlock::text(next_step)];
-        Ok(result)
+            op.state_key(): true,
+            "artifact_url": artifact_url_for(self, &artifact_id, None),
+        })))
     }
 
     #[tool(
@@ -819,15 +745,16 @@ impl SiftMcpServer {
                 `index` is the item's zero-based position in `items`. `failures` holds `{ index, error,
                 outcome_unknown }`. `not_attempted` lists items skipped after a backend-wide error. Any
                 failure sets `isError`. Each `result` is:
-                - `{ \"artifact\": Artifact, \"artifact_url\": string|null, \"next_step\": string }`. The
+                - `{ \"artifact\": Artifact, \"name\": string|null, \"artifact_url\": string|null, \"next_step\": string,
+                  \"warning\"?: string }`. `name` is the title, or the file name when the title is blank. The
                   returned artifact is version 1, including `artifact_id`, `artifact_version_id`, and `version`.
                   When a file was uploaded it also carries `file_name`, `file_mime_type`, `remote_file_id`, and
                   a short-lived signed `download_url`. `artifact_url` is the artifact's Sift web link
-                  (`<host>/artifacts/<artifact_id>`), or null when the host can't be derived.
+                  (`<host>/artifacts/<artifact_id>`), or null when the host can't be derived. `warning`
+                  appears when the file is stored but its download link could not be fetched.
 
             Parameters:
-              - `items`: required array of 1–100 objects, one per artifact. Pass one item to create one
-                artifact. Each item takes:
+              - `items`: one object per artifact. Each item takes:
                 - `title`: optional display title stored on the version.
                 - `summary`: optional short description stored on the version.
                 - `conversation_id`: optional. Links the new artifact to that conversation. The caller must be
@@ -849,9 +776,6 @@ impl SiftMcpServer {
                   version\'s content. The file streams to Sift\'s file store; its name and extension drive
                   the mime type and how the UI previews it. Regular, non-empty files up to 1 GiB.
                   Omit it to record metadata only (content can not be attached later to the same version).
-              - `selected_indices`: zero-based positions in `items` to create. An approval host sets this
-                from the user's per-item decisions; omit it when proposing. Omitted means every item,
-                except in a Sift chat pod, where a missing value is rejected. `[]` creates nothing.
 
             Access:
               - Needs `--allow-create`.
@@ -892,20 +816,21 @@ impl SiftMcpServer {
     )]
     pub async fn create_artifact(
         &self,
-        params: Parameters<bulk_create::CreateItems<CreateArtifactItem>>,
+        params: Parameters<BulkItems<CreateArtifactItem>>,
     ) -> error::McpResult {
         self.require_create()?;
-        let Parameters(bulk_create::CreateItems {
+        let Parameters(BulkItems {
             items,
             selected_indices,
             ..
         }) = params;
-        let items = bulk_create::parse_items::<CreateArtifactItem>(items)?;
-        bulk_create::create_many_with_partial_writes(
-            items,
+        // An upload can fail after the artifact exists, so every failure may be a partial write.
+        bulk::run(
+            Op::Create,
+            bulk::parse_items::<CreateArtifactItem>(items)?,
             self.selection(selected_indices),
-            |item| self.create_artifact_item(Parameters(item)),
             true,
+            |item| self.create_artifact_item(Parameters(item)),
         )
         .await
     }
@@ -964,20 +889,17 @@ impl SiftMcpServer {
             .await
             .map_err(from_anyhow)?;
 
-        let artifact_url = artifact_url_for(self, &artifact.artifact_id(), None);
         let next_step = format!(
-            "Created artifact {} version {}.{}{} Surface the title and destination to the \
-             user and confirm they match their intent before further edits.",
+            "Created artifact {} version {}.",
             artifact.artifact_id(),
             artifact.version().version,
-            content_note(&artifact, uploaded),
-            url_clause(
-                "artifact",
-                display_name(&artifact).as_deref(),
-                artifact_url.as_deref()
-            ),
         );
-        artifact_result(&artifact, artifact_url, next_step)
+        artifact_result(
+            self,
+            &artifact,
+            next_step,
+            download_warning(&artifact, uploaded),
+        )
     }
 
     #[tool(
@@ -993,14 +915,14 @@ impl SiftMcpServer {
               - `{ requested_count, selected_count, not_selected, updated_count, successes, failures,
                 not_attempted, next_step }`. Each success holds `{ index, result }`, each failure holds
                 `{ index, error, outcome_unknown }`, and any failure sets `isError`. Each result is:
-              - `{ \"artifact\": Artifact, \"artifact_url\": string|null, \"next_step\": string }`. Same
+              - `{ \"artifact\": Artifact, \"name\": string|null, \"artifact_url\": string|null, \"next_step\": string,
+                \"warning\"?: string }`. Same
                 shape as `download_artifact`, resolved to the version this call wrote. `artifact_url` links
-                the artifact rather than this version, so it keeps showing the latest.
+                the artifact rather than this version, so it keeps showing the latest. `warning` appears
+                when the version has a file but its download link could not be fetched.
 
             Parameters:
-              - `items`: required array of 1–100 objects, one per artifact. Each item takes the fields below.
-              - `selected_indices`: zero-based item positions supplied by the approval host; omit when proposing.
-                Omitted selects all outside chat; chat requires a mask. `[]` updates nothing.
+              - `items`: one object per artifact. Each item takes the fields below.
               - `artifact_id`: required stable container id. Resolve it with `list_artifacts` if you only
                 have a title.
               - `title`: new display title. Pass an empty string to leave the artifact showing its file name.
@@ -1063,38 +985,26 @@ impl SiftMcpServer {
             },
             |item| Some(item.artifact_id.clone()),
         )?;
+        // An upload can fail after the version is written, so every failure may be a partial write.
         bulk::run(
             Op::Update,
             items,
             self.selection(selected_indices),
             true,
-            |item| self.update_artifact_item(Parameters(item)),
+            |item| self.update_artifact_item(item),
         )
         .await
     }
 
-    async fn update_artifact_item(
-        &self,
-        params: Parameters<UpdateArtifactItem>,
-    ) -> error::McpResult {
-        self.require_destructive()?;
-        validate_update_artifact(&params.0)?;
-        let Parameters(UpdateArtifactItem {
+    async fn update_artifact_item(&self, item: UpdateArtifactItem) -> error::McpResult {
+        let UpdateArtifactItem {
             artifact_id,
             title,
             summary,
             metadata,
             links,
             file_path,
-        }) = params;
-
-        if artifact_id.trim().is_empty() {
-            return Err(ErrorData::invalid_params(
-                "`artifact_id` must not be empty",
-                None,
-            ));
-        }
-        let file_path = normalized_file_path(file_path)?;
+        } = item;
 
         let mut version = ArtifactVersion::default();
         let mut update_mask = Vec::new();
@@ -1114,12 +1024,6 @@ impl SiftMcpServer {
         if !links.is_empty() {
             update_mask.push(UpdatePath::Links);
         }
-        if update_mask.is_empty() && file_path.is_none() {
-            return Err(ErrorData::invalid_params(
-                "pass at least one of `title`, `summary`, `metadata`, `links`, or `file_path`",
-                None,
-            ));
-        }
 
         let uploaded = file_path.is_some();
         let artifact = self
@@ -1136,18 +1040,16 @@ impl SiftMcpServer {
             .await
             .map_err(from_anyhow)?;
 
-        let artifact_url = artifact_url_for(self, &artifact.artifact_id(), None);
         let next_step = format!(
-            "Wrote version {} of artifact {}.{}{}",
+            "Wrote version {} of artifact {}.",
             artifact.version().version,
             artifact.artifact_id(),
-            content_note(&artifact, uploaded),
-            url_clause(
-                "artifact",
-                display_name(&artifact).as_deref(),
-                artifact_url.as_deref()
-            ),
         );
-        artifact_result(&artifact, artifact_url, next_step)
+        artifact_result(
+            self,
+            &artifact,
+            next_step,
+            download_warning(&artifact, uploaded),
+        )
     }
 }

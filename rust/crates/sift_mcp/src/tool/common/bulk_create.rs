@@ -2,7 +2,7 @@ use std::future::Future;
 
 use crate::error::McpResult;
 
-pub use super::bulk::{BulkItems as CreateItems, Selection, at_item, parse_items};
+pub use super::bulk::{BulkItems as CreateItems, Selection, parse_items};
 use super::bulk::{Op, run};
 
 pub async fn create_many<T, F, Fut>(items: Vec<T>, selection: Selection, operation: F) -> McpResult
@@ -201,6 +201,18 @@ mod test {
             "omit unrequested metadata, internal indices/masks, and approval/retry narration"
         ));
         assert!(!guidance.contains("Present each indexed result"));
+        assert!(
+            guidance.contains("whose target is its `*_url`"),
+            "{guidance}"
+        );
+        assert!(
+            guidance.contains("Backslash-escape any `[`, `]` or `\\` in the name"),
+            "{guidance}"
+        );
+        assert!(
+            guidance.contains("Report every result's `warning`"),
+            "{guidance}"
+        );
         assert_eq!(body["successes"][0]["index"], 0);
         assert_eq!(body["successes"][1]["index"], 2);
         assert_eq!(body["not_selected"], json!([1]));

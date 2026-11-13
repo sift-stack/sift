@@ -369,8 +369,7 @@ impl SiftMcpServer {
             with the user before calling, and report back what was created.
 
             Parameters:
-              - `items`: required array of 1–100 objects, one per test report. Pass one item to create one
-                test report. Each item takes:
+              - `items`: one object per test report. Each item takes:
                 - `report_json`: a JSON object describing the report. Shape:
                   - Report fields: `name` (required), `test_system_name` (required), `test_case`
                     (required), `status` (optional, default `PASSED`; accepts `PASSED` or
@@ -392,9 +391,6 @@ impl SiftMcpServer {
                     equals `string_expected`, else true), `measurement_type` (optional; derived from
                     the value kind), `timestamp` (optional RFC3339, default the step start), `description`,
                     `channel_names` (array), and `metadata`.
-              - `selected_indices`: zero-based positions in `items` to create. An approval host sets this
-                from the user's per-item decisions; omit it when proposing. Omitted means every item,
-                except in a Sift chat pod, where a missing value is rejected. `[]` creates nothing.
 
             Output:
               - `{ requested_count, selected_count, not_selected, created_count, successes, failures,
@@ -402,7 +398,7 @@ impl SiftMcpServer {
                 `index` is the item's zero-based position in `items`. `failures` holds `{ index, error,
                 outcome_unknown }`. `not_attempted` lists items skipped after a backend-wide error. Any
                 failure sets `isError`. Each `result` is:
-                - `{ \"test_report_id\": \"...\", \"steps_created\": N, \"measurements_created\": M, \"report_url\": string|null, \"next_step\": \"...\" }`.
+                - `{ \"test_report_id\": \"...\", \"steps_created\": N, \"measurements_created\": M, \"report_url\": string|null }`.
                   `report_url` is the report's Sift web link (`<host>/test-results/<id>`), or null when
                   the host cannot be derived (self-hosted deployments). Surface it to the user as a
                   clickable link.
@@ -479,26 +475,12 @@ impl SiftMcpServer {
             .build_test_report_url(&created.test_report_id)
             .ok();
 
-        let next_step = format!(
-            "Created test report `{}` with {} step(s) and {} measurement(s) in Sift.{} Tell the \
-             user the new `test_report_id` and surface the link. If they haven't indicated a next \
-             step, offer to verify with `list_test_steps` (filter `test_report_id == \"{}\"`).",
-            created.test_report_id,
-            created.steps_created,
-            created.measurements_created,
-            url_clause("test report", None, report_url.as_deref()),
-            created.test_report_id,
-        );
-
-        let mut result = CallToolResult::structured(serde_json::json!({
+        Ok(CallToolResult::structured(serde_json::json!({
             "test_report_id": created.test_report_id,
             "steps_created": created.steps_created,
             "measurements_created": created.measurements_created,
             "report_url": report_url,
-            "next_step": next_step,
-        }));
-        result.content = vec![ContentBlock::text(next_step)];
-        Ok(result)
+        })))
     }
 
     #[tool(

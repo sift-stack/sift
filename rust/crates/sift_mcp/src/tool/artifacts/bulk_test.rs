@@ -102,11 +102,9 @@ async fn selection_preserves_positions_and_artifact_relay_text() {
         assert_eq!(body["not_selected"], json!([1]));
         assert_eq!(body["successes"][1]["index"], 2);
         if op == "update" {
-            assert!(
-                body["successes"][0]["result"]["next_step"]
-                    .as_str()
-                    .unwrap()
-                    .starts_with("Wrote version 2 of artifact a")
+            assert_eq!(
+                body["successes"][0]["result"]["next_step"],
+                "Wrote version 2 of artifact a."
             );
             assert_eq!(
                 body["successes"][1]["result"]["artifact"]["artifactId"],

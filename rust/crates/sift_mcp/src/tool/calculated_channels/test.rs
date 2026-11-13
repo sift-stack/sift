@@ -17,7 +17,8 @@ use super::{
 use crate::{
     server::SiftMcpServer,
     tool::common::test_support::{
-        assert_keys_before, content_texts, list_params, list_params_with_fields, structured,
+        assert_keys_before, bulk_params, content_texts, list_params, list_params_with_fields,
+        structured,
     },
 };
 
@@ -256,10 +257,7 @@ fn update_call(
 }
 
 fn archive_call(id: &str) -> Parameters<super::BulkItems<super::CalculatedChannelArchiveItem>> {
-    Parameters(
-        serde_json::from_value(serde_json::json!({"items": [{"calculated_channel_id": id}]}))
-            .unwrap(),
-    )
+    bulk_params(serde_json::json!([{ "calculated_channel_id": id }]), None)
 }
 
 fn update_params() -> UpdateCalculatedChannelItem {
@@ -526,7 +524,12 @@ async fn create_calculated_channel_returns_structured_result() {
             .len(),
         1
     );
-    assert!(body["next_step"].is_string());
+    assert!(
+        body["warning"]
+            .as_str()
+            .expect("warning")
+            .contains("1 in-scope asset(s)")
+    );
 }
 
 #[tokio::test]
@@ -740,7 +743,7 @@ async fn update_calculated_channel_returns_structured_result() {
     let body = structured(resp)["successes"][0]["result"].clone();
     assert_eq!(body["calculated_channel"]["name"], "renamed");
     assert_eq!(body["calculated_channel"]["version"], 4);
-    assert!(body["next_step"].is_string());
+    assert!(body.get("next_step").is_none(), "{body}");
 }
 
 #[tokio::test]
@@ -802,7 +805,7 @@ async fn archive_calculated_channel_returns_structured_result() {
     let body = structured(resp)["successes"][0]["result"].clone();
     assert_eq!(body["archived"], true);
     assert_eq!(body["calculated_channel"]["calculatedChannelId"], "cc1");
-    assert!(body["next_step"].is_string());
+    assert!(body.get("warning").is_none(), "{body}");
 }
 
 #[tokio::test]
@@ -835,7 +838,7 @@ async fn unarchive_calculated_channel_returns_structured_result() {
 
     let body = structured(resp)["successes"][0]["result"].clone();
     assert_eq!(body["unarchived"], true);
-    assert!(body["next_step"].is_string());
+    assert!(body.get("warning").is_none(), "{body}");
 }
 
 #[tokio::test]
@@ -862,7 +865,12 @@ async fn archive_calculated_channel_surfaces_a_returned_unarchived_state() {
 
     let body = structured(resp)["successes"][0]["result"].clone();
     assert_eq!(body["archived"], false);
-    assert!(body["next_step"].as_str().unwrap().contains("unarchived"));
+    let warning = body["warning"].as_str().expect("warning");
+    assert!(warning.contains("`is_archived: false`"), "{warning}");
+    assert!(
+        warning.contains("Do not report it as archived"),
+        "{warning}"
+    );
 }
 
 #[tokio::test]
@@ -889,7 +897,12 @@ async fn unarchive_calculated_channel_surfaces_a_returned_archived_state() {
 
     let body = structured(resp)["successes"][0]["result"].clone();
     assert_eq!(body["unarchived"], false);
-    assert!(body["next_step"].as_str().unwrap().contains("archived"));
+    let warning = body["warning"].as_str().expect("warning");
+    assert!(warning.contains("`is_archived: true`"), "{warning}");
+    assert!(
+        warning.contains("Do not report it as unarchived"),
+        "{warning}"
+    );
 }
 
 #[tokio::test]

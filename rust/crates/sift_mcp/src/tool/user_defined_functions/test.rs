@@ -612,7 +612,7 @@ async fn create_rejects_a_name_longer_than_253_characters() {
 }
 
 #[tokio::test]
-async fn create_returns_the_new_function_and_next_step() {
+async fn create_returns_the_new_function() {
     let mut mock = MockUserDefinedFunctionServiceImpl::new();
     mock.expect_create_user_defined_function()
         .times(1)
@@ -650,12 +650,7 @@ async fn create_returns_the_new_function_and_next_step() {
     let body = structured(resp);
     assert_eq!(body["user_defined_function_id"], "f1");
     assert_eq!(body["user_defined_function"]["name"], "rms");
-    assert!(
-        body["next_step"]
-            .as_str()
-            .expect("next_step")
-            .contains("f1")
-    );
+    assert!(body.get("next_step").is_none(), "{body}");
 }
 
 #[tokio::test]
@@ -784,7 +779,7 @@ async fn update_returns_the_new_version() {
         body["user_defined_function"]["userDefinedFunctionVersionId"],
         "v4"
     );
-    assert!(body["next_step"].as_str().expect("next_step").contains("4"));
+    assert!(body.get("next_step").is_none(), "{body}");
 }
 
 #[tokio::test]

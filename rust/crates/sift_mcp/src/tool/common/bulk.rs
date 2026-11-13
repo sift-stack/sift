@@ -9,7 +9,7 @@ use rmcp::{
 use serde::{Deserialize, Deserializer, de::DeserializeOwned};
 use serde_json::{Map, Value, json};
 
-use crate::{error::McpResult, service::batch};
+use crate::{error::McpResult, server::SiftMcpServer, service::batch};
 
 pub const MAX_ITEMS: usize = 100;
 
@@ -20,8 +20,8 @@ pub struct BulkItems<T> {
     #[schemars(length(min = 1, max = 100))]
     #[schemars(with = "Vec<T>")]
     pub items: Vec<Value>,
-    /// Approval host's zero-based selection of `items` to write. Omit when proposing.
-    /// An empty selection performs no writes.
+    /// Approval host's zero-based selection of `items` to write. Omit when proposing;
+    /// omitted means every item. An empty selection performs no writes.
     pub selected_indices: Option<Vec<usize>>,
     #[schemars(skip)]
     _item: std::marker::PhantomData<T>,
@@ -165,6 +165,45 @@ impl Op {
             Self::Unarchive => "unarchived_count",
         }
     }
+
+    /// The key an archive or unarchive result sets to `true`: `archived` or `unarchived`.
+    pub fn state_key(self) -> &'static str {
+        match self {
+            Self::Create => "created",
+            Self::Update => "updated",
+            Self::Archive => "archived",
+            Self::Unarchive => "unarchived",
+        }
+    }
+}
+
+impl SiftMcpServer {
+    /// Validate every item, reject duplicate targets, then write the selected items one at a
+    /// time with `write`. The tool handler still gates itself before calling this.
+    pub(crate) async fn bulk_write<T, U, F, Fut>(
+        &self,
+        op: Op,
+        params: BulkItems<T>,
+        resource: &str,
+        validate: impl Fn(T) -> Result<U, ErrorData>,
+        target: impl Fn(&U) -> Option<String>,
+        write: F,
+    ) -> McpResult
+    where
+        T: DeserializeOwned + JsonSchema,
+        F: FnMut(U) -> Fut,
+        Fut: Future<Output = McpResult>,
+    {
+        let items = prepare(params.items, resource, validate, target)?;
+        run(
+            op,
+            items,
+            self.selection(params.selected_indices),
+            false,
+            write,
+        )
+        .await
+    }
 }
 
 fn reason(error: &ErrorData) -> Option<&str> {
@@ -300,7 +339,10 @@ pub fn report(
     let next_step = format!(
         "{} {} items; {} failed; {} not attempted. \
          On success, confirm in one short sentence using resource names or links; omit unrequested metadata, \
-         internal indices/masks, and approval/retry narration. Report actionable warnings and failures. \
+         internal indices/masks, and approval/retry narration. Write each link as a Markdown link whose \
+         text is the resource's name and whose target is its `*_url`, never a bare id. Backslash-escape \
+         any `[`, `]` or `\\` in the name so the link renders. Report every \
+         result's `warning` and every failure. \
          Never replay the batch: successful writes are committed, and the user rejected the items in \
          `not_selected`, so never retry those. `outcome_unknown` items may also have been written or \
          partially written. Inspect uncertain outcomes before retrying, follow each error's guidance, \

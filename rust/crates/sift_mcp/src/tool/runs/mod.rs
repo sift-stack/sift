@@ -1,7 +1,7 @@
 use rmcp::{
     ErrorData,
     handler::server::wrapper::Parameters,
-    model::{CallToolResult, ContentBlock},
+    model::CallToolResult,
     schemars::{self, JsonSchema},
     tool, tool_router,
 };
@@ -13,8 +13,8 @@ use crate::{
     server::SiftMcpServer,
     tool::common::{
         ListParams, MetadataEntry,
-        bulk::{self, BulkItems, Op},
-        list_body, url_clause, with_urls,
+        bulk::{BulkItems, Op},
+        list_body, require_non_empty, with_urls,
     },
 };
 
@@ -35,12 +35,7 @@ pub struct UpdateRunItem {
 }
 
 fn validate_update_run(item: &UpdateRunItem) -> Result<(), ErrorData> {
-    if item.run_id.trim().is_empty() {
-        return Err(ErrorData::invalid_params(
-            "`run_id` must not be empty",
-            None,
-        ));
-    }
+    require_non_empty("run_id", &item.run_id)?;
     if !(item.name.is_some()
         || item.description.is_some()
         || item.start_time_unix_nanos.is_some()
@@ -154,14 +149,12 @@ impl SiftMcpServer {
               - `{ requested_count, selected_count, not_selected, updated_count, successes, failures,
                 not_attempted, next_step }`. Each success holds `{ index, result }`, each failure holds
                 `{ index, error, outcome_unknown }`, and any failure sets `isError`. Each result is:
-              - `{ \"run\": Run, \"run_url\": string|null, \"next_step\": string }`. The returned `Run` is the
+              - `{ \"run\": Run, \"run_url\": string|null }`. The returned `Run` is the
                 post-update state from the server; `run_url` is its Sift web link (`<host>/run/<run_id>`), or null
                 when the host can't be derived.
 
             Parameters:
-              - `items`: required array of 1–100 objects, one per run. Each item takes the fields below.
-              - `selected_indices`: zero-based item positions supplied by the approval host; omit when
-                proposing. Omitted selects all outside chat; chat requires a mask. `[]` updates nothing.
+              - `items`: one object per run. Each item takes the fields below.
               - `run_id`: required; the id of the run to update.
               - `name`: optional new name.
               - `description`: optional new description.
@@ -201,34 +194,22 @@ impl SiftMcpServer {
         params: Parameters<BulkItems<UpdateRunItem>>,
     ) -> error::McpResult {
         self.require_destructive()?;
-        let Parameters(BulkItems {
-            items,
-            selected_indices,
-            ..
-        }) = params;
-        let items = bulk::prepare(
-            items,
+        self.bulk_write(
+            Op::Update,
+            params.0,
             "run",
             |item: UpdateRunItem| {
                 validate_update_run(&item)?;
                 Ok(item)
             },
             |item| Some(item.run_id.clone()),
-        )?;
-        bulk::run(
-            Op::Update,
-            items,
-            self.selection(selected_indices),
-            false,
-            |item| self.update_run_item(Parameters(item)),
+            |item| self.update_run_item(item),
         )
         .await
     }
 
-    async fn update_run_item(&self, params: Parameters<UpdateRunItem>) -> error::McpResult {
-        self.require_destructive()?;
-        validate_update_run(&params.0)?;
-        let Parameters(UpdateRunItem {
+    async fn update_run_item(&self, item: UpdateRunItem) -> error::McpResult {
+        let UpdateRunItem {
             run_id,
             name,
             description,
@@ -238,7 +219,7 @@ impl SiftMcpServer {
             client_key,
             tags,
             metadata,
-        }) = params;
+        } = item;
 
         let metadata = metadata.map(|m| m.into_iter().map(MetadataValue::from).collect::<Vec<_>>());
 
@@ -259,19 +240,9 @@ impl SiftMcpServer {
             .map_err(from_anyhow)?;
 
         let run_url = self.url_service.build_run_url(&run.run_id).ok();
-        let next_step = format!(
-            "Updated run `{}` ({}).{}",
-            run.name,
-            run.run_id,
-            url_clause("run", Some(&run.name), run_url.as_deref()),
-        );
-
-        let mut result = CallToolResult::structured(serde_json::json!({
+        Ok(CallToolResult::structured(serde_json::json!({
             "run": run,
             "run_url": run_url,
-            "next_step": next_step,
-        }));
-        result.content = vec![ContentBlock::text(next_step)];
-        Ok(result)
+        })))
     }
 }

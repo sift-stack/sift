@@ -10,10 +10,7 @@ use tonic::{Response, Status, transport::Server};
 use crate::{
     server::SiftMcpServer,
     service::common::DEFAULT_LIMIT,
-    tool::{
-        assets::UpdateAssetItem as UpdateAssetParams,
-        common::test_support::{list_params, structured_field},
-    },
+    tool::common::test_support::{bulk_params, list_params, structured_field},
 };
 
 async fn server_with_mock(mock: MockAssetServiceImpl) -> (SiftMcpServer, JoinHandle<()>) {
@@ -245,11 +242,10 @@ async fn update_asset_blocked_without_allow_destructive() {
     let (server, _h) = server_with_mock_and_flag(mock, false).await;
 
     let err = server
-        .update_asset_item(Parameters(UpdateAssetParams {
-            asset_id: "a1".into(),
-            tags: Some(vec!["engine".into()]),
-            metadata: None,
-        }))
+        .update_asset(bulk_params(
+            serde_json::json!([{"asset_id": "a1", "tags": ["engine"]}]),
+            None,
+        ))
         .await
         .expect_err("expected destructive gate to reject the call");
 

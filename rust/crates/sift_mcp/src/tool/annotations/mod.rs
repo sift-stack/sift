@@ -1,7 +1,7 @@
 use rmcp::{
     ErrorData,
     handler::server::wrapper::Parameters,
-    model::{CallToolResult, ContentBlock},
+    model::CallToolResult,
     schemars::{self, JsonSchema},
     tool, tool_router,
 };
@@ -18,7 +18,7 @@ use crate::tool::common::{
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
-    tool::common::{MetadataEntry, list_body, url_clause, with_urls},
+    tool::common::{MetadataEntry, list_body, with_urls},
 };
 
 #[cfg(test)]
@@ -108,8 +108,8 @@ pub struct CreateAnnotationParams {
     #[schemars(length(min = 1, max = 100))]
     #[schemars(with = "Vec<CreateAnnotationItem>")]
     items: Vec<serde_json::Value>,
-    /// Approval host's zero-based selection of `items` to create. Omit when proposing.
-    /// An empty selection performs no writes.
+    /// Approval host's zero-based selection of `items` to create. Omit when proposing;
+    /// omitted means every item. An empty selection performs no writes.
     selected_indices: Option<Vec<usize>>,
     /// Run associated with every item.
     run_id: Option<String>,
@@ -121,6 +121,8 @@ pub struct CreateAnnotationParams {
 #[serde(deny_unknown_fields)]
 pub struct UpdateAnnotationParams {
     annotation_ids: Vec<String>,
+    /// Approval host's zero-based selection of `annotation_ids` to write. Omit when proposing;
+    /// omitted means every id. An empty selection performs no writes.
     selected_indices: Option<Vec<usize>>,
     name: Option<String>,
     description: Option<String>,
@@ -231,14 +233,13 @@ impl SiftMcpServer {
                 `index` is the item's zero-based position in `items`. `failures` holds `{ index, error,
                 outcome_unknown }`. `not_attempted` lists items skipped after a backend-wide error. Any
                 failure sets `isError`. Each `result` is:
-                - `{ \"annotation\": Annotation, \"annotation_url\": string|null, \"next_step\": string }`. The
+                - `{ \"annotation\": Annotation, \"annotation_url\": string|null }`. The
                   returned `Annotation` is the server-assigned state including its new `annotation_id`;
                   `annotation_url` is its Sift web link (`<host>/annotation/<annotation_id>`), or null when the host
                   can't be derived.
 
             Parameters:
-              - `items`: required array of 1–100 objects, one per annotation. Pass one item to create one
-                annotation. Each item takes:
+              - `items`: one object per annotation. Each item takes:
                 - `name`: required; the annotation's display name.
                 - `description`: optional free-text description.
                 - `start_time_unix_nanos` / `end_time_unix_nanos`: required time bounds in Unix nanoseconds.
@@ -260,9 +261,6 @@ impl SiftMcpServer {
                 inside an item.
               - `organization_id`: optional, shared by every item. Required only when the caller belongs
                 to multiple organizations.
-              - `selected_indices`: zero-based positions in `items` to create. An approval host sets this
-                from the user's per-item decisions; omit it when proposing. Omitted means every item,
-                except in a Sift chat pod, where a missing value is rejected. `[]` creates nothing.
 
             Errors:
               - `INVALID_PARAMS` if `name` is empty, the time range is inverted, `annotation_type`/`state` is not a
@@ -417,25 +415,10 @@ impl SiftMcpServer {
             .url_service
             .build_annotation_url(&annotation.annotation_id)
             .ok();
-        let next_step = format!(
-            "Created annotation `{}` ({}).{} Surface the new annotation to the user and confirm it \
-             matches their intent.",
-            annotation.name,
-            annotation.annotation_id,
-            url_clause(
-                "annotation",
-                Some(&annotation.name),
-                annotation_url.as_deref()
-            ),
-        );
-
-        let mut result = CallToolResult::structured(serde_json::json!({
+        Ok(CallToolResult::structured(serde_json::json!({
             "annotation": annotation,
             "annotation_url": annotation_url,
-            "next_step": next_step,
-        }));
-        result.content = vec![ContentBlock::text(next_step)];
-        Ok(result)
+        })))
     }
 
     #[tool(
@@ -456,8 +439,6 @@ impl SiftMcpServer {
               - `annotation_ids`: required list of 1–1000 unique, nonempty annotation ids, or 1–100 in chat.
                 Split chat work into calls of at most 100 ids. Pass one id to update one annotation.
                 The same changes apply to every selected annotation.
-              - `selected_indices`: zero-based positions in `annotation_ids` supplied by the approval host;
-                omit when proposing. Omitted selects all outside chat; chat requires a mask. `[]` writes nothing.
               - `name`: optional new name.
               - `description`: optional new description.
               - `start_time_unix_nanos` / `end_time_unix_nanos`: optional new time bounds in Unix nanoseconds.

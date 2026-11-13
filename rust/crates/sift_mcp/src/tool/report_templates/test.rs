@@ -267,14 +267,6 @@ async fn create_report_template_happy_path() {
 
     let url = structured_field(resp.clone(), "report_template_url");
     assert_eq!(url, "https://app.test.local/report-templates/tmpl-new");
-    let next_step = structured_field(resp.clone(), "next_step");
-    assert!(
-        next_step
-            .as_str()
-            .unwrap()
-            .contains("[safety](https://app.test.local/report-templates/tmpl-new)"),
-        "got {next_step}"
-    );
     let template = structured_field(resp, "report_template");
     assert_eq!(template["reportTemplateId"], "tmpl-new");
 }
@@ -351,14 +343,6 @@ async fn update_report_template_happy_path() {
 
     let url = structured_field(resp.clone(), "report_template_url");
     assert_eq!(url, "https://app.test.local/report-templates/tmpl-1");
-    let next_step = structured_field(resp.clone(), "next_step");
-    assert!(
-        next_step
-            .as_str()
-            .unwrap()
-            .contains("[renamed](https://app.test.local/report-templates/tmpl-1)"),
-        "got {next_step}"
-    );
     let template = structured_field(resp, "report_template");
     assert_eq!(template["name"], "renamed");
 }

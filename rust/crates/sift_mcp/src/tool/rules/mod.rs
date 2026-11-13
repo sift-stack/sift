@@ -1,22 +1,22 @@
 use rmcp::{
     ErrorData,
     handler::server::wrapper::Parameters,
-    model::{CallToolResult, ContentBlock},
+    model::CallToolResult,
     schemars::{self, JsonSchema},
     tool, tool_router,
 };
 use serde::Deserialize;
 use sift_rs::rules::v1::{UpdateConditionRequest, UpdateRuleRequest};
 
-use crate::tool::common::{
-    bulk::{self, BulkItems, Op},
-    bulk_create,
-};
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::rules::RuleUpdate,
-    tool::common::{ListParams, list_body, read_result, url_clause, with_urls},
+    tool::common::{
+        ListParams,
+        bulk::{BulkItems, Op},
+        exactly_one, list_body, read_result, require_non_empty, url_clause, with_urls,
+    },
 };
 
 #[cfg(test)]
@@ -217,13 +217,12 @@ impl SiftMcpServer {
                 `index` is the item's zero-based position in `items`. `failures` holds `{ index, error,
                 outcome_unknown }`. `not_attempted` lists items skipped after a backend-wide error. Any
                 failure sets `isError`. Each `result` is:
-                - `{ \"rule_id\": \"<id>\", \"rule_url\": string|null, \"next_step\": \"...\" }`. `rule_id` is the
+                - `{ \"rule_id\": \"<id>\", \"name\": string, \"rule_url\": string|null }`. `rule_id` is the
                   server-assigned id of the new rule; `rule_url` is its Sift web link (`<host>/rules/<rule_id>`), or
                   null when the host can't be derived.
 
             Parameters:
-              - `items`: required array of 1–100 objects, one per rule. Pass one item to create one
-                rule. Each item takes:
+              - `items`: one object per rule. Each item takes:
                 - `rule_json`: a JSON object matching `protos/sift/rules/v1/rules.proto::UpdateRuleRequest`. Use the
                   proto field names. Omit `rule_id` (this is a create). Key fields:
                   - `name` (required), `description` (required).
@@ -235,9 +234,6 @@ impl SiftMcpServer {
                   - `metadata` (required): array of metadata values (may be empty: `[]`).
                   - `client_key` (optional): a caller-defined identifier. Immutable after creation.
                   - `is_live_evaluation_enabled` (optional): evaluate against live data.
-              - `selected_indices`: zero-based positions in `items` to create. An approval host sets this
-                from the user's per-item decisions; omit it when proposing. Omitted means every item,
-                except in a Sift chat pod, where a missing value is rejected. `[]` creates nothing.
 
             Errors:
               - `INVALID_PARAMS` if `rule_json` is not valid JSON or does not match the rule schema.
@@ -266,64 +262,42 @@ impl SiftMcpServer {
     )]
     pub async fn create_rule(
         &self,
-        params: Parameters<bulk_create::CreateItems<CreateRuleItem>>,
+        params: Parameters<BulkItems<CreateRuleItem>>,
     ) -> error::McpResult {
         self.require_create()?;
-        let Parameters(bulk_create::CreateItems {
-            items,
-            selected_indices,
-            ..
-        }) = params;
-        let items = bulk_create::parse_items::<CreateRuleItem>(items)?;
-        for (index, item) in items.iter().enumerate() {
-            let definition = parse_rule_definition(&item.rule_json)
-                .map_err(|error| bulk_create::at_item(index, error))?;
-            if definition.rule_id.is_some() {
-                return Err(ErrorData::invalid_params(
-                    format!("`items` item {index}: omit `rule_id`; this tool only creates"),
-                    None,
-                ));
-            }
-        }
-        bulk_create::create_many(items, self.selection(selected_indices), |item| {
-            self.create_rule_item(Parameters(item))
-        })
+        self.bulk_write(
+            Op::Create,
+            params.0,
+            "rule",
+            |item: CreateRuleItem| {
+                let definition = parse_rule_definition(&item.rule_json)?;
+                if definition.rule_id.is_some() {
+                    return Err(ErrorData::invalid_params(
+                        "omit `rule_id`; this tool only creates",
+                        None,
+                    ));
+                }
+                Ok(definition)
+            },
+            |_| None,
+            |definition| self.create_rule_item(definition),
+        )
         .await
     }
 
-    /// Create one item. Callers check access and validate the whole call first.
-    pub(crate) async fn create_rule_item(
-        &self,
-        params: Parameters<CreateRuleItem>,
-    ) -> error::McpResult {
-        self.require_create()?;
-
-        let Parameters(CreateRuleItem { rule_json }) = params;
-
-        let update = parse_rule_definition(&rule_json)?;
-        let rule_name = update.name.clone();
-
+    async fn create_rule_item(&self, definition: UpdateRuleRequest) -> error::McpResult {
+        let name = definition.name.clone();
         let rule_id = self
             .rule_service
-            .create_rule(update)
+            .create_rule(definition)
             .await
             .map_err(from_anyhow)?;
 
-        let rule_url = self.url_service.build_rule_url(&rule_id).ok();
-        let next_step = format!(
-            "Created rule with id `{rule_id}`.{} Tell the user the new rule id. If they haven't \
-             indicated a next step, offer to confirm it with `list_rules` \
-             (filter `rule_id == \"{rule_id}\"`).",
-            url_clause("rule", Some(rule_name.as_str()), rule_url.as_deref()),
-        );
-
-        let mut result = CallToolResult::structured(serde_json::json!({
+        Ok(CallToolResult::structured(serde_json::json!({
             "rule_id": rule_id,
-            "rule_url": rule_url,
-            "next_step": next_step,
-        }));
-        result.content = vec![ContentBlock::text(next_step)];
-        Ok(result)
+            "name": name,
+            "rule_url": rule_url_for(self, &rule_id),
+        })))
     }
 
     #[tool(
@@ -336,11 +310,11 @@ impl SiftMcpServer {
                 not_attempted, next_step }`. Successes: `{ index, result }`; failures: `{ index, error,
                 outcome_unknown }`. Indices refer to input positions; backend failures leave a `not_attempted`
                 tail. Any failure sets `isError`. Each result is:
-                - `{ \"rule_id\": \"<id>\", \"rule_url\": string|null, \"next_step\": \"...\" }`. `rule_url` is
+                - `{ \"rule_id\": \"<id>\", \"rule_url\": string|null }`. `rule_url` is
                   the rule's Sift web link, or null when the host can't be derived.
 
             Parameters:
-              - `items`: 1–100 objects, each with:
+              - `items`: one object per rule, each with:
                 - `rule_id`: required. The rule to update.
                 - `name`: optional. New rule name.
                 - `description`: optional. New description.
@@ -352,8 +326,6 @@ impl SiftMcpServer {
                   `conditions` field of `create_rule`'s `rule_json`. Omit it to keep the existing conditions
                   unchanged — only provide it when you intend to rewrite the rule's logic.
                 - At least one field besides `rule_id` must be set.
-              - `selected_indices`: host-owned zero-based input positions; omit when proposing.
-                Omitted selects all outside Sift chat; chat requires a mask. `[]` writes nothing.
 
             Errors:
               - `INVALID_PARAMS` before any write if `items` is empty or has more than 100 entries, if two
@@ -384,45 +356,28 @@ impl SiftMcpServer {
         params: Parameters<BulkItems<UpdateRuleItem>>,
     ) -> error::McpResult {
         self.require_destructive()?;
-        let Parameters(BulkItems {
-            items,
-            selected_indices,
-            ..
-        }) = params;
-        let updates = bulk::prepare(items, "rule", rule_update, |(rule_id, _)| {
-            Some(rule_id.clone())
-        })?;
-        bulk::run(
+        self.bulk_write(
             Op::Update,
-            updates,
-            self.selection(selected_indices),
-            false,
+            params.0,
+            "rule",
+            rule_update,
+            |(rule_id, _)| Some(rule_id.clone()),
             |(rule_id, changes)| self.update_rule_item(rule_id, changes),
         )
         .await
     }
 
     async fn update_rule_item(&self, rule_id: String, changes: RuleUpdate) -> error::McpResult {
-        let rule_name = changes.name.clone();
         let rule_id = self
             .rule_service
             .update_rule(rule_id, changes)
             .await
             .map_err(from_anyhow)?;
 
-        let rule_url = self.url_service.build_rule_url(&rule_id).ok();
-        let next_step = format!(
-            "Updated rule `{rule_id}`.{}",
-            url_clause("rule", rule_name.as_deref(), rule_url.as_deref()),
-        );
-
-        let mut result = CallToolResult::structured(serde_json::json!({
+        Ok(CallToolResult::structured(serde_json::json!({
             "rule_id": rule_id,
-            "rule_url": rule_url,
-            "next_step": next_step,
-        }));
-        result.content = vec![ContentBlock::text(next_step)];
-        Ok(result)
+            "rule_url": rule_url_for(self, &rule_id),
+        })))
     }
 
     #[tool(
@@ -440,11 +395,9 @@ impl SiftMcpServer {
                   `rule_url` is the rule's Sift web link, or null when the host can't be derived.
 
             Parameters:
-              - `items`: 1–100 objects, each with exactly one of:
+              - `items`: one object per rule, each with exactly one of:
                 - `rule_id`: the id of the rule to archive.
                 - `client_key`: the caller-defined key of the rule to archive.
-              - `selected_indices`: host-owned zero-based input positions; omit when proposing.
-                Omitted selects all outside Sift chat; chat requires a mask. `[]` writes nothing.
 
             Errors:
               - `INVALID_PARAMS` before any write if `items` is empty or has more than 100 entries, if two
@@ -489,11 +442,9 @@ impl SiftMcpServer {
                   `rule_url` is the rule's Sift web link, or null when the host can't be derived.
 
             Parameters:
-              - `items`: 1–100 objects, each with exactly one of:
+              - `items`: one object per rule, each with exactly one of:
                 - `rule_id`: the id of the rule to unarchive.
                 - `client_key`: the caller-defined key of the rule to unarchive.
-              - `selected_indices`: host-owned zero-based input positions; omit when proposing.
-                Omitted selects all outside Sift chat; chat requires a mask. `[]` writes nothing.
 
             Errors:
               - `INVALID_PARAMS` before any write if `items` is empty or has more than 100 entries, if two
@@ -528,15 +479,13 @@ impl SiftMcpServer {
         params: Parameters<BulkItems<RuleArchiveItem>>,
         op: Op,
     ) -> error::McpResult {
-        let Parameters(BulkItems {
-            items,
-            selected_indices,
-            ..
-        }) = params;
-        let targets = bulk::prepare(
-            items,
+        self.bulk_write(
+            op,
+            params.0,
             "rule",
-            |item: RuleArchiveItem| rule_identifier(item.rule_id, item.client_key),
+            |item: RuleArchiveItem| {
+                exactly_one(("rule_id", item.rule_id), ("client_key", item.client_key))
+            },
             |(rule_id, client_key)| {
                 Some(if rule_id.is_empty() {
                     format!("client_key:{client_key}")
@@ -544,12 +493,6 @@ impl SiftMcpServer {
                     format!("rule_id:{rule_id}")
                 })
             },
-        )?;
-        bulk::run(
-            op,
-            targets,
-            self.selection(selected_indices),
-            false,
             |(rule_id, client_key)| self.set_rule_archived(rule_id, client_key, op),
         )
         .await
@@ -566,8 +509,7 @@ impl SiftMcpServer {
             .find_rule(rule_id, client_key)
             .await
             .map_err(from_anyhow)?;
-        let archived = op == Op::Archive;
-        let write = if archived {
+        let write = if op == Op::Archive {
             self.rule_service
                 .archive_rule(rule.rule_id.clone(), String::new())
                 .await
@@ -578,11 +520,10 @@ impl SiftMcpServer {
         };
         write.map_err(from_anyhow)?;
 
-        let state = if archived { "archived" } else { "unarchived" };
         Ok(CallToolResult::structured(serde_json::json!({
             "rule_id": rule.rule_id,
             "name": rule.name,
-            state: true,
+            op.state_key(): true,
             "rule_url": rule_url_for(self, &rule.rule_id),
         })))
     }
@@ -599,12 +540,7 @@ fn rule_update(item: UpdateRuleItem) -> Result<(String, RuleUpdate), ErrorData> 
         tag_ids,
         conditions_json,
     } = item;
-    if rule_id.trim().is_empty() {
-        return Err(ErrorData::invalid_params(
-            "`rule_id` must not be empty",
-            None,
-        ));
-    }
+    require_non_empty("rule_id", &rule_id)?;
     let conditions = conditions_json
         .as_deref()
         .map(parse_conditions)
@@ -664,24 +600,4 @@ fn parse_conditions(conditions_json: &str) -> Result<Vec<UpdateConditionRequest>
             None,
         )
     })
-}
-
-/// Resolve the `(rule_id, client_key)` request fields from the mutually
-/// exclusive optional params, returning `INVALID_PARAMS` unless exactly one is set.
-fn rule_identifier(
-    rule_id: Option<String>,
-    client_key: Option<String>,
-) -> Result<(String, String), ErrorData> {
-    match (rule_id, client_key) {
-        (Some(r), None) => Ok((r, String::new())),
-        (None, Some(c)) => Ok((String::new(), c)),
-        (Some(_), Some(_)) => Err(ErrorData::invalid_params(
-            "exactly one of `rule_id` or `client_key` must be set, not both",
-            None,
-        )),
-        (None, None) => Err(ErrorData::invalid_params(
-            "one of `rule_id` or `client_key` must be set",
-            None,
-        )),
-    }
 }
