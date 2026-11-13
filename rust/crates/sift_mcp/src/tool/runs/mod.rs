@@ -35,7 +35,7 @@ impl SiftMcpServer {
     #[tool(
         name = "list_runs",
         description = "
-            List runs in Sift, optionally filtered by a CEL expression and ordered by one or more fields.
+            List runs in Sift, optionally filtered by a CEL expression and ordered by one or more fields. Default nonarchived.
 
             Output:
               - `{ \"runs\": [Run, ...] }`. Each item is the full Sift `Run` shape including `run_id`, `name`,
@@ -53,7 +53,8 @@ impl SiftMcpServer {
                 `has_more` is `true` — narrow `filter` or raise `limit` and ask again.
 
             Parameters:
-              - `filter`: CEL expression. Pass an empty string to list everything. Filterable fields:
+              - `filter`: CEL expression. An empty string uses the default. Use `is_archived == true` for archive-only
+                runs or `(is_archived == true || is_archived == false)` for both states. Filterable fields:
                 `run_id`, `organization_id`, `asset_id`, `asset_name`, `client_key`, `name`, `description`,
                 `start_time`, `stop_time`, `duration`, `duration_string`, `tag_id`, `asset_tag_id`,
                 `annotation_comments_count`, `annotation_state`, `created_date`, `modified_date`, `archived_date`,
@@ -90,8 +91,6 @@ impl SiftMcpServer {
               - To find runs covering a specific moment, filter on both `start_time` and `stop_time` rather than
                 pulling everything and filtering client-side.
               - Order by `start_time desc` when surfacing the most recent runs to a user.
-              - Default add `is_archived == false` to the filter. Include archived runs only when the user
-                explicitly asks for them.
         ",
         annotations(title = "runs/list_runs", read_only_hint = true)
     )]
