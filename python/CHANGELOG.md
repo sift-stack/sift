@@ -5,6 +5,48 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 <!-- towncrier release notes start -->
 
+## [v0.26.0] - November 13, 2026
+
+### Breaking
+
+- `streaming_mode` is now a required argument of `create_ingestion_config_streaming_client` and `create_auto_register_streaming_client`. The previous default was `StreamingMode.LIVE_WITH_BACKUPS`: pass it to keep local telemetry backups, or pass `StreamingMode.LIVE_ONLY` to stream without them. ([#887](https://github.com/sift-stack/sift/pull/887))
+
+### Features
+
+- Bit field columns are supported in CSV, Parquet, TDMS and HDF5 imports through `bit_field_elements`. ULog and MCAP imports don't support bit fields and raise `ValueError`. See [Bit field columns in import configs](#highlight-0-26-0-1). ([#861](https://github.com/sift-stack/sift/pull/861))
+
+- Updated the generated protobuf modules to the current public Sift API, including `file_sha256` on artifact versions. ([#869](https://github.com/sift-stack/sift/pull/869))
+
+- Added `ArtifactVersion.file_sha256`. Artifact uploads now send the SHA-256 of the file, and each version returns it, so a caller can skip uploading an unchanged file. ([#870](https://github.com/sift-stack/sift/pull/870))
+
+### Fixes
+
+- Run, annotation, test step, and data import time bounds are nanosecond timestamps, matching channel data, so a time axis built from them lines up with `get_data`. ([#857](https://github.com/sift-stack/sift/pull/857))
+
+- MCAP import configs keep `enum_types` when sent to Sift and when read back from a data import. Before, enum definitions on MCAP data columns were dropped. ([#861](https://github.com/sift-stack/sift/pull/861))
+
+- Data import and other file upload and download errors now include the server's error message. File attachment, artifact, and test result uploads raise `requests.HTTPError` instead of `Exception`. ([#864](https://github.com/sift-stack/sift/pull/864))
+
+- Fixed uploads from an open file object that was already read, which sent only the bytes after its position, or an empty file. A file object now uploads whole, whatever its position. ([#870](https://github.com/sift-stack/sift/pull/870))
+
+### Highlights
+
+#### <a id="highlight-0-26-0-1"></a>Bit field columns in import configs
+
+Set `data_type` to `BIT_FIELD` on a detected column and list its elements:
+
+```python
+from sift_client.sift_types.channel import ChannelBitFieldElement, ChannelDataType
+
+config = client.data_import.detect_config("data.parquet", data_type=DataTypeKey.PARQUET_FLATDATASET)
+status = config["status"]
+status.data_type = ChannelDataType.BIT_FIELD
+status.bit_field_elements = [
+    ChannelBitFieldElement(name="armed", index=0, bit_count=1),
+    ChannelBitFieldElement(name="mode", index=4, bit_count=4),
+]
+```
+
 ## [v0.25.0] - October 26, 2026
 
 ### Features
