@@ -4634,7 +4634,7 @@ integers.</p>
 
 <a href="#sift_client.sift_types.run.Run.import_data" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">import_data</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">file_path</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span><span class="p">,</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">file_path</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span> <span class="o">|</span> <span class="n"><span title="typing.Sequence">Sequence</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span><span class="p">],</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="o">*</span><span class="p">,</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">asset</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            Asset
 
@@ -4661,13 +4661,13 @@ integers.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Import data from a file into this run.</p>
+        <p>Import data from a file, or a list of files, into this run.</p>
 <p>Convenience method that calls <code>client.data_import.import_from_path</code>
 with this run pre-filled. If the run has exactly one asset,
 <code>asset</code> is inferred automatically.</p>
-<p>A finished import stops this run unless <code>leave_run_open</code> is true.
-Set that when more files are coming, then call <code>stop</code> after the
-last import.</p>
+<p>A list of two or more paths is one import into this run. A finished
+import stops this run unless <code>leave_run_open</code> is true. Set that
+when more files are coming, then call <code>stop</code> after the last import.</p>
 
 
 <table>
@@ -4684,12 +4684,13 @@ last import.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Path to the local file to import.</p>
+                <p>Path to the local file to import, or a list of paths.
+Two or more paths are uploaded as one zip.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
+                      <code><span title="str">str</span> | <span title="pathlib.Path">Path</span> | <span title="typing.Sequence">Sequence</span>[<span title="str">str</span> | <span title="pathlib.Path">Path</span>]</code>
                   </span>
               </p>
             </td>
