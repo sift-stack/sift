@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import shutil
+import tempfile
+import zipfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -18,6 +21,7 @@ from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.data_import import (
     DATA_TYPE_KEY_TO_PROTO,
+    EXTENSION_TO_DATA_TYPE_KEY,
     DataImport,
     DataTypeKey,
     ImportConfig,
@@ -33,12 +37,30 @@ from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
     from datetime import datetime
+    from typing import Sequence
 
     import pandas as pd
 
     from sift_client.client import SiftClient
     from sift_client.sift_types.data_import import DataImportStatus
     from sift_client.sift_types.job import Job
+
+
+def _paths_from_argument(file_path: str | Path | Sequence[str | Path]) -> list[Path]:
+    """Return the paths to import.
+
+    A string is one path. A list or other sequence is one path per entry.
+    """
+    if isinstance(file_path, (str, Path)):
+        return [Path(file_path)]
+    return [Path(path) for path in file_path]
+
+
+def _write_import_zip(archive: Path, paths: list[Path]) -> None:
+    """Pack each file into the archive under its own file name."""
+    with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as zip_file:
+        for path in paths:
+            zip_file.write(path, arcname=path.name)
 
 
 class DataImportAPIAsync(ResourceBase):
@@ -57,7 +79,7 @@ class DataImportAPIAsync(ResourceBase):
 
     async def import_from_path(
         self,
-        file_path: str | Path,
+        file_path: str | Path | Sequence[str | Path],
         *,
         asset: Asset | str | None = None,
         config: ImportConfig | None = None,
@@ -69,13 +91,19 @@ class DataImportAPIAsync(ResourceBase):
         show_progress: bool | None = None,
         leave_run_open: bool = False,
     ) -> Job:
-        """Import data from a local file.
+        """Import data from a local file, or from a list of files.
 
         Creates a data import on the server, uploads the file, and returns
         a ``Job`` handle after uploading the file. The import processes
         server-side and typically completes shortly after upload. Use
         ``job.wait_until_complete()`` only if you need to confirm
         completion before proceeding.
+
+        A list of two or more paths is one import. The files are packed into
+        a zip and imported together into one asset and one run. Each file is
+        detected on its own. ``data_type`` applies only to files whose
+        extension does not name a format, such as Parquet and HDF5. The run
+        stops when that import finishes unless ``leave_run_open`` is true.
 
         When ``config`` is omitted the file format is auto-detected via
         ``detect_config`` (CSV, Parquet, HDF5, TDMS, ULog, and MCAP).
@@ -117,16 +145,21 @@ class DataImportAPIAsync(ResourceBase):
                 )
 
         Args:
-            file_path: Path to the local file to import.
+            file_path: Path to the local file to import, or a list of paths.
+                Two or more paths are uploaded as one zip. Each archive member
+                is the file's name, so the names must be distinct. A list of
+                one path imports that file directly.
             asset: Asset object or asset name to import data into. Optional
-                when ``config`` already has ``asset_name`` set.
+                when ``config`` already has ``asset_name`` set. Required for
+                a list of paths.
             config: Import configuration describing the file format and column
                 mapping. When provided, ``data_type`` is ignored. If omitted,
                 the config is auto-detected via ``detect_config`` (for ULog
                 and MCAP the detected channel list is dropped so every channel
                 in the file is imported). You can call ``detect_config``
                 yourself to inspect and modify the config before passing it
-                here.
+                here. A list of paths detects each file, so ``config`` is
+                only used for a single path.
             data_type: Explicit data type key. Required for formats with
                 multiple supported layouts (Parquet, HDF5) where the file
                 extension alone is ambiguous. Only used when ``config`` is
@@ -150,7 +183,8 @@ class DataImportAPIAsync(ResourceBase):
             run: ``Run`` object or run ID string to import into an existing
                 run. Mutually exclusive with ``run_name``.
             run_name: Name for a new run. Defaults to the filename if
-                neither ``run`` nor ``run_name`` is set.
+                neither ``run`` nor ``run_name`` is set. For a list of paths,
+                the default is the first file's name.
             show_progress: If True, display a progress spinner during upload.
                 Defaults to True for sync, False for async.
             leave_run_open: If true, the import does not mark its run stopped,
@@ -167,23 +201,37 @@ class DataImportAPIAsync(ResourceBase):
         Raises:
             FileNotFoundError: If the file does not exist.
             ValueError: If a ``BIT_FIELD`` column's values aren't in a format
-                the import service reads, such as integers.
+                the import service reads, such as integers. Also if a list of
+                paths is empty, contains duplicate file names, omits
+                ``asset``, or is passed with ``config``.
         """
-        path = Path(file_path)
+        paths = _paths_from_argument(file_path)
+        if not paths:
+            raise ValueError("At least one file path is required.")
+        if len(paths) > 1:
+            return await self._import_many(
+                paths,
+                asset=asset,
+                config=config,
+                data_type=data_type,
+                time_format=time_format,
+                relative_start_time=relative_start_time,
+                run=run,
+                run_name=run_name,
+                show_progress=show_progress,
+                leave_run_open=leave_run_open,
+            )
+        path = paths[0]
         if not path.is_file():
-            raise FileNotFoundError(f"File not found: {file_path}")
+            raise FileNotFoundError(f"File not found: {path}")
 
         if config is None:
-            config = await self.detect_config(
-                file_path,
+            config = await self._detect_import_config(
+                path,
                 data_type=data_type,
                 time_format=time_format,
                 relative_start_time=relative_start_time,
             )
-            config._validate_relative_start_time()
-            if isinstance(config, (UlogImportConfig, McapImportConfig)):
-                # An empty channel list imports every channel
-                config.data = []
 
         if asset is not None:
             config.asset_name = asset.name if isinstance(asset, Asset) else asset
@@ -198,14 +246,7 @@ class DataImportAPIAsync(ResourceBase):
         elif not config.run_name and not config.run_id:
             config.run_name = path.name
 
-        # The import service only reports unreadable bit field values after the
-        # upload, so check them first.
-        await run_sync_function(check_bit_field_values, config, path)
-
-        if isinstance(
-            config, (ParquetFlatDatasetImportConfig, ParquetSingleChannelPerRowImportConfig)
-        ):
-            await prepare_parquet_config(config, path)
+        await self._prepare_import_file(config, path)
 
         if show_progress is None:
             show_progress = self._show_progress()
@@ -214,6 +255,96 @@ class DataImportAPIAsync(ResourceBase):
             config, leave_run_open=leave_run_open
         )
 
+        return await self._job_for_upload(
+            path, data_import_id, upload_url, show_progress=show_progress
+        )
+
+    async def _import_many(
+        self,
+        paths: list[Path],
+        *,
+        asset: Asset | str | None,
+        config: ImportConfig | None,
+        data_type: DataTypeKey | None,
+        time_format: TimeFormat | None,
+        relative_start_time: pd.Timestamp | datetime | str | None,
+        run: Run | str | None,
+        run_name: str | None,
+        show_progress: bool | None,
+        leave_run_open: bool,
+    ) -> Job:
+        """Detect each file, zip them, and upload the archive as one import."""
+        if config is not None:
+            raise ValueError(
+                "'config' applies to one file. Omit it to detect each file in the list."
+            )
+        names = [path.name for path in paths]
+        if len(set(names)) != len(names):
+            raise ValueError(
+                f"Files in one import must have distinct names. Got {', '.join(names)}."
+            )
+        if asset is None:
+            raise ValueError("'asset' is required to import more than one file.")
+        if run is not None and run_name is not None:
+            raise ValueError("'run' and 'run_name' are mutually exclusive.")
+        asset_name = asset.name if isinstance(asset, Asset) else asset
+        if run is not None:
+            resolved_run_id = run._id_or_error if isinstance(run, Run) else run
+            resolved_run_name = None
+        elif run_name is not None:
+            resolved_run_id = None
+            resolved_run_name = run_name
+        else:
+            resolved_run_id = None
+            resolved_run_name = paths[0].name
+        for path in paths:
+            if not path.is_file():
+                raise FileNotFoundError(f"File not found: {path}")
+
+        file_configs: dict[str, ImportConfig] = {}
+        for path in paths:
+            # A known extension selects its format, so data_type can describe
+            # the Parquet or HDF5 files in a mixed list.
+            file_data_type = (
+                None if path.suffix.lower() in EXTENSION_TO_DATA_TYPE_KEY else data_type
+            )
+            detected = await self._detect_import_config(
+                path,
+                data_type=file_data_type,
+                time_format=time_format,
+                relative_start_time=relative_start_time,
+            )
+            await self._prepare_import_file(detected, path)
+            file_configs[path.name] = detected
+
+        if show_progress is None:
+            show_progress = self._show_progress()
+
+        directory = Path(tempfile.mkdtemp())
+        archive = directory / "batch.zip"
+        try:
+            await run_sync_function(_write_import_zip, archive, paths)
+            data_import_id, upload_url = await self._low_level_client.create_batch_from_upload(
+                file_configs,
+                asset_name=asset_name,
+                run_name=resolved_run_name,
+                run_id=resolved_run_id,
+                leave_run_open=leave_run_open,
+            )
+            return await self._job_for_upload(
+                archive, data_import_id, upload_url, show_progress=show_progress
+            )
+        finally:
+            shutil.rmtree(directory, ignore_errors=True)
+
+    async def _job_for_upload(
+        self,
+        path: Path,
+        data_import_id: str,
+        upload_url: str,
+        *,
+        show_progress: bool,
+    ) -> Job:
         response = await run_sync_function(
             lambda: upload_file(
                 upload_url,
@@ -230,6 +361,39 @@ class DataImportAPIAsync(ResourceBase):
         # The job's details are filled in server-side and may not be set yet.
         job._set_data_import_id(data_import_id)
         return job
+
+    async def _detect_import_config(
+        self,
+        path: Path,
+        *,
+        data_type: DataTypeKey | None,
+        time_format: TimeFormat | None,
+        relative_start_time: pd.Timestamp | datetime | str | None,
+    ) -> ImportConfig:
+        """Detect a file's import config."""
+        config = await self.detect_config(
+            path,
+            data_type=data_type,
+            time_format=time_format,
+            relative_start_time=relative_start_time,
+        )
+        config._validate_relative_start_time()
+        if isinstance(config, (UlogImportConfig, McapImportConfig)):
+            # An empty channel list imports every channel.
+            config.data = []
+        return config
+
+    async def _prepare_import_file(self, config: ImportConfig, path: Path) -> None:
+        """Check bit field values and fill a Parquet footer before upload.
+
+        The import service reports unreadable bit field values only after
+        the upload.
+        """
+        await run_sync_function(check_bit_field_values, config, path)
+        if isinstance(
+            config, (ParquetFlatDatasetImportConfig, ParquetSingleChannelPerRowImportConfig)
+        ):
+            await prepare_parquet_config(config, path)
 
     async def get(self, data_import_id: str) -> DataImport:
         """Get a data import by ID.

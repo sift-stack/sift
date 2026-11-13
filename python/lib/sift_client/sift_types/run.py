@@ -22,6 +22,7 @@ from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_
 
 if TYPE_CHECKING:
     from pathlib import Path
+    from typing import Sequence
 
     from sift_stream_bindings import RunFormPy
 
@@ -153,7 +154,7 @@ class Run(BaseType[RunProto, "Run"], FileAttachmentsMixin):
 
     def import_data(
         self,
-        file_path: str | Path,
+        file_path: str | Path | Sequence[str | Path],
         *,
         asset: Asset | str | None = None,
         config: ImportConfig | None = None,
@@ -161,18 +162,19 @@ class Run(BaseType[RunProto, "Run"], FileAttachmentsMixin):
         show_progress: bool | None = None,
         leave_run_open: bool = False,
     ) -> Job:
-        """Import data from a file into this run.
+        """Import data from a file, or a list of files, into this run.
 
         Convenience method that calls ``client.data_import.import_from_path``
         with this run pre-filled. If the run has exactly one asset,
         ``asset`` is inferred automatically.
 
-        A finished import stops this run unless ``leave_run_open`` is true.
-        Set that when more files are coming, then call ``stop`` after the
-        last import.
+        A list of two or more paths is one import into this run. A finished
+        import stops this run unless ``leave_run_open`` is true. Set that
+        when more files are coming, then call ``stop`` after the last import.
 
         Args:
-            file_path: Path to the local file to import.
+            file_path: Path to the local file to import, or a list of paths.
+                Two or more paths are uploaded as one zip.
             asset: Asset object or asset name to import data into.
             config: Import configuration. Auto-detected if omitted.
             data_type: Explicit data type key for ambiguous formats.

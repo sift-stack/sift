@@ -1745,7 +1745,7 @@ class DataImportAPI:
 
     def import_from_path(
         self,
-        file_path: str | Path,
+        file_path: str | Path | Sequence[str | Path],
         *,
         asset: Asset | str | None = None,
         config: ImportConfig | None = None,
@@ -1757,13 +1757,19 @@ class DataImportAPI:
         show_progress: bool | None = None,
         leave_run_open: bool = False,
     ) -> Job:
-        """Import data from a local file.
+        """Import data from a local file, or from a list of files.
 
         Creates a data import on the server, uploads the file, and returns
         a ``Job`` handle after uploading the file. The import processes
         server-side and typically completes shortly after upload. Use
         ``job.wait_until_complete()`` only if you need to confirm
         completion before proceeding.
+
+        A list of two or more paths is one import. The files are packed into
+        a zip and imported together into one asset and one run. Each file is
+        detected on its own. ``data_type`` applies only to files whose
+        extension does not name a format, such as Parquet and HDF5. The run
+        stops when that import finishes unless ``leave_run_open`` is true.
 
         When ``config`` is omitted the file format is auto-detected via
         ``detect_config`` (CSV, Parquet, HDF5, TDMS, ULog, and MCAP).
@@ -1805,16 +1811,21 @@ class DataImportAPI:
                 )
 
         Args:
-            file_path: Path to the local file to import.
+            file_path: Path to the local file to import, or a list of paths.
+                Two or more paths are uploaded as one zip. Each archive member
+                is the file's name, so the names must be distinct. A list of
+                one path imports that file directly.
             asset: Asset object or asset name to import data into. Optional
-                when ``config`` already has ``asset_name`` set.
+                when ``config`` already has ``asset_name`` set. Required for
+                a list of paths.
             config: Import configuration describing the file format and column
                 mapping. When provided, ``data_type`` is ignored. If omitted,
                 the config is auto-detected via ``detect_config`` (for ULog
                 and MCAP the detected channel list is dropped so every channel
                 in the file is imported). You can call ``detect_config``
                 yourself to inspect and modify the config before passing it
-                here.
+                here. A list of paths detects each file, so ``config`` is
+                only used for a single path.
             data_type: Explicit data type key. Required for formats with
                 multiple supported layouts (Parquet, HDF5) where the file
                 extension alone is ambiguous. Only used when ``config`` is
@@ -1838,7 +1849,8 @@ class DataImportAPI:
             run: ``Run`` object or run ID string to import into an existing
                 run. Mutually exclusive with ``run_name``.
             run_name: Name for a new run. Defaults to the filename if
-                neither ``run`` nor ``run_name`` is set.
+                neither ``run`` nor ``run_name`` is set. For a list of paths,
+                the default is the first file's name.
             show_progress: If True, display a progress spinner during upload.
                 Defaults to True for sync, False for async.
             leave_run_open: If true, the import does not mark its run stopped,
@@ -1855,7 +1867,9 @@ class DataImportAPI:
         Raises:
             FileNotFoundError: If the file does not exist.
             ValueError: If a ``BIT_FIELD`` column's values aren't in a format
-                the import service reads, such as integers.
+                the import service reads, such as integers. Also if a list of
+                paths is empty, contains duplicate file names, omits
+                ``asset``, or is passed with ``config``.
         """
         ...
 
