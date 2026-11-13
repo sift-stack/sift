@@ -71365,9 +71365,10 @@ integers.</p>
 <p>Convenience method that calls <code>client.data_import.import_from_path</code>
 with this run pre-filled. If the run has exactly one asset,
 <code>asset</code> is inferred automatically.</p>
-<p>A list of two or more paths is one import into this run. A finished
-import stops this run unless <code>leave_run_open</code> is true. Set that
-when more files are coming, then call <code>stop</code> after the last import.</p>
+<p>If you have more than one file for this run, pass the paths in one
+call. That is one import. A finished import stops this run unless
+<code>leave_run_open</code> is true. Set that when more files are still
+coming, then call <code>stop</code> after the last import.</p>
 
 
 <table>
@@ -71385,7 +71386,8 @@ when more files are coming, then call <code>stop</code> after the last import.</
             <td class="doc-param-details">
               <div class="doc-md-description">
                 <p>Path to the local file to import, or a list of paths.
-Two or more paths are uploaded as one zip.</p>
+Pass every file in one call when they belong together. Two
+or more paths are uploaded as one zip.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">

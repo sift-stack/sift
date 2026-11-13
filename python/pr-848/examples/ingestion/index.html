@@ -1844,8 +1844,11 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <h2 id="prerequisites">Prerequisites<a class="anchor-link" href="#prerequisites">¶</a></h2><p><strong>Important</strong>: The ingestion streaming client requires the <code>sift-stream</code> optional dependency. Install it with:</p>
 <div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>sift-stack-py<span class="o">[</span>sift-stream<span class="o">]</span>
 </pre></div>
-<h2 id="streaming-backups">Streaming backups<a class="anchor-link" href="#streaming-backups">¶</a></h2><p>Both streaming client factories default to <code>StreamingMode.LIVE_ONLY</code>: telemetry streams to Sift without local disk backups.</p>
-<p>To enable local backups and replay after delivery failures, import <code>StreamingMode</code> from <code>sift_client.resources.ingestion</code> and pass <code>streaming_mode=StreamingMode.LIVE_WITH_BACKUPS</code> to <code>create_ingestion_config_streaming_client</code> or <code>create_auto_register_streaming_client</code>.</p>
+<h2 id="streaming-backups">Streaming backups<a class="anchor-link" href="#streaming-backups">¶</a></h2><p>Both streaming client factories require <code>streaming_mode</code>. Import <code>StreamingMode</code> from <code>sift_client.resources.ingestion</code> and pass one of:</p>
+<ul>
+<li><code>StreamingMode.LIVE_ONLY</code>: telemetry streams to Sift without local disk backups.</li>
+<li><code>StreamingMode.LIVE_WITH_BACKUPS</code>: telemetry is also backed up to local disk and replayed after delivery failures.</li>
+</ul>
 <h2 id="topics-covered">Topics Covered<a class="anchor-link" href="#topics-covered">¶</a></h2><ol>
 <li><strong>Basic Example</strong>: Simple single flow sending using FlowConfig</li>
 <li><strong>Advanced FlowBuilderPy</strong>: High-performance flow building with direct run ID management</li>
@@ -1898,6 +1901,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">sift_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">SiftClient</span><span class="p">,</span> <span class="n">SiftConnectionConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sift_client.resources.ingestion</span><span class="w"> </span><span class="kn">import</span> <span class="n">StreamingMode</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sift_client.sift_types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">ChannelConfig</span><span class="p">,</span>
     <span class="n">ChannelDataType</span><span class="p">,</span>
@@ -1938,6 +1942,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
     <span class="k">async</span> <span class="k">with</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">async_</span><span class="o">.</span><span class="n">ingestion</span><span class="o">.</span><span class="n">create_ingestion_config_streaming_client</span><span class="p">(</span>
         <span class="n">ingestion_config</span><span class="o">=</span><span class="n">ingestion_config</span><span class="p">,</span>
         <span class="n">run</span><span class="o">=</span><span class="n">run</span><span class="p">,</span>
+        <span class="n">streaming_mode</span><span class="o">=</span><span class="n">StreamingMode</span><span class="o">.</span><span class="n">LIVE_ONLY</span><span class="p">,</span>
     <span class="p">)</span> <span class="k">as</span> <span class="n">ingest_client</span><span class="p">:</span>
         <span class="c1"># Send data in a loop</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
@@ -1966,6 +1971,7 @@ import time
 from datetime import datetime, timezone
 
 from sift_client import SiftClient, SiftConnectionConfig
+from sift_client.resources.ingestion import StreamingMode
 from sift_client.sift_types import (
     ChannelConfig,
     ChannelDataType,
@@ -2006,6 +2012,7 @@ async def basic_example():
     async with await client.async_.ingestion.create_ingestion_config_streaming_client(
         ingestion_config=ingestion_config,
         run=run,
+        streaming_mode=StreamingMode.LIVE_ONLY,
     ) as ingest_client:
         # Send data in a loop
         for i in range(10):
@@ -2104,6 +2111,7 @@ async def basic_example():
     <span class="k">async</span> <span class="k">with</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">async_</span><span class="o">.</span><span class="n">ingestion</span><span class="o">.</span><span class="n">create_ingestion_config_streaming_client</span><span class="p">(</span>
         <span class="n">ingestion_config</span><span class="o">=</span><span class="n">ingestion_config</span><span class="p">,</span>
         <span class="n">run</span><span class="o">=</span><span class="n">run</span><span class="p">,</span>
+        <span class="n">streaming_mode</span><span class="o">=</span><span class="n">StreamingMode</span><span class="o">.</span><span class="n">LIVE_ONLY</span><span class="p">,</span>
     <span class="p">)</span> <span class="k">as</span> <span class="n">ingest_client</span><span class="p">:</span>
         <span class="c1"># Get the flow descriptor and run ID from SiftStream</span>
         <span class="n">descriptor</span> <span class="o">=</span> <span class="n">ingest_client</span><span class="o">.</span><span class="n">get_flow_descriptor</span><span class="p">(</span><span class="n">flow_name</span><span class="o">=</span><span class="s2">"onboard_sensors"</span><span class="p">)</span>
@@ -2201,6 +2209,7 @@ async def basic_example():
     async with await client.async_.ingestion.create_ingestion_config_streaming_client(
         ingestion_config=ingestion_config,
         run=run,
+        streaming_mode=StreamingMode.LIVE_ONLY,
     ) as ingest_client:
         # Get the flow descriptor and run ID from SiftStream
         descriptor = ingest_client.get_flow_descriptor(flow_name="onboard_sensors")
@@ -2341,6 +2350,7 @@ async def basic_example():
     <span class="k">async</span> <span class="k">with</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">async_</span><span class="o">.</span><span class="n">ingestion</span><span class="o">.</span><span class="n">create_ingestion_config_streaming_client</span><span class="p">(</span>
         <span class="n">ingestion_config</span><span class="o">=</span><span class="n">ingestion_config</span><span class="p">,</span>
         <span class="n">run</span><span class="o">=</span><span class="n">run</span><span class="p">,</span>
+        <span class="n">streaming_mode</span><span class="o">=</span><span class="n">StreamingMode</span><span class="o">.</span><span class="n">LIVE_ONLY</span><span class="p">,</span>
     <span class="p">)</span> <span class="k">as</span> <span class="n">ingest_client</span><span class="p">:</span>
         <span class="c1"># Get the flow descriptor and run ID</span>
         <span class="n">descriptor</span> <span class="o">=</span> <span class="n">ingest_client</span><span class="o">.</span><span class="n">get_flow_descriptor</span><span class="p">(</span><span class="n">flow_name</span><span class="o">=</span><span class="s2">"onboard_sensors"</span><span class="p">)</span>
@@ -2430,6 +2440,7 @@ async def basic_example():
     async with await client.async_.ingestion.create_ingestion_config_streaming_client(
         ingestion_config=ingestion_config,
         run=run,
+        streaming_mode=StreamingMode.LIVE_ONLY,
     ) as ingest_client:
         # Get the flow descriptor and run ID
         descriptor = ingest_client.get_flow_descriptor(flow_name="onboard_sensors")
@@ -2574,6 +2585,7 @@ async def basic_example():
     <span class="k">async</span> <span class="k">with</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">async_</span><span class="o">.</span><span class="n">ingestion</span><span class="o">.</span><span class="n">create_ingestion_config_streaming_client</span><span class="p">(</span>
         <span class="n">ingestion_config</span><span class="o">=</span><span class="n">ingestion_config</span><span class="p">,</span>
         <span class="n">run</span><span class="o">=</span><span class="n">run</span><span class="p">,</span>
+        <span class="n">streaming_mode</span><span class="o">=</span><span class="n">StreamingMode</span><span class="o">.</span><span class="n">LIVE_ONLY</span><span class="p">,</span>
     <span class="p">)</span> <span class="k">as</span> <span class="n">ingest_client</span><span class="p">:</span>
         <span class="c1"># Queues for the pipeline</span>
         <span class="n">queue1</span><span class="p">:</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Queue</span><span class="p">[</span><span class="n">RawDataMessage</span><span class="p">]</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
@@ -2779,6 +2791,7 @@ async def queue_based_lazy_flow_example():
     async with await client.async_.ingestion.create_ingestion_config_streaming_client(
         ingestion_config=ingestion_config,
         run=run,
+        streaming_mode=StreamingMode.LIVE_ONLY,
     ) as ingest_client:
         # Queues for the pipeline
         queue1: asyncio.Queue[RawDataMessage] = asyncio.Queue()
@@ -3054,6 +3067,7 @@ async def queue_based_lazy_flow_example():
     <span class="k">async</span> <span class="k">with</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">async_</span><span class="o">.</span><span class="n">ingestion</span><span class="o">.</span><span class="n">create_auto_register_streaming_client</span><span class="p">(</span>
         <span class="n">ingestion_config</span><span class="o">=</span><span class="n">ingestion_config</span><span class="p">,</span>
         <span class="n">run</span><span class="o">=</span><span class="n">run</span><span class="p">,</span>
+        <span class="n">streaming_mode</span><span class="o">=</span><span class="n">StreamingMode</span><span class="o">.</span><span class="n">LIVE_ONLY</span><span class="p">,</span>
         <span class="n">staged_configs</span><span class="o">=</span><span class="p">[</span><span class="n">onboard_sensors</span><span class="p">],</span>  <span class="c1"># staged</span>
     <span class="p">)</span> <span class="k">as</span> <span class="n">stream</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">20</span><span class="p">):</span>
@@ -3157,6 +3171,7 @@ async def auto_register_example():
     async with await client.async_.ingestion.create_auto_register_streaming_client(
         ingestion_config=ingestion_config,
         run=run,
+        streaming_mode=StreamingMode.LIVE_ONLY,
         staged_configs=[onboard_sensors],  # staged
     ) as stream:
         for i in range(20):

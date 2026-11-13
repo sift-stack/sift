@@ -20738,11 +20738,14 @@ a <code>Job</code> handle after uploading the file. The import processes
 server-side and typically completes shortly after upload. Use
 <code>job.wait_until_complete()</code> only if you need to confirm
 completion before proceeding.</p>
-<p>A list of two or more paths is one import. The files are packed into
-a zip and imported together into one asset and one run. Each file is
-detected on its own. <code>data_type</code> applies only to files whose
-extension does not name a format, such as Parquet and HDF5. The run
-stops when that import finishes unless <code>leave_run_open</code> is true.</p>
+<p>If you have more than one file for the same run, pass the paths in
+one call. The client packs them into one zip and imports them
+together into one asset and one run. Each file is detected on its
+own. <code>data_type</code> applies only to files whose extension does not
+name a format, such as Parquet and HDF5. Use <code>leave_run_open</code>
+when more files are still coming, then call <code>Run.stop</code> after the
+last import. A finished import stops its run unless that flag is
+set.</p>
 <p>When <code>config</code> is omitted the file format is auto-detected via
 <code>detect_config</code> (CSV, Parquet, HDF5, TDMS, ULog, and MCAP).
 When <code>asset</code> is provided it overrides the config value;
@@ -20770,8 +20773,9 @@ string type, and a sample of string values must parse.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Path to the local file to import, or a list of paths.
-Two or more paths are uploaded as one zip. Each archive member
+                <p>Path to the local file to import, or a list of paths
+for one run. Pass every file in one call when they belong
+together. Two or more paths are one zip. Each archive member
 is the file's name, so the names must be distinct. A list of
 one path imports that file directly.</p>
               </div>
