@@ -156,10 +156,10 @@ class IngestionAPIAsync(ResourceBase):
         self,
         ingestion_config: IngestionConfig | IngestionConfigCreate | IngestionConfigFormPy,
         *,
+        streaming_mode: StreamingMode,
         run: RunCreate | dict | str | Run | None = None,
         asset_tags: list[str] | list[Tag] | None = None,
         asset_metadata: dict[str, str | float | bool] | None = None,
-        streaming_mode: StreamingMode,
         retry_policy: RetryPolicyPy | None = None,
         disk_backup_policy: DiskBackupPolicyPy | None = None,
         checkpoint_interval_seconds: int | None = None,
@@ -172,11 +172,11 @@ class IngestionAPIAsync(ResourceBase):
 
         Args:
             ingestion_config: The ingestion config. Can be a IngestionConfig or IngestionConfigFormPy.
+            streaming_mode: Transport mode for the stream. Required. LIVE_ONLY streams without
+                disk backups. LIVE_WITH_BACKUPS also backs up to local disk.
             run: The run to associate with ingestion. Can be a Run, RunCreate, dict, or run ID string.
             asset_tags: Tags to associate with the asset.
             asset_metadata: Metadata to associate with the asset.
-            streaming_mode: Transport mode for the stream. Required. LIVE_ONLY streams without
-                disk backups. LIVE_WITH_BACKUPS also backs up to local disk.
             retry_policy: Retry policy for LIVE_WITH_BACKUPS mode.
             disk_backup_policy: Disk backup policy for LIVE_WITH_BACKUPS or FILE_BACKUP mode.
             checkpoint_interval_seconds: Checkpoint interval in seconds (LIVE_WITH_BACKUPS only).
@@ -221,10 +221,10 @@ class IngestionAPIAsync(ResourceBase):
         self,
         ingestion_config: IngestionConfig | IngestionConfigCreate | IngestionConfigFormPy,
         *,
+        streaming_mode: StreamingMode,
         run: RunCreate | dict | str | Run | None = None,
         asset_tags: list[str] | list[Tag] | None = None,
         asset_metadata: dict[str, str | float | bool] | None = None,
-        streaming_mode: StreamingMode,
         retry_policy: RetryPolicyPy | None = None,
         disk_backup_policy: DiskBackupPolicyPy | None = None,
         checkpoint_interval_seconds: int | None = None,
@@ -254,11 +254,11 @@ class IngestionAPIAsync(ResourceBase):
             ingestion_config: The ingestion config. Use `IngestionConfigCreate` with `flows=[]`
                 for a fully schema-free start, or provide flow definitions to pre-register known
                 flows and avoid any first-send latency for those flows.
+            streaming_mode: Transport mode for the stream. Required. LIVE_ONLY streams without
+                disk backups. LIVE_WITH_BACKUPS also backs up to local disk.
             run: The run to associate with ingestion. Can be a Run, RunCreate, dict, or run ID string.
             asset_tags: Tags to associate with the asset.
             asset_metadata: Metadata to associate with the asset.
-            streaming_mode: Transport mode for the stream. Required. LIVE_ONLY streams without
-                disk backups. LIVE_WITH_BACKUPS also backs up to local disk.
             retry_policy: Retry policy for LIVE_WITH_BACKUPS mode.
             disk_backup_policy: Disk backup policy for LIVE_WITH_BACKUPS or FILE_BACKUP mode.
             checkpoint_interval_seconds: Checkpoint interval in seconds (LIVE_WITH_BACKUPS only).
@@ -326,10 +326,10 @@ class IngestionConfigStreamingClient(ResourceBase):
         sift_client: SiftClient,
         ingestion_config: IngestionConfig | IngestionConfigCreate | IngestionConfigFormPy,
         *,
+        streaming_mode: StreamingMode,
         run: RunCreate | dict | str | Run | RunFormPy | None = None,
         asset_tags: list[str] | list[Tag] | None = None,
         asset_metadata: dict[str, str | float | bool] | None = None,
-        streaming_mode: StreamingMode,
         retry_policy: RetryPolicyPy | None = None,
         disk_backup_policy: DiskBackupPolicyPy | None = None,
         checkpoint_interval_seconds: int | None = None,
@@ -343,11 +343,11 @@ class IngestionConfigStreamingClient(ResourceBase):
         Args:
             sift_client: The Sift client to use.
             ingestion_config: The ingestion config to use for streaming.
+            streaming_mode: Transport mode for the stream. Required. LIVE_ONLY streams without
+                disk backups. LIVE_WITH_BACKUPS also backs up to local disk.
             run: The run to associate with ingestion. Can be a Run, RunCreate, dict, or run ID string.
             asset_tags: Tags to associate with the asset.
             asset_metadata: Metadata to associate with the asset.
-            streaming_mode: Transport mode for the stream. Required. LIVE_ONLY streams without
-                disk backups. LIVE_WITH_BACKUPS also backs up to local disk.
             retry_policy: Retry policy for LIVE_WITH_BACKUPS mode.
             disk_backup_policy: Disk backup policy for LIVE_WITH_BACKUPS or FILE_BACKUP mode.
             checkpoint_interval_seconds: Checkpoint interval in seconds (LIVE_WITH_BACKUPS only).
@@ -686,10 +686,10 @@ class AutoRegisterStreamingClient(ResourceBase):
         sift_client: SiftClient,
         ingestion_config: IngestionConfig | IngestionConfigCreate | IngestionConfigFormPy,
         *,
+        streaming_mode: StreamingMode,
         run: RunCreate | dict | str | Run | RunFormPy | None = None,
         asset_tags: list[str] | list[Tag] | None = None,
         asset_metadata: dict[str, str | float | bool] | None = None,
-        streaming_mode: StreamingMode,
         retry_policy: RetryPolicyPy | None = None,
         disk_backup_policy: DiskBackupPolicyPy | None = None,
         checkpoint_interval_seconds: int | None = None,
