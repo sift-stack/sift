@@ -346,6 +346,7 @@ fn create_data_import_request<R: io::Read>(
             }),
             ..Default::default()
         }),
+        leave_run_open: args.leave_run_open,
         ..Default::default()
     })
 }
@@ -391,10 +392,12 @@ mod test_create_data_import_request {
                 relative_start_time: None,
                 wait: false,
                 preview: false,
+                leave_run_open: true,
             },
         )
         .expect("expected Result::Ok");
 
+        assert!(req.leave_run_open);
         let csv_config = req.csv_config.expect("expected Option::Some");
         assert_eq!(String::from("test_asset"), csv_config.asset_name);
         assert!(csv_config.run_id.is_empty());
@@ -441,6 +444,7 @@ mod test_create_data_import_request {
                 relative_start_time: None,
                 wait: false,
                 preview: false,
+                leave_run_open: false,
             },
         )
         .expect("expected Result::Ok");
@@ -485,6 +489,7 @@ mod test_create_data_import_request {
                 relative_start_time: None,
                 wait: false,
                 preview: false,
+                leave_run_open: false,
             },
         )
         .expect("expected Result::Ok");
@@ -545,6 +550,7 @@ mod test_create_data_import_request {
                 relative_start_time: None,
                 wait: false,
                 preview: false,
+                leave_run_open: false,
             },
         )
         .expect("expected Result::Ok");

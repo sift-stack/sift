@@ -24,6 +24,7 @@ fn make_args() -> ImportMcapArgs {
             run_id: None,
             wait: false,
             preview: false,
+            leave_run_open: false,
         },
         relative_start_time: None,
         metadata_record: Vec::new(),

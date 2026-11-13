@@ -53,6 +53,33 @@ queryable immediately afterward.
 sift-cli import csv ./telemetry.csv --asset rover-1 --wait
 ```
 
+### Several files in one run
+
+If the files are available together, import them in one call from the Python
+client. Pass the paths to `client.data_import.import_from_path` or
+`Run.import_data`. That upload is one import into one run.
+
+```python
+client.data_import.import_from_path(
+    ["part-1.csv", "part-2.csv"],
+    asset="rover-1",
+    run_name="sortie-4",
+)
+```
+
+Pass a mapping of path to config when a file needs a column mapping or
+channel list you set. Files you leave out of the mapping are detected.
+
+The CLI imports one file per command. When a later file is not available yet,
+pass `--leave-run-open`. A finished import then does not mark the run stopped
+and does not fire run-stop automations. Omit the flag on the last import.
+The flag does nothing when the import has no run.
+
+```sh
+sift-cli import csv ./part-1.csv --asset rover-1 --run sortie-4 --leave-run-open
+sift-cli import csv ./part-2.csv --asset rover-1 --run sortie-4
+```
+
 ### Time formats
 
 Imports that parse a time column accept a `--time-format` describing how

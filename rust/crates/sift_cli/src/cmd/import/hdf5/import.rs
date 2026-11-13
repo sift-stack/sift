@@ -98,7 +98,8 @@ pub async fn run(ctx: Context, args: ImportHdf5Args) -> Result<ExitCode> {
 
     let file = File::open(&args.common.path).context("failed to open hdf5 file")?;
 
-    let create_data_import_req = create_data_import_request(hdf5_config);
+    let create_data_import_req =
+        create_data_import_request(hdf5_config, args.common.leave_run_open);
 
     let CreateDataImportFromUploadResponse { upload_url, .. } = data_imports_client
         .create_data_import_from_upload(create_data_import_req)
@@ -154,9 +155,13 @@ pub fn build_hdf5_config(args: &ImportHdf5Args) -> Result<Hdf5Config> {
     })
 }
 
-fn create_data_import_request(config: Hdf5Config) -> CreateDataImportFromUploadRequest {
+fn create_data_import_request(
+    config: Hdf5Config,
+    leave_run_open: bool,
+) -> CreateDataImportFromUploadRequest {
     CreateDataImportFromUploadRequest {
         hdf5_config: Some(config),
+        leave_run_open,
         ..Default::default()
     }
 }

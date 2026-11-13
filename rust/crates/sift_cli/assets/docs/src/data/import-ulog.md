@@ -24,6 +24,9 @@ sift-cli import ulog ./flight.ulg \
   --wait
 ```
 
+If you have more than one file for that run, import them together. See
+[Several files in one run](./importing.md#several-files-in-one-run).
+
 ## Anchoring timestamps
 
 ULog records boot-relative timestamps. The import anchors them to UTC using
