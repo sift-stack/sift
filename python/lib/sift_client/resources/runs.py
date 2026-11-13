@@ -152,6 +152,12 @@ class RunsAPIAsync(ResourceBase):
                 filter_query=filter_query,
             ),
         ]
+        if include_archived:
+            filter_parts.append(
+                cel.parens(
+                    cel.or_(cel.equals("is_archived", True), cel.equals("is_archived", False))
+                )
+            )
         if run_ids:
             filter_parts.append(cel.in_("run_id", run_ids))
         if client_keys:
