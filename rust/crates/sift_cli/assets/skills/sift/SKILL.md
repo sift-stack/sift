@@ -4,18 +4,17 @@ description: >-
   Use for Sift tasks: ingesting or importing time-series data, querying
   assets/runs/channels/users, managing calculated channels, rules, and
   user-defined functions, exporting or decimating data, running SQL over data,
-  opening a view in Sift Explore, writing code that integrates with Sift,
-  installing, updating, or diagnosing the Sift agent integration, or looking
-  up how Sift works in its product and API documentation. Covers the Sift MCP
-  server (started by `sift-cli mcp`), `sift-cli`, the Sift REST API over cURL,
-  the Sift Python library (`sift_client`), and the Sift Rust streaming library
-  (`sift_stream`).
-  Triggers include phrases like "import this file into Sift", "stream data to
-  Sift", "list assets/runs/channels", "runs I created", "runs a teammate
-  created", "export a run", "query Sift", "graph", "plot", "visualize", "open in
-  Explore", "write code to integrate with Sift", "how does X work in Sift",
-  "what does this endpoint do", "list calculated channels", "preview a rule",
-  or "look up the Sift API reference".
+  opening a view or making a chart in Explore, Canvas, or Sift Edge Desktop,
+  writing code that integrates with Sift, installing, updating, or diagnosing
+  the Sift agent integration, or looking up Sift's product and API docs.
+  Covers the Sift MCP server (`sift-cli mcp`), `sift-cli`, REST over cURL,
+  `sift_client` (Python), and `sift_stream` (Rust).
+  Triggers include "import this file into Sift", "stream data to Sift", "list
+  assets/runs/channels", "runs I created", "runs a teammate created", "export a
+  run", "query Sift", "graph", "plot", "visualize", "open in Explore", "chart
+  for a Canvas", "view this in Sift Edge Desktop", "write code to integrate
+  with Sift", "how does X work in Sift", "what does this endpoint do", "list
+  calculated channels", "preview a rule", or "look up the Sift API reference".
 ---
 
 <!--
@@ -50,7 +49,8 @@ Sift-entity request always wins.
 - **None:** lookups, explanations, how-to answers, and one-off numbers or
   short analysis. Do not wrap a chat-sized answer in a file.
 - **Declarative charts:** plots, charts, and timeseries the user wants to see.
-  Build or pass a spec to `create_declarative_chart`.
+  Build or pass a spec to `create_declarative_chart`. It delivers to Explore
+  unless the user wants the chart in a Canvas or in Sift Edge Desktop.
 - **Explore links:** quick deep-links to specific assets, runs, or channels the
   user wants to inspect in the Sift web app. Use native Sift app
   visualizations instead of creating an intermediate image or HTML.
@@ -113,8 +113,11 @@ tool.
 - **Data:** `get_data` writes channel data to a Parquet file. `sql` queries
   Parquet files. `upload_dataset` streams a Parquet dataset into Sift.
 - **Charts:** `get_chart_schema` locates the local schema; `create_declarative_chart`
-  saves a spec-backed Explore share link. Chart share links are available in
-  read-only mode and need no confirmation.
+  checks a spec for the surface that draws it and delivers it only when Sift
+  reports no warnings, or the user keeps them. For Explore it saves a share link, and for Canvas or Sift
+  Edge Desktop it returns how to load the spec. With
+  `output` it also saves the spec as a local YAML file. Chart share links are
+  available in read-only mode and need no confirmation.
 - **Links:** `explore_url`.
 - **Docs:** `search_docs`.
 - **Bulk writes:** every `create_*` write, and every `update_*`, `archive_*`
@@ -245,7 +248,8 @@ tool.
   with `unarchive_artifact`. Both writes need `--allow-destructive`.
 - **Author a chart.** Call `get_chart_schema` once, reuse its local `schema_path`,
   and follow [declarative charts](references/declarative-charts.md) to author
-  panels and save an Explore share link with `create_declarative_chart`.
+  panels, pick the surface, and deliver the chart with `create_declarative_chart`,
+  or to assemble several charts into one workspace.
   Use `explore_url` for a quick read-only deep-link. For a chart and numbers,
   also use `get_data` and `sql`.
 - **Answer a question about how Sift works.** Call `search_docs`. Do not answer

@@ -9,7 +9,9 @@ use tokio::{
     task::JoinHandle,
 };
 
-use super::{DeclarativeService, HttpError, SCHEMA_FILENAME, SCHEMA_PATH};
+use super::{
+    ChartSurface, DeclarativeService, HttpError, SCHEMA_FILENAME, SCHEMA_PATH, SpecCheck, SpecIssue,
+};
 use crate::service::remote_files::RestConfig;
 
 /// Deliberately odd spacing: the cache must keep the bytes exactly as served.
@@ -86,6 +88,11 @@ fn request_text(request: &[u8]) -> (String, String) {
     let text = String::from_utf8(request.to_vec()).unwrap();
     let (headers, body) = text.split_once("\r\n\r\n").unwrap();
     (headers.to_owned(), body.to_owned())
+}
+
+/// The JSON body of a captured request.
+pub(crate) fn request_json(request: &[u8]) -> serde_json::Value {
+    serde_json::from_str(&request_text(request).1).unwrap()
 }
 
 fn assert_header(headers: &str, expected: &str) {
@@ -407,4 +414,209 @@ async fn share_link_failures_are_typed_and_never_return_a_link() {
         .await
         .unwrap_err();
     assert!(format!("{error:#}").contains("REST endpoint"), "{error:#}");
+}
+
+fn issue(path: &str, message: &str) -> SpecIssue {
+    SpecIssue {
+        path: path.into(),
+        message: message.into(),
+    }
+}
+
+#[tokio::test]
+async fn check_spec_validates_strictly_for_the_surface_and_keeps_its_warnings() {
+    let body = r#"{
+        "valid": true,
+        "spec": "s",
+        "warnings": [
+            {"path": "/layout", "message": "Chart `b` is not placed in layout."},
+            {"message": "at the root"},
+            {"path": "/charts/a", "message": "this chart type is not drawn yet: the chart is skipped.",
+             "surfaces": ["DECLARATIVE_SURFACE_EDGE"]}
+        ]
+    }"#;
+    let (uri, server) = start_sequence_server(vec![ok(body)]).await;
+    let root = cache_root();
+
+    let check = service(&uri, root.path())
+        .check_spec("s", ChartSurface::Edge)
+        .await
+        .unwrap();
+
+    assert_eq!(
+        check,
+        SpecCheck {
+            valid: true,
+            errors: vec![],
+            warnings: vec![
+                issue("/layout", "Chart `b` is not placed in layout."),
+                SpecIssue::root("at the root"),
+                issue(
+                    "/charts/a",
+                    "this chart type is not drawn yet: the chart is skipped."
+                ),
+            ],
+            surface_gaps_checked: true,
+        }
+    );
+    let (headers, body) = request_text(&server.await.unwrap()[0]);
+    assert!(
+        headers.starts_with("POST /api/v1/declarative:validate HTTP/1.1"),
+        "{headers}"
+    );
+    assert_header(&headers, "authorization: Bearer test-key");
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&body).unwrap(),
+        serde_json::json!({ "spec": "s", "strict": true, "surface": "DECLARATIVE_SURFACE_EDGE" })
+    );
+}
+
+#[tokio::test]
+async fn check_spec_reports_errors_with_their_paths() {
+    // Proto3 JSON omits `valid: false`.
+    let body = r#"{"spec":"s","errors":[{"path":"/chart/type","message":"unknown chart type"},{"message":"root"}]}"#;
+    let (uri, _server) = start_sequence_server(vec![ok(body)]).await;
+    let root = cache_root();
+
+    let check = service(&uri, root.path())
+        .check_spec("s", ChartSurface::Canvas)
+        .await
+        .unwrap();
+
+    assert!(!check.valid);
+    assert_eq!(
+        check.errors,
+        vec![
+            issue("/chart/type", "unknown chart type"),
+            SpecIssue::root("root")
+        ]
+    );
+}
+
+#[tokio::test]
+async fn check_spec_drops_other_surfaces_gaps_when_the_deployment_ignores_the_surface() {
+    // The gateway drops an unknown surface name, so the deployment reports every surface's gaps.
+    let unscoped = ok(r#"{
+        "valid": true,
+        "warnings": [
+            {"path": "/layout", "message": "contract"},
+            {"path": "/charts/a", "message": "another surface", "surfaces": ["DECLARATIVE_SURFACE_EXPLORE"]}
+        ]
+    }"#);
+    let (uri, server) = start_sequence_server(vec![unscoped]).await;
+    let root = cache_root();
+
+    let check = service(&uri, root.path())
+        .check_spec("s", ChartSurface::Edge)
+        .await
+        .unwrap();
+
+    assert_eq!(
+        check,
+        SpecCheck {
+            valid: true,
+            errors: vec![],
+            warnings: vec![issue("/layout", "contract")],
+            surface_gaps_checked: false,
+        }
+    );
+    assert_eq!(server.await.unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn check_spec_returns_request_failures_without_retrying() {
+    for reply in [
+        http_response(
+            "400 Bad Request",
+            r#"{"code":3,"message":"spec is required"}"#,
+        ),
+        http_response("400 Bad Request", r#"{"message":"surface proxy"}"#),
+        http_response("403 Forbidden", "denied"),
+    ] {
+        let (uri, server) = start_sequence_server(vec![reply]).await;
+        let root = cache_root();
+        let error = service(&uri, root.path())
+            .check_spec("s", ChartSurface::Edge)
+            .await
+            .unwrap_err();
+        assert!(error.downcast_ref::<HttpError>().is_some());
+        assert_eq!(server.await.unwrap().len(), 1);
+    }
+}
+
+#[tokio::test]
+async fn check_spec_reuses_the_last_result_for_the_same_spec_and_surface() {
+    let accepted = r#"{"valid":true}"#;
+    let (uri, server) = start_sequence_server(vec![ok(accepted), ok(accepted), ok(accepted)]).await;
+    let root = cache_root();
+    let service = service(&uri, root.path());
+
+    for (spec, surface) in [
+        ("a", ChartSurface::Explore),
+        ("a", ChartSurface::Explore),
+        ("a", ChartSurface::Canvas),
+        ("b", ChartSurface::Canvas),
+        ("b", ChartSurface::Canvas),
+    ] {
+        assert!(service.check_spec(spec, surface).await.unwrap().valid);
+    }
+
+    let requests: Vec<_> = server
+        .await
+        .unwrap()
+        .iter()
+        .map(|request| {
+            let body = request_json(request);
+            (body["spec"].clone(), body["surface"].clone())
+        })
+        .collect();
+    assert_eq!(
+        requests,
+        [
+            ("a".into(), "DECLARATIVE_SURFACE_EXPLORE".into()),
+            ("a".into(), "DECLARATIVE_SURFACE_CANVAS".into()),
+            ("b".into(), "DECLARATIVE_SURFACE_CANVAS".into()),
+        ]
+    );
+}
+
+#[tokio::test]
+async fn share_link_reuses_the_last_link_for_the_same_spec() {
+    let (uri, server) = start_sequence_server(vec![
+        ok(r#"{"shortLink":"first"}"#),
+        ok(r#"{"shortLink":"second"}"#),
+    ])
+    .await;
+    let root = cache_root();
+    let service = service(&uri, root.path());
+
+    let links = [
+        service.create_share_link("a").await.unwrap(),
+        service.create_share_link("a").await.unwrap(),
+        service.create_share_link("b").await.unwrap(),
+    ];
+
+    assert_eq!(links, ["first", "first", "second"]);
+    assert_eq!(server.await.unwrap().len(), 2);
+}
+
+#[test]
+fn the_default_surface_follows_the_client() {
+    let chat = RestConfig {
+        client_name: crate::ClientName::Chat,
+        ..RestConfig::new("http://sift.test".into(), "test-key".into())
+    };
+    assert_eq!(
+        DeclarativeService::new(Some(chat), "1.2.3").default_surface(),
+        ChartSurface::Agents
+    );
+    let root = cache_root();
+    assert_eq!(
+        service("http://sift.test", root.path()).default_surface(),
+        ChartSurface::Explore
+    );
+    assert_eq!(
+        DeclarativeService::new(None, "1.2.3").default_surface(),
+        ChartSurface::Explore
+    );
 }

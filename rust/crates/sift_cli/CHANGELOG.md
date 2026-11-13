@@ -28,7 +28,19 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   as the other bulk writes, indexed by position in `annotation_ids`. This is a
   breaking change: the `batch_archive_error` and `archive_skipped` fields are
   removed.
-
+- MCP `create_declarative_chart` takes an optional `surface`: `explore`,
+  `canvas`, `edge`, or `agents` (agent chat). The default is `agents` inside
+  Sift Agents and `explore` elsewhere. It validates the spec for that surface and
+  delivers it only when Sift reports no warnings. Otherwise it returns the
+  warnings, the parts the surface does not draw, and creates no share link.
+  `accept_warnings` delivers the spec anyway, for authoring ahead of support
+  that is coming. For Canvas and Sift Edge Desktop it returns the steps to load
+  the spec instead of saving a share link. Invalid specs now report each error
+  with its JSON Pointer path.
+- MCP `create_declarative_chart` takes an optional `output` path. On any
+  surface, it writes the delivered spec to that local file. Sending the spec
+  just delivered again, to save it, repeats no request to Sift.
+  
 ## [v0.9.0] - November 12, 2026
 
 ### What's New

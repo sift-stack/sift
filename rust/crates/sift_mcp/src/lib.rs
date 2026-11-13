@@ -78,7 +78,8 @@ impl UpdateCheck {
 pub type UpdateCheckReceiver = watch::Receiver<UpdateCheck>;
 
 /// Names this server in the User-Agent of every request it sends to Sift,
-/// which is how Sift attributes the activity.
+/// which is how Sift attributes the activity. It also picks defaults for where
+/// the server runs, such as the chart surface.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum ClientName {
     #[default]
