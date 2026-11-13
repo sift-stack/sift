@@ -1,0 +1,1 @@
+`streaming_mode` is now a required argument of `create_ingestion_config_streaming_client` and `create_auto_register_streaming_client`. The previous default was `StreamingMode.LIVE_WITH_BACKUPS`: pass it to keep local telemetry backups, or pass `StreamingMode.LIVE_ONLY` to stream without them.

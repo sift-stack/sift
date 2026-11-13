@@ -43,8 +43,13 @@ async def _build(**kwargs):
 
 class TestStreamingMode:
     @pytest.mark.asyncio
-    async def test_defaults_to_live_only(self, config_builder):
-        await _build()
+    async def test_is_required(self, config_builder):
+        with pytest.raises(TypeError, match="streaming_mode"):
+            await _build()
+
+    @pytest.mark.asyncio
+    async def test_live_only_skips_backups(self, config_builder):
+        await _build(streaming_mode=StreamingMode.LIVE_ONLY)
 
         config_builder.live_only.return_value.build.assert_awaited_once()
         config_builder.live_with_backups.assert_not_called()
@@ -116,13 +121,13 @@ class TestRateLimitPolicy:
     async def test_sets_policy_on_config_builder(self, config_builder):
         policy = sift_stream_bindings.RateLimitPolicyPy.return_error()
 
-        await _build(rate_limit_policy=policy)
+        await _build(streaming_mode=StreamingMode.LIVE_ONLY, rate_limit_policy=policy)
 
         assert config_builder.rate_limit_policy is policy
 
     @pytest.mark.asyncio
     async def test_leaves_default_when_none(self, config_builder):
-        await _build()
+        await _build(streaming_mode=StreamingMode.LIVE_ONLY)
 
         assert not isinstance(
             config_builder.rate_limit_policy, sift_stream_bindings.RateLimitPolicyPy

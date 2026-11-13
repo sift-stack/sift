@@ -159,7 +159,7 @@ class IngestionAPIAsync(ResourceBase):
         run: RunCreate | dict | str | Run | None = None,
         asset_tags: list[str] | list[Tag] | None = None,
         asset_metadata: dict[str, str | float | bool] | None = None,
-        streaming_mode: StreamingMode = StreamingMode.LIVE_ONLY,
+        streaming_mode: StreamingMode,
         retry_policy: RetryPolicyPy | None = None,
         disk_backup_policy: DiskBackupPolicyPy | None = None,
         checkpoint_interval_seconds: int | None = None,
@@ -175,8 +175,8 @@ class IngestionAPIAsync(ResourceBase):
             run: The run to associate with ingestion. Can be a Run, RunCreate, dict, or run ID string.
             asset_tags: Tags to associate with the asset.
             asset_metadata: Metadata to associate with the asset.
-            streaming_mode: Transport mode for the stream. Defaults to LIVE_ONLY, without disk
-                backups. Set to LIVE_WITH_BACKUPS to opt in to local disk backups.
+            streaming_mode: Transport mode for the stream. Required. LIVE_ONLY streams without
+                disk backups. LIVE_WITH_BACKUPS also backs up to local disk.
             retry_policy: Retry policy for LIVE_WITH_BACKUPS mode.
             disk_backup_policy: Disk backup policy for LIVE_WITH_BACKUPS or FILE_BACKUP mode.
             checkpoint_interval_seconds: Checkpoint interval in seconds (LIVE_WITH_BACKUPS only).
@@ -224,7 +224,7 @@ class IngestionAPIAsync(ResourceBase):
         run: RunCreate | dict | str | Run | None = None,
         asset_tags: list[str] | list[Tag] | None = None,
         asset_metadata: dict[str, str | float | bool] | None = None,
-        streaming_mode: StreamingMode = StreamingMode.LIVE_ONLY,
+        streaming_mode: StreamingMode,
         retry_policy: RetryPolicyPy | None = None,
         disk_backup_policy: DiskBackupPolicyPy | None = None,
         checkpoint_interval_seconds: int | None = None,
@@ -257,8 +257,8 @@ class IngestionAPIAsync(ResourceBase):
             run: The run to associate with ingestion. Can be a Run, RunCreate, dict, or run ID string.
             asset_tags: Tags to associate with the asset.
             asset_metadata: Metadata to associate with the asset.
-            streaming_mode: Transport mode for the stream. Defaults to LIVE_ONLY, without disk
-                backups. Set to LIVE_WITH_BACKUPS to opt in to local disk backups.
+            streaming_mode: Transport mode for the stream. Required. LIVE_ONLY streams without
+                disk backups. LIVE_WITH_BACKUPS also backs up to local disk.
             retry_policy: Retry policy for LIVE_WITH_BACKUPS mode.
             disk_backup_policy: Disk backup policy for LIVE_WITH_BACKUPS or FILE_BACKUP mode.
             checkpoint_interval_seconds: Checkpoint interval in seconds (LIVE_WITH_BACKUPS only).
@@ -329,7 +329,7 @@ class IngestionConfigStreamingClient(ResourceBase):
         run: RunCreate | dict | str | Run | RunFormPy | None = None,
         asset_tags: list[str] | list[Tag] | None = None,
         asset_metadata: dict[str, str | float | bool] | None = None,
-        streaming_mode: StreamingMode = StreamingMode.LIVE_ONLY,
+        streaming_mode: StreamingMode,
         retry_policy: RetryPolicyPy | None = None,
         disk_backup_policy: DiskBackupPolicyPy | None = None,
         checkpoint_interval_seconds: int | None = None,
@@ -346,8 +346,8 @@ class IngestionConfigStreamingClient(ResourceBase):
             run: The run to associate with ingestion. Can be a Run, RunCreate, dict, or run ID string.
             asset_tags: Tags to associate with the asset.
             asset_metadata: Metadata to associate with the asset.
-            streaming_mode: Transport mode for the stream. Defaults to LIVE_ONLY, without disk
-                backups. Set to LIVE_WITH_BACKUPS to opt in to local disk backups.
+            streaming_mode: Transport mode for the stream. Required. LIVE_ONLY streams without
+                disk backups. LIVE_WITH_BACKUPS also backs up to local disk.
             retry_policy: Retry policy for LIVE_WITH_BACKUPS mode.
             disk_backup_policy: Disk backup policy for LIVE_WITH_BACKUPS or FILE_BACKUP mode.
             checkpoint_interval_seconds: Checkpoint interval in seconds (LIVE_WITH_BACKUPS only).
@@ -689,7 +689,7 @@ class AutoRegisterStreamingClient(ResourceBase):
         run: RunCreate | dict | str | Run | RunFormPy | None = None,
         asset_tags: list[str] | list[Tag] | None = None,
         asset_metadata: dict[str, str | float | bool] | None = None,
-        streaming_mode: StreamingMode = StreamingMode.LIVE_ONLY,
+        streaming_mode: StreamingMode,
         retry_policy: RetryPolicyPy | None = None,
         disk_backup_policy: DiskBackupPolicyPy | None = None,
         checkpoint_interval_seconds: int | None = None,
