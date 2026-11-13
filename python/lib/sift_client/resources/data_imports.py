@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import shutil
 import tempfile
 import zipfile
+from collections.abc import Mapping
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -25,6 +25,7 @@ from sift_client.sift_types.data_import import (
     DataImport,
     DataTypeKey,
     ImportConfig,
+    ImportConfigBase,
     McapImportConfig,
     ParquetFlatDatasetImportConfig,
     ParquetSingleChannelPerRowImportConfig,
@@ -66,6 +67,56 @@ def _run_id_and_name(
     return None, default_name
 
 
+def _config_key_matches(path: Path, key: str | Path) -> bool:
+    """Whether a mapping key names this path.
+
+    A key matches the path itself, or the file name when the key has no
+    directory. Names in one import are distinct, so a file name matches
+    one path.
+    """
+    key_path = key if isinstance(key, Path) else Path(key)
+    if path == key_path:
+        return True
+    return key_path.parent == Path(".") and key_path.name == path.name
+
+
+def _supplied_configs(
+    paths: list[Path],
+    config: ImportConfig | Mapping[str | Path, ImportConfig] | None,
+) -> dict[Path, ImportConfig | None]:
+    """Return each path's config. None means detect that file.
+
+    One import config applies to a single path. A mapping key is a path
+    from the list, or that file's name. A path with no entry is detected.
+    """
+    if config is None:
+        return dict.fromkeys(paths)
+    if isinstance(config, ImportConfigBase):
+        if len(paths) != 1:
+            raise ValueError(
+                "'config' applies to one file. Pass a mapping of path to "
+                "config for a list, or omit it to detect each file."
+            )
+        return {paths[0]: config}
+    if not isinstance(config, Mapping):
+        raise ValueError("'config' must be an import config or a mapping of path to config.")
+
+    assigned: dict[Path, ImportConfig] = {}
+    for key, value in config.items():
+        if not isinstance(value, ImportConfigBase):
+            raise ValueError(f"Config for {key!s} must be an import config.")
+        matches = [path for path in paths if _config_key_matches(path, key)]
+        if not matches:
+            raise ValueError(f"Config key {key!s} does not match a file in this import.")
+        if len(matches) > 1:
+            raise ValueError(f"Config key {key!s} matches more than one file.")
+        path = matches[0]
+        if path in assigned:
+            raise ValueError(f"More than one config matches {path}.")
+        assigned[path] = value
+    return {path: assigned.get(path) for path in paths}
+
+
 def _paths_from_argument(file_path: str | Path | Sequence[str | Path]) -> list[Path]:
     """Return the paths to import.
 
@@ -102,7 +153,7 @@ class DataImportAPIAsync(ResourceBase):
         file_path: str | Path | Sequence[str | Path],
         *,
         asset: Asset | str | None = None,
-        config: ImportConfig | None = None,
+        config: ImportConfig | Mapping[str | Path, ImportConfig] | None = None,
         data_type: DataTypeKey | None = None,
         time_format: TimeFormat | None = None,
         relative_start_time: pd.Timestamp | datetime | str | None = None,
@@ -122,11 +173,11 @@ class DataImportAPIAsync(ResourceBase):
         If you have more than one file for the same run, pass the paths in
         one call. The client packs them into one zip and imports them
         together into one asset and one run. Each file is detected on its
-        own. ``data_type`` applies only to files whose extension does not
-        name a format, such as Parquet and HDF5. Use ``leave_run_open``
-        when more files are still coming, then call ``Run.stop`` after the
-        last import. A finished import stops its run unless that flag is
-        set.
+        own, unless you pass a config for that path. ``data_type`` applies
+        only to detected files whose extension does not name a format, such
+        as Parquet and HDF5. Use ``leave_run_open`` when more files are
+        still coming, then call ``Run.stop`` after the last import. A
+        finished import stops its run unless that flag is set.
 
         When ``config`` is omitted the file format is auto-detected via
         ``detect_config`` (CSV, Parquet, HDF5, TDMS, ULog, and MCAP).
@@ -167,6 +218,18 @@ class DataImportAPIAsync(ResourceBase):
                     config=config,
                 )
 
+            Set a config for one file in a list, and detect the other:
+
+                paths = ["part-1.csv", "part-2.csv"]
+                configs = {path: client.data_import.detect_config(path) for path in paths}
+                configs["part-1.csv"]["temperature"].data_type = ChannelDataType.FLOAT
+
+                job = client.data_import.import_from_path(
+                    paths,
+                    asset=my_asset,
+                    config=configs,
+                )
+
         Args:
             file_path: Path to the local file to import, or a list of paths
                 for one run. Pass every file in one call when they belong
@@ -176,14 +239,16 @@ class DataImportAPIAsync(ResourceBase):
             asset: Asset object or asset name to import data into. Optional
                 when ``config`` already has ``asset_name`` set. Required for
                 a list of paths.
-            config: Import configuration describing the file format and column
-                mapping. When provided, ``data_type`` is ignored. If omitted,
-                the config is auto-detected via ``detect_config`` (for ULog
-                and MCAP the detected channel list is dropped so every channel
-                in the file is imported). You can call ``detect_config``
-                yourself to inspect and modify the config before passing it
-                here. A list of paths detects each file, so ``config`` is
-                only used for a single path.
+            config: Import configuration for one file, or a mapping of path
+                to configuration. A mapping key is a path from ``file_path``
+                or that file's name. A file with no entry is detected. A key
+                that matches no file raises ``ValueError``. One config applies
+                to a single path. When a file's config is provided,
+                ``data_type`` is ignored for that file. If omitted, the config
+                is auto-detected via ``detect_config`` (for ULog and MCAP the
+                detected channel list is dropped so every channel in the file
+                is imported). You can call ``detect_config`` yourself to
+                inspect and modify the config before passing it here.
             data_type: Explicit data type key. Required for formats with
                 multiple supported layouts (Parquet, HDF5) where the file
                 extension alone is ambiguous. Only used when ``config`` is
@@ -226,19 +291,22 @@ class DataImportAPIAsync(ResourceBase):
             FileNotFoundError: If the file does not exist.
             ValueError: If a ``BIT_FIELD`` column's values aren't in a format
                 the import service reads, such as integers. Also if a list of
-                paths is empty, contains duplicate file names, omits
-                ``asset``, or is passed with ``config``.
+                paths is empty, contains duplicate file names, or omits
+                ``asset``. Also if one config is passed with two or more
+                paths, or a config mapping names a path that is not in the
+                list.
         """
         paths = _paths_from_argument(file_path)
         if not paths:
             raise ValueError("At least one file path is required.")
         if show_progress is None:
             show_progress = self._show_progress()
+        supplied = _supplied_configs(paths, config)
         if len(paths) > 1:
             return await self._import_many(
                 paths,
                 asset=asset,
-                config=config,
+                file_configs=supplied,
                 data_type=data_type,
                 time_format=time_format,
                 relative_start_time=relative_start_time,
@@ -248,6 +316,7 @@ class DataImportAPIAsync(ResourceBase):
                 leave_run_open=leave_run_open,
             )
         path = paths[0]
+        config = supplied[path]
         if not path.is_file():
             raise FileNotFoundError(f"File not found: {path}")
 
@@ -285,7 +354,7 @@ class DataImportAPIAsync(ResourceBase):
         paths: list[Path],
         *,
         asset: Asset | str | None,
-        config: ImportConfig | None,
+        file_configs: dict[Path, ImportConfig | None],
         data_type: DataTypeKey | None,
         time_format: TimeFormat | None,
         relative_start_time: pd.Timestamp | datetime | str | None,
@@ -294,11 +363,11 @@ class DataImportAPIAsync(ResourceBase):
         show_progress: bool,
         leave_run_open: bool,
     ) -> Job:
-        """Detect each file, zip them, and upload the archive as one import."""
-        if config is not None:
-            raise ValueError(
-                "'config' applies to one file. Omit it to detect each file in the list."
-            )
+        """Zip the files and upload the archive as one import.
+
+        A path with no config is detected. ``asset``, ``run``, and
+        ``run_name`` apply to the whole import.
+        """
         names = [path.name for path in paths]
         if len(set(names)) != len(names):
             raise ValueError(
@@ -314,28 +383,29 @@ class DataImportAPIAsync(ResourceBase):
             if not path.is_file():
                 raise FileNotFoundError(f"File not found: {path}")
 
-        file_configs: dict[str, ImportConfig] = {}
+        resolved: dict[str, ImportConfig] = {}
         for path in paths:
-            # A known extension selects its format, so data_type can describe
-            # the Parquet or HDF5 files in a mixed list.
-            file_data_type = (
-                None if path.suffix.lower() in EXTENSION_TO_DATA_TYPE_KEY else data_type
-            )
-            detected = await self._detect_import_config(
-                path,
-                data_type=file_data_type,
-                time_format=time_format,
-                relative_start_time=relative_start_time,
-            )
-            await self._prepare_import_file(detected, path)
-            file_configs[path.name] = detected
+            supplied = file_configs[path]
+            if supplied is None:
+                # A known extension selects its format, so data_type can describe
+                # the Parquet or HDF5 files in a mixed list.
+                file_data_type = (
+                    None if path.suffix.lower() in EXTENSION_TO_DATA_TYPE_KEY else data_type
+                )
+                supplied = await self._detect_import_config(
+                    path,
+                    data_type=file_data_type,
+                    time_format=time_format,
+                    relative_start_time=relative_start_time,
+                )
+            await self._prepare_import_file(supplied, path)
+            resolved[path.name] = supplied
 
-        directory = Path(tempfile.mkdtemp())
-        archive = directory / "batch.zip"
-        try:
+        with tempfile.TemporaryDirectory() as directory:
+            archive = Path(directory) / "batch.zip"
             await run_sync_function(_write_import_zip, archive, paths)
             data_import_id, upload_url = await self._low_level_client.create_batch_from_upload(
-                file_configs,
+                resolved,
                 asset_name=asset_name,
                 run_name=resolved_run_name,
                 run_id=resolved_run_id,
@@ -344,8 +414,6 @@ class DataImportAPIAsync(ResourceBase):
             return await self._job_for_upload(
                 archive, data_import_id, upload_url, show_progress=show_progress
             )
-        finally:
-            shutil.rmtree(directory, ignore_errors=True)
 
     async def _job_for_upload(
         self,

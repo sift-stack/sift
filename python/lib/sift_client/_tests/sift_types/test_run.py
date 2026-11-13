@@ -189,6 +189,20 @@ class TestRun:
             leave_run_open=True,
         )
 
+    def test_import_data_passes_a_config_mapping(self, mock_run):
+        paths = ["a.csv", "b.csv"]
+        configs = {"a.csv": object()}
+        mock_run.import_data(paths, config=configs)
+        mock_run.client.data_import.import_from_path.assert_called_once_with(
+            paths,
+            asset=None,
+            config=configs,
+            data_type=None,
+            run=mock_run,
+            show_progress=None,
+            leave_run_open=False,
+        )
+
     def test_assets_property_calls_client(self, mock_run, mock_client):
         """Test that assets property calls client.assets.list_ with correct parameters."""
         mock_client.assets.list_.return_value = []

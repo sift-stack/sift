@@ -53,7 +53,7 @@ class _ConfigUploadField(NamedTuple):
 
     config_type: type[ImportConfig]
     field_name: str
-    type_key: int
+    type_key: DataTypeKey.ValueType
 
 
 _CONFIG_UPLOAD_FIELDS: tuple[_ConfigUploadField, ...] = (
@@ -111,7 +111,7 @@ def _batch_file_config(filename: str, config: ImportConfig) -> BatchFileConfig:
     file_proto.asset_name = ""
     file_proto.run_name = ""
     file_proto.run_id = ""
-    batch_file = BatchFileConfig(type=cast("DataTypeKey.ValueType", field.type_key))
+    batch_file = BatchFileConfig(type=field.type_key)
     getattr(batch_file, field.field_name).CopyFrom(file_proto)
     return batch_file
 

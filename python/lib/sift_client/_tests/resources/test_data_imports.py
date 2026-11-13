@@ -2179,3 +2179,82 @@ class TestImportFromPathBatch:
             await api.import_from_path([first, second], show_progress=False)
 
         detect.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_mapping_sets_one_file_and_detects_the_other(self, tmp_path, monkeypatch):
+        first = tmp_path / "a.csv"
+        second = tmp_path / "b.csv"
+        first.write_text("t,v\n")
+        second.write_text("t,v\n")
+        monkeypatch.setattr(
+            "sift_client.resources.data_imports.upload_file", lambda *_a, **_k: {"jobId": "j1"}
+        )
+        api, detect, create_from_upload, create_batch = self._api()
+        supplied = self._csv()
+        supplied.data_columns[0].name = "supplied"
+        detected = self._csv()
+        detected.data_columns[0].name = "detected"
+        detect.return_value = detected
+
+        await api.import_from_path(
+            [first, second],
+            asset="my_asset",
+            config={first.name: supplied},
+            show_progress=False,
+        )
+
+        detect.assert_awaited_once()
+        assert detect.await_args is not None
+        assert detect.await_args.args[0] == second
+        create_from_upload.assert_not_awaited()
+        call = create_batch.await_args
+        assert call is not None
+        configs = call.args[0]
+        assert configs["a.csv"] is supplied
+        assert configs["b.csv"] is detected
+        assert call.kwargs["asset_name"] == "my_asset"
+
+    @pytest.mark.asyncio
+    async def test_mapping_rejects_an_unknown_key_and_a_bare_config(self, tmp_path):
+        first = tmp_path / "a.csv"
+        second = tmp_path / "b.csv"
+        first.write_text("t,v\n")
+        second.write_text("t,v\n")
+        api, detect, _, _ = self._api()
+
+        with pytest.raises(ValueError, match="does not match"):
+            await api.import_from_path(
+                [first, second],
+                asset="my_asset",
+                config={"missing.csv": self._csv()},
+                show_progress=False,
+            )
+        with pytest.raises(ValueError, match="one file"):
+            await api.import_from_path(
+                [first, second],
+                asset="my_asset",
+                config=self._csv(),
+                show_progress=False,
+            )
+        detect.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_one_path_accepts_a_config_or_a_mapping(self, tmp_path, monkeypatch):
+        path = tmp_path / "a.csv"
+        path.write_text("t,v\n")
+        monkeypatch.setattr(
+            "sift_client.resources.data_imports.upload_file", lambda *_a, **_k: {"jobId": "j1"}
+        )
+        api, detect, create_from_upload, create_batch = self._api()
+        supplied = self._csv()
+
+        await api.import_from_path([path], asset="my_asset", config=supplied, show_progress=False)
+        await api.import_from_path(
+            path, asset="my_asset", config={path.name: supplied}, show_progress=False
+        )
+
+        detect.assert_not_awaited()
+        create_batch.assert_not_awaited()
+        assert create_from_upload.await_count == 2
+        assert create_from_upload.await_args_list[0].args[0] is supplied
+        assert create_from_upload.await_args_list[1].args[0] is supplied

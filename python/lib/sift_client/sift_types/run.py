@@ -22,7 +22,7 @@ from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_
 
 if TYPE_CHECKING:
     from pathlib import Path
-    from typing import Sequence
+    from typing import Mapping, Sequence
 
     from sift_stream_bindings import RunFormPy
 
@@ -157,7 +157,7 @@ class Run(BaseType[RunProto, "Run"], FileAttachmentsMixin):
         file_path: str | Path | Sequence[str | Path],
         *,
         asset: Asset | str | None = None,
-        config: ImportConfig | None = None,
+        config: ImportConfig | Mapping[str | Path, ImportConfig] | None = None,
         data_type: DataTypeKey | None = None,
         show_progress: bool | None = None,
         leave_run_open: bool = False,
@@ -178,7 +178,9 @@ class Run(BaseType[RunProto, "Run"], FileAttachmentsMixin):
                 Pass every file in one call when they belong together. Two
                 or more paths are uploaded as one zip.
             asset: Asset object or asset name to import data into.
-            config: Import configuration. Auto-detected if omitted.
+            config: Import configuration for one file, or a mapping of path
+                to configuration. A file with no entry is detected.
+                Auto-detected when omitted.
             data_type: Explicit data type key for ambiguous formats.
             show_progress: Display a progress spinner during upload.
             leave_run_open: If true, the import does not mark this run
