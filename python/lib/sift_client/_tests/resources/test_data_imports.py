@@ -2065,13 +2065,17 @@ class TestImportFromPathBatch:
         )
 
     def _api(self):
+        detect = AsyncMock(return_value=self._csv())
+        create_from_upload = AsyncMock(return_value=("import_1", "url"))
+        create_batch_from_upload = AsyncMock(return_value=("import_1", "url"))
+        low_level = MagicMock()
+        low_level.create_from_upload = create_from_upload
+        low_level.create_batch_from_upload = create_batch_from_upload
         api = DataImportAPIAsync(MagicMock())
-        api.detect_config = AsyncMock(return_value=self._csv())
-        api._low_level_client = MagicMock()
-        api._low_level_client.create_from_upload = AsyncMock(return_value=("import_1", "url"))
-        api._low_level_client.create_batch_from_upload = AsyncMock(return_value=("import_1", "url"))
+        api.detect_config = detect
+        api._low_level_client = low_level
         api.client.async_.jobs.get = AsyncMock(return_value=MagicMock())
-        return api
+        return api, detect, create_from_upload, create_batch_from_upload
 
     @pytest.mark.asyncio
     async def test_list_uploads_one_zip(self, tmp_path, monkeypatch):
@@ -2089,15 +2093,17 @@ class TestImportFromPathBatch:
             return {"jobId": "j1"}
 
         monkeypatch.setattr("sift_client.resources.data_imports.upload_file", upload)
-        api = self._api()
+        api, _, create_from_upload, create_batch = self._api()
 
         await api.import_from_path(
             [first, second], asset="my_asset", show_progress=False, leave_run_open=True
         )
 
         assert captured["names"] == ["a.csv", "b.csv"]
-        api._low_level_client.create_from_upload.assert_not_awaited()
-        args, kwargs = api._low_level_client.create_batch_from_upload.await_args
+        create_from_upload.assert_not_awaited()
+        call = create_batch.await_args
+        assert call is not None
+        args, kwargs = call
         assert set(args[0]) == {"a.csv", "b.csv"}
         assert kwargs["asset_name"] == "my_asset"
         assert kwargs["run_name"] == "a.csv"
@@ -2111,12 +2117,12 @@ class TestImportFromPathBatch:
         monkeypatch.setattr(
             "sift_client.resources.data_imports.upload_file", lambda *_a, **_k: {"jobId": "j1"}
         )
-        api = self._api()
+        api, _, create_from_upload, create_batch = self._api()
 
         await api.import_from_path([path], asset="my_asset", show_progress=False)
 
-        api._low_level_client.create_from_upload.assert_awaited()
-        api._low_level_client.create_batch_from_upload.assert_not_awaited()
+        create_from_upload.assert_awaited()
+        create_batch.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_duplicate_names_and_config_are_rejected(self, tmp_path):
@@ -2125,7 +2131,7 @@ class TestImportFromPathBatch:
         first.write_text("t,v\n")
         second = tmp_path / "a.csv"
         second.write_text("t,v\n")
-        api = self._api()
+        api, _, _, _ = self._api()
 
         with pytest.raises(ValueError, match="distinct names"):
             await api.import_from_path([first, second], asset="my_asset", show_progress=False)
@@ -2148,7 +2154,7 @@ class TestImportFromPathBatch:
         monkeypatch.setattr(
             "sift_client.resources.data_imports.upload_file", lambda *_a, **_k: {"jobId": "j1"}
         )
-        api = self._api()
+        api, detect, _, _ = self._api()
 
         await api.import_from_path(
             [csv_path, parquet_path],
@@ -2157,9 +2163,7 @@ class TestImportFromPathBatch:
             show_progress=False,
         )
 
-        calls = {
-            call.args[0]: call.kwargs["data_type"] for call in api.detect_config.await_args_list
-        }
+        calls = {call.args[0]: call.kwargs["data_type"] for call in detect.await_args_list}
         assert calls[csv_path] is None
         assert calls[parquet_path] is DataTypeKey.PARQUET_FLATDATASET
 
@@ -2169,9 +2173,9 @@ class TestImportFromPathBatch:
         second = tmp_path / "b.csv"
         first.write_text("t,v\n")
         second.write_text("t,v\n")
-        api = self._api()
+        api, detect, _, _ = self._api()
 
         with pytest.raises(ValueError, match="asset"):
             await api.import_from_path([first, second], show_progress=False)
 
-        api.detect_config.assert_not_awaited()
+        detect.assert_not_awaited()

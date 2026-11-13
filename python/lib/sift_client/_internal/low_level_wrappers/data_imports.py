@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, NamedTuple, cast
 
 from sift.data_imports.v2.data_imports_pb2 import (
     DATA_TYPE_KEY_CSV,
@@ -45,28 +45,39 @@ if TYPE_CHECKING:
     from sift_client.transport.grpc_transport import GrpcClient
 
 
-# Config class, the oneof on the upload request, and the batch type key.
-# Parquet layouts share one oneof and use different type keys.
-_CONFIG_UPLOAD_FIELDS: tuple[tuple[type[ImportConfig], str, int], ...] = (
-    (CsvImportConfig, "csv_config", DATA_TYPE_KEY_CSV),
-    (ParquetFlatDatasetImportConfig, "parquet_config", DATA_TYPE_KEY_PARQUET_FLATDATASET),
-    (
+class _ConfigUploadField(NamedTuple):
+    """An import config's upload oneof and batch type key.
+
+    Parquet layouts share one oneof and use different type keys.
+    """
+
+    config_type: type[ImportConfig]
+    field_name: str
+    type_key: int
+
+
+_CONFIG_UPLOAD_FIELDS: tuple[_ConfigUploadField, ...] = (
+    _ConfigUploadField(CsvImportConfig, "csv_config", DATA_TYPE_KEY_CSV),
+    _ConfigUploadField(
+        ParquetFlatDatasetImportConfig, "parquet_config", DATA_TYPE_KEY_PARQUET_FLATDATASET
+    ),
+    _ConfigUploadField(
         ParquetSingleChannelPerRowImportConfig,
         "parquet_config",
         DATA_TYPE_KEY_PARQUET_SINGLE_CHANNEL_PER_ROW,
     ),
-    (TdmsImportConfig, "tdms_config", DATA_TYPE_KEY_TDMS),
-    (Hdf5ImportConfig, "hdf5_config", DATA_TYPE_KEY_HDF5),
-    (UlogImportConfig, "ulog_config", DATA_TYPE_KEY_ULOG),
-    (McapImportConfig, "mcap_config", DATA_TYPE_KEY_MCAP),
+    _ConfigUploadField(TdmsImportConfig, "tdms_config", DATA_TYPE_KEY_TDMS),
+    _ConfigUploadField(Hdf5ImportConfig, "hdf5_config", DATA_TYPE_KEY_HDF5),
+    _ConfigUploadField(UlogImportConfig, "ulog_config", DATA_TYPE_KEY_ULOG),
+    _ConfigUploadField(McapImportConfig, "mcap_config", DATA_TYPE_KEY_MCAP),
 )
 
 
-def _config_upload_field(config: ImportConfig) -> tuple[str, int]:
-    """Return the upload oneof name and batch type key for a config."""
-    for config_type, field_name, type_key in _CONFIG_UPLOAD_FIELDS:
-        if isinstance(config, config_type):
-            return field_name, type_key
+def _config_upload_field(config: ImportConfig) -> _ConfigUploadField:
+    """Return the upload field for a config."""
+    for field in _CONFIG_UPLOAD_FIELDS:
+        if isinstance(config, field.config_type):
+            return field
     raise TypeError(f"Unsupported import config type: {type(config).__name__}")
 
 
@@ -75,8 +86,8 @@ def _set_config_on_request(
     config: ImportConfig,
 ) -> None:
     """Set the config field on an upload request for this config type."""
-    field_name, _type_key = _config_upload_field(config)
-    getattr(request, field_name).CopyFrom(config._to_proto())
+    field = _config_upload_field(config)
+    getattr(request, field.field_name).CopyFrom(config._to_proto())
 
 
 def _batch_file_config(filename: str, config: ImportConfig) -> BatchFileConfig:
@@ -93,15 +104,15 @@ def _batch_file_config(filename: str, config: ImportConfig) -> BatchFileConfig:
             f"import ({filename}). Import the file on its own to attach its "
             "metadata to a run."
         )
-    field_name, type_key = _config_upload_field(config)
+    field = _config_upload_field(config)
     file_proto = config._to_proto()
     # The batch message owns the asset and run. A per-file value that
     # disagrees with it is rejected.
     file_proto.asset_name = ""
     file_proto.run_name = ""
     file_proto.run_id = ""
-    batch_file = BatchFileConfig(type=cast("DataTypeKey.ValueType", type_key))
-    getattr(batch_file, field_name).CopyFrom(file_proto)
+    batch_file = BatchFileConfig(type=cast("DataTypeKey.ValueType", field.type_key))
+    getattr(batch_file, field.field_name).CopyFrom(file_proto)
     return batch_file
 
 

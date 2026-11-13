@@ -46,6 +46,26 @@ if TYPE_CHECKING:
     from sift_client.sift_types.job import Job
 
 
+def _run_id_and_name(
+    run: Run | str | None,
+    run_name: str | None,
+    *,
+    default_name: str | None,
+) -> tuple[str | None, str | None]:
+    """Return the run id and run name to import into.
+
+    ``run`` and ``run_name`` are mutually exclusive. When neither is set,
+    the run name is ``default_name``.
+    """
+    if run is not None and run_name is not None:
+        raise ValueError("'run' and 'run_name' are mutually exclusive.")
+    if run is not None:
+        return (run._id_or_error if isinstance(run, Run) else run), None
+    if run_name is not None:
+        return None, run_name
+    return None, default_name
+
+
 def _paths_from_argument(file_path: str | Path | Sequence[str | Path]) -> list[Path]:
     """Return the paths to import.
 
@@ -208,6 +228,8 @@ class DataImportAPIAsync(ResourceBase):
         paths = _paths_from_argument(file_path)
         if not paths:
             raise ValueError("At least one file path is required.")
+        if show_progress is None:
+            show_progress = self._show_progress()
         if len(paths) > 1:
             return await self._import_many(
                 paths,
@@ -237,19 +259,14 @@ class DataImportAPIAsync(ResourceBase):
             config.asset_name = asset.name if isinstance(asset, Asset) else asset
         elif not config.asset_name:
             raise ValueError("'asset' is required when not set on the config.")
-        if run is not None and run_name is not None:
-            raise ValueError("'run' and 'run_name' are mutually exclusive.")
-        if run is not None:
-            config.run_id = run._id_or_error if isinstance(run, Run) else run
-        elif run_name is not None:
-            config.run_name = run_name
-        elif not config.run_name and not config.run_id:
-            config.run_name = path.name
+        default_name = None if config.run_name or config.run_id else path.name
+        run_id, resolved_run_name = _run_id_and_name(run, run_name, default_name=default_name)
+        if run_id is not None:
+            config.run_id = run_id
+        elif resolved_run_name is not None:
+            config.run_name = resolved_run_name
 
         await self._prepare_import_file(config, path)
-
-        if show_progress is None:
-            show_progress = self._show_progress()
 
         data_import_id, upload_url = await self._low_level_client.create_from_upload(
             config, leave_run_open=leave_run_open
@@ -270,7 +287,7 @@ class DataImportAPIAsync(ResourceBase):
         relative_start_time: pd.Timestamp | datetime | str | None,
         run: Run | str | None,
         run_name: str | None,
-        show_progress: bool | None,
+        show_progress: bool,
         leave_run_open: bool,
     ) -> Job:
         """Detect each file, zip them, and upload the archive as one import."""
@@ -285,18 +302,10 @@ class DataImportAPIAsync(ResourceBase):
             )
         if asset is None:
             raise ValueError("'asset' is required to import more than one file.")
-        if run is not None and run_name is not None:
-            raise ValueError("'run' and 'run_name' are mutually exclusive.")
         asset_name = asset.name if isinstance(asset, Asset) else asset
-        if run is not None:
-            resolved_run_id = run._id_or_error if isinstance(run, Run) else run
-            resolved_run_name = None
-        elif run_name is not None:
-            resolved_run_id = None
-            resolved_run_name = run_name
-        else:
-            resolved_run_id = None
-            resolved_run_name = paths[0].name
+        resolved_run_id, resolved_run_name = _run_id_and_name(
+            run, run_name, default_name=paths[0].name
+        )
         for path in paths:
             if not path.is_file():
                 raise FileNotFoundError(f"File not found: {path}")
@@ -316,9 +325,6 @@ class DataImportAPIAsync(ResourceBase):
             )
             await self._prepare_import_file(detected, path)
             file_configs[path.name] = detected
-
-        if show_progress is None:
-            show_progress = self._show_progress()
 
         directory = Path(tempfile.mkdtemp())
         archive = directory / "batch.zip"
