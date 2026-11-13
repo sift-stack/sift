@@ -168,13 +168,15 @@ class Run(BaseType[RunProto, "Run"], FileAttachmentsMixin):
         with this run pre-filled. If the run has exactly one asset,
         ``asset`` is inferred automatically.
 
-        A list of two or more paths is one import into this run. A finished
-        import stops this run unless ``leave_run_open`` is true. Set that
-        when more files are coming, then call ``stop`` after the last import.
+        If you have more than one file for this run, pass the paths in one
+        call. That is one import. A finished import stops this run unless
+        ``leave_run_open`` is true. Set that when more files are still
+        coming, then call ``stop`` after the last import.
 
         Args:
             file_path: Path to the local file to import, or a list of paths.
-                Two or more paths are uploaded as one zip.
+                Pass every file in one call when they belong together. Two
+                or more paths are uploaded as one zip.
             asset: Asset object or asset name to import data into.
             config: Import configuration. Auto-detected if omitted.
             data_type: Explicit data type key for ambiguous formats.

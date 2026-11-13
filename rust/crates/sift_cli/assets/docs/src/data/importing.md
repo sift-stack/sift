@@ -53,11 +53,24 @@ queryable immediately afterward.
 sift-cli import csv ./telemetry.csv --asset rover-1 --wait
 ```
 
-### Leaving a run open
+### Several files in one run
 
-A finished import marks its run stopped, which fires run-stop automations.
-Pass `--leave-run-open` when more files are coming to that run. Stop the run
-after the last import. The flag does nothing when the import has no run.
+If the files are available together, import them in one call from the Python
+client. Pass the paths to `client.data_import.import_from_path` or
+`Run.import_data`. That upload is one import into one run.
+
+```python
+client.data_import.import_from_path(
+    ["part-1.csv", "part-2.csv"],
+    asset="rover-1",
+    run_name="sortie-4",
+)
+```
+
+The CLI imports one file per command. When a later file is not available yet,
+pass `--leave-run-open`. A finished import then does not mark the run stopped
+and does not fire run-stop automations. Omit the flag on the last import.
+The flag does nothing when the import has no run.
 
 ```sh
 sift-cli import csv ./part-1.csv --asset rover-1 --run sortie-4 --leave-run-open

@@ -23,6 +23,9 @@ sift-cli import tdms ./measurement.tdms \
   --wait
 ```
 
+If you have more than one file for that run, import them together. See
+[Several files in one run](./importing.md#several-files-in-one-run).
+
 ## Channels with missing timing
 
 When a channel lacks timing metadata, choose how the CLI should respond with

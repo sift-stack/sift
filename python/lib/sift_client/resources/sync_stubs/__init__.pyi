@@ -1765,11 +1765,14 @@ class DataImportAPI:
         ``job.wait_until_complete()`` only if you need to confirm
         completion before proceeding.
 
-        A list of two or more paths is one import. The files are packed into
-        a zip and imported together into one asset and one run. Each file is
-        detected on its own. ``data_type`` applies only to files whose
-        extension does not name a format, such as Parquet and HDF5. The run
-        stops when that import finishes unless ``leave_run_open`` is true.
+        If you have more than one file for the same run, pass the paths in
+        one call. The client packs them into one zip and imports them
+        together into one asset and one run. Each file is detected on its
+        own. ``data_type`` applies only to files whose extension does not
+        name a format, such as Parquet and HDF5. Use ``leave_run_open``
+        when more files are still coming, then call ``Run.stop`` after the
+        last import. A finished import stops its run unless that flag is
+        set.
 
         When ``config`` is omitted the file format is auto-detected via
         ``detect_config`` (CSV, Parquet, HDF5, TDMS, ULog, and MCAP).
@@ -1811,8 +1814,9 @@ class DataImportAPI:
                 )
 
         Args:
-            file_path: Path to the local file to import, or a list of paths.
-                Two or more paths are uploaded as one zip. Each archive member
+            file_path: Path to the local file to import, or a list of paths
+                for one run. Pass every file in one call when they belong
+                together. Two or more paths are one zip. Each archive member
                 is the file's name, so the names must be distinct. A list of
                 one path imports that file directly.
             asset: Asset object or asset name to import data into. Optional
