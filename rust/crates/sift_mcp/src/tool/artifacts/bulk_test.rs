@@ -121,10 +121,11 @@ async fn resource_errors_continue_and_backend_errors_stop() {
             tonic::Code::NotFound,
             tonic::Code::PermissionDenied,
             tonic::Code::FailedPrecondition,
-            tonic::Code::Unavailable,
+            // Not retried by `with_retry`, so `.times` below counts each write once.
+            tonic::Code::ResourceExhausted,
         ] {
             let mut mock = MockArtifactServiceImpl::new();
-            let stop = code == tonic::Code::Unavailable;
+            let stop = code == tonic::Code::ResourceExhausted;
             match op {
                 "archive" => {
                     mock.expect_archive_artifact()
