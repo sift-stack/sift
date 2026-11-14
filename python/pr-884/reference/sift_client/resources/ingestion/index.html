@@ -4393,7 +4393,8 @@ representation of ingestion flows using standard Python data structures and type
    (sift_client.sift_types.ingestion.IngestionConfigCreate)" href="../../sift_types/ingestion/#sift_client.sift_types.ingestion.IngestionConfigCreate">IngestionConfigCreate</a></span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="o">|</span> <span class="n"><span title="sift_stream_bindings.IngestionConfigFormPy">IngestionConfigFormPy</span></span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">run</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            RunCreate
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">streaming_mode</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            StreamingMode (sift_client.resources.ingestion.StreamingMode)" href="#sift_client.resources.ingestion.StreamingMode">StreamingMode</a></span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">run</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            RunCreate
 
 
   
@@ -4404,21 +4405,14 @@ representation of ingestion flows using standard Python data structures and type
   
       pydantic-model
    (sift_client.sift_types.run.Run)" href="../../sift_types/run/#sift_client.sift_types.run.Run">Run</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">asset_tags</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">]</span> <span class="o">|</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            Tag
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">asset_tags</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">]</span> <span class="o">|</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            Tag
 
 
   
       pydantic-model
    (sift_client.sift_types.run.Tag)" href="../../sift_types/#sift_client.sift_types.Tag">Tag</a></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">asset_metadata</span><span class="p">:</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="float">float</span></span> <span class="o">|</span> <span class="n"><span title="bool">bool</span></span><span class="p">]</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">streaming_mode</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            StreamingMode (sift_client.resources.ingestion.StreamingMode)" href="#sift_client.resources.ingestion.StreamingMode">StreamingMode</a></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            LIVE_ONLY
-
-
-  
-      class-attribute
-      instance-attribute
-   (sift_client.resources.ingestion.StreamingMode.LIVE_ONLY)" href="#sift_client.resources.ingestion.StreamingMode.LIVE_ONLY">LIVE_ONLY</a></span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">asset_metadata</span><span class="p">:</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="float">float</span></span> <span class="o">|</span> <span class="n"><span title="bool">bool</span></span><span class="p">]</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">retry_policy</span><span class="p">:</span> <span class="n"><span title="sift_stream_bindings.RetryPolicyPy">RetryPolicyPy</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">disk_backup_policy</span><span class="p">:</span> <span class="n"><span title="sift_stream_bindings.DiskBackupPolicyPy">DiskBackupPolicyPy</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">checkpoint_interval_seconds</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -4465,6 +4459,23 @@ representation of ingestion flows using standard Python data structures and type
   
       pydantic-model
    (sift_client.sift_types.ingestion.IngestionConfigCreate)" href="../../sift_types/ingestion/#sift_client.sift_types.ingestion.IngestionConfigCreate">IngestionConfigCreate</a> | <span title="sift_stream_bindings.IngestionConfigFormPy">IngestionConfigFormPy</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>streaming_mode</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Transport mode for the stream. Required. LIVE_ONLY streams without
+disk backups. LIVE_WITH_BACKUPS also backs up to local disk.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-internal" title="            StreamingMode (sift_client.resources.ingestion.StreamingMode)" href="#sift_client.resources.ingestion.StreamingMode">StreamingMode</a></code>
                   </span>
               </p>
             </td>
@@ -4540,33 +4551,6 @@ representation of ingestion flows using standard Python data structures and type
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
                       <code>None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>streaming_mode</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>Transport mode for the stream. Defaults to LIVE_ONLY, without disk
-backups. Set to LIVE_WITH_BACKUPS to opt in to local disk backups.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-internal" title="            StreamingMode (sift_client.resources.ingestion.StreamingMode)" href="#sift_client.resources.ingestion.StreamingMode">StreamingMode</a></code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code><a class="autorefs autorefs-internal" title="            LIVE_ONLY
-
-
-  
-      class-attribute
-      instance-attribute
-   (sift_client.resources.ingestion.StreamingMode.LIVE_ONLY)" href="#sift_client.resources.ingestion.StreamingMode.LIVE_ONLY">LIVE_ONLY</a></code>
                   </span>
               </p>
             </td>
@@ -4804,7 +4788,8 @@ retry, or the retries run out. When <code>retry_delay</code> is not None,
    (sift_client.sift_types.ingestion.IngestionConfigCreate)" href="../../sift_types/ingestion/#sift_client.sift_types.ingestion.IngestionConfigCreate">IngestionConfigCreate</a></span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="o">|</span> <span class="n"><span title="sift_stream_bindings.IngestionConfigFormPy">IngestionConfigFormPy</span></span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">run</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            RunCreate
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">streaming_mode</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            StreamingMode (sift_client.resources.ingestion.StreamingMode)" href="#sift_client.resources.ingestion.StreamingMode">StreamingMode</a></span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">run</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            RunCreate
 
 
   
@@ -4815,21 +4800,14 @@ retry, or the retries run out. When <code>retry_delay</code> is not None,
   
       pydantic-model
    (sift_client.sift_types.run.Run)" href="../../sift_types/run/#sift_client.sift_types.run.Run">Run</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">asset_tags</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">]</span> <span class="o">|</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            Tag
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">asset_tags</span><span class="p">:</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">]</span> <span class="o">|</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            Tag
 
 
   
       pydantic-model
    (sift_client.sift_types.run.Tag)" href="../../sift_types/#sift_client.sift_types.Tag">Tag</a></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">asset_metadata</span><span class="p">:</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="float">float</span></span> <span class="o">|</span> <span class="n"><span title="bool">bool</span></span><span class="p">]</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">streaming_mode</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            StreamingMode (sift_client.resources.ingestion.StreamingMode)" href="#sift_client.resources.ingestion.StreamingMode">StreamingMode</a></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            LIVE_ONLY
-
-
-  
-      class-attribute
-      instance-attribute
-   (sift_client.resources.ingestion.StreamingMode.LIVE_ONLY)" href="#sift_client.resources.ingestion.StreamingMode.LIVE_ONLY">LIVE_ONLY</a></span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">asset_metadata</span><span class="p">:</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="float">float</span></span> <span class="o">|</span> <span class="n"><span title="bool">bool</span></span><span class="p">]</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">retry_policy</span><span class="p">:</span> <span class="n"><span title="sift_stream_bindings.RetryPolicyPy">RetryPolicyPy</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">disk_backup_policy</span><span class="p">:</span> <span class="n"><span title="sift_stream_bindings.DiskBackupPolicyPy">DiskBackupPolicyPy</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">checkpoint_interval_seconds</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -4895,6 +4873,23 @@ flows and avoid any first-send latency for those flows.</p>
   
       pydantic-model
    (sift_client.sift_types.ingestion.IngestionConfigCreate)" href="../../sift_types/ingestion/#sift_client.sift_types.ingestion.IngestionConfigCreate">IngestionConfigCreate</a> | <span title="sift_stream_bindings.IngestionConfigFormPy">IngestionConfigFormPy</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>streaming_mode</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Transport mode for the stream. Required. LIVE_ONLY streams without
+disk backups. LIVE_WITH_BACKUPS also backs up to local disk.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-internal" title="            StreamingMode (sift_client.resources.ingestion.StreamingMode)" href="#sift_client.resources.ingestion.StreamingMode">StreamingMode</a></code>
                   </span>
               </p>
             </td>
@@ -4970,33 +4965,6 @@ flows and avoid any first-send latency for those flows.</p>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
                       <code>None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>streaming_mode</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>Transport mode for the stream. Defaults to LIVE_ONLY, without disk
-backups. Set to LIVE_WITH_BACKUPS to opt in to local disk backups.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-internal" title="            StreamingMode (sift_client.resources.ingestion.StreamingMode)" href="#sift_client.resources.ingestion.StreamingMode">StreamingMode</a></code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code><a class="autorefs autorefs-internal" title="            LIVE_ONLY
-
-
-  
-      class-attribute
-      instance-attribute
-   (sift_client.resources.ingestion.StreamingMode.LIVE_ONLY)" href="#sift_client.resources.ingestion.StreamingMode.LIVE_ONLY">LIVE_ONLY</a></code>
                   </span>
               </p>
             </td>
