@@ -1,7 +1,7 @@
 use rmcp::{
     ErrorData,
     handler::server::wrapper::Parameters,
-    model::{CallToolResult, ContentBlock},
+    model::CallToolResult,
     schemars::{self, JsonSchema},
     tool, tool_router,
 };
@@ -16,7 +16,11 @@ use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::reports::{ReportSource, RuleIdentifier},
-    tool::common::{MetadataEntry, bulk_create, read_result, url_clause},
+    tool::common::{
+        MetadataEntry,
+        bulk::{BulkItems, Op},
+        read_result, require_non_empty, url_clause,
+    },
 };
 
 #[cfg(test)]
@@ -87,7 +91,7 @@ pub struct CreateReportItem {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-pub struct UpdateReportParams {
+pub struct UpdateReportItem {
     report_id: String,
     metadata: Vec<MetadataEntry>,
 }
@@ -250,14 +254,13 @@ impl SiftMcpServer {
                 outcome_unknown }`. `not_attempted` lists items skipped after a backend-wide error. Any
                 failure sets `isError`. Each `result` is:
                 - `{ \"report\": Report, \"report_url\": string|null, \"job_id\": string|null,
-                  \"created_annotation_count\": number, \"next_step\": string }`. The returned `Report` may still
+                  \"created_annotation_count\": number }`. The returned `Report` may still
                   be in a running state — poll `list_report_rule_summaries` to track progress. `report_url` is
                   the report's Sift web link, or null when it can't be derived. `Report` has the
                   `list_reports` item shape: rule totals, no per-rule summaries.
 
             Parameters:
-              - `items`: required array of 1–100 objects, one per report. Pass one item to create one
-                report. Each item takes:
+              - `items`: one object per report. Each item takes:
                 - `run_id`: required; the run the report is generated over.
                 - `name`: required; the report name.
                 - `organization_id`: optional. Required only when the caller belongs to multiple organizations.
@@ -270,9 +273,6 @@ impl SiftMcpServer {
                 - Rules: leave `report_template_id` unset and provide EXACTLY ONE of `rule_ids`, `rule_client_keys`,
                   or `rule_version_ids`. `rule_ids` / `rule_client_keys` resolve to each rule's current version;
                   `rule_version_ids` pins to specific historical versions.
-              - `selected_indices`: zero-based positions in `items` to create. An approval host sets this
-                from the user's per-item decisions; omit it when proposing. Omitted means every item,
-                except in a Sift chat pod, where a missing value is rejected. `[]` creates nothing.
 
             Errors:
               - `INVALID_PARAMS` if `run_id` or `name` is empty, if both a template and rule identifiers are given,
@@ -304,20 +304,17 @@ impl SiftMcpServer {
     )]
     pub async fn create_report(
         &self,
-        params: Parameters<bulk_create::CreateItems<CreateReportItem>>,
+        params: Parameters<BulkItems<CreateReportItem>>,
     ) -> error::McpResult {
         self.require_create()?;
-        let Parameters(bulk_create::CreateItems {
-            items,
-            selected_indices,
-            ..
-        }) = params;
-        let items = bulk_create::parse_items::<CreateReportItem>(items)?;
-        bulk_create::create_many_with_partial_writes(
-            items,
-            self.selection(selected_indices),
+        // Evaluation can fail after the report exists.
+        self.bulk_write_partial(
+            Op::Create,
+            params.0,
+            "report",
+            Ok,
+            |_| None,
             |item| self.create_report_item(Parameters(item)),
-            true,
         )
         .await
     }
@@ -341,15 +338,8 @@ impl SiftMcpServer {
             rule_version_ids,
         }) = params;
 
-        if run_id.is_empty() {
-            return Err(ErrorData::invalid_params(
-                "`run_id` must not be empty",
-                None,
-            ));
-        }
-        if name.is_empty() {
-            return Err(ErrorData::invalid_params("`name` must not be empty", None));
-        }
+        require_non_empty("run_id", &run_id)?;
+        require_non_empty("name", &name)?;
 
         let rule_sources = [
             rule_ids.map(RuleIdentifier::RuleIds),
@@ -403,44 +393,31 @@ impl SiftMcpServer {
             .url_service
             .build_report_url(&output.report.report_id)
             .ok();
-        let job_clause = output
-            .job_id
-            .as_deref()
-            .map(|jid| format!(" Evaluation job `{jid}` is running asynchronously."))
-            .unwrap_or_default();
-        let next_step = format!(
-            "Created report `{}` ({}) and queued its evaluation.{}{} Surface it to the user. Use \
-             `list_report_rule_summaries` with this `report_id` to track per-rule progress.",
-            output.report.name,
-            output.report.report_id,
-            job_clause,
-            url_clause("report", Some(&output.report.name), report_url.as_deref()),
-        );
-
-        let mut result = CallToolResult::structured(serde_json::json!({
+        Ok(CallToolResult::structured(serde_json::json!({
             "report": report_view(&output.report, None)?,
             "report_url": report_url,
             "job_id": output.job_id,
             "created_annotation_count": output.created_annotation_count,
-            "next_step": next_step,
-        }));
-        result.content = vec![ContentBlock::text(next_step)];
-        Ok(result)
+        })))
     }
 
     #[tool(
         name = "update_report",
         description = "
-            Update an existing report's metadata. Wraps `reports/v1 UpdateReport`.
+            Update one or more reports' metadata. This is a WRITE. Wraps `reports/v1 UpdateReport`.
 
             Output:
-              - `{ \"report\": Report, \"report_url\": string|null, \"next_step\": string }`. The returned `Report`
+              - `{ requested_count, selected_count, not_selected, updated_count, successes, failures,
+                not_attempted, next_step }`. `successes` holds `{ index, result }`; `failures` holds
+                `{ index, error, outcome_unknown }`. Any failure sets `isError`. Each result is
+                `{ \"report\": Report, \"report_url\": string|null }`. The returned `Report`
                 is re-fetched after the update (the update RPC itself returns no body). `report_url` is the report's
                 Sift web link, or null when the host can't be derived. `Report` has the `list_reports` item
                 shape: rule totals, no per-rule summaries.
 
             Parameters:
-              - `report_id`: required; the id of the report to update.
+              - `items`: one object per report, with the fields below.
+              - `report_id`: required in each item; the id of the report to update.
               - `metadata`: required; REPLACES the report's full metadata list. Each entry is
                 `{ \"name\": \"<key>\", \"value\": <scalar> }` where `value` is a string, number, or boolean.
                 Pass `[]` to clear all metadata. A `name` that does not yet exist in the organization's
@@ -451,12 +428,17 @@ impl SiftMcpServer {
             archive flow are not exposed here.
 
             Errors:
+              - `INVALID_PARAMS` before any write for empty/oversized items, duplicate ids, unknown fields,
+                or empty ids; errors name the item index. Item-local errors fail only that item.
+                Backend-wide errors stop the tail; earlier writes stay committed.
               - `INVALID_PARAMS` if `report_id` is empty, the `metadata` list contains duplicate key names, or
                 a value's type does not match an existing metadata key's type.
               - `RESOURCE_NOT_FOUND` if no report matches `report_id`.
               - `INTERNAL_ERROR` for upstream gRPC failures.
 
             Guidance:
+              - Items run sequentially; this is not atomic. Use one call for several reports. Never replay
+                the whole call after a partial failure; retry only failed, not `not_selected`, items.
               - This is a write with REPLACE semantics. CONFIRM the full metadata list with the user — for appends,
                 read the current report via `list_reports` filtered by `report_id == \"<id>\"` and send the union.
         ",
@@ -467,26 +449,37 @@ impl SiftMcpServer {
             idempotent_hint = true,
         )
     )]
-    pub async fn update_report(&self, params: Parameters<UpdateReportParams>) -> error::McpResult {
+    pub async fn update_report(
+        &self,
+        params: Parameters<BulkItems<UpdateReportItem>>,
+    ) -> error::McpResult {
         self.require_destructive()?;
+        // The update commits before the report is read back, so a failed read is a partial write.
+        self.bulk_write_partial(
+            Op::Update,
+            params.0,
+            "report",
+            |item: UpdateReportItem| {
+                require_non_empty("report_id", &item.report_id)?;
+                Ok((
+                    item.report_id,
+                    item.metadata
+                        .into_iter()
+                        .map(MetadataValue::from)
+                        .collect::<Vec<_>>(),
+                ))
+            },
+            |(id, _)| Some(id.clone()),
+            |(id, metadata)| self.update_report_item(id, metadata),
+        )
+        .await
+    }
 
-        let Parameters(UpdateReportParams {
-            report_id,
-            metadata,
-        }) = params;
-
-        if report_id.is_empty() {
-            return Err(ErrorData::invalid_params(
-                "`report_id` must not be empty",
-                None,
-            ));
-        }
-
-        let metadata = metadata
-            .into_iter()
-            .map(MetadataValue::from)
-            .collect::<Vec<_>>();
-
+    async fn update_report_item(
+        &self,
+        report_id: String,
+        metadata: Vec<MetadataValue>,
+    ) -> error::McpResult {
         let report = self
             .report_service
             .update_report(report_id, metadata)
@@ -494,20 +487,9 @@ impl SiftMcpServer {
             .map_err(from_anyhow)?;
 
         let report_url = self.url_service.build_report_url(&report.report_id).ok();
-        let next_step = format!(
-            "Updated metadata on report `{}` ({}).{} Surface the new state to the user and confirm \
-             nothing was unintentionally dropped — metadata is a REPLACE operation.",
-            report.name,
-            report.report_id,
-            url_clause("report", Some(&report.name), report_url.as_deref()),
-        );
-
-        let mut result = CallToolResult::structured(serde_json::json!({
+        Ok(CallToolResult::structured(serde_json::json!({
             "report": report_view(&report, None)?,
             "report_url": report_url,
-            "next_step": next_step,
-        }));
-        result.content = vec![ContentBlock::text(next_step)];
-        Ok(result)
+        })))
     }
 }

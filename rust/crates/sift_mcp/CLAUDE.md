@@ -288,6 +288,15 @@ pub async fn list_webhooks(&self, params: Parameters<ListParams>) -> error::McpR
   set both the structured `next_step` field and `result.content = vec![Content::text(next_step)]`
   so the calling agent sees it. `get_data` and `explore_url` are the reference patterns. Write
   tools use `next_step` to force a confirmation before the agent proceeds.
+- **Bulk writes.** A tool that takes `items` gates itself first, then calls
+  `self.bulk_write(op, params.0, resource, validate, target, write)` from `tool/common/bulk.rs`.
+  `validate` checks one item before any write, `target` returns the key that must not repeat
+  across items, and `write` performs one item. Use `self.bulk_write_partial` instead when one
+  item takes several RPCs, so a failure can follow a committed change (`create_artifact`,
+  `update_report`). The
+  call-level `next_step` covers the batch, so an item result carries no `next_step` of its own,
+  only a `warning` when that item needs the user's attention. Do not repeat the
+  `selected_indices` or `items` bounds in the description; the `BulkItems` schema documents them.
 - **Read tools keep their payload in `content`.** Clients such as Claude Code show the model
   `content`, not `structuredContent`. Replacing `content` with `next_step` alone hides the payload
   from the agent. A `list_*` tool built on `list_body` passes its `next_step` to `into_result`

@@ -1,97 +1,16 @@
 use std::future::Future;
 
-use rmcp::{
-    ErrorData,
-    model::{CallToolResult, ContentBlock, ErrorCode},
-    schemars::{self, JsonSchema},
-};
-use serde::{Deserialize, de::DeserializeOwned};
-use serde_json::{Value, json};
+use crate::error::McpResult;
 
-use crate::{error::McpResult, service::batch};
-
-pub const MAX_CREATE_ITEMS: usize = 100;
-
-/// Shared item list and approval mask for every create tool.
-#[derive(Debug, Deserialize, JsonSchema)]
-#[serde(deny_unknown_fields)]
-pub struct CreateItems<T> {
-    /// 1–100 items to create. Pass one item to create one resource.
-    #[schemars(length(min = 1, max = 100))]
-    #[schemars(with = "Vec<T>")]
-    pub items: Vec<Value>,
-    /// Approval host's zero-based selection of `items` to create. Omit when proposing.
-    /// An empty selection performs no writes.
-    pub selected_indices: Option<Vec<usize>>,
-    #[serde(skip)]
-    #[schemars(skip)]
-    _item: std::marker::PhantomData<T>,
-}
-
-/// Prefix an item's validation error with its index in `items`.
-pub fn at_item(index: usize, error: ErrorData) -> ErrorData {
-    ErrorData::new(
-        error.code,
-        format!("`items` item {index}: {}", error.message),
-        error.data,
-    )
-}
-
-pub fn parse_items<T: DeserializeOwned + JsonSchema>(
-    items: Vec<Value>,
-) -> Result<Vec<T>, ErrorData> {
-    if items.is_empty() || items.len() > MAX_CREATE_ITEMS {
-        return Err(ErrorData::invalid_params(
-            format!("`items` must contain 1–{MAX_CREATE_ITEMS} items"),
-            None,
-        ));
-    }
-    let schema = schemars::schema_for!(T);
-    items
-        .into_iter()
-        .enumerate()
-        .map(|(index, item)| {
-            if let Some(fields) = schema.get("properties").and_then(Value::as_object)
-                && let Some(object) = item.as_object()
-                && let Some(unknown) = object.keys().find(|key| !fields.contains_key(*key))
-            {
-                return Err(ErrorData::invalid_params(
-                    format!("`items` item {index}: unknown field `{unknown}`"),
-                    None,
-                ));
-            }
-            serde_json::from_value(item).map_err(|error| {
-                ErrorData::invalid_params(format!("`items` item {index}: {error}"), None)
-            })
-        })
-        .collect()
-}
-
-fn reason(error: &ErrorData) -> Option<&str> {
-    error.data.as_ref()?.get("reason")?.as_str()
-}
-
-fn should_stop(error: &ErrorData) -> bool {
-    error.code != ErrorCode::INVALID_PARAMS
-        && error.code != ErrorCode::RESOURCE_NOT_FOUND
-        && !matches!(reason(error), Some("AlreadyExists" | "Conflict"))
-}
+pub use super::bulk::{BulkItems as CreateItems, Selection, parse_items};
+use super::bulk::{Op, run};
 
 pub async fn create_many<T, F, Fut>(items: Vec<T>, selection: Selection, operation: F) -> McpResult
 where
     F: FnMut(T) -> Fut,
     Fut: Future<Output = McpResult>,
 {
-    create_many_with_partial_writes(items, selection, operation, false).await
-}
-
-/// The approval mask and whether this server requires one.
-#[derive(Debug, Clone)]
-pub struct Selection {
-    pub indices: Option<Vec<usize>>,
-    /// Set when an approval host runs this server (`sift-cli mcp --chat`). A missing mask
-    /// then fails closed so a host regression cannot create unapproved items.
-    pub required: bool,
+    run(Op::Create, items, selection, false, operation).await
 }
 
 pub async fn create_many_with_partial_writes<T, F, Fut>(
@@ -104,95 +23,7 @@ where
     F: FnMut(T) -> Fut,
     Fut: Future<Output = McpResult>,
 {
-    let requested_count = items.len();
-    let selected_indices = match selection.indices {
-        Some(indices) => indices,
-        None if selection.required => {
-            return Err(ErrorData::invalid_params(
-                "Creates require explicit `selected_indices` from the approval host; no unapproved items were created",
-                None,
-            ));
-        }
-        None => (0..requested_count).collect(),
-    };
-    let mut selected = vec![false; requested_count];
-    for &index in &selected_indices {
-        if index >= requested_count || selected[index] {
-            return Err(ErrorData::invalid_params(
-                "`selected_indices` must contain unique, in-range input indices",
-                None,
-            ));
-        }
-        selected[index] = true;
-    }
-    let indices = (0..requested_count)
-        .filter(|&index| selected[index])
-        .collect::<Vec<_>>();
-    let not_selected = (0..requested_count)
-        .filter(|&index| !selected[index])
-        .collect::<Vec<_>>();
-    let items = items
-        .into_iter()
-        .enumerate()
-        .filter_map(|(index, item)| selected[index].then_some(item))
-        .collect();
-    let outcome = batch::execute(items, operation, should_stop).await;
-    let not_attempted = outcome
-        .not_attempted
-        .into_iter()
-        .map(|index| indices[index])
-        .collect::<Vec<_>>();
-    let successes = outcome
-        .successes
-        .into_iter()
-        .map(
-            |(index, result)| json!({"index": indices[index], "result": result.structured_content}),
-        )
-        .collect::<Vec<_>>();
-    let failures = outcome
-        .failures
-        .into_iter()
-        .map(|(index, error)| {
-            // An interrupted write or a composite task can commit before returning
-            // an error. Never instruct callers to blindly replay a failed create.
-            let outcome_unknown = partial_writes
-                || (error.code != ErrorCode::INVALID_PARAMS
-                    && error.code != ErrorCode::RESOURCE_NOT_FOUND
-                    && !matches!(
-                        reason(&error),
-                        Some("AlreadyExists" | "PermissionDenied" | "Unauthenticated")
-                    ));
-            json!({"index": indices[index], "error": error, "outcome_unknown": outcome_unknown})
-        })
-        .collect::<Vec<_>>();
-    let has_errors = !failures.is_empty() || !not_attempted.is_empty();
-    let next_step = format!(
-        "Created {} items; {} failed; {} not attempted. \
-         On success, confirm in one short sentence using resource names or links; omit unrequested metadata, \
-         internal indices/masks, and approval/retry narration. Report actionable warnings and failures. \
-         Never replay the batch: successful writes are committed; `outcome_unknown` items may also exist \
-         or be partially created. Inspect uncertain outcomes before retrying, follow each error's guidance, \
-         and do not retry backend-wide failures in this prompt.",
-        successes.len(),
-        failures.len(),
-        not_attempted.len(),
-    );
-    let body = json!({
-        "requested_count": requested_count,
-        "selected_count": indices.len(),
-        "not_selected": not_selected,
-        "created_count": successes.len(),
-        "successes": successes,
-        "failures": failures,
-        "not_attempted": not_attempted,
-        "next_step": next_step,
-    });
-    let text = body.to_string();
-    let mut result = CallToolResult::structured(body);
-    result.is_error = Some(has_errors);
-    // Models in some MCP clients cannot see structuredContent.
-    result.content = vec![ContentBlock::text(next_step), ContentBlock::text(text)];
-    Ok(result)
+    run(Op::Create, items, selection, partial_writes, operation).await
 }
 
 #[cfg(test)]
@@ -205,7 +36,19 @@ mod retry_test;
 
 #[cfg(test)]
 mod test {
+    use rmcp::{
+        ErrorData,
+        model::CallToolResult,
+        schemars::{self, JsonSchema},
+    };
+    use serde::Deserialize;
+    use serde_json::{Value, json};
+
     use super::*;
+
+    fn should_stop(error: &ErrorData) -> bool {
+        super::super::bulk::should_stop(Op::Create, error)
+    }
 
     #[derive(Debug, Deserialize, JsonSchema)]
     struct Item {
@@ -358,6 +201,18 @@ mod test {
             "omit unrequested metadata, internal indices/masks, and approval/retry narration"
         ));
         assert!(!guidance.contains("Present each indexed result"));
+        assert!(
+            guidance.contains("whose target is its `*_url`"),
+            "{guidance}"
+        );
+        assert!(
+            guidance.contains("Backslash-escape any `[`, `]` or `\\` in the name"),
+            "{guidance}"
+        );
+        assert!(
+            guidance.contains("Report every result's `warning`"),
+            "{guidance}"
+        );
         assert_eq!(body["successes"][0]["index"], 0);
         assert_eq!(body["successes"][1]["index"], 2);
         assert_eq!(body["not_selected"], json!([1]));

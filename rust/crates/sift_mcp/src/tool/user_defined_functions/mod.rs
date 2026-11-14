@@ -1,7 +1,7 @@
 use rmcp::{
     ErrorData,
     handler::server::wrapper::Parameters,
-    model::{CallToolResult, ContentBlock},
+    model::CallToolResult,
     schemars::{self, JsonSchema},
     tool, tool_router,
 };
@@ -11,12 +11,15 @@ use sift_rs::{
     metadata::v1::MetadataValue,
 };
 
-use crate::tool::common::bulk_create;
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
     service::user_defined_functions::UdfUpdate,
-    tool::common::{ListParams, MetadataEntry, list_body, to_values},
+    tool::common::{
+        ListParams, MetadataEntry,
+        bulk::{BulkItems, Op},
+        exactly_one, list_body, require_non_empty, to_values,
+    },
 };
 
 #[cfg(test)]
@@ -43,7 +46,7 @@ pub struct CreateUserDefinedFunctionItem {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-pub struct UpdateUserDefinedFunctionParams {
+pub struct UpdateUserDefinedFunctionItem {
     pub(crate) user_defined_function_id: String,
     pub(crate) name: Option<String>,
     pub(crate) description: Option<String>,
@@ -53,7 +56,7 @@ pub struct UpdateUserDefinedFunctionParams {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-pub struct ArchiveUserDefinedFunctionParams {
+pub struct ArchiveUserDefinedFunctionItem {
     pub(crate) user_defined_function_id: String,
 }
 
@@ -224,7 +227,11 @@ impl SiftMcpServer {
             fields,
         }) = params;
 
-        let (user_defined_function_id, name) = function_identifier(user_defined_function_id, name)?;
+        // The proto ignores `name` when an id is present, so reject the ambiguous call.
+        let (user_defined_function_id, name) = exactly_one(
+            ("user_defined_function_id", user_defined_function_id),
+            ("name", name),
+        )?;
 
         let page = self
             .user_defined_function_service
@@ -261,13 +268,12 @@ impl SiftMcpServer {
                 `index` is the item's zero-based position in `items`. `failures` holds `{ index, error,
                 outcome_unknown }`. `not_attempted` lists items skipped after a backend-wide error. Any
                 failure sets `isError`. Each `result` is:
-                - `{ \"user_defined_function\": UserDefinedFunction, \"user_defined_function_id\": \"<id>\",
-                  \"next_step\": \"...\" }`. The returned function is the server's post-create state,
+                - `{ \"user_defined_function\": UserDefinedFunction, \"user_defined_function_id\": \"<id>\" }`.
+                  The returned function is the server's post-create state,
                   including the resolved `function_output_type` and `version` 1.
 
             Parameters:
-              - `items`: required array of 1–100 objects, one per user defined function. Pass one item to create one
-                user defined function. Each item takes:
+              - `items`: one object per user defined function. Each item takes:
                 - `name`: required. The name callers use to reference the function. It must start with a
                   letter, then contain only alphanumeric characters or `_`, and be at most 253 characters.
                 - `expression`: required. The function body. Reference each declared input by its
@@ -285,14 +291,11 @@ impl SiftMcpServer {
                   `value` is a string, number, or boolean. A `name` that does not yet exist in the
                   organization's metadata schema is created on the fly with the type inferred from `value`;
                   for an existing key the type must match.
-              - `selected_indices`: zero-based positions in `items` to create. An approval host sets this
-                from the user's per-item decisions; omit it when proposing. Omitted means every item,
-                except in a Sift chat pod, where a missing value is rejected. `[]` creates nothing.
 
             Errors:
               - `INVALID_PARAMS` if `name` or `expression` is empty, `function_inputs_json` is not a JSON
-                array of input objects, an `identifier` is empty, a `data_type` is not one of `numeric`,
-                `string`, or `bool`, or the server rejects the expression (unresolved identifier, type
+                array of input objects, an `identifier` is empty, a `data_type` is not one of `\"numeric\"`,
+                `\"string\"`, or `\"bool\"`, or the server rejects the expression (unresolved identifier, type
                 mismatch, duplicate function name).
               - `INTERNAL_ERROR` for upstream gRPC failures.
               - `INVALID_PARAMS` before any write if `items` is empty or has more than 100 entries, or an
@@ -321,18 +324,17 @@ impl SiftMcpServer {
     )]
     pub async fn create_user_defined_function(
         &self,
-        params: Parameters<bulk_create::CreateItems<CreateUserDefinedFunctionItem>>,
+        params: Parameters<BulkItems<CreateUserDefinedFunctionItem>>,
     ) -> error::McpResult {
         self.require_create()?;
-        let Parameters(bulk_create::CreateItems {
-            items,
-            selected_indices,
-            ..
-        }) = params;
-        let items = bulk_create::parse_items::<CreateUserDefinedFunctionItem>(items)?;
-        bulk_create::create_many(items, self.selection(selected_indices), |item| {
-            self.create_user_defined_function_item(Parameters(item))
-        })
+        self.bulk_write(
+            Op::Create,
+            params.0,
+            "user defined function",
+            Ok,
+            |_| None,
+            |item| self.create_user_defined_function_item(Parameters(item)),
+        )
         .await
     }
 
@@ -352,16 +354,9 @@ impl SiftMcpServer {
             metadata,
         }) = params;
 
-        if name.trim().is_empty() {
-            return Err(ErrorData::invalid_params("`name` must not be empty", None));
-        }
+        require_non_empty("name", &name)?;
         validate_function_name(&name)?;
-        if expression.trim().is_empty() {
-            return Err(ErrorData::invalid_params(
-                "`expression` must not be empty",
-                None,
-            ));
-        }
+        require_non_empty("expression", &expression)?;
 
         let function_inputs = parse_function_inputs(&function_inputs_json)?;
         let metadata = metadata_values(metadata).unwrap_or_default();
@@ -379,36 +374,30 @@ impl SiftMcpServer {
             .await
             .map_err(from_anyhow)?;
 
-        let next_step = format!(
-            "Created user defined function `{}` with id `{}` at version {}. Tell the user the new id \
-             and confirm the expression matches their intent. Reference it from a calculated channel \
-             or rule by name.",
-            function.name, function.user_defined_function_id, function.version,
-        );
-
-        let mut result = CallToolResult::structured(serde_json::json!({
+        Ok(CallToolResult::structured(serde_json::json!({
             "user_defined_function": function,
             "user_defined_function_id": function.user_defined_function_id,
-            "next_step": next_step,
-        }));
-        result.content = vec![ContentBlock::text(next_step)];
-        Ok(result)
+        })))
     }
 
     #[tool(
         name = "update_user_defined_function",
         description = "
-            Update a user defined function. This is a WRITE. Only the fields you set are written; the
+            Update one or more user defined functions. This is a WRITE. Only the fields you set are written; the
             rest of the function is left as it is. The update creates a NEW version and leaves the
             previous version intact, so callers pinned to an older version are unaffected.
 
             Output:
-              - `{ \"user_defined_function\": UserDefinedFunction, \"next_step\": \"...\" }`. The
+              - `{ requested_count, selected_count, not_selected, updated_count, successes, failures,
+                not_attempted, next_step }`. `successes` holds `{ index, result }`; `failures` holds
+                `{ index, error, outcome_unknown }`. Any failure sets `isError`. Each result is
+                `{ \"user_defined_function\": UserDefinedFunction }`. The
                 returned function is the newly created version, with its own
                 `user_defined_function_version_id` and incremented `version`.
 
             Parameters:
-              - `user_defined_function_id`: required. The function to update.
+              - `items`: one object per function, with the fields below.
+              - `user_defined_function_id`: required in each item. The function to update.
               - `name`: optional. New name. It must start with a letter, then contain only alphanumeric
                 characters or `_`, and be at most 253 characters. The API applies a rename BY ITSELF and
                 ignores any other field in the same call, so this tool rejects `name` combined with another
@@ -424,6 +413,9 @@ impl SiftMcpServer {
                 `unarchive_user_defined_function`.
 
             Errors:
+              - `INVALID_PARAMS` before any write for empty/oversized items, duplicate ids, unknown fields,
+                or empty ids; errors name the item index. Item-local errors fail only that item.
+                Backend-wide errors stop the tail; earlier writes stay committed.
               - `INVALID_PARAMS` if no updatable field is set, `name` is combined with another field, or
                 `function_inputs_json` is not a valid input array. The server also rejects updates that
                 its dependency rules forbid: `name` cannot change once the function has ever had
@@ -434,6 +426,8 @@ impl SiftMcpServer {
               - `INTERNAL_ERROR` for upstream gRPC failures.
 
             Guidance:
+              - Items run sequentially; this is not atomic. Use one call for several functions. Never replay
+                the whole call after a partial failure; retry only failed, not `not_selected`, items.
               - Confirm the target function and the exact changes with the user before calling.
               - `function_inputs_json` and `metadata` are REPLACE, not merge. Read the current values
                 with `list_user_defined_functions` (filter `user_defined_function_id == \"<id>\"`) and
@@ -450,81 +444,34 @@ impl SiftMcpServer {
     )]
     pub async fn update_user_defined_function(
         &self,
-        params: Parameters<UpdateUserDefinedFunctionParams>,
+        params: Parameters<BulkItems<UpdateUserDefinedFunctionItem>>,
     ) -> error::McpResult {
         self.require_destructive()?;
+        self.bulk_write(
+            Op::Update,
+            params.0,
+            "user defined function",
+            udf_update,
+            |(id, _)| Some(id.clone()),
+            |(id, changes)| self.update_user_defined_function_item(id, changes),
+        )
+        .await
+    }
 
-        let Parameters(UpdateUserDefinedFunctionParams {
-            user_defined_function_id,
-            name,
-            description,
-            expression,
-            function_inputs_json,
-            metadata,
-        }) = params;
-
-        if user_defined_function_id.is_empty() {
-            return Err(ErrorData::invalid_params(
-                "`user_defined_function_id` must not be empty",
-                None,
-            ));
-        }
-        if let Some(name) = &name {
-            validate_function_name(name)?;
-        }
-
-        let function_inputs = function_inputs_json
-            .as_deref()
-            .map(parse_function_inputs)
-            .transpose()?;
-
-        let changes = UdfUpdate {
-            name,
-            description,
-            expression,
-            function_inputs,
-            metadata: metadata_values(metadata),
-        };
-
-        let others_set = changes.description.is_some()
-            || changes.expression.is_some()
-            || changes.function_inputs.is_some()
-            || changes.metadata.is_some();
-
-        if changes.name.is_none() && !others_set {
-            return Err(ErrorData::invalid_params(
-                "at least one of `name`, `description`, `expression`, `function_inputs_json`, or \
-                 `metadata` must be set",
-                None,
-            ));
-        }
-        if changes.name.is_some() && others_set {
-            return Err(ErrorData::invalid_params(
-                "the API applies a `name` change on its own and ignores every other field in the \
-                 same request; send the rename as a separate call",
-                None,
-            ));
-        }
-
+    async fn update_user_defined_function_item(
+        &self,
+        user_defined_function_id: String,
+        changes: UdfUpdate,
+    ) -> error::McpResult {
         let function = self
             .user_defined_function_service
             .update_user_defined_function(user_defined_function_id, changes)
             .await
             .map_err(from_anyhow)?;
 
-        let next_step = format!(
-            "Updated user defined function `{}` ({}); it is now at version {}. Earlier versions are \
-             untouched. Surface the new state to the user and confirm nothing was unintentionally \
-             replaced — input and metadata lists are REPLACE operations.",
-            function.name, function.user_defined_function_id, function.version,
-        );
-
-        let mut result = CallToolResult::structured(serde_json::json!({
+        Ok(CallToolResult::structured(serde_json::json!({
             "user_defined_function": function,
-            "next_step": next_step,
-        }));
-        result.content = vec![ContentBlock::text(next_step)];
-        Ok(result)
+        })))
     }
 
     #[tool(
@@ -534,18 +481,22 @@ impl SiftMcpServer {
             WRITE. Reversible with `unarchive_user_defined_function`.
 
             Output:
-              - `{ \"archived\": true, \"user_defined_function\": UserDefinedFunction,
-                \"next_step\": \"...\" }`. The returned function is the post-archive state.
+              - `{ requested_count, selected_count, not_selected, archived_count, successes, failures,
+                not_attempted, next_step }`. `successes` holds `{ index, result }`; `failures` holds
+                `{ index, error, outcome_unknown }`. Any failure sets `isError`. Each result is
+                `{ \"archived\": true, \"user_defined_function\": UserDefinedFunction }`.
 
             Parameters:
-              - `user_defined_function_id`: required. The function to archive.
+              - `items`: each item takes `user_defined_function_id`, the id to archive.
 
             Errors:
-              - `INVALID_PARAMS` if `user_defined_function_id` is empty.
-              - `RESOURCE_NOT_FOUND` if no function matches `user_defined_function_id`.
-              - `INTERNAL_ERROR` for upstream gRPC failures.
+              - `INVALID_PARAMS` before any write for empty/oversized items, duplicate ids, unknown fields,
+                or empty ids; errors name the item index. Item-local errors fail only that item.
+                Backend-wide errors stop the tail; earlier writes stay committed.
 
             Guidance:
+              - An already archived function counts as a success. Items run sequentially; this is not atomic.
+                Never replay the whole call after a partial failure; retry only failed, not `not_selected`, items.
               - Archiving does not delete the function and does not rewrite anything that already calls
                 it. Calculated channels and rules that call it keep referencing it. Confirm the target
                 with the user before calling.
@@ -562,29 +513,10 @@ impl SiftMcpServer {
     )]
     pub async fn archive_user_defined_function(
         &self,
-        params: Parameters<ArchiveUserDefinedFunctionParams>,
+        params: Parameters<BulkItems<ArchiveUserDefinedFunctionItem>>,
     ) -> error::McpResult {
         self.require_destructive()?;
-
-        let Parameters(ArchiveUserDefinedFunctionParams {
-            user_defined_function_id,
-        }) = params;
-
-        let function = self.set_archived(user_defined_function_id, true).await?;
-
-        let next_step = format!(
-            "Archived user defined function `{}` ({}). Tell the user it no longer appears as an \
-             available function and that `unarchive_user_defined_function` restores it.",
-            function.name, function.user_defined_function_id,
-        );
-
-        let mut result = CallToolResult::structured(serde_json::json!({
-            "archived": true,
-            "user_defined_function": function,
-            "next_step": next_step,
-        }));
-        result.content = vec![ContentBlock::text(next_step)];
-        Ok(result)
+        self.set_udfs_archived(params, Op::Archive).await
     }
 
     #[tool(
@@ -593,18 +525,22 @@ impl SiftMcpServer {
             Restore a previously archived user defined function. This is a WRITE.
 
             Output:
-              - `{ \"unarchived\": true, \"user_defined_function\": UserDefinedFunction,
-                \"next_step\": \"...\" }`. The returned function is the post-unarchive state.
+              - `{ requested_count, selected_count, not_selected, unarchived_count, successes, failures,
+                not_attempted, next_step }`. `successes` holds `{ index, result }`; `failures` holds
+                `{ index, error, outcome_unknown }`. Any failure sets `isError`. Each result is
+                `{ \"unarchived\": true, \"user_defined_function\": UserDefinedFunction }`.
 
             Parameters:
-              - `user_defined_function_id`: required. The function to unarchive.
+              - `items`: each item takes `user_defined_function_id`, the id to restore.
 
             Errors:
-              - `INVALID_PARAMS` if `user_defined_function_id` is empty.
-              - `RESOURCE_NOT_FOUND` if no function matches `user_defined_function_id`.
-              - `INTERNAL_ERROR` for upstream gRPC failures.
+              - `INVALID_PARAMS` before any write for empty/oversized items, duplicate ids, unknown fields,
+                or empty ids; errors name the item index. Item-local errors fail only that item.
+                Backend-wide errors stop the tail; earlier writes stay committed.
 
             Guidance:
+              - A function already unarchived counts as a success. Items run sequentially; this is not atomic.
+                Never replay the whole call after a partial failure; retry only failed, not `not_selected`, items.
               - Confirm the target function with the user before calling. Find archived functions with
                 `list_user_defined_functions` and filter `is_archived == true`.
         ",
@@ -617,73 +553,86 @@ impl SiftMcpServer {
     )]
     pub async fn unarchive_user_defined_function(
         &self,
-        params: Parameters<ArchiveUserDefinedFunctionParams>,
+        params: Parameters<BulkItems<ArchiveUserDefinedFunctionItem>>,
     ) -> error::McpResult {
         self.require_destructive()?;
-
-        let Parameters(ArchiveUserDefinedFunctionParams {
-            user_defined_function_id,
-        }) = params;
-
-        let function = self.set_archived(user_defined_function_id, false).await?;
-
-        let next_step = format!(
-            "Unarchived user defined function `{}` ({}). Tell the user it is available again.",
-            function.name, function.user_defined_function_id,
-        );
-
-        let mut result = CallToolResult::structured(serde_json::json!({
-            "unarchived": true,
-            "user_defined_function": function,
-            "next_step": next_step,
-        }));
-        result.content = vec![ContentBlock::text(next_step)];
-        Ok(result)
+        self.set_udfs_archived(params, Op::Unarchive).await
     }
 }
 
 impl SiftMcpServer {
     /// Shared body of the archive and unarchive tools. Both flip the same
-    /// `is_archived` field through the update mask, so only the validation and
-    /// the reported wording differ.
-    async fn set_archived(
+    /// `is_archived` field through the update mask.
+    async fn set_udfs_archived(
         &self,
-        user_defined_function_id: String,
-        is_archived: bool,
-    ) -> Result<sift_rs::common::r#type::v1::UserDefinedFunction, ErrorData> {
-        if user_defined_function_id.is_empty() {
-            return Err(ErrorData::invalid_params(
-                "`user_defined_function_id` must not be empty",
-                None,
-            ));
-        }
-
-        self.user_defined_function_service
-            .set_user_defined_function_archived(user_defined_function_id, is_archived)
-            .await
-            .map_err(from_anyhow)
+        params: Parameters<BulkItems<ArchiveUserDefinedFunctionItem>>,
+        op: Op,
+    ) -> error::McpResult {
+        self.bulk_write(
+            op,
+            params.0,
+            "user defined function",
+            |item: ArchiveUserDefinedFunctionItem| {
+                require_non_empty("user_defined_function_id", &item.user_defined_function_id)?;
+                Ok(item.user_defined_function_id)
+            },
+            |id| Some(id.clone()),
+            |id| async move {
+                let function = self
+                    .user_defined_function_service
+                    .set_user_defined_function_archived(id, op == Op::Archive)
+                    .await
+                    .map_err(from_anyhow)?;
+                Ok(CallToolResult::structured(serde_json::json!({
+                    op.state_key(): true,
+                    "user_defined_function": function,
+                })))
+            },
+        )
+        .await
     }
 }
 
-/// Resolve the `(user_defined_function_id, name)` request fields from the
-/// mutually exclusive optional params. The proto silently ignores `name` when an
-/// id is present, so reject the ambiguous call rather than pick for the caller.
-fn function_identifier(
-    user_defined_function_id: Option<String>,
-    name: Option<String>,
-) -> Result<(String, String), ErrorData> {
-    match (user_defined_function_id, name) {
-        (Some(id), None) => Ok((id, String::new())),
-        (None, Some(name)) => Ok((String::new(), name)),
-        (Some(_), Some(_)) => Err(ErrorData::invalid_params(
-            "exactly one of `user_defined_function_id` or `name` must be set, not both",
-            None,
-        )),
-        (None, None) => Err(ErrorData::invalid_params(
-            "one of `user_defined_function_id` or `name` must be set",
-            None,
-        )),
+fn udf_update(item: UpdateUserDefinedFunctionItem) -> Result<(String, UdfUpdate), ErrorData> {
+    let UpdateUserDefinedFunctionItem {
+        user_defined_function_id,
+        name,
+        description,
+        expression,
+        function_inputs_json,
+        metadata,
+    } = item;
+    require_non_empty("user_defined_function_id", &user_defined_function_id)?;
+    if let Some(name) = &name {
+        validate_function_name(name)?;
     }
+    let changes = UdfUpdate {
+        name,
+        description,
+        expression,
+        function_inputs: function_inputs_json
+            .as_deref()
+            .map(parse_function_inputs)
+            .transpose()?,
+        metadata: metadata_values(metadata),
+    };
+    let others_set = changes.description.is_some()
+        || changes.expression.is_some()
+        || changes.function_inputs.is_some()
+        || changes.metadata.is_some();
+    if changes.name.is_none() && !others_set {
+        return Err(ErrorData::invalid_params(
+            "at least one of `name`, `description`, `expression`, `function_inputs_json`, or `metadata` must be set",
+            None,
+        ));
+    }
+    if changes.name.is_some() && others_set {
+        return Err(ErrorData::invalid_params(
+            "the API applies a `name` change on its own and ignores every other field in the same request; send the rename as a separate call",
+            None,
+        ));
+    }
+    Ok((user_defined_function_id, changes))
 }
 
 fn validate_function_name(name: &str) -> Result<(), ErrorData> {

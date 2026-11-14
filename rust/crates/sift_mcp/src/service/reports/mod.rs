@@ -342,6 +342,6 @@ impl ReportService {
         .context("failed to fetch report")?;
 
         resp.report
-            .ok_or_else(|| anyhow!("get_report response missing report"))
+            .ok_or_else(|| tonic::Status::not_found("report not found").into())
     }
 }

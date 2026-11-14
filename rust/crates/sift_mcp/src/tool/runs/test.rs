@@ -1,3 +1,6 @@
+#[path = "bulk_test.rs"]
+mod bulk;
+
 use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
 use sift_rs::runs::v2::{
     ListRunsResponse, Run, UpdateRunResponse, run_service_server::RunServiceServer,
@@ -6,27 +9,15 @@ use sift_test_util::{grpc::memory_sift_channel, mock::runs::v2::MockRunServiceIm
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
-use super::UpdateRunParams;
+use serde_json::json;
+
 use crate::{
     server::SiftMcpServer,
     tool::common::test_support::{
-        list_params, list_params_with_fields, structured, structured_field,
+        bulk_params, first_result, list_params, list_params_with_fields, structured,
+        structured_field,
     },
 };
-
-fn update_run_params(run_id: &str) -> UpdateRunParams {
-    UpdateRunParams {
-        run_id: run_id.into(),
-        name: None,
-        description: None,
-        start_time_unix_nanos: None,
-        stop_time_unix_nanos: None,
-        is_pinned: None,
-        client_key: None,
-        tags: None,
-        metadata: None,
-    }
-}
 
 async fn server_with_mock(mock: MockRunServiceImpl) -> (SiftMcpServer, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
@@ -212,42 +203,32 @@ async fn update_run_happy_path_surfaces_url() {
 
     let (server, _h) = server_with_mock(run_mock).await;
 
-    let mut params = update_run_params("r1");
-    params.name = Some("renamed".into());
+    let result = first_result(
+        server
+            .update_run(bulk_params(
+                json!([{"run_id": "r1", "name": "renamed"}]),
+                None,
+            ))
+            .await
+            .expect("update_run failed"),
+    );
 
-    let resp = server
-        .update_run(Parameters(params))
-        .await
-        .expect("update_run failed");
-
-    let run_url = structured_field(resp.clone(), "run_url");
-    assert_eq!(run_url, "https://app.test.local/run/r1");
-    let run = structured_field(resp, "run");
-    assert_eq!(run["name"], "renamed");
+    assert_eq!(result["run_url"], "https://app.test.local/run/r1");
+    assert_eq!(result["run"]["name"], "renamed");
+    assert!(result.get("next_step").is_none(), "{result}");
 }
 
 #[tokio::test]
-async fn update_run_rejects_empty_id() {
+async fn update_run_rejects_an_empty_id_or_no_fields_before_writing() {
     let (server, _h) = server_with_mock(MockRunServiceImpl::new()).await;
 
-    let err = server
-        .update_run(Parameters(update_run_params("")))
-        .await
-        .expect_err("expected error");
-
-    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
-}
-
-#[tokio::test]
-async fn update_run_rejects_no_fields() {
-    let (server, _h) = server_with_mock(MockRunServiceImpl::new()).await;
-
-    let err = server
-        .update_run(Parameters(update_run_params("r1")))
-        .await
-        .expect_err("expected error");
-
-    assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+    for item in [json!({"run_id": "", "name": "x"}), json!({"run_id": "r1"})] {
+        let err = server
+            .update_run(bulk_params(json!([item]), None))
+            .await
+            .expect_err("expected error");
+        assert_eq!(err.code, ErrorCode::INVALID_PARAMS);
+    }
 }
 
 #[tokio::test]

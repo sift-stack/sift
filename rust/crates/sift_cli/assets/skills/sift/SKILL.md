@@ -120,9 +120,13 @@ tool.
   available in read-only mode and need no confirmation.
 - **Links:** `explore_url`.
 - **Docs:** `search_docs`.
-- **Creates:** every `create_*` write takes an `items` array of 1 to 100
-  objects. Pass one item to create one resource, or several to create a batch
-  in one call. Results report each item by its index in `items`.
+- **Bulk writes:** every `create_*` write, and every `update_*`, `archive_*`
+  and `unarchive_*` write except `update_annotation`, takes an `items` array of
+  1 to 100 objects. Pass one item to write one resource, or several to write a
+  batch in one call. `update_annotation` instead applies one set of changes to
+  every id in `annotation_ids`. Results report each item by its position in
+  `items` or `annotation_ids`. Never replay a whole call after a partial
+  failure; retry only the failed items.
 - **Writes:** `create_rule`, `update_rule`, `archive_rule`, `unarchive_rule`,
   `create_annotation`, `update_annotation`, `create_report`, `update_report`,
   `create_report_template`, `update_report_template`,
@@ -131,7 +135,8 @@ tool.
   `create_user_defined_function`, `update_user_defined_function`,
   `archive_user_defined_function`, `unarchive_user_defined_function`,
   `create_test_report`, `append_test_measurements`, `update_asset`,
-  `update_run`, `create_artifact`, `archive_artifact`, `unarchive_artifact`.
+  `update_run`, `create_artifact`, `update_artifact`, `archive_artifact`,
+  `unarchive_artifact`.
 
 ## Workflows that span tools
 
