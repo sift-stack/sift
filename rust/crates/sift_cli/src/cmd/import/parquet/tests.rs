@@ -37,6 +37,7 @@ fn make_test_args(time_path: Option<&str>, time_format: Option<TimeFormat>) -> F
         bit_field_config: vec![],
         time_path: time_path.map(|s| s.to_string()),
         time_format,
+        time_format_str: String::default(),
         relative_start_time: None,
         complex_types_mode: ComplexTypesMode::default(),
     }
@@ -313,6 +314,49 @@ fn test_relative_time_format_without_start_time_returns_error() {
 }
 
 #[test]
+fn test_custom_time_format_without_time_format_str_returns_error() {
+    let batch = create_test_batch();
+    let bytes = write_to_parquet_bytes(&batch);
+    let args = make_test_args(Some("time"), Some(TimeFormat::Custom));
+
+    let err = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args).unwrap_err();
+    assert!(format!("{err:#}").contains("--time-format-str is required"));
+}
+
+#[test]
+fn test_custom_time_format_sets_custom_format() {
+    let batch = create_test_batch();
+    let bytes = write_to_parquet_bytes(&batch);
+    let mut args = make_test_args(Some("time"), Some(TimeFormat::Custom));
+    args.time_format_str = "%m-%d-%Y %H:%M:%S".into();
+
+    let (config, _) = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args)
+        .expect("custom format with format string should succeed");
+    let time_column = config.time_column.expect("time column");
+    assert_eq!(ProtoTimeFormat::Custom as i32, time_column.format);
+    assert_eq!("%m-%d-%Y %H:%M:%S", time_column.custom_format);
+}
+
+#[test]
+fn test_channel_per_row_custom_time_format_sets_custom_format() {
+    let batch = create_channel_per_row_single_batch();
+    let bytes = write_to_parquet_bytes(&batch);
+    let mut args = make_channel_per_row_args(
+        ChannelMode::Single,
+        Some("timestamp"),
+        Some(TimeFormat::Custom),
+    );
+    args.channel_name = Some("temperature".into());
+    args.time_format_str = "%m-%d-%Y %H:%M:%S".into();
+
+    let (cfg, _) = detect_parquet_schema::detect_channel_per_row_config(&bytes, &args)
+        .expect("custom format with format string should succeed");
+    let time_column = cfg.time_column.expect("time column");
+    assert_eq!(ProtoTimeFormat::Custom as i32, time_column.format);
+    assert_eq!("%m-%d-%Y %H:%M:%S", time_column.custom_format);
+}
+
+#[test]
 fn test_invalid_rfc3339_relative_start_time_returns_error() {
     let batch = create_test_batch();
     let bytes = write_to_parquet_bytes(&batch);
@@ -555,6 +599,7 @@ fn make_channel_per_row_args(
         mode,
         time_path: time_path.map(|s| s.to_string()),
         time_format,
+        time_format_str: String::default(),
         relative_start_time: None,
         data_path: "value".into(),
         channel_name: None,

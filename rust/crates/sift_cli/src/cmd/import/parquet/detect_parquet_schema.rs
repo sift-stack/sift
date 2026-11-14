@@ -57,8 +57,12 @@ pub fn detect_flat_dataset_config<R: ChunkReader>(
 
     let (resolved_format, format_source) = resolve_time_format(args.time_format, time_field);
 
-    validate_time_format(resolved_format, &args.relative_start_time)
-        .context("validating time format")?;
+    validate_time_format(
+        resolved_format,
+        &args.relative_start_time,
+        Some(&args.time_format_str),
+    )
+    .context("validating time format")?;
 
     let relative_start_time_input = match &args.relative_start_time {
         Some(start) => {
@@ -74,7 +78,7 @@ pub fn detect_flat_dataset_config<R: ChunkReader>(
         relative_start_time: relative_start_time_input,
         path: time_path.clone(),
         format: TimeFormat::from(resolved_format).into(),
-        custom_format: String::default(),
+        custom_format: args.time_format_str.clone(),
     });
 
     let mut data_columns = Vec::new();
@@ -176,8 +180,12 @@ pub fn detect_channel_per_row_config<R: ChunkReader>(
 
     let (resolved_format, format_source) = resolve_time_format(args.time_format, time_field);
 
-    validate_time_format(resolved_format, &args.relative_start_time)
-        .context("validating time format")?;
+    validate_time_format(
+        resolved_format,
+        &args.relative_start_time,
+        Some(&args.time_format_str),
+    )
+    .context("validating time format")?;
 
     let relative_start_time = match &args.relative_start_time {
         Some(start) => {
@@ -192,7 +200,7 @@ pub fn detect_channel_per_row_config<R: ChunkReader>(
         relative_start_time,
         path: time_path,
         format: TimeFormat::from(resolved_format).into(),
-        custom_format: String::default(),
+        custom_format: args.time_format_str.clone(),
     });
 
     let data_field = arrow_schema

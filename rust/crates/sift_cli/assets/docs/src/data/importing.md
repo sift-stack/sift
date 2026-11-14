@@ -72,10 +72,14 @@ timestamps are encoded. Supported values:
 | `relative-seconds`           | Offset from a start time, in seconds     |
 | `relative-minutes`           | Offset from a start time, in minutes     |
 | `relative-hours`             | Offset from a start time, in hours       |
+| `custom` (CSV and Parquet)   | Custom Unix date format set with `--time-format-str`, e.g. `%m-%d-%Y %H:%M:%S` |
 
 When the time format is **relative**, supply a start time with
 `--relative-start-time` (`-s`) in RFC 3339 so Sift can anchor the offsets to
 absolute time.
+
+When the time format is **custom**, supply the format with `--time-format-str`.
+Only `import csv` and `import parquet` accept `custom`.
 
 ### Channel data types
 

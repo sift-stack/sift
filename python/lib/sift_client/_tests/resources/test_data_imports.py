@@ -220,6 +220,11 @@ class TestTdmsConfig:
         proto = config._to_proto()
         assert proto.run_id == "run_123"
 
+    def test_custom_time_format_rejected(self):
+        config = TdmsImportConfig(asset_name="a", time_format=TimeFormat.CUSTOM)
+        with pytest.raises(ValueError, match="only supported for CSV and Parquet"):
+            config._to_proto()
+
 
 class TestHdf5Config:
     def test_to_proto(self):
@@ -702,6 +707,27 @@ class TestCsvToProto:
         assert restored.time_column.column == csv_config.time_column.column
         assert len(restored.data_columns) == len(csv_config.data_columns)
 
+    def test_custom_format_round_trip(self, csv_config):
+        csv_config.time_column = CsvTimeColumn(
+            column=4, format=TimeFormat.CUSTOM, custom_format="%m-%d-%Y %H:%M:%S"
+        )
+        proto = csv_config._to_proto()
+        assert proto.time_column.format == TimeFormat.CUSTOM.value
+        assert proto.time_column.custom_format == "%m-%d-%Y %H:%M:%S"
+
+        restored = CsvImportConfig._from_proto(proto)
+        assert restored.time_column.format == TimeFormat.CUSTOM
+        assert restored.time_column.custom_format == "%m-%d-%Y %H:%M:%S"
+
+    def test_custom_format_requires_custom_format(self):
+        col = CsvTimeColumn(column=1, format=TimeFormat.CUSTOM)
+        with pytest.raises(ValueError, match="custom_format"):
+            col._to_proto()
+
+    def test_custom_format_defaults_to_empty(self, csv_config):
+        assert csv_config.time_column.custom_format == ""
+        assert csv_config._to_proto().time_column.custom_format == ""
+
 
 class TestParquetToProto:
     def test_flat_dataset_to_proto(self, parquet_config):
@@ -755,6 +781,33 @@ class TestParquetTimeColumnToProto:
         assert col.format is None
         with pytest.raises(ValueError, match="format must be set"):
             col._to_proto()
+
+    def test_custom_format_round_trip(self):
+        col = ParquetTimeColumn(
+            path="timestamp", format=TimeFormat.CUSTOM, custom_format="%m-%d-%Y %H:%M:%S"
+        )
+        proto = col._to_proto()
+        assert proto.custom_format == "%m-%d-%Y %H:%M:%S"
+
+        restored = ParquetTimeColumn._from_proto(proto)
+        assert restored.format == TimeFormat.CUSTOM
+        assert restored.custom_format == "%m-%d-%Y %H:%M:%S"
+
+    def test_custom_format_requires_custom_format(self):
+        col = ParquetTimeColumn(path="timestamp", format=TimeFormat.CUSTOM)
+        with pytest.raises(ValueError, match="custom_format"):
+            col._to_proto()
+
+    def test_custom_format_without_custom_format_reads_back(self):
+        proto = ParquetTimeColumnProto(path="timestamp", format=TimeFormat.CUSTOM.value)
+        col = ParquetTimeColumn._from_proto(proto)
+        assert col.format == TimeFormat.CUSTOM
+        assert col.custom_format == ""
+
+    def test_custom_format_defaults_to_empty(self):
+        col = ParquetTimeColumn(path="timestamp", format=TimeFormat.ABSOLUTE_RFC3339)
+        assert col.custom_format == ""
+        assert col._to_proto().custom_format == ""
 
 
 class TestResolveDataTypeKey:
@@ -987,6 +1040,11 @@ class TestUnspecifiedTimeFormat:
     def test_hdf5_to_proto_rejects_missing_format(self):
         config = Hdf5ImportConfig(asset_name="a", data=[], time_format=None)
         with pytest.raises(ValueError, match="time_format is required"):
+            config._to_proto()
+
+    def test_hdf5_to_proto_rejects_custom_format(self):
+        config = Hdf5ImportConfig(asset_name="a", data=[], time_format=TimeFormat.CUSTOM)
+        with pytest.raises(ValueError, match="only supported for CSV and Parquet"):
             config._to_proto()
 
 
