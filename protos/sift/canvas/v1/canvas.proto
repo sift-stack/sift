@@ -2,6 +2,12 @@ syntax = "proto3";
 
 package sift.canvas.v1;
 
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "Canvas Service"}
+};
+
 // Status of a single canvas cell execution. Also used as the status of the
 // parent CanvasExecution: the parent rolls up its cells' statuses into a
 // single value (e.g. any AUTO_FAILED cell yields an AUTO_FAILED execution).
@@ -18,3 +24,16 @@ enum CanvasCellExecutionStatus {
   CANVAS_CELL_EXECUTION_STATUS_MANUALLY_CANCELLED = 9;
   CANVAS_CELL_EXECUTION_STATUS_IN_QUEUE = 10;
 }
+
+// CanvasService is the public canvas API. Authoring and execution stay on the
+// private service.
+service CanvasService {
+  // ExportCanvas builds one zip of a saved canvas version and returns a
+  // presigned URL for it. The zip holds the py:percent source, the parameter
+  // sidecar, requirements.txt, file attachments, Python modules, and wheels.
+  // EXTERNAL canvases are rejected.
+}
+
+// The request for a call to `CanvasService_ExportCanvas`.
+
+// The response of a call to `CanvasService_ExportCanvas`.

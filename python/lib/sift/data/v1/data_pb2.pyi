@@ -108,8 +108,8 @@ class ChannelQuery(google.protobuf.message.Message):
     run_id: builtins.str
     """Optional.
     If set, only data associated with the specified run is returned.
-    If set to the empty string, only non-run data is returned.
-    If unset, all run / non-run data is returned.
+    If set to the empty string, this is treated the same as unset.
+    If unset, all run / non-run data is returned, split by run.
     """
     def __init__(
         self,
@@ -134,9 +134,9 @@ class CalculatedChannelQuery(google.protobuf.message.Message):
     channel_key: builtins.str
     run_id: builtins.str
     """Optional.
-    If set, only data for the specified run is returned
-    If set to the empty string, only non-run data is returned.
-    If unset, all run / non-run data is returned.
+    If set, only data for the specified run is returned.
+    If set to the empty string, all run / non-run data is returned as a single combined result.
+    If unset, all run / non-run data is returned, split by run.
     """
     mode: sift.calculated_channels.v1.calculated_channels_pb2.ExpressionMode.ValueType
     """Optional. If unset, will default to EXPRESSION_MODE_CALCULATED_CHANNELS."""

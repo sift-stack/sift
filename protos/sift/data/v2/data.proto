@@ -81,8 +81,8 @@ message ChannelQuery {
   string channel_id = 1;
   // Optional.
   // If set, only data associated with the specified run is returned.
-  // If set to the empty string, only non-run data is returned.
-  // If unset, all run / non-run data is returned.
+  // If set to the empty string, this is treated the same as unset.
+  // If unset, all run / non-run data is returned, split by run.
   optional string run_id = 2;
 }
 
@@ -90,9 +90,9 @@ message CalculatedChannelQuery {
   string channel_key = 1 [(google.api.field_behavior) = REQUIRED];
   sift.calculated_channels.v1.ExpressionRequest expression = 2 [(google.api.field_behavior) = REQUIRED];
   // Optional.
-  // If set, only data for the specified run is returned
-  // If set to the empty string, only non-run data is returned.
-  // If unset, all run / non-run data is returned.
+  // If set, only data for the specified run is returned.
+  // If set to the empty string, all run / non-run data is returned as a single combined result.
+  // If unset, all run / non-run data is returned, split by run.
   optional string run_id = 3;
   // Optional. If unset, will default to EXPRESSION_MODE_CALCULATED_CHANNELS.
   optional sift.calculated_channels.v1.ExpressionMode mode = 4;

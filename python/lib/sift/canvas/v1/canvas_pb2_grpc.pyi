@@ -15,3 +15,39 @@ class _MaybeAsyncIterator(collections.abc.AsyncIterator[_T], collections.abc.Ite
 
 class _ServicerContext(grpc.ServicerContext, grpc.aio.ServicerContext):  # type: ignore[misc, type-arg]
     ...
+
+class CanvasServiceStub:
+    """CanvasService is the public canvas API. Authoring and execution stay on the
+    private service.
+    ExportCanvas builds one zip of a saved canvas version and returns a
+    presigned URL for it. The zip holds the py:percent source, the parameter
+    sidecar, requirements.txt, file attachments, Python modules, and wheels.
+    EXTERNAL canvases are rejected.
+    """
+
+    def __init__(self, channel: typing.Union[grpc.Channel, grpc.aio.Channel]) -> None: ...
+    ...
+
+class CanvasServiceAsyncStub:
+    """CanvasService is the public canvas API. Authoring and execution stay on the
+    private service.
+    ExportCanvas builds one zip of a saved canvas version and returns a
+    presigned URL for it. The zip holds the py:percent source, the parameter
+    sidecar, requirements.txt, file attachments, Python modules, and wheels.
+    EXTERNAL canvases are rejected.
+    """
+
+    ...
+
+class CanvasServiceServicer(metaclass=abc.ABCMeta):
+    """CanvasService is the public canvas API. Authoring and execution stay on the
+    private service.
+    ExportCanvas builds one zip of a saved canvas version and returns a
+    presigned URL for it. The zip holds the py:percent source, the parameter
+    sidecar, requirements.txt, file attachments, Python modules, and wheels.
+    EXTERNAL canvases are rejected.
+    """
+
+    ...
+
+def add_CanvasServiceServicer_to_server(servicer: CanvasServiceServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...

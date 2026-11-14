@@ -15,7 +15,7 @@ _sym_db = _symbol_database.Default()
 from google.api import field_behavior_pb2 as google_dot_api_dot_field__behavior__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n3sift/common/type/v1/channel_bit_field_element.proto\x12\x13sift.common.type.v1\x1a\x1fgoogle/api/field_behavior.proto\"n\n\x16\x43hannelBitFieldElement\x12\x17\n\x04name\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x04name\x12\x19\n\x05index\x18\x02 \x01(\x05\x42\x03\xe0\x41\x02R\x05index\x12 \n\tbit_count\x18\x03 \x01(\rB\x03\xe0\x41\x02R\x08\x62itCountB\xa5\x01\n\x17\x63om.sift.common.type.v1B\x1b\x43hannelBitFieldElementProtoP\x01\xa2\x02\x03SCT\xaa\x02\x13Sift.Common.Type.V1\xca\x02\x13Sift\\Common\\Type\\V1\xe2\x02\x1fSift\\Common\\Type\\V1\\GPBMetadata\xea\x02\x16Sift::Common::Type::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n3sift/common/type/v1/channel_bit_field_element.proto\x12\x13sift.common.type.v1\x1a\x1fgoogle/api/field_behavior.proto\"q\n\x16\x43hannelBitFieldElement\x12\x18\n\x04name\x18\x01 \x01(\tB\x04\xe2\x41\x01\x02R\x04name\x12\x1a\n\x05index\x18\x02 \x01(\x05\x42\x04\xe2\x41\x01\x02R\x05index\x12!\n\tbit_count\x18\x03 \x01(\rB\x04\xe2\x41\x01\x02R\x08\x62itCountB\xa5\x01\n\x17\x63om.sift.common.type.v1B\x1b\x43hannelBitFieldElementProtoP\x01\xa2\x02\x03SCT\xaa\x02\x13Sift.Common.Type.V1\xca\x02\x13Sift\\Common\\Type\\V1\xe2\x02\x1fSift\\Common\\Type\\V1\\GPBMetadata\xea\x02\x16Sift::Common::Type::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -24,11 +24,11 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n\027com.sift.common.type.v1B\033ChannelBitFieldElementProtoP\001\242\002\003SCT\252\002\023Sift.Common.Type.V1\312\002\023Sift\\Common\\Type\\V1\342\002\037Sift\\Common\\Type\\V1\\GPBMetadata\352\002\026Sift::Common::Type::V1'
   _globals['_CHANNELBITFIELDELEMENT'].fields_by_name['name']._loaded_options = None
-  _globals['_CHANNELBITFIELDELEMENT'].fields_by_name['name']._serialized_options = b'\340A\002'
+  _globals['_CHANNELBITFIELDELEMENT'].fields_by_name['name']._serialized_options = b'\342A\001\002'
   _globals['_CHANNELBITFIELDELEMENT'].fields_by_name['index']._loaded_options = None
-  _globals['_CHANNELBITFIELDELEMENT'].fields_by_name['index']._serialized_options = b'\340A\002'
+  _globals['_CHANNELBITFIELDELEMENT'].fields_by_name['index']._serialized_options = b'\342A\001\002'
   _globals['_CHANNELBITFIELDELEMENT'].fields_by_name['bit_count']._loaded_options = None
-  _globals['_CHANNELBITFIELDELEMENT'].fields_by_name['bit_count']._serialized_options = b'\340A\002'
+  _globals['_CHANNELBITFIELDELEMENT'].fields_by_name['bit_count']._serialized_options = b'\342A\001\002'
   _globals['_CHANNELBITFIELDELEMENT']._serialized_start=109
-  _globals['_CHANNELBITFIELDELEMENT']._serialized_end=219
+  _globals['_CHANNELBITFIELDELEMENT']._serialized_end=222
 # @@protoc_insertion_point(module_scope)

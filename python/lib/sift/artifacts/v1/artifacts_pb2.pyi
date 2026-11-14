@@ -123,6 +123,7 @@ class _ArtifactEntityTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrap
     ARTIFACT_ENTITY_TYPE_ASSET: _ArtifactEntityType.ValueType  # 4
     ARTIFACT_ENTITY_TYPE_ARTIFACT: _ArtifactEntityType.ValueType  # 5
     ARTIFACT_ENTITY_TYPE_TOOL_USE: _ArtifactEntityType.ValueType  # 6
+    ARTIFACT_ENTITY_TYPE_CANVAS_EXECUTION: _ArtifactEntityType.ValueType  # 7
 
 class ArtifactEntityType(_ArtifactEntityType, metaclass=_ArtifactEntityTypeEnumTypeWrapper):
     """The kind of entity an artifact link points at. entity_id is opaque: a UUID
@@ -137,6 +138,7 @@ ARTIFACT_ENTITY_TYPE_RUN: ArtifactEntityType.ValueType  # 3
 ARTIFACT_ENTITY_TYPE_ASSET: ArtifactEntityType.ValueType  # 4
 ARTIFACT_ENTITY_TYPE_ARTIFACT: ArtifactEntityType.ValueType  # 5
 ARTIFACT_ENTITY_TYPE_TOOL_USE: ArtifactEntityType.ValueType  # 6
+ARTIFACT_ENTITY_TYPE_CANVAS_EXECUTION: ArtifactEntityType.ValueType  # 7
 global___ArtifactEntityType = ArtifactEntityType
 
 @typing.final

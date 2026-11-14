@@ -342,6 +342,7 @@ fn create_data_import_request<R: io::Read>(
                 relative_start_time,
                 column_number: args.time_column as u32,
                 format: PbTimeFormat::from(args.time_format).into(),
+                custom_format: String::default(),
             }),
             ..Default::default()
         }),

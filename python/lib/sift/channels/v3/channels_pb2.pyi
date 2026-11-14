@@ -87,7 +87,10 @@ global___Channel = Channel
 
 @typing.final
 class GetChannelRequest(google.protobuf.message.Message):
-    """The request for a call to `ChannelService_GetChannel`."""
+    """How a channel's data reaches Sift.
+
+    The request for a call to `ChannelService_GetChannel`.
+    """
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 

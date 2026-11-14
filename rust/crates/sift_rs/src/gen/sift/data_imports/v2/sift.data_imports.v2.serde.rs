@@ -1504,6 +1504,9 @@ impl serde::Serialize for CsvTimeColumn {
         if self.relative_start_time.is_some() {
             len += 1;
         }
+        if !self.custom_format.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.data_imports.v2.CsvTimeColumn", len)?;
         if self.column_number != 0 {
             struct_ser.serialize_field("columnNumber", &self.column_number)?;
@@ -1515,6 +1518,9 @@ impl serde::Serialize for CsvTimeColumn {
         }
         if let Some(v) = self.relative_start_time.as_ref() {
             struct_ser.serialize_field("relativeStartTime", v)?;
+        }
+        if !self.custom_format.is_empty() {
+            struct_ser.serialize_field("customFormat", &self.custom_format)?;
         }
         struct_ser.end()
     }
@@ -1531,6 +1537,8 @@ impl<'de> serde::Deserialize<'de> for CsvTimeColumn {
             "format",
             "relative_start_time",
             "relativeStartTime",
+            "custom_format",
+            "customFormat",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1538,6 +1546,7 @@ impl<'de> serde::Deserialize<'de> for CsvTimeColumn {
             ColumnNumber,
             Format,
             RelativeStartTime,
+            CustomFormat,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1562,6 +1571,7 @@ impl<'de> serde::Deserialize<'de> for CsvTimeColumn {
                             "columnNumber" | "column_number" => Ok(GeneratedField::ColumnNumber),
                             "format" => Ok(GeneratedField::Format),
                             "relativeStartTime" | "relative_start_time" => Ok(GeneratedField::RelativeStartTime),
+                            "customFormat" | "custom_format" => Ok(GeneratedField::CustomFormat),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1584,6 +1594,7 @@ impl<'de> serde::Deserialize<'de> for CsvTimeColumn {
                 let mut column_number__ = None;
                 let mut format__ = None;
                 let mut relative_start_time__ = None;
+                let mut custom_format__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ColumnNumber => {
@@ -1606,12 +1617,19 @@ impl<'de> serde::Deserialize<'de> for CsvTimeColumn {
                             }
                             relative_start_time__ = map_.next_value()?;
                         }
+                        GeneratedField::CustomFormat => {
+                            if custom_format__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("customFormat"));
+                            }
+                            custom_format__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(CsvTimeColumn {
                     column_number: column_number__.unwrap_or_default(),
                     format: format__.unwrap_or_default(),
                     relative_start_time: relative_start_time__,
+                    custom_format: custom_format__.unwrap_or_default(),
                 })
             }
         }
@@ -4969,6 +4987,9 @@ impl serde::Serialize for ParquetTimeColumn {
         if self.relative_start_time.is_some() {
             len += 1;
         }
+        if !self.custom_format.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.data_imports.v2.ParquetTimeColumn", len)?;
         if !self.path.is_empty() {
             struct_ser.serialize_field("path", &self.path)?;
@@ -4980,6 +5001,9 @@ impl serde::Serialize for ParquetTimeColumn {
         }
         if let Some(v) = self.relative_start_time.as_ref() {
             struct_ser.serialize_field("relativeStartTime", v)?;
+        }
+        if !self.custom_format.is_empty() {
+            struct_ser.serialize_field("customFormat", &self.custom_format)?;
         }
         struct_ser.end()
     }
@@ -4995,6 +5019,8 @@ impl<'de> serde::Deserialize<'de> for ParquetTimeColumn {
             "format",
             "relative_start_time",
             "relativeStartTime",
+            "custom_format",
+            "customFormat",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -5002,6 +5028,7 @@ impl<'de> serde::Deserialize<'de> for ParquetTimeColumn {
             Path,
             Format,
             RelativeStartTime,
+            CustomFormat,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -5026,6 +5053,7 @@ impl<'de> serde::Deserialize<'de> for ParquetTimeColumn {
                             "path" => Ok(GeneratedField::Path),
                             "format" => Ok(GeneratedField::Format),
                             "relativeStartTime" | "relative_start_time" => Ok(GeneratedField::RelativeStartTime),
+                            "customFormat" | "custom_format" => Ok(GeneratedField::CustomFormat),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -5048,6 +5076,7 @@ impl<'de> serde::Deserialize<'de> for ParquetTimeColumn {
                 let mut path__ = None;
                 let mut format__ = None;
                 let mut relative_start_time__ = None;
+                let mut custom_format__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Path => {
@@ -5068,12 +5097,19 @@ impl<'de> serde::Deserialize<'de> for ParquetTimeColumn {
                             }
                             relative_start_time__ = map_.next_value()?;
                         }
+                        GeneratedField::CustomFormat => {
+                            if custom_format__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("customFormat"));
+                            }
+                            custom_format__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(ParquetTimeColumn {
                     path: path__.unwrap_or_default(),
                     format: format__.unwrap_or_default(),
                     relative_start_time: relative_start_time__,
+                    custom_format: custom_format__.unwrap_or_default(),
                 })
             }
         }
@@ -5855,6 +5891,7 @@ impl serde::Serialize for TimeFormat {
             Self::AbsoluteUnixMilliseconds => "TIME_FORMAT_ABSOLUTE_UNIX_MILLISECONDS",
             Self::AbsoluteUnixMicroseconds => "TIME_FORMAT_ABSOLUTE_UNIX_MICROSECONDS",
             Self::AbsoluteUnixNanoseconds => "TIME_FORMAT_ABSOLUTE_UNIX_NANOSECONDS",
+            Self::Custom => "TIME_FORMAT_CUSTOM",
         };
         serializer.serialize_str(variant)
     }
@@ -5879,6 +5916,7 @@ impl<'de> serde::Deserialize<'de> for TimeFormat {
             "TIME_FORMAT_ABSOLUTE_UNIX_MILLISECONDS",
             "TIME_FORMAT_ABSOLUTE_UNIX_MICROSECONDS",
             "TIME_FORMAT_ABSOLUTE_UNIX_NANOSECONDS",
+            "TIME_FORMAT_CUSTOM",
         ];
 
         struct GeneratedVisitor;
@@ -5932,6 +5970,7 @@ impl<'de> serde::Deserialize<'de> for TimeFormat {
                     "TIME_FORMAT_ABSOLUTE_UNIX_MILLISECONDS" => Ok(TimeFormat::AbsoluteUnixMilliseconds),
                     "TIME_FORMAT_ABSOLUTE_UNIX_MICROSECONDS" => Ok(TimeFormat::AbsoluteUnixMicroseconds),
                     "TIME_FORMAT_ABSOLUTE_UNIX_NANOSECONDS" => Ok(TimeFormat::AbsoluteUnixNanoseconds),
+                    "TIME_FORMAT_CUSTOM" => Ok(TimeFormat::Custom),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }

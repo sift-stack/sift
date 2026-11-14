@@ -2,3 +2,49 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
+
+
+class CanvasServiceStub(object):
+    """CanvasService is the public canvas API. Authoring and execution stay on the
+    private service.
+    ExportCanvas builds one zip of a saved canvas version and returns a
+    presigned URL for it. The zip holds the py:percent source, the parameter
+    sidecar, requirements.txt, file attachments, Python modules, and wheels.
+    EXTERNAL canvases are rejected.
+    """
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+
+
+class CanvasServiceServicer(object):
+    """CanvasService is the public canvas API. Authoring and execution stay on the
+    private service.
+    ExportCanvas builds one zip of a saved canvas version and returns a
+    presigned URL for it. The zip holds the py:percent source, the parameter
+    sidecar, requirements.txt, file attachments, Python modules, and wheels.
+    EXTERNAL canvases are rejected.
+    """
+
+
+def add_CanvasServiceServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'sift.canvas.v1.CanvasService', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+
+
+ # This class is part of an EXPERIMENTAL API.
+class CanvasService(object):
+    """CanvasService is the public canvas API. Authoring and execution stay on the
+    private service.
+    ExportCanvas builds one zip of a saved canvas version and returns a
+    presigned URL for it. The zip holds the py:percent source, the parameter
+    sidecar, requirements.txt, file attachments, Python modules, and wheels.
+    EXTERNAL canvases are rejected.
+    """

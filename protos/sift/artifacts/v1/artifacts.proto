@@ -264,6 +264,7 @@ enum ArtifactEntityType {
   ARTIFACT_ENTITY_TYPE_ASSET = 4;
   ARTIFACT_ENTITY_TYPE_ARTIFACT = 5;
   ARTIFACT_ENTITY_TYPE_TOOL_USE = 6;
+  ARTIFACT_ENTITY_TYPE_CANVAS_EXECUTION = 7;
 }
 
 // The container. Everything that varies by version lives on ArtifactVersion,
