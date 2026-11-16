@@ -1,8 +1,17 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, NamedTuple, cast
 
 from sift.data_imports.v2.data_imports_pb2 import (
+    DATA_TYPE_KEY_CSV,
+    DATA_TYPE_KEY_HDF5,
+    DATA_TYPE_KEY_MCAP,
+    DATA_TYPE_KEY_PARQUET_FLATDATASET,
+    DATA_TYPE_KEY_PARQUET_SINGLE_CHANNEL_PER_ROW,
+    DATA_TYPE_KEY_TDMS,
+    DATA_TYPE_KEY_ULOG,
+    BatchConfig,
+    BatchFileConfig,
     CreateDataImportFromUploadRequest,
     CreateDataImportFromUploadResponse,
     DetectConfigRequest,
@@ -29,32 +38,82 @@ from sift_client.sift_types.data_import import (
 from sift_client.transport import WithGrpcClient
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from sift.data_imports.v2.data_imports_pb2 import DataTypeKey
 
     from sift_client.transport.grpc_transport import GrpcClient
+
+
+class _ConfigUploadField(NamedTuple):
+    """An import config's upload oneof and batch type key.
+
+    Parquet layouts share one oneof and use different type keys.
+    """
+
+    config_type: type[ImportConfig]
+    field_name: str
+    type_key: DataTypeKey.ValueType
+
+
+_CONFIG_UPLOAD_FIELDS: tuple[_ConfigUploadField, ...] = (
+    _ConfigUploadField(CsvImportConfig, "csv_config", DATA_TYPE_KEY_CSV),
+    _ConfigUploadField(
+        ParquetFlatDatasetImportConfig, "parquet_config", DATA_TYPE_KEY_PARQUET_FLATDATASET
+    ),
+    _ConfigUploadField(
+        ParquetSingleChannelPerRowImportConfig,
+        "parquet_config",
+        DATA_TYPE_KEY_PARQUET_SINGLE_CHANNEL_PER_ROW,
+    ),
+    _ConfigUploadField(TdmsImportConfig, "tdms_config", DATA_TYPE_KEY_TDMS),
+    _ConfigUploadField(Hdf5ImportConfig, "hdf5_config", DATA_TYPE_KEY_HDF5),
+    _ConfigUploadField(UlogImportConfig, "ulog_config", DATA_TYPE_KEY_ULOG),
+    _ConfigUploadField(McapImportConfig, "mcap_config", DATA_TYPE_KEY_MCAP),
+)
+
+
+def _config_upload_field(config: ImportConfig) -> _ConfigUploadField:
+    """Return the upload field for a config."""
+    for field in _CONFIG_UPLOAD_FIELDS:
+        if isinstance(config, field.config_type):
+            return field
+    raise TypeError(f"Unsupported import config type: {type(config).__name__}")
 
 
 def _set_config_on_request(
     request: CreateDataImportFromUploadRequest,
     config: ImportConfig,
 ) -> None:
-    """Set the appropriate config field on a proto request based on the config type."""
-    if isinstance(config, CsvImportConfig):
-        request.csv_config.CopyFrom(config._to_proto())
-    elif isinstance(
-        config, (ParquetFlatDatasetImportConfig, ParquetSingleChannelPerRowImportConfig)
-    ):
-        request.parquet_config.CopyFrom(config._to_proto())
-    elif isinstance(config, TdmsImportConfig):
-        request.tdms_config.CopyFrom(config._to_proto())
-    elif isinstance(config, Hdf5ImportConfig):
-        request.hdf5_config.CopyFrom(config._to_proto())
-    elif isinstance(config, UlogImportConfig):
-        request.ulog_config.CopyFrom(config._to_proto())
-    elif isinstance(config, McapImportConfig):
-        request.mcap_config.CopyFrom(config._to_proto())
-    else:
-        raise TypeError(f"Unsupported import config type: {type(config).__name__}")
+    """Set the config field on an upload request for this config type."""
+    field = _config_upload_field(config)
+    getattr(request, field.field_name).CopyFrom(config._to_proto())
+
+
+def _batch_file_config(filename: str, config: ImportConfig) -> BatchFileConfig:
+    """Build one archive member's config."""
+    if isinstance(config, UlogImportConfig) and (config.info_keys or config.param_keys):
+        raise ValueError(
+            "info_keys and param_keys are not supported for ULog files in a "
+            f"batch import ({filename}). Import the file on its own to attach "
+            "its metadata to a run."
+        )
+    if isinstance(config, McapImportConfig) and config.metadata_records:
+        raise ValueError(
+            "metadata_records are not supported for MCAP files in a batch "
+            f"import ({filename}). Import the file on its own to attach its "
+            "metadata to a run."
+        )
+    field = _config_upload_field(config)
+    file_proto = config._to_proto()
+    # The batch message owns the asset and run. A per-file value that
+    # disagrees with it is rejected.
+    file_proto.asset_name = ""
+    file_proto.run_name = ""
+    file_proto.run_id = ""
+    batch_file = BatchFileConfig(type=field.type_key)
+    getattr(batch_file, field.field_name).CopyFrom(file_proto)
+    return batch_file
 
 
 class DataImportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
@@ -66,17 +125,67 @@ class DataImportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     def __init__(self, grpc_client: GrpcClient):
         WithGrpcClient.__init__(self, grpc_client=grpc_client)
 
-    async def create_from_upload(self, config: ImportConfig) -> tuple[str, str]:
+    async def create_from_upload(
+        self, config: ImportConfig, *, leave_run_open: bool = False
+    ) -> tuple[str, str]:
         """Create a data import and get back a presigned upload URL.
 
         Args:
             config: The import configuration.
+            leave_run_open: If true, the import does not mark its run stopped.
+                Run-stop automations do not fire. Set this when more data is
+                coming to the run, then stop the run after the last import.
+                Ignored when the import has no run.
 
         Returns:
             A tuple of (data_import_id, upload_url).
         """
         request = CreateDataImportFromUploadRequest()
         _set_config_on_request(request, config)
+        request.leave_run_open = leave_run_open
+        return await self._create_upload(request)
+
+    async def create_batch_from_upload(
+        self,
+        file_configs: Mapping[str, ImportConfig],
+        *,
+        asset_name: str,
+        run_name: str | None = None,
+        run_id: str | None = None,
+        leave_run_open: bool = False,
+    ) -> tuple[str, str]:
+        """Create one import for an archive of files and return its upload URL.
+
+        ``file_configs`` maps each archive member name to that file's import
+        config. The asset and run are set on the batch, not on the files.
+
+        Args:
+            file_configs: Archive member name to the config for that file.
+            asset_name: Asset every file in the archive imports into.
+            run_name: Name for a new run shared by every file. Ignored when
+                ``run_id`` is set.
+            run_id: ID of an existing run every file appends to.
+            leave_run_open: If true, the import does not mark its run stopped.
+                Run-stop automations do not fire. Ignored when the import has
+                no run.
+
+        Returns:
+            A tuple of (data_import_id, upload_url).
+        """
+        if not file_configs:
+            raise ValueError("A batch import needs at least one file.")
+        batch = BatchConfig(
+            asset_name=asset_name,
+            run_name=run_name or "",
+            run_id=run_id or "",
+        )
+        for filename, config in file_configs.items():
+            batch.file_configs[filename].CopyFrom(_batch_file_config(filename, config))
+        request = CreateDataImportFromUploadRequest(batch_config=batch)
+        request.leave_run_open = leave_run_open
+        return await self._create_upload(request)
+
+    async def _create_upload(self, request: CreateDataImportFromUploadRequest) -> tuple[str, str]:
         response = await self._grpc_client.get_stub(
             DataImportServiceStub
         ).CreateDataImportFromUpload(request)

@@ -22,6 +22,7 @@ from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_
 
 if TYPE_CHECKING:
     from pathlib import Path
+    from typing import Mapping, Sequence
 
     from sift_stream_bindings import RunFormPy
 
@@ -153,25 +154,38 @@ class Run(BaseType[RunProto, "Run"], FileAttachmentsMixin):
 
     def import_data(
         self,
-        file_path: str | Path,
+        file_path: str | Path | Sequence[str | Path],
         *,
         asset: Asset | str | None = None,
-        config: ImportConfig | None = None,
+        config: ImportConfig | Mapping[str | Path, ImportConfig] | None = None,
         data_type: DataTypeKey | None = None,
         show_progress: bool | None = None,
+        leave_run_open: bool = False,
     ) -> Job:
-        """Import data from a file into this run.
+        """Import data from a file, or a list of files, into this run.
 
         Convenience method that calls ``client.data_import.import_from_path``
         with this run pre-filled. If the run has exactly one asset,
         ``asset`` is inferred automatically.
 
+        If you have more than one file for this run, pass the paths in one
+        call. That is one import. A finished import stops this run unless
+        ``leave_run_open`` is true. Set that when more files are still
+        coming, then call ``stop`` after the last import.
+
         Args:
-            file_path: Path to the local file to import.
+            file_path: Path to the local file to import, or a list of paths.
+                Pass every file in one call when they belong together. Two
+                or more paths are uploaded as one zip.
             asset: Asset object or asset name to import data into.
-            config: Import configuration. Auto-detected if omitted.
+            config: Import configuration for one file, or a mapping of path
+                to configuration. A file with no entry is detected.
+                Auto-detected when omitted.
             data_type: Explicit data type key for ambiguous formats.
             show_progress: Display a progress spinner during upload.
+            leave_run_open: If true, the import does not mark this run
+                stopped, so run-stop automations do not fire. Defaults to
+                false.
 
         Returns:
             A ``Job`` handle for the pending import.
@@ -186,6 +200,7 @@ class Run(BaseType[RunProto, "Run"], FileAttachmentsMixin):
             data_type=data_type,
             run=self,
             show_progress=show_progress,
+            leave_run_open=leave_run_open,
         )
 
 
