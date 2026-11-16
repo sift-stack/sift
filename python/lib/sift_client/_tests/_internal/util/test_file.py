@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+import zipfile
 from unittest.mock import MagicMock
 
 import pytest
 from requests import HTTPError, Request, Response
 
-from sift_client._internal.util.file import download_file, read_url_bytes, upload_file
+from sift_client._internal.util.file import (
+    _write_import_zip,
+    download_file,
+    read_url_bytes,
+    upload_file,
+)
 
 
 @pytest.fixture
@@ -146,3 +152,19 @@ class TestReadUrlBytes:
         assert data == b"hello world"
         assert captured["url"] == "https://example.test/signed"
         assert captured["headers"] == {"Authorization": None}
+
+
+class TestWriteImportZip:
+    def test_packs_each_file_under_its_name(self, tmp_path):
+        first = tmp_path / "a.csv"
+        second = tmp_path / "nested" / "b.csv"
+        second.parent.mkdir()
+        first.write_text("a")
+        second.write_text("b")
+        archive = tmp_path / "batch.zip"
+
+        _write_import_zip(archive, [first, second])
+
+        with zipfile.ZipFile(archive) as zip_file:
+            assert zip_file.read("a.csv") == b"a"
+            assert zip_file.read("b.csv") == b"b"

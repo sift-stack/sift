@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import tempfile
-import zipfile
-from collections.abc import Mapping
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -10,13 +8,14 @@ from sift_client._internal.low_level_wrappers.data_imports import DataImportsLow
 from sift_client._internal.time import to_timestamp_nanos
 from sift_client._internal.util.bit_field import check_bit_field_values
 from sift_client._internal.util.data_imports import (
+    _supplied_configs,
     parse_csv_detect_response,
     parse_parquet_detect_response,
     prepare_parquet_config,
     resolve_data_type_key,
 )
 from sift_client._internal.util.executor import run_sync_function
-from sift_client._internal.util.file import extract_parquet_footer, upload_file
+from sift_client._internal.util.file import _write_import_zip, extract_parquet_footer, upload_file
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.data_import import (
@@ -25,7 +24,6 @@ from sift_client.sift_types.data_import import (
     DataImport,
     DataTypeKey,
     ImportConfig,
-    ImportConfigBase,
     McapImportConfig,
     ParquetFlatDatasetImportConfig,
     ParquetSingleChannelPerRowImportConfig,
@@ -37,6 +35,7 @@ from sift_client.sift_types.run import Run
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
     from datetime import datetime
     from typing import Sequence
 
@@ -67,54 +66,39 @@ def _run_id_and_name(
     return None, default_name
 
 
-def _config_key_matches(path: Path, key: str | Path) -> bool:
-    """Whether a mapping key names this path.
-
-    A key matches the path itself, or the file name when the key has no
-    directory. Names in one import are distinct, so a file name matches
-    one path.
-    """
-    key_path = key if isinstance(key, Path) else Path(key)
-    if path == key_path:
-        return True
-    return key_path.parent == Path(".") and key_path.name == path.name
-
-
-def _supplied_configs(
+def _import_target(
     paths: list[Path],
-    config: ImportConfig | Mapping[str | Path, ImportConfig] | None,
-) -> dict[Path, ImportConfig | None]:
-    """Return each path's config. None means detect that file.
+    configs: list[ImportConfig],
+    asset: Asset | str | None,
+    run: Run | str | None,
+    run_name: str | None,
+) -> tuple[str, str | None, str | None]:
+    """Return the asset name, run id, and run name for this import.
 
-    One import config applies to a single path. A mapping key is a path
-    from the list, or that file's name. A path with no entry is detected.
+    One file uses the asset on its config when ``asset`` is omitted. Several
+    files require ``asset``. The run comes from ``run`` or ``run_name``. When
+    neither is set, one file keeps the run on its config, and several files
+    use the first file's name.
     """
-    if config is None:
-        return dict.fromkeys(paths)
-    if isinstance(config, ImportConfigBase):
-        if len(paths) != 1:
-            raise ValueError(
-                "'config' applies to one file. Pass a mapping of path to "
-                "config for a list, or omit it to detect each file."
-            )
-        return {paths[0]: config}
-    if not isinstance(config, Mapping):
-        raise ValueError("'config' must be an import config or a mapping of path to config.")
-
-    assigned: dict[Path, ImportConfig] = {}
-    for key, value in config.items():
-        if not isinstance(value, ImportConfigBase):
-            raise ValueError(f"Config for {key!s} must be an import config.")
-        matches = [path for path in paths if _config_key_matches(path, key)]
-        if not matches:
-            raise ValueError(f"Config key {key!s} does not match a file in this import.")
-        if len(matches) > 1:
-            raise ValueError(f"Config key {key!s} matches more than one file.")
-        path = matches[0]
-        if path in assigned:
-            raise ValueError(f"More than one config matches {path}.")
-        assigned[path] = value
-    return {path: assigned.get(path) for path in paths}
+    if asset is None:
+        asset_name = None
+    elif isinstance(asset, Asset):
+        asset_name = asset.name
+    else:
+        asset_name = asset
+    if len(paths) == 1:
+        config = configs[0]
+        if asset_name is None:
+            if not config.asset_name:
+                raise ValueError("'asset' is required when not set on the config.")
+            asset_name = config.asset_name
+        default_name = None if config.run_name or config.run_id else paths[0].name
+    else:
+        if asset_name is None:
+            raise ValueError("'asset' is required to import more than one file.")
+        default_name = paths[0].name
+    resolved_run_id, resolved_run_name = _run_id_and_name(run, run_name, default_name=default_name)
+    return asset_name, resolved_run_id, resolved_run_name
 
 
 def _paths_from_argument(file_path: str | Path | Sequence[str | Path]) -> list[Path]:
@@ -125,13 +109,6 @@ def _paths_from_argument(file_path: str | Path | Sequence[str | Path]) -> list[P
     if isinstance(file_path, (str, Path)):
         return [Path(file_path)]
     return [Path(path) for path in file_path]
-
-
-def _write_import_zip(archive: Path, paths: list[Path]) -> None:
-    """Pack each file into the archive under its own file name."""
-    with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as zip_file:
-        for path in paths:
-            zip_file.write(path, arcname=path.name)
 
 
 class DataImportAPIAsync(ResourceBase):
@@ -302,113 +279,60 @@ class DataImportAPIAsync(ResourceBase):
         if show_progress is None:
             show_progress = self._show_progress()
         supplied = _supplied_configs(paths, config)
-        if len(paths) > 1:
-            return await self._import_many(
-                paths,
-                asset=asset,
-                file_configs=supplied,
-                data_type=data_type,
-                time_format=time_format,
-                relative_start_time=relative_start_time,
-                run=run,
-                run_name=run_name,
-                show_progress=show_progress,
-                leave_run_open=leave_run_open,
-            )
-        path = paths[0]
-        config = supplied[path]
-        if not path.is_file():
-            raise FileNotFoundError(f"File not found: {path}")
-
-        if config is None:
-            config = await self._detect_import_config(
-                path,
-                data_type=data_type,
-                time_format=time_format,
-                relative_start_time=relative_start_time,
-            )
-
-        if asset is not None:
-            config.asset_name = asset.name if isinstance(asset, Asset) else asset
-        elif not config.asset_name:
-            raise ValueError("'asset' is required when not set on the config.")
-        default_name = None if config.run_name or config.run_id else path.name
-        run_id, resolved_run_name = _run_id_and_name(run, run_name, default_name=default_name)
-        if run_id is not None:
-            config.run_id = run_id
-        elif resolved_run_name is not None:
-            config.run_name = resolved_run_name
-
-        await self._prepare_import_file(config, path)
-
-        data_import_id, upload_url = await self._low_level_client.create_from_upload(
-            config, leave_run_open=leave_run_open
-        )
-
-        return await self._job_for_upload(
-            path, data_import_id, upload_url, show_progress=show_progress
-        )
-
-    async def _import_many(
-        self,
-        paths: list[Path],
-        *,
-        asset: Asset | str | None,
-        file_configs: dict[Path, ImportConfig | None],
-        data_type: DataTypeKey | None,
-        time_format: TimeFormat | None,
-        relative_start_time: pd.Timestamp | datetime | str | None,
-        run: Run | str | None,
-        run_name: str | None,
-        show_progress: bool,
-        leave_run_open: bool,
-    ) -> Job:
-        """Zip the files and upload the archive as one import.
-
-        A path with no config is detected. ``asset``, ``run``, and
-        ``run_name`` apply to the whole import.
-        """
         names = [path.name for path in paths]
         if len(set(names)) != len(names):
             raise ValueError(
                 f"Files in one import must have distinct names. Got {', '.join(names)}."
             )
-        if asset is None:
-            raise ValueError("'asset' is required to import more than one file.")
-        asset_name = asset.name if isinstance(asset, Asset) else asset
-        resolved_run_id, resolved_run_name = _run_id_and_name(
-            run, run_name, default_name=paths[0].name
-        )
         for path in paths:
             if not path.is_file():
                 raise FileNotFoundError(f"File not found: {path}")
-
-        resolved: dict[str, ImportConfig] = {}
+        if len(paths) > 1 and asset is None:
+            raise ValueError("'asset' is required to import more than one file.")
+        prepared: list[ImportConfig] = []
         for path in paths:
-            supplied = file_configs[path]
-            if supplied is None:
-                # A known extension selects its format, so data_type can describe
-                # the Parquet or HDF5 files in a mixed list.
-                file_data_type = (
-                    None if path.suffix.lower() in EXTENSION_TO_DATA_TYPE_KEY else data_type
-                )
-                supplied = await self._detect_import_config(
+            # A known extension selects its format, so data_type can describe
+            # the Parquet or HDF5 files in a mixed list. One file keeps the
+            # override the caller passed.
+            file_data_type = data_type
+            if len(paths) > 1 and path.suffix.lower() in EXTENSION_TO_DATA_TYPE_KEY:
+                file_data_type = None
+            prepared.append(
+                await self._config_for_upload(
                     path,
+                    supplied[path],
                     data_type=file_data_type,
                     time_format=time_format,
                     relative_start_time=relative_start_time,
                 )
-            await self._prepare_import_file(supplied, path)
-            resolved[path.name] = supplied
+            )
 
+        asset_name, run_id, resolved_run_name = _import_target(
+            paths, prepared, asset, run, run_name
+        )
+        if len(paths) == 1:
+            file_config = prepared[0]
+            file_config.asset_name = asset_name
+            if run_id is not None:
+                file_config.run_id = run_id
+            elif resolved_run_name is not None:
+                file_config.run_name = resolved_run_name
+            data_import_id, upload_url = await self._low_level_client.create_from_upload(
+                file_config, leave_run_open=leave_run_open
+            )
+            return await self._job_for_upload(
+                paths[0], data_import_id, upload_url, show_progress=show_progress
+            )
+
+        named = {path.name: file_config for path, file_config in zip(paths, prepared)}
         with tempfile.TemporaryDirectory() as directory:
             archive = Path(directory) / "batch.zip"
             await run_sync_function(_write_import_zip, archive, paths)
             data_import_id, upload_url = await self._low_level_client.create_batch_from_upload(
-                resolved,
+                named,
                 asset_name=asset_name,
                 run_name=resolved_run_name,
-                run_id=resolved_run_id,
+                run_id=run_id,
                 leave_run_open=leave_run_open,
             )
             return await self._job_for_upload(
@@ -439,6 +363,30 @@ class DataImportAPIAsync(ResourceBase):
         # The job's details are filled in server-side and may not be set yet.
         job._set_data_import_id(data_import_id)
         return job
+
+    async def _config_for_upload(
+        self,
+        path: Path,
+        config: ImportConfig | None,
+        *,
+        data_type: DataTypeKey | None,
+        time_format: TimeFormat | None,
+        relative_start_time: pd.Timestamp | datetime | str | None,
+    ) -> ImportConfig:
+        """Use the supplied config, or detect one, then prepare the file.
+
+        A detected ULog or MCAP config drops its channel list so the server
+        imports every channel. A supplied config keeps the channels you set.
+        """
+        if config is None:
+            config = await self._detect_import_config(
+                path,
+                data_type=data_type,
+                time_format=time_format,
+                relative_start_time=relative_start_time,
+            )
+        await self._prepare_import_file(config, path)
+        return config
 
     async def _detect_import_config(
         self,

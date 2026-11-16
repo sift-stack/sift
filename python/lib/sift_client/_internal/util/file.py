@@ -226,3 +226,10 @@ def extract_parquet_footer(path: Path) -> tuple[bytes, int]:
         f.seek(-(footer_len + 8), 2)
         footer_bytes = f.read(footer_len)
     return footer_bytes, os.path.getsize(path) - len(footer_bytes) - 8
+
+
+def _write_import_zip(archive: Path, paths: list[Path]) -> None:
+    """Pack each file into the archive under its own file name."""
+    with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as zip_file:
+        for path in paths:
+            zip_file.write(path, arcname=path.name)

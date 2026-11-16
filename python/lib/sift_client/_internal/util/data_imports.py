@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from sift_client._internal.time import to_timestamp_pb
@@ -12,6 +14,7 @@ from sift_client.sift_types.channel import ChannelDataType
 from sift_client.sift_types.data_import import (
     EXTENSION_TO_DATA_TYPE_KEY,
     CsvImportConfig,
+    ImportConfigBase,
     ParquetFlatDatasetImportConfig,
     ParquetSingleChannelPerRowImportConfig,
     ParquetTimeColumn,
@@ -20,9 +23,8 @@ from sift_client.sift_types.data_import import (
 
 if TYPE_CHECKING:
     from datetime import datetime
-    from pathlib import Path
 
-    from sift_client.sift_types.data_import import DataTypeKey
+    from sift_client.sift_types.data_import import DataTypeKey, ImportConfig
 
 
 _RELATIVE_FORMAT_VALUES = {f.value for f in TimeFormat if f.is_relative}
@@ -129,3 +131,53 @@ async def prepare_parquet_config(
         footer_bytes, footer_offset = await run_sync_function(lambda: extract_parquet_footer(path))
         config.footer_offset = footer_offset
         config.footer_length = len(footer_bytes)
+
+
+def _config_key_matches(path: Path, key: str | Path) -> bool:
+    """Whether a mapping key names this path.
+
+    A key matches the path itself, or the file name when the key has no
+    directory. Names in one import are distinct, so a file name matches
+    one path.
+    """
+    key_path = key if isinstance(key, Path) else Path(key)
+    if path == key_path:
+        return True
+    return key_path.parent == Path(".") and key_path.name == path.name
+
+
+def _supplied_configs(
+    paths: list[Path],
+    config: ImportConfig | Mapping[str | Path, ImportConfig] | None,
+) -> dict[Path, ImportConfig | None]:
+    """Return each path's config. None means detect that file.
+
+    One import config applies to a single path. A mapping key is a path
+    from the list, or that file's name. A path with no entry is detected.
+    """
+    if config is None:
+        return dict.fromkeys(paths)
+    if isinstance(config, ImportConfigBase):
+        if len(paths) != 1:
+            raise ValueError(
+                "'config' applies to one file. Pass a mapping of path to "
+                "config for a list, or omit it to detect each file."
+            )
+        return {paths[0]: config}
+    if not isinstance(config, Mapping):
+        raise ValueError("'config' must be an import config or a mapping of path to config.")
+
+    assigned: dict[Path, ImportConfig] = {}
+    for key, value in config.items():
+        if not isinstance(value, ImportConfigBase):
+            raise ValueError(f"Config for {key!s} must be an import config.")
+        matches = [path for path in paths if _config_key_matches(path, key)]
+        if not matches:
+            raise ValueError(f"Config key {key!s} does not match a file in this import.")
+        if len(matches) > 1:
+            raise ValueError(f"Config key {key!s} matches more than one file.")
+        path = matches[0]
+        if path in assigned:
+            raise ValueError(f"More than one config matches {path}.")
+        assigned[path] = value
+    return {path: assigned.get(path) for path in paths}
