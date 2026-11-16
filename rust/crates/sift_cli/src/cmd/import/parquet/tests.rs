@@ -28,6 +28,7 @@ fn make_test_args(time_path: Option<&str>, time_format: Option<TimeFormat>) -> F
             run_id: None,
             wait: false,
             preview: false,
+            leave_run_open: false,
         },
         channel_path: vec![],
         data_type: vec![],
@@ -551,6 +552,7 @@ fn make_channel_per_row_args(
             run_id: None,
             wait: false,
             preview: false,
+            leave_run_open: false,
         },
         mode,
         time_path: time_path.map(|s| s.to_string()),
@@ -1013,4 +1015,36 @@ fn test_channel_per_row_multi_auto_detect_column_with_explicit_format() {
         time.format,
         ProtoTimeFormat::AbsoluteUnixMilliseconds as i32
     );
+}
+
+#[test]
+fn flat_dataset_leave_run_open_is_set_on_the_request() {
+    let mut args = make_test_args(None, None);
+    args.common.leave_run_open = true;
+    let req = crate::cmd::import::parquet::flat_dataset::create_data_import_request(
+        &args,
+        sift_rs::data_imports::v2::ParquetConfig::default(),
+        super::FooterMetadata {
+            offset: 0,
+            length: 0,
+        },
+    )
+    .expect("request should build");
+    assert!(req.leave_run_open);
+}
+
+#[test]
+fn channel_per_row_leave_run_open_is_set_on_the_request() {
+    let mut args = make_channel_per_row_args(ChannelMode::Single, None, None);
+    args.common.leave_run_open = true;
+    let req = crate::cmd::import::parquet::channel_per_row_dataset::create_data_import_request(
+        &args,
+        sift_rs::data_imports::v2::ParquetConfig::default(),
+        super::FooterMetadata {
+            offset: 0,
+            length: 0,
+        },
+    )
+    .expect("request should build");
+    assert!(req.leave_run_open);
 }

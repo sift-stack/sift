@@ -433,6 +433,13 @@ pub struct ImportCsvArgs {
     #[arg(short, long)]
     pub run: Option<String>,
 
+    /// The id of an existing run to add this data to. Mutually exclusive with --run.
+    ///
+    /// `--run` creates a new run each time, because run names are not unique.
+    /// Use this to add a file to a run left open with `--leave-run-open`.
+    #[arg(long, conflicts_with = "run")]
+    pub run_id: Option<String>,
+
     /// Row number containing column headers (1-based)
     #[arg(long, default_value_t = 1, help_heading = "Layout")]
     pub header_row: usize,
@@ -486,6 +493,15 @@ pub struct ImportCsvArgs {
     /// Preview the parsed schema without uploading
     #[arg(short, long)]
     pub preview: bool,
+
+    /// Leave the run open when the import finishes.
+    ///
+    /// By default a finished import marks its run stopped, which fires
+    /// run-stop automations. Set this when more files are coming to the run,
+    /// then stop the run after the last import. Ignored when the import has
+    /// no run.
+    #[arg(long)]
+    pub leave_run_open: bool,
 }
 
 #[derive(clap::Args)]
@@ -544,6 +560,15 @@ pub struct CommonImportArgs {
     /// Preview the parsed schema without uploading
     #[arg(short, long)]
     pub preview: bool,
+
+    /// Leave the run open when the import finishes.
+    ///
+    /// By default a finished import marks its run stopped, which fires
+    /// run-stop automations. Set this when more files are coming to the run,
+    /// then stop the run after the last import. Ignored when the import has
+    /// no run.
+    #[arg(long)]
+    pub leave_run_open: bool,
 }
 
 #[derive(Subcommand)]

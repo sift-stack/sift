@@ -9,8 +9,10 @@ use crate::cmd::import::tdms::detect_tdms_config::{
 use chrono::DateTime;
 use sift_rs::common::r#type::v1::ChannelDataType;
 use sift_rs::data_imports::v2::{
-    TdmsFallbackMethod as ProtoFallbackMethod, TimeFormat as ProtoTimeFormat,
+    TdmsConfig, TdmsFallbackMethod as ProtoFallbackMethod, TimeFormat as ProtoTimeFormat,
 };
+
+use crate::cmd::import::tdms::detect_tdms_config::create_data_import_request;
 use tdms::data_type::{TDMSValue, TdmsDataType};
 use tdms::segment::{Channel, Endianness, MetadataProperty};
 
@@ -23,6 +25,7 @@ fn make_args() -> ImportTdmsArgs {
             run_id: None,
             wait: false,
             preview: false,
+            leave_run_open: false,
         },
         start_time_override: None,
         fallback_method: TdmsFallbackMethod::FailOnError,
@@ -334,4 +337,13 @@ fn test_is_waveform_channel() {
         &["wf_start_time", "wf_increment", "unit_string"],
     );
     assert!(is_waveform_channel(&ch));
+}
+
+#[test]
+fn leave_run_open_is_set_on_the_request() {
+    let mut args = make_args();
+    args.common.leave_run_open = true;
+    let req = create_data_import_request(TdmsConfig::default(), &args.common)
+        .expect("request should build");
+    assert!(req.leave_run_open);
 }

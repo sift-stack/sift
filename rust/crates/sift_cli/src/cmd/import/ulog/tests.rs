@@ -8,7 +8,9 @@ use crate::cmd::import::ulog::detect_ulog_config::{
 use crate::cmd::import::ulog::import::build_ulog_config;
 use chrono::DateTime;
 use sift_rs::common::r#type::v1::ChannelDataType;
-use sift_rs::data_imports::v2::UlogParseErrorPolicy as ProtoUlogParseErrorPolicy;
+use sift_rs::data_imports::v2::{UlogConfig, UlogParseErrorPolicy as ProtoUlogParseErrorPolicy};
+
+use crate::cmd::import::ulog::import::create_data_import_request;
 
 fn make_args() -> ImportUlogArgs {
     ImportUlogArgs {
@@ -19,6 +21,7 @@ fn make_args() -> ImportUlogArgs {
             run_id: None,
             wait: false,
             preview: false,
+            leave_run_open: false,
         },
         relative_start_time: None,
         info_key: Vec::new(),
@@ -604,4 +607,12 @@ fn detect_errors_on_cyclic_formats() {
         err.to_string().contains("cyclic"),
         "expected cyclic format error, got: {err:#}"
     );
+}
+
+#[test]
+fn leave_run_open_is_set_on_the_request() {
+    let mut args = make_args();
+    args.common.leave_run_open = true;
+    let req = create_data_import_request(UlogConfig::default(), &args.common);
+    assert!(req.leave_run_open);
 }

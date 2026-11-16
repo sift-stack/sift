@@ -13,7 +13,7 @@ use sift_rs::{
 };
 
 use crate::{
-    cli::ImportUlogArgs,
+    cli::{CommonImportArgs, ImportUlogArgs},
     cmd::{
         Context,
         import::{
@@ -55,7 +55,7 @@ pub async fn run(ctx: Context, args: ImportUlogArgs) -> Result<ExitCode> {
 
     let file = File::open(&args.common.path).context("failed to open ulog file")?;
 
-    let create_data_import_req = create_data_import_request(ulog_config);
+    let create_data_import_req = create_data_import_request(ulog_config, &args.common);
 
     let CreateDataImportFromUploadResponse { upload_url, .. } = data_imports_client
         .create_data_import_from_upload(create_data_import_req)
@@ -114,9 +114,13 @@ pub fn build_ulog_config(args: &ImportUlogArgs) -> Result<UlogConfig> {
     })
 }
 
-fn create_data_import_request(config: UlogConfig) -> CreateDataImportFromUploadRequest {
+pub(crate) fn create_data_import_request(
+    config: UlogConfig,
+    common: &CommonImportArgs,
+) -> CreateDataImportFromUploadRequest {
     CreateDataImportFromUploadRequest {
         ulog_config: Some(config),
+        leave_run_open: common.leave_run_open,
         ..Default::default()
     }
 }

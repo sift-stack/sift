@@ -15,7 +15,7 @@ use sift_rs::{
 };
 
 use crate::{
-    cli::{ImportMcapArgs, mcap::McapComplexTypesMode},
+    cli::{CommonImportArgs, ImportMcapArgs, mcap::McapComplexTypesMode},
     cmd::{
         Context,
         import::{
@@ -72,7 +72,7 @@ pub async fn run(ctx: Context, args: ImportMcapArgs) -> Result<ExitCode> {
 
     let file = File::open(&args.common.path).context("failed to open mcap file")?;
 
-    let create_data_import_req = create_data_import_request(mcap_config);
+    let create_data_import_req = create_data_import_request(mcap_config, &args.common);
 
     let CreateDataImportFromUploadResponse { upload_url, .. } = data_imports_client
         .create_data_import_from_upload(create_data_import_req)
@@ -179,9 +179,13 @@ pub fn channel_configs(
     configs
 }
 
-fn create_data_import_request(config: McapConfig) -> CreateDataImportFromUploadRequest {
+pub(crate) fn create_data_import_request(
+    config: McapConfig,
+    common: &CommonImportArgs,
+) -> CreateDataImportFromUploadRequest {
     CreateDataImportFromUploadRequest {
         mcap_config: Some(config),
+        leave_run_open: common.leave_run_open,
         ..Default::default()
     }
 }

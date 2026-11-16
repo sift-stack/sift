@@ -338,6 +338,7 @@ fn create_data_import_request<R: io::Read>(
             data_columns,
             first_data_row: args.first_data_row as u32,
             run_name: args.run.clone().unwrap_or_default(),
+            run_id: args.run_id.clone().unwrap_or_default(),
             time_column: Some(CsvTimeColumn {
                 relative_start_time,
                 column_number: args.time_column as u32,
@@ -346,6 +347,7 @@ fn create_data_import_request<R: io::Read>(
             }),
             ..Default::default()
         }),
+        leave_run_open: args.leave_run_open,
         ..Default::default()
     })
 }
@@ -378,6 +380,7 @@ mod test_create_data_import_request {
                 path: PathBuf::default(),
                 asset: "test_asset".into(),
                 run: None,
+                run_id: None,
                 header_row: 1,
                 first_data_row: 2,
                 channel_column: Vec::default(),
@@ -391,10 +394,12 @@ mod test_create_data_import_request {
                 relative_start_time: None,
                 wait: false,
                 preview: false,
+                leave_run_open: true,
             },
         )
         .expect("expected Result::Ok");
 
+        assert!(req.leave_run_open);
         let csv_config = req.csv_config.expect("expected Option::Some");
         assert_eq!(String::from("test_asset"), csv_config.asset_name);
         assert!(csv_config.run_id.is_empty());
@@ -413,6 +418,46 @@ mod test_create_data_import_request {
     }
 
     #[test]
+    fn run_id_is_set_on_the_request() {
+        let test_csv = indoc! {"
+            time,channel
+            2025-10-04T21:58:13Z,1.0
+        "};
+        let csv_reader = csv::ReaderBuilder::new()
+            .has_headers(false)
+            .from_reader(test_csv.as_bytes());
+
+        let req = create_data_import_request(
+            csv_reader,
+            &ImportCsvArgs {
+                path: PathBuf::default(),
+                asset: "test_asset".into(),
+                run: None,
+                run_id: Some("run-1".into()),
+                header_row: 1,
+                first_data_row: 2,
+                channel_column: Vec::default(),
+                data_type: Vec::default(),
+                unit: Vec::default(),
+                description: Vec::default(),
+                enum_config: Vec::default(),
+                bit_field_config: Vec::default(),
+                time_column: 1,
+                time_format: TimeFormat::default(),
+                relative_start_time: None,
+                wait: false,
+                preview: false,
+                leave_run_open: false,
+            },
+        )
+        .expect("expected Result::Ok");
+
+        let csv_config = req.csv_config.expect("expected Option::Some");
+        assert_eq!(csv_config.run_id, "run-1");
+        assert!(csv_config.run_name.is_empty());
+    }
+
+    #[test]
     fn simple_type_override() {
         let test_csv = indoc! {"
             time,channel
@@ -428,6 +473,7 @@ mod test_create_data_import_request {
                 path: PathBuf::default(),
                 asset: "test_asset".into(),
                 run: Some("test_run".into()),
+                run_id: None,
                 header_row: 1,
                 first_data_row: 2,
                 channel_column: vec![2],
@@ -441,6 +487,7 @@ mod test_create_data_import_request {
                 relative_start_time: None,
                 wait: false,
                 preview: false,
+                leave_run_open: false,
             },
         )
         .expect("expected Result::Ok");
@@ -472,6 +519,7 @@ mod test_create_data_import_request {
                 path: PathBuf::default(),
                 asset: "test_asset".into(),
                 run: Some("test_run".into()),
+                run_id: None,
                 header_row: 1,
                 first_data_row: 2,
                 channel_column: vec![2],
@@ -485,6 +533,7 @@ mod test_create_data_import_request {
                 relative_start_time: None,
                 wait: false,
                 preview: false,
+                leave_run_open: false,
             },
         )
         .expect("expected Result::Ok");
@@ -532,6 +581,7 @@ mod test_create_data_import_request {
                 path: PathBuf::default(),
                 asset: "test_asset".into(),
                 run: Some("test_run".into()),
+                run_id: None,
                 header_row: 1,
                 first_data_row: 2,
                 channel_column: vec![2, 3],
@@ -545,6 +595,7 @@ mod test_create_data_import_request {
                 relative_start_time: None,
                 wait: false,
                 preview: false,
+                leave_run_open: false,
             },
         )
         .expect("expected Result::Ok");

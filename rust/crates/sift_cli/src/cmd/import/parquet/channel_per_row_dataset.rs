@@ -136,7 +136,7 @@ pub async fn run(ctx: Context, args: ChannelPerRowArgs) -> Result<ExitCode> {
     .await
 }
 
-fn create_data_import_request(
+pub(crate) fn create_data_import_request(
     args: &ChannelPerRowArgs,
     config: ParquetConfig,
     footer_md: FooterMetadata,
@@ -155,6 +155,7 @@ fn create_data_import_request(
             .into(),
             config: config.config,
         }),
+        leave_run_open: args.common.leave_run_open,
         ..Default::default()
     })
 }

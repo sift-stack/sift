@@ -12,7 +12,9 @@ use crate::cmd::import::utils::group_path_to_channel_name;
 use chrono::DateTime;
 use hdf5::types::{EnumMember, EnumType, FloatSize, IntSize, TypeDescriptor};
 use sift_rs::common::r#type::v1::{ChannelConfig, ChannelDataType};
-use sift_rs::data_imports::v2::TimeFormat as ProtoTimeFormat;
+use sift_rs::data_imports::v2::{Hdf5Config, TimeFormat as ProtoTimeFormat};
+
+use crate::cmd::import::hdf5::import::create_data_import_request;
 
 fn make_args() -> ImportHdf5Args {
     ImportHdf5Args {
@@ -23,6 +25,7 @@ fn make_args() -> ImportHdf5Args {
             run_id: None,
             wait: false,
             preview: false,
+            leave_run_open: false,
         },
         schema: Hdf5Schema::OneD,
         time_format: Some(TimeFormat::AbsoluteRfc3339),
@@ -461,4 +464,12 @@ fn weave_compound_shows_dataset_dot_field_once_per_compound_dataset() {
 fn weave_empty_returns_empty() {
     let woven = weave_time_channel_rows(&[], &[]);
     assert!(woven.is_empty());
+}
+
+#[test]
+fn leave_run_open_is_set_on_the_request() {
+    let mut args = make_args();
+    args.common.leave_run_open = true;
+    let req = create_data_import_request(Hdf5Config::default(), &args.common);
+    assert!(req.leave_run_open);
 }
