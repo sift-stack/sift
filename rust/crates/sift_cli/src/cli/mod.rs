@@ -433,6 +433,13 @@ pub struct ImportCsvArgs {
     #[arg(short, long)]
     pub run: Option<String>,
 
+    /// The id of an existing run to add this data to. Mutually exclusive with --run.
+    ///
+    /// `--run` creates a new run each time, because run names are not unique.
+    /// Use this to add a file to a run left open with `--leave-run-open`.
+    #[arg(long, conflicts_with = "run")]
+    pub run_id: Option<String>,
+
     /// Row number containing column headers (1-based)
     #[arg(long, default_value_t = 1, help_heading = "Layout")]
     pub header_row: usize,

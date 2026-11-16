@@ -236,7 +236,7 @@ fn update_config_with_overrides(
     Ok(())
 }
 
-fn create_data_import_request(
+pub(crate) fn create_data_import_request(
     args: &FlatDatasetArgs,
     config: ParquetConfig,
     footer_md: FooterMetadata,

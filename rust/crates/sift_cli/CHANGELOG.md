@@ -10,6 +10,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - `import` accepts `--leave-run-open`. A finished import marks its run stopped
   and fires run-stop automations unless the flag is set. Stop the run after
   the last import. The flag does nothing when the import has no run.
+- `import csv` accepts `--run-id`, the id of an existing run. `--run` creates
+  a new run each time, because run names are not unique. Use `--run-id` to
+  add a file to a run left open with `--leave-run-open`.
 
 ## [v0.9.0] - November 16, 2026
 

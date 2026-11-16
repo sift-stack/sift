@@ -4,10 +4,12 @@ use chrono::DateTime;
 use sift_rs::{
     common::r#type::v1::ChannelDataType,
     data_imports::v2::{
-        McapComplexTypesImportMode as ProtoMcapComplexTypesImportMode,
+        McapComplexTypesImportMode as ProtoMcapComplexTypesImportMode, McapConfig,
         McapParseErrorPolicy as ProtoMcapParseErrorPolicy,
     },
 };
+
+use crate::cmd::import::mcap::import::create_data_import_request;
 
 use crate::cli::mcap::{McapComplexTypesMode, McapParseErrorPolicy};
 use crate::cli::{CommonImportArgs, ImportMcapArgs};
@@ -796,4 +798,12 @@ float64 z
             detection.warnings
         );
     }
+}
+
+#[test]
+fn leave_run_open_is_set_on_the_request() {
+    let mut args = make_args();
+    args.common.leave_run_open = true;
+    let req = create_data_import_request(McapConfig::default(), &args.common);
+    assert!(req.leave_run_open);
 }
