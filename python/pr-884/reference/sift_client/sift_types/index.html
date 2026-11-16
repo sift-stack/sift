@@ -71334,7 +71334,7 @@ integers.</p>
 
 <a href="#sift_client.sift_types.Run.import_data" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">import_data</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">file_path</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span><span class="p">,</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">file_path</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span> <span class="o">|</span> <span class="n"><span title="typing.Sequence">Sequence</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span><span class="p">],</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="o">*</span><span class="p">,</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">asset</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            Asset
 
@@ -71347,10 +71347,18 @@ integers.</p>
 
   
       module-attribute
-   (sift_client.sift_types.data_import.ImportConfig)" href="data_import/#sift_client.sift_types.data_import.ImportConfig">ImportConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">data_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            DataTypeKey (sift_client.sift_types.data_import.DataTypeKey)" href="data_import/#sift_client.sift_types.data_import.DataTypeKey">DataTypeKey</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">show_progress</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
+   (sift_client.sift_types.data_import.ImportConfig)" href="data_import/#sift_client.sift_types.data_import.ImportConfig">ImportConfig</a></span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="o">|</span> <span class="n"><span title="typing.Mapping">Mapping</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="            ImportConfig
+
+
+  
+      module-attribute
+   (sift_client.sift_types.data_import.ImportConfig)" href="data_import/#sift_client.sift_types.data_import.ImportConfig">ImportConfig</a></span><span class="p">]</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">data_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            DataTypeKey (sift_client.sift_types.data_import.DataTypeKey)" href="data_import/#sift_client.sift_types.data_import.DataTypeKey">DataTypeKey</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">show_progress</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">leave_run_open</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
 
 
   
@@ -71360,10 +71368,14 @@ integers.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Import data from a file into this run.</p>
+        <p>Import data from a file, or a list of files, into this run.</p>
 <p>Convenience method that calls <code>client.data_import.import_from_path</code>
 with this run pre-filled. If the run has exactly one asset,
 <code>asset</code> is inferred automatically.</p>
+<p>If you have more than one file for this run, pass the paths in one
+call. That is one import. A finished import stops this run unless
+<code>leave_run_open</code> is true. Set that when more files are still
+coming, then call <code>stop</code> after the last import.</p>
 
 
 <table>
@@ -71380,12 +71392,14 @@ with this run pre-filled. If the run has exactly one asset,
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Path to the local file to import.</p>
+                <p>Path to the local file to import, or a list of paths.
+Pass every file in one call when they belong together. Two
+or more paths are uploaded as one zip.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
+                      <code><span title="str">str</span> | <span title="pathlib.Path">Path</span> | <span title="typing.Sequence">Sequence</span>[<span title="str">str</span> | <span title="pathlib.Path">Path</span>]</code>
                   </span>
               </p>
             </td>
@@ -71421,7 +71435,9 @@ with this run pre-filled. If the run has exactly one asset,
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Import configuration. Auto-detected if omitted.</p>
+                <p>Import configuration for one file, or a mapping of path
+to configuration. A file with no entry is detected.
+Auto-detected when omitted.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -71431,7 +71447,12 @@ with this run pre-filled. If the run has exactly one asset,
 
   
       module-attribute
-   (sift_client.sift_types.data_import.ImportConfig)" href="data_import/#sift_client.sift_types.data_import.ImportConfig">ImportConfig</a> | None</code>
+   (sift_client.sift_types.data_import.ImportConfig)" href="data_import/#sift_client.sift_types.data_import.ImportConfig">ImportConfig</a> | <span title="typing.Mapping">Mapping</span>[<span title="str">str</span> | <span title="pathlib.Path">Path</span>, <a class="autorefs autorefs-internal" title="            ImportConfig
+
+
+  
+      module-attribute
+   (sift_client.sift_types.data_import.ImportConfig)" href="data_import/#sift_client.sift_types.data_import.ImportConfig">ImportConfig</a>] | None</code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
@@ -71476,6 +71497,28 @@ with this run pre-filled. If the run has exactly one asset,
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
                       <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>leave_run_open</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>If true, the import does not mark this run
+stopped, so run-stop automations do not fire. Defaults to
+false.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="bool">bool</span></code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>False</code>
                   </span>
               </p>
             </td>

@@ -20134,7 +20134,7 @@ name removed from channel name display.</p>
               <td><code><a class="autorefs autorefs-internal" title="            import_from_path (sift_client.resources.sync_stubs.DataImportAPI.import_from_path)" href="#sift_client.resources.sync_stubs.DataImportAPI.import_from_path">import_from_path</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Import data from a local file.</p>
+                  <p>Import data from a local file, or from a list of files.</p>
                 </div>
               </td>
             </tr>
@@ -20693,7 +20693,7 @@ followed by the import's <code>run_id</code>.</p>
 
 <a href="#sift_client.resources.sync_stubs.DataImportAPI.import_from_path" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">import_from_path</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">file_path</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span><span class="p">,</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">file_path</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span> <span class="o">|</span> <span class="n"><span title="typing.Sequence">Sequence</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span><span class="p">],</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="o">*</span><span class="p">,</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">asset</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            Asset
 
@@ -20706,22 +20706,30 @@ followed by the import's <code>run_id</code>.</p>
 
   
       module-attribute
-   (sift_client.sift_types.data_import.ImportConfig)" href="../../sift_types/data_import/#sift_client.sift_types.data_import.ImportConfig">ImportConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">data_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            DataTypeKey (sift_client.sift_types.data_import.DataTypeKey)" href="../../sift_types/data_import/#sift_client.sift_types.data_import.DataTypeKey">DataTypeKey</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">time_format</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="../../sift_types/data_import/#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">relative_start_time</span><span class="p">:</span> <span class="n"><span title="pandas.Timestamp">Timestamp</span></span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="o">|</span> <span class="n"><span title="datetime.datetime">datetime</span></span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="o">|</span> <span class="n"><span title="str">str</span></span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">run</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            Run
+   (sift_client.sift_types.data_import.ImportConfig)" href="../../sift_types/data_import/#sift_client.sift_types.data_import.ImportConfig">ImportConfig</a></span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="o">|</span> <span class="n"><span title="collections.abc.Mapping">Mapping</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="            ImportConfig
+
+
+  
+      module-attribute
+   (sift_client.sift_types.data_import.ImportConfig)" href="../../sift_types/data_import/#sift_client.sift_types.data_import.ImportConfig">ImportConfig</a></span><span class="p">]</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">data_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            DataTypeKey (sift_client.sift_types.data_import.DataTypeKey)" href="../../sift_types/data_import/#sift_client.sift_types.data_import.DataTypeKey">DataTypeKey</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">time_format</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TimeFormat (sift_client.sift_types.data_import.TimeFormat)" href="../../sift_types/data_import/#sift_client.sift_types.data_import.TimeFormat">TimeFormat</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">relative_start_time</span><span class="p">:</span> <span class="n"><span title="pandas.Timestamp">Timestamp</span></span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="o">|</span> <span class="n"><span title="datetime.datetime">datetime</span></span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="o">|</span> <span class="n"><span title="str">str</span></span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">run</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            Run
 
 
   
       pydantic-model
    (sift_client.sift_types.run.Run)" href="../../sift_types/run/#sift_client.sift_types.run.Run">Run</a></span> <span class="o">|</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">run_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">show_progress</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">run_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">show_progress</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="n">leave_run_open</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Job
 
 
   
@@ -20731,12 +20739,20 @@ followed by the import's <code>run_id</code>.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Import data from a local file.</p>
+        <p>Import data from a local file, or from a list of files.</p>
 <p>Creates a data import on the server, uploads the file, and returns
 a <code>Job</code> handle after uploading the file. The import processes
 server-side and typically completes shortly after upload. Use
 <code>job.wait_until_complete()</code> only if you need to confirm
 completion before proceeding.</p>
+<p>If you have more than one file for the same run, pass the paths in
+one call. The client packs them into one zip and imports them
+together into one asset and one run. Each file is detected on its
+own, unless you pass a config for that path. <code>data_type</code> applies
+only to detected files whose extension does not name a format, such
+as Parquet and HDF5. Use <code>leave_run_open</code> when more files are
+still coming, then call <code>Run.stop</code> after the last import. A
+finished import stops its run unless that flag is set.</p>
 <p>When <code>config</code> is omitted the file format is auto-detected via
 <code>detect_config</code> (CSV, Parquet, HDF5, TDMS, ULog, and MCAP).
 When <code>asset</code> is provided it overrides the config value;
@@ -20764,12 +20780,16 @@ string type, and a sample of string values must parse.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Path to the local file to import.</p>
+                <p>Path to the local file to import, or a list of paths
+for one run. Pass every file in one call when they belong
+together. Two or more paths are one zip. Each archive member
+is the file's name, so the names must be distinct. A list of
+one path imports that file directly.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
+                      <code><span title="str">str</span> | <span title="pathlib.Path">Path</span> | <span title="typing.Sequence">Sequence</span>[<span title="str">str</span> | <span title="pathlib.Path">Path</span>]</code>
                   </span>
               </p>
             </td>
@@ -20781,7 +20801,8 @@ string type, and a sample of string values must parse.</p>
             <td class="doc-param-details">
               <div class="doc-md-description">
                 <p>Asset object or asset name to import data into. Optional
-when <code>config</code> already has <code>asset_name</code> set.</p>
+when <code>config</code> already has <code>asset_name</code> set. Required for
+a list of paths.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -20806,13 +20827,16 @@ when <code>config</code> already has <code>asset_name</code> set.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Import configuration describing the file format and column
-mapping. When provided, <code>data_type</code> is ignored. If omitted,
-the config is auto-detected via <code>detect_config</code> (for ULog
-and MCAP the detected channel list is dropped so every channel
-in the file is imported). You can call <code>detect_config</code>
-yourself to inspect and modify the config before passing it
-here.</p>
+                <p>Import configuration for one file, or a mapping of path
+to configuration. A mapping key is a path from <code>file_path</code>
+or that file's name. A file with no entry is detected. A key
+that matches no file raises <code>ValueError</code>. One config applies
+to a single path. When a file's config is provided,
+<code>data_type</code> is ignored for that file. If omitted, the config
+is auto-detected via <code>detect_config</code> (for ULog and MCAP the
+detected channel list is dropped so every channel in the file
+is imported). You can call <code>detect_config</code> yourself to
+inspect and modify the config before passing it here.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -20822,7 +20846,12 @@ here.</p>
 
   
       module-attribute
-   (sift_client.sift_types.data_import.ImportConfig)" href="../../sift_types/data_import/#sift_client.sift_types.data_import.ImportConfig">ImportConfig</a> | None</code>
+   (sift_client.sift_types.data_import.ImportConfig)" href="../../sift_types/data_import/#sift_client.sift_types.data_import.ImportConfig">ImportConfig</a> | <span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span> | <span title="pathlib.Path">Path</span>, <a class="autorefs autorefs-internal" title="            ImportConfig
+
+
+  
+      module-attribute
+   (sift_client.sift_types.data_import.ImportConfig)" href="../../sift_types/data_import/#sift_client.sift_types.data_import.ImportConfig">ImportConfig</a>] | None</code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
@@ -20941,7 +20970,8 @@ run. Mutually exclusive with <code>run_name</code>.</p>
             <td class="doc-param-details">
               <div class="doc-md-description">
                 <p>Name for a new run. Defaults to the filename if
-neither <code>run</code> nor <code>run_name</code> is set.</p>
+neither <code>run</code> nor <code>run_name</code> is set. For a list of paths,
+the default is the first file's name.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -20972,6 +21002,30 @@ Defaults to True for sync, False for async.</p>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
                       <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>leave_run_open</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>If true, the import does not mark its run stopped,
+so run-stop automations do not fire. Set this when more data
+is coming to the run, then call <code>Run.stop</code> after the last
+import. Ignored when the import has no run. Defaults to false,
+which stops the run when the import finishes.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><span title="bool">bool</span></code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>False</code>
                   </span>
               </p>
             </td>
@@ -21072,7 +21126,11 @@ Defaults to True for sync, False for async.</p>
             <td class="doc-raises-details">
               <div class="doc-md-description">
                 <p>If a <code>BIT_FIELD</code> column's values aren't in a format
-the import service reads, such as integers.</p>
+the import service reads, such as integers. Also if a list of
+paths is empty, contains duplicate file names, or omits
+<code>asset</code>. Also if one config is passed with two or more
+paths, or a config mapping names a path that is not in the
+list.</p>
               </div>
             </td>
           </tr>
