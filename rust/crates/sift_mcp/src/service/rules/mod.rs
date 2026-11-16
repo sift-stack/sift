@@ -10,6 +10,7 @@ use sift_rs::{
         UpdateConditionRequest, UpdateRuleRequest, rule_service_client::RuleServiceClient,
     },
 };
+use tonic::Status;
 
 /// A partial set of changes to apply to an existing rule. Every field is
 /// optional; `None` means "leave unchanged". This is what makes `update_rule`
@@ -134,10 +135,7 @@ impl RuleService {
     /// fields set in `changes`, and sends the merged definition back. Fields not
     /// named in `changes` are preserved. Returns the `rule_id`.
     pub async fn update_rule(&self, rule_id: String, changes: RuleUpdate) -> Result<String> {
-        let current = self
-            .get_rule(rule_id.clone())
-            .await?
-            .ok_or_else(|| anyhow::anyhow!("rule '{rule_id}' not found"))?;
+        let current = self.find_rule(rule_id, String::new()).await?;
 
         let mut update = rule_to_update_request(current);
 
@@ -195,19 +193,26 @@ impl RuleService {
         Ok(resp.rule_id)
     }
 
-    /// Retrieves the latest version of a rule by id, or `None` if it does not exist.
-    async fn get_rule(&self, rule_id: String) -> Result<Option<Rule>> {
+    /// Retrieves the latest version of a rule by `rule_id` or `client_key` (the
+    /// caller sets exactly one). A missing rule is a `NotFound` status.
+    pub async fn find_rule(&self, rule_id: String, client_key: String) -> Result<Rule> {
         let channel = self.channel.clone();
+        let target = if rule_id.is_empty() {
+            format!("client key '{client_key}'")
+        } else {
+            format!("id '{rule_id}'")
+        };
 
         let resp = with_retry(&self.policy, move || {
             let channel = channel.clone();
             let rule_id = rule_id.clone();
+            let client_key = client_key.clone();
             async move {
                 let mut client = RuleServiceClient::new(channel);
                 client
                     .get_rule(GetRuleRequest {
                         rule_id,
-                        client_key: String::new(),
+                        client_key,
                     })
                     .await
                     .map(|resp| resp.into_inner())
@@ -216,7 +221,8 @@ impl RuleService {
         .await
         .context("failed to fetch rule")?;
 
-        Ok(resp.rule)
+        resp.rule
+            .ok_or_else(|| Status::not_found(format!("no rule with {target}")).into())
     }
 
     /// Lists the version history for a single rule.

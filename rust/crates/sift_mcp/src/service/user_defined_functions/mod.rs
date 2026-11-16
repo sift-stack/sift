@@ -332,9 +332,8 @@ impl UserDefinedFunctionService {
         .await
         .context("failed to fetch user defined function")?;
 
-        resp.user_defined_function.ok_or_else(|| {
-            anyhow!("get_user_defined_function response missing user defined function")
-        })
+        resp.user_defined_function
+            .ok_or_else(|| tonic::Status::not_found("user defined function not found").into())
     }
 
     async fn send_update(

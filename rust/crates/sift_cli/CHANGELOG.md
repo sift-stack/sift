@@ -7,6 +7,33 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- MCP update, archive and unarchive tools now write 1 to 100 resources per
+  call: `update_rule`, `archive_rule`, `unarchive_rule`, `update_artifact`,
+  `archive_artifact`, `unarchive_artifact`, `update_run`, `update_asset`,
+  `update_calculated_channel`, `archive_calculated_channel`,
+  `unarchive_calculated_channel`, `update_user_defined_function`,
+  `archive_user_defined_function`, `unarchive_user_defined_function`,
+  `update_report`, and `update_report_template`. Each takes an `items` array
+  of the fields it took before. This is a breaking change for existing
+  callers; pass a one-element `items` list for one resource. Results use the
+  same per-item `successes`, `failures`, and `not_attempted` lists as creates.
+  A missing or forbidden resource fails only its own item.
+- `archive_rule` and `unarchive_rule` now report a missing rule as not found
+  instead of reporting success.
+- `update_annotation` takes `selected_indices` over `annotation_ids`, so an
+  approval host can apply the shared changes to some ids and not others. It
+  takes up to 1000 ids, or up to 100 when it runs under an approval host
+  (`sift-cli mcp --chat`). Archiving and unarchiving now run per id. The result
+  now uses the same per-item `successes`, `failures`, and `not_attempted` lists
+  as the other bulk writes, indexed by position in `annotation_ids`. Each
+  success holds a compact `annotation_id`, `name`, `state`, `is_archived` and
+  `url`, not the full annotation. This is a breaking change: the
+  `batch_archive_error` and `archive_skipped` fields are removed.
+- Bulk write results no longer repeat a `next_step` inside every item. The
+  call-level `next_step` covers the whole batch, and an item carries a `warning`
+  only when it needs attention, such as a calculated channel that will not
+  evaluate on some assets. `create_artifact` and `update_artifact` items keep a
+  one-line `next_step` naming the artifact and version.
 - MCP `create_declarative_chart` takes an optional `surface`: `explore`,
   `canvas`, `edge`, or `agents` (agent chat). The default is `agents` inside
   Sift Agents and `explore` elsewhere. It validates the spec for that surface and

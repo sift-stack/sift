@@ -8,8 +8,9 @@ use rmcp::{
     model::{ErrorCode, Tool},
 };
 use sift_rs::annotations::v1::{
-    Annotation, BatchArchiveAnnotationsResponse, CreateAnnotationResponse, ListAnnotationsResponse,
-    UpdateAnnotationResponse, annotation_service_server::AnnotationServiceServer,
+    Annotation, ArchiveAnnotationResponse, CreateAnnotationResponse, ListAnnotationsResponse,
+    UnarchiveAnnotationResponse, UpdateAnnotationResponse,
+    annotation_service_server::AnnotationServiceServer,
 };
 use sift_test_util::{grpc::memory_sift_channel, mock::annotations::v1::MockAnnotationServiceImpl};
 use tokio::task::JoinHandle;
@@ -111,6 +112,20 @@ fn annotation_tool_schemas_publish_exact_enum_values() {
 }
 
 #[test]
+fn write_descriptions_quote_json_enum_values() {
+    for name in ["create_annotation", "update_annotation"] {
+        let tool = annotation_tool(name);
+        let description = tool.description.as_deref().unwrap();
+        for state in ["OPEN", "FLAGGED", "RESOLVED"] {
+            assert!(
+                description.contains(&format!("`\"ANNOTATION_STATE_{state}\"`")),
+                "{name}: {description}"
+            );
+        }
+    }
+}
+
+#[test]
 fn list_annotations_description_publishes_filter_enum_values() {
     let tool = annotation_tool("list_annotations");
     let description = tool.description.expect("tool must have a description");
@@ -168,6 +183,7 @@ fn create_params() -> CreateAnnotationItem {
 fn update_params(annotation_id: &str) -> UpdateAnnotationParams {
     UpdateAnnotationParams {
         annotation_ids: vec![annotation_id.into()],
+        selected_indices: None,
         name: None,
         description: None,
         start_time_unix_nanos: None,
@@ -179,6 +195,151 @@ fn update_params(annotation_id: &str) -> UpdateAnnotationParams {
         metadata: None,
         is_archived: None,
     }
+}
+
+#[tokio::test]
+async fn update_annotation_approves_two_of_three_ids() {
+    let mut mock = MockAnnotationServiceImpl::new();
+    mock.expect_update_annotation()
+        .times(2)
+        .withf(|req| req.get_ref().annotation.as_ref().unwrap().annotation_id != "ann2")
+        .returning(|req| {
+            Ok(Response::new(UpdateAnnotationResponse {
+                annotation: req.into_inner().annotation,
+            }))
+        });
+    let (server, _h) = server_with_mock(mock).await;
+    let server = server.with_require_selection(true);
+    let mut params = update_params("ann1");
+    params.annotation_ids.extend(["ann2".into(), "ann3".into()]);
+    params.selected_indices = Some(vec![0, 2]);
+    params.name = Some("new name".into());
+    let body = structured(server.update_annotation(Parameters(params)).await.unwrap());
+    assert_eq!(body["requested_count"], 3);
+    assert_eq!(body["selected_count"], 2);
+    assert_eq!(body["updated_count"], 2);
+    assert_eq!(body["not_selected"], serde_json::json!([1]));
+    assert_eq!(body["successes"][0]["index"], 0);
+    assert_eq!(body["successes"][1]["index"], 2);
+    assert_eq!(
+        body["successes"][1]["result"]["url"],
+        "https://app.test.local/annotation/ann3"
+    );
+}
+
+#[tokio::test]
+async fn update_annotation_reports_original_positions_for_selected_failures_and_unstarted_ids() {
+    let mut mock = MockAnnotationServiceImpl::new();
+    mock.expect_update_annotation()
+        .times(50)
+        .returning(|_| Err(Status::resource_exhausted("offline")));
+    let (server, _h) = server_with_mock(mock).await;
+    let mut params = update_params("ann0");
+    params
+        .annotation_ids
+        .extend((1..100).map(|i| format!("ann{i}")));
+    params.selected_indices = Some((0..50).chain(std::iter::once(99)).collect());
+    params.name = Some("new name".into());
+    let body = structured(
+        server
+            .with_require_selection(true)
+            .update_annotation(Parameters(params))
+            .await
+            .unwrap(),
+    );
+    assert_eq!(body["selected_count"], 51);
+    assert_eq!(body["failures"][49]["index"], 49);
+    assert_eq!(body["not_attempted"], serde_json::json!([99]));
+    assert_eq!(body["not_selected"][0], 50);
+}
+
+#[tokio::test]
+async fn update_annotation_chat_requires_a_mask_and_at_most_100_ids() {
+    let (server, _h) = server_with_mock(MockAnnotationServiceImpl::new()).await;
+    let server = server.with_require_selection(true);
+    let mut params = update_params("ann1");
+    params.name = Some("new name".into());
+    let error = server
+        .update_annotation(Parameters(params))
+        .await
+        .unwrap_err();
+    assert!(error.message.contains("approval host"));
+    let mut params = update_params("ann0");
+    params
+        .annotation_ids
+        .extend((1..101).map(|i| format!("ann{i}")));
+    params.selected_indices = Some(vec![0]);
+    params.is_archived = Some(true);
+    let error = server
+        .update_annotation(Parameters(params))
+        .await
+        .unwrap_err();
+    assert_eq!(error.code, ErrorCode::INVALID_PARAMS);
+    assert!(
+        error
+            .message
+            .contains("split the work into calls of at most 100 ids")
+    );
+}
+
+#[tokio::test]
+async fn update_annotation_accepts_100_ids_in_chat_and_1000_without_a_host() {
+    for (count, chat) in [(100, true), (1000, false)] {
+        let mut mock = MockAnnotationServiceImpl::new();
+        mock.expect_update_annotation()
+            .times(count)
+            .returning(|req| {
+                Ok(Response::new(UpdateAnnotationResponse {
+                    annotation: req.into_inner().annotation,
+                }))
+            });
+        let (server, _h) = server_with_mock(mock).await;
+        let server = server.with_require_selection(chat);
+        let mut params = update_params("ann0");
+        params
+            .annotation_ids
+            .extend((1..count).map(|i| format!("ann{i}")));
+        params.selected_indices = chat.then(|| (0..count).collect());
+        params.name = Some("new name".into());
+        let body = structured(server.update_annotation(Parameters(params)).await.unwrap());
+        assert_eq!(body["updated_count"], count);
+        assert_eq!(body["successes"][count - 1]["index"], count - 1);
+    }
+}
+
+#[tokio::test]
+async fn update_annotation_rejects_duplicates_and_invalid_masks_before_any_rpc() {
+    let (server, _h) = server_with_mock(MockAnnotationServiceImpl::new()).await;
+    let mut duplicate = update_params("ann1");
+    duplicate.annotation_ids.push("ann1".into());
+    duplicate.is_archived = Some(true);
+    assert_eq!(
+        server
+            .update_annotation(Parameters(duplicate))
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::INVALID_PARAMS
+    );
+    for mask in [vec![0, 0], vec![1]] {
+        let mut params = update_params("ann1");
+        params.name = Some("new name".into());
+        params.selected_indices = Some(mask);
+        assert_eq!(
+            server
+                .update_annotation(Parameters(params))
+                .await
+                .unwrap_err()
+                .code,
+            ErrorCode::INVALID_PARAMS
+        );
+    }
+    let mut params = update_params("ann1");
+    params.name = Some("new name".into());
+    params.selected_indices = Some(vec![]);
+    let body = structured(server.update_annotation(Parameters(params)).await.unwrap());
+    assert_eq!(body["updated_count"], 0);
+    assert_eq!(body["not_selected"], serde_json::json!([0]));
 }
 
 #[test]
@@ -379,11 +540,23 @@ async fn update_annotation_happy_path() {
         .await
         .expect("update_annotation failed");
 
-    let annotations = structured_field(resp, "annotations");
-    assert_eq!(annotations[0]["name"], "renamed");
+    let successes = structured_field(resp, "successes");
+    assert_eq!(successes[0]["result"]["name"], "renamed");
     assert_eq!(
-        annotations[0]["url"],
+        successes[0]["result"]["url"],
         "https://app.test.local/annotation/ann1"
+    );
+    let mut keys = successes[0]["result"]
+        .as_object()
+        .unwrap()
+        .keys()
+        .cloned()
+        .collect::<Vec<_>>();
+    keys.sort();
+    assert_eq!(
+        keys,
+        ["annotation_id", "is_archived", "name", "state", "url"],
+        "the per-id result stays compact"
     );
 }
 
@@ -408,9 +581,9 @@ async fn update_annotation_updates_each_annotation() {
         .await
         .expect("update_annotation failed");
 
-    let annotations = structured_field(resp, "annotations");
-    assert_eq!(annotations[0]["annotationId"], "ann1");
-    assert_eq!(annotations[1]["annotationId"], "ann2");
+    let successes = structured_field(resp, "successes");
+    assert_eq!(successes[0]["result"]["annotation_id"], "ann1");
+    assert_eq!(successes[1]["result"]["annotation_id"], "ann2");
 }
 
 #[tokio::test]
@@ -439,16 +612,16 @@ async fn update_annotation_reports_partial_failures_and_continues() {
 
     assert_eq!(resp.is_error, Some(true));
     let content = serde_json::to_string(&resp.content).expect("content should serialize");
-    assert_eq!(resp.content.len(), 1);
-    assert!(!content.contains("ann2"));
-    assert!(!content.contains("no such annotation"));
+    assert_eq!(resp.content.len(), 2);
+    assert!(content.contains("no such annotation"));
     let body = structured(resp);
-    assert_eq!(body["annotations"][0]["annotationId"], "ann1");
-    assert_eq!(body["annotations"][1]["annotationId"], "ann3");
-    assert_eq!(body["failures"][0]["annotation_id"], "ann2");
+    assert_eq!(body["successes"][0]["result"]["annotation_id"], "ann1");
+    assert_eq!(body["successes"][1]["result"]["annotation_id"], "ann3");
+    assert_eq!(body["successes"][1]["index"], 2);
+    assert_eq!(body["failures"][0]["index"], 1);
     assert_eq!(
-        body["failures"][0]["message"],
-        "Some requested entity was not found: no such annotation"
+        body["failures"][0]["error"]["code"],
+        ErrorCode::RESOURCE_NOT_FOUND.0
     );
     assert_eq!(body["not_attempted"], serde_json::json!([]));
 }
@@ -475,37 +648,27 @@ async fn update_annotation_reports_ids_not_attempted_after_backend_wide_failure(
 
     assert_eq!(resp.is_error, Some(true));
     let content = serde_json::to_string(&resp.content).expect("content should serialize");
-    assert_eq!(resp.content.len(), 1);
-    assert!(!content.contains("ann0"));
-    assert!(!content.contains("ann59"));
+    assert_eq!(resp.content.len(), 2);
+    assert!(content.contains("RateLimited"));
     let body = structured(resp);
     assert_eq!(body["failures"].as_array().unwrap().len(), 50);
     assert_eq!(body["not_attempted"].as_array().unwrap().len(), 10);
-    assert_eq!(body["not_attempted"][0], "ann50");
-    assert_eq!(body["not_attempted"][9], "ann59");
+    assert_eq!(body["not_attempted"][0], 50);
+    assert_eq!(body["not_attempted"][9], 59);
 }
 
 #[tokio::test]
-async fn update_annotation_batch_archives_annotations() {
+async fn update_annotation_archives_each_annotation() {
     let mut mock = MockAnnotationServiceImpl::new();
-    mock.expect_batch_archive_annotations()
-        .withf(|req| req.get_ref().annotation_ids == ["ann1", "ann2"])
-        .returning(|_| {
-            Ok(Response::new(BatchArchiveAnnotationsResponse {
-                annotations: vec![
-                    Annotation {
-                        annotation_id: "ann1".into(),
-                        is_archived: true,
-                        ..Default::default()
-                    },
-                    Annotation {
-                        annotation_id: "ann2".into(),
-                        is_archived: true,
-                        ..Default::default()
-                    },
-                ],
-            }))
-        });
+    mock.expect_archive_annotation().times(2).returning(|req| {
+        Ok(Response::new(ArchiveAnnotationResponse {
+            annotation: Some(Annotation {
+                annotation_id: req.into_inner().annotation_id,
+                is_archived: true,
+                ..Default::default()
+            }),
+        }))
+    });
 
     let (server, _h) = server_with_mock(mock).await;
 
@@ -518,9 +681,9 @@ async fn update_annotation_batch_archives_annotations() {
         .await
         .expect("update_annotation failed");
 
-    let annotations = structured_field(resp, "annotations");
-    assert_eq!(annotations.as_array().unwrap().len(), 2);
-    assert_eq!(annotations[0]["isArchived"], true);
+    let successes = structured_field(resp, "successes");
+    assert_eq!(successes.as_array().unwrap().len(), 2);
+    assert_eq!(successes[0]["result"]["is_archived"], true);
 }
 
 #[tokio::test]
@@ -540,21 +703,16 @@ async fn update_annotation_updates_fields_before_archiving() {
         });
 
     let archive_count = Arc::clone(&updated_count);
-    mock.expect_batch_archive_annotations()
-        .withf(move |_| archive_count.load(Ordering::SeqCst) == 2)
+    mock.expect_archive_annotation()
+        .times(2)
+        .withf(move |_| archive_count.load(Ordering::SeqCst) >= 1)
         .returning(|req| {
-            let annotations = req
-                .into_inner()
-                .annotation_ids
-                .into_iter()
-                .map(|annotation_id| Annotation {
-                    annotation_id,
+            Ok(Response::new(ArchiveAnnotationResponse {
+                annotation: Some(Annotation {
+                    annotation_id: req.into_inner().annotation_id,
                     is_archived: true,
                     ..Default::default()
-                })
-                .collect();
-            Ok(Response::new(BatchArchiveAnnotationsResponse {
-                annotations,
+                }),
             }))
         });
 
@@ -583,7 +741,18 @@ async fn update_annotation_skips_archive_after_partial_field_failure() {
             annotation: Some(annotation),
         }))
     });
-    mock.expect_batch_archive_annotations().times(0);
+    mock.expect_archive_annotation()
+        .times(1)
+        .withf(|req| req.get_ref().annotation_id == "ann1")
+        .returning(|req| {
+            Ok(Response::new(ArchiveAnnotationResponse {
+                annotation: Some(Annotation {
+                    annotation_id: req.into_inner().annotation_id,
+                    is_archived: true,
+                    ..Default::default()
+                }),
+            }))
+        });
 
     let (server, _h) = server_with_mock(mock).await;
 
@@ -599,16 +768,28 @@ async fn update_annotation_skips_archive_after_partial_field_failure() {
 
     assert_eq!(resp.is_error, Some(true));
     let body = structured(resp);
-    assert_eq!(body["archive_skipped"], true);
-    assert_eq!(body["annotations"][0]["annotationId"], "ann1");
-    assert_eq!(body["failures"][0]["annotation_id"], "ann2");
+    assert!(body.get("archive_skipped").is_none());
+    assert_eq!(body["successes"][0]["result"]["annotation_id"], "ann1");
+    assert_eq!(body["successes"][0]["result"]["is_archived"], true);
+    assert_eq!(body["failures"][0]["index"], 1);
 }
 
 #[tokio::test]
-async fn update_annotation_reports_batch_archive_error() {
+async fn update_annotation_reports_one_archive_error_without_stopping_others() {
     let mut mock = MockAnnotationServiceImpl::new();
-    mock.expect_batch_archive_annotations()
-        .returning(|_| Err(Status::not_found("one target was not found")));
+    mock.expect_archive_annotation().times(2).returning(|req| {
+        let annotation_id = req.into_inner().annotation_id;
+        if annotation_id == "ann1" {
+            return Err(Status::permission_denied("not the creator"));
+        }
+        Ok(Response::new(ArchiveAnnotationResponse {
+            annotation: Some(Annotation {
+                annotation_id,
+                is_archived: true,
+                ..Default::default()
+            }),
+        }))
+    });
 
     let (server, _h) = server_with_mock(mock).await;
 
@@ -619,42 +800,38 @@ async fn update_annotation_reports_batch_archive_error() {
     let resp = server
         .update_annotation(Parameters(params))
         .await
-        .expect("batch archive failure details should be returned");
+        .expect("per-id archive failure details should be returned");
 
     assert_eq!(resp.is_error, Some(true));
     let body = structured(resp);
+    assert_eq!(body["updated_count"], 1);
+    assert_eq!(body["failures"][0]["index"], 0);
+    assert_eq!(body["successes"][0]["index"], 1);
     assert_eq!(
-        body["batch_archive_error"]["annotation_ids"],
-        serde_json::json!(["ann1", "ann2"])
+        body["failures"][0]["error"]["data"]["reason"],
+        "PermissionDenied"
     );
-    assert_eq!(
-        body["batch_archive_error"]["message"],
-        "Some requested entity was not found: one target was not found"
-    );
-    assert!(body["batch_archive_error"].get("code").is_none());
+    assert!(body.get("batch_archive_error").is_none());
 }
 
 #[tokio::test]
-#[allow(deprecated)] // The backend requires this deprecated field to unarchive annotations.
 async fn update_annotation_reports_partial_unarchive_failures() {
     let mut mock = MockAnnotationServiceImpl::new();
-    mock.expect_update_annotation().times(2).returning(|req| {
-        let req = req.into_inner();
-        assert_eq!(req.update_mask.unwrap().paths, ["deleted_date"]);
-        let annotation = req.annotation.unwrap();
-        assert_eq!(annotation.deleted_date, None);
-        let annotation_id = annotation.annotation_id;
-        if annotation_id == "ann2" {
-            return Err(Status::not_found("no such annotation"));
-        }
-        Ok(Response::new(UpdateAnnotationResponse {
-            annotation: Some(Annotation {
-                annotation_id,
-                is_archived: false,
-                ..Default::default()
-            }),
-        }))
-    });
+    mock.expect_unarchive_annotation()
+        .times(2)
+        .returning(|req| {
+            let annotation_id = req.into_inner().annotation_id;
+            if annotation_id == "ann2" {
+                return Err(Status::not_found("no such annotation"));
+            }
+            Ok(Response::new(UnarchiveAnnotationResponse {
+                annotation: Some(Annotation {
+                    annotation_id,
+                    is_archived: false,
+                    ..Default::default()
+                }),
+            }))
+        });
 
     let (server, _h) = server_with_mock(mock).await;
 
@@ -669,33 +846,29 @@ async fn update_annotation_reports_partial_unarchive_failures() {
 
     assert_eq!(resp.is_error, Some(true));
     let body = structured(resp);
-    assert_eq!(body["annotations"][0]["annotationId"], "ann1");
-    assert_eq!(body["failures"][0]["annotation_id"], "ann2");
+    assert_eq!(body["successes"][0]["result"]["annotation_id"], "ann1");
+    assert_eq!(body["failures"][0]["index"], 1);
     assert_eq!(
-        body["failures"][0]["message"],
-        "Some requested entity was not found: no such annotation"
+        body["failures"][0]["error"]["code"],
+        ErrorCode::RESOURCE_NOT_FOUND.0
     );
-    assert_eq!(body["batch_archive_error"], serde_json::Value::Null);
-    assert!(body["failures"][0].get("code").is_none());
+    assert!(body.get("batch_archive_error").is_none());
 }
 
 #[tokio::test]
-#[allow(deprecated)] // The backend requires this deprecated field to unarchive annotations.
-async fn update_annotation_batch_unarchives_annotations() {
+async fn update_annotation_unarchives_each_annotation() {
     let mut mock = MockAnnotationServiceImpl::new();
-    mock.expect_update_annotation().times(2).returning(|req| {
-        let req = req.into_inner();
-        assert_eq!(req.update_mask.unwrap().paths, ["deleted_date"]);
-        let annotation = req.annotation.unwrap();
-        assert_eq!(annotation.deleted_date, None);
-        Ok(Response::new(UpdateAnnotationResponse {
-            annotation: Some(Annotation {
-                annotation_id: annotation.annotation_id,
-                is_archived: false,
-                ..Default::default()
-            }),
-        }))
-    });
+    mock.expect_unarchive_annotation()
+        .times(2)
+        .returning(|req| {
+            Ok(Response::new(UnarchiveAnnotationResponse {
+                annotation: Some(Annotation {
+                    annotation_id: req.into_inner().annotation_id,
+                    is_archived: false,
+                    ..Default::default()
+                }),
+            }))
+        });
 
     let (server, _h) = server_with_mock(mock).await;
 
@@ -708,22 +881,18 @@ async fn update_annotation_batch_unarchives_annotations() {
         .await
         .expect("update_annotation failed");
 
-    let annotations = structured_field(resp, "annotations");
-    assert_eq!(annotations.as_array().unwrap().len(), 2);
-    assert_eq!(annotations[0]["annotationId"], "ann1");
-    assert_eq!(annotations[1]["annotationId"], "ann2");
+    let successes = structured_field(resp, "successes");
+    assert_eq!(successes.as_array().unwrap().len(), 2);
+    assert_eq!(successes[0]["result"]["annotation_id"], "ann1");
+    assert_eq!(successes[1]["result"]["annotation_id"], "ann2");
 }
 
 #[tokio::test]
-#[allow(deprecated)] // The backend requires this deprecated field to unarchive annotations.
 async fn update_annotation_reports_unarchive_ids_not_attempted_after_backend_wide_failure() {
     let mut mock = MockAnnotationServiceImpl::new();
-    mock.expect_update_annotation().times(50).returning(|req| {
-        let req = req.into_inner();
-        assert_eq!(req.update_mask.unwrap().paths, ["deleted_date"]);
-        assert_eq!(req.annotation.unwrap().deleted_date, None);
-        Err(Status::resource_exhausted("slow down"))
-    });
+    mock.expect_unarchive_annotation()
+        .times(50)
+        .returning(|_| Err(Status::resource_exhausted("backend unavailable")));
 
     let (server, _h) = server_with_mock(mock).await;
 
@@ -741,32 +910,35 @@ async fn update_annotation_reports_unarchive_ids_not_attempted_after_backend_wid
     assert_eq!(resp.is_error, Some(true));
     let body = structured(resp);
     assert_eq!(body["failures"].as_array().unwrap().len(), 50);
-    assert_eq!(body["not_attempted"], serde_json::json!(["ann51"]));
-    assert_eq!(body["batch_archive_error"], serde_json::Value::Null);
+    assert_eq!(body["not_attempted"], serde_json::json!([50]));
+    assert!(body.get("batch_archive_error").is_none());
 }
 
 #[tokio::test]
-#[allow(deprecated)] // The backend requires this deprecated field to unarchive annotations.
 async fn update_annotation_updates_fields_before_unarchiving() {
     let mut mock = MockAnnotationServiceImpl::new();
     let updated_count = Arc::new(AtomicUsize::new(0));
 
     let update_count = Arc::clone(&updated_count);
     mock.expect_update_annotation()
-        .times(4)
+        .times(2)
         .returning(move |req| {
             let req = req.into_inner();
-            let paths = req.update_mask.unwrap().paths;
-            let annotation = req.annotation.unwrap();
-            if paths == ["deleted_date"] {
-                assert_eq!(update_count.load(Ordering::SeqCst), 2);
-                assert_eq!(annotation.deleted_date, None);
-            } else {
-                assert_eq!(paths, ["name"]);
-                update_count.fetch_add(1, Ordering::SeqCst);
-            }
+            assert_eq!(req.update_mask.unwrap().paths, ["name"]);
+            update_count.fetch_add(1, Ordering::SeqCst);
             Ok(Response::new(UpdateAnnotationResponse {
-                annotation: Some(annotation),
+                annotation: req.annotation,
+            }))
+        });
+    mock.expect_unarchive_annotation()
+        .times(2)
+        .withf(move |_| updated_count.load(Ordering::SeqCst) >= 1)
+        .returning(|req| {
+            Ok(Response::new(UnarchiveAnnotationResponse {
+                annotation: Some(Annotation {
+                    annotation_id: req.into_inner().annotation_id,
+                    ..Default::default()
+                }),
             }))
         });
 
@@ -802,7 +974,7 @@ async fn update_annotation_rejects_empty_ids() {
 async fn update_annotation_rejects_more_than_1000_ids_without_requests() {
     let mut mock = MockAnnotationServiceImpl::new();
     mock.expect_update_annotation().times(0);
-    mock.expect_batch_archive_annotations().times(0);
+    mock.expect_archive_annotation().times(0);
 
     let (server, _h) = server_with_mock(mock).await;
 
@@ -862,9 +1034,47 @@ async fn update_annotation_propagates_grpc_error() {
 
     assert_eq!(resp.is_error, Some(true));
     let body = structured(resp);
-    assert_eq!(body["failures"][0]["annotation_id"], "ann1");
+    assert_eq!(body["failures"][0]["index"], 0);
     assert_eq!(
-        body["failures"][0]["message"],
-        "Some requested entity was not found: no such annotation"
+        body["failures"][0]["error"]["code"],
+        ErrorCode::RESOURCE_NOT_FOUND.0
     );
+}
+
+#[tokio::test]
+async fn update_annotation_maps_results_by_the_requested_id() {
+    let mut mock = MockAnnotationServiceImpl::new();
+    mock.expect_update_annotation().times(1).returning(|req| {
+        let mut annotation = req.into_inner().annotation.unwrap();
+        annotation.annotation_id = annotation.annotation_id.to_lowercase();
+        Ok(Response::new(UpdateAnnotationResponse {
+            annotation: Some(annotation),
+        }))
+    });
+    let (server, _h) = server_with_mock(mock).await;
+    let mut params = update_params("ANN-1");
+    params.name = Some("renamed".into());
+    let body = structured(server.update_annotation(Parameters(params)).await.unwrap());
+    assert_eq!(body["updated_count"], 1);
+    assert_eq!(body["successes"][0]["index"], 0);
+}
+
+#[tokio::test]
+async fn a_failed_archive_after_a_field_update_is_an_uncertain_outcome() {
+    let mut mock = MockAnnotationServiceImpl::new();
+    mock.expect_update_annotation().times(1).returning(|req| {
+        Ok(Response::new(UpdateAnnotationResponse {
+            annotation: req.into_inner().annotation,
+        }))
+    });
+    mock.expect_archive_annotation()
+        .times(1)
+        .returning(|_| Err(Status::not_found("gone")));
+    let (server, _h) = server_with_mock(mock).await;
+    let mut params = update_params("ann1");
+    params.name = Some("renamed".into());
+    params.is_archived = Some(true);
+    let body = structured(server.update_annotation(Parameters(params)).await.unwrap());
+    assert_eq!(body["failures"][0]["index"], 0);
+    assert_eq!(body["failures"][0]["outcome_unknown"], true);
 }

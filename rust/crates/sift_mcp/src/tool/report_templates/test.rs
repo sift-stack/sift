@@ -9,7 +9,7 @@ use sift_test_util::{
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
-use super::{CreateReportTemplateItem, ReportTemplateListParams, UpdateReportTemplateParams};
+use super::{CreateReportTemplateItem, ReportTemplateListParams, UpdateReportTemplateItem};
 use crate::{server::SiftMcpServer, tool::common::test_support::structured_field};
 
 async fn server_with_mock(mock: MockReportTemplateServiceImpl) -> (SiftMcpServer, JoinHandle<()>) {
@@ -56,8 +56,93 @@ fn create_params() -> CreateReportTemplateItem {
     }
 }
 
-fn update_params() -> UpdateReportTemplateParams {
-    UpdateReportTemplateParams {
+mod bulk {
+    use super::*;
+    use serde_json::{Value, json};
+
+    async fn call(server: &SiftMcpServer, value: Value) -> crate::error::McpResult {
+        server
+            .update_report_template(Parameters(serde_json::from_value(value).unwrap()))
+            .await
+    }
+    fn item(id: &str) -> Value {
+        json!({"report_template_id": id, "name": "renamed"})
+    }
+    fn body(result: rmcp::model::CallToolResult) -> Value {
+        result.structured_content.unwrap()
+    }
+
+    #[tokio::test]
+    async fn selected_subset_writes_only_selected_items() {
+        let mut mock = MockReportTemplateServiceImpl::new();
+        mock.expect_update_report_template()
+            .times(1)
+            .withf(|req| {
+                req.get_ref()
+                    .report_template
+                    .as_ref()
+                    .unwrap()
+                    .report_template_id
+                    == "selected"
+            })
+            .returning(|req| {
+                Ok(Response::new(UpdateReportTemplateResponse {
+                    report_template: req.into_inner().report_template,
+                }))
+            });
+        let (server, handle) = server_with_mock(mock).await;
+        let body = body(
+            call(
+                &server,
+                json!({"items": [item("skip"), item("selected")], "selected_indices": [1]}),
+            )
+            .await
+            .unwrap(),
+        );
+        assert_eq!(body["successes"][0]["index"], 1);
+        assert_eq!(body["not_selected"], json!([0]));
+        handle.abort();
+    }
+
+    #[tokio::test]
+    async fn invalid_duplicate_and_missing_chat_mask_fail_before_rpc() {
+        let (server, handle) = server_with_mock(MockReportTemplateServiceImpl::new()).await;
+        let server = server.with_require_selection(true);
+        for items in [
+            json!([item("a"), item("a")]),
+            json!([item("a"), item(" ")]),
+            json!([{"report_template_id": "a", "unknown": true}]),
+        ] {
+            let error = call(&server, json!({"items": items, "selected_indices": [0]}))
+                .await
+                .unwrap_err();
+            assert_eq!(error.code, ErrorCode::INVALID_PARAMS);
+        }
+        let error = call(&server, json!({"items": [item("a")]}))
+            .await
+            .unwrap_err();
+        assert!(error.message.contains("nothing was written"));
+        handle.abort();
+    }
+}
+
+fn update_call(
+    item: UpdateReportTemplateItem,
+) -> Parameters<super::BulkItems<UpdateReportTemplateItem>> {
+    assert!(item.metadata.is_none());
+    Parameters(
+        serde_json::from_value(serde_json::json!({"items": [{
+            "report_template_id": item.report_template_id, "name": item.name,
+            "description": item.description, "tag_names": item.tag_names,
+            "rule_ids": item.rule_ids, "rule_client_keys": item.rule_client_keys,
+            "is_archived": item.is_archived,
+        }]}))
+        .unwrap(),
+    )
+}
+
+fn update_params() -> UpdateReportTemplateItem {
+    UpdateReportTemplateItem {
         report_template_id: "tmpl-1".into(),
         name: None,
         description: None,
@@ -182,14 +267,6 @@ async fn create_report_template_happy_path() {
 
     let url = structured_field(resp.clone(), "report_template_url");
     assert_eq!(url, "https://app.test.local/report-templates/tmpl-new");
-    let next_step = structured_field(resp.clone(), "next_step");
-    assert!(
-        next_step
-            .as_str()
-            .unwrap()
-            .contains("[safety](https://app.test.local/report-templates/tmpl-new)"),
-        "got {next_step}"
-    );
     let template = structured_field(resp, "report_template");
     assert_eq!(template["reportTemplateId"], "tmpl-new");
 }
@@ -257,20 +334,15 @@ async fn update_report_template_happy_path() {
     params.name = Some("renamed".into());
 
     let resp = server
-        .update_report_template(Parameters(params))
+        .update_report_template(update_call(params))
         .await
         .expect("update_report_template failed");
+    let resp = rmcp::model::CallToolResult::structured(
+        structured_field(resp, "successes")[0]["result"].clone(),
+    );
 
     let url = structured_field(resp.clone(), "report_template_url");
     assert_eq!(url, "https://app.test.local/report-templates/tmpl-1");
-    let next_step = structured_field(resp.clone(), "next_step");
-    assert!(
-        next_step
-            .as_str()
-            .unwrap()
-            .contains("[renamed](https://app.test.local/report-templates/tmpl-1)"),
-        "got {next_step}"
-    );
     let template = structured_field(resp, "report_template");
     assert_eq!(template["name"], "renamed");
 }
@@ -284,7 +356,7 @@ async fn update_report_template_rejects_empty_id() {
     params.name = Some("renamed".into());
 
     let err = server
-        .update_report_template(Parameters(params))
+        .update_report_template(update_call(params))
         .await
         .expect_err("expected error");
 
@@ -296,7 +368,7 @@ async fn update_report_template_rejects_no_fields() {
     let (server, _h) = server_with_mock(MockReportTemplateServiceImpl::new()).await;
 
     let err = server
-        .update_report_template(Parameters(update_params()))
+        .update_report_template(update_call(update_params()))
         .await
         .expect_err("expected error");
 
@@ -312,7 +384,7 @@ async fn update_report_template_rejects_both_rule_shapes() {
     params.rule_client_keys = Some(vec!["ck-1".into()]);
 
     let err = server
-        .update_report_template(Parameters(params))
+        .update_report_template(update_call(params))
         .await
         .expect_err("expected error");
 
@@ -342,7 +414,7 @@ async fn update_report_template_blocked_without_allow_destructive() {
     params.name = Some("renamed".into());
 
     let err = server
-        .update_report_template(Parameters(params))
+        .update_report_template(update_call(params))
         .await
         .expect_err("expected destructive gate to reject the call");
 

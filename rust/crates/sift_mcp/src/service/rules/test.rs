@@ -353,7 +353,32 @@ async fn update_rule_errors_when_rule_missing() {
         .await
         .expect_err("expected error");
 
-    assert!(err.to_string().contains("not found"));
+    let status = err.downcast_ref::<Status>().expect("a gRPC status");
+    assert_eq!(status.code(), tonic::Code::NotFound);
+}
+
+#[tokio::test]
+async fn find_rule_looks_up_by_client_key() {
+    let mut mock = MockRuleServiceImpl::new();
+    mock.expect_get_rule()
+        .withf(|req| req.get_ref().client_key == "ck-1" && req.get_ref().rule_id.is_empty())
+        .returning(|_| {
+            Ok(Response::new(GetRuleResponse {
+                rule: Some(Rule {
+                    rule_id: "rule-1".into(),
+                    ..Default::default()
+                }),
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+
+    let rule = service
+        .find_rule(String::new(), "ck-1".to_string())
+        .await
+        .expect("find_rule failed");
+
+    assert_eq!(rule.rule_id, "rule-1");
 }
 
 #[tokio::test]

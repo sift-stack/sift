@@ -1,7 +1,7 @@
 use rmcp::{
     ErrorData,
     handler::server::wrapper::Parameters,
-    model::{CallToolResult, ContentBlock},
+    model::CallToolResult,
     schemars::{self, JsonSchema},
     tool, tool_router,
 };
@@ -11,14 +11,18 @@ use sift_rs::metadata::v1::MetadataValue;
 use crate::{
     error::{self, from_anyhow},
     server::SiftMcpServer,
-    tool::common::{ListParams, MetadataEntry, list_body, url_clause, with_urls},
+    tool::common::{
+        ListParams, MetadataEntry,
+        bulk::{BulkItems, Op},
+        list_body, require_non_empty, with_urls,
+    },
 };
 
 #[cfg(test)]
 mod test;
 
 #[derive(Debug, Deserialize, JsonSchema)]
-pub struct UpdateRunParams {
+pub struct UpdateRunItem {
     run_id: String,
     name: Option<String>,
     description: Option<String>,
@@ -28,6 +32,25 @@ pub struct UpdateRunParams {
     client_key: Option<String>,
     tags: Option<Vec<String>>,
     metadata: Option<Vec<MetadataEntry>>,
+}
+
+fn validate_update_run(item: &UpdateRunItem) -> Result<(), ErrorData> {
+    require_non_empty("run_id", &item.run_id)?;
+    if !(item.name.is_some()
+        || item.description.is_some()
+        || item.start_time_unix_nanos.is_some()
+        || item.stop_time_unix_nanos.is_some()
+        || item.is_pinned.is_some()
+        || item.client_key.is_some()
+        || item.tags.is_some()
+        || item.metadata.is_some())
+    {
+        return Err(ErrorData::invalid_params(
+            "at least one updatable field besides `run_id` must be provided",
+            None,
+        ));
+    }
+    Ok(())
 }
 
 #[tool_router(router = runs_router, vis = "pub(crate)")]
@@ -119,15 +142,19 @@ impl SiftMcpServer {
     #[tool(
         name = "update_run",
         description = "
-            Update specific fields of an existing run, identified by `run_id`. This is a WRITE. Only the fields you
+            Update specific fields of one or more runs, each identified by `run_id`. This is a WRITE. Only the fields you
             set are changed; everything else on the run is preserved. Wraps `runs/v2 UpdateRun`.
 
             Output:
-              - `{ \"run\": Run, \"run_url\": string|null, \"next_step\": string }`. The returned `Run` is the
+              - `{ requested_count, selected_count, not_selected, updated_count, successes, failures,
+                not_attempted, next_step }`. Each success holds `{ index, result }`, each failure holds
+                `{ index, error, outcome_unknown }`, and any failure sets `isError`. Each result is:
+              - `{ \"run\": Run, \"run_url\": string|null }`. The returned `Run` is the
                 post-update state from the server; `run_url` is its Sift web link (`<host>/run/<run_id>`), or null
                 when the host can't be derived.
 
             Parameters:
+              - `items`: one object per run. Each item takes the fields below.
               - `run_id`: required; the id of the run to update.
               - `name`: optional new name.
               - `description`: optional new description.
@@ -144,11 +171,16 @@ impl SiftMcpServer {
               - `INVALID_PARAMS` if `run_id` is empty or no updatable field is provided.
               - `RESOURCE_NOT_FOUND` if no run matches `run_id`.
               - `INTERNAL_ERROR` for upstream gRPC failures (e.g. re-setting an already-set `client_key`).
+              - `INVALID_PARAMS` before any write for an empty or oversized `items`, duplicate targets,
+                unknown item fields, or invalid items; the error names the item index.
+              - Item-local errors fail only that item. Backend-wide errors stop the remaining items.
 
             Guidance:
               - This is a write with REPLACE semantics for `tags`/`metadata`. CONFIRM the full proposed values with
                 the user before invoking; for appends, read the run via `list_runs` and send the union.
               - Note: `start_time` may be overwritten automatically if data is later ingested for this run.
+              - Items run sequentially; the call is not atomic. Never replay the whole call after a
+                partial failure. Check `outcome_unknown` items before retrying, and never retry `not_selected` items.
         ",
         annotations(
             title = "runs/update_run",
@@ -157,10 +189,27 @@ impl SiftMcpServer {
             idempotent_hint = true,
         )
     )]
-    pub async fn update_run(&self, params: Parameters<UpdateRunParams>) -> error::McpResult {
+    pub async fn update_run(
+        &self,
+        params: Parameters<BulkItems<UpdateRunItem>>,
+    ) -> error::McpResult {
         self.require_destructive()?;
+        self.bulk_write(
+            Op::Update,
+            params.0,
+            "run",
+            |item: UpdateRunItem| {
+                validate_update_run(&item)?;
+                Ok(item)
+            },
+            |item| Some(item.run_id.clone()),
+            |item| self.update_run_item(item),
+        )
+        .await
+    }
 
-        let Parameters(UpdateRunParams {
+    async fn update_run_item(&self, item: UpdateRunItem) -> error::McpResult {
+        let UpdateRunItem {
             run_id,
             name,
             description,
@@ -170,29 +219,7 @@ impl SiftMcpServer {
             client_key,
             tags,
             metadata,
-        }) = params;
-
-        if run_id.is_empty() {
-            return Err(ErrorData::invalid_params(
-                "`run_id` must not be empty",
-                None,
-            ));
-        }
-
-        let has_update = name.is_some()
-            || description.is_some()
-            || start_time_unix_nanos.is_some()
-            || stop_time_unix_nanos.is_some()
-            || is_pinned.is_some()
-            || client_key.is_some()
-            || tags.is_some()
-            || metadata.is_some();
-        if !has_update {
-            return Err(ErrorData::invalid_params(
-                "at least one updatable field besides `run_id` must be provided",
-                None,
-            ));
-        }
+        } = item;
 
         let metadata = metadata.map(|m| m.into_iter().map(MetadataValue::from).collect::<Vec<_>>());
 
@@ -213,20 +240,9 @@ impl SiftMcpServer {
             .map_err(from_anyhow)?;
 
         let run_url = self.url_service.build_run_url(&run.run_id).ok();
-        let next_step = format!(
-            "Updated run `{}` ({}).{} Surface the new state to the user and confirm the change matches their \
-             intent. Remember: tags and metadata are REPLACE operations.",
-            run.name,
-            run.run_id,
-            url_clause("run", Some(&run.name), run_url.as_deref()),
-        );
-
-        let mut result = CallToolResult::structured(serde_json::json!({
+        Ok(CallToolResult::structured(serde_json::json!({
             "run": run,
             "run_url": run_url,
-            "next_step": next_step,
-        }));
-        result.content = vec![ContentBlock::text(next_step)];
-        Ok(result)
+        })))
     }
 }

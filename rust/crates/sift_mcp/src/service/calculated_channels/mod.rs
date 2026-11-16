@@ -574,7 +574,11 @@ impl CalculatedChannelService {
         let mut channel = self
             .get_calculated_channel(calculated_channel_id.clone())
             .await?
-            .ok_or_else(|| anyhow!("calculated channel '{calculated_channel_id}' not found"))?;
+            .ok_or_else(|| {
+                tonic::Status::not_found(format!(
+                    "calculated channel '{calculated_channel_id}' not found"
+                ))
+            })?;
         channel.calculated_channel_id = calculated_channel_id;
 
         let CalculatedChannelUpdate {
