@@ -90,6 +90,13 @@ pub fn validate_time_format(
     relative_start_time: &Option<String>,
     time_format_str: Option<&str>,
 ) -> Result<()> {
+    if !matches!(time_format, TimeFormat::Custom)
+        && time_format_str.is_some_and(|s| !s.trim().is_empty())
+    {
+        return Err(anyhow!(
+            "--time-format-str requires --time-format custom, but the time format is {time_format}"
+        ));
+    }
     match time_format {
         TimeFormat::Custom => match time_format_str {
             None => Err(anyhow!(
@@ -195,6 +202,21 @@ mod test_validate_time_format {
     #[test]
     fn custom_with_time_format_str_is_ok() {
         validate_time_format(TimeFormat::Custom, &None, Some("%m-%d-%Y %H:%M:%S")).unwrap();
+    }
+
+    #[test]
+    fn time_format_str_rejected_without_custom() {
+        let err =
+            validate_time_format(TimeFormat::AbsoluteRfc3339, &None, Some("%m-%d-%Y")).unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("--time-format-str requires --time-format custom")
+        );
+    }
+
+    #[test]
+    fn empty_time_format_str_is_ok_without_custom() {
+        validate_time_format(TimeFormat::AbsoluteRfc3339, &None, Some("")).unwrap();
     }
 
     #[test]

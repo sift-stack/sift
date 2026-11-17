@@ -325,6 +325,17 @@ fn test_custom_time_format_without_time_format_str_returns_error() {
 }
 
 #[test]
+fn test_time_format_str_without_custom_returns_error() {
+    let batch = create_test_batch();
+    let bytes = write_to_parquet_bytes(&batch);
+    let mut args = make_test_args(Some("time"), None);
+    args.time_format_str = "%m-%d-%Y %H:%M:%S".into();
+
+    let err = detect_parquet_schema::detect_flat_dataset_config(&bytes, &args).unwrap_err();
+    assert!(format!("{err:#}").contains("--time-format-str requires --time-format custom"));
+}
+
+#[test]
 fn test_custom_time_format_sets_custom_format() {
     let batch = create_test_batch();
     let bytes = write_to_parquet_bytes(&batch);
