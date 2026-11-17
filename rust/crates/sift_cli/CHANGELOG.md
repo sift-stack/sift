@@ -17,6 +17,19 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   empty, every command reads that file, and `config create` and `config
   update` write to it. Otherwise the CLI uses `sift.toml` in the user config
   directory, as before. `sift_client` reads the same variable.
+- New `list_webhooks` tool lists the webhooks a rule can call. It withholds
+  credentials: `target_url` keeps only its scheme and the last two labels of
+  its host, each header keeps only its name, and the request body template is
+  left out.
+- `create_rule` and `update_rule` items take `webhook_ids`, so an agent can
+  make a rule call a webhook when it fires. On `update_rule` it replaces the
+  rule's set, like `asset_ids`, and the item's `warning` names any webhook it
+  detached. Both tools check that each webhook exists and is not archived
+  before saving the rule, and refuse webhook actions written into the rule's
+  conditions.
+- `create_rule` now documents the annotation action, and both rule tools
+  refuse a rule without exactly one condition instead of passing on Sift's
+  internal error.
 
 ## [v0.9.0] - November 16, 2026
 

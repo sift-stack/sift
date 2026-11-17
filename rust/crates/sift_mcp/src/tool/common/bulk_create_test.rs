@@ -220,8 +220,8 @@ async fn annotation_association_mistakes_reject_whole_batch_without_writes() {
 async fn rule_batch_rejects_update_identifiers_before_writing() {
     let (server, handle) = server(MockAnnotationServiceImpl::new(), true).await;
     let params = serde_json::from_value(json!({"items": [
-        {"rule_json": json!({"name":"new", "description":""}).to_string()},
-        {"rule_json": json!({"rule_id":"existing", "name":"do not edit", "description":""}).to_string()}
+        {"rule_json": json!({"name":"new", "description":"", "conditions":[{"expression":{},"actions":[]}]}).to_string()},
+        {"rule_json": json!({"rule_id":"existing", "name":"do not edit", "description":"", "conditions":[{"expression":{},"actions":[]}]}).to_string()}
     ]})).unwrap();
     let error = server.create_rule(Parameters(params)).await.unwrap_err();
     assert_eq!(error.code, ErrorCode::INVALID_PARAMS);
@@ -295,7 +295,7 @@ async fn selecting_two_rules_issues_exactly_two_create_rpcs_and_never_the_reject
     });
     let server = SiftMcpServer::new(channel, "https://app.test.local".into(), true, false);
     let items = ["first", "second", "third"]
-        .map(|name| json!({"rule_json":json!({"name":name,"description":""}).to_string()}));
+        .map(|name| json!({"rule_json":json!({"name":name,"description":"","conditions":[{"expression":{},"actions":[]}]}).to_string()}));
     let params = serde_json::from_value(json!({"items": items, "selected_indices":[0,2]})).unwrap();
     let response = server.create_rule(Parameters(params)).await.unwrap();
     let body = structured(response.clone());
@@ -332,7 +332,10 @@ async fn a_chat_host_must_supply_a_selection_and_an_empty_selection_writes_nothi
         }};
     }
     check!(create_annotation, annotation("first"));
-    check!(create_rule, json!({"rule_json":"{}"}));
+    check!(
+        create_rule,
+        json!({"rule_json":json!({"conditions":[{"expression":{},"actions":[]}]}).to_string()})
+    );
     check!(
         create_calculated_channel,
         json!({"name":"channel", "expression":"1", "expression_channel_references_json":"[]"})

@@ -53,6 +53,7 @@ use crate::service::{
     rule_evaluation::RuleEvaluationService, rules::RuleService, runs::RunService,
     test_reports::TestReportService, url::UrlService,
     user_defined_functions::UserDefinedFunctionService, users::UserService,
+    webhooks::WebhookService,
 };
 
 #[derive(Clone)]
@@ -79,6 +80,7 @@ pub struct SiftMcpServer {
     pub docs_service: DocsService,
     pub user_defined_function_service: UserDefinedFunctionService,
     pub user_service: UserService,
+    pub webhook_service: WebhookService,
 
     pub allow_create: bool,
     /// Reject creates without an approval mask. Set when a Sift chat pod hosts this server.
@@ -237,6 +239,7 @@ impl SiftMcpServer {
         tool_router.merge(Self::docs_router());
         tool_router.merge(Self::user_defined_functions_router());
         tool_router.merge(Self::users_router());
+        tool_router.merge(Self::webhooks_router());
         tool_router.merge(Self::update_router());
         let registered_tools: HashSet<String> = tool_router
             .list_all()
@@ -304,7 +307,8 @@ impl SiftMcpServer {
         let docs_service = DocsService::new(channel.clone(), retry_policy.clone());
         let user_defined_function_service =
             UserDefinedFunctionService::new(channel.clone(), retry_policy.clone());
-        let user_service = UserService::new(channel.clone(), retry_policy);
+        let user_service = UserService::new(channel.clone(), retry_policy.clone());
+        let webhook_service = WebhookService::new(channel.clone(), retry_policy);
 
         Ok(Self {
             annotation_service,
@@ -326,6 +330,7 @@ impl SiftMcpServer {
             docs_service,
             user_defined_function_service,
             user_service,
+            webhook_service,
             tool_router,
             prompt_router,
             allow_create,
