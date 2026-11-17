@@ -1,3 +1,65 @@
+mod config_file_path {
+    use super::super::{CONFIG_FILE_NAME, config_file_path, load_config, write_config};
+    use std::{ffi::OsString, path::PathBuf};
+    use tempdir::TempDir;
+    use toml::Table;
+
+    fn user_config_file() -> Option<PathBuf> {
+        dirs::config_dir().map(|dir| dir.join(CONFIG_FILE_NAME))
+    }
+
+    #[test]
+    fn uses_the_variable_as_given_when_set() {
+        for path in [
+            "/tmp/agent-session/sift.toml",
+            "relative/sift.toml",
+            "~/sift.toml",
+        ] {
+            assert_eq!(
+                config_file_path(Some(OsString::from(path))).unwrap(),
+                PathBuf::from(path)
+            );
+        }
+    }
+
+    #[test]
+    fn treats_an_empty_variable_as_unset() {
+        assert_eq!(
+            config_file_path(Some(OsString::new())).ok(),
+            user_config_file()
+        );
+    }
+
+    #[test]
+    fn falls_back_to_the_user_config_directory_when_unset() {
+        assert_eq!(config_file_path(None).ok(), user_config_file());
+    }
+
+    #[test]
+    fn writing_creates_missing_parent_directories() {
+        let directory = TempDir::new("sift-cli-config-file").unwrap();
+        let path = directory.path().join("missing/nested/sift.toml");
+        write_config(&path, &Table::new()).unwrap();
+        assert!(path.is_file());
+    }
+
+    #[test]
+    fn loading_tells_a_missing_file_from_an_unreadable_path() {
+        let directory = TempDir::new("sift-cli-config-file").unwrap();
+        let path = directory.path().join("sift.toml");
+        assert_eq!(load_config(&path).unwrap(), None);
+
+        write_config(&path, &Table::new()).unwrap();
+        assert_eq!(load_config(&path).unwrap(), Some(Table::new()));
+
+        let message = format!("{:#}", load_config(directory.path()).unwrap_err());
+        assert!(
+            message.contains(&directory.path().display().to_string()),
+            "error: {message}"
+        );
+    }
+}
+
 mod app_uri {
     use super::super::{AppUriState, app_uri_state, apply_profile_updates};
     use toml::{Table, Value};

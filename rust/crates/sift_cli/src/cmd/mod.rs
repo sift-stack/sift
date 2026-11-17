@@ -2,7 +2,7 @@ use crate::BIN_NAME;
 use crate::util::app_uri::{infer_app_uri, normalize_app_uri};
 use anyhow::{Context as AnyhowContext, Result, anyhow};
 use crossterm::style::Stylize;
-use std::{fs::read_to_string, io::ErrorKind, path::Path};
+use std::path::Path;
 use toml::{Table, Value};
 
 pub mod agent;
@@ -52,24 +52,16 @@ impl Context {
         profile: Option<String>,
         disable_tls: bool,
     ) -> Result<Self> {
-        let p = config_path.display().to_string();
-
-        let config_txt = match read_to_string(config_path) {
-            Ok(txt) => txt,
-            Err(err) => match err.kind() {
-                ErrorKind::NotFound => {
-                    return Err(anyhow!("expected to find '{}'.", p.yellow())).context(format!(
-                        "Create a config using '{}'.",
-                        format!("{BIN_NAME} config create").green()
-                    ));
-                }
-                _ => return Err(anyhow!("failed to read config file")),
-            },
+        let Some(config_toml) = config::load_config(config_path)? else {
+            return Err(anyhow!(
+                "expected to find '{}'.",
+                config_path.display().to_string().yellow()
+            ))
+            .context(format!(
+                "Create a config using '{}'.",
+                format!("{BIN_NAME} config create").green()
+            ));
         };
-
-        let config_toml = config_txt
-            .parse::<Table>()
-            .context("failed to parse config file")?;
 
         let profile = config::resolve_profile(&config_toml, profile);
         let target_profile = match profile.as_deref() {

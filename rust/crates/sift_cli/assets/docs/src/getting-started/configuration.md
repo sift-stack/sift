@@ -35,6 +35,21 @@ Settings live in a TOML file named `sift.toml` inside your OS config directory:
 | Linux    | `~/.config/sift.toml`                               |
 | Windows  | `%APPDATA%\sift.toml`                               |
 
+To keep the file somewhere else, set `SIFT_CONFIG_FILE` to its path:
+
+```sh
+export SIFT_CONFIG_FILE=/path/to/sift.toml
+```
+
+When `SIFT_CONFIG_FILE` is set and not empty, every command reads that file,
+and `config create` and `config update` write to it. `config create` creates
+any missing parent directories. The CLI uses the path as given. It does not
+expand `~`, and a relative path resolves against the directory you run the
+command from. The Python client, `sift_client`, reads the same variable.
+
+`sift-cli agent install` does not pass the variable to MCP clients, so
+`sift-cli mcp` reads it only when the MCP client itself runs with it set.
+
 Find the exact path on your machine:
 
 ```sh
