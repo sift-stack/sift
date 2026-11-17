@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use sift_rs::remote_files::v1::{
-    GetRemoteFileDownloadUrlResponse, ListRemoteFilesResponse, RemoteFile,
+    EntityType, GetRemoteFileDownloadUrlResponse, ListRemoteFilesResponse, RemoteFile,
     remote_file_service_server::RemoteFileServiceServer,
 };
 use sift_test_util::{
@@ -40,8 +40,17 @@ fn remote_file(remote_file_id: &str) -> RemoteFile {
     RemoteFile {
         remote_file_id: remote_file_id.into(),
         entity_id: "run-1".into(),
+        entity_type: EntityType::Run as i32,
         file_name: format!("{remote_file_id}.csv"),
         ..Default::default()
+    }
+}
+
+fn remote_file_on(remote_file_id: &str, entity_type: EntityType, entity_id: &str) -> RemoteFile {
+    RemoteFile {
+        entity_type: entity_type as i32,
+        entity_id: entity_id.into(),
+        ..remote_file(remote_file_id)
     }
 }
 
@@ -93,8 +102,12 @@ fn every_attachment_type_has_a_distinct_name_and_filter_value() {
     let values: std::collections::HashSet<_> = AttachmentEntityType::ALL
         .map(AttachmentEntityType::filter_value)
         .into();
+    let protos: std::collections::HashSet<_> = AttachmentEntityType::ALL
+        .map(|entity_type| entity_type.proto() as i32)
+        .into();
     assert_eq!(names.len(), AttachmentEntityType::ALL.len());
     assert_eq!(values.len(), AttachmentEntityType::ALL.len());
+    assert_eq!(protos.len(), AttachmentEntityType::ALL.len());
 }
 
 #[tokio::test]
@@ -193,6 +206,65 @@ async fn list_attachments_truncates_to_limit() {
         .expect("list");
     assert_eq!(ids(&page), ["rf-1", "rf-2"]);
     assert!(page.has_more);
+}
+
+#[tokio::test]
+async fn list_attachments_keeps_the_scope_when_the_filter_escapes_it() {
+    // A filter that closes the wrapping parenthesis ORs past the scope, so
+    // the server can return rows the scope excludes.
+    let mut mock = MockRemoteFileServiceImpl::new();
+    mock.expect_list_remote_files()
+        .withf(|req| {
+            req.get_ref().filter
+                == "entity_id in [\"run-1\"] && entity_type == \"runs\" && (true) || (true)"
+        })
+        .times(1)
+        .returning(|_| {
+            Ok(Response::new(ListRemoteFilesResponse {
+                remote_files: vec![
+                    remote_file_on("rf-artifact", EntityType::ArtifactVersion, "run-1"),
+                    remote_file_on("rf-asset", EntityType::Asset, "run-1"),
+                    remote_file_on("rf-other-run", EntityType::Run, "run-2"),
+                    remote_file_on("rf-unspecified", EntityType::Unspecified, "run-1"),
+                    remote_file("rf-1"),
+                ],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let page = service
+        .list_attachments(
+            vec![" run-1 ".into()],
+            Some(AttachmentEntityType::Run),
+            "true) || (true".into(),
+            None,
+        )
+        .await
+        .expect("list");
+    assert_eq!(ids(&page), ["rf-1"]);
+    assert!(!page.has_more);
+}
+
+#[tokio::test]
+async fn list_attachments_drops_non_attachment_rows_without_a_scope() {
+    let mut mock = MockRemoteFileServiceImpl::new();
+    mock.expect_list_remote_files().times(1).returning(|_| {
+        Ok(Response::new(ListRemoteFilesResponse {
+            remote_files: vec![
+                remote_file_on("rf-chat", EntityType::ChatConversation, "conv-1"),
+                remote_file_on("rf-step", EntityType::TestStep, "step-1"),
+            ],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let page = service
+        .list_attachments(Vec::new(), None, "true) || (true".into(), None)
+        .await
+        .expect("list");
+    assert_eq!(ids(&page), ["rf-step"]);
 }
 
 #[tokio::test]

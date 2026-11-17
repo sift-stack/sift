@@ -145,6 +145,7 @@ async fn list_file_attachments_projects_fields() {
             Ok(Response::new(ListRemoteFilesResponse {
                 remote_files: vec![RemoteFile {
                     remote_file_id: "rf-1".into(),
+                    entity_type: EntityType::Asset as i32,
                     file_name: "notes.pdf".into(),
                     ..Default::default()
                 }],

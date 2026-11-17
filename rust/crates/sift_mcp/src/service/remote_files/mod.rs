@@ -6,8 +6,8 @@ use reqwest::header::USER_AGENT;
 use sift_rs::{
     SiftChannel,
     remote_files::v1::{
-        GetRemoteFileDownloadUrlRequest, ListRemoteFilesRequest, ListRemoteFilesResponse,
-        RemoteFile, remote_file_service_client::RemoteFileServiceClient,
+        EntityType, GetRemoteFileDownloadUrlRequest, ListRemoteFilesRequest,
+        ListRemoteFilesResponse, RemoteFile, remote_file_service_client::RemoteFileServiceClient,
     },
 };
 
@@ -78,6 +78,40 @@ impl AttachmentEntityType {
             Self::TestStep => "test_steps",
         }
     }
+
+    /// The `entity_type` listed rows carry.
+    pub fn proto(self) -> EntityType {
+        match self {
+            Self::Run => EntityType::Run,
+            Self::Asset => EntityType::Asset,
+            Self::Annotation => EntityType::Annotation,
+            Self::AnnotationLog => EntityType::AnnotationLog,
+            Self::TestReport => EntityType::TestReport,
+            Self::TestStep => EntityType::TestStep,
+        }
+    }
+
+    fn from_proto(value: i32) -> Option<Self> {
+        Self::ALL
+            .into_iter()
+            .find(|entity_type| entity_type.proto() as i32 == value)
+    }
+}
+
+/// Whether a listed row is inside the scope [`attachment_filter`] sends. The
+/// caller's filter is joined in as text, so one that closes the wrapping
+/// parenthesis, such as `true) || (true`, widens the server's match past the
+/// scope. Checking each row keeps the scope regardless of the filter.
+fn in_scope(
+    file: &RemoteFile,
+    entity_ids: &[String],
+    entity_type: Option<AttachmentEntityType>,
+) -> bool {
+    let Some(file_type) = AttachmentEntityType::from_proto(file.entity_type) else {
+        return false;
+    };
+    entity_type.is_none_or(|entity_type| entity_type == file_type)
+        && (entity_ids.is_empty() || entity_ids.iter().any(|id| id.trim() == file.entity_id))
 }
 
 /// ANDs the scope onto the caller's CEL `filter`. With no `entity_type`, the
@@ -132,7 +166,8 @@ impl RemoteFileService {
     }
 
     /// Lists the attachments matching the scope and the caller's CEL `filter`,
-    /// held to [`AttachmentEntityType`] even when no type is given.
+    /// held to [`AttachmentEntityType`] even when no type is given. Rows outside
+    /// the scope are dropped even if the filter let the server return them.
     ///
     /// Makes one request only. The backend's page tokens do not advance past
     /// the first page, so following one returns the same rows again. A page can
@@ -171,6 +206,7 @@ impl RemoteFileService {
             mut remote_files,
             next_page_token,
         } = resp;
+        remote_files.retain(|file| in_scope(file, &entity_ids, entity_type));
         let has_more = remote_files.len() > record_limit || !next_page_token.is_empty();
         remote_files.truncate(record_limit);
         Ok(common::Page {
