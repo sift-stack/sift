@@ -5,7 +5,10 @@ use crate::BIN_NAME;
 use anyhow::{Context, Result, anyhow};
 use crossterm::style::Stylize;
 use std::{
-    fs::{create_dir_all, metadata, read_to_string, write},
+    env,
+    ffi::OsString,
+    fs::{create_dir_all, read_to_string, write},
+    io::ErrorKind,
     path::{Path, PathBuf},
     process::ExitCode,
 };
@@ -22,6 +25,9 @@ use crate::{
 
 pub const CONFIG_FILE_NAME: &str = "sift.toml";
 
+/// Names the config file explicitly, in place of the user config directory.
+const CONFIG_FILE_ENV: &str = "SIFT_CONFIG_FILE";
+
 /// The name shown for the top-level profile.
 const DEFAULT_PROFILE: &str = "default";
 
@@ -34,8 +40,8 @@ pub(super) enum AppUriState {
 }
 
 pub fn show() -> Result<ExitCode> {
-    let p = get_config_file_path()?;
-    let contents = read_to_string(p).context("failed to read config file")?;
+    let path = get_config_file_path()?;
+    let contents = load_config_text(&path)?.ok_or_else(|| config_not_found(&path))?;
     Output::new().line(contents).print();
     Ok(ExitCode::SUCCESS)
 }
@@ -72,7 +78,8 @@ impl ProfileFields {
 pub fn create(profile: Option<String>) -> Result<ExitCode> {
     let path = get_config_file_path()?;
     let p = path.display().to_string();
-    let exists = metadata(&path).is_ok();
+    let existing = load_config(&path)?;
+    let exists = existing.is_some();
 
     if !is_interactive() {
         if exists {
@@ -99,11 +106,7 @@ pub fn create(profile: Option<String>) -> Result<ExitCode> {
         return Ok(ExitCode::SUCCESS);
     }
 
-    let config = if exists {
-        read_config(&path)?
-    } else {
-        Table::new()
-    };
+    let config = existing.unwrap_or_default();
     let explicit_default = profile.as_deref() == Some(DEFAULT_PROFILE);
 
     let profile = match resolve_profile(&config, profile) {
@@ -159,7 +162,7 @@ pub fn create(profile: Option<String>) -> Result<ExitCode> {
 
 pub fn update(profile: Option<String>, args: ConfigUpdateArgs) -> Result<ExitCode> {
     let path = get_config_file_path()?;
-    if metadata(&path).is_err() {
+    let Some(config) = load_config(&path)? else {
         Output::new()
             .line(format!(
                 "'{}' not found.",
@@ -171,8 +174,7 @@ pub fn update(profile: Option<String>, args: ConfigUpdateArgs) -> Result<ExitCod
             ))
             .eprint();
         return Ok(ExitCode::FAILURE);
-    }
-    let config = read_config(&path)?;
+    };
     let profile = resolve_profile(&config, profile);
 
     let non_empty = |value: Option<String>| value.filter(|v| !v.is_empty());
@@ -500,7 +502,7 @@ pub fn config_where() -> Result<ExitCode> {
     let expected_path = get_config_file_path()?;
     let p = expected_path.display().to_string();
 
-    if metadata(&expected_path).is_err() {
+    if load_config_text(&expected_path)?.is_none() {
         Output::new()
             .line(format!("'{}' not found.", p.yellow()))
             .tip(format!(
@@ -515,16 +517,44 @@ pub fn config_where() -> Result<ExitCode> {
 }
 
 pub(super) fn get_config_file_path() -> Result<PathBuf> {
-    dirs::config_dir()
-        .map(|p| p.join(CONFIG_FILE_NAME))
-        .ok_or(anyhow!("user config directory not found"))
+    config_file_path(env::var_os(CONFIG_FILE_ENV))
 }
 
-fn read_config(path: &Path) -> Result<Table> {
-    read_to_string(path)
-        .context("failed to read config file")?
-        .parse::<Table>()
-        .context("config file is invalid TOML")
+/// `SIFT_CONFIG_FILE` as given when it is set and non-empty, otherwise
+/// `sift.toml` in the user config directory.
+fn config_file_path(from_env: Option<OsString>) -> Result<PathBuf> {
+    match from_env {
+        Some(path) if !path.is_empty() => Ok(PathBuf::from(path)),
+        _ => dirs::config_dir()
+            .map(|p| p.join(CONFIG_FILE_NAME))
+            .ok_or(anyhow!("user config directory not found")),
+    }
+}
+
+/// The config file's text, or None when it does not exist. Any other failure,
+/// such as a directory at the path, is an error that names the path.
+fn load_config_text(path: &Path) -> Result<Option<String>> {
+    match read_to_string(path) {
+        Ok(text) => Ok(Some(text)),
+        Err(error) if error.kind() == ErrorKind::NotFound => Ok(None),
+        Err(error) => {
+            Err(error).with_context(|| format!("failed to read config file '{}'", path.display()))
+        }
+    }
+}
+
+/// The parsed config file, or None when it does not exist.
+pub(super) fn load_config(path: &Path) -> Result<Option<Table>> {
+    load_config_text(path)?
+        .map(|text| {
+            text.parse::<Table>()
+                .with_context(|| format!("config file '{}' is invalid TOML", path.display()))
+        })
+        .transpose()
+}
+
+fn config_not_found(path: &Path) -> anyhow::Error {
+    anyhow!("'{}' not found.", path.display())
 }
 
 fn apply_profile_updates(
@@ -581,7 +611,9 @@ fn apply_profile_updates(
 }
 
 pub(super) fn inspect_app_uri(profile: Option<&str>) -> Result<AppUriState> {
-    app_uri_state(&read_config(&get_config_file_path()?)?, profile)
+    let path = get_config_file_path()?;
+    let config = load_config(&path)?.ok_or_else(|| config_not_found(&path))?;
+    app_uri_state(&config, profile)
 }
 
 fn app_uri_state(config_toml: &Table, profile: Option<&str>) -> Result<AppUriState> {
@@ -640,7 +672,9 @@ fn print_app_uri_guidance(profile: Option<&str>, state: &AppUriState) {
 
 fn write_config(path: &Path, config: &Table) -> Result<()> {
     if let Some(parent_dir) = path.parent() {
-        create_dir_all(parent_dir).context("failed to create parent directories")?;
+        create_dir_all(parent_dir)
+            .with_context(|| format!("failed to create directory '{}'", parent_dir.display()))?;
     }
-    write(path, config.to_string()).context("failed to write config file")
+    write(path, config.to_string())
+        .with_context(|| format!("failed to write config file '{}'", path.display()))
 }

@@ -13,6 +13,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - `import csv` accepts `--run-id`, the id of an existing run. `--run` creates
   a new run each time, because run names are not unique. Use `--run-id` to
   add a file to a run left open with `--leave-run-open`.
+- `SIFT_CONFIG_FILE` sets the path of the config file. When it is set and not
+  empty, every command reads that file, and `config create` and `config
+  update` write to it. Otherwise the CLI uses `sift.toml` in the user config
+  directory, as before. `sift_client` reads the same variable.
 
 ## [v0.9.0] - November 16, 2026
 
