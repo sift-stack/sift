@@ -4898,7 +4898,7 @@ dependencies = [
 
 [[package]]
 name = "sift_cli"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "anyhow",
  "arrow-array",
