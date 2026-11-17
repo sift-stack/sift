@@ -727,7 +727,12 @@ class TestCsvToProto:
         assert restored.time_column.custom_format == "%m-%d-%Y %H:%M:%S"
 
     def test_custom_format_requires_custom_format(self):
-        col = CsvTimeColumn(column=1, format=TimeFormat.CUSTOM)
+        with pytest.raises(ValueError, match="Set config.time_column.custom_format"):
+            CsvTimeColumn(column=1, format=TimeFormat.CUSTOM)
+
+    def test_custom_format_set_after_construction_rejected_at_import(self):
+        col = CsvTimeColumn(column=1, format=TimeFormat.ABSOLUTE_RFC3339)
+        col.format = TimeFormat.CUSTOM
         with pytest.raises(ValueError, match="custom_format"):
             col._to_proto()
 
@@ -801,15 +806,14 @@ class TestParquetTimeColumnToProto:
         assert restored.custom_format == "%m-%d-%Y %H:%M:%S"
 
     def test_custom_format_requires_custom_format(self):
-        col = ParquetTimeColumn(path="timestamp", format=TimeFormat.CUSTOM)
+        with pytest.raises(ValueError, match="custom_format"):
+            ParquetTimeColumn(path="timestamp", format=TimeFormat.CUSTOM)
+
+    def test_custom_format_set_after_construction_rejected_at_import(self):
+        col = ParquetTimeColumn(path="timestamp", format=TimeFormat.ABSOLUTE_RFC3339)
+        col.format = TimeFormat.CUSTOM
         with pytest.raises(ValueError, match="custom_format"):
             col._to_proto()
-
-    def test_custom_format_without_custom_format_reads_back(self):
-        proto = ParquetTimeColumnProto(path="timestamp", format=TimeFormat.CUSTOM.value)
-        col = ParquetTimeColumn._from_proto(proto)
-        assert col.format == TimeFormat.CUSTOM
-        assert col.custom_format == ""
 
     def test_custom_format_defaults_to_empty(self):
         col = ParquetTimeColumn(path="timestamp", format=TimeFormat.ABSOLUTE_RFC3339)

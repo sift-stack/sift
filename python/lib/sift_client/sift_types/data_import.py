@@ -160,11 +160,19 @@ class TimeColumnBase(BaseModel, ABC):
     def _check_custom_format(self) -> None:
         """Raise if the format is custom with no format string.
 
-        Checked at import rather than construction, so a config can be read
-        back or edited before ``custom_format`` is set.
+        Runs at construction and again at import, because assigning ``format``
+        or ``custom_format`` after construction is not validated.
         """
         if self.format == TimeFormat.CUSTOM and not self.custom_format.strip():
-            raise ValueError("'custom_format' is required when using TimeFormat.CUSTOM.")
+            raise ValueError(
+                "'custom_format' is required when using TimeFormat.CUSTOM. "
+                'Set config.time_column.custom_format, e.g. "%m-%d-%Y %H:%M:%S".'
+            )
+
+    @model_validator(mode="after")
+    def _validate_custom_format(self) -> TimeColumnBase:
+        self._check_custom_format()
+        return self
 
     @model_validator(mode="after")
     def _check_relative_start_time(self) -> TimeColumnBase:
