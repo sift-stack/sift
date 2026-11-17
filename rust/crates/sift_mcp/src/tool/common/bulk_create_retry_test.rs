@@ -90,7 +90,7 @@ check_retry_isolation!(
     sift_rs::rules::v1::rule_service_server::RuleServiceServer,
     expect_create_rule,
     create_rule,
-    json!({"rule_json":json!({"name":"rule", "description":""}).to_string()})
+    json!({"rule_json":json!({"name":"rule", "description":"", "conditions":[{"expression":{},"actions":[]}]}).to_string()})
 );
 check_retry_isolation!(
     calculated_channels_create_once_per_item,
