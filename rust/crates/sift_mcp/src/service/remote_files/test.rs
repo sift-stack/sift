@@ -111,12 +111,13 @@ fn every_attachment_type_has_a_distinct_name_and_filter_value() {
 }
 
 #[tokio::test]
-async fn list_attachments_sends_the_scoped_filter_and_limit() {
+async fn list_attachments_sends_the_scoped_filter_order_and_limit() {
     let mut mock = MockRemoteFileServiceImpl::new();
     mock.expect_list_remote_files()
         .withf(|req| {
             let req = req.get_ref();
             req.filter == "entity_id in [\"run-1\"] && entity_type == \"runs\""
+                && req.order_by == "created_date desc"
                 && req.page_size == 50
                 && req.page_token.is_empty()
         })
@@ -134,6 +135,7 @@ async fn list_attachments_sends_the_scoped_filter_and_limit() {
             vec!["run-1".into()],
             Some(AttachmentEntityType::Run),
             String::new(),
+            Some("created_date desc".into()),
             None,
         )
         .await
@@ -142,22 +144,97 @@ async fn list_attachments_sends_the_scoped_filter_and_limit() {
     assert!(!page.has_more);
 }
 
-#[tokio::test]
-async fn list_attachments_reads_has_more_from_the_token_without_following_it() {
+/// Answers each page token with its rows and the next token, and fails the
+/// test on a token it was not given.
+fn paged_mock(
+    pages: Vec<(&'static str, Vec<RemoteFile>, &'static str)>,
+) -> MockRemoteFileServiceImpl {
     let mut mock = MockRemoteFileServiceImpl::new();
-    mock.expect_list_remote_files()
-        .withf(|req| req.get_ref().page_size == 5)
-        .times(1)
-        .returning(|_| {
-            Ok(Response::new(ListRemoteFilesResponse {
-                remote_files: vec![remote_file("rf-1"), remote_file("rf-2")],
-                next_page_token: "next".into(),
-            }))
-        });
+    for (token, files, next) in pages {
+        mock.expect_list_remote_files()
+            .withf(move |req| req.get_ref().page_token == token)
+            .times(1)
+            .returning(move |_| {
+                Ok(Response::new(ListRemoteFilesResponse {
+                    remote_files: files.clone(),
+                    next_page_token: next.into(),
+                }))
+            });
+    }
+    mock
+}
+
+#[tokio::test]
+async fn list_attachments_follows_page_tokens() {
+    let mock = paged_mock(vec![
+        ("", vec![remote_file("rf-1"), remote_file("rf-2")], "t1"),
+        ("t1", vec![remote_file("rf-3")], ""),
+    ]);
 
     let (service, _h) = service_with_mock(mock).await;
     let page = service
-        .list_attachments(Vec::new(), None, String::new(), Some(5))
+        .list_attachments(Vec::new(), None, String::new(), None, Some(5))
+        .await
+        .expect("list");
+    assert_eq!(ids(&page), ["rf-1", "rf-2", "rf-3"]);
+    assert!(!page.has_more);
+}
+
+#[tokio::test]
+async fn list_attachments_reports_more_when_the_limit_falls_mid_page() {
+    let mock = paged_mock(vec![
+        ("", vec![remote_file("rf-1"), remote_file("rf-2")], "t1"),
+        ("t1", vec![remote_file("rf-3"), remote_file("rf-4")], "t2"),
+    ]);
+
+    let (service, _h) = service_with_mock(mock).await;
+    let page = service
+        .list_attachments(Vec::new(), None, String::new(), None, Some(3))
+        .await
+        .expect("list");
+    assert_eq!(ids(&page), ["rf-1", "rf-2", "rf-3"]);
+    assert!(page.has_more);
+}
+
+#[tokio::test]
+async fn list_attachments_pages_past_rows_outside_the_scope() {
+    let mock = paged_mock(vec![
+        (
+            "",
+            vec![remote_file_on(
+                "rf-chat",
+                EntityType::ChatConversation,
+                "conv-1",
+            )],
+            "t1",
+        ),
+        ("t1", vec![remote_file("rf-1")], ""),
+    ]);
+
+    let (service, _h) = service_with_mock(mock).await;
+    let page = service
+        .list_attachments(Vec::new(), None, String::new(), None, None)
+        .await
+        .expect("list");
+    assert_eq!(ids(&page), ["rf-1"]);
+    assert!(!page.has_more);
+}
+
+#[tokio::test]
+async fn list_attachments_stops_when_a_token_repeats_rows() {
+    // Backends from before the paging fix answer a later token with rows
+    // already returned, so following tokens would never end.
+    let mut mock = MockRemoteFileServiceImpl::new();
+    mock.expect_list_remote_files().times(2).returning(|_| {
+        Ok(Response::new(ListRemoteFilesResponse {
+            remote_files: vec![remote_file("rf-1"), remote_file("rf-2")],
+            next_page_token: "t1".into(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let page = service
+        .list_attachments(Vec::new(), None, String::new(), None, Some(5))
         .await
         .expect("list");
     assert_eq!(ids(&page), ["rf-1", "rf-2"]);
@@ -178,7 +255,7 @@ async fn list_attachments_reports_more_behind_an_empty_page() {
 
     let (service, _h) = service_with_mock(mock).await;
     let page = service
-        .list_attachments(Vec::new(), None, String::new(), None)
+        .list_attachments(Vec::new(), None, String::new(), None, None)
         .await
         .expect("list");
     assert!(page.items.is_empty());
@@ -201,7 +278,7 @@ async fn list_attachments_truncates_to_limit() {
 
     let (service, _h) = service_with_mock(mock).await;
     let page = service
-        .list_attachments(Vec::new(), None, String::new(), Some(2))
+        .list_attachments(Vec::new(), None, String::new(), None, Some(2))
         .await
         .expect("list");
     assert_eq!(ids(&page), ["rf-1", "rf-2"]);
@@ -239,6 +316,7 @@ async fn list_attachments_keeps_the_scope_when_the_filter_escapes_it() {
             Some(AttachmentEntityType::Run),
             "true) || (true".into(),
             None,
+            None,
         )
         .await
         .expect("list");
@@ -261,7 +339,7 @@ async fn list_attachments_drops_non_attachment_rows_without_a_scope() {
 
     let (service, _h) = service_with_mock(mock).await;
     let page = service
-        .list_attachments(Vec::new(), None, "true) || (true".into(), None)
+        .list_attachments(Vec::new(), None, "true) || (true".into(), None, None)
         .await
         .expect("list");
     assert_eq!(ids(&page), ["rf-step"]);
@@ -275,7 +353,7 @@ async fn list_attachments_propagates_invalid_argument() {
 
     let (service, _h) = service_with_mock(mock).await;
     let err = service
-        .list_attachments(Vec::new(), None, "file_name ==".into(), None)
+        .list_attachments(Vec::new(), None, "file_name ==".into(), None, None)
         .await
         .expect_err("expected error");
     let status = err.downcast_ref::<tonic::Status>().expect("status");

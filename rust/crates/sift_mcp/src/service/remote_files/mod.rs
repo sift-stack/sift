@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::path::Path;
 use std::time::Duration;
 
@@ -169,48 +170,82 @@ impl RemoteFileService {
     /// held to [`AttachmentEntityType`] even when no type is given. Rows outside
     /// the scope are dropped even if the filter let the server return them.
     ///
-    /// Makes one request only. The backend's page tokens do not advance past
-    /// the first page, so following one returns the same rows again. A page can
-    /// also come back short, or empty, with a token when the caller can't view
-    /// some of its files, so `has_more` comes from the token, not the row count.
+    /// Backends from before the paging fix return rows again for a later page
+    /// token, so paging stops at the first page that brings no new row. A page
+    /// can also come back empty with a token when the caller can't view its
+    /// files, so `has_more` comes from the token, not the row count.
     pub async fn list_attachments(
         &self,
         entity_ids: Vec<String>,
         entity_type: Option<AttachmentEntityType>,
         filter: String,
+        order_by: Option<String>,
         limit: Option<u32>,
     ) -> Result<common::Page<RemoteFile>> {
         let (page_size, record_limit) = common::paging(limit);
         let filter = attachment_filter(&entity_ids, entity_type, &filter);
+        let order_by = order_by.unwrap_or_default();
 
-        let channel = self.channel.clone();
-        let resp = with_retry(&self.policy, move || {
-            let channel = channel.clone();
+        let mut page_token = String::new();
+        let mut seen = HashSet::new();
+        let mut results = Vec::new();
+        let mut has_more = false;
+
+        loop {
+            let channel = self.channel.clone();
             let filter = filter.clone();
-            async move {
-                let mut client = RemoteFileServiceClient::new(channel);
-                client
-                    .list_remote_files(ListRemoteFilesRequest {
-                        page_size,
-                        filter,
-                        ..Default::default()
-                    })
-                    .await
-                    .map(|resp| resp.into_inner())
-            }
-        })
-        .await
-        .context("failed to query file attachments")?;
+            let order_by = order_by.clone();
+            let token = page_token.clone();
 
-        let ListRemoteFilesResponse {
-            mut remote_files,
-            next_page_token,
-        } = resp;
-        remote_files.retain(|file| in_scope(file, &entity_ids, entity_type));
-        let has_more = remote_files.len() > record_limit || !next_page_token.is_empty();
-        remote_files.truncate(record_limit);
+            let resp = with_retry(&self.policy, move || {
+                let channel = channel.clone();
+                let filter = filter.clone();
+                let order_by = order_by.clone();
+                let token = token.clone();
+                async move {
+                    let mut client = RemoteFileServiceClient::new(channel);
+                    client
+                        .list_remote_files(ListRemoteFilesRequest {
+                            page_size,
+                            page_token: token,
+                            filter,
+                            order_by,
+                            ..Default::default()
+                        })
+                        .await
+                        .map(|resp| resp.into_inner())
+                }
+            })
+            .await
+            .context("failed to query file attachments")?;
+
+            let ListRemoteFilesResponse {
+                remote_files,
+                next_page_token,
+            } = resp;
+            let mut new_files = remote_files
+                .into_iter()
+                .filter(|file| seen.insert(file.remote_file_id.clone()))
+                .peekable();
+            if new_files.peek().is_none() {
+                has_more = !next_page_token.is_empty();
+                break;
+            }
+            results.extend(new_files.filter(|file| in_scope(file, &entity_ids, entity_type)));
+
+            if results.len() >= record_limit {
+                has_more = results.len() > record_limit || !next_page_token.is_empty();
+                break;
+            }
+            if next_page_token.is_empty() {
+                break;
+            }
+            page_token = next_page_token;
+        }
+
+        results.truncate(record_limit);
         Ok(common::Page {
-            items: remote_files,
+            items: results,
             has_more,
         })
     }

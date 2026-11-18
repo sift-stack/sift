@@ -52,6 +52,7 @@ fn list_params(
         entity_ids: entity_ids.map(|ids| ids.iter().map(|id| (*id).to_string()).collect()),
         entity_type: entity_type.map(str::to_string),
         filter: filter.into(),
+        order_by: None,
         limit: None,
         fields: None,
     })

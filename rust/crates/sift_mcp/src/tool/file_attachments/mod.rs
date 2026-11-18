@@ -22,6 +22,7 @@ pub struct ListFileAttachmentsParams {
     entity_ids: Option<Vec<String>>,
     entity_type: Option<String>,
     filter: String,
+    order_by: Option<String>,
     limit: Option<u32>,
     fields: Option<Vec<String>>,
 }
@@ -97,7 +98,7 @@ impl SiftMcpServer {
                 `entity_id`, `entity_type`, `file_name`, `file_mime_type`, `file_size` (bytes, as a
                 string), `description`, `metadata_values`, `remote_file_type`, `created_by_user_id`, and
                 `created_date`. `remote_file_type` is `REMOTE_FILE_TYPE_TELEMETRY` for the source file a
-                data import read. Rows come back sorted by file name.
+                data import read.
               - `count`: how many items THIS response carries — read it instead of
                 counting the array yourself. It is the size of the page you got back, not
                 how many files match.
@@ -119,6 +120,9 @@ impl SiftMcpServer {
                 for an exact value from a prior result. `contains`/`startsWith`/`endsWith` are case-SENSITIVE:
                 `contains(\"Flight\")` silently misses `flight_log.csv`. `.` is a regex wildcard, so use
                 `contains` to match a full literal file name.
+              - `order_by`: optional comma-separated `FIELD_NAME[ desc]` list. Orderable fields: `file_name`,
+                `created_date`, `modified_date`. Default sort is `file_name` ascending, with ties broken by
+                `remote_file_id`. Example: `\"created_date desc,file_name\"`.
               - `limit`: max items to return. Start at 50 and only raise it if the result is capped
                 and you still need more. Values are clamped to `1..=200`; omitting it defaults to 50.
               - `fields`: optional array of field names to keep on each item, e.g.
@@ -128,8 +132,9 @@ impl SiftMcpServer {
                 is listed in `unmatched_fields`; an empty page reports none.
 
             Errors:
-              - `INVALID_PARAMS` for an unknown `entity_type`, an empty `entity_ids` array or id, or an
-                invalid `filter`, including an `entity_type` value copied from a row into it.
+              - `INVALID_PARAMS` for an unknown `entity_type`, an empty `entity_ids` array or id, an
+                invalid `filter`, including an `entity_type` value copied from a row into it, or an
+                `order_by` that references an unknown field.
               - `INTERNAL_ERROR` for upstream failures.
         ",
         annotations(
@@ -145,6 +150,7 @@ impl SiftMcpServer {
             entity_ids,
             entity_type,
             filter,
+            order_by,
             limit,
             fields,
         }) = params;
@@ -154,7 +160,7 @@ impl SiftMcpServer {
 
         let page = self
             .remote_file_service
-            .list_attachments(entity_ids, entity_type, filter, limit)
+            .list_attachments(entity_ids, entity_type, filter, order_by, limit)
             .await
             .map_err(from_anyhow)?;
 
