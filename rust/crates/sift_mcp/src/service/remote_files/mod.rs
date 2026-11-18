@@ -1,10 +1,20 @@
+use std::collections::HashSet;
 use std::path::Path;
 use std::time::Duration;
 
 use anyhow::{Context, Result, bail};
 use reqwest::header::USER_AGENT;
+use sift_rs::{
+    SiftChannel,
+    remote_files::v1::{
+        EntityType, GetRemoteFileDownloadUrlRequest, ListRemoteFilesRequest,
+        ListRemoteFilesResponse, RemoteFile, remote_file_service_client::RemoteFileServiceClient,
+    },
+};
 
 use crate::ClientName;
+use crate::policy::{RetryPolicy, with_retry};
+use crate::service::common;
 
 const UPLOAD_PATH: &str = "/api/v0/remote-files/upload";
 /// Client-side cap on one uploaded file. The server allows more, but an
@@ -20,6 +30,250 @@ const FALLBACK_MIME: &str = "application/octet-stream";
 /// Uploads stream from disk and can be large, so the request timeout is far
 /// looser than the interactive-call default.
 const UPLOAD_TIMEOUT: Duration = Duration::from_secs(10 * 60);
+
+/// The entity types users attach files to. Remote files on other entities
+/// (artifact versions, chat uploads, canvas code) are not attachments and stay
+/// out of every listing.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AttachmentEntityType {
+    Run,
+    Asset,
+    Annotation,
+    /// A comment on an annotation.
+    AnnotationLog,
+    TestReport,
+    TestStep,
+}
+
+impl AttachmentEntityType {
+    pub const ALL: [Self; 6] = [
+        Self::Run,
+        Self::Asset,
+        Self::Annotation,
+        Self::AnnotationLog,
+        Self::TestReport,
+        Self::TestStep,
+    ];
+
+    /// The singular name callers use.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Run => "run",
+            Self::Asset => "asset",
+            Self::Annotation => "annotation",
+            Self::AnnotationLog => "annotation_log",
+            Self::TestReport => "test_report",
+            Self::TestStep => "test_step",
+        }
+    }
+
+    /// The value the `ListRemoteFiles` filter compares `entity_type` against:
+    /// the backend's table name, not the `ENTITY_TYPE_*` name listed rows carry.
+    pub fn filter_value(self) -> &'static str {
+        match self {
+            Self::Run => "runs",
+            Self::Asset => "assets",
+            Self::Annotation => "annotations",
+            Self::AnnotationLog => "annotation_logs",
+            Self::TestReport => "test_reports",
+            Self::TestStep => "test_steps",
+        }
+    }
+
+    /// The `entity_type` listed rows carry.
+    pub fn proto(self) -> EntityType {
+        match self {
+            Self::Run => EntityType::Run,
+            Self::Asset => EntityType::Asset,
+            Self::Annotation => EntityType::Annotation,
+            Self::AnnotationLog => EntityType::AnnotationLog,
+            Self::TestReport => EntityType::TestReport,
+            Self::TestStep => EntityType::TestStep,
+        }
+    }
+
+    fn from_proto(value: i32) -> Option<Self> {
+        Self::ALL
+            .into_iter()
+            .find(|entity_type| entity_type.proto() as i32 == value)
+    }
+}
+
+/// Whether a listed row is inside the scope [`attachment_filter`] sends. The
+/// caller's filter is joined in as text, so one that closes the wrapping
+/// parenthesis, such as `true) || (true`, widens the server's match past the
+/// scope. Checking each row keeps the scope regardless of the filter.
+fn in_scope(
+    file: &RemoteFile,
+    entity_ids: &[String],
+    entity_type: Option<AttachmentEntityType>,
+) -> bool {
+    let Some(file_type) = AttachmentEntityType::from_proto(file.entity_type) else {
+        return false;
+    };
+    entity_type.is_none_or(|entity_type| entity_type == file_type)
+        && (entity_ids.is_empty() || entity_ids.iter().any(|id| id.trim() == file.entity_id))
+}
+
+/// ANDs the scope onto the caller's CEL `filter`. With no `entity_type`, the
+/// listing is held to every [`AttachmentEntityType`].
+fn attachment_filter(
+    entity_ids: &[String],
+    entity_type: Option<AttachmentEntityType>,
+    filter: &str,
+) -> String {
+    let mut clauses = Vec::new();
+    if !entity_ids.is_empty() {
+        let ids = entity_ids
+            .iter()
+            .map(|id| format!("\"{}\"", common::cel_escape(id.trim())))
+            .collect::<Vec<_>>()
+            .join(", ");
+        clauses.push(format!("entity_id in [{ids}]"));
+    }
+    match entity_type {
+        Some(entity_type) => {
+            clauses.push(format!("entity_type == \"{}\"", entity_type.filter_value()))
+        }
+        // The backend fails `entity_type in [...]` with an internal error, so
+        // the type set is spelled as `==` alternatives.
+        None => clauses.push(format!(
+            "({})",
+            AttachmentEntityType::ALL
+                .iter()
+                .map(|entity_type| format!("entity_type == \"{}\"", entity_type.filter_value()))
+                .collect::<Vec<_>>()
+                .join(" || ")
+        )),
+    }
+    let filter = filter.trim();
+    if !filter.is_empty() {
+        clauses.push(format!("({filter})"));
+    }
+    clauses.join(" && ")
+}
+
+/// Reads remote files over gRPC: the files attached to runs, assets, and other
+/// entities, and the bytes behind artifact versions.
+#[derive(Clone)]
+pub struct RemoteFileService {
+    channel: SiftChannel,
+    policy: RetryPolicy,
+}
+
+impl RemoteFileService {
+    pub fn new(channel: SiftChannel, policy: RetryPolicy) -> Self {
+        Self { channel, policy }
+    }
+
+    /// Lists the attachments matching the scope and the caller's CEL `filter`,
+    /// held to [`AttachmentEntityType`] even when no type is given. Rows outside
+    /// the scope are dropped even if the filter let the server return them.
+    ///
+    /// Backends from before the paging fix return rows again for a later page
+    /// token, so paging stops at the first page that brings no new row. A page
+    /// can also come back empty with a token when the caller can't view its
+    /// files, so `has_more` comes from the token, not the row count.
+    pub async fn list_attachments(
+        &self,
+        entity_ids: Vec<String>,
+        entity_type: Option<AttachmentEntityType>,
+        filter: String,
+        order_by: Option<String>,
+        limit: Option<u32>,
+    ) -> Result<common::Page<RemoteFile>> {
+        let (page_size, record_limit) = common::paging(limit);
+        let filter = attachment_filter(&entity_ids, entity_type, &filter);
+        let order_by = order_by.unwrap_or_default();
+
+        let mut page_token = String::new();
+        let mut seen = HashSet::new();
+        let mut results = Vec::new();
+        let mut has_more = false;
+
+        loop {
+            let channel = self.channel.clone();
+            let filter = filter.clone();
+            let order_by = order_by.clone();
+            let token = page_token.clone();
+
+            let resp = with_retry(&self.policy, move || {
+                let channel = channel.clone();
+                let filter = filter.clone();
+                let order_by = order_by.clone();
+                let token = token.clone();
+                async move {
+                    let mut client = RemoteFileServiceClient::new(channel);
+                    client
+                        .list_remote_files(ListRemoteFilesRequest {
+                            page_size,
+                            page_token: token,
+                            filter,
+                            order_by,
+                            ..Default::default()
+                        })
+                        .await
+                        .map(|resp| resp.into_inner())
+                }
+            })
+            .await
+            .context("failed to query file attachments")?;
+
+            let ListRemoteFilesResponse {
+                remote_files,
+                next_page_token,
+            } = resp;
+            let mut new_files = remote_files
+                .into_iter()
+                .filter(|file| seen.insert(file.remote_file_id.clone()))
+                .peekable();
+            if new_files.peek().is_none() {
+                has_more = !next_page_token.is_empty();
+                break;
+            }
+            results.extend(new_files.filter(|file| in_scope(file, &entity_ids, entity_type)));
+
+            if results.len() >= record_limit {
+                has_more = results.len() > record_limit || !next_page_token.is_empty();
+                break;
+            }
+            if next_page_token.is_empty() {
+                break;
+            }
+            page_token = next_page_token;
+        }
+
+        results.truncate(record_limit);
+        Ok(common::Page {
+            items: results,
+            has_more,
+        })
+    }
+
+    /// Mints a short-lived signed URL for one remote file's bytes.
+    pub async fn download_url(&self, remote_file_id: String) -> Result<String> {
+        let channel = self.channel.clone();
+        let resp = with_retry(&self.policy, move || {
+            let channel = channel.clone();
+            let remote_file_id = remote_file_id.clone();
+            async move {
+                let mut client = RemoteFileServiceClient::new(channel);
+                client
+                    .get_remote_file_download_url(GetRemoteFileDownloadUrlRequest {
+                        remote_file_id,
+                    })
+                    .await
+                    .map(|resp| resp.into_inner())
+            }
+        })
+        .await
+        .context("failed to get remote file download url")?;
+        if resp.download_url.is_empty() {
+            bail!("download url response was empty");
+        }
+        Ok(resp.download_url)
+    }
+}
 
 /// REST endpoint and credential for calls the gRPC surface does not offer.
 /// Today that is one thing: the multipart remote-file upload that gives an
