@@ -97,6 +97,7 @@ pub fn build_tdms_config(args: &ImportTdmsArgs) -> Result<TdmsConfig> {
     validate_time_format(
         args.time_format.unwrap_or_default(),
         &args.relative_start_time,
+        None,
     )
     .context("validating time format for tdms")?;
 

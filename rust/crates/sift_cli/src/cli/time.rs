@@ -18,6 +18,7 @@ pub enum TimeFormat {
     RelativeSeconds,
     RelativeMinutes,
     RelativeHours,
+    Custom,
 }
 
 impl From<TimeFormat> for ProtoTimeFormat {
@@ -35,6 +36,7 @@ impl From<TimeFormat> for ProtoTimeFormat {
             TimeFormat::AbsoluteUnixMilliseconds => Self::AbsoluteUnixMilliseconds,
             TimeFormat::AbsoluteUnixMicroseconds => Self::AbsoluteUnixMicroseconds,
             TimeFormat::AbsoluteUnixNanoseconds => Self::AbsoluteUnixNanoseconds,
+            TimeFormat::Custom => Self::Custom,
         }
     }
 }
@@ -54,6 +56,7 @@ impl Display for TimeFormat {
             Self::RelativeSeconds => write!(f, "relative-seconds"),
             Self::RelativeMinutes => write!(f, "relative-minutes"),
             Self::RelativeHours => write!(f, "relative-hours"),
+            Self::Custom => write!(f, "custom"),
         }
     }
 }

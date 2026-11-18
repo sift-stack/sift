@@ -106,7 +106,11 @@ fn create_data_import_request<R: io::Read>(
         .context("keep in mind that --units and --descriptions can be empty strings");
     }
 
-    validate_time_format(args.time_format, &args.relative_start_time)?;
+    validate_time_format(
+        args.time_format,
+        &args.relative_start_time,
+        Some(&args.time_format_str),
+    )?;
 
     let relative_start_time = match &args.relative_start_time {
         Some(start) => {
@@ -343,7 +347,7 @@ fn create_data_import_request<R: io::Read>(
                 relative_start_time,
                 column_number: args.time_column as u32,
                 format: PbTimeFormat::from(args.time_format).into(),
-                custom_format: String::default(),
+                custom_format: args.time_format_str.clone(),
             }),
             ..Default::default()
         }),
@@ -391,6 +395,7 @@ mod test_create_data_import_request {
                 bit_field_config: Vec::default(),
                 time_column: 1,
                 time_format: TimeFormat::default(),
+                time_format_str: String::default(),
                 relative_start_time: None,
                 wait: false,
                 preview: false,
@@ -444,6 +449,7 @@ mod test_create_data_import_request {
                 bit_field_config: Vec::default(),
                 time_column: 1,
                 time_format: TimeFormat::default(),
+                time_format_str: String::default(),
                 relative_start_time: None,
                 wait: false,
                 preview: false,
@@ -455,6 +461,47 @@ mod test_create_data_import_request {
         let csv_config = req.csv_config.expect("expected Option::Some");
         assert_eq!(csv_config.run_id, "run-1");
         assert!(csv_config.run_name.is_empty());
+    }
+
+    #[test]
+    fn custom_time_format() {
+        let test_csv = indoc! {"
+            time,channel
+            10-04-2025 21:58:13,1.0
+        "};
+        let csv_reader = csv::ReaderBuilder::new()
+            .has_headers(false)
+            .from_reader(test_csv.as_bytes());
+
+        let req = create_data_import_request(
+            csv_reader,
+            &ImportCsvArgs {
+                path: PathBuf::default(),
+                asset: "test_asset".into(),
+                run: None,
+                run_id: None,
+                header_row: 1,
+                first_data_row: 2,
+                channel_column: Vec::default(),
+                data_type: Vec::default(),
+                unit: Vec::default(),
+                description: Vec::default(),
+                enum_config: Vec::default(),
+                bit_field_config: Vec::default(),
+                time_column: 1,
+                time_format: TimeFormat::Custom,
+                time_format_str: "%m-%d-%Y %H:%M:%S".into(),
+                relative_start_time: None,
+                wait: false,
+                preview: false,
+                leave_run_open: false,
+            },
+        )
+        .expect("expected Result::Ok");
+
+        let time_config = req.csv_config.unwrap().time_column.unwrap();
+        assert_eq!(PbTimeFormat::Custom as i32, time_config.format);
+        assert_eq!("%m-%d-%Y %H:%M:%S", time_config.custom_format);
     }
 
     #[test]
@@ -484,6 +531,7 @@ mod test_create_data_import_request {
                 bit_field_config: Vec::default(),
                 time_column: 1,
                 time_format: TimeFormat::default(),
+                time_format_str: String::default(),
                 relative_start_time: None,
                 wait: false,
                 preview: false,
@@ -530,6 +578,7 @@ mod test_create_data_import_request {
                 bit_field_config: Vec::default(),
                 time_column: 1,
                 time_format: TimeFormat::default(),
+                time_format_str: String::default(),
                 relative_start_time: None,
                 wait: false,
                 preview: false,
@@ -592,6 +641,7 @@ mod test_create_data_import_request {
                 bit_field_config: Vec::default(),
                 time_column: 1,
                 time_format: TimeFormat::default(),
+                time_format_str: String::default(),
                 relative_start_time: None,
                 wait: false,
                 preview: false,
