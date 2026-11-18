@@ -5,6 +5,14 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 <!-- towncrier release notes start -->
 
+## [v0.27.0] - November 18, 2026
+
+### Features
+
+- `client.data_import.import_from_path` and `Run.import_data` take `leave_run_open` (default false) and a list of paths. When you have more than one file for a run, pass them in one call. That upload is one import into one run. Pass a mapping of path to config to set a file's config yourself. Files you leave out of the mapping are detected. A finished import stops its run and fires run-stop automations unless you set `leave_run_open`, then call `run.stop()` after the last import. ([#848](https://github.com/sift-stack/sift/pull/848))
+
+- Added `TimeFormat.CUSTOM` and `custom_format` on `CsvTimeColumn` and `ParquetTimeColumn` for importing time columns in a custom Unix date format, such as `%m-%d-%Y %H:%M:%S`. Importing with `TimeFormat.CUSTOM` requires a non-empty `custom_format`; TDMS and HDF5 imports do not support it. ([#884](https://github.com/sift-stack/sift/pull/884))
+
 ## [v0.26.0] - November 13, 2026
 
 ### Breaking
