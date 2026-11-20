@@ -7,6 +7,15 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### What's New
 
+- `get_data` keeps rows in ascending timestamp order when a pull spans more
+  than one run. A page that held two runs could return the later run first, so
+  timestamps went backwards and the file had extra rows.
+- `get_data` writes one sample per channel per timestamp in every pull. When
+  samples share a timestamp, usually because runs overlap on the asset, the
+  file keeps the one from the run whose ID sorts last. Exact copies drop
+  silently. When the values differ, the result reports how many timestamps
+  that happened at in `conflicting_timestamps`.
+
 ## [v0.9.1] - November 17, 2026
 
 ### What's New

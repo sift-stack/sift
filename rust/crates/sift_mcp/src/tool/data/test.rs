@@ -2,10 +2,8 @@ use std::path::PathBuf;
 
 use arrow::array::{Array, AsArray};
 use arrow::datatypes::Float64Type;
-use bytes::Bytes;
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
-use pbjson_types::{Any, Timestamp};
-use prost::Message;
+use pbjson_types::Timestamp;
 use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
 use sift_rs::{
     assets::v1::{Asset, ListAssetsResponse, asset_service_server::AssetServiceServer},
@@ -21,8 +19,7 @@ use sift_rs::{
     },
     channels::v3::{Channel, ListChannelsResponse, channel_service_server::ChannelServiceServer},
     data::v2::{
-        DoubleValue, DoubleValues, GetDataResponse, Metadata,
-        data_service_server::DataServiceServer, metadata, query::Query as QueryKind,
+        GetDataResponse, data_service_server::DataServiceServer, query::Query as QueryKind,
     },
     runs::v2::{ListRunsResponse, Run, run_service_server::RunServiceServer},
 };
@@ -42,7 +39,10 @@ use tonic::{Response, Status, transport::Server};
 use super::{GetDataParams, SqlParams, parse_expressions_json};
 use crate::{
     server::SiftMcpServer,
-    service::common::{ColumnName, PAGE_SIZE},
+    service::{
+        common::{ColumnName, PAGE_SIZE},
+        data::test::{double_page, double_run_page},
+    },
     tool::common::test_support::{dir_entries, structured},
 };
 
@@ -204,6 +204,7 @@ async fn get_data_fetches_exact_channel_ids() {
         );
         assert_eq!(body["empty_channels"], serde_json::json!([]));
         assert!(!body["next_step"].as_str().unwrap().contains("no samples"));
+        assert!(body.get("conflicting_timestamps").is_none());
         let batch = ParquetRecordBatchReaderBuilder::try_new(std::fs::File::open(output).unwrap())
             .unwrap()
             .build()
@@ -225,6 +226,55 @@ async fn get_data_fetches_exact_channel_ids() {
             assert_eq!(values.value(0), 3.0);
         }
     }
+}
+
+/// Overlapping runs that disagree at a timestamp lose a value from the file, so
+/// the result has to say so: an agent counting or averaging per run would
+/// otherwise work from a file with values missing and no sign of it.
+#[tokio::test]
+async fn get_data_reports_timestamps_where_samples_disagree() {
+    let mut channels = MockChannelServiceImpl::new();
+    channels.expect_list_channels().times(1).returning(|_| {
+        Ok(Response::new(ListChannelsResponse {
+            channels: vec![Channel {
+                channel_id: "c1".into(),
+                name: "pressure".into(),
+                ..Default::default()
+            }],
+            next_page_token: String::new(),
+        }))
+    });
+    let mut data = MockDataServiceImpl::new();
+    data.expect_get_data().times(1).returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![
+                double_run_page("c1", "pressure", "run-b", vec![(1_000_000_000, 2.0)]),
+                double_run_page("c1", "pressure", "run-a", vec![(1_000_000_000, 1.0)]),
+            ],
+            next_page_token: String::new(),
+        }))
+    });
+    let (server, _h) = server_with_all_mocks(one_asset_mock(), channels, data).await;
+    let dir = TempDir::new("sift-mcp-conflicting-samples").unwrap();
+    let params = serde_json::json!({
+        "asset_id": "asset-1",
+        "start_time_unix_nanos": 0,
+        "end_time_unix_nanos": 2_000_000_000_i64,
+        "sample_ms": 0,
+        "channel_id": "c1",
+        "output": dir.path().join("out.parquet"),
+    });
+
+    let body = structured(
+        server
+            .get_data(Parameters(serde_json::from_value(params).unwrap()))
+            .await
+            .unwrap(),
+    );
+
+    assert_eq!(body["conflicting_timestamps"], 1);
+    let next_step = body["next_step"].as_str().unwrap();
+    assert!(next_step.contains("At 1 timestamp(s)"), "{next_step}");
 }
 
 #[tokio::test]
@@ -710,35 +760,6 @@ fn resolving_calculation_mock(name: &'static str) -> MockCalculatedChannelServic
             }))
         });
     mock
-}
-
-fn double_page(channel_id: &str, channel_name: &str, samples: Vec<(i64, f64)>) -> Any {
-    let payload = DoubleValues {
-        metadata: Some(Metadata {
-            channel: Some(metadata::Channel {
-                channel_id: channel_id.into(),
-                name: channel_name.into(),
-                ..Default::default()
-            }),
-            ..Default::default()
-        }),
-        values: samples
-            .into_iter()
-            .map(|(ts_nanos, value)| DoubleValue {
-                timestamp: Some(Timestamp {
-                    seconds: ts_nanos / 1_000_000_000,
-                    nanos: (ts_nanos % 1_000_000_000) as i32,
-                }),
-                value,
-            })
-            .collect(),
-        ..Default::default()
-    };
-
-    Any {
-        type_url: "sift.data.v2.DoubleValues".into(),
-        value: Bytes::from(payload.encode_to_vec()),
-    }
 }
 
 /// A channel name with no raw channel on the asset is served as a saved
