@@ -78,43 +78,11 @@ fn asset_range(start_nanos: i64, end_nanos: i64) -> TimeRange {
     }
 }
 
-fn double_page(channel_id: &str, channel_name: &str, samples: Vec<(i64, f64)>) -> Any {
-    let values = samples
-        .into_iter()
-        .map(|(ts_nanos, value)| {
-            let (seconds, nanos) = unix_nanos_to_secs_and_subsec_nanos(ts_nanos);
-            DoubleValue {
-                timestamp: Some(Timestamp { seconds, nanos }),
-                value,
-            }
-        })
-        .collect();
-
-    let payload = DoubleValues {
-        metadata: Some(Metadata {
-            channel: Some(metadata::Channel {
-                channel_id: channel_id.into(),
-                name: channel_name.into(),
-                ..Default::default()
-            }),
-            ..Default::default()
-        }),
-        values,
-        extras: vec![],
-    };
-
-    Any {
-        type_url: "sift.data.v2.DoubleValues".into(),
-        value: Bytes::from(payload.encode_to_vec()),
-    }
-}
-
-/// Like `double_page`, but sets `Metadata.sampled_ms` — the rate the service
-/// says it actually applied, which is what the caller is told about.
-fn double_page_sampled(
+fn double_values(
     channel_id: &str,
     channel_name: &str,
     sampled_ms: u32,
+    run_id: Option<&str>,
     samples: Vec<(i64, f64)>,
 ) -> Any {
     let values = samples
@@ -135,6 +103,10 @@ fn double_page_sampled(
                 name: channel_name.into(),
                 ..Default::default()
             }),
+            run: run_id.map(|run_id| metadata::Run {
+                run_id: run_id.into(),
+                ..Default::default()
+            }),
             sampled_ms,
             ..Default::default()
         }),
@@ -148,6 +120,32 @@ fn double_page_sampled(
     }
 }
 
+pub(crate) fn double_page(channel_id: &str, channel_name: &str, samples: Vec<(i64, f64)>) -> Any {
+    double_values(channel_id, channel_name, 0, None, samples)
+}
+
+/// Like `double_page`, but sets `Metadata.sampled_ms` — the rate the service
+/// says it actually applied, which is what the caller is told about.
+fn double_page_sampled(
+    channel_id: &str,
+    channel_name: &str,
+    sampled_ms: u32,
+    samples: Vec<(i64, f64)>,
+) -> Any {
+    double_values(channel_id, channel_name, sampled_ms, None, samples)
+}
+
+/// One run's slice of a channel, which is how the service returns a query that
+/// spans runs.
+pub(crate) fn double_run_page(
+    channel_id: &str,
+    channel_name: &str,
+    run_id: &str,
+    samples: Vec<(i64, f64)>,
+) -> Any {
+    double_values(channel_id, channel_name, 0, Some(run_id), samples)
+}
+
 fn read_parquet(buffer: Vec<u8>) -> Vec<arrow::array::RecordBatch> {
     let reader = ParquetRecordBatchReaderBuilder::try_new(Bytes::from(buffer))
         .expect("failed to open parquet")
@@ -156,6 +154,34 @@ fn read_parquet(buffer: Vec<u8>) -> Vec<arrow::array::RecordBatch> {
     reader
         .collect::<Result<Vec<_>, _>>()
         .expect("failed to read record batches")
+}
+
+fn timestamps(batches: &[RecordBatch]) -> Vec<i64> {
+    batches
+        .iter()
+        .flat_map(|b| b.column(0).as_primitive::<Int64Type>().values().to_vec())
+        .collect()
+}
+
+/// The values of the Float64 column whose name starts with `prefix`, with
+/// `None` for null cells.
+fn double_column(batches: &[RecordBatch], prefix: &str) -> Vec<Option<f64>> {
+    batches
+        .iter()
+        .flat_map(|b| {
+            let (idx, _) = b
+                .schema()
+                .fields()
+                .iter()
+                .enumerate()
+                .find(|(_, f)| f.name().starts_with(prefix))
+                .unwrap_or_else(|| panic!("missing column starting with {prefix:?}"));
+            b.column(idx)
+                .as_primitive::<Float64Type>()
+                .iter()
+                .collect::<Vec<_>>()
+        })
+        .collect()
 }
 
 #[tokio::test]
@@ -246,40 +272,15 @@ async fn get_data_merges_disjoint_timestamps_with_nulls() {
         .expect("get_data failed");
 
     let batches = read_parquet(buffer);
-    let total_rows: usize = batches.iter().map(|b| b.num_rows()).sum();
-    assert_eq!(total_rows, 3, "expected 3 distinct timestamps");
-
-    // Iteration order over the columns HashMap is unspecified, so look up by name.
-    let batch = &batches[0];
-    let schema = batch.schema();
-    let (a_idx, _) = schema
-        .fields()
-        .iter()
-        .enumerate()
-        .find(|(_, f)| f.name().starts_with("a "))
-        .expect("missing column for channel a");
-    let (b_idx, _) = schema
-        .fields()
-        .iter()
-        .enumerate()
-        .find(|(_, f)| f.name().starts_with("b "))
-        .expect("missing column for channel b");
-
-    let timestamps = batch.column(0).as_primitive::<Int64Type>();
     assert_eq!(
-        timestamps.values(),
-        &[1_000_000_000, 2_000_000_000, 3_000_000_000]
+        timestamps(&batches),
+        vec![1_000_000_000, 2_000_000_000, 3_000_000_000]
     );
-
-    let a = batch.column(a_idx).as_primitive::<Float64Type>();
-    assert!(!a.is_null(0) && a.value(0) == 1.0);
-    assert!(a.is_null(1));
-    assert!(!a.is_null(2) && a.value(2) == 3.0);
-
-    let b = batch.column(b_idx).as_primitive::<Float64Type>();
-    assert!(b.is_null(0));
-    assert!(!b.is_null(1) && b.value(1) == 20.0);
-    assert!(b.is_null(2));
+    assert_eq!(
+        double_column(&batches, "a "),
+        vec![Some(1.0), None, Some(3.0)]
+    );
+    assert_eq!(double_column(&batches, "b "), vec![None, Some(20.0), None]);
 }
 
 #[tokio::test]
@@ -317,11 +318,259 @@ async fn get_data_paginates_until_token_empty() {
         .expect("get_data failed");
 
     let batches = read_parquet(buffer);
-    let timestamps: Vec<i64> = batches
-        .iter()
-        .flat_map(|b| b.column(0).as_primitive::<Int64Type>().values().to_vec())
-        .collect();
-    assert_eq!(timestamps, vec![1_000_000_000, 2_000_000_000]);
+    assert_eq!(timestamps(&batches), vec![1_000_000_000, 2_000_000_000]);
+}
+
+/// The slices of a query that spans runs arrive in no fixed order within a
+/// page, so the later run can come first. The file must still hold one row per
+/// timestamp in ascending order.
+#[tokio::test]
+async fn get_data_orders_rows_when_a_page_returns_the_later_run_first() {
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data().times(1).returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![
+                double_run_page(
+                    "c1",
+                    "a",
+                    "run-2",
+                    vec![(4_000_000_000, 4.0), (5_000_000_000, 5.0)],
+                ),
+                double_run_page(
+                    "c1",
+                    "a",
+                    "run-1",
+                    vec![(1_000_000_000, 1.0), (2_000_000_000, 2.0)],
+                ),
+                double_run_page(
+                    "c2",
+                    "b",
+                    "run-1",
+                    vec![(1_000_000_000, 10.0), (3_000_000_000, 30.0)],
+                ),
+                double_run_page("c2", "b", "run-2", vec![(5_000_000_000, 50.0)]),
+            ],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    let output = service
+        .get_data(
+            &[raw_channel("c1"), raw_channel("c2")],
+            asset_range(0, 6_000_000_000),
+            0,
+            &mut buffer,
+        )
+        .await
+        .expect("get_data failed");
+
+    assert_eq!(output.conflicting_timestamps, 0);
+    let batches = read_parquet(buffer);
+    assert_eq!(
+        timestamps(&batches),
+        vec![
+            1_000_000_000,
+            2_000_000_000,
+            3_000_000_000,
+            4_000_000_000,
+            5_000_000_000
+        ],
+    );
+    assert_eq!(
+        double_column(&batches, "a "),
+        vec![Some(1.0), Some(2.0), None, Some(4.0), Some(5.0)],
+    );
+    assert_eq!(
+        double_column(&batches, "b "),
+        vec![Some(10.0), None, Some(30.0), None, Some(50.0)],
+    );
+}
+
+/// Runs that overlap on an asset can each hold a sample at the same timestamp.
+/// The file keeps one row for it, with the sample from the greatest run ID, so
+/// repeated pulls agree whatever order the slices arrive in.
+#[tokio::test]
+async fn get_data_keeps_one_sample_per_timestamp_when_runs_overlap() {
+    let slices = [
+        double_page("c1", "a", vec![(2_000_000_000, 200.0)]),
+        double_run_page(
+            "c1",
+            "a",
+            "run-a",
+            vec![(1_000_000_000, 1.0), (2_000_000_000, 20.0)],
+        ),
+        double_run_page(
+            "c1",
+            "a",
+            "run-b",
+            vec![(2_000_000_000, 2.0), (3_000_000_000, 3.0)],
+        ),
+    ];
+    let orders = [
+        [0, 1, 2],
+        [0, 2, 1],
+        [1, 0, 2],
+        [1, 2, 0],
+        [2, 0, 1],
+        [2, 1, 0],
+    ];
+
+    for order in orders {
+        let data = order.map(|i| slices[i].clone()).to_vec();
+        let mut mock = MockDataServiceImpl::new();
+        mock.expect_get_data().times(1).returning(move |_| {
+            Ok(Response::new(GetDataResponse {
+                data: data.clone(),
+                next_page_token: String::new(),
+            }))
+        });
+
+        let (service, _h) = service_with_mock(mock).await;
+        let mut buffer = Vec::new();
+        let output = service
+            .get_data(
+                &[raw_channel("c1")],
+                asset_range(0, 4_000_000_000),
+                0,
+                &mut buffer,
+            )
+            .await
+            .expect("get_data failed");
+
+        assert_eq!(output.conflicting_timestamps, 1, "arrival order {order:?}");
+        let batches = read_parquet(buffer);
+        assert_eq!(
+            timestamps(&batches),
+            vec![1_000_000_000, 2_000_000_000, 3_000_000_000],
+            "arrival order {order:?}",
+        );
+        assert_eq!(
+            double_column(&batches, "a "),
+            vec![Some(1.0), Some(2.0), Some(3.0)],
+            "arrival order {order:?}",
+        );
+    }
+}
+
+/// A stream can carry the same samples under a run and outside it. Exact
+/// copies, NaN included, drop without being counted, and a timestamp whose
+/// samples disagree counts once, even when the kept sample matches a dropped one.
+#[tokio::test]
+async fn get_data_counts_only_timestamps_whose_samples_disagree() {
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data().times(1).returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![
+                double_page(
+                    "c1",
+                    "a",
+                    vec![
+                        (1_000_000_000, 1.0),
+                        (2_000_000_000, f64::NAN),
+                        (4_000_000_000, 4.0),
+                    ],
+                ),
+                double_run_page(
+                    "c1",
+                    "a",
+                    "run-a",
+                    vec![
+                        (1_000_000_000, 1.0),
+                        (2_000_000_000, f64::NAN),
+                        (3_000_000_000, 30.0),
+                        (4_000_000_000, 40.0),
+                    ],
+                ),
+                double_run_page(
+                    "c1",
+                    "a",
+                    "run-b",
+                    vec![
+                        (1_000_000_000, 1.0),
+                        (3_000_000_000, 3.0),
+                        (4_000_000_000, 4.0),
+                    ],
+                ),
+            ],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    let output = service
+        .get_data(
+            &[raw_channel("c1")],
+            asset_range(0, 5_000_000_000),
+            0,
+            &mut buffer,
+        )
+        .await
+        .expect("get_data failed");
+
+    assert_eq!(output.conflicting_timestamps, 2);
+    let batches = read_parquet(buffer);
+    assert_eq!(
+        timestamps(&batches),
+        vec![1_000_000_000, 2_000_000_000, 3_000_000_000, 4_000_000_000]
+    );
+    let values = double_column(&batches, "a ");
+    assert_eq!(values[0], Some(1.0));
+    assert!(values[1].is_some_and(f64::is_nan), "{values:?}");
+    assert_eq!(values[2..], [Some(3.0), Some(4.0)]);
+}
+
+/// Two samples at one timestamp within a single run also collapse to one row,
+/// so a run-scoped pull keeps the one-row-per-timestamp promise. The later
+/// sample wins.
+#[tokio::test]
+async fn get_data_keeps_one_sample_per_timestamp_within_a_run() {
+    let mut mock = MockDataServiceImpl::new();
+    mock.expect_get_data().times(1).returning(|_| {
+        Ok(Response::new(GetDataResponse {
+            data: vec![double_run_page(
+                "c1",
+                "a",
+                "run-1",
+                vec![
+                    (1_000_000_000, 1.0),
+                    (1_000_000_000, 1.5),
+                    (2_000_000_000, 2.0),
+                ],
+            )],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let mut buffer = Vec::new();
+    let output = service
+        .get_data(
+            &[raw_channel("c1")],
+            TimeRange::Run {
+                run: Box::new(Run {
+                    run_id: "run-1".into(),
+                    start_time: Some(Timestamp {
+                        seconds: 0,
+                        nanos: 0,
+                    }),
+                    ..Default::default()
+                }),
+                start_time_unix_nanos: None,
+                end_time_unix_nanos: Some(3_000_000_000),
+            },
+            0,
+            &mut buffer,
+        )
+        .await
+        .expect("get_data failed");
+
+    assert_eq!(output.conflicting_timestamps, 1);
+    let batches = read_parquet(buffer);
+    assert_eq!(timestamps(&batches), vec![1_000_000_000, 2_000_000_000]);
+    assert_eq!(double_column(&batches, "a "), vec![Some(1.5), Some(2.0)]);
 }
 
 /// Every page costs a round trip, so `get_data` must request its own large
@@ -662,11 +911,7 @@ async fn sql_executes_filter_query_on_single_file() {
     let total_rows: usize = batches.iter().map(|b| b.num_rows()).sum();
     assert_eq!(total_rows, 2);
 
-    let ts: Vec<i64> = batches
-        .iter()
-        .flat_map(|b| b.column(0).as_primitive::<Int64Type>().values().to_vec())
-        .collect();
-    assert_eq!(ts, vec![3, 4]);
+    assert_eq!(timestamps(&batches), vec![3, 4]);
 
     let vals: Vec<f64> = batches
         .iter()
@@ -688,11 +933,7 @@ async fn sql_unions_multiple_files() {
         .expect("sql failed");
 
     let batches = read_parquet(out);
-    let ts: Vec<i64> = batches
-        .iter()
-        .flat_map(|b| b.column(0).as_primitive::<Int64Type>().values().to_vec())
-        .collect();
-    assert_eq!(ts, vec![1, 2, 3, 4, 5]);
+    assert_eq!(timestamps(&batches), vec![1, 2, 3, 4, 5]);
 }
 
 #[tokio::test(flavor = "multi_thread")]

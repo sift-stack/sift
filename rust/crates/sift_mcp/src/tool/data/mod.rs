@@ -155,6 +155,10 @@ impl SiftMcpServer {
                 always what was requested: `sample_ms` is ignored for data types that cannot be sampled. Both
                 keys are ALWAYS present; `sample_ms_applied` is null when no page reported a rate.
                 `mixed_sample_rates` appears when some channels came back decimated and others raw.
+              - Each channel has at most one sample per timestamp. When samples share one, usually because runs
+                overlap on the asset, the file keeps the sample from the run whose ID sorts last. Exact copies
+                drop silently. When their values differ, `conflicting_timestamps` appears with how many
+                timestamps that happened at, counted per channel. Query each `run_id` to see every run's values.
               - `run_id` names the run that scoped the query, when one did. `run_archived` is `true` when that
                 run is archived.
 
@@ -685,6 +689,15 @@ impl SiftMcpServer {
                 gaps.join(" "),
             ));
         }
+        let conflicts = data_output.conflicting_timestamps;
+        if conflicts > 0 {
+            next_step.push_str(&format!(
+                " At {conflicts} timestamp(s), counted per channel, a channel had samples with \
+                 different values, usually because runs overlap on this asset. The file keeps the \
+                 sample from the run whose ID sorts last. Tell the user, and query each `run_id` \
+                 separately if every run's values matter.",
+            ));
+        }
         next_step.push_str(
             " If the user hasn't already indicated a next step, offer to run a SQL query against \
              this file with the `sql` tool — for example to filter, aggregate, or summarize the \
@@ -717,6 +730,9 @@ impl SiftMcpServer {
         body.insert("decimated".to_string(), Value::from(applied.decimated()));
         if applied.mixed() {
             body.insert("mixed_sample_rates".to_string(), Value::from(true));
+        }
+        if conflicts > 0 {
+            body.insert("conflicting_timestamps".to_string(), Value::from(conflicts));
         }
         if let Some(run_id) = run_id {
             body.insert("run_id".to_string(), Value::from(run_id));

@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{BTreeMap, HashMap, HashSet},
     fmt,
     io::Write,
     mem,
@@ -45,7 +45,7 @@ use crate::service::common::{
 };
 
 #[cfg(test)]
-mod test;
+pub(crate) mod test;
 
 /// Values requested per `GetData` page. The service caps each page at this many
 /// values across every query in the request, and each page is a round trip with
@@ -144,6 +144,10 @@ pub struct DataOutput {
     /// that never learns this quotes a mean off decimated data with no way to
     /// know it is wrong.
     pub applied_sample_ms: AppliedSampleMs,
+    /// Timestamps, counted per channel, where samples of one channel had
+    /// different values, usually from runs that overlap on the asset. The file
+    /// keeps one of them. Exact copies are dropped without being counted.
+    pub conflicting_timestamps: usize,
 }
 
 pub enum ChannelInput {
@@ -177,6 +181,77 @@ struct ChannelColumn {
     data_type: DataType,
 }
 
+/// A column's samples as they arrive, split by the run they belong to.
+///
+/// A query that spans runs gets each run's slice of a channel as a separate
+/// data object. Each slice is sorted, but the slices in a page arrive in no
+/// fixed order, so the column is only sorted once they are merged.
+struct ColumnSlices {
+    json_metadata: Option<String>,
+    data_type: DataType,
+    /// Keyed by run ID, `None` for samples with no run.
+    runs: BTreeMap<Option<String>, Vec<(i64, ChannelValue)>>,
+}
+
+impl ColumnSlices {
+    fn new(data_type: DataType, json_metadata: Option<String>) -> Self {
+        Self {
+            json_metadata,
+            data_type,
+            runs: BTreeMap::new(),
+        }
+    }
+
+    fn push(&mut self, run: Option<metadata::Run>, values: Vec<(i64, ChannelValue)>) {
+        self.runs
+            .entry(run.map(|run| run.run_id))
+            .or_default()
+            .extend(values);
+    }
+
+    /// Merges the slices into ascending order with one sample per timestamp,
+    /// and returns how many timestamps had samples with different values.
+    /// Where runs share a timestamp, the run with the greatest ID wins, so the
+    /// result does not depend on the order the slices arrived in.
+    fn into_column(self) -> (ChannelColumn, usize) {
+        let total: usize = self.runs.values().map(Vec::len).sum();
+        let mut slices = self.runs.into_values();
+        let mut values = slices.next().unwrap_or_default();
+        values.reserve_exact(total - values.len());
+        for slice in slices {
+            values.extend(slice);
+        }
+
+        // Stable, so equal timestamps stay in run ID order for the dedup below.
+        // The check spares a single-run column the sort's scratch allocation.
+        if !values.is_sorted_by_key(|(ts, _)| *ts) {
+            values.sort_by_key(|(ts, _)| *ts);
+        }
+        let mut conflicts = 0;
+        let mut kept_has_conflict = false;
+        values.dedup_by(|later, kept| {
+            if later.0 != kept.0 {
+                kept_has_conflict = false;
+                return false;
+            }
+            if !kept_has_conflict && !later.1.same_value(&kept.1) {
+                conflicts += 1;
+                kept_has_conflict = true;
+            }
+            mem::swap(later, kept);
+            true
+        });
+
+        let column = ChannelColumn {
+            json_metadata: self.json_metadata,
+            values,
+            data_type: self.data_type,
+        };
+        (column, conflicts)
+    }
+}
+
+#[derive(PartialEq)]
 enum ChannelValue {
     F32(f32),
     F64(f64),
@@ -189,6 +264,17 @@ enum ChannelValue {
     Enum(String),
     BitField(u32),
     Bytes(Vec<u8>),
+}
+
+impl ChannelValue {
+    /// Floats compare by bit pattern, so two copies of a NaN are the same value.
+    fn same_value(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::F32(a), Self::F32(b)) => a.to_bits() == b.to_bits(),
+            (Self::F64(a), Self::F64(b)) => a.to_bits() == b.to_bits(),
+            _ => self == other,
+        }
+    }
 }
 
 impl DataService {
@@ -333,7 +419,7 @@ impl DataService {
             .collect::<Vec<_>>();
 
         let mut page_token = String::new();
-        let mut columns = HashMap::<ColumnName, ChannelColumn>::new();
+        let mut columns = HashMap::<ColumnName, ColumnSlices>::new();
         let mut applied_sample_ms = AppliedSampleMs::default();
 
         loop {
@@ -406,18 +492,10 @@ impl DataService {
                             })
                             .collect::<Vec<_>>();
 
-                        if let Some(channel_column) = columns.get_mut(&column_name) {
-                            channel_column.values.extend(values);
-                        } else {
-                            columns.insert(
-                                column_name,
-                                ChannelColumn {
-                                    values,
-                                    json_metadata: None,
-                                    data_type: DataType::Binary,
-                                },
-                            );
-                        }
+                        columns
+                            .entry(column_name)
+                            .or_insert_with(|| ColumnSlices::new(DataType::Binary, None))
+                            .push(metadata.run, values);
                     }
                     "sift.data.v2.EnumValues" => {
                         let EnumValues { metadata, values } =
@@ -468,18 +546,12 @@ impl DataService {
                             })
                             .collect::<Vec<_>>();
 
-                        if let Some(channel_column) = columns.get_mut(&column_name) {
-                            channel_column.values.extend(values);
-                        } else {
-                            columns.insert(
-                                column_name,
-                                ChannelColumn {
-                                    values,
-                                    json_metadata: Some(enum_config_md),
-                                    data_type: DataType::Utf8,
-                                },
-                            );
-                        }
+                        columns
+                            .entry(column_name)
+                            .or_insert_with(|| {
+                                ColumnSlices::new(DataType::Utf8, Some(enum_config_md))
+                            })
+                            .push(metadata.run, values);
                     }
                     "sift.data.v2.BitFieldValues" => {
                         let BitFieldValues { metadata, values } =
@@ -526,18 +598,15 @@ impl DataService {
                                 })
                                 .collect::<Vec<_>>();
 
-                            if let Some(channel_column) = columns.get_mut(&column_name) {
-                                channel_column.values.extend(values);
-                            } else {
-                                columns.insert(
-                                    column_name,
-                                    ChannelColumn {
-                                        values,
-                                        json_metadata: Some(bit_field_element_md.clone()),
-                                        data_type: DataType::UInt32,
-                                    },
-                                );
-                            }
+                            columns
+                                .entry(column_name)
+                                .or_insert_with(|| {
+                                    ColumnSlices::new(
+                                        DataType::UInt32,
+                                        Some(bit_field_element_md.clone()),
+                                    )
+                                })
+                                .push(metadata.run.clone(), values);
                         }
                     }
                     "sift.data.v2.DoubleValues" => {
@@ -575,18 +644,10 @@ impl DataService {
                             })
                             .collect::<Vec<_>>();
 
-                        if let Some(channel_column) = columns.get_mut(&column_name) {
-                            channel_column.values.extend(values);
-                        } else {
-                            columns.insert(
-                                column_name,
-                                ChannelColumn {
-                                    values,
-                                    json_metadata: None,
-                                    data_type: DataType::Float64,
-                                },
-                            );
-                        }
+                        columns
+                            .entry(column_name)
+                            .or_insert_with(|| ColumnSlices::new(DataType::Float64, None))
+                            .push(metadata.run, values);
                     }
                     "sift.data.v2.FloatValues" => {
                         let FloatValues {
@@ -623,18 +684,10 @@ impl DataService {
                             })
                             .collect::<Vec<_>>();
 
-                        if let Some(channel_column) = columns.get_mut(&column_name) {
-                            channel_column.values.extend(values);
-                        } else {
-                            columns.insert(
-                                column_name,
-                                ChannelColumn {
-                                    values,
-                                    json_metadata: None,
-                                    data_type: DataType::Float32,
-                                },
-                            );
-                        }
+                        columns
+                            .entry(column_name)
+                            .or_insert_with(|| ColumnSlices::new(DataType::Float32, None))
+                            .push(metadata.run, values);
                     }
                     "sift.data.v2.StringValues" => {
                         let StringValues {
@@ -671,18 +724,10 @@ impl DataService {
                             })
                             .collect::<Vec<_>>();
 
-                        if let Some(channel_column) = columns.get_mut(&column_name) {
-                            channel_column.values.extend(values);
-                        } else {
-                            columns.insert(
-                                column_name,
-                                ChannelColumn {
-                                    values,
-                                    json_metadata: None,
-                                    data_type: DataType::Utf8,
-                                },
-                            );
-                        }
+                        columns
+                            .entry(column_name)
+                            .or_insert_with(|| ColumnSlices::new(DataType::Utf8, None))
+                            .push(metadata.run, values);
                     }
                     "sift.data.v2.BoolValues" => {
                         let BoolValues {
@@ -719,18 +764,10 @@ impl DataService {
                             })
                             .collect::<Vec<_>>();
 
-                        if let Some(channel_column) = columns.get_mut(&column_name) {
-                            channel_column.values.extend(values);
-                        } else {
-                            columns.insert(
-                                column_name,
-                                ChannelColumn {
-                                    values,
-                                    json_metadata: None,
-                                    data_type: DataType::Boolean,
-                                },
-                            );
-                        }
+                        columns
+                            .entry(column_name)
+                            .or_insert_with(|| ColumnSlices::new(DataType::Boolean, None))
+                            .push(metadata.run, values);
                     }
                     "sift.data.v2.Int32Values" => {
                         let Int32Values {
@@ -767,18 +804,10 @@ impl DataService {
                             })
                             .collect::<Vec<_>>();
 
-                        if let Some(channel_column) = columns.get_mut(&column_name) {
-                            channel_column.values.extend(values);
-                        } else {
-                            columns.insert(
-                                column_name,
-                                ChannelColumn {
-                                    values,
-                                    json_metadata: None,
-                                    data_type: DataType::Int32,
-                                },
-                            );
-                        }
+                        columns
+                            .entry(column_name)
+                            .or_insert_with(|| ColumnSlices::new(DataType::Int32, None))
+                            .push(metadata.run, values);
                     }
                     "sift.data.v2.Int64Values" => {
                         let Int64Values {
@@ -815,18 +844,10 @@ impl DataService {
                             })
                             .collect::<Vec<_>>();
 
-                        if let Some(channel_column) = columns.get_mut(&column_name) {
-                            channel_column.values.extend(values);
-                        } else {
-                            columns.insert(
-                                column_name,
-                                ChannelColumn {
-                                    values,
-                                    json_metadata: None,
-                                    data_type: DataType::Int64,
-                                },
-                            );
-                        }
+                        columns
+                            .entry(column_name)
+                            .or_insert_with(|| ColumnSlices::new(DataType::Int64, None))
+                            .push(metadata.run, values);
                     }
                     "sift.data.v2.Uint32Values" => {
                         let Uint32Values {
@@ -863,18 +884,10 @@ impl DataService {
                             })
                             .collect::<Vec<_>>();
 
-                        if let Some(channel_column) = columns.get_mut(&column_name) {
-                            channel_column.values.extend(values);
-                        } else {
-                            columns.insert(
-                                column_name,
-                                ChannelColumn {
-                                    values,
-                                    json_metadata: None,
-                                    data_type: DataType::UInt32,
-                                },
-                            );
-                        }
+                        columns
+                            .entry(column_name)
+                            .or_insert_with(|| ColumnSlices::new(DataType::UInt32, None))
+                            .push(metadata.run, values);
                     }
                     "sift.data.v2.Uint64Values" => {
                         let Uint64Values {
@@ -911,18 +924,10 @@ impl DataService {
                             })
                             .collect::<Vec<_>>();
 
-                        if let Some(channel_column) = columns.get_mut(&column_name) {
-                            channel_column.values.extend(values);
-                        } else {
-                            columns.insert(
-                                column_name,
-                                ChannelColumn {
-                                    values,
-                                    json_metadata: None,
-                                    data_type: DataType::UInt64,
-                                },
-                            );
-                        }
+                        columns
+                            .entry(column_name)
+                            .or_insert_with(|| ColumnSlices::new(DataType::UInt64, None))
+                            .push(metadata.run, values);
                     }
                     _ => bail!("queried an unsupported channel type"),
                 }
@@ -959,7 +964,15 @@ impl DataService {
             })
         }
 
-        let columns = columns.into_iter().collect::<Vec<_>>();
+        let mut conflicting_timestamps = 0;
+        let columns = columns
+            .into_iter()
+            .map(|(name, slices)| {
+                let (column, conflicts) = slices.into_column();
+                conflicting_timestamps += conflicts;
+                (name, column)
+            })
+            .collect::<Vec<_>>();
 
         let mut fields = vec![Field::new(TS_COLUMN_NAME, DataType::Int64, false)];
 
@@ -1087,6 +1100,7 @@ impl DataService {
         Ok(DataOutput {
             empty_channels,
             applied_sample_ms,
+            conflicting_timestamps,
         })
     }
 
