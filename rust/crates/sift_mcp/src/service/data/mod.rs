@@ -214,8 +214,10 @@ impl ColumnSlices {
     /// Where runs share a timestamp, the run with the greatest ID wins, so the
     /// result does not depend on the order the slices arrived in.
     fn into_column(self) -> (ChannelColumn, usize) {
+        let total: usize = self.runs.values().map(Vec::len).sum();
         let mut slices = self.runs.into_values();
         let mut values = slices.next().unwrap_or_default();
+        values.reserve_exact(total - values.len());
         for slice in slices {
             values.extend(slice);
         }
