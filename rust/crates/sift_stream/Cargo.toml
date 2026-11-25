@@ -50,6 +50,8 @@ async-trait = { workspace = true }
 criterion = { workspace = true }
 dotenvy = { workspace = true }
 hyper-util = { workspace = true }
+mavlink = { workspace = true }
+mavlink-tlog = { workspace = true }
 rand = { workspace = true }
 tempdir = { workspace = true }
 tokio = { workspace = true, features = ["rt", "rt-multi-thread", "sync", "time", "signal"] }
@@ -73,6 +75,10 @@ path = "examples/auto-register/main.rs"
 [[example]]
 name = "backups-only"
 path = "examples/backups-only/main.rs"
+
+[[example]]
+name = "mavlink-tlog"
+path = "examples/mavlink-tlog/main.rs"
 
 [[example]]
 name = "quick-start"
