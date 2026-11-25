@@ -9,11 +9,12 @@ import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from sift_client import SiftClient, SiftConnectionConfig
+from sift_client import SiftClient
+from sift_client._internal.credentials import ENV_API_KEY, ENV_GRPC_URI, ENV_REST_URI
 from sift_client._internal.low_level_wrappers._test_results_log import LogTracking
 from sift_client._internal.pytest_plugin.audit_log import log_event, reconciled_warning_message
 from sift_client._internal.pytest_plugin.replay_worker import cleanup_temp_log
-from sift_client.errors import SiftReplayReconciledWarning
+from sift_client.errors import SiftCredentialsError, SiftReplayReconciledWarning
 from sift_client.util.test_results.context_manager import log_replay_instructions
 
 if TYPE_CHECKING:
@@ -67,9 +68,18 @@ def main() -> None:
         ),
     )
     parser.add_argument("log_file", help="Path to the .jsonl log file to replay.")
-    parser.add_argument("--grpc-url", default=os.getenv("SIFT_GRPC_URI"))
-    parser.add_argument("--rest-url", default=os.getenv("SIFT_REST_URI"))
-    parser.add_argument("--api-key", default=os.getenv("SIFT_API_KEY"))
+    # The environment variables are argparse defaults, so they reach the resolver
+    # as explicit arguments and outrank the profile. The pytest plugin ranks them
+    # the same way, so a retry finds the credentials that the test session used.
+    parser.add_argument("--grpc-url", default=os.getenv(ENV_GRPC_URI))
+    parser.add_argument("--rest-url", default=os.getenv(ENV_REST_URI))
+    parser.add_argument("--api-key", default=os.getenv(ENV_API_KEY))
+    parser.add_argument(
+        "--profile",
+        help="Name of a sift.toml profile that supplies the credentials that the "
+        "flags and environment variables leave unset, as with `sift-cli --profile`. "
+        "Defaults to SIFT_PROFILE, then the file's default profile.",
+    )
     parser.add_argument(
         "--new-report",
         action="store_true",
@@ -86,19 +96,15 @@ def main() -> None:
 
         attach_file_handler(Path(args.audit_log))
 
-    if not args.grpc_url or not args.rest_url or not args.api_key:
-        raise ValueError("SIFT_GRPC_URI, SIFT_REST_URI, and SIFT_API_KEY must be set")
-
-    use_ssl = "localhost" not in args.grpc_url and "localhost" not in args.rest_url
-
-    client = SiftClient(
-        connection_config=SiftConnectionConfig(
+    try:
+        client = SiftClient(
             api_key=args.api_key,
             grpc_url=args.grpc_url,
             rest_url=args.rest_url,
-            use_ssl=use_ssl,
+            profile=args.profile,
         )
-    )
+    except SiftCredentialsError as exc:
+        parser.error(str(exc))
 
     _describe_upload(args.log_file, args.new_report)
     try:

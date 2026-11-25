@@ -219,6 +219,8 @@ import-test-result-log <path-to-log.jsonl>
 That replays the saved JSONL log as a single batch and deletes the file when it
 lives under the system temp dir.
 
+The command resolves credentials in the same order as the plugin's `sift_client` fixture: the `--api-key`, `--grpc-url`, and `--rest-url` flags, then the `SIFT_*` environment variables, then a `sift.toml` profile. Name the profile with `--profile` or `SIFT_PROFILE`. If you name none, the command uses the file's default profile. The command does not read the `sift_grpc_uri` / `sift_rest_uri` ini keys or a `.env` file, because those are pytest surfaces. If the test session got its credentials from them, export the values or pass the flags.
+
 `import-test-result-log` runs in one of two modes:
 
 | Mode | How to get it | What it does |
