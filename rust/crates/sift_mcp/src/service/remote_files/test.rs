@@ -1,9 +1,413 @@
 use std::io::Write;
 
+use sift_rs::remote_files::v1::{
+    EntityType, GetRemoteFileDownloadUrlResponse, ListRemoteFilesResponse, RemoteFile,
+    remote_file_service_server::RemoteFileServiceServer,
+};
+use sift_test_util::{
+    grpc::memory_sift_channel, mock::remote_files::v1::MockRemoteFileServiceImpl,
+};
 use tempdir::TempDir;
+use tokio::task::JoinHandle;
+use tonic::{Code, Response, Status, transport::Server};
 
-use super::{RemoteFileUploader, RestConfig, mime_type_for};
+use super::{
+    AttachmentEntityType, RemoteFileService, RemoteFileUploader, RestConfig, attachment_filter,
+    mime_type_for,
+};
 use crate::client_event::start_http_server;
+use crate::policy::RetryPolicy;
+
+async fn service_with_mock(mock: MockRemoteFileServiceImpl) -> (RemoteFileService, JoinHandle<()>) {
+    let (client, server) = tokio::io::duplex(1024);
+    let channel = memory_sift_channel(client).await;
+
+    let handle = tokio::spawn(async move {
+        Server::builder()
+            .add_service(RemoteFileServiceServer::new(mock))
+            .serve_with_incoming(tokio_stream::once(Ok::<_, std::io::Error>(server)))
+            .await
+            .unwrap();
+    });
+
+    (
+        RemoteFileService::new(channel, RetryPolicy::default()),
+        handle,
+    )
+}
+
+fn remote_file(remote_file_id: &str) -> RemoteFile {
+    RemoteFile {
+        remote_file_id: remote_file_id.into(),
+        entity_id: "run-1".into(),
+        entity_type: EntityType::Run as i32,
+        file_name: format!("{remote_file_id}.csv"),
+        ..Default::default()
+    }
+}
+
+fn remote_file_on(remote_file_id: &str, entity_type: EntityType, entity_id: &str) -> RemoteFile {
+    RemoteFile {
+        entity_type: entity_type as i32,
+        entity_id: entity_id.into(),
+        ..remote_file(remote_file_id)
+    }
+}
+
+fn ids(page: &crate::service::common::Page<RemoteFile>) -> Vec<&str> {
+    page.items
+        .iter()
+        .map(|file| file.remote_file_id.as_str())
+        .collect()
+}
+
+const ATTACHMENT_TYPES: &str = "(entity_type == \"runs\" || entity_type == \"assets\" || \
+     entity_type == \"annotations\" || entity_type == \"annotation_logs\" || \
+     entity_type == \"test_reports\" || entity_type == \"test_steps\")";
+
+#[test]
+fn unscoped_filter_holds_the_listing_to_attachment_types() {
+    assert_eq!(attachment_filter(&[], None, ""), ATTACHMENT_TYPES);
+    assert_eq!(attachment_filter(&[], None, "   "), ATTACHMENT_TYPES);
+}
+
+#[test]
+fn filter_ands_ids_type_and_the_callers_expression() {
+    let ids = vec!["run-1".to_string(), " run-2 ".to_string()];
+    assert_eq!(
+        attachment_filter(
+            &ids,
+            Some(AttachmentEntityType::Run),
+            "file_name.matches(\"(?i)log\") || file_name == \"a.csv\""
+        ),
+        "entity_id in [\"run-1\", \"run-2\"] && entity_type == \"runs\" && \
+         (file_name.matches(\"(?i)log\") || file_name == \"a.csv\")"
+    );
+}
+
+#[test]
+fn filter_escapes_quotes_in_ids() {
+    let ids = vec!["a\"b".to_string()];
+    assert_eq!(
+        attachment_filter(&ids, Some(AttachmentEntityType::AnnotationLog), ""),
+        "entity_id in [\"a\\\"b\"] && entity_type == \"annotation_logs\""
+    );
+}
+
+#[test]
+fn every_attachment_type_has_a_distinct_name_and_filter_value() {
+    let names: std::collections::HashSet<_> = AttachmentEntityType::ALL
+        .map(AttachmentEntityType::name)
+        .into();
+    let values: std::collections::HashSet<_> = AttachmentEntityType::ALL
+        .map(AttachmentEntityType::filter_value)
+        .into();
+    let protos: std::collections::HashSet<_> = AttachmentEntityType::ALL
+        .map(|entity_type| entity_type.proto() as i32)
+        .into();
+    assert_eq!(names.len(), AttachmentEntityType::ALL.len());
+    assert_eq!(values.len(), AttachmentEntityType::ALL.len());
+    assert_eq!(protos.len(), AttachmentEntityType::ALL.len());
+}
+
+#[tokio::test]
+async fn list_attachments_sends_the_scoped_filter_order_and_limit() {
+    let mut mock = MockRemoteFileServiceImpl::new();
+    mock.expect_list_remote_files()
+        .withf(|req| {
+            let req = req.get_ref();
+            req.filter == "entity_id in [\"run-1\"] && entity_type == \"runs\""
+                && req.order_by == "created_date desc"
+                && req.page_size == 50
+                && req.page_token.is_empty()
+        })
+        .times(1)
+        .returning(|_| {
+            Ok(Response::new(ListRemoteFilesResponse {
+                remote_files: vec![remote_file("rf-1")],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let page = service
+        .list_attachments(
+            vec!["run-1".into()],
+            Some(AttachmentEntityType::Run),
+            String::new(),
+            Some("created_date desc".into()),
+            None,
+        )
+        .await
+        .expect("list");
+    assert_eq!(ids(&page), ["rf-1"]);
+    assert!(!page.has_more);
+}
+
+/// Answers each page token with its rows and the next token, and fails the
+/// test on a token it was not given.
+fn paged_mock(
+    pages: Vec<(&'static str, Vec<RemoteFile>, &'static str)>,
+) -> MockRemoteFileServiceImpl {
+    let mut mock = MockRemoteFileServiceImpl::new();
+    for (token, files, next) in pages {
+        mock.expect_list_remote_files()
+            .withf(move |req| req.get_ref().page_token == token)
+            .times(1)
+            .returning(move |_| {
+                Ok(Response::new(ListRemoteFilesResponse {
+                    remote_files: files.clone(),
+                    next_page_token: next.into(),
+                }))
+            });
+    }
+    mock
+}
+
+#[tokio::test]
+async fn list_attachments_follows_page_tokens() {
+    let mock = paged_mock(vec![
+        ("", vec![remote_file("rf-1"), remote_file("rf-2")], "t1"),
+        ("t1", vec![remote_file("rf-3")], ""),
+    ]);
+
+    let (service, _h) = service_with_mock(mock).await;
+    let page = service
+        .list_attachments(Vec::new(), None, String::new(), None, Some(5))
+        .await
+        .expect("list");
+    assert_eq!(ids(&page), ["rf-1", "rf-2", "rf-3"]);
+    assert!(!page.has_more);
+}
+
+#[tokio::test]
+async fn list_attachments_reports_more_when_the_limit_falls_mid_page() {
+    let mock = paged_mock(vec![
+        ("", vec![remote_file("rf-1"), remote_file("rf-2")], "t1"),
+        ("t1", vec![remote_file("rf-3"), remote_file("rf-4")], "t2"),
+    ]);
+
+    let (service, _h) = service_with_mock(mock).await;
+    let page = service
+        .list_attachments(Vec::new(), None, String::new(), None, Some(3))
+        .await
+        .expect("list");
+    assert_eq!(ids(&page), ["rf-1", "rf-2", "rf-3"]);
+    assert!(page.has_more);
+}
+
+#[tokio::test]
+async fn list_attachments_pages_past_rows_outside_the_scope() {
+    let mock = paged_mock(vec![
+        (
+            "",
+            vec![remote_file_on(
+                "rf-chat",
+                EntityType::ChatConversation,
+                "conv-1",
+            )],
+            "t1",
+        ),
+        ("t1", vec![remote_file("rf-1")], ""),
+    ]);
+
+    let (service, _h) = service_with_mock(mock).await;
+    let page = service
+        .list_attachments(Vec::new(), None, String::new(), None, None)
+        .await
+        .expect("list");
+    assert_eq!(ids(&page), ["rf-1"]);
+    assert!(!page.has_more);
+}
+
+#[tokio::test]
+async fn list_attachments_stops_when_a_token_repeats_rows() {
+    // Backends from before the paging fix answer a later token with rows
+    // already returned, so following tokens would never end.
+    let mut mock = MockRemoteFileServiceImpl::new();
+    mock.expect_list_remote_files().times(2).returning(|_| {
+        Ok(Response::new(ListRemoteFilesResponse {
+            remote_files: vec![remote_file("rf-1"), remote_file("rf-2")],
+            next_page_token: "t1".into(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let page = service
+        .list_attachments(Vec::new(), None, String::new(), None, Some(5))
+        .await
+        .expect("list");
+    assert_eq!(ids(&page), ["rf-1", "rf-2"]);
+    assert!(page.has_more);
+}
+
+#[tokio::test]
+async fn list_attachments_reports_more_behind_an_empty_page() {
+    // The backend drops files the caller can't view after paging, so a page
+    // can be empty and still carry a token.
+    let mut mock = MockRemoteFileServiceImpl::new();
+    mock.expect_list_remote_files().times(1).returning(|_| {
+        Ok(Response::new(ListRemoteFilesResponse {
+            remote_files: Vec::new(),
+            next_page_token: "next".into(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let page = service
+        .list_attachments(Vec::new(), None, String::new(), None, None)
+        .await
+        .expect("list");
+    assert!(page.items.is_empty());
+    assert!(page.has_more);
+}
+
+#[tokio::test]
+async fn list_attachments_truncates_to_limit() {
+    let mut mock = MockRemoteFileServiceImpl::new();
+    mock.expect_list_remote_files().returning(|_| {
+        Ok(Response::new(ListRemoteFilesResponse {
+            remote_files: vec![
+                remote_file("rf-1"),
+                remote_file("rf-2"),
+                remote_file("rf-3"),
+            ],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let page = service
+        .list_attachments(Vec::new(), None, String::new(), None, Some(2))
+        .await
+        .expect("list");
+    assert_eq!(ids(&page), ["rf-1", "rf-2"]);
+    assert!(page.has_more);
+}
+
+#[tokio::test]
+async fn list_attachments_keeps_the_scope_when_the_filter_escapes_it() {
+    // A filter that closes the wrapping parenthesis ORs past the scope, so
+    // the server can return rows the scope excludes.
+    let mut mock = MockRemoteFileServiceImpl::new();
+    mock.expect_list_remote_files()
+        .withf(|req| {
+            req.get_ref().filter
+                == "entity_id in [\"run-1\"] && entity_type == \"runs\" && (true) || (true)"
+        })
+        .times(1)
+        .returning(|_| {
+            Ok(Response::new(ListRemoteFilesResponse {
+                remote_files: vec![
+                    remote_file_on("rf-artifact", EntityType::ArtifactVersion, "run-1"),
+                    remote_file_on("rf-asset", EntityType::Asset, "run-1"),
+                    remote_file_on("rf-other-run", EntityType::Run, "run-2"),
+                    remote_file_on("rf-unspecified", EntityType::Unspecified, "run-1"),
+                    remote_file("rf-1"),
+                ],
+                next_page_token: String::new(),
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let page = service
+        .list_attachments(
+            vec![" run-1 ".into()],
+            Some(AttachmentEntityType::Run),
+            "true) || (true".into(),
+            None,
+            None,
+        )
+        .await
+        .expect("list");
+    assert_eq!(ids(&page), ["rf-1"]);
+    assert!(!page.has_more);
+}
+
+#[tokio::test]
+async fn list_attachments_drops_non_attachment_rows_without_a_scope() {
+    let mut mock = MockRemoteFileServiceImpl::new();
+    mock.expect_list_remote_files().times(1).returning(|_| {
+        Ok(Response::new(ListRemoteFilesResponse {
+            remote_files: vec![
+                remote_file_on("rf-chat", EntityType::ChatConversation, "conv-1"),
+                remote_file_on("rf-step", EntityType::TestStep, "step-1"),
+            ],
+            next_page_token: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let page = service
+        .list_attachments(Vec::new(), None, "true) || (true".into(), None, None)
+        .await
+        .expect("list");
+    assert_eq!(ids(&page), ["rf-step"]);
+}
+
+#[tokio::test]
+async fn list_attachments_propagates_invalid_argument() {
+    let mut mock = MockRemoteFileServiceImpl::new();
+    mock.expect_list_remote_files()
+        .returning(|_| Err(Status::invalid_argument("bad filter")));
+
+    let (service, _h) = service_with_mock(mock).await;
+    let err = service
+        .list_attachments(Vec::new(), None, "file_name ==".into(), None, None)
+        .await
+        .expect_err("expected error");
+    let status = err.downcast_ref::<tonic::Status>().expect("status");
+    assert_eq!(status.code(), Code::InvalidArgument);
+}
+
+#[tokio::test]
+async fn download_url_returns_the_signed_url() {
+    let mut mock = MockRemoteFileServiceImpl::new();
+    mock.expect_get_remote_file_download_url()
+        .withf(|req| req.get_ref().remote_file_id == "rf-1")
+        .times(1)
+        .returning(|_| {
+            Ok(Response::new(GetRemoteFileDownloadUrlResponse {
+                download_url: "https://files.test.local/rf-1?sig=abc".into(),
+            }))
+        });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let url = service.download_url("rf-1".into()).await.expect("url");
+    assert_eq!(url, "https://files.test.local/rf-1?sig=abc");
+}
+
+#[tokio::test]
+async fn download_url_rejects_an_empty_url() {
+    let mut mock = MockRemoteFileServiceImpl::new();
+    mock.expect_get_remote_file_download_url().returning(|_| {
+        Ok(Response::new(GetRemoteFileDownloadUrlResponse {
+            download_url: String::new(),
+        }))
+    });
+
+    let (service, _h) = service_with_mock(mock).await;
+    let err = service
+        .download_url("rf-1".into())
+        .await
+        .expect_err("empty url is an error");
+    assert!(err.to_string().contains("download url response was empty"));
+}
+
+#[tokio::test]
+async fn download_url_propagates_not_found() {
+    let mut mock = MockRemoteFileServiceImpl::new();
+    mock.expect_get_remote_file_download_url()
+        .returning(|_| Err(Status::not_found("remote file not found")));
+
+    let (service, _h) = service_with_mock(mock).await;
+    let err = service
+        .download_url("missing".into())
+        .await
+        .expect_err("expected error");
+    let status = err.downcast_ref::<tonic::Status>().expect("status");
+    assert_eq!(status.code(), Code::NotFound);
+}
 
 fn write_file(dir: &TempDir, name: &str, contents: &[u8]) -> std::path::PathBuf {
     let path = dir.path().join(name);
