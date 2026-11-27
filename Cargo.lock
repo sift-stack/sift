@@ -4962,12 +4962,15 @@ version = "0.14.1"
 dependencies = [
  "anyhow",
  "arrow",
+ "async-trait",
  "bytes",
  "chrono",
  "clap",
  "dirs",
  "futures",
+ "hyper-util",
  "mime_guess",
+ "mockall",
  "parquet",
  "pbjson-types",
  "percent-encoding",
@@ -4979,15 +4982,13 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.10.9",
- "sift_connect",
  "sift_rs",
- "sift_stream",
- "sift_test_util",
  "tempdir",
  "tinyvec",
  "tokio",
  "tokio-stream",
  "tonic",
+ "tower",
 ]
 
 [[package]]
@@ -5057,21 +5058,6 @@ dependencies = [
  "tracing-subscriber",
  "tracing-test",
  "uuid",
-]
-
-[[package]]
-name = "sift_test_util"
-version = "0.14.1"
-dependencies = [
- "async-trait",
- "hyper-util",
- "mockall",
- "sift_connect",
- "sift_rs",
- "tokio",
- "tokio-stream",
- "tonic",
- "tower",
 ]
 
 [[package]]
