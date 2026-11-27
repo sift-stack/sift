@@ -1,3 +1,9 @@
+use crate::test_util::{
+    grpc::memory_grpc_channel,
+    mock::{
+        reports::v1::MockReportServiceImpl, rule_evaluation::v1::MockRuleEvaluationServiceImpl,
+    },
+};
 use sift_rs::{
     reports::v1::{
         GetReportResponse, ListReportRuleSummariesResponse, ListReportsResponse, Report,
@@ -8,12 +14,6 @@ use sift_rs::{
         rule_evaluation_service_server::RuleEvaluationServiceServer,
     },
 };
-use sift_test_util::{
-    grpc::memory_sift_channel,
-    mock::{
-        reports::v1::MockReportServiceImpl, rule_evaluation::v1::MockRuleEvaluationServiceImpl,
-    },
-};
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
@@ -22,7 +22,7 @@ use crate::service::common::DEFAULT_LIMIT;
 
 async fn service_with_mock(mock: MockReportServiceImpl) -> (ReportService, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()
@@ -43,7 +43,7 @@ async fn service_with_dual_mocks(
     eval_mock: MockRuleEvaluationServiceImpl,
 ) -> (ReportService, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()

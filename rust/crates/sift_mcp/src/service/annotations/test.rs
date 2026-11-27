@@ -6,12 +6,14 @@ use std::{
     time::Duration,
 };
 
+use crate::test_util::{
+    grpc::memory_grpc_channel, mock::annotations::v1::MockAnnotationServiceImpl,
+};
 use sift_rs::annotations::v1::{
     Annotation, AnnotationState, AnnotationType, ArchiveAnnotationResponse,
     CreateAnnotationResponse, ListAnnotationsResponse, UnarchiveAnnotationResponse,
     UpdateAnnotationResponse, annotation_service_server::AnnotationServiceServer,
 };
-use sift_test_util::{grpc::memory_sift_channel, mock::annotations::v1::MockAnnotationServiceImpl};
 use tokio::{sync::Semaphore, task::JoinHandle};
 use tonic::{Response, Status, transport::Server};
 
@@ -36,7 +38,7 @@ use crate::service::common::DEFAULT_LIMIT;
 
 async fn service_with_mock(mock: MockAnnotationServiceImpl) -> (AnnotationService, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()

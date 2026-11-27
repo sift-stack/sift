@@ -1,3 +1,6 @@
+use crate::test_util::{
+    grpc::memory_grpc_channel, mock::user_defined_functions::v1::MockUserDefinedFunctionServiceImpl,
+};
 use sift_rs::{
     common::r#type::v1::{FunctionDataType, FunctionInput, UserDefinedFunction},
     metadata::v1::{
@@ -9,9 +12,6 @@ use sift_rs::{
         UpdateUserDefinedFunctionResponse,
         user_defined_function_service_server::UserDefinedFunctionServiceServer,
     },
-};
-use sift_test_util::{
-    grpc::memory_sift_channel, mock::user_defined_functions::v1::MockUserDefinedFunctionServiceImpl,
 };
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
@@ -73,7 +73,7 @@ async fn service_with_mock(
     mock: MockUserDefinedFunctionServiceImpl,
 ) -> (UserDefinedFunctionService, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()

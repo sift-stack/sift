@@ -1,11 +1,9 @@
+use crate::grpc::GrpcChannel;
 use crate::policy::{RetryPolicy, with_retry};
 use anyhow::{Context, Result};
-use sift_rs::{
-    SiftChannel,
-    docs::v1::{
-        ReadDocRequest, ReadDocResponse, SearchDocsRequest, SearchDocsResponse,
-        docs_service_client::DocsServiceClient,
-    },
+use sift_rs::docs::v1::{
+    ReadDocRequest, ReadDocResponse, SearchDocsRequest, SearchDocsResponse,
+    docs_service_client::DocsServiceClient,
 };
 
 #[cfg(test)]
@@ -15,12 +13,12 @@ mod test;
 /// Auth rides the shared gRPC channel, so this needs nothing beyond the channel.
 #[derive(Clone)]
 pub struct DocsService {
-    channel: SiftChannel,
+    channel: GrpcChannel,
     policy: RetryPolicy,
 }
 
 impl DocsService {
-    pub fn new(channel: SiftChannel, policy: RetryPolicy) -> Self {
+    pub fn new(channel: GrpcChannel, policy: RetryPolicy) -> Self {
         Self { channel, policy }
     }
 

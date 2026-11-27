@@ -1,15 +1,13 @@
+use crate::grpc::GrpcChannel;
 use crate::policy::{RetryPolicy, once, with_retry};
 use crate::service::common;
 use anyhow::{Context, Result};
-use sift_rs::{
-    SiftChannel,
-    rules::v1::{
-        ActionKind, ArchiveRuleRequest, CreateRuleRequest, GetRuleRequest, ListRuleVersionsRequest,
-        ListRuleVersionsResponse, ListRulesRequest, ListRulesResponse, Rule, RuleAction,
-        RuleActionConfiguration, RuleCondition, RuleVersion, UnarchiveRuleRequest,
-        UpdateActionRequest, UpdateConditionRequest, UpdateRuleRequest, WebhookActionConfiguration,
-        rule_action_configuration::Configuration, rule_service_client::RuleServiceClient,
-    },
+use sift_rs::rules::v1::{
+    ActionKind, ArchiveRuleRequest, CreateRuleRequest, GetRuleRequest, ListRuleVersionsRequest,
+    ListRuleVersionsResponse, ListRulesRequest, ListRulesResponse, Rule, RuleAction,
+    RuleActionConfiguration, RuleCondition, RuleVersion, UnarchiveRuleRequest, UpdateActionRequest,
+    UpdateConditionRequest, UpdateRuleRequest, WebhookActionConfiguration,
+    rule_action_configuration::Configuration, rule_service_client::RuleServiceClient,
 };
 use tonic::Status;
 
@@ -49,12 +47,12 @@ mod test;
 
 #[derive(Clone)]
 pub struct RuleService {
-    channel: SiftChannel,
+    channel: GrpcChannel,
     policy: RetryPolicy,
 }
 
 impl RuleService {
-    pub fn new(channel: SiftChannel, policy: RetryPolicy) -> Self {
+    pub fn new(channel: GrpcChannel, policy: RetryPolicy) -> Self {
         Self { channel, policy }
     }
 

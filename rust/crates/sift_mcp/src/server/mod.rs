@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use crate::grpc::GrpcChannel;
 use rmcp::{
     ErrorData, RoleServer, ServerHandler,
     handler::server::router::prompt::PromptRouter,
@@ -12,7 +13,6 @@ use rmcp::{
     service::RequestContext,
     tool_handler,
 };
-use sift_rs::SiftChannel;
 #[cfg(test)]
 use tokio::sync::watch;
 
@@ -171,7 +171,7 @@ impl ServerHandler for SiftMcpServer {
 impl SiftMcpServer {
     #[cfg(test)]
     pub fn new(
-        channel: SiftChannel,
+        channel: GrpcChannel,
         app_uri: String,
         allow_create: bool,
         allow_destructive: bool,
@@ -209,7 +209,7 @@ impl SiftMcpServer {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new_with_client_events(
-        channel: SiftChannel,
+        channel: GrpcChannel,
         app_uri: String,
         allow_create: bool,
         allow_destructive: bool,

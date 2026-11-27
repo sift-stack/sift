@@ -1,12 +1,12 @@
+use crate::test_util::{
+    grpc::memory_grpc_channel, mock::test_reports::v1::MockTestReportServiceImpl,
+};
 use sift_rs::test_reports::v1::{
     CountTestMeasurementsResponse, CountTestStepsResponse, CreateTestMeasurementsResponse,
     CreateTestReportResponse, CreateTestStepResponse, ListTestMeasurementsResponse,
     ListTestReportsResponse, ListTestStepsResponse, TestMeasurement, TestMeasurementType,
     TestReport, TestStatus, TestStep, TestStepType, test_measurement,
     test_report_service_server::TestReportServiceServer,
-};
-use sift_test_util::{
-    grpc::memory_sift_channel, mock::test_reports::v1::MockTestReportServiceImpl,
 };
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
@@ -23,7 +23,7 @@ fn built_from_json(json: &str) -> spec::BuiltReport {
 
 async fn service_with_mock(mock: MockTestReportServiceImpl) -> (TestReportService, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()

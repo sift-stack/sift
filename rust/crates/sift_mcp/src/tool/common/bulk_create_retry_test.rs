@@ -3,9 +3,9 @@ use std::sync::{
     atomic::{AtomicUsize, Ordering},
 };
 
+use crate::test_util::grpc::memory_grpc_channel;
 use rmcp::handler::server::wrapper::Parameters;
 use serde_json::json;
-use sift_test_util::grpc::memory_sift_channel;
 use tonic::{Response, Status, transport::Server};
 
 use crate::{server::SiftMcpServer, tool::common::test_support::structured};
@@ -25,7 +25,7 @@ macro_rules! check_retry_isolation {
                 Err(Status::unavailable("response lost"))
             });
             let (client, incoming) = tokio::io::duplex(1024);
-            let channel = memory_sift_channel(client).await;
+            let channel = memory_grpc_channel(client).await;
             let handle = tokio::spawn(async move {
                 Server::builder()
                     .add_service(Service::new(mock))
@@ -77,7 +77,7 @@ macro_rules! check_retry_isolation {
 
 check_retry_isolation!(
     annotations_create_once_per_item,
-    sift_test_util::mock::annotations::v1::MockAnnotationServiceImpl,
+    crate::test_util::mock::annotations::v1::MockAnnotationServiceImpl,
     sift_rs::annotations::v1::annotation_service_server::AnnotationServiceServer,
     expect_create_annotation,
     create_annotation,
@@ -86,7 +86,7 @@ check_retry_isolation!(
 );
 check_retry_isolation!(
     rules_create_once_per_item,
-    sift_test_util::mock::rules::v1::MockRuleServiceImpl,
+    crate::test_util::mock::rules::v1::MockRuleServiceImpl,
     sift_rs::rules::v1::rule_service_server::RuleServiceServer,
     expect_create_rule,
     create_rule,
@@ -94,7 +94,7 @@ check_retry_isolation!(
 );
 check_retry_isolation!(
     calculated_channels_create_once_per_item,
-    sift_test_util::mock::calculated_channels::v2::MockCalculatedChannelServiceImpl,
+    crate::test_util::mock::calculated_channels::v2::MockCalculatedChannelServiceImpl,
     sift_rs::calculated_channels::v2::calculated_channel_service_server::CalculatedChannelServiceServer,
     expect_create_calculated_channel,
     create_calculated_channel,
@@ -102,7 +102,7 @@ check_retry_isolation!(
 );
 check_retry_isolation!(
     user_defined_functions_create_once_per_item,
-    sift_test_util::mock::user_defined_functions::v1::MockUserDefinedFunctionServiceImpl,
+    crate::test_util::mock::user_defined_functions::v1::MockUserDefinedFunctionServiceImpl,
     sift_rs::user_defined_functions::v1::user_defined_function_service_server::UserDefinedFunctionServiceServer,
     expect_create_user_defined_function,
     create_user_defined_function,
@@ -110,7 +110,7 @@ check_retry_isolation!(
 );
 check_retry_isolation!(
     reports_create_once_per_item,
-    sift_test_util::mock::rule_evaluation::v1::MockRuleEvaluationServiceImpl,
+    crate::test_util::mock::rule_evaluation::v1::MockRuleEvaluationServiceImpl,
     sift_rs::rule_evaluation::v1::rule_evaluation_service_server::RuleEvaluationServiceServer,
     expect_evaluate_rules,
     create_report,
@@ -118,7 +118,7 @@ check_retry_isolation!(
 );
 check_retry_isolation!(
     report_templates_create_once_per_item,
-    sift_test_util::mock::report_templates::v1::MockReportTemplateServiceImpl,
+    crate::test_util::mock::report_templates::v1::MockReportTemplateServiceImpl,
     sift_rs::report_templates::v1::report_template_service_server::ReportTemplateServiceServer,
     expect_create_report_template,
     create_report_template,
@@ -126,7 +126,7 @@ check_retry_isolation!(
 );
 check_retry_isolation!(
     test_reports_create_once_per_item,
-    sift_test_util::mock::test_reports::v1::MockTestReportServiceImpl,
+    crate::test_util::mock::test_reports::v1::MockTestReportServiceImpl,
     sift_rs::test_reports::v1::test_report_service_server::TestReportServiceServer,
     expect_create_test_report,
     create_test_report,
@@ -134,7 +134,7 @@ check_retry_isolation!(
 );
 check_retry_isolation!(
     artifacts_create_once_per_item,
-    sift_test_util::mock::artifacts::v1::MockArtifactServiceImpl,
+    crate::test_util::mock::artifacts::v1::MockArtifactServiceImpl,
     sift_rs::artifacts::v1::artifact_service_server::ArtifactServiceServer,
     expect_create_artifact,
     create_artifact,
@@ -143,14 +143,14 @@ check_retry_isolation!(
 
 #[tokio::test]
 async fn reports_retry_get_after_create() {
+    use crate::test_util::mock::{
+        reports::v1::MockReportServiceImpl, rule_evaluation::v1::MockRuleEvaluationServiceImpl,
+    };
     use sift_rs::reports::v1::{
         GetReportResponse, Report, report_service_server::ReportServiceServer,
     };
     use sift_rs::rule_evaluation::v1::{
         EvaluateRulesResponse, rule_evaluation_service_server::RuleEvaluationServiceServer,
-    };
-    use sift_test_util::mock::{
-        reports::v1::MockReportServiceImpl, rule_evaluation::v1::MockRuleEvaluationServiceImpl,
     };
 
     let evaluate_calls = Arc::new(AtomicUsize::new(0));
@@ -188,7 +188,7 @@ async fn reports_retry_get_after_create() {
         });
 
     let (client, incoming) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
     let handle = tokio::spawn(async move {
         Server::builder()
             .add_service(RuleEvaluationServiceServer::new(eval_mock))

@@ -1,9 +1,9 @@
+use crate::test_util::{grpc::memory_grpc_channel, mock::docs::v1::MockDocsServiceImpl};
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::ErrorCode;
 use sift_rs::docs::v1::{
     DocHit, ReadDocResponse, SearchDocsResponse, docs_service_server::DocsServiceServer,
 };
-use sift_test_util::{grpc::memory_sift_channel, mock::docs::v1::MockDocsServiceImpl};
 use tokio::task::JoinHandle;
 use tonic::{Response, transport::Server};
 
@@ -14,7 +14,7 @@ use crate::server::SiftMcpServer;
 /// in-memory gRPC channel. Other services share the channel but go unused.
 async fn server_with_mock(mock: MockDocsServiceImpl) -> (SiftMcpServer, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()

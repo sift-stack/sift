@@ -1,3 +1,9 @@
+use crate::test_util::{
+    grpc::memory_grpc_channel,
+    mock::{
+        reports::v1::MockReportServiceImpl, rule_evaluation::v1::MockRuleEvaluationServiceImpl,
+    },
+};
 use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
 use sift_rs::{
     reports::v1::{
@@ -7,12 +13,6 @@ use sift_rs::{
     },
     rule_evaluation::v1::{
         EvaluateRulesResponse, rule_evaluation_service_server::RuleEvaluationServiceServer,
-    },
-};
-use sift_test_util::{
-    grpc::memory_sift_channel,
-    mock::{
-        reports::v1::MockReportServiceImpl, rule_evaluation::v1::MockRuleEvaluationServiceImpl,
     },
 };
 use tokio::task::JoinHandle;
@@ -124,7 +124,7 @@ fn create_report_params() -> CreateReportItem {
 
 async fn server_with_mock(mock: MockReportServiceImpl) -> (SiftMcpServer, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()
@@ -145,7 +145,7 @@ async fn server_with_dual_mocks(
     eval_mock: MockRuleEvaluationServiceImpl,
 ) -> (SiftMcpServer, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()

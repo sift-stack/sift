@@ -1,3 +1,6 @@
+use crate::test_util::{
+    grpc::memory_grpc_channel, mock::rule_evaluation::v1::MockRuleEvaluationServiceImpl,
+};
 use sift_rs::{
     common::r#type::v1::{resource_identifier, resource_identifiers},
     rule_evaluation::v1::{
@@ -5,9 +8,6 @@ use sift_rs::{
         rule_evaluation_service_server::RuleEvaluationServiceServer,
     },
     rules::v1::{DryRunAnnotation, UpdateRuleRequest},
-};
-use sift_test_util::{
-    grpc::memory_sift_channel, mock::rule_evaluation::v1::MockRuleEvaluationServiceImpl,
 };
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
@@ -19,7 +19,7 @@ async fn service_with_mock(
     mock: MockRuleEvaluationServiceImpl,
 ) -> (RuleEvaluationService, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()

@@ -8,7 +8,7 @@ use sift_rs::rules::v1::{
 };
 
 use super::RuleUpdate;
-use sift_test_util::{grpc::memory_sift_channel, mock::rules::v1::MockRuleServiceImpl};
+use crate::test_util::{grpc::memory_grpc_channel, mock::rules::v1::MockRuleServiceImpl};
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
@@ -17,7 +17,7 @@ use crate::service::common::DEFAULT_LIMIT;
 
 async fn service_with_mock(mock: MockRuleServiceImpl) -> (RuleService, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()

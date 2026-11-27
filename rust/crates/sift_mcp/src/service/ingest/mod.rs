@@ -1,3 +1,4 @@
+use crate::grpc::GrpcChannel;
 use std::{
     collections::HashMap,
     hash::{DefaultHasher, Hasher},
@@ -18,7 +19,6 @@ use pbjson_types::{Empty, Timestamp};
 use prost::Message;
 use serde::Deserialize;
 use sift_rs::{
-    SiftChannel,
     common::r#type::v1::{ChannelBitFieldElement, ChannelDataType, ChannelEnumType},
     ingest::v1::{
         IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest,
@@ -40,7 +40,7 @@ use crate::service::common::{
 
 #[derive(Clone)]
 pub struct IngestService {
-    channel: SiftChannel,
+    channel: GrpcChannel,
 }
 
 #[derive(Deserialize)]
@@ -72,7 +72,7 @@ enum ColumnEncoding {
 }
 
 impl IngestService {
-    pub fn new(channel: SiftChannel) -> Self {
+    pub fn new(channel: GrpcChannel) -> Self {
         Self { channel }
     }
 

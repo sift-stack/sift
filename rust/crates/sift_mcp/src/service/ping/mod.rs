@@ -1,18 +1,16 @@
+use crate::grpc::GrpcChannel;
 use crate::policy::{RetryPolicy, with_retry};
 use anyhow::{Context, Result};
-use sift_rs::{
-    SiftChannel,
-    ping::v1::{PingRequest, ping_service_client::PingServiceClient},
-};
+use sift_rs::ping::v1::{PingRequest, ping_service_client::PingServiceClient};
 
 #[derive(Clone)]
 pub struct PingService {
-    channel: SiftChannel,
+    channel: GrpcChannel,
     policy: RetryPolicy,
 }
 
 impl PingService {
-    pub fn new(channel: SiftChannel, policy: RetryPolicy) -> Self {
+    pub fn new(channel: GrpcChannel, policy: RetryPolicy) -> Self {
         Self { channel, policy }
     }
 

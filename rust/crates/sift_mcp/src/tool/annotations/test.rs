@@ -3,6 +3,9 @@ use std::sync::{
     atomic::{AtomicUsize, Ordering},
 };
 
+use crate::test_util::{
+    grpc::memory_grpc_channel, mock::annotations::v1::MockAnnotationServiceImpl,
+};
 use rmcp::{
     handler::server::wrapper::Parameters,
     model::{ErrorCode, Tool},
@@ -12,7 +15,6 @@ use sift_rs::annotations::v1::{
     UnarchiveAnnotationResponse, UpdateAnnotationResponse,
     annotation_service_server::AnnotationServiceServer,
 };
-use sift_test_util::{grpc::memory_sift_channel, mock::annotations::v1::MockAnnotationServiceImpl};
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
@@ -146,7 +148,7 @@ fn list_annotations_description_publishes_filter_enum_values() {
 
 async fn server_with_mock(mock: MockAnnotationServiceImpl) -> (SiftMcpServer, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()

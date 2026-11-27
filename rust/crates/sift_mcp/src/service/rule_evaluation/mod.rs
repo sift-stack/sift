@@ -1,7 +1,7 @@
+use crate::grpc::GrpcChannel;
 use crate::policy::{RetryPolicy, with_retry};
 use anyhow::{Context, Result};
 use sift_rs::{
-    SiftChannel,
     common::r#type::v1::{
         Ids, ResourceIdentifier, ResourceIdentifiers, resource_identifier, resource_identifiers,
     },
@@ -26,12 +26,12 @@ pub enum PreviewRuleSource {
 
 #[derive(Clone)]
 pub struct RuleEvaluationService {
-    channel: SiftChannel,
+    channel: GrpcChannel,
     policy: RetryPolicy,
 }
 
 impl RuleEvaluationService {
-    pub fn new(channel: SiftChannel, policy: RetryPolicy) -> Self {
+    pub fn new(channel: GrpcChannel, policy: RetryPolicy) -> Self {
         Self { channel, policy }
     }
 

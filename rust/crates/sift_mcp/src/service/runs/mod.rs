@@ -1,9 +1,9 @@
+use crate::grpc::GrpcChannel;
 use crate::policy::{RetryPolicy, with_retry};
 use crate::service::common;
 use anyhow::{Context, Result, anyhow};
 use pbjson_types::{FieldMask, Timestamp};
 use sift_rs::{
-    SiftChannel,
     metadata::v1::MetadataValue,
     runs::v2::{
         ListRunsRequest, ListRunsResponse, Run, UpdateRunRequest,
@@ -22,12 +22,12 @@ mod test;
 
 #[derive(Clone)]
 pub struct RunService {
-    channel: SiftChannel,
+    channel: GrpcChannel,
     policy: RetryPolicy,
 }
 
 impl RunService {
-    pub fn new(channel: SiftChannel, policy: RetryPolicy) -> Self {
+    pub fn new(channel: GrpcChannel, policy: RetryPolicy) -> Self {
         Self { channel, policy }
     }
 

@@ -1,9 +1,9 @@
+use crate::grpc::GrpcChannel;
 use crate::policy::{RetryPolicy, once, with_retry};
 use crate::service::common;
 use anyhow::{Context, Result, anyhow};
 use pbjson_types::FieldMask;
 use sift_rs::{
-    SiftChannel,
     common::r#type::v1::{
         ClientKeys, Ids, ResourceIdentifier, ResourceIdentifiers, resource_identifier,
         resource_identifiers,
@@ -45,12 +45,12 @@ pub struct CreateReportOutput {
 
 #[derive(Clone)]
 pub struct ReportService {
-    channel: SiftChannel,
+    channel: GrpcChannel,
     policy: RetryPolicy,
 }
 
 impl ReportService {
-    pub fn new(channel: SiftChannel, policy: RetryPolicy) -> Self {
+    pub fn new(channel: GrpcChannel, policy: RetryPolicy) -> Self {
         Self { channel, policy }
     }
 

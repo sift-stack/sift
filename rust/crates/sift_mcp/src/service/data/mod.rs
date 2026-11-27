@@ -1,3 +1,4 @@
+use crate::grpc::GrpcChannel;
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
     fmt,
@@ -24,7 +25,6 @@ use polars::{
 };
 use prost::Message;
 use sift_rs::{
-    SiftChannel,
     calculated_channels::v1::{ExpressionMode, ExpressionRequest},
     channels::v3::Channel,
     data::v2::{
@@ -68,7 +68,7 @@ fn column_label(channel: &metadata::Channel) -> &str {
 
 #[derive(Clone)]
 pub struct DataService {
-    channel: SiftChannel,
+    channel: GrpcChannel,
     policy: RetryPolicy,
 }
 
@@ -278,7 +278,7 @@ impl ChannelValue {
 }
 
 impl DataService {
-    pub fn new(channel: SiftChannel, policy: RetryPolicy) -> Self {
+    pub fn new(channel: GrpcChannel, policy: RetryPolicy) -> Self {
         Self { channel, policy }
     }
 

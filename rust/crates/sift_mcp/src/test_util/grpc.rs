@@ -1,18 +1,12 @@
+use crate::grpc::{GrpcChannel, grpc_channel};
 use hyper_util::rt::TokioIo;
-use sift_connect::grpc::AuthInterceptor;
 use std::io::Error;
-use tonic::{
-    service::InterceptorLayer,
-    transport::{Endpoint, Uri},
-};
-use tower::{ServiceBuilder, service_fn};
+use tonic::transport::{Endpoint, Uri};
+use tower::service_fn;
 
-/// A test showing how to use [memory_sift_channel].
-#[cfg(test)]
-mod test;
-
-/// In-memory channel for testing.
-pub async fn memory_sift_channel(client: tokio::io::DuplexStream) -> sift_connect::SiftChannel {
+/// Returns a channel that talks to a mock server over `client`, one half of a
+/// `tokio::io::duplex` pair. Serve the mock on the other half.
+pub async fn memory_grpc_channel(client: tokio::io::DuplexStream) -> GrpcChannel {
     let mut client = Some(client);
 
     let channel = Endpoint::try_from("http://[::]:50051")
@@ -31,9 +25,5 @@ pub async fn memory_sift_channel(client: tokio::io::DuplexStream) -> sift_connec
         .await
         .expect("failed to create gRPC memory channel");
 
-    ServiceBuilder::new()
-        .layer(InterceptorLayer::new(AuthInterceptor {
-            apikey: "sift-api-key".into(),
-        }))
-        .service(channel)
+    grpc_channel(channel)
 }

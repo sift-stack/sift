@@ -1,6 +1,10 @@
 #[path = "bulk_test.rs"]
 mod bulk;
 
+use crate::test_util::{
+    grpc::memory_grpc_channel,
+    mock::{artifacts::v1::MockArtifactServiceImpl, remote_files::v1::MockRemoteFileServiceImpl},
+};
 use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
 use sift_rs::{
     artifacts::v1::{
@@ -13,10 +17,6 @@ use sift_rs::{
     remote_files::v1::{
         GetRemoteFileDownloadUrlResponse, remote_file_service_server::RemoteFileServiceServer,
     },
-};
-use sift_test_util::{
-    grpc::memory_sift_channel,
-    mock::{artifacts::v1::MockArtifactServiceImpl, remote_files::v1::MockRemoteFileServiceImpl},
 };
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
@@ -154,7 +154,7 @@ async fn server_with_mocks(
     allow_destructive: bool,
 ) -> (SiftMcpServer, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()

@@ -1,10 +1,10 @@
+use crate::grpc::GrpcChannel;
 use crate::policy::{RetryPolicy, once, with_retry};
 use crate::service::common;
 use anyhow::{Context, Result, anyhow};
 use futures::{StreamExt, stream};
 use pbjson_types::{FieldMask, Timestamp};
 use sift_rs::{
-    SiftChannel,
     annotations::v1::{
         Annotation, AnnotationLinkedChannel, AnnotationState, AnnotationType,
         ArchiveAnnotationRequest, CreateAnnotationRequest, ListAnnotationsRequest,
@@ -73,12 +73,12 @@ fn linked_channels(ids: Vec<String>) -> Vec<AnnotationLinkedChannel> {
 
 #[derive(Clone)]
 pub struct AnnotationService {
-    channel: SiftChannel,
+    channel: GrpcChannel,
     policy: RetryPolicy,
 }
 
 impl AnnotationService {
-    pub fn new(channel: SiftChannel, policy: RetryPolicy) -> Self {
+    pub fn new(channel: GrpcChannel, policy: RetryPolicy) -> Self {
         Self { channel, policy }
     }
 

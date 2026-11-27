@@ -3,9 +3,9 @@ use std::{
     process::ExitCode,
 };
 
-use anyhow::{Error, Result};
+use anyhow::{Context as _, Error, Result};
 use semver::Version;
-use sift_rs::Credentials;
+use sift_rs::{Credentials, SiftChannelBuilder};
 use tokio::sync::watch;
 use tracing_subscriber::EnvFilter;
 
@@ -73,22 +73,29 @@ pub async fn run(ctx: Context, args: McpArgs, app_uri: String) -> Result<ExitCod
         uri: ctx.grpc_uri,
         apikey: ctx.api_key,
     };
-    match sift_mcp::run_with_client_events(
-        credentials,
-        !ctx.disable_tls,
-        app_uri,
-        args.allow_create,
-        args.allow_destructive,
-        cli_version,
-        update_check,
-        client_event_config,
-        feature_flags,
-        Some(rest_config),
-        args.ignore_tool,
-        client_name,
-    )
-    .await
-    {
+    let use_tls = !ctx.disable_tls;
+    let server = async {
+        let channel = SiftChannelBuilder::new(credentials)
+            .use_tls(use_tls)
+            .user_agent(sift_mcp::grpc_user_agent(client_name))
+            .build()
+            .context("failed to build gRPC channel to connect to Sift")?;
+        sift_mcp::run_with_client_events(
+            sift_mcp::grpc_channel(channel),
+            app_uri,
+            args.allow_create,
+            args.allow_destructive,
+            cli_version,
+            update_check,
+            client_event_config,
+            feature_flags,
+            Some(rest_config),
+            args.ignore_tool,
+            client_name,
+        )
+        .await
+    };
+    match server.await {
         Ok(_) => {
             tracing::info!("Sift MCP server exited cleanly");
             Ok(ExitCode::SUCCESS)
