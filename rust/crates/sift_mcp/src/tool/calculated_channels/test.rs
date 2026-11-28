@@ -1,12 +1,12 @@
+use crate::test_util::{
+    grpc::memory_grpc_channel, mock::calculated_channels::v2::MockCalculatedChannelServiceImpl,
+};
 use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
 use sift_rs::calculated_channels::v2::{
     CalculatedChannel, CalculatedChannelValidationResult, CreateCalculatedChannelResponse,
     GetCalculatedChannelResponse, ListCalculatedChannelVersionsResponse,
     ListCalculatedChannelsResponse, UpdateCalculatedChannelResponse,
     calculated_channel_service_server::CalculatedChannelServiceServer,
-};
-use sift_test_util::{
-    grpc::memory_sift_channel, mock::calculated_channels::v2::MockCalculatedChannelServiceImpl,
 };
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
@@ -39,7 +39,7 @@ async fn server_with_mock_and_flags(
     allow_destructive: bool,
 ) -> (SiftMcpServer, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()

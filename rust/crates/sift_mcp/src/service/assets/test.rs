@@ -1,3 +1,4 @@
+use crate::test_util::{grpc::memory_grpc_channel, mock::assets::v1::MockAssetServiceImpl};
 use sift_rs::{
     assets::v1::{
         Asset, ListAssetsResponse, UpdateAssetResponse, asset_service_server::AssetServiceServer,
@@ -6,7 +7,6 @@ use sift_rs::{
         MetadataKey, MetadataKeyType, MetadataValue, metadata_value::Value as MetadataValueInner,
     },
 };
-use sift_test_util::{grpc::memory_sift_channel, mock::assets::v1::MockAssetServiceImpl};
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
@@ -28,7 +28,7 @@ fn string_metadata(name: &str, value: &str) -> MetadataValue {
 
 async fn service_with_mock(mock: MockAssetServiceImpl) -> (AssetService, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()

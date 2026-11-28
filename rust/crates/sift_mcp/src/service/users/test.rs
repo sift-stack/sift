@@ -1,13 +1,13 @@
+use crate::test_util::{
+    grpc::memory_grpc_channel,
+    mock::{me::v2::MockMeServiceImpl, users::v2::MockUserServiceImpl},
+};
 use sift_rs::{
     common::r#type::v1::{Organization, User},
     me::v2::{GetMeResponse, me_service_server::MeServiceServer},
     users::v2::{
         ListActiveUsersResponse, ListUsersResponse, user_service_server::UserServiceServer,
     },
-};
-use sift_test_util::{
-    grpc::memory_sift_channel,
-    mock::{me::v2::MockMeServiceImpl, users::v2::MockUserServiceImpl},
 };
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
@@ -39,7 +39,7 @@ async fn service_with_mocks(
     me_mock: MockMeServiceImpl,
 ) -> (UserService, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()

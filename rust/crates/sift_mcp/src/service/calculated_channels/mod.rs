@@ -1,9 +1,9 @@
+use crate::grpc::GrpcChannel;
 use crate::policy::{RetryPolicy, once, with_retry};
 use crate::service::common;
 use anyhow::{Context, Result, anyhow, bail};
 use pbjson_types::FieldMask;
 use sift_rs::{
-    SiftChannel,
     calculated_channels::{
         v1::ExpressionRequest,
         v2::{
@@ -136,12 +136,12 @@ const INAPPLICABLE_REASON: &str = "does not apply to this asset: the asset is ou
 
 #[derive(Clone)]
 pub struct CalculatedChannelService {
-    channel: SiftChannel,
+    channel: GrpcChannel,
     policy: RetryPolicy,
 }
 
 impl CalculatedChannelService {
-    pub fn new(channel: SiftChannel, policy: RetryPolicy) -> Self {
+    pub fn new(channel: GrpcChannel, policy: RetryPolicy) -> Self {
         Self { channel, policy }
     }
 

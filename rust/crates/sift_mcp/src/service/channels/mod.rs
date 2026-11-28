@@ -1,12 +1,10 @@
+use crate::grpc::GrpcChannel;
 use crate::policy::{RetryPolicy, with_retry};
 use crate::service::common;
 use anyhow::{Context, Result};
-use sift_rs::{
-    SiftChannel,
-    channels::v3::{
-        Channel, ListChannelsRequest, ListChannelsResponse,
-        channel_service_client::ChannelServiceClient,
-    },
+use sift_rs::channels::v3::{
+    Channel, ListChannelsRequest, ListChannelsResponse,
+    channel_service_client::ChannelServiceClient,
 };
 
 #[cfg(test)]
@@ -14,12 +12,12 @@ mod test;
 
 #[derive(Clone)]
 pub struct ChannelService {
-    channel: SiftChannel,
+    channel: GrpcChannel,
     policy: RetryPolicy,
 }
 
 impl ChannelService {
-    pub fn new(channel: SiftChannel, policy: RetryPolicy) -> Self {
+    pub fn new(channel: GrpcChannel, policy: RetryPolicy) -> Self {
         Self { channel, policy }
     }
 

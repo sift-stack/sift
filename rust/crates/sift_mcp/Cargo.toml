@@ -1,45 +1,48 @@
 [package]
 name = "sift_mcp"
-authors.workspace = true
-version.workspace = true
+authors = ["Sift Software Engineers <engineering@siftstack.com>"]
+version = "0.14.1"
 publish = false
-edition.workspace = true
-categories.workspace = true
-homepage.workspace = true
-repository.workspace = true
-keywords.workspace = true
-readme.workspace = true
-license.workspace = true
+edition = "2024"
+categories = ["aerospace", "science::robotics"]
+homepage = "https://github.com/sift-stack/sift"
+repository = "https://github.com/sift-stack/sift"
+keywords = ["sift", "siftstack", "sift-stack", "sift_rs", "telemetry"]
+readme = "../../../README.md"
+license = "MIT"
 
 [dependencies]
-rmcp = { workspace = true, features = ["transport-io"] }
-serde.workspace = true
-serde_json.workspace = true
-sift_connect.workspace = true
-sift_rs.workspace = true
-sift_stream.workspace = true
-tokio.workspace = true
-tonic.workspace = true
-anyhow.workspace = true
-chrono.workspace = true
-clap = { workspace = true, features = ["cargo"] }
-futures.workspace = true
-pbjson-types.workspace = true
-percent-encoding.workspace = true
-prost.workspace = true
-rand.workspace = true
-arrow.workspace = true
-parquet.workspace = true
-polars = { workspace = true, features = ["lazy", "parquet", "sql"] }
-tokio-stream.workspace = true
-reqwest = { workspace = true, features = ["json", "multipart", "stream"] }
-mime_guess.workspace = true
-tinyvec.workspace = true
-dirs.workspace = true
-sha2.workspace = true
+rmcp = { version = "3.2.0", features = ["transport-io"] }
+serde = "^1.0"
+serde_json = "^1.0"
+tokio = "1"
+tonic = { version = "^0.14", features = ["gzip"] }
+tower = { version = "^0.5", features = ["util"] }
+anyhow = "1.0"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+clap = { version = "4.6", features = ["cargo", "derive", "wrap_help"] }
+futures = { version = "0.3", default-features = false, features = ["alloc"] }
+pbjson-types = "^0.9"
+percent-encoding = "2"
+prost = "^0.14"
+rand = "0.10"
+arrow = "58.3.0"
+parquet = "58.3.0"
+polars = { version = "0.53.0", features = ["lazy", "parquet", "sql"] }
+tokio-stream = "0.1"
+reqwest = { version = "0.13", features = ["json", "multipart", "stream"] }
+sift_rs = { version = "0.14.1", path = "../sift_rs" }
+mime_guess = "2"
+# `unicode-normalization` enables only `alloc`, which does not compile in
+# tinyvec 1.13.0. Workspace crates run with the standard library available.
+tinyvec = { version = "1", features = ["std"] }
+dirs = "6.0"
+sha2 = "0.10"
 
 [dev-dependencies]
-sift_test_util.workspace = true
-tokio-stream.workspace = true
-bytes.workspace = true
-tempdir.workspace = true
+async-trait = "^0.1"
+hyper-util = { version = "0.1.20", features = ["tokio"] }
+mockall = "0.14.0"
+tokio-stream = "0.1"
+bytes = "1.11.1"
+tempdir = "0.3"

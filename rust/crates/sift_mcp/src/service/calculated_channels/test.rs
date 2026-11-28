@@ -1,3 +1,6 @@
+use crate::test_util::{
+    grpc::memory_grpc_channel, mock::calculated_channels::v2::MockCalculatedChannelServiceImpl,
+};
 use sift_rs::{
     calculated_channels::{
         v1::{ExpressionChannelReference, ExpressionRequest},
@@ -23,9 +26,6 @@ use sift_rs::{
         MetadataKey, MetadataKeyType, MetadataValue, metadata_value::Value as MetadataValueInner,
     },
 };
-use sift_test_util::{
-    grpc::memory_sift_channel, mock::calculated_channels::v2::MockCalculatedChannelServiceImpl,
-};
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
@@ -39,7 +39,7 @@ async fn service_with_mock(
     mock: MockCalculatedChannelServiceImpl,
 ) -> (CalculatedChannelService, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()

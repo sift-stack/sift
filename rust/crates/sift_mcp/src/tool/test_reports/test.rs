@@ -1,10 +1,10 @@
+use crate::test_util::{
+    grpc::memory_grpc_channel, mock::test_reports::v1::MockTestReportServiceImpl,
+};
 use rmcp::handler::server::wrapper::Parameters;
 use sift_rs::test_reports::v1::{
     CreateTestMeasurementsResponse, CreateTestReportResponse, TestReport,
     test_report_service_server::TestReportServiceServer,
-};
-use sift_test_util::{
-    grpc::memory_sift_channel, mock::test_reports::v1::MockTestReportServiceImpl,
 };
 use tokio::task::JoinHandle;
 use tonic::{Response, transport::Server};
@@ -14,7 +14,7 @@ use crate::{server::SiftMcpServer, tool::common::test_support::structured_field}
 
 async fn server_with_mock(mock: MockTestReportServiceImpl) -> (SiftMcpServer, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()

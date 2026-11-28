@@ -1,9 +1,11 @@
+use crate::test_util::{
+    grpc::memory_grpc_channel, mock::annotations::v1::MockAnnotationServiceImpl,
+};
 use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
 use serde_json::{Value, json};
 use sift_rs::annotations::v1::{
     Annotation, CreateAnnotationResponse, annotation_service_server::AnnotationServiceServer,
 };
-use sift_test_util::{grpc::memory_sift_channel, mock::annotations::v1::MockAnnotationServiceImpl};
 use tonic::{Response, Status, transport::Server};
 
 use crate::{server::SiftMcpServer, tool::common::test_support::structured};
@@ -13,7 +15,7 @@ async fn server(
     allow_create: bool,
 ) -> (SiftMcpServer, tokio::task::JoinHandle<()>) {
     let (client, incoming) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
     let handle = tokio::spawn(async move {
         Server::builder()
             .add_service(AnnotationServiceServer::new(mock))
@@ -267,8 +269,8 @@ async fn selected_annotations_preserve_shared_associations_without_creating_the_
 
 #[tokio::test]
 async fn selecting_two_rules_issues_exactly_two_create_rpcs_and_never_the_rejected_rule() {
+    use crate::test_util::mock::rules::v1::MockRuleServiceImpl;
     use sift_rs::rules::v1::{CreateRuleResponse, rule_service_server::RuleServiceServer};
-    use sift_test_util::mock::rules::v1::MockRuleServiceImpl;
     let mut mock = MockRuleServiceImpl::new();
     mock.expect_create_rule()
         .times(2)
@@ -285,7 +287,7 @@ async fn selecting_two_rules_issues_exactly_two_create_rpcs_and_never_the_reject
             }))
         });
     let (client, incoming) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
     let handle = tokio::spawn(async move {
         Server::builder()
             .add_service(RuleServiceServer::new(mock))

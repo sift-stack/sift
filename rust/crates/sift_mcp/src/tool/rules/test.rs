@@ -19,20 +19,20 @@ fn parse_rule_definition_rejects_invalid_json() {
 mod bulk {
     use std::sync::{Arc, Mutex};
 
+    use crate::test_util::{grpc::memory_grpc_channel, mock::rules::v1::MockRuleServiceImpl};
     use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
     use serde_json::{Value, json};
     use sift_rs::rules::v1::{
         ArchiveRuleResponse, GetRuleResponse, Rule, UpdateRuleResponse,
         rule_service_server::RuleServiceServer,
     };
-    use sift_test_util::{grpc::memory_sift_channel, mock::rules::v1::MockRuleServiceImpl};
     use tonic::{Response, Status, transport::Server};
 
     use crate::{server::SiftMcpServer, tool::common::test_support::structured};
 
     async fn server(mock: MockRuleServiceImpl) -> (SiftMcpServer, tokio::task::JoinHandle<()>) {
         let (client, incoming) = tokio::io::duplex(1024);
-        let channel = memory_sift_channel(client).await;
+        let channel = memory_grpc_channel(client).await;
         let handle = tokio::spawn(async move {
             Server::builder()
                 .add_service(RuleServiceServer::new(mock))
@@ -221,6 +221,10 @@ mod bulk {
 }
 
 mod webhooks {
+    use crate::test_util::{
+        grpc::memory_grpc_channel,
+        mock::{rules::v1::MockRuleServiceImpl, webhooks::v1::MockWebhookServiceImpl},
+    };
     use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
     use serde_json::{Value, json};
     use sift_rs::{
@@ -232,10 +236,6 @@ mod webhooks {
         webhooks::v1::{
             ListWebhooksResponse, Webhook, webhook_service_server::WebhookServiceServer,
         },
-    };
-    use sift_test_util::{
-        grpc::memory_sift_channel,
-        mock::{rules::v1::MockRuleServiceImpl, webhooks::v1::MockWebhookServiceImpl},
     };
     use tokio::task::JoinHandle;
     use tonic::{Response, Status, transport::Server};
@@ -270,7 +270,7 @@ mod webhooks {
         webhook_mock: MockWebhookServiceImpl,
     ) -> (SiftMcpServer, JoinHandle<()>) {
         let (client, server) = tokio::io::duplex(1024);
-        let channel = memory_sift_channel(client).await;
+        let channel = memory_grpc_channel(client).await;
 
         let handle = tokio::spawn(async move {
             Server::builder()

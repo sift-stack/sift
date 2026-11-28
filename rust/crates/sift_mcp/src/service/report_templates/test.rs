@@ -1,3 +1,6 @@
+use crate::test_util::{
+    grpc::memory_grpc_channel, mock::report_templates::v1::MockReportTemplateServiceImpl,
+};
 use sift_rs::{
     metadata::v1::{MetadataKey, MetadataKeyType, MetadataValue, metadata_value::Value},
     report_templates::v1::{
@@ -5,9 +8,6 @@ use sift_rs::{
         ReportTemplateRule, UpdateReportTemplateResponse, create_report_template_request,
         report_template_service_server::ReportTemplateServiceServer,
     },
-};
-use sift_test_util::{
-    grpc::memory_sift_channel, mock::report_templates::v1::MockReportTemplateServiceImpl,
 };
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
@@ -19,7 +19,7 @@ async fn service_with_mock(
     mock: MockReportTemplateServiceImpl,
 ) -> (ReportTemplateService, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()

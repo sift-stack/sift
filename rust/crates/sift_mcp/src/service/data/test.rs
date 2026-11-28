@@ -1,5 +1,6 @@
 use std::{fs::File, path::Path, sync::Arc};
 
+use crate::test_util::{grpc::memory_grpc_channel, mock::data::v2::MockDataServiceImpl};
 use arrow::array::{Array, AsArray, Int64Array, RecordBatch};
 use arrow::datatypes::{DataType, Field, Float64Type, Int64Type, Schema, SchemaRef};
 use bytes::Bytes;
@@ -15,7 +16,6 @@ use sift_rs::{
     },
     runs::v2::Run,
 };
-use sift_test_util::{grpc::memory_sift_channel, mock::data::v2::MockDataServiceImpl};
 use tempdir::TempDir;
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
@@ -25,7 +25,7 @@ use crate::service::common::unix_nanos_to_secs_and_subsec_nanos;
 
 async fn service_with_mock(mock: MockDataServiceImpl) -> (DataService, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()

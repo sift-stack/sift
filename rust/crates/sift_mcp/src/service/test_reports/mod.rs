@@ -1,18 +1,15 @@
+use crate::grpc::GrpcChannel;
 use std::borrow::Cow;
 use std::collections::HashMap;
 
 use crate::policy::{RetryPolicy, once, with_retry};
 use crate::service::common;
 use anyhow::{Context, Result, anyhow};
-use sift_rs::{
-    SiftChannel,
-    test_reports::v1::{
-        CountTestMeasurementsRequest, CountTestStepsRequest, CreateTestMeasurementsRequest,
-        CreateTestStepRequest, ListTestMeasurementsRequest, ListTestMeasurementsResponse,
-        ListTestReportsRequest, ListTestReportsResponse, ListTestStepsRequest,
-        ListTestStepsResponse, TestMeasurement, TestReport, TestStep,
-        test_report_service_client::TestReportServiceClient,
-    },
+use sift_rs::test_reports::v1::{
+    CountTestMeasurementsRequest, CountTestStepsRequest, CreateTestMeasurementsRequest,
+    CreateTestStepRequest, ListTestMeasurementsRequest, ListTestMeasurementsResponse,
+    ListTestReportsRequest, ListTestReportsResponse, ListTestStepsRequest, ListTestStepsResponse,
+    TestMeasurement, TestReport, TestStep, test_report_service_client::TestReportServiceClient,
 };
 
 pub mod spec;
@@ -31,7 +28,7 @@ pub struct CreatedReport {
 
 #[derive(Clone)]
 pub struct TestReportService {
-    channel: SiftChannel,
+    channel: GrpcChannel,
     policy: RetryPolicy,
 }
 
@@ -112,7 +109,7 @@ fn shorten_enum_value(content: &str) -> Cow<'_, str> {
 }
 
 impl TestReportService {
-    pub fn new(channel: SiftChannel, policy: RetryPolicy) -> Self {
+    pub fn new(channel: GrpcChannel, policy: RetryPolicy) -> Self {
         Self { channel, policy }
     }
 

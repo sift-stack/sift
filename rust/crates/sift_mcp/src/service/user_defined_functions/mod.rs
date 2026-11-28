@@ -1,9 +1,9 @@
+use crate::grpc::GrpcChannel;
 use crate::policy::{RetryPolicy, once, with_retry};
 use crate::service::common;
 use anyhow::{Context, Result, anyhow};
 use pbjson_types::FieldMask;
 use sift_rs::{
-    SiftChannel,
     common::r#type::v1::{FunctionInput, UserDefinedFunction},
     metadata::v1::MetadataValue,
     user_defined_functions::v1::{
@@ -34,12 +34,12 @@ pub struct UdfUpdate {
 
 #[derive(Clone)]
 pub struct UserDefinedFunctionService {
-    channel: SiftChannel,
+    channel: GrpcChannel,
     policy: RetryPolicy,
 }
 
 impl UserDefinedFunctionService {
-    pub fn new(channel: SiftChannel, policy: RetryPolicy) -> Self {
+    pub fn new(channel: GrpcChannel, policy: RetryPolicy) -> Self {
         Self { channel, policy }
     }
 

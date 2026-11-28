@@ -1,3 +1,7 @@
+use crate::test_util::{
+    grpc::memory_grpc_channel,
+    mock::{artifacts::v1::MockArtifactServiceImpl, remote_files::v1::MockRemoteFileServiceImpl},
+};
 use sift_rs::{
     artifacts::v1::{
         ArchiveArtifactResponse, Artifact, ArtifactCreatedVia, ArtifactDetails, ArtifactEntityType,
@@ -9,10 +13,6 @@ use sift_rs::{
     remote_files::v1::{
         GetRemoteFileDownloadUrlResponse, remote_file_service_server::RemoteFileServiceServer,
     },
-};
-use sift_test_util::{
-    grpc::memory_sift_channel,
-    mock::{artifacts::v1::MockArtifactServiceImpl, remote_files::v1::MockRemoteFileServiceImpl},
 };
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -69,7 +69,7 @@ async fn service_with_mocks(
     remote_files: MockRemoteFileServiceImpl,
 ) -> (ArtifactService, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()

@@ -1,9 +1,9 @@
+use crate::grpc::GrpcChannel;
 use crate::policy::{RetryPolicy, with_retry};
 use crate::service::common;
 use anyhow::{Context, Result, anyhow};
 use pbjson_types::FieldMask;
 use sift_rs::{
-    SiftChannel,
     assets::v1::{
         Asset, ListAssetsRequest, ListAssetsResponse, UpdateAssetRequest,
         asset_service_client::AssetServiceClient,
@@ -16,12 +16,12 @@ mod test;
 
 #[derive(Clone)]
 pub struct AssetService {
-    channel: SiftChannel,
+    channel: GrpcChannel,
     policy: RetryPolicy,
 }
 
 impl AssetService {
-    pub fn new(channel: SiftChannel, policy: RetryPolicy) -> Self {
+    pub fn new(channel: GrpcChannel, policy: RetryPolicy) -> Self {
         Self { channel, policy }
     }
 

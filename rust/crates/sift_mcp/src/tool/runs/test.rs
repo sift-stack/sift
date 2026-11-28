@@ -1,11 +1,11 @@
 #[path = "bulk_test.rs"]
 mod bulk;
 
+use crate::test_util::{grpc::memory_grpc_channel, mock::runs::v2::MockRunServiceImpl};
 use rmcp::{handler::server::wrapper::Parameters, model::ErrorCode};
 use sift_rs::runs::v2::{
     ListRunsResponse, Run, UpdateRunResponse, run_service_server::RunServiceServer,
 };
-use sift_test_util::{grpc::memory_sift_channel, mock::runs::v2::MockRunServiceImpl};
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
@@ -21,7 +21,7 @@ use crate::{
 
 async fn server_with_mock(mock: MockRunServiceImpl) -> (SiftMcpServer, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()

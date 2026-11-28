@@ -1,8 +1,8 @@
+use crate::grpc::GrpcChannel;
 use crate::policy::{RetryPolicy, with_retry};
 use crate::service::common;
 use anyhow::{Context, Result};
 use sift_rs::{
-    SiftChannel,
     common::r#type::v1::User,
     me::v2::{GetMeRequest, GetMeResponse, me_service_client::MeServiceClient},
     users::v2::{
@@ -19,12 +19,12 @@ mod test;
 /// them.
 #[derive(Clone)]
 pub struct UserService {
-    channel: SiftChannel,
+    channel: GrpcChannel,
     policy: RetryPolicy,
 }
 
 impl UserService {
-    pub fn new(channel: SiftChannel, policy: RetryPolicy) -> Self {
+    pub fn new(channel: GrpcChannel, policy: RetryPolicy) -> Self {
         Self { channel, policy }
     }
 

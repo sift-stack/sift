@@ -1,5 +1,14 @@
 use std::path::PathBuf;
 
+use crate::test_util::{
+    grpc::memory_grpc_channel,
+    mock::{
+        assets::v1::MockAssetServiceImpl,
+        calculated_channels::v2::MockCalculatedChannelServiceImpl,
+        channels::v3::MockChannelServiceImpl, data::v2::MockDataServiceImpl,
+        runs::v2::MockRunServiceImpl,
+    },
+};
 use arrow::array::{Array, AsArray};
 use arrow::datatypes::Float64Type;
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
@@ -22,15 +31,6 @@ use sift_rs::{
         GetDataResponse, data_service_server::DataServiceServer, query::Query as QueryKind,
     },
     runs::v2::{ListRunsResponse, Run, run_service_server::RunServiceServer},
-};
-use sift_test_util::{
-    grpc::memory_sift_channel,
-    mock::{
-        assets::v1::MockAssetServiceImpl,
-        calculated_channels::v2::MockCalculatedChannelServiceImpl,
-        channels::v3::MockChannelServiceImpl, data::v2::MockDataServiceImpl,
-        runs::v2::MockRunServiceImpl,
-    },
 };
 use tempdir::TempDir;
 use tokio::task::JoinHandle;
@@ -59,7 +59,7 @@ async fn server_with_all_mocks(
     data: MockDataServiceImpl,
 ) -> (SiftMcpServer, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()
@@ -625,7 +625,7 @@ async fn server_with_calculation_mocks(
     data: MockDataServiceImpl,
 ) -> (SiftMcpServer, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()

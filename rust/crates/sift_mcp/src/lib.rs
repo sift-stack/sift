@@ -2,11 +2,13 @@ use anyhow::{Context, Result};
 use clap::crate_version;
 use rmcp::{ServiceExt, transport::stdio};
 use serde::Serialize;
-use sift_rs::{Credentials, SiftChannelBuilder};
 use tokio::sync::watch;
 
 mod client_event;
 pub use client_event::ClientEventConfig;
+
+mod grpc;
+pub use grpc::{GrpcChannel, grpc_channel};
 
 mod feature_flags;
 pub use feature_flags::FeatureFlags;
@@ -24,6 +26,9 @@ mod policy;
 mod prompt;
 mod service;
 mod tool;
+
+#[cfg(test)]
+mod test_util;
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(tag = "status", rename_all = "snake_case")]
@@ -97,58 +102,12 @@ impl ClientName {
     }
 }
 
-pub async fn run(
-    credentials: Credentials,
-    use_tls: bool,
-    app_uri: String,
-    allow_create: bool,
-    allow_destructive: bool,
-) -> Result<()> {
-    run_with_update_check(
-        credentials,
-        use_tls,
-        app_uri,
-        allow_create,
-        allow_destructive,
-        crate_version!().to_string(),
-        None,
-    )
-    .await
-}
-
-pub async fn run_with_update_check(
-    credentials: Credentials,
-    use_tls: bool,
-    app_uri: String,
-    allow_create: bool,
-    allow_destructive: bool,
-    cli_version: String,
-    update_check: Option<UpdateCheckReceiver>,
-) -> Result<()> {
-    run_with_client_events(
-        credentials,
-        use_tls,
-        app_uri,
-        allow_create,
-        allow_destructive,
-        cli_version,
-        update_check,
-        None,
-        FeatureFlags::default(),
-        None,
-        Vec::new(),
-        ClientName::default(),
-    )
-    .await
-}
-
 /// Runs the server, reporting anonymous tool-call events only when a client
 /// event config is supplied. `None` leaves the server silent, which is what
 /// `sift-cli mcp --disable-nonessential-traffic` passes.
 #[allow(clippy::too_many_arguments)]
 pub async fn run_with_client_events(
-    credentials: Credentials,
-    use_tls: bool,
+    channel: GrpcChannel,
     app_uri: String,
     allow_create: bool,
     allow_destructive: bool,
@@ -170,8 +129,7 @@ pub async fn run_with_client_events(
         ..config
     });
     run_server(
-        credentials,
-        use_tls,
+        channel,
         RunConfig {
             app_uri,
             allow_create,
@@ -201,13 +159,7 @@ struct RunConfig {
     client_name: ClientName,
 }
 
-async fn run_server(credentials: Credentials, use_tls: bool, config: RunConfig) -> Result<()> {
-    let channel = SiftChannelBuilder::new(credentials)
-        .use_tls(use_tls)
-        .user_agent(grpc_user_agent(config.client_name))
-        .build()
-        .context("failed to build gRPC channel to connect to Sift")?;
-
+async fn run_server(channel: GrpcChannel, config: RunConfig) -> Result<()> {
     let has_rest_config = config.rest_config.is_some();
     let server = SiftMcpServer::new_with_client_events(
         channel,
@@ -264,29 +216,19 @@ fn start_chart_schema_download(
     }))
 }
 
-fn grpc_user_agent(client_name: ClientName) -> String {
+/// The gRPC user agent the caller sets on the channel it builds for this server.
+pub fn grpc_user_agent(client_name: ClientName) -> String {
     format!("{}/{}", client_name.as_str(), crate_version!())
 }
 
 #[cfg(test)]
 mod tests {
-    use std::future::Future;
-
-    use sift_rs::Credentials;
-
-    fn accepts_legacy_run<F, Fut>(_run: F)
-    where
-        F: Fn(Credentials, bool, String, bool, bool) -> Fut,
-        Fut: Future<Output = anyhow::Result<()>>,
-    {
-    }
-
     async fn server_with_schema_endpoint(
         rest_uri: String,
     ) -> (super::SiftMcpServer, tempdir::TempDir) {
         let cache = tempdir::TempDir::new("schema-startup-test").unwrap();
         let (client, _server) = tokio::io::duplex(1024);
-        let channel = sift_test_util::grpc::memory_sift_channel(client).await;
+        let channel = crate::test_util::grpc::memory_grpc_channel(client).await;
         let mut server =
             super::SiftMcpServer::new(channel, "https://app.example.test".into(), false, false);
         server.declarative_service = super::DeclarativeService::new(
@@ -410,11 +352,6 @@ mod tests {
         assert!(download.await.unwrap_err().is_cancelled());
         http.abort();
         serving.abort();
-    }
-
-    #[test]
-    fn public_run_keeps_its_legacy_signature() {
-        accepts_legacy_run(super::run);
     }
 
     #[test]

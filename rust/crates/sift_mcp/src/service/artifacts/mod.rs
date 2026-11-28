@@ -1,6 +1,6 @@
+use crate::grpc::GrpcChannel;
 use anyhow::{Context, Result, anyhow, bail};
 use sift_rs::{
-    SiftChannel,
     artifacts::v1::{
         ArchiveArtifactRequest, ArtifactCreatedVia, ArtifactDetails, ArtifactLinkInput,
         ArtifactStorageClass, ArtifactVersion, CreateArtifactRequest, GetArtifactRequest,
@@ -90,7 +90,7 @@ impl UpdatePath {
 
 #[derive(Clone)]
 pub struct ArtifactService {
-    channel: SiftChannel,
+    channel: GrpcChannel,
     policy: RetryPolicy,
     // Absent only when the server runs without a REST endpoint (some tests);
     // creating an artifact with a file requires it.
@@ -98,7 +98,7 @@ pub struct ArtifactService {
 }
 
 impl ArtifactService {
-    pub fn new(channel: SiftChannel, policy: RetryPolicy) -> Self {
+    pub fn new(channel: GrpcChannel, policy: RetryPolicy) -> Self {
         Self {
             channel,
             policy,

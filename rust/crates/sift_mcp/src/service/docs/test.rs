@@ -1,7 +1,7 @@
+use crate::test_util::{grpc::memory_grpc_channel, mock::docs::v1::MockDocsServiceImpl};
 use sift_rs::docs::v1::{
     DocHit, ReadDocResponse, SearchDocsResponse, docs_service_server::DocsServiceServer,
 };
-use sift_test_util::{grpc::memory_sift_channel, mock::docs::v1::MockDocsServiceImpl};
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
@@ -10,7 +10,7 @@ use crate::policy::RetryPolicy;
 
 async fn service_with_mock(mock: MockDocsServiceImpl) -> (DocsService, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()

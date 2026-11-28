@@ -1,14 +1,14 @@
 use std::time::Duration;
 
+use crate::test_util::{
+    grpc::memory_grpc_channel,
+    mock::{assets::v1::MockAssetServiceImpl, test_reports::v1::MockTestReportServiceImpl},
+};
 use rmcp::{ServerHandler, ServiceExt, model::ProtocolVersion};
 use serde_json::Value;
 use sift_rs::assets::v1::{ListAssetsResponse, asset_service_server::AssetServiceServer};
 use sift_rs::test_reports::v1::{
     ListTestReportsResponse, test_report_service_server::TestReportServiceServer,
-};
-use sift_test_util::{
-    grpc::memory_sift_channel,
-    mock::{assets::v1::MockAssetServiceImpl, test_reports::v1::MockTestReportServiceImpl},
 };
 use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader, DuplexStream},
@@ -125,7 +125,7 @@ async fn server_with_config(
         .returning(|_| Ok(Response::new(ListTestReportsResponse::default())));
 
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
     let handle = tokio::spawn(async move {
         Server::builder()
             .add_service(AssetServiceServer::new(mock))
@@ -337,7 +337,7 @@ async fn ignored_tools_are_not_listed() {
 #[tokio::test]
 async fn ignored_disabled_tools_are_known() {
     let (client, _server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
     let tool_name = TOOL_FEATURE_FLAGS[0].0;
 
     let server = SiftMcpServer::new_with_client_events(
@@ -373,7 +373,7 @@ async fn ignored_disabled_tools_are_known() {
 #[tokio::test]
 async fn ignored_update_tool_is_not_advertised() {
     let (client, _server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
     let update = update_available();
     let update_check = receiver(update.clone());
     let server = SiftMcpServer::new_with_client_events(
@@ -405,7 +405,7 @@ async fn ignored_update_tool_is_not_advertised() {
 #[tokio::test]
 async fn unknown_ignored_tools_fail_startup() {
     let (client, _server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let result = SiftMcpServer::new_with_client_events(
         channel,

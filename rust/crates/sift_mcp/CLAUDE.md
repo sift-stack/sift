@@ -36,7 +36,7 @@ Where things live:
 | `src/error/mod.rs` | gRPC-to-MCP error mapping and agent guidance (`from_anyhow`). |
 | `src/policy/mod.rs` | `RetryPolicy` and `with_retry`. |
 | `src/prompt/mod.rs` | Multi-step workflow prompts. |
-| `rust/crates/sift_test_util/src/` | gRPC test channel and `mockall` service mocks. |
+| `src/test_util/` | gRPC test channel and `mockall` service mocks. |
 
 Non-negotiables. These hold regardless of context pressure:
 
@@ -107,7 +107,7 @@ you cannot justify a tool against these rules, do not build it.
 
 Create `src/service/<name>/mod.rs` and declare it in `src/service/mod.rs` (`pub mod <name>;`).
 
-The struct holds a `SiftChannel` and a `RetryPolicy`, derives `Clone`, and has a
+The struct holds a `GrpcChannel` (`crate::grpc`) and a `RetryPolicy`, derives `Clone`, and has a
 `new(channel, policy)`. `service/assets/mod.rs` is the canonical paginated example;
 `service/ping/mod.rs` is the canonical simple (non-paginated) one.
 
@@ -126,12 +126,12 @@ Paginated skeleton (mirror `service/assets/mod.rs::list_assets`):
 ```rust
 #[derive(Clone)]
 pub struct WebhookService {
-    channel: SiftChannel,
+    channel: GrpcChannel,
     policy: RetryPolicy,
 }
 
 impl WebhookService {
-    pub fn new(channel: SiftChannel, policy: RetryPolicy) -> Self {
+    pub fn new(channel: GrpcChannel, policy: RetryPolicy) -> Self {
         Self { channel, policy }
     }
 
@@ -584,7 +584,7 @@ Wire a mock gRPC server to an in-memory channel:
 ```rust
 async fn service_with_mock(mock: MockWebhookServiceImpl) -> (WebhookService, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()
@@ -599,15 +599,15 @@ async fn service_with_mock(mock: MockWebhookServiceImpl) -> (WebhookService, Joi
 ```
 
 Set expectations with `mockall`: `.expect_<rpc>().withf(|req| ...).returning(|_| ...)`, and
-`.times(n)` to assert call counts. `sift_test_util/src/mock/test.rs` is the catalog of patterns:
+`.times(n)` to assert call counts. `src/test_util/mock/test.rs` is the catalog of patterns:
 canned responses, request matching, dynamic responses, pagination, and error returns.
 
 If no mock exists for your service, add one:
 
-1. Create `rust/crates/sift_test_util/src/mock/<service>/<version>.rs` with a `mock! { ... }`
+1. Create `src/test_util/mock/<service>/<version>.rs` with a `mock! { ... }`
    block over the generated server trait. `mock/assets/v1.rs` and `mock/data/v2.rs` are
    templates: list every RPC on the service trait.
-2. Declare the module in `rust/crates/sift_test_util/src/mock/mod.rs` (`pub mod <service>;`) and,
+2. Declare the module in `src/test_util/mock/mod.rs` (`pub mod <service>;`) and,
    if needed, the version in the service-level mock module.
 
 Minimum coverage to write for a list service:
@@ -715,6 +715,6 @@ Run through this before declaring the tool done:
       `tool/assets/test.rs::update_asset_blocked_without_allow_destructive`.
 - [ ] Service registered in `server/mod.rs` and the router merged.
 - [ ] Service tests added, covering single page, pagination, `limit`, and an error path. A mock
-      was added to `sift_test_util` if one did not exist.
+      was added to `src/test_util/mock/` if one did not exist.
 - [ ] Installed skill updated per `sift_cli/AGENTS.md` if the tool list changed.
 - [ ] `cargo build -p sift_mcp` and `cargo test -p sift_mcp` both pass.

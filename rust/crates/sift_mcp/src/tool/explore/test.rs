@@ -1,6 +1,6 @@
+use crate::test_util::grpc::memory_grpc_channel;
 use rmcp::handler::server::wrapper::Parameters;
 use serde_json::Value;
-use sift_test_util::grpc::memory_sift_channel;
 
 use super::*;
 use crate::{
@@ -13,7 +13,7 @@ const APP_URI: &str = "https://app.siftstack.com";
 
 async fn server_for_explore(app_uri: &str) -> SiftMcpServer {
     let (client, _server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
     SiftMcpServer::new(channel, app_uri.to_string(), true, true)
 }
 
@@ -234,7 +234,7 @@ async fn server_with_rest(
     allow_destructive: bool,
 ) -> SiftMcpServer {
     let (client, _server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
     let mut server = SiftMcpServer::new(channel, APP_URI.into(), allow_create, allow_destructive);
     server.declarative_service = service(rest_uri, root.path());
     server

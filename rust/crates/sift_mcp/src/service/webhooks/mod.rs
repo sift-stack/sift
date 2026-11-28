@@ -1,13 +1,11 @@
+use crate::grpc::GrpcChannel;
 use crate::policy::{RetryPolicy, with_retry};
 use crate::service::common;
 use anyhow::{Context, Result, bail};
 use reqwest::Url;
-use sift_rs::{
-    SiftChannel,
-    webhooks::v1::{
-        ListWebhooksRequest, ListWebhooksResponse, Webhook,
-        webhook_service_client::WebhookServiceClient,
-    },
+use sift_rs::webhooks::v1::{
+    ListWebhooksRequest, ListWebhooksResponse, Webhook,
+    webhook_service_client::WebhookServiceClient,
 };
 
 #[cfg(test)]
@@ -15,12 +13,12 @@ mod test;
 
 #[derive(Clone)]
 pub struct WebhookService {
-    channel: SiftChannel,
+    channel: GrpcChannel,
     policy: RetryPolicy,
 }
 
 impl WebhookService {
-    pub fn new(channel: SiftChannel, policy: RetryPolicy) -> Self {
+    pub fn new(channel: GrpcChannel, policy: RetryPolicy) -> Self {
         Self { channel, policy }
     }
 

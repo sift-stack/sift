@@ -1,9 +1,9 @@
 #[path = "bulk_test.rs"]
 mod bulk;
 
+use crate::test_util::{grpc::memory_grpc_channel, mock::assets::v1::MockAssetServiceImpl};
 use rmcp::{ServerHandler, handler::server::wrapper::Parameters, model::ErrorCode};
 use sift_rs::assets::v1::{Asset, ListAssetsResponse, asset_service_server::AssetServiceServer};
-use sift_test_util::{grpc::memory_sift_channel, mock::assets::v1::MockAssetServiceImpl};
 use tokio::task::JoinHandle;
 use tonic::{Response, Status, transport::Server};
 
@@ -22,7 +22,7 @@ async fn server_with_mock_and_flag(
     allow_destructive: bool,
 ) -> (SiftMcpServer, JoinHandle<()>) {
     let (client, server) = tokio::io::duplex(1024);
-    let channel = memory_sift_channel(client).await;
+    let channel = memory_grpc_channel(client).await;
 
     let handle = tokio::spawn(async move {
         Server::builder()

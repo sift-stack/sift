@@ -1,4 +1,4 @@
-use crate::mock::assets::v1::MockAssetServiceImpl;
+use crate::test_util::mock::assets::v1::MockAssetServiceImpl;
 use sift_rs::assets::v1::{
     Asset, GetAssetRequest, GetAssetResponse, ListAssetsRequest, ListAssetsResponse,
     asset_service_server::AssetService,
